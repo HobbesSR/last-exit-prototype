@@ -154,6 +154,10 @@ try {
   assert.equal(Object.hasOwn(diagnostic, 'ownerKey'), false);
   assert.equal(Object.hasOwn(diagnostic, 'players'), false);
   assert.equal(diagnostic.server.ok, true);
+  assert.equal(diagnostic.renderer.type, 'webgl');
+  assert.ok(typeof diagnostic.renderer.adapter === 'string' && diagnostic.renderer.canvas.width > 0, JSON.stringify(diagnostic.renderer));
+  assert.ok(diagnostic.crowd.received >= 1 && diagnostic.crowd.shown >= 1, JSON.stringify(diagnostic.crowd));
+  assert.ok(Number.isInteger(diagnostic.timings.sinceJoinSeconds) && diagnostic.content && diagnostic.map.width > 0);
   await page.getByRole('button', { name: 'End match & save replay' }).click();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().waitFor();
   // Playback follows the wall clock, so these deadlines are real time plus headroom for the coarse
