@@ -25,7 +25,8 @@ everything under `tests/*.test.js`. Dated counts and timings are in
 [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). `npm run test:all` adds
 `tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
 fixture, and bots completing whole matches. Those slow tests sum to about four minutes
-by default, and their evidence only moves when generation or simulation moves.
+by default, plus about half a minute for the builder sweeps below, and their evidence
+only moves when generation or simulation moves.
 `tests/slow/room-sizes.test.js` runs only the 12 × 6 room unless asked
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
 the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
@@ -87,9 +88,28 @@ macro's own config does.
 
 The compound's multi-mask room/court route sweep lives in
 `tests/slow/micro-compound-access.test.js`; the fast delegation file keeps the
-concave seed-1 and gate/crossing regression witnesses. The fast compound file
-shares identical generated inputs across its ring, portal and observer checks
-without dropping its original seed/parameter coverage.
+concave seed-1 and gate/crossing regression witnesses.
+
+A builder's portal-promise sweep is the same promise on the same masks and parameters
+at every seed, and most of its cost is the reach searches. The fast tier keeps a witness
+and the original seeds run in `tests/slow/` (#543, measured in
+[42.3](42.3-generation-and-delegation-evidence.md#builder-test-headroom-543-2026-10-27)):
+`micro-block-promise` runs the first of four seeds on each mask and
+`slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds and
+`slow/micro-plant-promise` all eight; `micro-compound` runs two of four seeds of its
+portal, roofed-ring and observer checks, sharing identical generated inputs between them,
+and `slow/micro-compound-sweeps` runs all four. Each pair calls one function in
+`tests/helpers/` (`block-promise.js`, `plant-promise.js`, `compound-sweeps.js`) with a
+different seed list, so the assertions cannot drift apart. `test:micro` runs only the fast
+files: a builder change that moves a type's output also runs that type's slow file, for
+example `node --test tests/slow/micro-plant-promise.test.js`. Narrow a sweep this way, by
+moving its seeds to the slow tier, only where the fast tier keeps a witness of the same
+promise; do not narrow it by shrinking a grid or relaxing generation.
+
+An access test routes from the portal stand nearest each target (`standNear` in
+`tests/helpers/stands.js`), not from the region's first portal. A search ends at its
+target, so the nearest stand costs a fraction of the first, and it proves the same thing:
+the portal promise joins every portal's stands, and each builder's own sweep owns that.
 
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus isolated browser previews. Its unit files run one at a
@@ -170,7 +190,9 @@ and the slow `map-library`; they are the first candidates, not a precedent.
 Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 `cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder
-contract runs, `reorderedBrief`), `listen.js`, `browser.js`
+contract runs, `reorderedBrief`), `block-masks.js`, `plant-fixtures.js` and
+`compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and slow files
+share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
 (the bench and demo `--key=value` map), `room-harness.js` and `machine-lock.js`. The
 maintained command-line tools share `tools/options.mjs`; the one-off audit scripts
