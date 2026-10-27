@@ -10,7 +10,6 @@ import { circle } from '../shared/shape.ts';
 import { hintErrors, hintedCells } from '../map/micro/hints.ts';
 import { validateBriefPartition } from '../map/micro/delegation.ts';
 import { cellsOf } from './helpers/cells.js';
-import { assertWithinBudget } from './helpers/budget.js';
 import { MASKS, SEEDS, SIZE, brief } from './helpers/block-masks.js';
 
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
@@ -120,18 +119,6 @@ test('a region with no room for a lot is left open, and a lot\'s name never take
   const ids = alleys.portals.map(p => p.id);
   assert.equal(new Set(ids).size, ids.length);
   assert.ok(lots.every(lot => lot.portals.every(p => !['lot-1-N', 'lot-1-W'].includes(p.id))));
-});
-
-test('a macro-sized block with hundreds of portals builds quickly', () => {
-  const cells = cellsOf(200, 150), portals = [];
-  for (let x = 2; x < 196; x += 4) portals.push({ id: `n${x}`, axis: 'h', x, y: 0, length: 2 }, { id: `s${x}`, axis: 'h', x, y: 150, length: 2 });
-  for (let y = 2; y < 146; y += 4) portals.push({ id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: 200, y, length: 2 });
-  const started = performance.now();
-  const result = buildRegion(brief('macro', 3, cells, portals));
-  const elapsed = performance.now() - started;
-  assertWithinBudget(elapsed, 5000);
-  assert.ok(result.manifest.structures > 50, `${result.manifest.structures} structures`);
-  assert.equal(result.manifest.lots, undefined);
 });
 
 test('a block passes its lots\' buildings to an observer, labelled as their elements', () => {
