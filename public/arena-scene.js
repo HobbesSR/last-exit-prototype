@@ -1,5 +1,5 @@
 import { visibilityPolygon, gateShape, insideMap, sweptClear } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, buildingOpenings, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { bodyRadius, bodyShape } from '/shared/physics/presentation-geometry.ts';
 import { createShapeVisibility } from '/shared/view.ts';
@@ -655,6 +655,9 @@ export function makeArenaScene(api) {
       const insideMembers = inside ? (this.roofMembers.get(inside.id) || [inside]) : [];
       const insideGroupIds = new Set(insideMembers.map(m => 'groupId' in m ? m.groupId : m.id));
       const insideIds = new Set(insideMembers.map(m => m.id));
+      // Every roof on the map steps its fade each frame, near the view or not, so this grows with map size.
+      start('render.roofs');
+      const openings = buildingOpenings(map);
 
       if (map.roofs?.length) {
         for (const roof of map.roofs) {
@@ -662,7 +665,7 @@ export function makeArenaScene(api) {
           if (!roofObj) continue;
           const isInside = insideGroupIds.has(roof.groupId) || insideIds.has(roof.id);
           const members = this.roofMembers.get(roof.id) || [roof];
-          const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye));
+          const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye, openings));
           roofObj.alpha = stepRoofAlpha(roofObj.alpha, revealed, fadeMs);
           roofObj.visible = roofObj.alpha > 0 && nearView(roof.bounds.x + roof.bounds.w / 2, roof.bounds.y + roof.bounds.h / 2);
         }
@@ -673,10 +676,11 @@ export function makeArenaScene(api) {
         if (!roof) continue;
         const isInside = insideIds.has(building.id);
         const members = this.roofMembers.get(building.id) || [building];
-        const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye));
+        const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye, openings));
         roof.alpha = stepRoofAlpha(roof.alpha, revealed, fadeMs);
         roof.visible = roof.alpha > 0 && nearView(building.x + building.w / 2, building.y + building.h / 2);
       }
+      stop('render.roofs');
       start('render.tiles'); this.updateTiles(); stop('render.tiles');
       // Sub-pixel map labels become illegible smudge below LOD_LABEL_ZOOM; hide them until the camera zooms in.
       const showLabels = zoom >= LOD_LABEL_ZOOM;
