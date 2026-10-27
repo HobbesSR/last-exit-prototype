@@ -1,0 +1,4572 @@
+{
+  "audit": "block-planning-compare-1",
+  "createdAt": "2026-10-27T17:45:35.251Z",
+  "node": "v24.15.0",
+  "head": "409d1f249bf3ef944a9b680b5a44c641607e64c8",
+  "trackedStatus": "M docs/42.3-generation-and-delegation-evidence.md",
+  "sourceSha256": {
+    "map/chain.ts": "ea39b69502ac67c299c25f606f8bf9efd6c703b28b6d8ed0d16d6c9269dc4da2",
+    "map/engines.ts": "c84afeff3622e69e350e5e6e3f9382c6e0fed25f6cf0b19e79a56346fcd0fc9a",
+    "map/kernel/cell.ts": "e9c28027b21699a9aefc5321e5a0b32cca38f271ea922c2df911b576ee92e8cb",
+    "map/kernel/contract.ts": "07fa33036e2dc208504159ba4ad00fabd908ca3d9640170893eefd6800cc4824",
+    "map/kernel/margins.ts": "2666c47ee596b0f3c259988b60867d39aa0b4511baf56080f1fa0ae1d7e868db",
+    "map/kernel/run-cases.ts": "7c3eccd9eff19f7a0793c00cd8028c1baa8fc42451772c5e3c858388cd0c37a0",
+    "map/kernel/run.ts": "3df6102ff54e3185b03038456d8321a853c69ee2d7f39bfa0d5e3a8d660965d0",
+    "map/kernel/scale.ts": "cb97135c22b8c3da2c7da525f205c925b7d941705232b2b288ea5063309cdf78",
+    "map/macro/content/common-primitives@2.json": "ad73b63e8ac5893f9c81efb85f6d61b68260440109f97ce1466dce532ccd174a",
+    "map/macro/content/common-primitives@3.json": "247fbdfb66f6d0c1ddf9e50bab992172f4b91eadfc621adaa301cd7f1fbec416",
+    "map/macro/content/common-primitives@4.json": "d3732b6b75eef7fa80358dd26873de910cae0095a54787427249c8fe85700e24",
+    "map/macro/content/common-primitives@5.json": "01a16bc4b1192e56f2a743955cbe06741ac38f2c09284198805fdc070a1e3233",
+    "map/macro/content/common-set-pieces@2.json": "45a7aa1ff6d101241e13a9427d46d7d029dd40ce74c8ed34965d3ae824662ef6",
+    "map/macro/content/common-set-pieces@3.json": "d3668b4e80e6b55bc215cc1da7278bd38df42c0ca1522b74792306c880627fc5",
+    "map/macro/content/common-set-pieces@4.json": "fe90c8b1f549cd92d1db60322d935964fa95ac661b7697a1ae3bf25cb243f43b",
+    "map/macro/content/common-set-pieces@5.json": "51f9ab2c8ec13da4ccb572f36452937c4dd1b5e28b77cf117abaffa7b8830928",
+    "map/macro/content/diamond-12x6.json": "a1f6551fa5ac08e3b7c22d1a69997ae2e3e05161da88c78462157f259d90881d",
+    "map/macro/content/diamond-24x12.json": "e35c6fb0e2471ded4151b14c01acb74a8f168673475b295e3cf5e81a80fe890e",
+    "map/macro/content/diamond-36x18.json": "65a94b31beffd6103829c3fa8218bb834f619b01dcf516a11bb342150b587c55",
+    "map/macro/content/district-set-pieces@1.json": "c5a076cd930e07ffe9b1ff8ba7723d6a4c7c133fae787221f2132b321e697aee",
+    "map/macro/content/district-set-pieces@2.json": "f96f1777e13272dcad2d742e06827089d5829e7560381148613c3c0415172b5d",
+    "map/macro/content/district-set-pieces@3.json": "9c0354e9f3b4f02b63b11a66c0fcabdf2d4a7304ca2db7046b99d890ace80181",
+    "map/macro/content/district-set-pieces@4.json": "ad141a957fb346506019e4b05101eb848312f4851ea3d1aa2816c9ecb2f26086",
+    "map/macro/src/bson.ts": "b7e293fa3db80ee613a2bf9618e5b4910e2444fe3520d353fba386e1aef80b8d",
+    "map/macro/src/chain/briefs.ts": "863dd442d725d06ba9d4c1f6e601f403c46491f8d3fd756d195d40a2a803d390",
+    "map/macro/src/chain/declared-grid.ts": "2675f3c9c3824307b0ba74f64ca4b1430fd1e1bcb5ef75467cbf6d4d924c62f0",
+    "map/macro/src/chain/library.ts": "37d1b4c67ae9fc98b587cd4a06c53645bafe4f30dbc584af8e43c37a2aa5b03a",
+    "map/macro/src/chain/map.ts": "2b6e98f9b58a8ef5d8dde77f986b11beb30726aa0de23c1d19583aa05d5c7a4e",
+    "map/macro/src/chain/measurement.ts": "0fa1808f8a9f576e56b31692cabc6fa066226ed67d1303d718dbb6166644237f",
+    "map/macro/src/chain/open-face.ts": "0944b24752ad283aaa6f22a56de7f4f249fc5d1822224a114b622ef37cfd2f9b",
+    "map/macro/src/chain/placement.ts": "90e71c750ec46ef7efce6530b3e404c0410f5f9e88c0914d8e6bcbda6d452bb6",
+    "map/macro/src/chain/proof.ts": "81e61a49c67d8d3a32d71c2e0a589557e7d3d695a88f49c6558e37f221abe4b5",
+    "map/macro/src/chain/random.ts": "c34fb800cfb52a3a612a2a46184d7330ba4f151e115097d797f8cffe6a8ce9e6",
+    "map/macro/src/chain/regions.ts": "b514e2cdb178c46ae5fb72af97f1c3518f6ff6b6bb06a41870b00480a396d38d",
+    "map/macro/src/chain/resolution.ts": "5d34c173038932182f9aff5c2f17a9abba8f6320ac8d1cb5bba38850e35383e7",
+    "map/macro/src/chain/saving.ts": "f677d41496f3cc3ec5b70241b96e27813866235086cfc8bd39fa076ac4d6f068",
+    "map/macro/src/chain/types.ts": "5a54ee15f4b9d4dbe05fa4e0e5615394dafe1416a17664d6b8f126cee11a17c2",
+    "map/macro/src/chain/zone-plan.ts": "ebb688a89ff0ef9f74231ff08acafe301697746b6ed5ef638f1804593044fceb",
+    "map/macro/src/chain/zones.ts": "463d0c846e75756f676f1ac513f029fb91160b437235275577fb6dee0b462203",
+    "map/macro/src/coding.ts": "9b30a1b1ac56d775c7bf4023f17ca1cb710838c7a9efc8bea5daf8cb4674c357",
+    "map/macro/src/wfc.ts": "9925b9457d0fcd6f8ae30cd0943558058ab7f9eb10a3bcf60ea0d41618620a66",
+    "map/micro/adapter.ts": "9171273415b1cbad70f6fda8d6fb3aa829c35215e06a840f45f3e56507bc6afe",
+    "map/micro/addressed.ts": "7eeaddad8c27a6800e9a41c559e234e88cbef64f2e2552f5baee5a49809e869e",
+    "map/micro/brief-link.ts": "1eee0c7f965ca2c99fe4a690b90624868817e83eadfc007826177d835e6919b1",
+    "map/micro/building/allocation.ts": "53dafbd63fe7ee166ed4dc2b4e7796c4ba54ae9964a0b02d5c895535e3d2a4d5",
+    "map/micro/building/boundaries.ts": "1d7a1df7630718f72760fdf22aa620a0db6a48e5f6b4f663d31b0a5cbf597461",
+    "map/micro/building/decals.ts": "687adc01cfa030dcdbd5290bbbaf56f5a0c526c7a479312d9042a8ac0f56fa02",
+    "map/micro/building/design.ts": "9cef0c7d61ccff7de5db744ff56ac35a2de8bdfe246934ae03d27fa1154c5ff1",
+    "map/micro/building/draw.ts": "b36bcc753233cdace57dccd1c5da94392a1d2f0c7dc43975bab1a20481ea6b72",
+    "map/micro/building/groups.ts": "0278231f152c3c857a2bb2b100f4651727641d9edc9a2a40bcb350a9770e5d31",
+    "map/micro/building/openings.ts": "ed0a7caf63f575538864c69418b048c0a9dc6cdee6dd346b879af4964cb10002",
+    "map/micro/building/pieces.ts": "8cf38155b8333927dde6c0c75dadfc78af8dc2387a9d5f7fd9068d7db6c0c93b",
+    "map/micro/building/realize.ts": "e4900b2758d332936339eda3f76279248fe426ba5b33b0749bddcb85cd2a1e6d",
+    "map/micro/building/trace.ts": "304ae07486e16228a6d5c922e6018b2eb101afdd02bdffec55fa9deab5171905",
+    "map/micro/building/walls.ts": "3db64074e54dfa4f6184ab46a06fb888fc36539385b7549f77fd3ea74db8c4b1",
+    "map/micro/canvas.ts": "c8e33e23fff49727ddd35fe69207a692ecaa8442b7855acd9983e80be8d744ab",
+    "map/micro/components.ts": "3bf2b7a3ac9896427d7ccb59d968c9a773e24c3de63956ea846966896874ee38",
+    "map/micro/compose.ts": "fbd15f94bd3787ae1ba682316bc082549c38a5f2504e64bffc71a0a2e504c3f0",
+    "map/micro/decomposition/allocation.ts": "1d92207352bb68aedf0c75fe7cb90ef7450433dfba0d12f1fc765839d3a06e4f",
+    "map/micro/decomposition/analysis.ts": "f88e0b0f78755f1b21f0a6226c05d05e9c6a050915edd5101060690995f309a3",
+    "map/micro/decomposition/context.ts": "9c791356cb59cda50540a63ee62a481c35abab32f4a3862118fade9c55e50f01",
+    "map/micro/decomposition/example.ts": "728075e1cd6816fc2f392a789f3595394045e9daee93ab97d6cb1ab14e9e49d4",
+    "map/micro/decomposition/explore.ts": "e41fd55b5558fa99e2b4aaef6af096e7c9809af44b6d9d1c5078cc8c8125f29b",
+    "map/micro/decomposition/interfaces.ts": "044ecef551b6eda5a05bb05e341bda25c60cc71fcec7b6f6c9457fc9baf82969",
+    "map/micro/decomposition/types.ts": "505c1726da6afbd2c0638c282ce0f269cff043d2df2be7275deed57afd18999d",
+    "map/micro/decomposition/validate.ts": "05489d38bf21202fc803d3226d08c6726dfa64b55f8f45ca436ae5bd07a7db8a",
+    "map/micro/decomposition/work-budget.ts": "1252bed0bfff1e290d745eaaa7522f360f197556ba4dce50e7090237c4a31ea9",
+    "map/micro/delegation-execute.ts": "8007e4d7c00d2e81e8ef08e1467965722bc6138021dc05648f722e3e166fca7d",
+    "map/micro/delegation-json.ts": "d4a06d6b35cc86d80cbb4591887ce2b535a98ffcad73fd70d2d880f5c992eba2",
+    "map/micro/delegation-snapshot.ts": "5798f57087ec8433769208035e8f025f97a8692e69bf5d1b94a80405d30e8c58",
+    "map/micro/delegation.ts": "3dc809aaed865e6de931ee6c8845747d4d7c86d624d2852d55c6bb4f6a8d9773",
+    "map/micro/diagnose.ts": "0402e182112d1f7ef513071bd3a9c524dc51d8931fd1c171d3a7a46b2b5fa275",
+    "map/micro/difference.ts": "214483261a8e5e17bef722f97654a7f0c34b3eeca5b1777bd4232c9386cf4a37",
+    "map/micro/fill.ts": "9bcec96bc6c2cc6e735168feaf905fbbb187e6e877f67199fe83f53091393fac",
+    "map/micro/geometry.ts": "d742f5934c3778f3757b6fd7f01c87bbeea17dff26f420f01c044f92926acd6d",
+    "map/micro/hint-walls.ts": "15b33f3eea10dcdbc03a45a274781ad23aca5bbc971f3fae30b37ded248a091f",
+    "map/micro/hints.ts": "db6ab1a799bc2922110c9d55f15fd749296038e06052a5a2cb1af68cbec8bbb8",
+    "map/micro/limits.ts": "ca6849810e0feaf65c0f1de551ff73cdf6a4c0b4fea3fcc784c4d8dd9aa11cbf",
+    "map/micro/margins.ts": "ea9ca3154e77660a159dffe7fd57c6168dccd5f75c7e3e694a5877287cea7598",
+    "map/micro/metrics.ts": "c9e6b182ed3dad6510329cd1f4904addb362b10290aba59d12f3683b4189cb27",
+    "map/micro/placeables/checkpoint-barrier.ts": "91ca99c3c9e24398f299411983de7536116e7d7a9e440805b840dc84faa361e0",
+    "map/micro/placeables/compound-ring.ts": "f6c277f49414b4c511432cd6c7a2f782e9958c2b2ec68db28a12aa4ee8fa69d3",
+    "map/micro/placeables/container-row.ts": "c6ce749af6e21b44e816fd832e3390a6a49e4be1e9ce4727d1b913eb4a5b340a",
+    "map/micro/placeables/cover-piece.ts": "49cde3bb086ed192e03137bb5c915620422236cee8b4e4f387ed6016b9430989",
+    "map/micro/placeables/fallen-slab.ts": "e75241439b3bf38f80cebd017439d6621b04ab58f6ee92d6bab411a80c511f45",
+    "map/micro/placeables/frame.ts": "2e91d71465f286bde48ec2e702113a979d8e019b4cdfb10a9426608b86224fa9",
+    "map/micro/placeables/hall-pillar.ts": "d2c687921c73e813049abf5d6f48932d2eb7d3d7e9362c8b5c4a147ece9eb38b",
+    "map/micro/placeables/house.ts": "50086c74c39d719e4fd192c450ad69331f647e1749c4aee0e1604ef8c8f4038d",
+    "map/micro/placeables/index.ts": "087a5a4e713bf6851f64d875c66753eef2cad262b2d1afc88606186d2447f546",
+    "map/micro/placeables/park-hedge-run.ts": "34be4220d6ce7d7805195f4d00f3a0e609e98e889eb5da009bbe771de5947874",
+    "map/micro/placeables/park-tree.ts": "ac546bae1ef3ff19caf18d3f9b49b286cbba4c8111af88d602bc83436da86cf5",
+    "map/micro/placeables/placeable.ts": "4962aa7316d8981c297161350ca2c480434a2c98964966a6d321a4f9bfc900d1",
+    "map/micro/placeables/plant-machine.ts": "9efb5f2ae3f0033f317e5d657c658a046133f00e474a1fbd3ff02550870b4d51",
+    "map/micro/placeables/plant-pipe-run.ts": "cd69bc864836f158d44a8ec3f75044a4c055bad06661da533583d73cf8d1101c",
+    "map/micro/placeables/rubble-debris.ts": "c357506c4bfaae4371ffe0fc26e02d38c8f7fb01961c6ad16faf864a0b083bab",
+    "map/micro/placeables/ruin-room-span.ts": "6ff26adef3b00c6b8041d4c9ffe4095b6a356e63903ecf80686258edb6ac1d49",
+    "map/micro/placeables/wall-run.ts": "8568870b575bddb4f9805c5b5fcef1979a50312f3c1119095bb328a8574b7269",
+    "map/micro/placeables/warehouse.ts": "ff089cd6ec2c882ba61bc2e8c05d150f2e850554de1b346618e7d538df1e52bb",
+    "map/micro/placement.ts": "74c48c9dd7d2f32839fcdec7136f8a8afa8b895e636df1c3a0dc231764e364e2",
+    "map/micro/port-terms.ts": "f6ea8108cd7046d94ea837395e77ac8bf770e82426e421241c1731aa5d8e1e6b",
+    "map/micro/portals.ts": "0cd9205e7345c1f1231644416acb9609caf08f6cf0661431a182cb0e990c1d71",
+    "map/micro/random.ts": "63acf74f671a241210f69096939d7150f7c84d13efbb23d17f003c332924e6b2",
+    "map/micro/region-examples.ts": "9c30b8a159e7ce0f54b5de52e75469b744de78da3adaf7a36fb2159c1f8b3048",
+    "map/micro/region-types.ts": "9dd1cf95a9f7a5bce8e6f19f3fe0469dfc7f433929b44558cfdebff25db7e307",
+    "map/micro/result.ts": "e60cca487ddfdccdc6252756c99bec51cb451ae3c1b38cac688d7b136d856ec8",
+    "map/micro/sdk.ts": "ec62ecb209c8045daed6f38aa495818d7324034cd594c55c8ab40d85a8862350",
+    "map/micro/strategies/arrival.ts": "01ea45c73f15b97353587f0d4d29b7ac5b5b8534d8a3af584041b261c7d227a9",
+    "map/micro/strategies/block.ts": "08893a59c9c44614ba8e237a958aca1f272866d63e1b260d3a9fb40efb6b84c9",
+    "map/micro/strategies/charging.ts": "2842304f47f9a3d8fea365c3e541bfa7235e2bace4419d1c9ad6a3ba879070e3",
+    "map/micro/strategies/checkpoint.ts": "9f93af0f824a62faa5f1a0214d87e44ae818afe646529acc368114897d8106fb",
+    "map/micro/strategies/compound.ts": "9330a70c6b986f37bc9d5a99b1464c2eb018fae9acefd804e7ad0dc0725ef9f9",
+    "map/micro/strategies/cover.ts": "a4162ba67eb2bfc44199054ee74b8e54b8f144a4b46fc2394b857b4ef18d69d7",
+    "map/micro/strategies/departure.ts": "740e3bc23b3456ff205c1b13d6443ee3b22b114d2f6341dc2d1c8daa1c454fb0",
+    "map/micro/strategies/depot.ts": "1e921445070cce8f8d8173fc01880fe14ac7c675dd0b73c0b503dcb0684e6dc4",
+    "map/micro/strategies/hall.ts": "a085d607e7ecf6e4f5d4388824878870e9bc2d43920adfd8fcdf87af0581db85",
+    "map/micro/strategies/hut.ts": "3360d11816a04adc7ef4a7c8b2957c6341d65b63f1af181a372ac701efeda2ba",
+    "map/micro/strategies/infill.ts": "43dabcfcfc430ec3d844ed5290df3674b9bd7308e0b83e196e7ee1ac41e30191",
+    "map/micro/strategies/lattice.ts": "e7ea144e1c4901ef4ef1aa48012c74f8171727d4e4f23458d47f8f9b90f2c4c5",
+    "map/micro/strategies/open.ts": "841a7dfc80a1d5c8c6ddb0f7be60a4bd7c7c00fb5bc274d56f10e6d1fce3da8f",
+    "map/micro/strategies/park.ts": "07715d72ba4c3afa4b203364dade5a57c51890f46b856e0776466c27d0a206dc",
+    "map/micro/strategies/plant.ts": "968b89a12585d98c5ab1a34ffec2adcd9b0b007827e4b2ea7e261c68975bf0e0",
+    "map/micro/strategies/rubble.ts": "2034d0332f25e8d83f32f3168ca78a5fd91b98a23d32129cfc59949cb01306bb",
+    "map/micro/strategies/ruins.ts": "cea7e570f3cba9f93c8ab7518704343d630f872db00ee605cbc591e206496aa3",
+    "map/micro/strategies/scatter.ts": "13c6118a52bc62f1a54850733893d6814681425cd5ebfcba91fbd0e540797435",
+    "map/micro/strategies/transit.ts": "9ada521aa4195164ad0771e08ce5a4a02486950db4f2f99fcd58a43d143bd792",
+    "map/micro/types.ts": "3b5322424471c635ffa34bdb1a0d30ef48e12bc11f9ff38ac8ece35d158ef20e",
+    "shared/shape.ts": "909892d034c74f8a83b0791902d27cd463366901ad571c03c0a399cf3d3e5b9d",
+    "tools/block-planning-compare.mjs": "ddad7bda2f3a2fb57ea12cfd3c39c5311a7213211f8339d6edb89fca340269f2"
+  },
+  "quick": false,
+  "mapSamples": [
+    {
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 12,
+        "zoneHeight": 6
+      },
+      "recipeSha256": "67a0c318fd6be24b4c7d2a87b42f95fc957e02588abc4e8231d6abd5e929af66",
+      "blockCount": 1,
+      "mapDefects": []
+    },
+    {
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 24,
+        "zoneHeight": 12
+      },
+      "recipeSha256": "f216fa2b3ab1075de19ae31361ff08a9993abf79c67dd70c3805622d97d1c1f7",
+      "blockCount": 4,
+      "mapDefects": []
+    },
+    {
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 36,
+        "zoneHeight": 18
+      },
+      "recipeSha256": "6cbd7bffc073d8ce1735e5afb013da465d45e22b6e53d3faabd44275c6243c29",
+      "blockCount": 2,
+      "mapDefects": []
+    }
+  ],
+  "summary": {
+    "default": {
+      "cases": 19,
+      "unusable": 0,
+      "casesWithDefects": 1,
+      "defects": 1,
+      "physicalDensity": {
+        "measuredCases": 19,
+        "lotCells": 18653,
+        "lots": 104,
+        "elements": 913,
+        "loot": 574,
+        "cells": 29202,
+        "freeCells": 27239
+      }
+    },
+    "sdkExperimental": {
+      "cases": 19,
+      "unusable": 2,
+      "casesWithDefects": 2,
+      "defects": 4,
+      "physicalDensity": {
+        "measuredCases": 17,
+        "lotCells": 6021,
+        "lots": 28,
+        "elements": 292,
+        "loot": 146,
+        "cells": 16242,
+        "freeCells": 14981
+      }
+    }
+  },
+  "pairedDensity": {
+    "game": {
+      "cases": 5,
+      "ids": [
+        "12x6/block@144,150",
+        "24x12/block@174,132",
+        "24x12/block@174,210",
+        "24x12/block@504,264",
+        "36x18/block@504,294"
+      ],
+      "variants": {
+        "default": {
+          "lotCells": 6016,
+          "lots": 22,
+          "elements": 256,
+          "loot": 192,
+          "cells": 8640,
+          "freeCells": 7834
+        },
+        "sdkExperimental": {
+          "lotCells": 3960,
+          "lots": 15,
+          "elements": 210,
+          "loot": 120,
+          "cells": 8640,
+          "freeCells": 7946
+        }
+      }
+    },
+    "lab": {
+      "cases": 11,
+      "ids": [
+        "rectangle-24x18-1",
+        "rectangle-36x30-1",
+        "l-24x18-1",
+        "l-36x30-1",
+        "hole-24x18-1",
+        "hole-36x30-1",
+        "neck-24x18-1",
+        "cross-24x18-1",
+        "cross-36x30-1",
+        "stair-24x18-1",
+        "stair-36x30-1"
+      ],
+      "variants": {
+        "default": {
+          "lotCells": 4008,
+          "lots": 33,
+          "elements": 258,
+          "loot": 80,
+          "cells": 6762,
+          "freeCells": 6389
+        },
+        "sdkExperimental": {
+          "lotCells": 1944,
+          "lots": 11,
+          "elements": 80,
+          "loot": 26,
+          "cells": 6762,
+          "freeCells": 6229
+        }
+      }
+    }
+  },
+  "determinism": [
+    {
+      "id": "12x6/block@144,150",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "7a5f0d1886eba32ebd287b48d71653017359691b71a2585100c8efef04061934",
+      "reversedSha256": "7a5f0d1886eba32ebd287b48d71653017359691b71a2585100c8efef04061934",
+      "exactSame": true
+    },
+    {
+      "id": "12x6/block@144,150",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "ead4323b00ced9b1d150166f303629453a782699f73a3d0804660a3e30a7d6d2",
+      "reversedSha256": "ead4323b00ced9b1d150166f303629453a782699f73a3d0804660a3e30a7d6d2",
+      "exactSame": true
+    },
+    {
+      "id": "24x12/block@174,132",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "b2d820c91107806a5b9fa0523466f7ebec9275d40ce2c4847cc153ae5f55fdc9",
+      "reversedSha256": "b2d820c91107806a5b9fa0523466f7ebec9275d40ce2c4847cc153ae5f55fdc9",
+      "exactSame": true
+    },
+    {
+      "id": "24x12/block@174,132",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "e1940a8238f821632780590e5ba9437ad1fe7b846b74022e137ba85ed5108a2f",
+      "reversedSha256": "e1940a8238f821632780590e5ba9437ad1fe7b846b74022e137ba85ed5108a2f",
+      "exactSame": true
+    },
+    {
+      "id": "36x18/block@432,330",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "320ddb2b8d491e57964e1020b80a0ec9d676e6e56d7ef235537a8d31f1caf8e9",
+      "reversedSha256": "320ddb2b8d491e57964e1020b80a0ec9d676e6e56d7ef235537a8d31f1caf8e9",
+      "exactSame": true
+    },
+    {
+      "id": "36x18/block@432,330",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "72cb0f404c3f6d3dae8deb2fb1872bb018c71d0e426cd307902ead9f6b7ad287",
+      "reversedSha256": "72cb0f404c3f6d3dae8deb2fb1872bb018c71d0e426cd307902ead9f6b7ad287",
+      "exactSame": true
+    },
+    {
+      "id": "rectangle-24x18-1",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "f120946d50d23199ec2e6cbd4d45229c88fc772fe10118d7ff31c460aed16a96",
+      "reversedSha256": "f120946d50d23199ec2e6cbd4d45229c88fc772fe10118d7ff31c460aed16a96",
+      "exactSame": true
+    },
+    {
+      "id": "rectangle-24x18-1",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "1aa94022e2d83650777bcbe2bdf0033d879512622bab6ea887d3794b64a16abf",
+      "reversedSha256": "1aa94022e2d83650777bcbe2bdf0033d879512622bab6ea887d3794b64a16abf",
+      "exactSame": true
+    },
+    {
+      "id": "l-24x18-1",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "c016dd73455c9c9ce7a36c72c13141458e1deecb26b28afca2700039965111d4",
+      "reversedSha256": "c016dd73455c9c9ce7a36c72c13141458e1deecb26b28afca2700039965111d4",
+      "exactSame": true
+    },
+    {
+      "id": "l-24x18-1",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "82a28a1633d4ae98e26e009604559d582be5419c601be12081da43bf07ec3ca8",
+      "reversedSha256": "82a28a1633d4ae98e26e009604559d582be5419c601be12081da43bf07ec3ca8",
+      "exactSame": true
+    },
+    {
+      "id": "hole-24x18-1",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "c0c6bd121650fbda36f94804d511a7cccac8e955fd3837c2bbfc56bf0066eca0",
+      "reversedSha256": "c0c6bd121650fbda36f94804d511a7cccac8e955fd3837c2bbfc56bf0066eca0",
+      "exactSame": true
+    },
+    {
+      "id": "hole-24x18-1",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "dd6b3c1fe39edfca3d7af7f3d0347997e4750fea1ed752ad89d23d7ed34ee72f",
+      "reversedSha256": "dd6b3c1fe39edfca3d7af7f3d0347997e4750fea1ed752ad89d23d7ed34ee72f",
+      "exactSame": true
+    },
+    {
+      "id": "neck-24x18-1",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "1a78c3bacbb4317b8f0f6a435dafc35b99be7b354eea42ac0d6c2934a13cb7d5",
+      "reversedSha256": "1a78c3bacbb4317b8f0f6a435dafc35b99be7b354eea42ac0d6c2934a13cb7d5",
+      "exactSame": true
+    },
+    {
+      "id": "neck-24x18-1",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "19d8c05ad49b5b97559802e0b873f3d3b2b0235ffa61e907d9ef08033c28c818",
+      "reversedSha256": "19d8c05ad49b5b97559802e0b873f3d3b2b0235ffa61e907d9ef08033c28c818",
+      "exactSame": true
+    },
+    {
+      "id": "cross-24x18-1",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "9d50462ca399eb6b70b81b4d093708d754c331cd2e8ff042c19a542113e98e06",
+      "reversedSha256": "9d50462ca399eb6b70b81b4d093708d754c331cd2e8ff042c19a542113e98e06",
+      "exactSame": true
+    },
+    {
+      "id": "cross-24x18-1",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "a4b7f1c7ce35e32b0977cbf06fee62cfcb050d041a91b35c54c21233917b071d",
+      "reversedSha256": "a4b7f1c7ce35e32b0977cbf06fee62cfcb050d041a91b35c54c21233917b071d",
+      "exactSame": true
+    },
+    {
+      "id": "stair-24x18-1",
+      "variant": "default",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "03b3d0a96da6932fcc833ee5c15a65c92cacee84ada3de248c971f82f0809267",
+      "reversedSha256": "03b3d0a96da6932fcc833ee5c15a65c92cacee84ada3de248c971f82f0809267",
+      "exactSame": true
+    },
+    {
+      "id": "stair-24x18-1",
+      "variant": "sdkExperimental",
+      "originalError": null,
+      "reversedError": null,
+      "originalSha256": "1bb4eb29714aece27410d82ebf26051ecd7120ae8cf0246af0ec9d60ccfebab4",
+      "reversedSha256": "1bb4eb29714aece27410d82ebf26051ecd7120ae8cf0246af0ec9d60ccfebab4",
+      "exactSame": true
+    }
+  ],
+  "timing": [
+    {
+      "trial": 1,
+      "order": [
+        "default",
+        "sdkExperimental"
+      ],
+      "measurements": {
+        "default": {
+          "groups": {
+            "game": {
+              "cases": 7,
+              "ms": 428.3855999999796,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            },
+            "lab": {
+              "cases": 12,
+              "ms": 126.40179999996326,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            }
+          },
+          "cases": [
+            {
+              "id": "12x6/block@144,150",
+              "group": "game",
+              "ms": 17.9146999999939,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,132",
+              "group": "game",
+              "ms": 19.510699999984354,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,210",
+              "group": "game",
+              "ms": 17.293100000009872,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@294,36",
+              "group": "game",
+              "ms": 71.94700000001467,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@504,264",
+              "group": "game",
+              "ms": 18.714500000001863,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@432,330",
+              "group": "game",
+              "ms": 260.77719999998226,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@504,294",
+              "group": "game",
+              "ms": 22.22839999999269,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-24x18-1",
+              "group": "lab",
+              "ms": 3.3975999999966007,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-36x30-1",
+              "group": "lab",
+              "ms": 9.667300000000978,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-24x18-1",
+              "group": "lab",
+              "ms": 3.6172000000078697,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-36x30-1",
+              "group": "lab",
+              "ms": 10.953999999997905,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-24x18-1",
+              "group": "lab",
+              "ms": 3.159400000004098,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-36x30-1",
+              "group": "lab",
+              "ms": 9.254899999999907,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-24x18-1",
+              "group": "lab",
+              "ms": 39.298099999985425,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-36x30-1",
+              "group": "lab",
+              "ms": 7.524399999994785,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-24x18-1",
+              "group": "lab",
+              "ms": 22.737300000007963,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-36x30-1",
+              "group": "lab",
+              "ms": 5.513399999996182,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-24x18-1",
+              "group": "lab",
+              "ms": 2.603499999997439,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-36x30-1",
+              "group": "lab",
+              "ms": 8.67469999997411,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            }
+          ]
+        },
+        "sdkExperimental": {
+          "groups": {
+            "game": {
+              "cases": 7,
+              "ms": 1190.8552999999956,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 2,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            },
+            "lab": {
+              "cases": 12,
+              "ms": 126.22909999996773,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            }
+          },
+          "cases": [
+            {
+              "id": "12x6/block@144,150",
+              "group": "game",
+              "ms": 92.18520000000717,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,132",
+              "group": "game",
+              "ms": 81.15059999999357,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,210",
+              "group": "game",
+              "ms": 81.97449999998207,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@294,36",
+              "group": "game",
+              "ms": 338.17480000000796,
+              "planError": null,
+              "experimentalBudgetExhausted": true,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@504,264",
+              "group": "game",
+              "ms": 82.09880000000703,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@432,330",
+              "group": "game",
+              "ms": 431.0096000000194,
+              "planError": null,
+              "experimentalBudgetExhausted": true,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@504,294",
+              "group": "game",
+              "ms": 84.2617999999784,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-24x18-1",
+              "group": "lab",
+              "ms": 7.3386999999929685,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-36x30-1",
+              "group": "lab",
+              "ms": 31.328999999997905,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-24x18-1",
+              "group": "lab",
+              "ms": 6.451000000000931,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-36x30-1",
+              "group": "lab",
+              "ms": 17.3579000000027,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-24x18-1",
+              "group": "lab",
+              "ms": 6.114899999985937,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-36x30-1",
+              "group": "lab",
+              "ms": 16.517000000021653,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-24x18-1",
+              "group": "lab",
+              "ms": 2.855699999985518,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-36x30-1",
+              "group": "lab",
+              "ms": 11.157999999995809,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-24x18-1",
+              "group": "lab",
+              "ms": 1.402299999987008,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-36x30-1",
+              "group": "lab",
+              "ms": 3.30360000001383,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-24x18-1",
+              "group": "lab",
+              "ms": 6.5842999999877065,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-36x30-1",
+              "group": "lab",
+              "ms": 15.816699999995762,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": 2,
+      "order": [
+        "sdkExperimental",
+        "default"
+      ],
+      "measurements": {
+        "sdkExperimental": {
+          "groups": {
+            "game": {
+              "cases": 7,
+              "ms": 1170.778900000092,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 2,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            },
+            "lab": {
+              "cases": 12,
+              "ms": 123.49630000002799,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            }
+          },
+          "cases": [
+            {
+              "id": "12x6/block@144,150",
+              "group": "game",
+              "ms": 82.86509999999544,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,132",
+              "group": "game",
+              "ms": 80.28150000001187,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,210",
+              "group": "game",
+              "ms": 82.83200000002398,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@294,36",
+              "group": "game",
+              "ms": 330.26070000001346,
+              "planError": null,
+              "experimentalBudgetExhausted": true,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@504,264",
+              "group": "game",
+              "ms": 80.6596000000136,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@432,330",
+              "group": "game",
+              "ms": 432.125400000019,
+              "planError": null,
+              "experimentalBudgetExhausted": true,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@504,294",
+              "group": "game",
+              "ms": 81.75460000001476,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-24x18-1",
+              "group": "lab",
+              "ms": 7.833699999988312,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-36x30-1",
+              "group": "lab",
+              "ms": 30.214700000011362,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-24x18-1",
+              "group": "lab",
+              "ms": 6.204500000021653,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-36x30-1",
+              "group": "lab",
+              "ms": 17.231499999994412,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-24x18-1",
+              "group": "lab",
+              "ms": 3.569900000002235,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-36x30-1",
+              "group": "lab",
+              "ms": 16.643700000015087,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-24x18-1",
+              "group": "lab",
+              "ms": 2.8224999999802094,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-36x30-1",
+              "group": "lab",
+              "ms": 11.938200000004144,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-24x18-1",
+              "group": "lab",
+              "ms": 1.4078999999910593,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-36x30-1",
+              "group": "lab",
+              "ms": 3.2925000000104774,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-24x18-1",
+              "group": "lab",
+              "ms": 6.005800000013551,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-36x30-1",
+              "group": "lab",
+              "ms": 16.331399999995483,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            }
+          ]
+        },
+        "default": {
+          "groups": {
+            "game": {
+              "cases": 7,
+              "ms": 415.5668000000005,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            },
+            "lab": {
+              "cases": 12,
+              "ms": 121.22770000007586,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            }
+          },
+          "cases": [
+            {
+              "id": "12x6/block@144,150",
+              "group": "game",
+              "ms": 19.011900000012247,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,132",
+              "group": "game",
+              "ms": 19.383700000005774,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,210",
+              "group": "game",
+              "ms": 17.347399999998743,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@294,36",
+              "group": "game",
+              "ms": 72.30210000000079,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@504,264",
+              "group": "game",
+              "ms": 18.796999999991385,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@432,330",
+              "group": "game",
+              "ms": 250.32119999997667,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@504,294",
+              "group": "game",
+              "ms": 18.4035000000149,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-24x18-1",
+              "group": "lab",
+              "ms": 3.0243000000191387,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-36x30-1",
+              "group": "lab",
+              "ms": 9.52359999998589,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-24x18-1",
+              "group": "lab",
+              "ms": 2.717499999998836,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-36x30-1",
+              "group": "lab",
+              "ms": 8.78080000000773,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-24x18-1",
+              "group": "lab",
+              "ms": 3.2989999999990687,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-36x30-1",
+              "group": "lab",
+              "ms": 8.838700000022072,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-24x18-1",
+              "group": "lab",
+              "ms": 36.55360000001383,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-36x30-1",
+              "group": "lab",
+              "ms": 7.853000000002794,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-24x18-1",
+              "group": "lab",
+              "ms": 21.993000000016764,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-36x30-1",
+              "group": "lab",
+              "ms": 7.070799999986775,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-24x18-1",
+              "group": "lab",
+              "ms": 2.7070999999996275,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-36x30-1",
+              "group": "lab",
+              "ms": 8.86630000002333,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": 3,
+      "order": [
+        "default",
+        "sdkExperimental"
+      ],
+      "measurements": {
+        "default": {
+          "groups": {
+            "game": {
+              "cases": 7,
+              "ms": 446.29750000001513,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            },
+            "lab": {
+              "cases": 12,
+              "ms": 126.48100000002887,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            }
+          },
+          "cases": [
+            {
+              "id": "12x6/block@144,150",
+              "group": "game",
+              "ms": 17.658199999976205,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,132",
+              "group": "game",
+              "ms": 20.391700000007404,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,210",
+              "group": "game",
+              "ms": 19.326399999990826,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@294,36",
+              "group": "game",
+              "ms": 77.73140000001877,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@504,264",
+              "group": "game",
+              "ms": 21.16610000000219,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@432,330",
+              "group": "game",
+              "ms": 269.8778000000166,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@504,294",
+              "group": "game",
+              "ms": 20.145900000003166,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-24x18-1",
+              "group": "lab",
+              "ms": 3.3237000000081025,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-36x30-1",
+              "group": "lab",
+              "ms": 10.205900000000838,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-24x18-1",
+              "group": "lab",
+              "ms": 2.8189000000129454,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-36x30-1",
+              "group": "lab",
+              "ms": 11.120100000000093,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-24x18-1",
+              "group": "lab",
+              "ms": 3.2410000000090804,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-36x30-1",
+              "group": "lab",
+              "ms": 10.759599999990314,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-24x18-1",
+              "group": "lab",
+              "ms": 37.66650000002119,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-36x30-1",
+              "group": "lab",
+              "ms": 7.809800000017276,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-24x18-1",
+              "group": "lab",
+              "ms": 23.583299999998417,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-36x30-1",
+              "group": "lab",
+              "ms": 5.819099999993341,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-24x18-1",
+              "group": "lab",
+              "ms": 2.5864000000001397,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-36x30-1",
+              "group": "lab",
+              "ms": 7.546699999977136,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            }
+          ]
+        },
+        "sdkExperimental": {
+          "groups": {
+            "game": {
+              "cases": 7,
+              "ms": 1191.5774999999849,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 2,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            },
+            "lab": {
+              "cases": 12,
+              "ms": 126.67379999998957,
+              "thrownErrors": 0,
+              "experimentalBudgetExhausted": 0,
+              "fallbackBudgetExhausted": 0,
+              "rejected": 0
+            }
+          },
+          "cases": [
+            {
+              "id": "12x6/block@144,150",
+              "group": "game",
+              "ms": 82.67319999999017,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,132",
+              "group": "game",
+              "ms": 81.77409999998054,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@174,210",
+              "group": "game",
+              "ms": 81.87839999998687,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@294,36",
+              "group": "game",
+              "ms": 333.4453999999969,
+              "planError": null,
+              "experimentalBudgetExhausted": true,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "24x12/block@504,264",
+              "group": "game",
+              "ms": 82.2732000000251,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@432,330",
+              "group": "game",
+              "ms": 444.4484999999986,
+              "planError": null,
+              "experimentalBudgetExhausted": true,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "36x18/block@504,294",
+              "group": "game",
+              "ms": 85.0847000000067,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-24x18-1",
+              "group": "lab",
+              "ms": 6.8399999999965075,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "rectangle-36x30-1",
+              "group": "lab",
+              "ms": 33.15780000001541,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-24x18-1",
+              "group": "lab",
+              "ms": 6.543200000014622,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "l-36x30-1",
+              "group": "lab",
+              "ms": 17.205900000000838,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-24x18-1",
+              "group": "lab",
+              "ms": 3.3888999999908265,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "hole-36x30-1",
+              "group": "lab",
+              "ms": 17.175500000012107,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-24x18-1",
+              "group": "lab",
+              "ms": 2.8145999999833293,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "neck-36x30-1",
+              "group": "lab",
+              "ms": 12.170899999997346,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-24x18-1",
+              "group": "lab",
+              "ms": 1.371899999998277,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "cross-36x30-1",
+              "group": "lab",
+              "ms": 3.2933999999950174,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-24x18-1",
+              "group": "lab",
+              "ms": 6.133499999996275,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            },
+            {
+              "id": "stair-36x30-1",
+              "group": "lab",
+              "ms": 16.57819999998901,
+              "planError": null,
+              "experimentalBudgetExhausted": false,
+              "fallbackBudgetExhausted": false,
+              "rejected": null
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "group": "game",
+      "id": "12x6/block@144,150",
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 12,
+        "zoneHeight": 6
+      },
+      "recipeSha256": "67a0c318fd6be24b4c7d2a87b42f95fc957e02588abc4e8231d6abd5e929af66",
+      "briefSha256": "ae2b9d4241d928b7079959ed3d275773168a4e72782d6f75e18466cb89154515",
+      "cells": 1728,
+      "portals": 24,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "7a5f0d1886eba32ebd287b48d71653017359691b71a2585100c8efef04061934",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 4,
+            "cells": 1260
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@144,150/lot-1",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@144,150/lot-2",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@144,150/lot-3",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@144,150/lot-4",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@144,150/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "ff0a947172e93598f679f001a55a3d926c1733d7ac3ff896e0989d22215b502c",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1534
+              },
+              "elements": 49,
+              "loot": 33
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "ead4323b00ced9b1d150166f303629453a782699f73a3d0804660a3e30a7d6d2",
+          "experimental": {
+            "used": 4015851,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 15,
+            "connectivityChecks": 11
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 3
+          },
+          "lots": {
+            "count": 3,
+            "cells": 792
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@144,150/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@144,150/lot-2",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@144,150/lot-3",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@144,150/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "db2b35fa4bd42f583338d9f3085ddec11451a429e628a70d2f360de135872e3f",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1596
+              },
+              "elements": 47,
+              "loot": 30
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@174,132",
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 24,
+        "zoneHeight": 12
+      },
+      "recipeSha256": "f216fa2b3ab1075de19ae31361ff08a9993abf79c67dd70c3805622d97d1c1f7",
+      "briefSha256": "96a42b289e6ee68749f93458e48d3ea1afc58639609183aa8bb438b444430f96",
+      "cells": 1728,
+      "portals": 32,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "b2d820c91107806a5b9fa0523466f7ebec9275d40ce2c4847cc153ae5f55fdc9",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 5,
+            "cells": 1120
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@174,132/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/lot-2",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/lot-3",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/lot-4",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/lot-5",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "0e585bb9f14ec78a3d489cf95e9ca0692b8eddd6ee0c2a60b3caf21f64f88220",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1631
+              },
+              "elements": 60,
+              "loot": 21
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "e1940a8238f821632780590e5ba9437ad1fe7b846b74022e137ba85ed5108a2f",
+          "experimental": {
+            "used": 4015851,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 15,
+            "connectivityChecks": 11
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 3
+          },
+          "lots": {
+            "count": 3,
+            "cells": 792
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@174,132/lot-1",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/lot-2",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/lot-3",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,132/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "3ca348de0bf2ba8a8eda15a32e3c1fa1030b5b7ea5710dd347d17a27c22e5b93",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1594
+              },
+              "elements": 20,
+              "loot": 13
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@174,210",
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 24,
+        "zoneHeight": 12
+      },
+      "recipeSha256": "f216fa2b3ab1075de19ae31361ff08a9993abf79c67dd70c3805622d97d1c1f7",
+      "briefSha256": "044ae1d0cde21d5f358c237f74aed141987f50a2f865089e87087123c5351d2a",
+      "cells": 1728,
+      "portals": 32,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "c15d6b6d7d7804294009842395d47df6e2d21dd79b830e1877d70b01f109dbed",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 4,
+            "cells": 1180
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@174,210/lot-1",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,210/lot-2",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,210/lot-3",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,210/lot-4",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,210/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "60bacde4fc736923128d87030f6ebcb3875cb361079280281676a854ecc6bd79",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1569
+              },
+              "elements": 55,
+              "loot": 25
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "87f612f2509479ddb4c79789715796472610b5b6595e4ba47ede8c94d11ec82b",
+          "experimental": {
+            "used": 4015851,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 15,
+            "connectivityChecks": 11
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 3
+          },
+          "lots": {
+            "count": 3,
+            "cells": 792
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@174,210/lot-1",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,210/lot-2",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,210/lot-3",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@174,210/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "00a2234052ee07a256d2d9d9d152cee72b6428530fc2cfbfa8f2ae94e6ffe610",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1606
+              },
+              "elements": 25,
+              "loot": 20
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@294,36",
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 24,
+        "zoneHeight": 12
+      },
+      "recipeSha256": "f216fa2b3ab1075de19ae31361ff08a9993abf79c67dd70c3805622d97d1c1f7",
+      "briefSha256": "202ff96ee723f0188b17a42cc62fe72a186b70b86d028628afef7a9c220a6258",
+      "cells": 4320,
+      "portals": 52,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "e73e5129104d3a0315277ca9175ea743a4f544c90367013435c247c391b24df1",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 14,
+            "cells": 2842
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@294,36/lot-1",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-2",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-3",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-4",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-5",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-6",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-7",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-8",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-9",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-10",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-11",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-12",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-13",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/lot-14",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@294,36/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "513cfbaaf0d0691892fe84f14e4aef7f97d6e0f342b9a4f5bdb605f711b075f3",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 4320,
+                "freeCells": 4114
+              },
+              "elements": 85,
+              "loot": 111
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": false,
+          "planError": null,
+          "buildError": "WorkBudgetExceededError: Decomposition work budget exhausted: used 20196659, limit 20000000",
+          "planSha256": "f3b2ec0b1a70037489dd72ff2f841fee6312b8f4d68fc52c4cf17161de0c9e96",
+          "experimental": {
+            "used": 20196659,
+            "limit": 20000000,
+            "budgetExhausted": true,
+            "attempted": 50,
+            "connectivityChecks": 21
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 3
+          },
+          "lots": {
+            "count": 0,
+            "cells": 0
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@294,36/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "geometryValid": false
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": [
+          "buildError: WorkBudgetExceededError: Decomposition work budget exhausted: used 20196659, limit 20000000",
+          "experimental budget exhausted"
+        ]
+      }
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@504,264",
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 24,
+        "zoneHeight": 12
+      },
+      "recipeSha256": "f216fa2b3ab1075de19ae31361ff08a9993abf79c67dd70c3805622d97d1c1f7",
+      "briefSha256": "de26d170eddc6fbfdf312ecdeb6653cbb258ec02043b2faf932c52c3b53aa365",
+      "cells": 1728,
+      "portals": 16,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "85cf4a4dfdc2cac7649c981e9d9b5da795fe906345e556dca26180ea58f5a52a",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 5,
+            "cells": 1276
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@504,264/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/lot-2",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/lot-3",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/lot-5",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "3529966d167405a5af8711af9180cc4541ace02adbcab60364fba85581f049a4",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1618
+              },
+              "elements": 53,
+              "loot": 75
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "0634e8f85785e30795f931a76b517b179d1dd926ed07af8c5d587627f7d92f8a",
+          "experimental": {
+            "used": 4015851,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 15,
+            "connectivityChecks": 11
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 3
+          },
+          "lots": {
+            "count": 3,
+            "cells": 792
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@504,264/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/lot-2",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/lot-3",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,264/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "0880d9ca6970d35b2a115b0992afafe60494d2e8fb9f52cb368870514b6e1edf",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1586
+              },
+              "elements": 61,
+              "loot": 33
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "game",
+      "id": "36x18/block@432,330",
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 36,
+        "zoneHeight": 18
+      },
+      "recipeSha256": "6cbd7bffc073d8ce1735e5afb013da465d45e22b6e53d3faabd44275c6243c29",
+      "briefSha256": "4a9ebdbfaf9aa61fc7796383237811e172bf213e19a0693b4edc8362b158335a",
+      "cells": 8640,
+      "portals": 76,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "320ddb2b8d491e57964e1020b80a0ec9d676e6e56d7ef235537a8d31f1caf8e9",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 30,
+            "cells": 5279
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@432,330/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-2",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-3",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-5",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-6",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-7",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-8",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-9",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-10",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-11",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-12",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-13",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-14",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-15",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-16",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-17",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-18",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-19",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-20",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-21",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-22",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-23",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-24",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-25",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-26",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-27",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-28",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-29",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/lot-30",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@432,330/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "a56473ca448f12a6acdfb86e45fdbd4cecb6fec0e0c6c174d96327978eec34dd",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 8640,
+                "freeCells": 8101
+              },
+              "elements": 259,
+              "loot": 176
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": false,
+          "planError": null,
+          "buildError": "WorkBudgetExceededError: Decomposition work budget exhausted: used 20146140, limit 20000000",
+          "planSha256": "72cb0f404c3f6d3dae8deb2fb1872bb018c71d0e426cd307902ead9f6b7ad287",
+          "experimental": {
+            "used": 20146140,
+            "limit": 20000000,
+            "budgetExhausted": true,
+            "attempted": 34,
+            "connectivityChecks": 32
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 0,
+            "cells": 0
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@432,330/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "geometryValid": false
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": [
+          "buildError: WorkBudgetExceededError: Decomposition work budget exhausted: used 20146140, limit 20000000",
+          "experimental budget exhausted"
+        ]
+      }
+    },
+    {
+      "group": "game",
+      "id": "36x18/block@504,294",
+      "recipe": {
+        "seed": "4217",
+        "mode": "game",
+        "zoneWidth": 36,
+        "zoneHeight": 18
+      },
+      "recipeSha256": "6cbd7bffc073d8ce1735e5afb013da465d45e22b6e53d3faabd44275c6243c29",
+      "briefSha256": "b80b5af0567f6ed004db70b6a76fe8366d83baf80d07e49428d4c27c7fdc14dc",
+      "cells": 1728,
+      "portals": 32,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "5c14aa2fabd51cc64f9cb9ba962664a2ed9dee58a9685b607937ab219e8e1aa2",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 4,
+            "cells": 1180
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@504,294/lot-1",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,294/lot-2",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,294/lot-3",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,294/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,294/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "ce21b69fc91fb28893e58320da97279171e7859b31e1241efc32bb0d4a18dc5a",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1482
+              },
+              "elements": 39,
+              "loot": 38
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "7d58630c30d47694ea46b00ed06fb0f62eda1a8c1655eee042ad94dbf153eab1",
+          "experimental": {
+            "used": 4015851,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 15,
+            "connectivityChecks": 11
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 3
+          },
+          "lots": {
+            "count": 3,
+            "cells": 792
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "block@504,294/lot-1",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,294/lot-2",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,294/lot-3",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "block@504,294/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "bec7dbe6361897f20d9efd5e9e5a87bc83931ca9a03f34c867fd0356a38d3e94",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1728,
+                "freeCells": 1564
+              },
+              "elements": 57,
+              "loot": 24
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-1",
+      "recipe": {
+        "type": "block",
+        "shape": "rectangle",
+        "width": 24,
+        "height": 18,
+        "seed": 1
+      },
+      "recipeSha256": "377c96111ae7cad4fc5da5d02b83dca5c5c11480d560b0fb7abecb4920589d96",
+      "briefSha256": "7110d4f19219c0eac26b4a01f4fb7d85995ebd3dfcddf499e63f6f5d031fbe46",
+      "cells": 432,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "f120946d50d23199ec2e6cbd4d45229c88fc772fe10118d7ff31c460aed16a96",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 1,
+            "cells": 320
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "c45736a5497830bdedef4110b93f469ff5f164e68a68067a793df620a1122b38",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "occupancyCrosscheck": {
+              "matchesMeasureFill": true,
+              "cells": 432,
+              "freeCells": 321
+            },
+            "density": {
+              "fill": {
+                "cells": 432,
+                "freeCells": 321
+              },
+              "elements": 17,
+              "loot": 8
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "1aa94022e2d83650777bcbe2bdf0033d879512622bab6ea887d3794b64a16abf",
+          "experimental": {
+            "used": 245077,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 5,
+            "connectivityChecks": 3
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 144
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "163197ca41514e1268f056f5cdc6aef69a93726f1a5631e4449b43de09f111e2",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "occupancyCrosscheck": {
+              "matchesMeasureFill": true,
+              "cells": 432,
+              "freeCells": 401
+            },
+            "density": {
+              "fill": {
+                "cells": 432,
+                "freeCells": 401
+              },
+              "elements": 5,
+              "loot": 4
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-1",
+      "recipe": {
+        "type": "block",
+        "shape": "rectangle",
+        "width": 36,
+        "height": 30,
+        "seed": 1
+      },
+      "recipeSha256": "94cde8083226962957f815c0a86d5909492174a8d4d0c20952fd4004ab5c85f8",
+      "briefSha256": "0b3f2d8e3af71a5c8250da26f21ccf25344e0f5c0a8e177c4f7b43a9a4370a8d",
+      "cells": 1080,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "9d2505cb559d7519921c0afb3681992e05c9bb1fa9b2551c27c90c84060a5f96",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 6,
+            "cells": 738
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-5",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-6",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "e6bf89035d78b7d7301b98ef555da406a32638d94f6e5423877ecc3a0abf46ad",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1080,
+                "freeCells": 1027
+              },
+              "elements": 60,
+              "loot": 15
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "93f6594968c190804cdd19f9ba24d0e955f41d9e53403fa14cbd941b632831d3",
+          "experimental": {
+            "used": 1321428,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 20,
+            "connectivityChecks": 6
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 2
+          },
+          "lots": {
+            "count": 2,
+            "cells": 612
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "bfec388a0c58b648b8f5ca14c42ea81ae109ab27fef84ead5006b21c5cc5e2fd",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1080,
+                "freeCells": 910
+              },
+              "elements": 25,
+              "loot": 6
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-1",
+      "recipe": {
+        "type": "block",
+        "shape": "l",
+        "width": 24,
+        "height": 18,
+        "seed": 1
+      },
+      "recipeSha256": "f5a71a842101582d7e3f2ba4677c1b2a957e8885371bd40758e467b141043aa2",
+      "briefSha256": "cc8dc1c78a8a762808d38f7ccce9915ec225b5459bcd8bbb91a9e0deb7e0f15e",
+      "cells": 384,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "c016dd73455c9c9ce7a36c72c13141458e1deecb26b28afca2700039965111d4",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 1,
+            "cells": 224
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "fe4f766423372b5bc3f798aebf63631c79aebe64291a203ba7fed392af069fe7",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 384,
+                "freeCells": 362
+              },
+              "elements": 28,
+              "loot": 6
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "82a28a1633d4ae98e26e009604559d582be5419c601be12081da43bf07ec3ca8",
+          "experimental": {
+            "used": 225967,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 5,
+            "connectivityChecks": 3
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 144
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "3f1e7db1eacf6660b63da4553a0e23c72ef4eedd2eee08d1ddab420ff6ea5daf",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 384,
+                "freeCells": 353
+              },
+              "elements": 5,
+              "loot": 4
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-1",
+      "recipe": {
+        "type": "block",
+        "shape": "l",
+        "width": 36,
+        "height": 30,
+        "seed": 1
+      },
+      "recipeSha256": "5be31937e7ce46419bcc92eb08085444e12987db29119e41521ab9633c7f8d44",
+      "briefSha256": "ae358cf43036193f715848570f7b57737278eb36e601ce6d3ff70e8c8e626533",
+      "cells": 960,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "dd87e7189443dccbf9fc9c309fdc783a0d5a59bda2cf0a34f4a7eb8b1fbabc99",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 6,
+            "cells": 654
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-5",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-6",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "6e537a207a24f5a530d0da29b5b9a8f82eb43e013b94cba068da0dd9fc1cf053",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 960,
+                "freeCells": 922
+              },
+              "elements": 33,
+              "loot": 12
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "d133d05dbad7c5ee4bddc085609de3189208dbfafa0d9bfe65d93cf19bb5dea5",
+          "experimental": {
+            "used": 696589,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 20,
+            "connectivityChecks": 4
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 324
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "d5e0ee493e35b74060ba9eead26320be762d76883cf2de36d48cd7f617d0bf37",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 960,
+                "freeCells": 854
+              },
+              "elements": 16,
+              "loot": 2
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-1",
+      "recipe": {
+        "type": "block",
+        "shape": "hole",
+        "width": 24,
+        "height": 18,
+        "seed": 1
+      },
+      "recipeSha256": "8d5416f8a6f07233f016cfb584126996b4efbe88f5ff871123359cb46571cbc7",
+      "briefSha256": "05950da19c965b0a15d73ecd4fbd93bce37a19eae2fb9fc0b4f7c30390ac8921",
+      "cells": 420,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "c0c6bd121650fbda36f94804d511a7cccac8e955fd3837c2bbfc56bf0066eca0",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 1,
+            "cells": 200
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "f75e82dc02d45ace2e3b7eb406c9ee16fa107f1bf4cd8385bf75af1cc9f7b6c2",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 420,
+                "freeCells": 416
+              },
+              "elements": 2,
+              "loot": 3
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "dd6b3c1fe39edfca3d7af7f3d0347997e4750fea1ed752ad89d23d7ed34ee72f",
+          "experimental": {
+            "used": 105388,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 5,
+            "connectivityChecks": 1
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 36
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "08fd2a19d07ad77c481186e306c6256f314d300d6af6634132e28b4958ec7053",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 420,
+                "freeCells": 411
+              },
+              "elements": 1,
+              "loot": 0
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-1",
+      "recipe": {
+        "type": "block",
+        "shape": "hole",
+        "width": 36,
+        "height": 30,
+        "seed": 1
+      },
+      "recipeSha256": "82103bc84af7f0bf2ffe8c373e88f3678b9e5b5c09f2607e56deb2cacfa0f55a",
+      "briefSha256": "eb221889ed881ad348082821c156e84b38cf151297a6fb338dabbc06554c5daa",
+      "cells": 1050,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "cf76b815523318705eb8e808c1e2396c66f7a760593d10141afe6456dd119637",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 6,
+            "cells": 628
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "type": "cover",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-5",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-6",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "ea86c1d81b1a0f2234537d0351505ec8ecd3af802b7c2cd37e628e4f81f13db4",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1050,
+                "freeCells": 1010
+              },
+              "elements": 54,
+              "loot": 10
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "5f932afa713e62bf99853f4f8de9858cdbd683c34768c32cff086de9883c636e",
+          "experimental": {
+            "used": 751999,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 20,
+            "connectivityChecks": 4
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 2
+          },
+          "lots": {
+            "count": 2,
+            "cells": 180
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "aae9249470f8c3d10fcf939d724b2d9a5bd1aa1c4877c9e62df4d47782aca61a",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 1050,
+                "freeCells": 1010
+              },
+              "elements": 6,
+              "loot": 4
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-1",
+      "recipe": {
+        "type": "block",
+        "shape": "neck",
+        "width": 24,
+        "height": 18,
+        "seed": 1
+      },
+      "recipeSha256": "697b550a89a7169f7e744c17c3ca7ec4c25ac3c0ac013313d2a60f8551d8f590",
+      "briefSha256": "3cec269c806166607b708d83bdf6c00a58d45d57060721a53243ca8397bcc6df",
+      "cells": 336,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "1a78c3bacbb4317b8f0f6a435dafc35b99be7b354eea42ac0d6c2934a13cb7d5",
+          "experimental": null,
+          "fallbackWork": {
+            "used": 1929003,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 1008,
+            "connectivityChecks": 36
+          },
+          "allocation": {
+            "strategy": "block-single-lot-fallback",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 36
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "04fc6c57fe235a87d73ca35c8705e4b1bb81276b015c13ea726c68512aed5826",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 336,
+                "freeCells": 326
+              },
+              "elements": 1,
+              "loot": 0
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "19d8c05ad49b5b97559802e0b873f3d3b2b0235ffa61e907d9ef08033c28c818",
+          "experimental": {
+            "used": 87241,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 5,
+            "connectivityChecks": 1
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 36
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "c0576ad5290920f98046243068dc36eb3e0b19ab6ad6f6da1f817ed7aac87efc",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 336,
+                "freeCells": 327
+              },
+              "elements": 1,
+              "loot": 0
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-1",
+      "recipe": {
+        "type": "block",
+        "shape": "neck",
+        "width": 36,
+        "height": 30,
+        "seed": 1
+      },
+      "recipeSha256": "2b907d036346ef709bee46b486f95d6ca7dfedae6c7a63efe7126204ab116dc5",
+      "briefSha256": "3ab0aa8c22956e0f2a4068f7312e920dd0bb37f170fc10e81a6239fdbd6b98db",
+      "cells": 840,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "beb55eeeb63f98a1886c6833d179809fe173b110e1d015c7ea334a574d4d9154",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 5,
+            "cells": 508
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-5",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": [
+                "Portal hunter-east is unreachable from portal hunter-west.",
+                "Portal lot-2-S is unreachable from portal hunter-west.",
+                "Portal lot-2-W is unreachable from portal hunter-west.",
+                "Portal lot-3-S is unreachable from portal hunter-west.",
+                "Portal lot-3-E is unreachable from portal hunter-west.",
+                "Portal lot-4-N is unreachable from portal hunter-west.",
+                "Portal lot-4-W is unreachable from portal hunter-west."
+              ]
+            }
+          ],
+          "buildSha256": "b699aa6b9c2aaba197e9b96db4bc2fe35d68e4a9dc48548f58544d4924ac8020",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 840,
+                "freeCells": 801
+              },
+              "elements": 55,
+              "loot": 15
+            }
+          },
+          "geometryValid": false
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "213d9db4cd456df87f34710a25d0d1705fa75903253e860ce4fb86df5c2ca47d",
+          "experimental": {
+            "used": 480010,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 20,
+            "connectivityChecks": 3
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 2
+          },
+          "lots": {
+            "count": 2,
+            "cells": 117
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "100f9065a460e676782bc002ffebc81a4ec8651b5884b8dff56185db805925e4",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 840,
+                "freeCells": 806
+              },
+              "elements": 2,
+              "loot": 0
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [
+          "micro-lab/alleys portalErrors: [\"Portal hunter-east is unreachable from portal hunter-west.\",\"Portal lot-2-S is unreachable from portal hunter-west.\",\"Portal lot-2-W is unreachable from portal hunter-west.\",\"Portal lot-3-S is unreachable from portal hunter-west.\",\"Portal lot-3-E is unreachable from portal hunter-west.\",\"Portal lot-4-N is unreachable from portal hunter-west.\",\"Portal lot-4-W is unreachable from portal hunter-west.\"]"
+        ],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-1",
+      "recipe": {
+        "type": "block",
+        "shape": "cross",
+        "width": 24,
+        "height": 18,
+        "seed": 1
+      },
+      "recipeSha256": "eb8c987bba1b04dfffb3e8cbbe9641d5766211ea40aa8fcb6969d9665d89b205",
+      "briefSha256": "03c92906bbc7729dab610c81756ce50b24562aa2bb29fdb8f6547acd453ed089",
+      "cells": 240,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "9d50462ca399eb6b70b81b4d093708d754c331cd2e8ff042c19a542113e98e06",
+          "experimental": null,
+          "fallbackWork": {
+            "used": 1080911,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 720,
+            "connectivityChecks": 24
+          },
+          "allocation": {
+            "strategy": "block-single-lot-fallback",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 36
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "1341dbf7f7623d22d01ec3a0a71010922722dde4976e1986157b354f8c8aaa4a",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 240,
+                "freeCells": 230
+              },
+              "elements": 1,
+              "loot": 0
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "a4b7f1c7ce35e32b0977cbf06fee62cfcb050d041a91b35c54c21233917b071d",
+          "experimental": {
+            "used": 35415,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 5,
+            "connectivityChecks": 0
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 0
+          },
+          "lots": {
+            "count": 0,
+            "cells": 0
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "6200c15b71963e135edcd0d6d7d36d2bf4630becb0ae157b874c6e12398d5530",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 240,
+                "freeCells": 240
+              },
+              "elements": 0,
+              "loot": 0
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-1",
+      "recipe": {
+        "type": "block",
+        "shape": "cross",
+        "width": 36,
+        "height": 30,
+        "seed": 1
+      },
+      "recipeSha256": "5b447e1c20260314f416aae7b2509f8bf1278769c8ad0909d8fae4f7f297f288",
+      "briefSha256": "115ccce0f9c5e2ad9409c6a0a70aaec075928970d48774c336279deb2e9b11dd",
+      "cells": 600,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "38418e7ad3c612acd54b0799f606b5dc703144d9dcb06417b91bab03cced9306",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 4,
+            "cells": 350
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "096e542e82bd22fd2924a73eb349e49686eaabd25dbcda0697d56867ba61c9bd",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 600,
+                "freeCells": 579
+              },
+              "elements": 10,
+              "loot": 10
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "e2c8355038170b7bc9e36dc45e86e3d36d346f3d45bcf41f690adf76cb96bbc8",
+          "experimental": {
+            "used": 108767,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 20,
+            "connectivityChecks": 0
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 0
+          },
+          "lots": {
+            "count": 0,
+            "cells": 0
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "1e6eb93e475a28e9cd8ae0519c8a9d374fb4b7e49cf705e094719f4b39b59a6a",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 600,
+                "freeCells": 600
+              },
+              "elements": 0,
+              "loot": 0
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-1",
+      "recipe": {
+        "type": "block",
+        "shape": "stair",
+        "width": 24,
+        "height": 18,
+        "seed": 1
+      },
+      "recipeSha256": "efc1cf0b934625781b8c69b1ac3314acc5b683af89f31502f0d55d644298daa9",
+      "briefSha256": "6768f9ace9d595bf2ea640e5c5d6593111b8a94e49537d8845efe0a464c97b5c",
+      "cells": 360,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "03b3d0a96da6932fcc833ee5c15a65c92cacee84ada3de248c971f82f0809267",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 1,
+            "cells": 224
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "1d969f41707f571f74158ca670ed9a4246daede53d4899ba4886638cdbb998ed",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 360,
+                "freeCells": 338
+              },
+              "elements": 28,
+              "loot": 6
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "1bb4eb29714aece27410d82ebf26051ecd7120ae8cf0246af0ec9d60ccfebab4",
+          "experimental": {
+            "used": 216703,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 5,
+            "connectivityChecks": 3
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 144
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "508e7292778c1c864727643e1702134717066ae35c991aab48522d398d7f18cf",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 360,
+                "freeCells": 329
+              },
+              "elements": 5,
+              "loot": 4
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-1",
+      "recipe": {
+        "type": "block",
+        "shape": "stair",
+        "width": 36,
+        "height": 30,
+        "seed": 1
+      },
+      "recipeSha256": "d31a6cff1a972381b949959828c42a375369961d27d4fe9427b73f0099b035dd",
+      "briefSha256": "a923bff0446ade066db3b9ec3022a7b85904733de8ae0319214729b1a79a0f78",
+      "cells": 900,
+      "portals": 2,
+      "results": {
+        "default": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "0ccc536721a355a4a5f523de0bb4ae959cc711fd3353edb75421aac528951284",
+          "experimental": null,
+          "fallbackWork": null,
+          "allocation": null,
+          "lots": {
+            "count": 5,
+            "cells": 598
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "type": "depot",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "type": "hut",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/lot-5",
+              "type": "ruins",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "a7c350531d31eaa7be8f7bdad74138f5f78c50517df399e071b99e3304c87f63",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 900,
+                "freeCells": 858
+              },
+              "elements": 24,
+              "loot": 10
+            }
+          },
+          "geometryValid": true
+        },
+        "sdkExperimental": {
+          "usable": true,
+          "planError": null,
+          "buildError": null,
+          "planSha256": "c1da346922da1a942cbf5aae004bc9ffcfbe8c401de592981dbf8fc636f40984",
+          "experimental": {
+            "used": 666165,
+            "limit": 20000000,
+            "budgetExhausted": false,
+            "attempted": 20,
+            "connectivityChecks": 4
+          },
+          "fallbackWork": null,
+          "allocation": {
+            "strategy": "block-spaced-bays-comparison-1",
+            "pieces": 1
+          },
+          "lots": {
+            "count": 1,
+            "cells": 324
+          },
+          "partitionErrors": [],
+          "parentPortalsRetained": true,
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "type": "compound",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "type": "open",
+              "buildError": null,
+              "fillErrors": [],
+              "portalErrors": []
+            }
+          ],
+          "buildSha256": "ad1b2214f35ee838216e6bb87a1dd52f691439bd18991680807ad4457231bafe",
+          "parent": {
+            "fillErrors": [],
+            "portalErrors": [],
+            "density": {
+              "fill": {
+                "cells": 900,
+                "freeCells": 794
+              },
+              "elements": 16,
+              "loot": 2
+            }
+          },
+          "geometryValid": true
+        }
+      },
+      "defects": {
+        "default": [],
+        "sdkExperimental": []
+      }
+    }
+  ],
+  "limitations": "Same current bundled libraries and same briefs, seed 4217 in three game sizes plus bounded region examples. Existing default defects are retained in each row. Child regions are built separately for their own fill and portal checks; parent checks inspect the final build. Density reports obstacle-cell occupancy only, excluding largest empty rectangles; the 24x18 rectangle lab case crosschecks occupancy against measureFill for both variants. Timing measures sequential planning only, including failures and diagnostic exhaustion, after warmup; it is not an exclusive benchmark. This sample is not exhaustive proof or a default-promotion decision."
+}
