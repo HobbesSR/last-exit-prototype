@@ -1,0 +1,637 @@
+{
+  "beforeCommit": "17469cb",
+  "description": "36 lab briefs: six shapes, 24x18 and 36x30, seeds 1-3; seven block briefs from game seed 4217 at 12x6/24x12/36x18. Plan ownership/portal comparison excludes SDK work diagnostics. Physical checks on changed cases only.",
+  "records": [
+    {
+      "id": "rectangle-24x18-1",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 320,
+      "newArea": 320,
+      "exhausted": false
+    },
+    {
+      "id": "rectangle-24x18-2",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 320,
+      "newArea": 320,
+      "exhausted": false
+    },
+    {
+      "id": "rectangle-24x18-3",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 320,
+      "newArea": 320,
+      "exhausted": false
+    },
+    {
+      "id": "rectangle-36x30-1",
+      "changed": false,
+      "oldLots": 6,
+      "newLots": 6,
+      "oldArea": 738,
+      "newArea": 738,
+      "exhausted": false
+    },
+    {
+      "id": "rectangle-36x30-2",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 851,
+      "newArea": 851,
+      "exhausted": false
+    },
+    {
+      "id": "rectangle-36x30-3",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 817,
+      "newArea": 817,
+      "exhausted": false
+    },
+    {
+      "id": "l-24x18-1",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 224,
+      "newArea": 224,
+      "exhausted": false
+    },
+    {
+      "id": "l-24x18-2",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 224,
+      "newArea": 224,
+      "exhausted": false
+    },
+    {
+      "id": "l-24x18-3",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 224,
+      "newArea": 224,
+      "exhausted": false
+    },
+    {
+      "id": "l-36x30-1",
+      "changed": false,
+      "oldLots": 6,
+      "newLots": 6,
+      "oldArea": 654,
+      "newArea": 654,
+      "exhausted": false
+    },
+    {
+      "id": "l-36x30-2",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 661,
+      "newArea": 661,
+      "exhausted": false
+    },
+    {
+      "id": "l-36x30-3",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 701,
+      "newArea": 701,
+      "exhausted": false
+    },
+    {
+      "id": "hole-24x18-1",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 200,
+      "newArea": 200,
+      "exhausted": false
+    },
+    {
+      "id": "hole-24x18-2",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 200,
+      "newArea": 200,
+      "exhausted": false
+    },
+    {
+      "id": "hole-24x18-3",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 200,
+      "newArea": 200,
+      "exhausted": false
+    },
+    {
+      "id": "hole-36x30-1",
+      "changed": false,
+      "oldLots": 6,
+      "newLots": 6,
+      "oldArea": 628,
+      "newArea": 628,
+      "exhausted": false
+    },
+    {
+      "id": "hole-36x30-2",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 731,
+      "newArea": 731,
+      "exhausted": false
+    },
+    {
+      "id": "hole-36x30-3",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 725,
+      "newArea": 725,
+      "exhausted": false
+    },
+    {
+      "id": "neck-24x18-1",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 36,
+      "newArea": 36,
+      "exhausted": false
+    },
+    {
+      "id": "neck-24x18-2",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 36,
+      "newArea": 36,
+      "exhausted": false
+    },
+    {
+      "id": "neck-24x18-3",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 36,
+      "newArea": 36,
+      "exhausted": false
+    },
+    {
+      "id": "neck-36x30-1",
+      "changed": true,
+      "oldLots": 5,
+      "newLots": 5,
+      "oldArea": 508,
+      "newArea": 488,
+      "exhausted": false,
+      "beforeErrors": [
+        "Portal hunter-east is unreachable from portal hunter-west.",
+        "Portal lot-2-S is unreachable from portal hunter-west.",
+        "Portal lot-2-W is unreachable from portal hunter-west.",
+        "Portal lot-3-S is unreachable from portal hunter-west.",
+        "Portal lot-3-E is unreachable from portal hunter-west.",
+        "Portal lot-4-N is unreachable from portal hunter-west.",
+        "Portal lot-4-W is unreachable from portal hunter-west."
+      ],
+      "afterErrors": [],
+      "physical": {
+        "before": {
+          "elements": 55,
+          "loot": 15,
+          "manifest": {
+            "cells": 840,
+            "structures": 0,
+            "obstacles": 55,
+            "gates": 0,
+            "loot": 15,
+            "coreElements": 0
+          },
+          "parentErrors": [],
+          "fillErrors": [],
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-5",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "errors": [
+                "Portal hunter-east is unreachable from portal hunter-west.",
+                "Portal lot-2-S is unreachable from portal hunter-west.",
+                "Portal lot-2-W is unreachable from portal hunter-west.",
+                "Portal lot-3-S is unreachable from portal hunter-west.",
+                "Portal lot-3-E is unreachable from portal hunter-west.",
+                "Portal lot-4-N is unreachable from portal hunter-west.",
+                "Portal lot-4-W is unreachable from portal hunter-west."
+              ]
+            }
+          ]
+        },
+        "after": {
+          "elements": 55,
+          "loot": 14,
+          "manifest": {
+            "cells": 840,
+            "structures": 0,
+            "obstacles": 55,
+            "gates": 0,
+            "loot": 14,
+            "coreElements": 0
+          },
+          "parentErrors": [],
+          "fillErrors": [],
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-5",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "errors": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "neck-36x30-2",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 500,
+      "newArea": 500,
+      "exhausted": false
+    },
+    {
+      "id": "neck-36x30-3",
+      "changed": true,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 522,
+      "newArea": 492,
+      "exhausted": false,
+      "beforeErrors": [],
+      "afterErrors": [],
+      "physical": {
+        "before": {
+          "elements": 38,
+          "loot": 6,
+          "manifest": {
+            "cells": 840,
+            "structures": 1,
+            "obstacles": 56,
+            "gates": 3,
+            "loot": 6,
+            "coreElements": 0
+          },
+          "parentErrors": [],
+          "fillErrors": [],
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "errors": []
+            }
+          ]
+        },
+        "after": {
+          "elements": 33,
+          "loot": 9,
+          "manifest": {
+            "cells": 840,
+            "structures": 1,
+            "obstacles": 51,
+            "gates": 3,
+            "loot": 9,
+            "coreElements": 0
+          },
+          "parentErrors": [],
+          "fillErrors": [],
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-4",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "errors": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cross-24x18-1",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 36,
+      "newArea": 36,
+      "exhausted": false
+    },
+    {
+      "id": "cross-24x18-2",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 36,
+      "newArea": 36,
+      "exhausted": false
+    },
+    {
+      "id": "cross-24x18-3",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 36,
+      "newArea": 36,
+      "exhausted": false
+    },
+    {
+      "id": "cross-36x30-1",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 350,
+      "newArea": 350,
+      "exhausted": false
+    },
+    {
+      "id": "cross-36x30-2",
+      "changed": false,
+      "oldLots": 2,
+      "newLots": 2,
+      "oldArea": 215,
+      "newArea": 215,
+      "exhausted": false
+    },
+    {
+      "id": "cross-36x30-3",
+      "changed": true,
+      "oldLots": 3,
+      "newLots": 3,
+      "oldArea": 342,
+      "newArea": 312,
+      "exhausted": false,
+      "beforeErrors": [],
+      "afterErrors": [],
+      "physical": {
+        "before": {
+          "elements": 5,
+          "loot": 3,
+          "manifest": {
+            "cells": 600,
+            "structures": 2,
+            "obstacles": 41,
+            "gates": 6,
+            "loot": 3,
+            "coreElements": 0
+          },
+          "parentErrors": [],
+          "fillErrors": [],
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "errors": []
+            }
+          ]
+        },
+        "after": {
+          "elements": 12,
+          "loot": 4,
+          "manifest": {
+            "cells": 600,
+            "structures": 2,
+            "obstacles": 48,
+            "gates": 6,
+            "loot": 4,
+            "coreElements": 0
+          },
+          "parentErrors": [],
+          "fillErrors": [],
+          "children": [
+            {
+              "id": "micro-lab/lot-1",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-2",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/lot-3",
+              "errors": []
+            },
+            {
+              "id": "micro-lab/alleys",
+              "errors": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "stair-24x18-1",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 224,
+      "newArea": 224,
+      "exhausted": false
+    },
+    {
+      "id": "stair-24x18-2",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 224,
+      "newArea": 224,
+      "exhausted": false
+    },
+    {
+      "id": "stair-24x18-3",
+      "changed": false,
+      "oldLots": 1,
+      "newLots": 1,
+      "oldArea": 224,
+      "newArea": 224,
+      "exhausted": false
+    },
+    {
+      "id": "stair-36x30-1",
+      "changed": false,
+      "oldLots": 5,
+      "newLots": 5,
+      "oldArea": 598,
+      "newArea": 598,
+      "exhausted": false
+    },
+    {
+      "id": "stair-36x30-2",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 651,
+      "newArea": 651,
+      "exhausted": false
+    },
+    {
+      "id": "stair-36x30-3",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 613,
+      "newArea": 613,
+      "exhausted": false
+    },
+    {
+      "id": "game-12x6/block@144,150",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 1260,
+      "newArea": 1260,
+      "exhausted": false
+    },
+    {
+      "id": "game-24x12/block@294,36",
+      "changed": false,
+      "oldLots": 14,
+      "newLots": 14,
+      "oldArea": 2842,
+      "newArea": 2842,
+      "exhausted": false
+    },
+    {
+      "id": "game-24x12/block@174,132",
+      "changed": false,
+      "oldLots": 5,
+      "newLots": 5,
+      "oldArea": 1120,
+      "newArea": 1120,
+      "exhausted": false
+    },
+    {
+      "id": "game-24x12/block@174,210",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 1180,
+      "newArea": 1180,
+      "exhausted": false
+    },
+    {
+      "id": "game-24x12/block@504,264",
+      "changed": false,
+      "oldLots": 5,
+      "newLots": 5,
+      "oldArea": 1276,
+      "newArea": 1276,
+      "exhausted": false
+    },
+    {
+      "id": "game-36x18/block@504,294",
+      "changed": false,
+      "oldLots": 4,
+      "newLots": 4,
+      "oldArea": 1180,
+      "newArea": 1180,
+      "exhausted": false
+    },
+    {
+      "id": "game-36x18/block@432,330",
+      "changed": false,
+      "oldLots": 30,
+      "newLots": 30,
+      "oldArea": 5279,
+      "newArea": 5279,
+      "exhausted": false
+    }
+  ]
+}
