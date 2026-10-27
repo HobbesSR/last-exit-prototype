@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { createAccessMask, elementShapes, findRegionRoute } from '../map/micro/geometry.ts';
-import { portalStands } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { cellsOf } from './helpers/cells.js';
+import { standNear } from './helpers/stands.js';
 
 const SIZE = 40;
 const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'depot', cellSize: SIZE, cells,
@@ -27,7 +27,7 @@ test('every depot aisle is open to a contestant, indoors and out', () => {
       const input = brief(name, seed, cells, portals, { density: 1, roomCells });
       const result = buildRegion(input), access = createAccessMask(input);
       const shapes = result.elements.flatMap(element => elementShapes(element));
-      const from = portalStands(input)[0].points[0];
+      const near = standNear(input);
       // Every site in the first warehouse tests its doors and shelves, plus a sample outdoors.
       const first = result.elements.find(element => element.label.startsWith('depot-warehouse'));
       const indoors = first ? result.loot.filter(site => site.x > first.x && site.x < first.x + first.template.w
@@ -35,6 +35,6 @@ test('every depot aisle is open to a contestant, indoors and out', () => {
       if (first) assert.ok(indoors.length > 0, `${name} ${seed}: loot indoors`);
       const every = Math.ceil(result.loot.length / 8);
       for (const site of [...indoors, ...result.loot.filter((_, i) => i % every === 0)])
-        assert.ok(findRegionRoute(access, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
+        assert.ok(findRegionRoute(access, shapes, near(site), site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
     }
 });

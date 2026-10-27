@@ -9,19 +9,13 @@ import { bounds, circle, overlaps } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { assertWithinBudget } from './helpers/budget.js';
 import { SIZE, brief, MASKS, SEEDS, blockers, kind, gapOf } from './helpers/plant-fixtures.js';
+import { assertPlantPromise } from './helpers/plant-promise.js';
 
 const cellBox = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
 const gapBetween = (a, b) => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
 
-test('a plant region keeps the portal promise over seeds, masks and parameters', () => {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS)
-    for (const parameters of [undefined, { density: 1, shed: 0 }, { density: 1, shed: 1 }, { density: 0.3 }]) {
-      const result = buildRegion(brief(name, seed, cells, portals, parameters));
-      if (name !== 'yard' && parameters?.density === 1) assert.ok(result.elements.length > 0, `${name} seed ${seed} stood machines or a shed`);
-      const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
-      assert.deepEqual(check.errors, [], `${name} seed ${seed} ${JSON.stringify(parameters)}`);
-    }
-});
+// The fast tier runs two seeds; tests/slow/micro-plant-promise.test.js runs them all.
+test('a plant region keeps the portal promise over seeds, masks and parameters', () => assertPlantPromise(SEEDS.slice(0, 2)));
 
 test('plants are deterministic and independent of the order of the brief\'s cells', () => {
   const [cells, portals] = MASKS.field;
