@@ -59,8 +59,11 @@ library, the game's strategies, the kernel, `shared/`) also runs the chain's
 seed sweep from the repository root, `node map/tools/cli.mts sweep --check
 map/tools/fixtures/chain-baseline.json` (224 maps, about 25 s); `npm test`
 pins its quick cases. It must show no drift unless the PR declares a content
-change and recaptures last ([53](53-map-artifacts-and-tools.md)). Do not
-resize test grids or relax generation to make a check pass.
+change and recaptures last ([53](53-map-artifacts-and-tools.md)). A change to one
+region type's builder can iterate on `sweep --check ... --type <type>` first, which
+rebuilds that type's cached briefs per region instead of regenerating every map; it
+doesn't replace the full sweep ([53](53-map-artifacts-and-tools.md#replaying-one-region-type)).
+Do not resize test grids or relax generation to make a check pass.
 
 The chain's authored library (52) is checked against the actual region strategies.
 Macro's `tests/chain-content.test.ts` checks the game quotas in 52, distinct

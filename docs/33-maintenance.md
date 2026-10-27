@@ -64,7 +64,7 @@ fixture rules in AGENTS even when complete provenance has one owner.
 
 | Class | Retained paths and source context |
 | --- | --- |
-| Maintained command/test surface | `tools/{micro-region,decompose-region,builder-fill}.mjs`; `map/tools/{cli,mcp,sweep}.mts` and dependencies; `tools/forgejo-usage.mjs` and `tools/doc-reads.mjs` are machine-local process tooling |
+| Maintained command/test surface | `tools/{micro-region,decompose-region,builder-fill}.mjs`; `map/tools/{cli,mcp,sweep,sweep-briefs}.mts` and dependencies; `tools/forgejo-usage.mjs` and `tools/doc-reads.mjs` are machine-local process tooling |
 | Active navigation research/test dependencies | `tools/navigation/{clearance,graph,hierarchy,optimistic,witnesses}.mjs`; retain while #353 remains open and while tests import them |
 | Reproducible navigation reports | `tools/navigation/{report,continuation}.mjs`, `docs/reports/navigation-364.json`, `navigation-364-continuation.json`; source pins and limits in [42.1](42.1-navigation-experiment.md). `tools/navigation/portal-report.mjs` and `docs/reports/navigation-420.json`, in [42.5](42.5-portal-graph.md). `tools/navigation/mesh-report.mjs` and `docs/reports/navigation-422.json`, in [42.7](42.7-navigation-mesh.md) |
 | Fixture-reproduction witnesses | `tools/compound-siting-audit.mjs`, `compound-siting-solution-audit.mjs`; exact briefs and commands in the fixture README; full-map regeneration is a different workload |

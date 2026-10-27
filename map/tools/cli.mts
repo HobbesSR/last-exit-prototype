@@ -12,6 +12,8 @@ import { CHAIN_LIBRARIES, batch, bundledLibrary, chainParams, checkMap, generate
 import type { ToolMap } from './core.ts';
 import { captureBaseline, compareSweep, positiveInteger, runSweep, sweepCases } from './sweep.mts';
 import type { SweepBaseline } from './sweep.mts';
+import { REACH_MODES, captureBriefs, replayBriefs, replayFailed, typesToReplay } from './sweep-briefs.mts';
+import type { Reach } from './sweep-briefs.mts';
 
 const PARAM_FLAGS = '[--mode game|playground] [--zone-width N --zone-height N] [--exits N --contestants N --hunters N] [--loot-chance X --loot-tier-step X]';
 const HELP = `last-exit-map: maps from the generation chain (51), built by the game's region types
@@ -22,6 +24,8 @@ Commands:
   batch [--count N] [--seed PREFIX] ${PARAM_FLAGS} [--library FILE] [--diagnose true] [--out FILE]
   library [--zone-width N --zone-height N] [--out FILE]   (the generation chain's library for a zone size, by default 12 x 6)
   sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-view content hashes over a pinned seed set)
+  sweep [--jobs N] [--cache DIR] --capture-briefs FILE   (cache the baseline's region briefs and what built them, to replay)
+  sweep [--jobs N] [--cache DIR] --check FILE --type T[,T] [--reach drifted|all|none]   (rebuild only those region types from the cache)
   help
 
 Without --library, a map uses the bundled library authored for its zone size: ${CHAIN_LIBRARIES.map((l) => `${l.zoneWidth} x ${l.zoneHeight}`).join(', ')}.
@@ -103,26 +107,46 @@ try {
   } else if (command === 'sweep') {
     // It runs for minutes, so it is a command rather than part of npm test.
     const o = options(rest);
-    if (!o.out === !o.check) throw new Error('sweep needs exactly one of --out or --check');
+    if ([o.out, o.check, o.captureBriefs].filter((mode) => mode !== undefined).length !== 1)
+      throw new Error('sweep needs exactly one of --out, --check or --capture-briefs');
     // A check reruns exactly what the baseline pinned, so it can't quietly cover less.
-    const baseline = o.check ? (parseJson(fs.readFileSync(o.check, 'utf8'), o.check) as SweepBaseline) : undefined;
-    if (baseline && o.count) throw new Error("--check reruns the baseline's own cases; drop --count");
-    // Both are checked before any map is generated or any file written.
+    const baselineFile = o.check ?? o.captureBriefs;
+    const baseline = baselineFile ? (parseJson(fs.readFileSync(baselineFile, 'utf8'), baselineFile) as SweepBaseline) : undefined;
+    if (baseline && o.count) throw new Error("--check and --capture-briefs use the baseline's own cases; drop --count");
+    const replay = o.type !== undefined;
+    if (o.reach !== undefined && !replay) throw new Error('--reach goes with --check and --type');
+    if (replay && o.check === undefined) throw new Error('--type goes with --check');
+    if (o.cache !== undefined && !o.captureBriefs && !replay) throw new Error('--cache goes with --capture-briefs, or --check and --type');
+    // All are checked before any map is generated or any file written.
     const cases = baseline?.provenance.cases ?? sweepCases(o.count ?? 120);
     const jobs = o.jobs === undefined ? undefined : positiveInteger('jobs', o.jobs);
+    const reach = o.reach ?? 'drifted';
+    if (!(REACH_MODES as readonly string[]).includes(reach)) throw new Error(`--reach is one of ${REACH_MODES.join(', ')}, not ${reach}`);
+    const types = o.type === undefined ? undefined : typesToReplay(o.type);
     const started = performance.now();
-    void runSweep(cases, jobs).then((entries) => {
-      const seconds = Number(((performance.now() - started) / 1000).toFixed(0));
-      const count = Object.keys(entries).length;
-      if (o.out) {
-        output(captureBaseline(cases, entries), o.out);
-        process.stderr.write(`captured ${count} maps in ${seconds}s\n`);
-        return;
+    const elapsed = (digits = 0) => Number(((performance.now() - started) / 1000).toFixed(digits));
+    const run = async () => {
+      if (baseline && types) {
+        const report = await replayBriefs(baseline, types, { dir: o.cache, reach: reach as Reach, jobs });
+        output({ ...report, seconds: elapsed(1) });
+        if (replayFailed(report)) process.exitCode = 1;
+      } else if (baseline && o.captureBriefs) {
+        const { maps, regions } = await captureBriefs(baseline, o.cache, jobs);
+        process.stderr.write(`cached ${regions} region briefs from ${maps} maps in ${elapsed()}s\n`);
+      } else {
+        const entries = await runSweep(cases, jobs);
+        const seconds = elapsed(), count = Object.keys(entries).length;
+        if (o.out) {
+          output(captureBaseline(cases, entries), o.out);
+          process.stderr.write(`captured ${count} maps in ${seconds}s\n`);
+          return;
+        }
+        const drift = compareSweep(baseline!, entries);
+        output({ checked: count, seconds, drift });
+        if (drift.length) process.exitCode = 1;
       }
-      const drift = compareSweep(baseline!, entries);
-      output({ checked: count, seconds, drift });
-      if (drift.length) process.exitCode = 1;
-    }).catch((error: unknown) => {
+    };
+    void run().catch((error: unknown) => {
       process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
       process.exitCode = 1;
     });
