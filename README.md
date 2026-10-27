@@ -125,7 +125,7 @@ The server records simulation ticks to compressed JSON archives under `replays/`
 Recordings capture exact authoritative simulation states—actors, positions, health, cooldowns, bot routes, objects, projectiles, accepted commands, seed, map geometry, pinned content ID, and simulation version—verified by SHA-256 stream metadata. Bounded recording (8 MiB pending budget per room) never stalls live gameplay: if storage falls behind, frames are omitted and marked cleanly as gaps during playback.
 
 ### Performance Diagnostics & Profiling
-If a live match stutters, open **Replays → Download performance diagnostics** to save a sanitized JSON report of recent frame times, packet gaps, viewport metrics, and room counts (see [42](docs/42-performance-history.md)).
+If a live match stutters, press `P` while it is slow, then open **Replays → Download performance diagnostics** to save a sanitized JSON report of recent frame times, packet gaps, viewport metrics, the renderer, nearby actor counts and room counts. The capture procedure is in [42.2](docs/42.2-runtime-performance.md#capture-procedure).
 
 Low-overhead profiling hooks are compiled into the simulation, server loop, and renderer, and remain off by default:
 

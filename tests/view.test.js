@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, ROOF_REVEAL_RANGE, ROOF_FADE_MS, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
+import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, buildingOpenings, ROOF_REVEAL_RANGE, ROOF_FADE_MS, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 import { generateLiveMap } from '../map/live.ts';
+import { hypot } from '../shared/math.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
   const eye = { x: 3000, y: 2000 }, map = { obstacles: [], gates: [] };
@@ -291,6 +292,31 @@ test('roofs are revealed or covered, never partly, and fade between them at a co
   assert.equal(openingDistance(map, group, { x: 100, y: 260 }), 50);
   assert.equal(openingDistance(map, group, { x: -30, y: 80 }), 30, 'windows count, and other buildings\' do not');
   assert.equal(openingDistance({ gates: [], obstacles: [] }, group, { x: 0, y: 0 }), Infinity);
+});
+
+test('the nearest opening is the whole-map scan it replaced, and follows gates replaced or added', () => {
+  const map = generateLiveMap(1), groups = [...new Set(roofGroups(map).values())];
+  // The former rule: every gate and window on the map, checked for each group (#549).
+  const scanned = (gates, group, point) => {
+    const ids = new Set(group.flatMap(item => [item.id, item.buildingId].filter(Boolean)));
+    const distance = box => hypot(Math.max(box.x - point.x, 0, point.x - box.x - box.w), Math.max(box.y - point.y, 0, point.y - box.y - box.h));
+    const boxes = [...group.flatMap(item => (item.thresholds ?? []).map(t => ({ x: item.origin.x + t.x * item.cellSize, y: item.origin.y + t.y * item.cellSize, w: item.cellSize, h: item.cellSize }))),
+      ...gates.filter(g => g.buildingId && ids.has(g.buildingId)), ...map.obstacles.filter(o => o.kind === 'window' && o.buildingId && ids.has(o.buildingId))];
+    return Math.min(Infinity, ...boxes.map(distance));
+  };
+  const moved = map.gates.map(g => ({ ...g, x: g.x + 37 })), openings = buildingOpenings(map);
+  assert.ok(groups.length > 10 && map.gates.some(g => g.buildingId) && map.obstacles.some(o => o.kind === 'window'));
+  for (const group of groups) {
+    const { x, y } = group[0].origin ?? group[0];
+    for (const point of [{ x, y }, { x: x - 150, y: y + 90 }]) {
+      assert.equal(openingDistance(map, group, point, openings), scanned(map.gates, group, point));
+      assert.equal(openingDistance({ ...map, gates: moved }, group, point), scanned(moved, group, point));
+    }
+  }
+  // A door pushed onto the same array, as a fixture may, is seen by the next index.
+  const group = groups[0], at = group[0].origin ?? group[0], id = group[0].buildingId ?? group[0].id;
+  map.gates.push({ id: 'pushed', x: at.x - 400, y: at.y, w: 10, h: 10, buildingId: id });
+  assert.equal(openingDistance(map, group, { x: at.x - 400, y: at.y }, buildingOpenings(map)), 0);
 });
 
 test('level of detail zoom thresholds maintain strict progression below player zoom', () => {

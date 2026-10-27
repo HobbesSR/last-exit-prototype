@@ -57,7 +57,8 @@ const summarize = values => {
     p95: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))], max: sorted.at(-1) };
 };
 export function diagnosticTimings() {
-  return { frameMs: summarize(frames), packetGapMs: summarize(packets.map(p => p.gap)), packetBytes: summarize(packets.map(p => p.bytes)),
+  return { sinceJoinSeconds: Math.round((performance.now() - startedAt) / 1000),
+    frameMs: summarize(frames), packetGapMs: summarize(packets.map(p => p.gap)), packetBytes: summarize(packets.map(p => p.bytes)),
     framesOver50ms: frames.filter(v => v > 50).length, packetGapsOver150ms: packets.filter(p => p.gap > 150).length,
     recentFrames: [...frames], recentPackets: packets.map(p => ({ ...p })), hitches: hitches.map(h => ({ ...h })) };
 }

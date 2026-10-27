@@ -713,11 +713,28 @@ setInterval(() => {
 }, 250);
 $('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: 'start' })); };
 $('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void loadArchive(); };
+// Which path drew the frames. A software or Canvas fallback is slow below our code, where the profile
+// cannot see it (42.2); the adapter name says which GPU, not who is playing.
+function rendererReport() {
+  const gl = game.renderer?.gl, debug = gl?.getExtension('WEBGL_debug_renderer_info');
+  return { type: gl ? 'webgl' : 'canvas', adapter: gl ? gl.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : gl.RENDERER) : null,
+    canvas: { width: game.canvas.width, height: game.canvas.height } };
+}
+// Counts only, so a report can say whether a crowd was near without naming anyone: actors in the
+// frame drawn, those inside the camera, and those shown in sight.
+function crowdReport() {
+  const frame = presentationFrame(), view = scene?.cameras?.main.worldView;
+  if (!frame || !view) return null;
+  return { received: frame.players.length, inCamera: frame.players.filter(p => view.contains(p.x, p.y)).length,
+    shown: [...scene.actors.values()].filter(a => a.container.visible).length };
+}
 async function downloadDiagnostics() {
   const me = state?.players.find(p => p.id === playerId);
-  const report = { capturedAt: new Date().toISOString(), version: state?.version, seed: arenaMap?.seed, tick: state?.tick,
+  const report = { capturedAt: new Date().toISOString(), version: state?.version, content: displayPresentation()?.contentId ?? null,
+    seed: arenaMap?.seed, map: arenaMap && { width: arenaMap.width, height: arenaMap.height }, tick: state?.tick,
     role: me?.role, position: me && { x: me.x, y: me.y }, viewport: { width: innerWidth, height: innerHeight, pixelRatio: devicePixelRatio },
     userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency, visibility: document.visibilityState,
+    renderer: rendererReport(), crowd: crowdReport(),
     socketBufferedBytes: ws?.bufferedAmount, timings: diagnosticTimings(), profile: profiler.report() };
   try { report.server = await json('/api/health'); } catch { report.server = { reachable: false }; }
   downloadJson(`last-exit-diagnostics-${Date.now()}.json`, report, 2);

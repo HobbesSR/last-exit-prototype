@@ -527,8 +527,25 @@ export function stepRoofAlpha(alpha: number, revealed: boolean, dtMs: number): n
   return revealed ? Math.max(0, alpha - step) : Math.min(1, alpha + step);
 }
 
+type OpeningBox = { x: number; y: number; w: number; h: number };
+/**
+ * Each building's doors and windows, so a frame can ask about every roof after one pass over the map.
+ * Scanning every gate and obstacle for each roof grew with roofs times obstacles: about 14 ms a frame
+ * at 36 x 18 (#549, 42.2). Nothing is kept between calls, because gates change with every state.
+ */
+export function buildingOpenings(map: Pick<GameMap, 'gates' | 'obstacles'>): Map<string, OpeningBox[]> {
+  const openings = new Map<string, OpeningBox[]>();
+  const add = (box: OpeningBox & { buildingId?: string | undefined }) => {
+    if (box.buildingId) (openings.get(box.buildingId) ?? openings.set(box.buildingId, []).get(box.buildingId)!).push(box);
+  };
+  for (const g of map.gates) add(g);
+  for (const o of map.obstacles) if (o.kind === 'window') add(o);
+  return openings;
+}
+
 /** Nearest door, window or threshold cell of the group to a point, for the reveal; Infinity when it has none. */
-export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'> & { playableArea?: PlayableArea }, group: readonly (RoofBox | Roof)[], point: Vec2): number {
+export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'> & { playableArea?: PlayableArea }, group: readonly (RoofBox | Roof)[], point: Vec2,
+  openings: ReadonlyMap<string, readonly OpeningBox[]> = buildingOpenings(map)): number {
   const ids = new Set<string>();
   for (const item of group) {
     ids.add(item.id);
@@ -551,7 +568,6 @@ export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'> & { pl
       }
     }
   }
-  for (const g of map.gates) if (g.buildingId && ids.has(g.buildingId)) consider(g);
-  for (const o of map.obstacles) if (o.kind === 'window' && o.buildingId && ids.has(o.buildingId)) consider(o);
+  for (const id of ids) for (const box of openings.get(id) ?? []) consider(box);
   return best;
 }
