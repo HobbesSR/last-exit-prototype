@@ -361,12 +361,14 @@ tests does not establish that this is fixed.
 
 **#549 (2026-10-27).** [42.2](42.2-runtime-performance.md#crowd-slowdown-capture-and-diagnosis-549-2026-10-27)
 has the evidence and the capture procedure. The only real capture (2026-09-13) shows steady 131 ms
-frames while server frames kept arriving at 20 Hz. That was a slow client whose main thread was free,
-with the server and network keeping up. On what appears to be the same machine, neither that
-version nor the current one reproduces it with the GPU drawing. That covers crowds near and
-off-screen, AI and idle, the capture's position, and matches past its tick. Software WebGL slows
-frames as much but bunches packets, which the capture does not show. The cause is still unknown and
-is most likely below the page, in that browser session.
+frames while server frames kept arriving at 20 Hz. The server and network kept up, and no long
+main-thread task held packets back. On what appears to be the same machine, neither that version
+nor the current one reproduces it with the GPU drawing. That covers crowds near and off-screen, AI
+and idle, the capture's position, and matches past its tick. Software WebGL slows frames as much
+but bunches packets, which the capture does not show. The cause is still unknown. A cause below
+the page, in that browser session, is the leading guess. It is an inference: the capture has no
+client profile, so its own per-frame JavaScript cost is unmeasured, and the synthetic sessions
+(0.3 to 0.7 ms) do not stand in for it. Application-side causes stay unresolved.
 
 Still missing: a capture taken during the symptom, with the client profile on (`P`) and the new
 `renderer` and `crowd` fields, plus `chrome://gpu` and the match's replay, and confirmation that the

@@ -47,7 +47,9 @@ try {
   });
   console.log(JSON.stringify(environment));
   const keys = ['KeyD', 'KeyW', 'KeyD', 'KeyS', 'KeyD', 'KeyA', 'KeyS', 'KeyD'];
-  let held = null, step = 0, lastFrames = 0, lastAt = performance.now();
+  // The page has been counting frames since it loaded, through the lobby and the map build, so the first
+  // interval starts from the count now rather than from zero.
+  let held = null, step = 0, lastFrames = await page.evaluate(() => window.arenaProfile().frames), lastAt = performance.now();
   const started = performance.now();
   server.profiler.reset();
   while (performance.now() - started < seconds * 1000) {
