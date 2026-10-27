@@ -5,15 +5,14 @@ import { createAccessMask, createFillMask, travelClear, findRegionRoute } from '
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { planBlock } from '../map/micro/strategies/block.ts';
 import { inheritBriefMargins, validateFillConstraints } from '../map/micro/margins.ts';
-import { REGION_TYPES, buildRegion, briefErrors } from '../map/micro/region-types.ts';
-import { elementShapes } from '../map/micro/geometry.ts';
+import { buildRegion, briefErrors } from '../map/micro/region-types.ts';
 import { rect } from '../shared/shape.ts';
 import { moveBody, canOccupy } from '../shared/movement.ts';
+import { chainBrief } from './helpers/chain-briefs.js';
 
 const cells = (x0, y0, w, h) => Array.from({ length: w * h }, (_, i) => ({ x: x0 + i % w, y: y0 + Math.floor(i / w) }));
-const brief = (owned, portals, playable = owned) => ({ id: 'test', seed: 1, type: 'block', cellSize: 40,
-  cells: owned, portals, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells: owned }],
-  ...applyClearConstraints(owned, clearFootprint(portals, playable)) });
+const brief = (owned, portals, playable = owned, internal = []) => chainBrief({ id: 'test', type: 'block', cells: owned, portals, internal, playable,
+  zones: [{ tier: 1, bonus: 0, lootChance: 0, cells: owned }] });
 
 test('shared one-cell approaches admit swept hunter routes and actual movement at the same radius', () => {
   const owned = cells(0, 1, 8, 3), playable = cells(0, 0, 8, 5);
@@ -110,9 +109,7 @@ test('malformed or oversized runs on a bare brief are refused before any margin 
 test('block child handoffs retain original ownership and apply inherited and new margins once', () => {
   const owned = cells(1, 1, 48, 36), playable = cells(0, 0, 50, 38);
   const input = brief(owned, [{ id: 'west', axis: 'v', x: 1, y: 10, length: 4 },
-    { id: 'east', axis: 'v', x: 49, y: 20, length: 4 }], playable);
-  input.internalGuaranteed = [{ axis: 'h', x: 1, y: 18, length: 48 }];
-  Object.assign(input, applyClearConstraints(owned, clearFootprint(input.internalGuaranteed, playable), input.clearCells));
+    { id: 'east', axis: 'v', x: 49, y: 20, length: 4 }], playable, [{ axis: 'h', x: 1, y: 18, length: 48 }]);
   const plan = planBlock(input);
   assert.ok(plan.lots.length);
   const children = [...plan.lots, plan.alleys];
@@ -130,23 +127,8 @@ test('block child handoffs retain original ownership and apply inherited and new
   }
 });
 
-test('registered builders respect automatic fill exclusions even beside hints', () => {
-  const owned = cells(1, 1, 24, 20), playable = cells(0, 0, 26, 22);
-  const input = brief(owned, [{ id: 'west', axis: 'v', x: 1, y: 8, length: 3 },
-    { id: 'east', axis: 'v', x: 25, y: 8, length: 3 }], playable);
-  input.hints = [{ axis: 'h', x: 1, y: 1, length: 24 }];
-  // Internal requirements also exclude cells, independent of external portal count.
-  const internal = [{ axis: 'h', x: 1, y: 5, length: 24 }];
-  Object.assign(input, applyClearConstraints(owned, clearFootprint(internal, playable), input.clearCells));
-  input.internalGuaranteed = internal;
-  for (const type of Object.keys(REGION_TYPES)) {
-    const result = buildRegion({ ...input, type });
-    const blockers = result.elements.flatMap(e => elementShapes(e, true));
-    assert.deepEqual(validateFillConstraints(result.brief, blockers), [], type);
-    assert.deepEqual(validatePortalReach({ ...result.brief, blockers: result.elements.flatMap(elementShapes) }).errors, [], type);
-    assert.equal(result.manifest.cells, owned.length, type);
-  }
-});
+// Every registered builder respecting the automatic fill exclusions, beside hints and across
+// internal strips, is the builder contract (micro-builder-contract.test.js).
 
 test('empty fill preserves core requests and original siting ownership', () => {
   const input = brief(cells(0, 0, 12, 12), []);
