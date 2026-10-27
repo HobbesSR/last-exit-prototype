@@ -2218,7 +2218,7 @@ try {
   const blockDrill = await drillInto(blockBrief);
   assert.equal(blockDrill.drill.difference, null, "the block rebuilds equal to the stored result");
   assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), planBlock(blockBrief).lots.map(lot => lot.type));
-  assert.deepEqual(blockDrill.drill.buildings, ["lot-2/depot-warehouse-1", "lot-4/compound"],
+  assert.deepEqual(blockDrill.drill.buildings, [`${blockBrief.id}/lot-2/depot-warehouse-1`, `${blockBrief.id}/lot-4/compound`],
     "the depot and compound are traced, labelled as their lot's elements");
   assert.equal(blockDrill.drill.drawn.lots.lots, 5);
   assert.ok(blockDrill.drill.drawn.graph.nodes > 0);

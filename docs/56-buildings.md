@@ -301,8 +301,9 @@ element's label, the world position of the allocation's cell (0, 0), the cell
 size, and the design, allocation and realization the element was built from.
 `buildRegion(brief, registry, observe)` passes it on. A strategy that builds no
 design ignores it. `hut` reports its house, and `compound` its ring (L5).
-`block` passes the observer to its lots, prefixing each label as it prefixes
-the lot's elements. The trace is
+`block` passes the observer to its lots, prefixing each label with the full
+child ID (the block brief ID followed by the lot ID), as it prefixes the lot's elements.
+The trace is
 handed over while the strategy runs and is never part of the result, so
 nothing is stored (17.2.8 M30), and building with or without an observer gives
 the same result.

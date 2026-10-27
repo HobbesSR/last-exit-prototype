@@ -98,7 +98,9 @@ try {
   assert.ok(block.result.assignments.some(a => a.role === 'alleys'), 'the block has circulation between its lots');
   assert.ok(block.result.assignments.every(a => Object.hasOwn(REGION_TYPES, a.builder)), 'every child has a registered builder');
   assert.equal(new Set(block.result.assignments.map(a => a.pieceId)).size, block.result.assignments.length, 'each child has a unique assignment');
+  assert.ok(block.shown.built.elements.length > 0, 'the linked block has generated elements to display');
   assert.deepEqual(block.result.regions.flatMap(r => r.elements), block.shown.built.elements, 'every generated element belongs to one child exactly once');
+  assert.ok(block.result.regions.some(r => r.manifest.structures > 0 || r.manifest.obstacles > 0), 'child inspection reports the generated geometry');
   assert.ok(block.walker, 'the walk stage places a walker in the block');
   await page.getByRole('button', { name: 'Decomposition', exact: true }).click();
   await page.screenshot({ path: 'test-results/generation-demo-block.png', fullPage: true });
