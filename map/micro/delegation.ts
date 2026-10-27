@@ -69,10 +69,21 @@ function insideCells(run: Run, owned: ReadonlySet<string>): Cell[] {
 
 /** Shared input normalization; execution need not construct an unchanged one-owner partition. */
 export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
+  return canonicalBrief(input, false);
+}
+
+/** Internal dispatch path, immediately after partition preparation checked these cells.
+ * Preparation changes margins and runs, so all other validation/normalization still runs.
+ */
+export function canonicalPreparedDelegationBrief(input: RegionBrief): RegionBrief {
+  return canonicalBrief(input, true);
+}
+
+function canonicalBrief(input: RegionBrief, checkedCells: boolean): RegionBrief {
   const brief = structuredClone(input);
   if (typeof brief.id !== 'string' || !brief.id || typeof brief.type !== 'string' || !brief.type || !Number.isSafeInteger(brief.seed) || !Number.isFinite(brief.cellSize) || brief.cellSize <= 0)
     throw new Error('Preparation needs a stable brief identity, type, integer seed and positive cell size.');
-  brief.cells = checkedRegionCells(brief.cells);
+  if (!checkedCells) brief.cells = checkedRegionCells(brief.cells);
   portalStands(brief);
   const hints = hintErrors(brief);
   if (hints.length) throw new Error(hints.join(' '));
@@ -229,6 +240,14 @@ function finishPartition(parent: RegionBrief, children: readonly RegionBrief[], 
  */
 export function prepareInitialPartition(input: RegionBrief, children: readonly RegionBrief[]): RegionBrief[] {
   const parent = canonicalDelegationBrief(input);
+  return finishPartition(parent, children.map(canonicalDelegationBrief), message => new Error(`Initial partition: ${message}`));
+}
+
+/** Internal dispatch path: the executor owns this already canonicalized parent.
+ * Recheck fields changed by canonical margin inheritance, retaining error precedence.
+ */
+export function prepareCanonicalInitialPartition(input: RegionBrief, children: readonly RegionBrief[]): RegionBrief[] {
+  const parent = canonicalPreparedDelegationBrief(input);
   return finishPartition(parent, children.map(canonicalDelegationBrief), message => new Error(`Initial partition: ${message}`));
 }
 

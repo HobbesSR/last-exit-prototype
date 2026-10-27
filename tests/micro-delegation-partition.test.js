@@ -82,5 +82,7 @@ test('an unprepared or invalid partition never executes', () => {
   const right = brief('region/right', cells(6, 6));
   assert.throws(() => dispatchDelegationPartition(input, [left], registry), /^Error: Initial partition: .*exhaust/);
   assert.throws(() => dispatchDelegationPartition(input, [left, right], registry), /Initial partition: .*paired crossing/);
+  const duplicate = { ...left, cells: [...left.cells, left.cells[0]] };
+  assert.throws(() => dispatchDelegationPartition(input, [duplicate, right], registry), /duplicate/i);
   assert.equal(built, 0);
 });
