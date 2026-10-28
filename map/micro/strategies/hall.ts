@@ -35,8 +35,8 @@ type Box = { x: number; y: number; w: number; h: number };
  * blocking a walk. It has no decomposer.
  *
  * It takes the region's largest contained rectangle at least `MIN_SIDE` cells a side.
- * Hall residual wings may receive crates after the primary assembly. Pillar blocks lie
- * `spacing` cells apart on the rectangle, centred in it. Each row is offset from the last by about half a period along
+ * Pillar blocks lie `spacing` cells apart on the rectangle, centred in it. Each row is
+ * offset from the last by about half a period along
  * one axis, drawn from the seed, so a sightline down that axis meets a pillar within a few
  * rows. The other axis keeps clean lanes, the walk the design leaves open. Only one axis is
  * staggered: staggering both pinches pillar corners together.
@@ -48,8 +48,13 @@ type Box = { x: number; y: number; w: number; h: number };
  * roof, which hides what's under it as a building's does. A region with no such rectangle
  * goes to `open` (17 M24).
  *
+ * After the primary assembly, hall residual wings may receive crates outside a two-cell
+ * buffer around the rectangle. Each crate requires a fully owned two-cell bypass ring
+ * and two-cell separation from other pieces. The market stand-in skips this pass.
+ *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear
- * of every pillar. A hall sites no core elements; any the brief lists are left for the report.
+ * of all final obstacles, including pillars, hint walls, crates and gates. A hall sites no
+ * core elements; any the brief lists are left for the report.
  */
 export function buildHall(brief: RegionBrief): BuiltRegion {
   const spacing = brief.parameters?.spacing ?? DEFAULT_SPACING;
@@ -114,7 +119,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
     commitError: label => `Hall placement ${label} failed its canvas commit.`,
   }) : undefined;
   const elements = [...canvas.elements];
-  const lootPieces = brief.type === 'hall' ? elements.flatMap(element => elementShapes(element, true)) : [...pillars, ...walls.shapes];
+  const lootPieces = infillCrates !== undefined ? elements.flatMap(element => elementShapes(element, true)) : [...pillars, ...walls.shapes];
   const loot = cellLoot(brief, createRegionMask(brief), lootPieces, CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { pillars: pillars.length, hintWalls: walls.shapes.length,
     ...(infillCrates === undefined ? {} : { infillCrates }) });
