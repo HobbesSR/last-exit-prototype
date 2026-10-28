@@ -1,4 +1,7 @@
 import { microMetrics } from './metrics.ts';
+import { freePaths, triangulateFreeSpace, type FreeSpace } from '../../shared/free-space.ts';
+import { bounds, rect, transform } from '../../shared/shape.ts';
+import { CLIP_SCALE } from '../../shared/shape-construction.ts';
 import { checkedPortals } from './limits.ts';
 import { createAccessMask, createRegionMask, findRegionRoute, travelClear, validShape } from './geometry.ts';
 import type { Shape } from '../../shared/shape.ts';
@@ -9,10 +12,21 @@ import type { Run } from '../kernel/run.ts';
 /** A brief's region: its cells at `cellSize` world units, with the kernel's body scale. */
 export interface PortalRegion { cells: Cell[]; cellSize: number; portals: Portal[]; fillCells?: Cell[]; clearCells?: Cell[]; internalGuaranteed?: Run[] }
 export interface PortalReachInput extends PortalRegion { blockers: Shape[] }
+export interface PortalReachOptions { search?: 'grid' | 'thorough' }
+export interface PortalJoin {
+  from: Vec2;
+  to: Vec2;
+  /** A miss is no witness found, never proof of impossibility. */
+  search: 'direct' | 'grid' | 'mesh' | 'none';
+  points: Vec2[] | null;
+}
 export interface PortalReachResult {
   valid: boolean;
   errors: string[];
   routes: Array<RegionRoute & { from: string; to: string }>;
+  /** Includes adjacent stands along long portals as well as inter-portal joins. */
+  joins: PortalJoin[];
+  meshBuilds: number;
 }
 /** Where a hunter stands at each part of one portal, in order along it. Empty when no hunter fits. */
 export interface PortalStands { portal: Portal; inward: Vec2; points: Vec2[] }
@@ -58,16 +72,50 @@ export function portalStands(region: PortalRegion): PortalStands[] {
  * too short for a hunter is not reported (20.1).
  * Input checks still apply, including collision shapes, bounded runs and portal placement.
  * Their automatic margin is `validateFillConstraints`'s.
- * The route search is sampled: a found route is a real one, but a miss doesn't prove
- * that none exists (20, "Geometry and reachability"). It reports; it never repairs.
+ * Default search is sampled. Optional thorough search retries misses on a shared
+ * free-space mesh, with every endpoint lead and segment swept against final geometry.
+ * A miss in either mode doesn't prove impossibility (20.2). It reports; it never repairs.
  */
-export function validatePortalReach(input: PortalReachInput): PortalReachResult {
-  const errors: string[] = [], routes: PortalReachResult['routes'] = [];
+export function validatePortalReach(input: PortalReachInput, options: PortalReachOptions = {}): PortalReachResult {
+  const errors: string[] = [], routes: PortalReachResult['routes'] = [], joins: PortalJoin[] = [];
+  let mesh: FreeSpace | undefined, meshBuilds = 0;
   try {
+    if (options.search !== undefined && options.search !== 'grid' && options.search !== 'thorough') throw new Error('Unknown portal search mode.');
     if (!Array.isArray(input.blockers) || input.blockers.some(shape => !validShape(shape))) throw new Error('Blockers must be valid convex collision shapes.');
     const mask = createAccessMask(input), stands = portalStands(input), radius = hunterClearance(input.cellSize);
-    if (stands.length < 2) return { valid: true, errors, routes };
-    const route = (from: Vec2, to: Vec2) => findRegionRoute(mask, input.blockers, from, to, radius);
+    if (stands.length < 2) return { valid: true, errors, routes, joins, meshBuilds };
+    const route = (from: Vec2, to: Vec2): Vec2[] | null => {
+      const direct = travelClear(mask, input.blockers, from, to, radius);
+      let points = direct ? [from, to] : findRegionRoute(mask, input.blockers, from, to, radius);
+      let search: PortalJoin['search'] = points ? (direct ? 'direct' : 'grid') : 'none';
+      if (!points && options.search === 'thorough') {
+        if (!mesh) {
+          // Overlap cell edges by construction-grid slivers, as shared openGround does.
+          // Erosion keeps its shared defaults; final sweeps enforce the exact access mask.
+          const pad = 2 / CLIP_SCALE, size = mask.cellSize;
+          // Normalize before clipping: translating a bounded region must not
+          // consume Clipper's integer coordinate range (20.2, #330).
+          const domain = mask.cells.map(c => rect(c.x * size - mask.bounds.x - pad, c.y * size - mask.bounds.y - pad, size + 2 * pad, size + 2 * pad));
+          const box = mask.bounds;
+          const nearby = input.blockers.filter(s => {
+            const b = bounds(s);
+            return b.x <= box.x + box.w + pad && b.x + b.w >= box.x - pad && b.y <= box.y + box.h + pad && b.y + b.h >= box.y - pad;
+          });
+          mesh = triangulateFreeSpace(domain, domain, nearby.map(s => transform(s, -box.x, -box.y)), radius);
+          meshBuilds++;
+        }
+        // One cell is a bounded attachment search, including corner displacement from
+        // conservative erosion. It grants no clearance: every lead is swept below.
+        const local = (p: Vec2): Vec2 => ({ x: p.x - mask.bounds.x, y: p.y - mask.bounds.y });
+        const candidate = freePaths(mesh, local(from), [local(to)], input.cellSize)[0];
+        const world = candidate?.points.map((p, i, all) => i === 0 ? from : i === all.length - 1 ? to : { x: p.x + mask.bounds.x, y: p.y + mask.bounds.y });
+        if (world && world.every((p, i, all) => travelClear(mask, input.blockers, i ? all[i - 1]! : p, p, radius))) {
+          points = world; search = 'mesh';
+        }
+      }
+      joins.push({ from, to, search, points });
+      return points;
+    };
     const reached: Array<{ id: string; at: Vec2 }> = [];
     for (const { portal, points } of stands) {
       if (!points.length) { errors.push(`Portal ${portal.id} is too short for a hunter.`); continue; }
@@ -77,7 +125,7 @@ export function validatePortalReach(input: PortalReachInput): PortalReachResult 
       if (blocked.length) { errors.push(`Portal ${portal.id} is obstructed at ${blocked.length} of ${points.length} hunter stands.`); continue; }
       // Along one portal a straight sweep usually suffices; a route covers a portal bent by an obstacle.
       let joined = true;
-      for (let i = 1; i < points.length && joined; i++) joined = travelClear(mask, input.blockers, points[i - 1]!, points[i]!, radius) || !!route(points[i - 1]!, points[i]!);
+      for (let i = 1; i < points.length && joined; i++) joined = !!route(points[i - 1]!, points[i]!);
       if (!joined) { errors.push(`Portal ${portal.id} is divided: part of it is unreachable from the rest.`); continue; }
       reached.push({ id: portal.id, at: points[0]! });
     }
@@ -88,5 +136,5 @@ export function validatePortalReach(input: PortalReachInput): PortalReachResult 
       else errors.push(`Portal ${other.id} is unreachable from portal ${first.id}.`);
     }
   } catch (error) { errors.push(error instanceof Error ? error.message : String(error)); }
-  return { valid: errors.length === 0, errors, routes };
+  return { valid: errors.length === 0, errors, routes, joins, meshBuilds };
 }

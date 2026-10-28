@@ -61,7 +61,7 @@ test('a wall sitting right on the boundary seals the portal even when no stand d
 test('fewer than two portals carry no reachability requirement, but the margin is still a fill rule', () => {
   // 17.2.4 (2026-09-29), 51.7, 54: a lone portal owes nothing, stands included.
   const one = { ...brief(), portals: [brief().portals[0]] }, none = { ...brief(), portals: [] };
-  const empty = { valid: true, errors: [], routes: [] };
+  const empty = { valid: true, errors: [], routes: [], joins: [], meshBuilds: 0 };
   assert.deepEqual(validatePortalReach({ ...one, blockers: [] }), empty, 'a clear lone portal has no pair route');
   assert.deepEqual(validatePortalReach({ ...none, blockers: [] }), empty);
   // A wall over the lone portal's stands, on the boundary, and a portal too short for a
