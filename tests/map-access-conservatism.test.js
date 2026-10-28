@@ -23,9 +23,11 @@ test('clear opposite portal approaches do not excuse a separating wall', () => {
     ],
   };
   assert.equal(validatePortalReach({ ...region, blockers: [] }).valid, true);
-  const divided = validatePortalReach({ ...region, blockers: [rect(140, 0, 40, 240)] });
-  assert.equal(divided.valid, false);
-  assert.deepEqual(divided.errors, ['Portal east is unreachable from portal west.']);
+  for (const options of [undefined, { search: 'thorough' }]) {
+    const divided = validatePortalReach({ ...region, blockers: [rect(140, 0, 40, 240)] }, options);
+    assert.equal(divided.valid, false);
+    assert.deepEqual(divided.errors, ['Portal east is unreachable from portal west.']);
+  }
 });
 
 // #214: distinguish a region-local clearance promise from actual assembled movement.

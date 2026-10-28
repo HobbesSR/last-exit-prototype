@@ -3,7 +3,7 @@ export { createRegionMask, createFillMask, createAccessMask, capsule, elementSha
 export { spreadPoints } from './placement.ts';
 export { microMetrics } from './metrics.ts';
 export { portalStands, validatePortalReach } from './portals.ts';
-export type { PortalReachInput, PortalReachResult, PortalStands } from './portals.ts';
+export type { PortalReachInput, PortalReachOptions, PortalReachResult, PortalJoin, PortalStands } from './portals.ts';
 export { boundaryBoxFilter, boxesAgainstHints, clipHints, hintedCells, hintErrors, hintsOfStrength, hintStrength, portalMargin } from './hints.ts';
 export type { CellBox, HintedRegion, HintStrength } from './hints.ts';
 export { wallHints } from './hint-walls.ts';

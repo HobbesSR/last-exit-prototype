@@ -106,13 +106,20 @@ not an accurate inventory of everything still missing.
 | Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
 | District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. |
 
-For the next implementation selection, compare #532's missing structural
-capabilities and #533's warehouse composition against
-current authored-map reach and prerequisites. These are candidates, not a fixed
-handoff chain. The bounded production-decomposition pilot requested earlier has
-been delivered; completing all of #535 is not a prerequisite for every other
-workstream. At this 2026-10-28 checkpoint, do not resume compound offset research
-merely because it is the latest handoff; reassess against newer epic direction.
+The next shared capability is prospective parcels and movable cords (#645),
+following independent optional thorough validation (#644). Depot, hall, market,
+plant, ruins and cover currently freeze routes before content placement; residual
+infill cannot negotiate meaningful primary parcels across those routes. Existing
+canvas, placeables, infill and recovery infrastructure remains useful. This is
+a composition opportunity, not evidence that prior deliveries are defective.
+After #645, establish #646's no-transfer handoff milestone and #647's measured hut
+adoption. Also select a contrasting fixed-route builder (depot or market are
+candidates) for an opt-in comparison of composition, entrance/side-pocket access,
+useful handoff shapes, determinism/recovery and generation cost. Portal connectivity
+alone does not preserve authored aisles or doorstep access. Reassess earlier #529
+work as retain/adapt/defer using that evidence before substantial new structural
+expansion; do not automatically rewrite every builder or resume offset research.
+See the 2026-10-28 sequencing checkpoint on #529 and [20.10](20.10-portal-cords.md).
 
 The epic reaches its first functional tier when each workstream has a useful
 production capability on representative intended workloads, or an explicit
@@ -253,15 +260,14 @@ claim complete process isolation. Public deployment limits are in
 
 ## Portal cords and peripheral handoffs (#643)
 
-Design proposed for review, not implemented: [20.10](20.10-portal-cords.md).
-Source direction is in [17.2.10](17.2.10-portal-cord-direction.md). Implementation
-follows reviewed contracts; #644 may begin before the design PR merges because
-it implements parameterized fallback without changing the default. This sequence
-is local to this workstream.
+Design reviewed in #648: [20.10](20.10-portal-cords.md).
+Source direction is in [17.2.10](17.2.10-portal-cord-direction.md). Optional
+validation is implemented; coordination and builder adoption remain pending.
+This is also a shared prerequisite for #529's composition sequence above.
 
 | Order | Issue | Functional outcome |
 | --- | --- | --- |
-| 1 | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
+| Done | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
 | 2 | [#645](/corey/astra_test/issues/645) | Atomic prospective parcels anywhere in the fill, with deformable connectivity witness |
 | 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
 | 3b | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing |
