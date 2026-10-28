@@ -73,7 +73,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
 | [26-recording-contract.md](26-recording-contract.md) | Replay format, integrity, bounded recording, failure and recovery, playback |
-| [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, and what stays outside it |
+| [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, the one math library both sides need, and the order of an incremental, fixture-checked port |
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |
 | [29-geometry-and-drawing.md](29-geometry-and-drawing.md) | Guide: shape descriptions, collision, sight edges, physics prerequisites |
 | [29.1-physics-design.md](29.1-physics-design.md) | Proposed rigid bodies, character contact, middleware evaluation, springs/hooks and physical item contracts |
