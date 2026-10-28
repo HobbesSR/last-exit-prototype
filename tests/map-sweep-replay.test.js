@@ -108,13 +108,16 @@ test('each requested strategy needs a region of its own, so one cannot pass for 
   assert.equal((await replayBriefs(baseline, [other], { dir, jobs: 2 })).types[0], other, 'the others are still replayable');
 });
 
-test('types bound to one strategy count together: either one exercises it', async () => {
+test('hall and market replay independently, each requiring its own cached regions', async () => {
   assert.ok(typesHeld(captured).has('market'), 'the quick cases hold a market');
-  const dir = without('hall'), pair = typesToReplay('hall');
+  assert.deepEqual(typesToReplay('hall'), ['hall']);
+  assert.deepEqual(typesToReplay('market'), ['market']);
+  const dir = without('hall');
+  await assert.rejects(replayBriefs(baseline, ['hall', 'market'], { dir, jobs: 2 }), /holds no region of type hall$/);
   const markets = Object.values(index(dir).maps).reduce((n, m) => n + (m.types.market ?? 0), 0);
-  const report = await replayBriefs(baseline, pair, { dir, jobs: 2 });
-  assert.deepEqual([report.types, report.regions, report.drift], [pair, markets, []]);
-  await assert.rejects(replayBriefs(baseline, pair, { dir: without('hall', 'market') }), /holds no region of type hall or market$/);
+  const report = await replayBriefs(baseline, ['market'], { dir, jobs: 2 });
+  assert.deepEqual([report.types, report.regions, report.drift], [['market'], markets, []]);
+  await assert.rejects(replayBriefs(baseline, ['market'], { dir: without('market') }), /holds no region of type market$/);
 });
 
 /** The cheap playground maps alone, with one hash that this tree can't reproduce. */
@@ -145,9 +148,9 @@ test('capture will not empty a directory that holds other files', async () => {
   assert.deepEqual(readdirSync(dir), ['notes.txt']);
 });
 
-test('a type names its strategy\'s other types, and an unknown one is refused', () => {
-  assert.deepEqual(typesToReplay('hall'), ['hall', 'market']);
-  assert.deepEqual(typesToReplay('market, plant'), ['hall', 'plant', 'market']);
+test('types select independent strategies, and an unknown one is refused', () => {
+  assert.deepEqual(typesToReplay('hall'), ['hall']);
+  assert.deepEqual(typesToReplay('market, plant'), ['plant', 'market']);
   assert.throws(() => typesToReplay('plant,nope'), /unknown region type nope; the types are .*plant/);
   assert.throws(() => typesToReplay(' , '), /names no region type/);
 });

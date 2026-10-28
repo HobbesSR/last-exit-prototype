@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-46` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-47` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -165,7 +165,8 @@ integration check and the way to recapture.
   editing a builder, or from a checkout that matches the baseline.
 - `sweep --check FILE --type plant` rebuilds only that type's briefs, in parallel, and compares
   each result's hash with the cache's. `--type` takes a list, and a type bound to another's
-  strategy is replayed with it (`market` is `hall`'s). It reports, per region and not per map:
+  strategy is replayed with it. Market and hall now have independent strategies.
+  It reports, per region and not per map:
   - **`drift`**: the regions whose result moved, by map and region id, with the manifest counts
     that moved (an empty set means the geometry moved and no count did);
   - **`threw`**: the regions whose builder threw on a brief it built before;

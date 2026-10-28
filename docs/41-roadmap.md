@@ -103,11 +103,11 @@ not an accurate inventory of everything still missing.
 | Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins. Compound exterior crossing limitations remain; #630/#632 diagnose and experiment without production adoption. Treat offset-search adoption as deferred refinement for next-task selection unless evidence makes it a blocker for the chosen functional outcome. |
 | Hut and compound structures (#532) | Primary functional gaps: multiple houses where sites fit, useful compound courtyard composition, and secondary structures in oversized compounds. Deliver a coherent first capability with actual eligible-region and access evidence before broadening its grammar. |
 | Depot and hall composition (#533) | Short-lane depot crates and hall residual-wing crates are delivered partial improvements. Warehouse budget/composition and structural hall wings remain distinct candidates; secondary crates do not establish those capabilities. |
-| Market (#534) | A dedicated market strategy remains a primary capability gap. First establish recognizable stalls/rows and usable aisles on representative market footprints; elaborate canopy and irregular-wing grammar can follow. |
+| Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
 | District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. |
 
 For the next implementation selection, compare #532's missing structural
-capabilities, #534's dedicated market and #533's warehouse composition against
+capabilities and #533's warehouse composition against
 current authored-map reach and prerequisites. These are candidates, not a fixed
 handoff chain. The bounded production-decomposition pilot requested earlier has
 been delivered; completing all of #535 is not a prerequisite for every other

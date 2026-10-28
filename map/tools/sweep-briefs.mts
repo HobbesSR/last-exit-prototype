@@ -196,7 +196,7 @@ const registry: Record<string, unknown> = REGION_TYPES;
 
 /**
  * The types a `--type` list replays: those named, and any bound to the same strategy (in
- * `REGION_TYPES`, `market` is `hall`'s), since one builder change moves them together.
+ * `REGION_TYPES`), since one builder change moves them together.
  */
 export function typesToReplay(requested: string): string[] {
   const names = requested.split(',').map((name) => name.trim()).filter(Boolean);
@@ -235,7 +235,7 @@ export async function replayBriefs(baseline: SweepBaseline, types: string[], { d
   const index = readIndex(baseline, dir);
   const units = types.flatMap((type) => Object.entries(index.maps).filter(([, cached]) => cached.types[type])
     .map(([key]): ReplayUnit => ({ task: 'replay', type, key, regions: path.join(dir, REGIONS), reach })));
-  // Each strategy needs a region of its own: types bound to one (hall and market) count together,
+  // Each strategy needs a region of its own: types bound to one count together,
   // but a request for several builders can't pass because one of them was exercised.
   const strategies = new Map<unknown, string[]>();
   for (const type of types) strategies.set(registry[type], [...strategies.get(registry[type]) ?? [], type]);

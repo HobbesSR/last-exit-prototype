@@ -135,7 +135,7 @@ existed.
 | [54-region-types.md](54-region-types.md) | The region type catalogue and guide: what every type shares, portal counts, the catalogue table, old names, material; entries in 54.1–54.4 |
 | [54.1-ground-and-friction.md](54.1-ground-and-friction.md) | Entries for `open`, `cover`, `rubble`, `ruins` and `hall` |
 | [54.2-structures.md](54.2-structures.md) | Entries for `checkpoint`, `park`, `hut`, `depot`, `plant` and `compound` |
-| [54.3-district-and-drafted.md](54.3-district-and-drafted.md) | Entries for `block` and the drafted `market` |
+| [54.3-district-and-drafted.md](54.3-district-and-drafted.md) | Entries for `block` and `market` |
 | [54.4-core-element-classes.md](54.4-core-element-classes.md) | Entries for `arrival`, `departure`, `charging` and `transit` |
 | [55-zone-plans.md](55-zone-plans.md) | Zone plans, starting with the diamond: the zone grid, mask, tiers, zone sizes, where placement rules anchor, and who authors what |
 | [56-buildings.md](56-buildings.md) | The building library, its first milestone implemented: building designs, their realization in cells, walls from runs, and the build order |

@@ -82,7 +82,7 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | [`plant`](54.2-structures.md#plant) | structure | an industrial works: machinery blocks, pipe runs, long lines | — |
 | [`compound`](54.2-structures.md#compound) | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | [`block`](54.3-district-and-drafted.md#block) | district | a city block that decomposes into the types above | — |
-| [`market`](54.3-district-and-drafted.md#market) | drafted | stall rows and narrow lanes: dense, low, sight-breaking cover | — |
+| [`market`](54.3-district-and-drafted.md#market) | district | stall rows and narrow lanes: dense, low, sight-breaking cover | — |
 | [`arrival`](54.4-core-element-classes.md#arrival) | core element | the contestants' start | `spawn` × `contestantCount` |
 | [`departure`](54.4-core-element-classes.md#departure) | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` × `hunterCount` |
 | [`charging`](54.4-core-element-classes.md#charging) | core element | the power-cell charging station (F-03) | `charger` |

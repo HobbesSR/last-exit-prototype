@@ -7,6 +7,7 @@ import { buildOpen } from './strategies/open.ts';
 import { buildRubble } from './strategies/rubble.ts';
 import { buildRuins } from './strategies/ruins.ts';
 import { buildHall } from './strategies/hall.ts';
+import { buildMarket } from './strategies/market.ts';
 import { buildDepot } from './strategies/depot.ts';
 import { buildPlant } from './strategies/plant.ts';
 import { buildCheckpoint } from './strategies/checkpoint.ts';
@@ -49,15 +50,14 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   plant: buildPlant,
   checkpoint: buildCheckpoint,
   park: buildPark,
-  // Drafted types (54), each bound to its nearest built strategy until its own is written.
-  market: buildHall,
+  market: buildMarket,
 });
 
 /**
  * Names what `REGION_TYPES` builds. A change to what any of its strategies builds bumps it,
  * so a saved map's results are never rebuilt by other strategies without saying so (51 "Saving").
  */
-export const REGION_TYPES_VERSION = 'types-46';
+export const REGION_TYPES_VERSION = 'types-47';
 
 /**
  * Dispatch a brief to its region type's strategy (51 stage 6). The brief is checked as
