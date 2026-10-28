@@ -9,6 +9,11 @@ import { validatePortalReach } from '../map/micro/portals.ts';
 import { hasWideCirculation } from '../map/micro/strategies/block-circulation.ts';
 import { cellsOf } from './helpers/cells.js';
 import { unusedComponents } from '../map/micro/components.ts';
+import { CELL_SCALE } from '../map/kernel/scale.ts';
+
+test('the cell-scale hunter clearance fits the radius-one circulation witness', () => {
+  assert.ok(CELL_SCALE.hunterRadius + CELL_SCALE.clearanceMargin < 1);
+});
 
 test('neck lots preserve final alley-child hunter access independently of parent interiors', () => {
   const brief = regionExample({ type: 'block', shape: 'neck', width: 36, height: 30, seed: 1 });

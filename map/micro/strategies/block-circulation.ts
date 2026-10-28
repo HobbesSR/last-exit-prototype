@@ -1,4 +1,5 @@
 import { cellKey } from '../../kernel/cell.ts';
+import { MIN_PORTAL_LENGTH } from '../../kernel/scale.ts';
 import type { Cell, Portal } from '../types.ts';
 
 /**
@@ -37,7 +38,7 @@ export function createCirculationCheck(cells: readonly Cell[]) {
     // A complete two-deep inward strip joins the portal seam to the backbone.
     // Reserving a second approach row does not establish that it actually exists.
     for (const p of portals) {
-      if (p.length < 2) return false;
+      if (p.length < MIN_PORTAL_LENGTH) return false;
       const after = remaining.has(key(p.x, p.y));
       for (let i = 1; i < p.length; i++) {
         const x = p.axis === 'h' ? p.x + i : p.x + (after ? 1 : -1);
