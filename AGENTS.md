@@ -6,7 +6,10 @@ Inspect `git status` and current files before acting. When resuming an issue or
 pull request, read its latest handoff comment on Forgejo, then `docs/00-index.md`
 and the numbered files it points to for the area you are changing. The documentation
 and newer user edits take precedence over stale handoff comments. Do not stage or overwrite
-unrelated user changes.
+unrelated user changes. Handoffs describe checkpoints and suggestions, not new
+requirements or automatic priority. For epic-directed work, reassess the whole
+epic before choosing the next task, using the functional-tier selection and
+stopping rules in [32](docs/32-delegation.md).
 
 Load the documentation you need, not all of it. `docs/1x` is product, `2x` is
 engineering, `3x` is process, `4x` is plan and history, `5x` is map generation.
