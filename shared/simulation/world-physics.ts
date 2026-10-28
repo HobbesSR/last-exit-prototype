@@ -8,7 +8,8 @@ import { hypot } from '../math.ts';
 export const PHYSICS_WORLD_VERSION = 'last-exit-0.8-physics-5';
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.length - r.actors.size);
-const bodyId = (item: GroundItem) => `item:${item.id}`;
+const ITEM_PREFIX = 'item:';
+const bodyId = (item: GroundItem) => `${ITEM_PREFIX}${item.id}`;
 
 /** P8 drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. */
 export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number, y: number): boolean {
@@ -29,7 +30,8 @@ export function validateWorldPhysics(content: MatchContent, map: GameMap): void 
       profile.prop.linearDamping, profile.prop.angularDamping, profile.prop.friction]
       .every(n => Number.isFinite(n) && n >= 0 && n <= 10000)
     || profile.loot.radius < 1 || profile.loot.radius > 16 || profile.prop.hx < 1 || profile.prop.hy < 1
-    || profile.loot.mass < 1e-6 || profile.prop.mass < 1e-6 || profile.loot.dropSpeed > 60) throw new RangeError('invalid world physics profile');
+    || profile.loot.mass < 1e-6 || profile.prop.mass < 1e-6 || profile.loot.dropSpeed > 60
+    || profile.dropReserve !== undefined && (!Number.isInteger(profile.dropReserve) || profile.dropReserve < 0 || profile.dropReserve > 96)) throw new RangeError('invalid world physics profile');
   const ids = new Set<string>();
   if ((map.physicsProps?.length ?? 0) > 64) throw new RangeError('physics prop authoring capacity');
   // Conservative circumscribed footprint admits rotating crates without intersecting static geometry.
@@ -60,17 +62,23 @@ export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
 export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: number, admit = true): void {
   const profile = s.content.worldPhysics;
   if (!profile) return;
-  const wanted = new Set(s.map.items.map(bodyId));
-  for (const id of [...r.items].sort(order)) if (!wanted.has(id)) {
+  // A held body is `item:<id>`, so test the item ids themselves rather than building a string per ground item on every call.
+  const present = new Set(s.map.items.map(item => String(item.id)));
+  for (const id of [...r.items].sort(order)) if (!present.has(id.slice(ITEM_PREFIX.length))) {
     markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
     r.world.queueRemoveBody(id); r.items.delete(id);
   }
   r.world.commitMutations();
   if (!admit) return;
+  // With no launched item to place and no slot beyond the reserve, nothing below can be admitted: skip ordering
+  // every ground item (thousands on a large map) on every call.
+  if (r.itemLaunches.size === 0 && !r.world.canAddBodies(1 + reserveActors(s, r) + (profile.dropReserve ?? 0))) return;
   // A transfer that preflighted a batch owns its released slots before retrying overflow.
   for (const item of [...s.map.items].sort((a, b) => Number(r.itemLaunches.has(b.id)) - Number(r.itemLaunches.has(a.id)) || order(a.id, b.id))) {
     const id = bodyId(item);
-    if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r)) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
+    // A launched or dropped item may use the drop reserve; an ordinary map item must leave it free.
+    const reserve = r.itemLaunches.has(item.id) ? 0 : profile.dropReserve ?? 0;
+    if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r) + reserve) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
       || !physicalDropPlacementClear(s, r, item.x, item.y)) continue;
     const motion = r.itemLaunches.get(item.id);
     r.world.queueAddBody({ id, kind: 'prop', collisionProfile: 'loot', shape: { kind: 'circle', radius: profile.loot.radius },

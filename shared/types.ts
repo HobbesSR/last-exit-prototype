@@ -206,6 +206,11 @@ export interface WorldPhysics {
   loot: { radius: number; mass: number; linearDamping: number; angularDamping: number; dropSpeed: number };
   prop: { hx: number; hy: number; mass: number; friction: number; linearDamping: number; angularDamping: number };
   maxImpulse: number;
+  /**
+   * Dynamic-body slots that ordinary map items leave free, so a player's drop can still be admitted. Without it a map
+   * with more items than the world has slots fills the world at tick 0 and every voluntary drop is refused (#523). Omitted is 0.
+   */
+  dropReserve?: number | undefined;
 }
 export interface MatchContent {
   /** Names the content set in a recording header. Changes when any value below changes. */

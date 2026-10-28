@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
 import { attack } from '../shared/simulation/combat.ts';
-import { defaultContent, contentById, CONTENT_ID } from '../shared/simulation/content.ts';
+import { defaultContent, legacyContent, contentById, CONTENT_ID, LEGACY_CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectEquipment, WEAPONS } from '../shared/equipment.ts';
 import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
 
@@ -15,8 +15,10 @@ function fixture(content) {
 
 test('a match is pinned to a content set that names itself', () => {
   const { s } = fixture();
-  assert.equal(s.content.id, CONTENT_ID);
+  assert.equal(s.content.id, LEGACY_CONTENT_ID, 'createGame is the legacy mover, so it defaults to the legacy set');
   assert.equal(s.content.durationTicks, 600 * 20);
+  assert.equal(defaultContent().id, CONTENT_ID, 'what a live room ships is the default, and it is a different set');
+  assert.notEqual(CONTENT_ID, LEGACY_CONTENT_ID);
 });
 
 test('shipped content ids return independent deeply frozen retained and current rosters', () => {
@@ -25,7 +27,8 @@ test('shipped content ids return independent deeply frozen retained and current 
   const current = contentById('content-2');
   assert.equal(legacy.id, 'content-1');
   assert.equal(current.id, 'content-2');
-  assert.equal(defaultContent().id, 'content-5', 'the shipped default advances without changing legacy content');
+  assert.equal(defaultContent().id, 'content-6', 'the shipped default advances without changing legacy content');
+  assert.equal(legacyContent().id, 'content-5', 'and the legacy mover keeps the last set it runs');
   // content-3 changes only how bots plan (#424): content-2's numbers and roster, over free-space tiles.
   const { id, navigation, ...tuning } = contentById('content-3'), { id: _, ...previous } = current;
   assert.deepEqual([id, navigation, tuning], ['content-3', 'tiles', previous]);
@@ -36,6 +39,14 @@ test('shipped content ids return independent deeply frozen retained and current 
   // content-5 repairs a contestant's route round nearby changes at once (#470 part 2); otherwise content-4.
   const { id: id5, replanning: replanning5, ...rest5 } = contentById('content-5'), { id: _4, replanning: _r4, ...four } = contentById('content-4');
   assert.deepEqual([id5, replanning5, rest5], ['content-5', 'repair', four]);
+  // content-6 is content-physics-8 under a shipped name (#523), the first set built for the physics engine, with two
+  // differences real maps need: ground capacity for every live zone size (the lab's 4096 refuses a 36x18 map's 8,608
+  // items) and a drop reserve (a real map's items fill the world's body slots, so no drop could be admitted).
+  const { id: id6, ...six } = contentById('content-6'), { id: _8, ...physics8 } = contentById('content-physics-8');
+  assert.deepEqual([id6, six], ['content-6', { ...physics8, itemInstances: { groundCapacity: 16384 },
+    worldPhysics: { ...physics8.worldPhysics, dropReserve: 48 } }]);
+  assert.ok(six.actorPhysics && six.hook, 'it carries the character, world and hook physics');
+  assert.equal(rest5.actorPhysics, undefined, 'content-5 stays on the legacy mover');
   assert.notEqual(legacy, legacyAgain);
   assert.notEqual(legacy.roster, legacyAgain.roster);
   assert.notEqual(legacy.roster, current.roster);

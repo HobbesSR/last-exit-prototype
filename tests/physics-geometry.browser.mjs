@@ -6,7 +6,7 @@ import { createArenaServer } from '../server/index.js';
 import { serveWithBrowser } from './helpers/browser.js';
 import { listen } from './helpers/listen.js';
 import { contentById } from '../shared/simulation/content.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch, createPhysicsMatch } from '../server/match.js';
 
 const scratch = path.resolve('test-results');
 await mkdir(scratch, { recursive: true });
@@ -62,7 +62,7 @@ try {
   // Its bodies still use legacy movement, so the geometry circles must stay hidden even in dev view.
   const legacyReplayDir = await mkdtemp(path.join(scratch, 'legacy-geometry-'));
   const legacyServer = await createArenaServer({ replayDir: legacyReplayDir,
-    content: () => contentById('content-physics-2'), devTools: 'all', profileSummary: false });
+    content: () => contentById('content-physics-2'), matchFactory: createMatch, devTools: 'all', profileSummary: false });
   try {
     const legacyBase = await listen(legacyServer);
     const legacy = await browser.newPage({ viewport: { width: 1000, height: 700 } });

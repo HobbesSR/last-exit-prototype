@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
 import { roomHarness } from './helpers/room-harness.js';
-import { CONTENT_ID } from '../shared/simulation/content.ts';
+import { LEGACY_CONTENT_ID } from '../shared/simulation/content.ts';
 import { VERSION } from '../shared/simulation/rules.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createGame, snapshot } from '../shared/simulation.ts';
@@ -68,6 +68,6 @@ test('a recording names the content set its match was pinned to', () => {
   const { writer } = harness.live(9);
   // `version` says which rules produced the recording; this says which numbers they ran over. A
   // reader looking at an old archive needs both to say what its contents meant.
-  assert.equal(writer.header.contentId, CONTENT_ID);
+  assert.equal(writer.header.contentId, LEGACY_CONTENT_ID, 'the harness pins the legacy mover');
   assert.equal(writer.header.version, VERSION, 'and the rules alongside it');
 });

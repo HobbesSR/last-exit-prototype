@@ -24,8 +24,17 @@ import type { MatchContent } from '../types.ts';
  * Bump it when any value in `defaultContent` changes, the way a recording's schema is bumped for a
  * format change. It identifies balance, where `VERSION` identifies rules: two matches can run the
  * same rules over different numbers, and a reader looking at an old recording needs to tell which.
+ *
+ * `content-6` is the first set built for the physics engine (#523): it is `content-physics-8`'s rules and
+ * numbers under a shipped name, so a live room runs `createPhysicsGame`. Content 1 to 5 run the legacy mover.
  */
-export const CONTENT_ID = 'content-5';
+export const CONTENT_ID = 'content-6';
+
+/**
+ * The last content set the legacy mover runs. `createGame` and `createMatch` default to it, because they
+ * are the legacy engine's entry points and characterization pins legacy content, not the live default.
+ */
+export const LEGACY_CONTENT_ID = 'content-5';
 
 /** Recursively freeze, so a match cannot edit the balance it is running under. */
 function deepFreeze<T>(value: T): T {
@@ -127,6 +136,12 @@ const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content
 // P8 keeps P6's physical content and adopts local repair plus temporary body detours.
 const CONTENT_PHYSICS_8: MatchContent = { ...CONTENT_PHYSICS_6, id: 'content-physics-8', replanning: 'repair', dynamicNavigation: true };
 SHIPPED['content-physics-8'] = CONTENT_PHYSICS_8;
+// The shipped physics default (#523): content-physics-8 with two changes the lab's small scenes never needed.
+// Ground capacity for every live zone size: the lab's 4096 holds a 24x12 map at 94% and refuses 36x18 (8,608 items on seed
+// 4217), so a room of the largest size could not start. And a drop reserve: a real 12x6 map has 974 items, which fill the
+// world's 128 dynamic bodies (11 actors and 117 items) at tick 0, so no player could drop anything.
+SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: { groundCapacity: 16384 },
+  worldPhysics: { ...CONTENT_PHYSICS_8.worldPhysics!, dropReserve: 48 } };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {
@@ -138,4 +153,9 @@ export function contentById(id: string): MatchContent {
 /** A match's own copy of the shipped default content. */
 export function defaultContent(): MatchContent {
   return contentById(CONTENT_ID);
+}
+
+/** A match's own copy of the content the legacy mover runs. */
+export function legacyContent(): MatchContent {
+  return contentById(LEGACY_CONTENT_ID);
 }

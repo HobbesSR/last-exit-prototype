@@ -1,7 +1,7 @@
 // Headless tick benchmark: runs the real simulation with no sockets, disk, or renderer so the
 // numbers describe the simulation itself rather than the machine's I/O. Mirrors the server loop
 // body (step, snapshot, per-client view) because that whole sequence shares the 1000/HZ budget.
-import { createGame, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
+import { createGame, createPhysicsGame, disposePhysics, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
 import * as profiler from '../shared/profiler.ts';
 import { acquireMachineLock } from './helpers/machine-lock.js';
 import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES } from '../map/live.ts';
@@ -17,14 +17,21 @@ const budget = 1000 / HZ;
 const [zoneWidth, zoneHeight] = (args.get('size') ?? zoneSizeName(DEFAULT_LIVE_ZONE_SIZE)).split('x').map(Number);
 const size = liveZoneSize({ zoneWidth, zoneHeight });
 if (!size) { console.error(`--size must be one of ${LIVE_ZONE_SIZES.map(zoneSizeName).join(', ')}`); process.exit(2); }
-// `--content=<id>` measures an earlier content set, such as content-2's grid planner (#424) or content-3's whole-tick searches (#470).
+// `--content=<id>` measures another content set, such as content-5, the last the legacy mover runs, or content-2's
+// grid planner (#424) or content-3's whole-tick searches (#470). The default is what a live room ships: physics
+// content (#523) runs on the physics engine, so it is built with createPhysicsGame and disposed at the end.
 const contentId = args.get('content') ?? CONTENT_ID;
+const physical = contentById(contentId).actorPhysics !== undefined;
 // Rooms adopt the tiles their map worker built (22.6, "Bot adoption"), untimed here as there; `--cold` leaves bots to build them.
 const prepared = map => { if (!args.has('cold')) for (const packed of prebuiltTiles(map, contentById(contentId))) adoptPackedTiles(map, packed); return map; };
 
 await acquireMachineLock('bench');
 profiler.enable(true);
-const games = Array.from({ length: rooms }, (_, i) => createGame(seed + i, args.has('legacy') ? undefined : prepared(generateLiveMap(seed + i, contentById(contentId), size)), contentById(contentId)));
+const build = (i) => {
+  const map = args.has('legacy') ? undefined : prepared(generateLiveMap(seed + i, contentById(contentId), size));
+  return physical ? createPhysicsGame(seed + i, map, contentById(contentId)) : createGame(seed + i, map, contentById(contentId));
+};
+const games = await Promise.all(Array.from({ length: rooms }, (_, i) => build(i)));
 const viewers = Array.from({ length: clients }, (_, i) => games[0].players[i % games[0].players.length].id);
 const durations = [];
 const started = performance.now();
@@ -43,6 +50,7 @@ for (let tick = 0; tick < ticks; tick++) {
   if (games.every(g => g.phase !== 'live')) break;
 }
 const wall = performance.now() - started;
+if (physical) for (const game of games) disposePhysics(game);
 const sorted = [...durations].sort((a, b) => a - b);
 const at = q => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
 const mean = sorted.reduce((a, b) => a + b, 0) / sorted.length;

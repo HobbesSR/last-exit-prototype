@@ -7,6 +7,8 @@ import { checkClientControllers } from './client-controllers.mjs';
 import { checkContentPresentation } from './content-presentation.mjs';
 import { checkReloadControls } from './reload-controls.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
+import { createMatch } from '../server/match.js';
+import { legacyContent } from '../shared/simulation/content.ts';
 
 await mkdir('test-results', { recursive: true });
 // The real worker, except that a check can hold the next generation and fail it when it chooses.
@@ -17,7 +19,12 @@ const failableMaps = (seed, size) => {
   holdNextGeneration = false;
   return new Promise((_resolve, reject) => { failHeldGeneration = () => reject(new Error('generation failure arranged by the browser suite')); });
 };
-const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
+// This is the client's regression over the legacy mover's rooms (content 1 to 5). Its fixtures swap a room's map and place
+// actors by assigning positions on the server's game, which only the legacy mover allows: a physics world keeps positions
+// of its own. The shipped default is physics (#523), so the physics client is covered by default-physics.browser.mjs and the
+// physics-* scripts, and this one pins the legacy factory and set it was written for.
+const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps,
+  content: legacyContent, matchFactory: createMatch });
 const errors = [];
 /** Wait until a player has stopped moving on the server and the page shows them where they stopped. */
 async function settled(page, player, timeout = 10000) {

@@ -6,14 +6,15 @@ import { createArenaServer } from '../server/index.js';
 import { createMapGenerator } from '../server/map-generator.js';
 import { listen } from './helpers/listen.js';
 import { createGame, snapshot, VERSION } from '../shared/simulation.ts';
-import { defaultContent } from '../shared/simulation/content.ts';
+import { legacyContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
 
-// Two content sets this browser does not ship, sharing weapon and kit ids but labelled differently (22.7).
+// Two content sets this browser does not ship, sharing weapon and kit ids but labelled differently (22.7). They start from
+// the legacy set: this check is about display data, and the shipped default is physics content (#523).
 // B is what the live server runs; A is what a recording embeds.
 function contentB() {
-  const c = structuredClone(defaultContent());
+  const c = structuredClone(legacyContent());
   c.id = 'browser-content-b';
   c.weapons.pistol.name = 'Sidearm'; c.weapons.pistol.ammo = 7; c.weapons.rifle.name = 'Carbine'; c.weapons.rifle.ammo = 21;
   c.kits.warden.name = 'Guard'; c.kits.warden.skill = 'Stomp'; c.kits.specter.name = 'Shade'; c.kits.specter.skill = 'Flicker';
@@ -24,7 +25,7 @@ function contentB() {
   return c;
 }
 function contentA() {
-  const c = structuredClone(defaultContent());
+  const c = structuredClone(legacyContent());
   c.id = 'browser-content-a';
   c.weapons.pistol.name = 'Blaster'; c.weapons.pistol.ammo = 11; c.weapons.rifle.name = 'Longarm'; c.weapons.rifle.ammo = 33;
   c.kits.warden.name = 'Sentinel'; c.kits.warden.skill = 'Quake'; c.kits.specter.name = 'Wraith'; c.kits.specter.skill = 'Echo';
