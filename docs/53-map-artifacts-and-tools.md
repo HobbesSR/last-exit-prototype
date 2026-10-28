@@ -148,6 +148,48 @@ captured `2026-10-27T03:46:11.707Z` under Node v24.15.0 (#605 / #535, 42.4).
   acceptably. The capture refuses uncommitted changes to the chain's inputs
   and records the last commit that touched them.
 
+### Replaying one region type
+
+A builder change can't move anything upstream of the briefs, yet the full sweep
+regenerates every map to find which `built` views moved. The replay (#541,
+`map/tools/sweep-briefs.mts`) is the inner check before it, for a change to one
+region type's builder. It doesn't replace the full sweep, which stays the
+integration check and the way to recapture.
+
+- `node map/tools/cli.mts sweep --capture-briefs map/tools/fixtures/chain-baseline.json`
+  writes every sweep map's region briefs, bucketed by region type, to a gitignored
+  cache (`test-results/sweep-briefs`, or `--cache DIR`). Beside each brief it keeps what the
+  baseline's builders made of it: a hash of the result and the manifest. The capture
+  runs the whole sweep, so it takes as long, and it refuses a tree whose hashes differ
+  from the baseline's: a cache of other builders would pin their results. Capture before
+  editing a builder, or from a checkout that matches the baseline.
+- `sweep --check FILE --type plant` rebuilds only that type's briefs, in parallel, and compares
+  each result's hash with the cache's. `--type` takes a list, and a type bound to another's
+  strategy is replayed with it (`market` is `hall`'s). It reports, per region and not per map:
+  - **`drift`**: the regions whose result moved, by map and region id, with the manifest counts
+    that moved (an empty set means the geometry moved and no count did);
+  - **`threw`**: the regions whose builder threw on a brief it built before;
+  - **`brokenPromises`**: the portal check (`diagnoseRegion`, the check behind `validate
+    --diagnose`) on each region. It runs on drifted regions by default, because a region whose
+    result matches the baseline's can't have a finding the change caused, and the check costs
+    seconds a region for the largest types. `--reach all` checks every region, `--reach none`
+    none;
+  - **`features`**: the type's own manifest counts (for plant: machines, pipes, sheds,
+    designed buildings, infill crates), as a total and the number of regions holding any, so a
+    corpus too thin to test a feature is visible. A replay is refused, rather than reported
+    clean, if the cache holds no region for any one requested strategy; one that was
+    exercised can't stand in for another, though `hall` and `market` count together.
+
+  Any drift, throw or finding exits 1.
+- **The cache is valid exactly while the baseline's `briefs` and `results` hashes for each
+  map are the ones it was captured against.** The chain is pure (51), so the briefs hash
+  says the briefs are unchanged. The results hash says the stored result hashes are of the
+  baseline's builders: a recapture after a builder change moves it though `briefs` doesn't.
+  A replay against a cache the baseline has moved past is refused, naming the count of maps,
+  and says to recapture. Recapture the cache after each baseline recapture.
+
+Measurements are in [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27).
+
 Historical recaptures from #361 through the first baseline have moved to [42.4](42.4-chain-checkpoint-history.md). The entries below retain their former 53 landing anchors.
 
 ### #407's re-capture

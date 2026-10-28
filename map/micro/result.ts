@@ -1,6 +1,13 @@
 import type { BuiltRegion, CoreElementSite, LootSite, RegionBrief, RegionElement } from './types.ts';
 
 /**
+ * The counts every manifest carries, in order. A manifest key past these is the strategy's
+ * own feature (`extra`), which a replay of one type's briefs counts to show how much of it
+ * the corpus built (53).
+ */
+export const SHARED_MANIFEST = ['cells', 'structures', 'obstacles', 'gates', 'loot', 'coreElements'] as const;
+
+/**
  * A strategy's result, with the manifest counted from what landed (51 stage 6): structures
  * are the enclosing elements, obstacles and gates their parts. `extra` adds the strategy's
  * own counts after the shared ones. Counting here, never by hand, keeps a manifest from

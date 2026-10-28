@@ -16,7 +16,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
-import { Worker, isMainThread, parentPort } from 'node:worker_threads';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { mapViews } from '../macro/src/chain/map.ts';
 import { generate } from './core.ts';
 import type { ToolMap } from './core.ts';
@@ -107,6 +107,9 @@ export function stableStringify(value: unknown): string {
 
 const digest = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 16);
 
+/** A value's content hash, as the sweep pins an object or view. */
+export const contentHash = (value: unknown) => digest(stableStringify(value));
+
 /** Each object and view of a map, hashed by content. */
 export function viewContent(map: ToolMap): Record<View, unknown> {
   const loose = Object.keys(map).filter((key) => !(key in MAP_FIELDS));
@@ -122,16 +125,21 @@ export function viewContent(map: ToolMap): Record<View, unknown> {
 
 export function viewHashes(map: ToolMap): ViewHashes {
   const content = viewContent(map);
-  return Object.fromEntries(VIEWS.map((view) => [view, digest(stableStringify(content[view]))])) as ViewHashes;
+  return Object.fromEntries(VIEWS.map((view) => [view, contentHash(content[view])])) as ViewHashes;
 }
 
-function sweepEntry(sweepCase: SweepCase, seed: string): SweepEntry {
+/** A seed's map with its hashes, or, for a seed the chain refused, the message alone. */
+export function sweepMap(sweepCase: SweepCase, seed: string):
+  { entry: ViewHashes; map: ToolMap } | { entry: { error: string }; map?: undefined } {
   try {
-    return viewHashes(generate(seed, sweepCase.params));
+    const map = generate(seed, sweepCase.params);
+    return { entry: viewHashes(map), map };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : String(error) };
+    return { entry: { error: error instanceof Error ? error.message : String(error) } };
   }
 }
+
+const sweepEntry = (sweepCase: SweepCase, seed: string): SweepEntry => sweepMap(sweepCase, seed).entry;
 
 export function runCase(sweepCase: SweepCase): SweepEntries {
   const entries: SweepEntries = {};
@@ -142,37 +150,59 @@ export function runCase(sweepCase: SweepCase): SweepEntries {
   return entries;
 }
 
-type SweepUnit = SweepCase & { offset: number };
+/** One seed of a case. */
+export type SweepUnit = SweepCase & { offset: number };
+export const unitSeed = (unit: SweepUnit) => `${unit.seedPrefix}-${unit.offset}`;
 /** A unit's entry key. Two cases may share an id across seed prefixes, so the seed is in it. */
-const unitKey = (unit: SweepUnit) => `${unit.id}/${unit.seedPrefix}-${unit.offset}`;
+export const unitKey = (unit: SweepUnit) => `${unit.id}/${unitSeed(unit)}`;
+/** Every case split seed by seed, in case and seed order. */
+export const sweepUnits = (cases: SweepCase[]): SweepUnit[] =>
+  cases.flatMap((c) => Array.from({ length: c.count }, (_, i) => ({ ...c, count: 1, offset: i + 1 })));
+
+/**
+ * Hands `units` one at a time to worker threads running the `worker` module, and returns
+ * their replies in unit order whatever order the workers finish in. A module answers only
+ * when its own URL is the `workerData` it was started with, so one that imports another
+ * module doesn't also answer for that module's units. After a failure no further unit is
+ * handed out, and the pool settles before it throws, so a caller can clean up what the
+ * workers wrote without racing them.
+ */
+export async function runPool<Unit, Reply>(worker: URL, units: Unit[], jobs = defaultJobs()): Promise<Reply[]> {
+  jobs = positiveInteger('jobs', jobs);
+  const replies = new Array<Reply>(units.length);
+  let next = 0, failed = false;
+  const work = async () => {
+    const thread = new Worker(worker, { workerData: worker.href });
+    let pending: { resolve: (reply: Reply) => void; reject: (e: unknown) => void } | undefined;
+    thread.on('message', (reply: Reply) => pending?.resolve(reply));
+    thread.on('error', (error) => pending?.reject(error));
+    try {
+      while (!failed && next < units.length) {
+        const index = next++;
+        const done = new Promise<Reply>((resolve, reject) => { pending = { resolve, reject }; });
+        thread.postMessage(units[index]);
+        replies[index] = await done;
+      }
+    } catch (error) {
+      failed = true;
+      throw error;
+    } finally {
+      await thread.terminate();
+    }
+  };
+  const settled = await Promise.allSettled(Array.from({ length: Math.min(jobs, units.length) }, work));
+  const failure = settled.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+  if (failure) throw failure.reason;
+  return replies;
+}
 
 /**
  * Every case, split seed by seed across worker threads. Entries come back in case and
  * seed order whatever order the workers finish in.
  */
 export async function runSweep(cases: SweepCase[], jobs = defaultJobs()): Promise<SweepEntries> {
-  jobs = positiveInteger('jobs', jobs);
-  const units: SweepUnit[] = cases.flatMap((c) => Array.from({ length: c.count }, (_, i) => ({ ...c, count: 1, offset: i + 1 })));
-  const results = new Map<string, SweepEntries>();
-  let next = 0;
-  const work = async () => {
-    const worker = new Worker(new URL(import.meta.url));
-    let pending: { resolve: (e: SweepEntries) => void; reject: (e: unknown) => void } | undefined;
-    worker.on('message', (entries: SweepEntries) => pending?.resolve(entries));
-    worker.on('error', (error) => pending?.reject(error));
-    try {
-      while (next < units.length) {
-        const unit = units[next++]!;
-        const done = new Promise<SweepEntries>((resolve, reject) => { pending = { resolve, reject }; });
-        worker.postMessage(unit);
-        results.set(unitKey(unit), await done);
-      }
-    } finally {
-      await worker.terminate();
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(jobs, units.length) }, work));
-  return Object.assign({}, ...units.map((u) => results.get(unitKey(u))));
+  const replies = await runPool<SweepUnit, SweepEntries>(new URL(import.meta.url), sweepUnits(cases), jobs);
+  return Object.assign({}, ...replies);
 }
 
 /** Half the cores, at most eight: other agents share this machine. */
@@ -216,10 +246,7 @@ export function compareSweep(baseline: SweepBaseline, current: SweepEntries): Dr
 }
 
 // A worker generates one seed of one case at a time, as `runSweep` hands them out.
-if (!isMainThread && parentPort) {
+if (!isMainThread && parentPort && workerData === import.meta.url) {
   const port = parentPort;
-  port.on('message', (unit: SweepUnit) => {
-    const seed = `${unit.seedPrefix}-${unit.offset}`;
-    port.postMessage({ [`${unit.id}/${seed}`]: sweepEntry(unit, seed) });
-  });
+  port.on('message', (unit: SweepUnit) => port.postMessage({ [unitKey(unit)]: sweepEntry(unit, unitSeed(unit)) }));
 }
