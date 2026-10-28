@@ -3,7 +3,7 @@ import { HALL_PILLAR, HALL_PILLAR_INSET as INSET } from '../placeables/hall-pill
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createFillMask, createRegionMask } from '../geometry.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { wallHints } from '../hint-walls.ts';
 import { construct } from '../../../shared/shape-construction.ts';
 import { createBuilderCanvas } from '../canvas.ts';
@@ -11,6 +11,8 @@ import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
 import { builtRegion } from '../result.ts';
+import { infillCrates as placeInfillCrates } from './infill.ts';
+import { CELL_SCALE } from '../../kernel/scale.ts';
 
 /** The catalogue's proposed shape need (54): a contained rectangle at least this many cells a side. */
 const MIN_SIDE = 6;
@@ -24,7 +26,7 @@ const MIN_SPACING = 4;
 const DEFAULT_SPACING = 5;
 
 /** Per-cell draw channels, so no choice shifts another. */
-const CHANNEL = { axis: 1, loot: 2 };
+const CHANNEL = { axis: 1, loot: 2, infill: 20, infillLength: 21, infillOffset: 22 };
 
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -32,9 +34,9 @@ type Box = { x: number; y: number; w: number; h: number };
  * The `hall` region type (54): a staggered lattice of pillars that breaks sightlines without
  * blocking a walk. It has no decomposer.
  *
- * It takes the region's largest contained rectangle at least `MIN_SIDE` cells a side, and
- * keeps the rest of the region clear. Pillar blocks lie `spacing` cells apart on the
- * rectangle, centred in it. Each row is offset from the last by about half a period along
+ * It takes the region's largest contained rectangle at least `MIN_SIDE` cells a side.
+ * Pillar blocks lie `spacing` cells apart on the rectangle, centred in it. Each row is
+ * offset from the last by about half a period along
  * one axis, drawn from the seed, so a sightline down that axis meets a pillar within a few
  * rows. The other axis keeps clean lanes, the walk the design leaves open. Only one axis is
  * staggered: staggering both pinches pillar corners together.
@@ -46,8 +48,13 @@ type Box = { x: number; y: number; w: number; h: number };
  * roof, which hides what's under it as a building's does. A region with no such rectangle
  * goes to `open` (17 M24).
  *
+ * After the primary assembly, hall residual wings may receive crates outside a two-cell
+ * buffer around the rectangle. Each crate requires a fully owned two-cell bypass ring
+ * and two-cell separation from other pieces. The market stand-in skips this pass.
+ *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear
- * of every pillar. A hall sites no core elements; any the brief lists are left for the report.
+ * of all final obstacles, including pillars, hint walls, crates and gates. A hall sites no
+ * core elements; any the brief lists are left for the report.
  */
 export function buildHall(brief: RegionBrief): BuiltRegion {
   const spacing = brief.parameters?.spacing ?? DEFAULT_SPACING;
@@ -97,9 +104,25 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   if ((hall.length || walls.elements.length) && !canvas.commit({ elements: [...hall, ...walls.elements],
     areas, extents: [...hall.length ? [rectangle] : [], ...walls.shapes] }))
     throw new Error('Hall placement failed its canvas commit.');
+  // The primary rectangle remains reserved even when no pillar or roof was placed.
+  // A full owned bypass ring preserves access to side lobes with no protected route.
+  const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
+  const infillCrates = brief.type === 'hall' ? placeInfillCrates({ brief, canvas, chance: 0.5, channels: CHANNEL,
+    label: 'hall-infill-crate',
+    site: cell => {
+      const shape = rect(cell.x * size, cell.y * size, size, size);
+      const gap = Math.max(box.x - cell.x - 1, cell.x - box.x - box.w,
+        box.y - cell.y - 1, cell.y - box.y - box.h);
+      return gap >= aisle && access.contains(rect((cell.x - aisle) * size, (cell.y - aisle) * size,
+        (1 + 2 * aisle) * size, (1 + 2 * aisle) * size)) && canvas.fits(shape) && canvas.spaced(shape, aisle * size);
+    },
+    commitError: label => `Hall placement ${label} failed its canvas commit.`,
+  }) : undefined;
   const elements = [...canvas.elements];
-  const loot = cellLoot(brief, createRegionMask(brief), [...pillars, ...walls.shapes], CHANNEL.loot);
-  return builtRegion(brief, elements, loot, [], { pillars: pillars.length, hintWalls: walls.shapes.length });
+  const lootPieces = infillCrates !== undefined ? elements.flatMap(element => elementShapes(element, true)) : [...pillars, ...walls.shapes];
+  const loot = cellLoot(brief, createRegionMask(brief), lootPieces, CHANNEL.loot);
+  return builtRegion(brief, elements, loot, [], { pillars: pillars.length, hintWalls: walls.shapes.length,
+    ...(infillCrates === undefined ? {} : { infillCrates }) });
 }
 
 /**

@@ -45,7 +45,7 @@ test('halls are deterministic and independent of the order of the brief\'s cells
   }
 });
 
-test('pillars stand on the largest contained rectangle, spaced apart, and the rest stays clear', () => {
+test('primary pillars stand on the largest contained rectangle and stay spaced apart', () => {
   const [cells, portals] = MASKS.ell;
   const mask = createRegionMask({ cells, cellSize: SIZE });
   assert.deepEqual(largestRectangle(mask, 6), { x: 0, y: 0, w: 18, h: 9 });
@@ -54,7 +54,7 @@ test('pillars stand on the largest contained rectangle, spaced apart, and the re
   const fill = largestRectangle(createFillMask(brief('ell', 3, cells, portals)), 6);
   for (const spacing of [4, 6]) {
     const result = buildRegion(brief('ell', 3, cells, portals, { spacing }));
-    const shapes = blockers(result);
+    const shapes = result.elements.filter(e => !e.label.startsWith('hall-infill-crate-')).flatMap(element => elementShapes(element));
     for (const shape of shapes) {
       const box = bounds(shape);
       assert.ok(box.x >= fill.x * SIZE && box.y >= fill.y * SIZE && box.x + box.w <= (fill.x + fill.w) * SIZE
