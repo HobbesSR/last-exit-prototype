@@ -37,6 +37,7 @@
     .preview-bar h2 { margin: 0; color: #e7f2ec; } .badge { color: #9eb4ae; font-size: .73rem; }
     .arena-surface { min-height: 0; min-width: 0; display: grid; place-items: center; background: #0a1112; container-type: size; padding: 8px; }
     canvas { display: block; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); background: #263b37; touch-action: none; }
+    #impulse-dial { width: 140px; height: 140px; margin: 0 auto 10px; border-radius: 50%; cursor: crosshair; }
     .caption { border-top: 1px solid #34504d; padding: 8px 12px; }
     output { display: block; font-size: .78rem; color: #abdacc; line-height: 1.4; font-variant-numeric: tabular-nums; }
     .caption .hint { font-size: .73rem; margin-top: 4px; }
@@ -78,15 +79,16 @@
         </div>
         <div class="group">
           <h2>Impulse</h2>
+          <canvas id="impulse-dial" width="140" height="140" role="img" aria-label="Impulse direction and strength. Click or drag to set it."></canvas>
           <div class="pair"><label>X<input id="impulse-x" type="number" value="300" step="10"></label><label>Y<input id="impulse-y" type="number" value="0" step="10"></label></div>
           <button id="impulse">Queue impulse</button>
-          <p class="hint">Applies to the selected actor on the next tick.</p>
+          <p class="hint">Click or drag the circle to aim it: the rim is the Max impulse tuning, the centre is none. Applies to the selected actor on the next tick. With the arena focused, press I to queue it.</p>
         </div>
       </section>
       <section class="panel preview" aria-label="Simulation arena">
         <div class="preview-bar"><h2>Arena</h2><span class="badge">800 &times; 800 world units</span></div>
         <div class="arena-surface"><canvas id="arena" width="800" height="800" tabindex="0" aria-label="Physics playtest arena" aria-describedby="arena-help"></canvas></div>
-        <div class="caption"><output id="status" role="status">Select a scene and start.</output><p class="hint" id="arena-help">Click arena to control &middot; WASD or arrows move &middot; Pointer aim &middot; Q skill &middot; E interact</p></div>
+        <div class="caption"><output id="status" role="status">Select a scene and start.</output><p class="hint" id="arena-help">Click arena to control &middot; WASD or arrows move &middot; Pointer aim &middot; Q skill &middot; E interact &middot; I impulse</p></div>
       </section>
       <aside class="panel inspector" aria-label="Tuning, recording and help">
         <fieldset id="tuning"><legend>Character tuning</legend>

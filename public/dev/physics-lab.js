@@ -8,7 +8,8 @@ let playing = null, aim = 0, skillPending = false, interactPending = false;
 // The live client's bindings (input-controller.js): WASD or arrows move, Q is the skill, E interacts.
 // Both are one-shot presses. Space is the live replay toggle and has no meaning here.
 const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
-const ARENA_KEYS = [...MOVE_KEYS, 'KeyQ', 'KeyE', 'Space'];
+// I queues the impulse dial's current value; the live game has no such key, so it takes one the live client leaves free.
+const ARENA_KEYS = [...MOVE_KEYS, 'KeyQ', 'KeyE', 'KeyI', 'Space'];
 const status = message => { byId('status').textContent = message; };
 const button = (id, action) => byId(id).addEventListener('click', () => Promise.resolve(action()).catch(error => status(error.message)));
 
@@ -143,7 +144,41 @@ button('skill', () => { skillPending = true; status('Skill queued for the next t
 button('cast', () => { const result = lab.cast(aim); refresh();
   status(`Static/solid-prop diagnostic cast at tick ${result.tick}: ${result.fraction === null ? 'clear' : `blocked at ${(result.fraction * 200).toFixed(1)} of 200 world units`}.`);
 });
-button('impulse', () => { lab.impulse({ x: Number(byId('impulse-x').value), y: Number(byId('impulse-y').value) }); refresh(); });
+function queueImpulse() {
+  const value = impulseValue(); lab.impulse(value); refresh();
+  status(`Impulse (${value.x}, ${value.y}) queued for ${lab.selected}; it lands on the next tick.`);
+}
+button('impulse', queueImpulse);
+
+// The dial sets the same two numbers the fields hold, so the fields stay the exact, typeable form.
+const dial = byId('impulse-dial'), dialCtx = dial.getContext('2d'), DIAL = 140, DIAL_RADIUS = 60;
+const impulseValue = () => ({ x: Number(byId('impulse-x').value) || 0, y: Number(byId('impulse-y').value) || 0 });
+const maxImpulse = () => Number(document.querySelector('[data-tune="maxImpulse"]').value) || 300;
+function drawDial() {
+  const { x, y } = impulseValue(), full = maxImpulse(), c = DIAL / 2, over = Math.hypot(x, y) > full + 0.5;
+  dialCtx.clearRect(0, 0, DIAL, DIAL); dialCtx.fillStyle = '#0e191a'; dialCtx.fillRect(0, 0, DIAL, DIAL);
+  dialCtx.strokeStyle = '#49635e'; dialCtx.lineWidth = 1;
+  for (const r of [DIAL_RADIUS, DIAL_RADIUS / 2]) { dialCtx.beginPath(); dialCtx.arc(c, c, r, 0, Math.PI * 2); dialCtx.stroke(); }
+  dialCtx.beginPath(); dialCtx.moveTo(c - DIAL_RADIUS, c); dialCtx.lineTo(c + DIAL_RADIUS, c);
+  dialCtx.moveTo(c, c - DIAL_RADIUS); dialCtx.lineTo(c, c + DIAL_RADIUS); dialCtx.stroke();
+  const scale = Math.min(1, full / Math.max(Math.hypot(x, y), 1e-9)) * DIAL_RADIUS / full, tip = { x: c + x * scale, y: c + y * scale };
+  dialCtx.strokeStyle = dialCtx.fillStyle = over ? '#ff6b60' : '#9bf09a'; dialCtx.lineWidth = 3;
+  dialCtx.beginPath(); dialCtx.moveTo(c, c); dialCtx.lineTo(tip.x, tip.y); dialCtx.stroke();
+  dialCtx.beginPath(); dialCtx.arc(tip.x, tip.y, 5, 0, Math.PI * 2); dialCtx.fill();
+}
+function setImpulseFromDial(event) {
+  const rect = dial.getBoundingClientRect(), k = DIAL / rect.width;
+  let dx = (event.clientX - rect.left) * k - DIAL / 2, dy = (event.clientY - rect.top) * k - DIAL / 2;
+  const length = Math.hypot(dx, dy);
+  if (length > DIAL_RADIUS) { dx *= DIAL_RADIUS / length; dy *= DIAL_RADIUS / length; }
+  byId('impulse-x').value = Math.round(dx / DIAL_RADIUS * maxImpulse());
+  byId('impulse-y').value = Math.round(dy / DIAL_RADIUS * maxImpulse());
+  drawDial();
+}
+dial.addEventListener('pointerdown', event => { dial.setPointerCapture(event.pointerId); setImpulseFromDial(event); });
+dial.addEventListener('pointermove', event => { if (dial.hasPointerCapture(event.pointerId)) setImpulseFromDial(event); });
+for (const field of [byId('impulse-x'), byId('impulse-y'), document.querySelector('[data-tune="maxImpulse"]')]) field.addEventListener('input', drawDial);
+drawDial();
 button('play', () => { if (playing) stop(); else {
   playing = setInterval(() => { try { tick(); } catch (error) { stop(); status(error.message); } }, 50);
   byId('play').textContent = 'Pause';
@@ -163,6 +198,7 @@ window.addEventListener('keydown', event => {
   if (event.repeat) return;
   if (event.code === 'KeyQ') skillPending = true;
   else if (event.code === 'KeyE') interactPending = true;
+  else if (event.code === 'KeyI') { try { queueImpulse(); } catch (error) { status(error.message); } }
   else if (MOVE_KEYS.includes(event.code)) keys.add(event.code);
 });
 window.addEventListener('keyup', event => keys.delete(event.code));
