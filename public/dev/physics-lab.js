@@ -114,7 +114,7 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
     ctx.setLineDash([]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(point.x, point.y); ctx.stroke();
     if (fraction !== null) { ctx.beginPath(); ctx.arc(point.x, point.y, radius, 0, Math.PI * 2); ctx.stroke(); }
-    ctx.fillStyle = '#ff9d53'; ctx.fillText('static/solid-prop diagnostic cast', point.x + 10, point.y - radius - 8);
+    ctx.fillStyle = '#ff9d53'; ctx.fillText(fraction === null ? 'cast ahead: clear' : 'cast ahead: stops here', point.x + 10, point.y - radius - 8);
     ctx.restore();
   }
 }
@@ -171,7 +171,9 @@ button('reset', reset);
 button('step', tick);
 button('skill', () => { skillPending = true; status('Skill queued for the next tick.'); });
 button('cast', () => { const result = lab.cast(aim); refresh();
-  status(`Static/solid-prop diagnostic cast at tick ${result.tick}: ${result.fraction === null ? 'clear' : `blocked at ${(result.fraction * 200).toFixed(1)} of 200 world units`}.`);
+  status(`Cast ahead from ${result.actorId} along your aim: ${result.fraction === null
+    ? 'nothing solid within 200 units'
+    : `a wall or crate would stop a body ${(result.fraction * 200).toFixed(1)} units out of 200`}. A look-ahead only; nothing moved.`);
 });
 function queueImpulse() {
   const value = impulseValue(); lab.impulse(value); refresh();

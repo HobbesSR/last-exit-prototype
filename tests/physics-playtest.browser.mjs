@@ -202,6 +202,7 @@ try {
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const arrows = JSON.parse(await page.locator('#recording').inputValue());
   assert.deepEqual([arrows.trace[0].input.x, arrows.trace[0].input.y], [1, 1], 'arrow keys move like WASD');
+  await page.locator('#impulse-dial').scrollIntoViewIfNeeded();
   const dial = await page.locator('#impulse-dial').boundingBox();
   const pick = async (dx, dy) => {
     await page.mouse.click(dial.x + dial.width / 2 + dx, dial.y + dial.height / 2 + dy);
