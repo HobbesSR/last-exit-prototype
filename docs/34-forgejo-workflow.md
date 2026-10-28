@@ -60,7 +60,9 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
 
 ## The task loop
 
-1. Find work with `list_assigned_issues`; claim it with `assign_issue`.
+1. Find work with `list_assigned_issues`; claim it with `assign_issue`. When the
+   user names an epic, select the next functional outcome under
+   [32](32-delegation.md) before claiming or creating an implementation task.
 2. In your worktree: `git fetch forgejo`, then
    `git switch -c <prefix>/<feature> forgejo/main`. Run `npm ci` (and in `map/macro/`)
    when a lockfile changed.
@@ -84,7 +86,8 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    human to delete.
 
 To stop partway through a task, post a handoff comment on the issue or pull
-request as [32](32-delegation.md) describes; the next session resumes from it.
+request as [32](32-delegation.md) describes. The next session reads that checkpoint;
+epic-directed sessions reassess its suggested successors against current priorities.
 
 ## Reading Forgejo economically
 

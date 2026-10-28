@@ -86,7 +86,43 @@ strategy built on the micro SDK ([50](50-map-generation.md)). What has shipped:
   adopters ([20.7](20.7-builder-delegation.md)). The large-compound siting
   investigation (#340) is closed.
 
-What remains, as the owning documents state it:
+#### Region population epic #529
+
+Checkpoint as of 2026-10-28; defer to newer direction and status on Forgejo
+epic #529 and its children.
+
+Corey's 2026-10-28 direction is to advance the overall population goal in tiers
+of function and detail, without exhausting incidental minutiae. Apply the
+selection and stopping policy in [32](32-delegation.md). The epic and child
+comments hold live checkpoints; older issue backgrounds are historical claims,
+not an accurate inventory of everything still missing.
+
+| Workstream | Functional checkpoint and next meaningful outcome |
+| --- | --- |
+| Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
+| Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins. Compound exterior crossing limitations remain; #630/#632 diagnose and experiment without production adoption. Treat offset-search adoption as deferred refinement for next-task selection unless evidence makes it a blocker for the chosen functional outcome. |
+| Hut and compound structures (#532) | Primary functional gaps: multiple houses where sites fit, useful compound courtyard composition, and secondary structures in oversized compounds. Deliver a coherent first capability with actual eligible-region and access evidence before broadening its grammar. |
+| Depot and hall composition (#533) | Short-lane depot crates and hall residual-wing crates are delivered partial improvements. Warehouse budget/composition and structural hall wings remain distinct candidates; secondary crates do not establish those capabilities. |
+| Market (#534) | A dedicated market strategy remains a primary capability gap. First establish recognizable stalls/rows and usable aisles on representative market footprints; elaborate canopy and irregular-wing grammar can follow. |
+| District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. |
+
+For the next implementation selection, compare #532's missing structural
+capabilities, #534's dedicated market and #533's warehouse composition against
+current authored-map reach and prerequisites. These are candidates, not a fixed
+handoff chain. The bounded production-decomposition pilot requested earlier has
+been delivered; completing all of #535 is not a prerequisite for every other
+workstream. At this 2026-10-28 checkpoint, do not resume compound offset research
+merely because it is the latest handoff; reassess against newer epic direction.
+
+The epic reaches its first functional tier when each workstream has a useful
+production capability on representative intended workloads, or an explicit
+recorded deferral with its impact and rationale. Experiments alone do not count
+as production delivery. Later tiers broaden coverage and refine quality. Closing
+the epic requires an explicit scope review of the delivered capabilities and
+remaining deferrals; neither perfect density on every seed nor an unsupported
+percentage is its completion criterion. No child is closed by this checkpoint.
+
+What remains elsewhere, as the owning documents state it:
 
 - **Recursive execution of explored decomposition trees**, and moving
   decomposition's walled ports to portals
