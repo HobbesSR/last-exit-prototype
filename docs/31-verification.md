@@ -45,6 +45,11 @@ fixed. Smaller block ownership, portal, determinism and physical builder
 contracts remain in the fast tier. Run the slow scale file explicitly when
 changing that path; `test:micro` does not include it.
 
+Block circulation admission changes (#614) also run the final alley-child reach
+witness in `tests/micro-block-circulation.test.js`; final-parent reach alone can
+hide child failures through sibling lot interiors. Its geometric admission
+checks cover clipped portal approaches and unsafe combined claims.
+
 Corey's exact tier guidance (2026-10-27):
 
 > macro block timings that bring in things like decomposition and microgenerations may no longer be viable for the fast track
