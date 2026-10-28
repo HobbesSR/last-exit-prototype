@@ -3,7 +3,8 @@
 ## Gates
 
 Every gameplay or protocol change should pass the gates relevant to what it
-touched. An integration checkpoint runs all of them.
+touched; [Choosing checks by changed area](#choosing-checks-by-changed-area) says which
+those are. An integration checkpoint runs the ones its area can move, not all of them.
 
 ```powershell
 npm run check
@@ -31,7 +32,8 @@ only moves when generation or simulation moves.
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
 the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
 merged on the fast tier; `npm run test:slow` runs it locally when a change is likely to move
-it, such as generation or simulation work. Integration checkpoints still run `test:all`. A test belongs in `tests/slow/` when it costs seconds and sweeps
+it, such as generation or simulation work. An integration checkpoint runs the slow files its
+area can move, not the whole tier by default ([Choosing checks by changed area](#choosing-checks-by-changed-area)). A test belongs in `tests/slow/` when it costs seconds and sweeps
 seeds or plays whole matches. The fast tier keeps a cheap witness of the same
 contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
@@ -54,15 +56,15 @@ Corey's exact tier guidance (2026-10-27):
 
 > macro block timings that bring in things like decomposition and microgenerations may no longer be viable for the fast track
 
-Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
-plus unit tests, in that directory). Its `tests/slow/` holds the larger authored-size
+Changes under `map/macro/` run its own suite with `npm run test:mapgen` from the repository
+root (typecheck plus the unit tests in that directory). Its `tests/slow/` holds the larger authored-size
 quota checks and runs in that same default macro suite; the seeds and assertions
 are shared with the fast content checks, not reduced to fit the timing budget. The historical macro-suite checkpoint is also retained in 42.3. The Map Lab (`map/tools/lab/`) has its
 own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
 test:browser` runs. A change to the chain or its inputs (macro's stages and
 library, the game's strategies, the kernel, `shared/`) also runs the chain's
 seed sweep from the repository root, `node map/tools/cli.mts sweep --check
-map/tools/fixtures/chain-baseline.json` (224 maps, about 25 s); `npm test`
+map/tools/fixtures/chain-baseline.json` (224 maps, two to three minutes, [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`
 pins its quick cases. It must show no drift unless the PR declares a content
 change and recaptures last ([53](53-map-artifacts-and-tools.md)). A change to one
 region type's builder can iterate on `sweep --check ... --type <type>` first, which
@@ -253,6 +255,60 @@ WebGL on SwiftShader, and `--diagnostics=FILE` saves the player-facing download.
 `tests/bench-session.mjs` samples one long match every interval instead, optionally
 roaming, at a native device scale, or against another checkout (`--root`); see 42.2 (#549).
 
+## Choosing checks by changed area
+
+A check is worth running when something the change touched can move what it asserts.
+The gates above are the whole set, not a default: `npm run test:all`, the sweep, the
+browser scripts and the benchmarks are chosen by the area changed, because a slow file
+the change cannot move adds minutes and no evidence (#542). Three tiers:
+
+| Tier | When | Runs |
+| --- | --- | --- |
+| Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, or a replay. Seconds |
+| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; plus the area's extras |
+| Integration | once per PR, where the area can move it | The sweep, slow files, browser scripts and benchmarks the area calls for |
+
+| Changed area | Inner loop | Before the PR, beyond those gates | Integration |
+| --- | --- | --- | --- |
+| One region type's builder or strategy | the type's files (`node --test tests/micro-plant*.test.js`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract.test.js`); its replay (`sweep --check FILE --type plant`, 53) | `npm run test:micro`; the type's slow file when the change moved its output | the full chain sweep, no drift unless the PR declares a content change, recaptured last (53); `validate --diagnose true` on the maps it names as drifted |
+| Macro stages, the chain's authored library, the kernel | `npm run test:mapgen` | | the full chain sweep, recaptured last for a content change (53); the `map-library` slow files |
+| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | | `map-sweep`, `bot-objective` |
+| Simulation, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | | `characterization-bots`, `bot-objective`, `live-map`; `test:browser` or `bench` when the change reaches the client or tick cost |
+| Rooms, recording and replay | the unit file for the rule | | `room-sizes` |
+| Physics | the unit file for the rule | `npm run test:physics` | `physics-navigation`; the physics scripts in `test:browser` |
+
+The replay needs its cache captured before the first edit (53). An area not listed
+follows the gates above and the paragraph that describes its suite. Whatever the area,
+a fixture is never regenerated to make a check pass (below), and timing comparisons run
+sequentially.
+
+A builder or strategy change does not run `test:all`. `characterization-bots`,
+`bot-objective` and `map-sweep` never build a chain map. `map-library`, `live-map`,
+`physics-navigation` and `room-sizes` build one only to report its defects or play a
+match, so all they can see is a defect, a crash or a stalled bot, which the sweep's
+`built` and `report` hashes and `diagnoseBuiltMap` show first. The exceptions are the type's own slow files, above, and
+`map-library-24` and `map-library-36*`: the sweep's chain cases are 12 × 6 games and
+smaller playgrounds (53), so those files alone check the report at the larger authored
+sizes. Run them when the change alters what a region holds, such as its loot.
+
+What each `tests/slow/` file runs on, what it asserts, and what can move it:
+
+| File | Runs on | Asserts | Moved by a change to |
+| --- | --- | --- | --- |
+| `characterization-bots` | arenas stored in `behavior-nav-1.json.gz`, `content-1` | every tick's snapshot and the `c0`, `g0` and spectator projections of four bot matches equal the fixture's digests | simulation, bots, snapshot and projection shapes; not generation, which the stored arenas replace |
+| `bot-objective` | the legacy generator, seeds 1, 9, 4217 | combat-neutralized bots complete the objective and fill all three pods | the legacy generator, simulation, bots |
+| `map-sweep` | the legacy generator, 200 seeds | a no-key route for both body sizes, loot and charger standing room, route clearance | the legacy generator, movement, the navigation grid |
+| `live-map` | the chain through `generateLiveMap`, seeds 1, 9, 4217, and the larger authored size | bots fill all three extraction slots within the match duration; the larger size generates with a matching recipe | simulation, bots, the live adapter (`map/live.ts`); chain output only as a stall or crash |
+| `physics-navigation` | the chain through `generateLiveMap`, seed 4217, `content-physics-8` | physical contestants complete the match | physics, navigation; chain output only as a stall or crash |
+| `room-sizes` | the chain, one room per authored size (12 × 6 unless `ROOM_SIZES`) | the room plays to its end, records, and replays | rooms, recording, the replay timeline, size-dependent generation |
+| `map-library` | the chain at the game size | 25 maps report no defects; every region of one keeps its portal promise (`diagnoseBuiltMap`) | macro stages, the library, a region type's builder |
+| `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
+| `micro-block-promise`, `micro-plant-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks) | that builder |
+| `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
+| `micro-block-scale` | one macro-sized block, hundreds of portals | builds within 5 s (skipped under `CI`) | the block builder and its delegation |
+
+A new `tests/slow/` file adds its row here in the same change.
+
 ## Continuous integration
 
 Forgejo Actions runs `.forgejo/workflows/ci.yml` in fresh `node:24.15.0` containers with
@@ -364,9 +420,9 @@ sweep, `map/tools/fixtures/chain-baseline.json`, and `REGION_TYPES_VERSION`
 ([53](53-map-artifacts-and-tools.md)). Only simulation changes (bot behaviour,
 or state added to a player and so to snapshots and projections) move the traces.
 
-**Batching baseline-moving work.** The sweep is cheap enough to run on every
-change as a drift diagnostic (about 25 s), but a deliberate content change recaptures
-it once, last. When several such changes belong together, collect them on one
+**Batching baseline-moving work.** The sweep is a drift diagnostic for any change that
+touches the chain (two to three minutes; a builder change iterates on the replay
+first), but a deliberate content change recaptures it once, last. When several such changes belong together, collect them on one
 integration branch, check each with focused tests and the diagnostic, and
 recapture once with a single `REGION_TYPES_VERSION` decision, so the first one to
 merge does not leave the sweep check failing on `main`. A change that is meant to
