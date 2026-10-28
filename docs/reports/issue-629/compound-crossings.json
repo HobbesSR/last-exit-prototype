@@ -1,19 +1,21 @@
 {
   "audit": "compound-crossing-diagnosis-1",
-  "createdAt": "2026-10-28T05:45:09.521Z",
-  "commit": "d99a3f50359b5c288915d2f89ff0b1e10c412b2b",
+  "createdAt": "2026-10-28T06:11:13.555Z",
+  "commit": "91b3f255139d738440eb5e64b92dc7c8a944c9a4",
+  "commitMeaning": "Checkout HEAD at report generation, not necessarily the audited code revision; sourceHashes identify the working-tree sources including uncommitted edits.",
   "node": "v24.15.0",
   "contentVersion": "types-46",
+  "sourceHashFormat": "sha256-utf8-lf",
   "sourceHashes": {
-    "tools/compound-crossing-audit.mjs": "ff5e4c5c4fc645aeee46e97b78e3927619b6cb6f03375ed77c12364b4b52cfeb",
-    "map/micro/delegation.ts": "ef942c02a94d1e30fbc51315a5c587ddf5da79a65cd510e064f3e2c473ac7069",
-    "map/micro/delegation-execute.ts": "8007e4d7c00d2e81e8ef08e1467965722bc6138021dc05648f722e3e166fca7d",
-    "map/micro/strategies/compound.ts": "9330a70c6b986f37bc9d5a99b1464c2eb018fae9acefd804e7ad0dc0725ef9f9",
-    "map/micro/strategies/cover.ts": "a4162ba67eb2bfc44199054ee74b8e54b8f144a4b46fc2394b857b4ef18d69d7",
-    "map/micro/geometry.ts": "d742f5934c3778f3757b6fd7f01c87bbeea17dff26f420f01c044f92926acd6d",
-    "map/micro/portals.ts": "0cd9205e7345c1f1231644416acb9609caf08f6cf0661431a182cb0e990c1d71",
-    "map/kernel/margins.ts": "2666c47ee596b0f3c259988b60867d39aa0b4511baf56080f1fa0ae1d7e868db",
-    "map/micro/region-types.ts": "bed06256b3b0a15d027a6e95eb6e3c543f3392ecd6cb9846dc0c58e24d475da3"
+    "tools/compound-crossing-audit.mjs": "fe63baea95f5e972ae2ef37fbcd6ac86c82620452b214ade37dc39e333ca3a78",
+    "map/micro/delegation.ts": "07e23c6736ee0eb9dc95e71be4f0dca6d05cf9e4d4ddc555948a6a3c1e776a4b",
+    "map/micro/delegation-execute.ts": "941972d0f70db60932f111b903bd5d05b75b1407a2f1f258d14cb4e1a50c8f22",
+    "map/micro/strategies/compound.ts": "6d39b19f10b4c22e2ee271ecb4aa226acaceb5a8d7838561b9b6a3ae9e9dc24c",
+    "map/micro/strategies/cover.ts": "820720735bed32032259bc2a40bf2265231f481d73a86f848904025f34fc798c",
+    "map/micro/geometry.ts": "08c2d170764647ccce9864f0f57323ba64f848ab68ecb39a3b2865ce81e515f9",
+    "map/micro/portals.ts": "37e68a5bad6b7b803d2d0b69af076fc1e6d307b61eaa2ed2707fb79d7efd17ba",
+    "map/kernel/margins.ts": "414ea8367ea0ecaf92269b357ef0e1f77ee74e8b6e27294031c7bc001fbb7c1f",
+    "map/micro/region-types.ts": "42ec61cfcbde438986697290c5694e4a1810ea7ff4e3336f6c0b0cac0125445c"
   },
   "maps": [
     {

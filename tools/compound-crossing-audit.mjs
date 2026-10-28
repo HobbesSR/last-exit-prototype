@@ -100,10 +100,11 @@ const paths = ['tools/compound-crossing-audit.mjs', 'map/micro/delegation.ts', '
   'map/micro/strategies/compound.ts', 'map/micro/strategies/cover.ts', 'map/micro/geometry.ts',
   'map/micro/portals.ts', 'map/kernel/margins.ts', 'map/micro/region-types.ts'];
 const sourceHashes = Object.fromEntries(await Promise.all(paths.map(async path =>
-  [path, createHash('sha256').update(await readFile(path)).digest('hex')])));
+  [path, createHash('sha256').update((await readFile(path, 'utf8')).replace(/\r\n/g, '\n')).digest('hex')])));
 const report = { audit: 'compound-crossing-diagnosis-1', createdAt: new Date().toISOString(),
   commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  node: process.version, contentVersion: REGION_TYPES_VERSION, sourceHashes, maps, fixture,
+  commitMeaning: 'Checkout HEAD at report generation, not necessarily the audited code revision; sourceHashes identify the working-tree sources including uncommitted edits.',
+  node: process.version, contentVersion: REGION_TYPES_VERSION, sourceHashFormat: 'sha256-utf8-lf', sourceHashes, maps, fixture,
   limits: 'Three current-library authored maps, top-level compounds only, plus one historical stored strip brief. Actual centered-candidate decisions come from unchanged preparation; exact preparation replay equality is asserted. Alternate offsets independently check only the existing protected-footprint and swept-travel gates on runs actually visited. They are not selected, and do not establish complete retained/child access, fill or receiver feasibility; later unvisited runs are not searched. Repeated candidates in incremental multi-offer attempts are counted separately. Root/leaf portal errors and full-map defects are retained rather than hidden. No generation, snapshot, reservation or policy changes and no density, loot, balance or performance improvement claimed.' };
 const out = resolve(args.get('out') ?? 'test-results/629/compound-crossings.json');
 await mkdir(dirname(out), { recursive: true });
