@@ -1,9 +1,12 @@
 import { createPhysicsGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
 import { contentById } from '/shared/simulation/content.ts';
 import { physicsRuntime } from '/shared/simulation/physics-runtime.ts';
+import { HZ } from '/shared/simulation/rules.ts';
 import { firstContact, solidBlockers } from '/shared/simulation/swept.ts';
 
 export const LAB_FORMAT = 'last-exit-physics-lab-1';
+export const TICK_HZ = HZ;
+export const TICK_MS = 1000 / HZ;
 export const MAX_TICKS = 2400;
 const MAX_ACTIONS = 4800;
 export const SCENES = Object.freeze({
@@ -29,6 +32,10 @@ export function sceneConfig(scene = 'A', seed = 449, tuning = {}) {
   content.discovery = false;
   for (const field of ['acceleration', 'braking', 'maxImpulse', 'maxSpeed']) {
     if (Object.hasOwn(tuning, field)) content.actorPhysics[field] = Number(tuning[field]);
+  }
+  if (Object.hasOwn(tuning, 'hookCooldown')) {
+    // hookSkill reads hook.cooldownTicks; the kit table repeats the number, so keep the exported content consistent.
+    content.hook.cooldownTicks = content.kits.hook.cooldown = Number(tuning.hookCooldown);
   }
   for (const role of ['contestant', 'gladiator']) {
     if (Object.hasOwn(tuning, `${role}BodyRadius`)) content.actorPhysics.geometry[role].bodyRadius = Number(tuning[`${role}BodyRadius`]);

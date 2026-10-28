@@ -1,4 +1,4 @@
-import { PhysicsLab, sceneConfig } from './physics-lab-model.js';
+import { PhysicsLab, sceneConfig, TICK_HZ, TICK_MS } from './physics-lab-model.js';
 
 const lab = new PhysicsLab();
 const byId = id => document.getElementById(id);
@@ -12,6 +12,17 @@ const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'Arro
 const ARENA_KEYS = [...MOVE_KEYS, 'KeyQ', 'KeyE', 'KeyI', 'Space'];
 const status = message => { byId('status').textContent = message; };
 const button = (id, action) => byId(id).addEventListener('click', () => Promise.resolve(action()).catch(error => status(error.message)));
+
+const TRAIL_TICKS = 40;
+/** The selected actor's body at each of the last TRAIL_TICKS + 1 retained frames, oldest first. */
+function trail() {
+  const id = `actor:${lab.selected}`, points = [];
+  for (const past of lab.frames.slice(-(TRAIL_TICKS + 1))) {
+    const body = past.bodies?.find(entry => entry.id === id);
+    if (body) points.push(body);
+  }
+  return points;
+}
 
 function shape(body, color, dashed = false) {
   ctx.save(); ctx.translate(body.x, body.y); ctx.rotate(body.angle || 0);
@@ -52,6 +63,11 @@ function draw() {
     if (previous) { ctx.strokeStyle = '#f5f5ee'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(flight.x, flight.y); ctx.stroke(); }
     ctx.fillStyle = '#e9f5d4'; ctx.beginPath(); ctx.arc(flight.x, flight.y, 4, 0, Math.PI * 2); ctx.fill();
   }
+  const path = trail();
+  path.forEach((point, index) => {
+    ctx.fillStyle = `rgba(255, 252, 230, ${0.15 + 0.7 * index / Math.max(1, path.length - 1)})`;
+    ctx.beginPath(); ctx.arc(point.x, point.y, 2.5, 0, Math.PI * 2); ctx.fill();
+  });
   for (const body of frame.bodies ?? []) {
     if (body.kind === 'actor') {
       const player = frame.players.find(p => p.id === body.actorId);
@@ -60,7 +76,8 @@ function draw() {
       shape({ ...body, shape: { kind: 'circle', radius: geometry.headRadius } }, '#5be1d8', body.sleeping);
       shape(body, '#ffbc54', body.sleeping);
       ctx.fillStyle = body.actorId === lab.selected ? '#fff' : '#d1e3d8';
-      ctx.fillText(body.actorId, body.x + 24, body.y - 20);
+      const cooling = player?.kit && player.cooldown > 0 ? ` · skill ${(player.cooldown / TICK_HZ).toFixed(1)} s` : '';
+      ctx.fillText(`${body.actorId}${cooling}`, body.x + 24, body.y - 20);
     } else shape(body, '#a6b5ff', body.sleeping);
   }
   for (const contact of lab.contacts.at(-1) ?? []) {
@@ -102,6 +119,16 @@ function draw() {
   }
 }
 
+/** Speed comes from retained positions, so a fast kick and its recovery show without any engine accessor. */
+function readout(frame) {
+  const id = lab.selected, path = trail(), player = frame.players.find(p => p.id === id);
+  const speeds = path.slice(1).map((point, index) => Math.hypot(point.x - path[index].x, point.y - path[index].y) * TICK_HZ);
+  const motor = frame.physics?.world?.bodies?.find(body => body.spec.id === `actor:${id}`)?.motor;
+  const skill = !player?.kit ? '' : player.cooldown > 0 ? ` · skill cooldown ${(player.cooldown / TICK_HZ).toFixed(1)} s` : ' · skill ready';
+  return `${id}: speed ${Math.round(speeds.at(-1) ?? 0)} u/s · target ${Math.round(motor ? Math.hypot(motor.x, motor.y) : 0)} u/s`
+    + ` · peak ${Math.round(Math.max(0, ...speeds))} u/s in the last ${TRAIL_TICKS / TICK_HZ} s${skill}`;
+}
+
 function refresh() {
   const frame = lab.frame(); draw();
   if (!frame) return;
@@ -113,6 +140,7 @@ function refresh() {
   actor.value = lab.selected;
   const external = lab.forces.at(-1)?.filter(sample => Math.hypot(sample.force.x, sample.force.y) >= 0.001).length ?? 0;
   status(`Tick ${frame.tick} · ${frame.bodies?.length ?? 0} bodies · ${lab.contacts.at(-1)?.length ?? 0} final-substep contacts · ${external} external-force samples · ${frame.tethers?.length ?? 0} tethers`);
+  byId('readout').textContent = readout(frame);
 }
 
 function input() {
@@ -130,9 +158,10 @@ async function reset() {
   const config = sceneConfig(byId('scene').value, Number(byId('seed').value), tuning);
   await lab.start(config); refresh();
 }
-const defaults = sceneConfig().content.actorPhysics;
+const base = sceneConfig().content, defaults = base.actorPhysics;
 for (const field of document.querySelectorAll('[data-tune]')) {
-  field.value = field.dataset.tune.endsWith('BodyRadius')
+  field.value = field.dataset.tune === 'hookCooldown' ? base.hook.cooldownTicks
+    : field.dataset.tune.endsWith('BodyRadius')
     ? defaults.geometry[field.dataset.tune.startsWith('contestant') ? 'contestant' : 'gladiator'].bodyRadius
     : defaults[field.dataset.tune];
   field.addEventListener('change', () => status('Tuning changed. Reset to apply it to a new pinned match.'));
@@ -179,10 +208,13 @@ dial.addEventListener('pointerdown', event => { dial.setPointerCapture(event.poi
 dial.addEventListener('pointermove', event => { if (dial.hasPointerCapture(event.pointerId)) setImpulseFromDial(event); });
 for (const field of [byId('impulse-x'), byId('impulse-y'), document.querySelector('[data-tune="maxImpulse"]')]) field.addEventListener('input', drawDial);
 drawDial();
-button('play', () => { if (playing) stop(); else {
-  playing = setInterval(() => { try { tick(); } catch (error) { stop(); status(error.message); } }, 50);
+// A slower speed stretches the wall-clock gap between the same fixed ticks; it never changes a tick or its substeps.
+function play() {
+  playing = setInterval(() => { try { tick(); } catch (error) { stop(); status(error.message); } }, TICK_MS / Number(byId('speed').value));
   byId('play').textContent = 'Pause';
-} });
+}
+button('play', () => { if (playing) stop(); else play(); });
+byId('speed').addEventListener('change', () => { if (playing) { stop(); play(); } });
 button('export', () => { byId('recording').value = JSON.stringify(lab.export(), null, 2); status('Pinned configuration, ordered trace, and retained frames exported.'); });
 button('download', () => {
   const data = JSON.stringify(lab.export(), null, 2), url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));

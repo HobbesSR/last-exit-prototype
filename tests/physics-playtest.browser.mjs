@@ -226,6 +226,39 @@ try {
   await page.locator('#arena').focus();
   await page.keyboard.press('KeyI');
   assert.match(await page.locator('#status').textContent(), /Impulse \(0, -150\) queued/, 'typed fields remain the exact form');
+  assert.match(await page.locator('#readout').textContent(), /^c0: speed [1-9]\d* u\/s · target \d+ u\/s · peak [1-9]\d* u\/s in the last 2 s/,
+    'the readout reports the stepped actor moving');
+  // A slower speed only stretches the timer gap between the same fixed ticks.
+  await page.evaluate(() => {
+    const real = window.setInterval; window.__gaps = [];
+    window.setInterval = (fn, gap, ...rest) => { window.__gaps.push(gap); return real(fn, gap, ...rest); };
+  });
+  await page.locator('#speed').selectOption('0.25');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await page.locator('#speed').selectOption('1');
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => window.__gaps), [200, 50], 'quarter speed waits four times as long; changing speed restarts the timer');
+  // The hook cooldown is tunable, displayed, and what gates a relaunch.
+  await page.locator('#scene').selectOption('C');
+  assert.equal(await page.locator('[data-tune="hookCooldown"]').inputValue(), '140', 'the field defaults to the content value');
+  await page.locator('[data-tune="hookCooldown"]').fill('6');
+  await page.getByRole('button', { name: 'Start / Reset' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+  await page.locator('#actor').selectOption('g0');
+  const press = async () => { await page.locator('#skill').click(); await page.locator('#step').click(); };
+  await press();
+  assert.match(await page.locator('#readout').textContent(), /skill cooldown \d\.\d s/, 'the cooldown is shown after a launch');
+  await press();
+  await press();
+  await page.evaluate(() => { for (let i = 0; i < 6; i++) document.getElementById('step').click(); });
+  await press();
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const cooled = JSON.parse(await page.locator('#recording').inputValue());
+  assert.deepEqual([cooled.content.hook.cooldownTicks, cooled.content.kits.hook.cooldown], [6, 6]);
+  assert.deepEqual([1, 2, 3, 10].map(tick => cooled.frames[tick].hookFlights?.length ?? 0), [1, 0, 0, 1],
+    'launch, release, refused while cooling down, then ready again');
+  await page.locator('[data-tune="hookCooldown"]').fill('140');
+  await page.locator('#scene').selectOption('A');
   await page.getByRole('button', { name: 'Start / Reset' }).click();
   await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
   await page.getByRole('button', { name: 'Step tick' }).focus();

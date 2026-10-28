@@ -63,6 +63,7 @@
     </header>
     <div class="actions" aria-label="Simulation actions">
       <button id="reset">Start / Reset</button><button id="step">Step tick</button><button id="play">Play</button>
+      <select id="speed" aria-label="Playback speed"><option value="1">1&times; (live rate)</option><option value="0.5">&frac12;&times; slow</option><option value="0.25">&frac14;&times; slow</option></select>
       <span class="hint">Scene, seed and tuning apply on Reset.</span>
     </div>
     <div class="workspace">
@@ -88,7 +89,7 @@
       <section class="panel preview" aria-label="Simulation arena">
         <div class="preview-bar"><h2>Arena</h2><span class="badge">800 &times; 800 world units</span></div>
         <div class="arena-surface"><canvas id="arena" width="800" height="800" tabindex="0" aria-label="Physics playtest arena" aria-describedby="arena-help"></canvas></div>
-        <div class="caption"><output id="status" role="status">Select a scene and start.</output><p class="hint" id="arena-help">Click arena to control &middot; WASD or arrows move &middot; Pointer aim &middot; Q skill &middot; E interact &middot; I impulse</p></div>
+        <div class="caption"><output id="status" role="status">Select a scene and start.</output><output id="readout"></output><p class="hint" id="arena-help">Click arena to control &middot; WASD or arrows move &middot; Pointer aim &middot; Q skill &middot; E interact &middot; I impulse</p></div>
       </section>
       <aside class="panel inspector" aria-label="Tuning, recording and help">
         <fieldset id="tuning"><legend>Character tuning</legend>
@@ -98,6 +99,7 @@
           <label>Max speed <input data-tune="maxSpeed" type="number" min="1" max="100000" step="1"></label>
           <label>Contestant body radius <input data-tune="contestantBodyRadius" type="number" min="1" max="100" step="0.1"></label>
           <label>Gladiator body radius <input data-tune="gladiatorBodyRadius" type="number" min="1" max="100" step="0.1"></label>
+          <label>Hook cooldown (ticks, 20 = 1 s) <input data-tune="hookCooldown" type="number" min="1" max="100000" step="1"></label>
         </fieldset>
         <p class="hint">Copied match-pinned values. Reset creates a fresh world with these settings.</p>
         <details open>
@@ -109,7 +111,7 @@
         <details>
           <summary>Controls and diagnostic legend</summary>
           <p class="hint">Step advances one 50 ms tick. Play runs fixed ticks. Cast ahead sweeps 200 units against static geometry and solid props; actors and sensor loot are excluded.</p>
-          <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
+          <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Pale dots: the selected actor's last 40 ticks, one per tick, so wide gaps are fast and bunched dots are slow. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
         </details>
       </aside>
     </div>
