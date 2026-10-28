@@ -2,7 +2,13 @@ import { createRoomService } from '../../server/room-service.js';
 import { createRoomDirectory } from '../../server/room-directory.js';
 import { createLayerDecoder } from '../../shared/frame-layers.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../../map/live.ts';
-import { defaultContent } from '../../shared/simulation/content.ts';
+import { legacyContent } from '../../shared/simulation/content.ts';
+import { createMatch } from '../../server/match.js';
+
+// These tests are about room policy with a fake clock, not about an engine. They pin the legacy mover and
+// its synchronous match so a room has its match at once, as characterization pins `content-1`; physics
+// rooms are exercised by physics-integration.test.js, physics-match.test.js and the browser suite.
+export { legacyContent };
 
 const generated = new Map();
 /**
@@ -12,7 +18,7 @@ const generated = new Map();
  */
 export function generatedMap(seed = 9, size = DEFAULT_LIVE_ZONE_SIZE) {
   const key = `${seed} ${zoneSizeName(size)}`;
-  if (!generated.has(key)) generated.set(key, generateLiveMap(seed, defaultContent(), size));
+  if (!generated.has(key)) generated.set(key, generateLiveMap(seed, legacyContent(), size));
   return structuredClone(generated.get(key));
 }
 
@@ -42,7 +48,7 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, p
     };
     writers.set(header.id, writer); return writer;
   } };
-  const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
+  const service = createRoomService({ replays, wallNow: () => wall, reportError, content: legacyContent, matchFactory: createMatch, ...serviceOptions });
   const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
   const peer = () => {
     const messages = [], closes = [], layers = createLayerDecoder();

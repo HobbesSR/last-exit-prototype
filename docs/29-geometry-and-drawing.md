@@ -40,11 +40,33 @@ shapes must be decomposed into convex pieces before they become geometry, with s
 
 ## Collision
 
-`segmentShapeDistance` supplies continuous distance from a closed segment to a
-filled shape, with analytic circles and polygon/rectangle containment and edge
-tests. The research navigation adapter in [42.1](42.1-navigation-experiment.md)
-uses it for conservative swept clearance, including void and gate geometry.
-It is not used by production movement or the current bot planner.
+Collision is the physics engine's: Rapier 2D 0.21.0 behind one adapter, `shared/physics/world.ts`,
+which the server and the browser both run. The shipped default, `content-6` ([14](14-match-rules.md),
+#523), runs on it. Contents 1 to 5 still run the legacy mover, described last in this section for
+characterization and old recordings. The design is [29.1](29.1-physics-design.md), its state,
+networking and replay [29.2](29.2-physics-state-networking.md), and the plan and gates
+[41.1](41.1-physics-plan.md).
+
+The world uses 40 units to the metre, four fixed substeps in each 50 ms tick and continuous collision
+on every moving body, with a per-substep speed cap derived from a body's smallest radius so that
+nothing outruns thin geometry. Characters are dynamic, rotation-locked circles driven toward their
+desired velocity by a bounded motor, so an impulse from an explosion, a hook or another body survives
+until the motor recovers the target speed rather than being overwritten each tick. Each role has three
+radii, as match-pinned content: a head (what is drawn), a body (what moves: 11.2875 for a contestant,
+16.25 for a gladiator) and a hurt radius (what combat tests: 12 and 23). Actors collide with each other
+and with props, with zero restitution and low tangential friction, so a glancing contact keeps its
+tangential motion. Heads may overlap a little: actor-to-actor contact alone has a 0.5-unit tolerance,
+and walls, doors and void keep their full containment. Dead, inactive and extracted actors do not collide.
+
+World geometry is static convex shapes built from the map's obstacles and playable-area mask
+(`buildPhysicsGeometry`), with closed gates as blockers. Props are dynamic, rotating boxes, and loot
+is a sensor. `segmentShapeDistance` supplies continuous distance from a closed segment to a filled
+shape, with analytic circles and polygon/rectangle containment and edge tests; the swept queries
+(`shared/simulation/swept.ts`: the hook tip and tether, shots and the lab's Cast ahead) use it through
+`firstContact`, and so does the navigation adapter in [42.1](42.1-navigation-experiment.md). The
+engine's own contact does not.
+
+### The legacy mover (contents 1 to 5)
 
 `shared/movement.ts` is the only module that decides whether something may occupy a place.
 
@@ -62,8 +84,8 @@ every call.
 `movePlayer` is position-based, not velocity-based: it steps the body to its desired position, then
 runs three separation passes over the nearby colliders, subtracting each overlap vector. That is what
 produces sliding along walls and around corners. There is no velocity, no mass, no restitution and no
-angular term anywhere in the simulation yet, and no continuous sweep — a body that moves further than
-its own radius in a tick can pass through thin geometry. Speeds are well under that today.
+angular term anywhere in the legacy simulation, and no continuous sweep — a body that moves further than
+its own radius in a tick can pass through thin geometry. Speeds are well under that for these contents.
 
 Final position is rounded to three decimals, which is part of the frozen fixture: changing it changes
 recorded outcomes.
@@ -81,29 +103,34 @@ ray. What a viewer may *know* — reveals, cloak, roof concealment — is a game
 `shared/view.ts` as `seesPoint`/`seesActor`, which the world renderer and the minimap both call. They
 used to implement it separately and had drifted; see [15](15-information-rules.md) for the rule.
 
-## What a physics system would need next
+## What the physics system added, and what it still lacks
 
-The proposed design is now in [29.1](29.1-physics-design.md) (physical behavior,
-engine comparison, character bodies and items) and
-[29.2](29.2-physics-state-networking.md) (ticks, state, prediction and replay).
-The issue sequence and evaluation gates are [41.1](41.1-physics-plan.md).
-These are design records, not implemented behavior; the baseline below remains.
+The design is in [29.1](29.1-physics-design.md) (physical behavior, engine comparison, character
+bodies and items) and [29.2](29.2-physics-state-networking.md) (ticks, state, prediction and replay),
+and the issue sequence and evaluation gates are in [41.1](41.1-physics-plan.md). The default now
+runs it, so the items this section once listed as missing are implemented: velocity and
+integration, impulses and restitution, joints (springs and ropes, used by the hook and bounded to
+eight constraints in total) and continuous collision. Still absent: rotational freedom for characters
+(their bodies are rotation-locked), soft bodies (the jelly and squish of [42.21](42.21-jelly-squish.md) exist
+only in the dev lab), and height, roofs and floors for ballistics, which are the P7 lab prototype
+([42.18](42.18-physics-p7.md)) and not default behavior.
 
-The shape module is the primitive layer for it, and deliberately stops short of being one:
+The shape module remains the primitive layer under the geometry and the swept queries, and
+deliberately stops short of being a physics system:
 
 - `transform(shape, dx, dy, angle)` moves and rotates about a shape's own anchor, which is what a
-  jointed assembly needs — a part keeps its local points and only its placement changes. Nothing in
-  the simulation rotates bodies yet.
+  jointed assembly needs — a part keeps its local points and only its placement changes. Rotating
+  props are simulated by the engine, and `physics/presentation-geometry.ts` turns a body back into a shape.
 - `overlaps(a, b)` is the general shape-against-shape test. The movement sweep uses the narrower
   circle-against-shape path because that is the hot one. It counts contact as overlap;
   `sharesArea(a, b, tolerance)` does not, and serves authored areas such as a builder's
   addressed-area record ([20.2](20.2-geometry-access.md#addressed-area)), never collision.
-- Missing, in the order they would be needed: velocity and integration, an impulse/restitution model,
-  rotational inertia, joints and continuous collision for fast bodies. Convex decomposition for
-  concave generated content now exists (shape construction, [29.3](29.3-shape-construction-and-assembly.md#shape-construction)). F-14 in [13](13-accepted-features.md) accepts the direction and requires
-  a measured comparison against middleware before any of it is built.
+- Convex decomposition for concave generated content exists (shape construction,
+  [29.3](29.3-shape-construction-and-assembly.md#shape-construction)). F-14 in [13](13-accepted-features.md)
+  accepted the physics direction and required a measured comparison against middleware, which
+  [42.6](42.6-physics-comparison.md) made before the engine was built.
 
-Any of that must keep the fixed-tick order, the RNG/ID order and the recorded outcomes in
+Any further change must keep the fixed-tick order, the RNG/ID order and the recorded outcomes in
 [31](31-verification.md) intact, or be introduced as an explicit versioned gameplay change.
 
 ## Reading guide

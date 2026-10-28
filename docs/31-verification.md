@@ -28,7 +28,7 @@ everything under `tests/*.test.js`. Dated counts and timings are in
 fixture, and bots completing whole matches. Those slow tests sum to about four minutes
 by default, plus about half a minute for the builder sweeps below, and their evidence
 only moves when generation or simulation moves.
-`tests/slow/room-sizes.test.js` runs only the 12 × 6 room unless asked
+`tests/slow/room-sizes.test.js` and `room-sizes-physics.test.js` run only the 12 × 6 room unless asked
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
 the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
 merged on the fast tier; `npm run test:slow` runs it locally when a change is likely to move
@@ -204,7 +204,10 @@ contract runs, `reorderedBrief`), `block-masks.js`, `plant-fixtures.js` and
 `compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and slow files
 share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
-(the bench and demo `--key=value` map), `room-harness.js` and `machine-lock.js`. The
+(the bench and demo `--key=value` map), `room-harness.js` (which pins the legacy mover, `content-5` and
+the synchronous `createMatch`, because its tests are about room policy and not an engine; a physics room
+passes `content: defaultContent, matchFactory: createMatchFor` and awaits `room.ready`), `room-sizes.js`
+and `machine-lock.js`. The
 maintained command-line tools share `tools/options.mjs`; the one-off audit scripts
 under `tools/` are evidence and keep their own parsing.
 
@@ -325,7 +328,8 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `map-sweep` | the legacy generator, 200 seeds | a no-key route for both body sizes, loot and charger standing room, route clearance | the legacy generator, movement, the navigation grid |
 | `live-map` | the chain through `generateLiveMap`, seeds 1, 9, 4217, and the larger authored size | bots fill all three extraction slots within the match duration; the larger size generates with a matching recipe | simulation, bots, the live adapter (`map/live.ts`); chain output only as a stall or crash |
 | `physics-navigation` | the chain through `generateLiveMap`, seed 4217, `content-physics-8` | physical contestants complete the match | physics, navigation; chain output only as a stall or crash |
-| `room-sizes` | the chain, one room per authored size (12 × 6 unless `ROOM_SIZES`) | the room plays to its end, records, and replays | rooms, recording, the replay timeline, size-dependent generation |
+| `room-sizes` | the chain, one room per authored size (12 × 6 unless `ROOM_SIZES`), on the legacy mover the room harness pins | the room plays to its end, records, and replays | rooms, recording, the replay timeline, size-dependent generation |
+| `room-sizes-physics` | the same, on the shipped default `content-6` and the physics engine (#523) | the physics room plays to its end, its recording names `last-exit-0.8-physics-8`, and the map fits the content's ground capacity | rooms, recording, physics, item capacity, size-dependent generation |
 | `map-library` | the chain at the game size | 25 maps report no defects; every region of one keeps its portal promise (`diagnoseBuiltMap`) | macro stages, the library, a region type's builder |
 | `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
 | `micro-block-promise`, `micro-plant-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks) | that builder |

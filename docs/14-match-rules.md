@@ -1,9 +1,12 @@
 # 14. Match rules and implemented defaults
 
-Every number here is a tuning default of `content-5` under `last-exit-0.7` rules,
-not a design constant. When one changes, it must stay named in code and updated
-here in the same change. Accepted-but-unimplemented changes live in
-[13](13-accepted-features.md).
+Every number here is a tuning default, not a design constant. The shipped default is
+`content-6` under `last-exit-0.8-physics-8` rules: the physics engine, described in the
+sections below. Contents 1 to 5, under `last-exit-0.7`, run the legacy mover and stay
+selectable for characterization and old recordings. Numbers outside the physics sections are
+`content-5`'s, which `content-6` shares unless a physics section says otherwise. When one
+changes, it must stay named in code and updated here in the same change.
+Accepted-but-unimplemented changes live in [13](13-accepted-features.md).
 
 ## Capacities and the objective
 
@@ -38,14 +41,25 @@ the next stretch of its route, it searches round the change at once and keeps th
 route, rather than walking on until its next sliced repath. Its numbers and roster are unchanged;
 `content-4` remains selectable.
 
+`content-6`, the default since #523, is `content-physics-8` under a shipped name: `content-5`'s
+numbers, roster and planner over the physics engine of the sections below. A live room builds it
+with `createPhysicsMatch`; the room service chooses the engine by content, physics content for
+the physics world and the rest for the legacy mover. Its lobby therefore offers the Hook kit
+alongside Warden, Specter and Striker, while the default roster's gladiators keep their kits.
+`createGame`, `createMatch` and the legacy tools default to `content-5` (`legacyContent()`),
+because they are the legacy engine's entry points, so characterization, the frozen fixture and
+old recordings are unchanged ([31](31-verification.md)). Tuning is as it was in the experimental
+profiles: the human feel review of 2026-10-28 ([42.20](42.20-physics-p9.md)) accepted it as it
+stands and deferred tuning, so nothing here was rebalanced for the switch.
+
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
 ## Experimental physical world profile (#445)
 
 Explicit `content-physics-5` passed to `createPhysicsGame`/`createPhysicsMatch`
 selects `last-exit-0.8-physics-5`: P2 character rules plus L0 item ownership and
-physical world items. Default matches retain content-5/last-exit-0.7. This is an
-experimental integration for review; full P8 navigation and P9 promotion remain.
+physical world items. These rules are part of the shipped default `content-6` (#523);
+`content-physics-5` stays selectable. Ordinary rooms no longer retain `content-5`.
 
 Provisional authored tuning, independent of item art/quality:
 
@@ -84,17 +98,18 @@ other bodies. Solver speed limits still apply after mass conversion. Removing or
 relocating a body invalidates its queued generation. These are implementation
 assumptions for experimental review, not new user balance answers.
 
-## Experimental dynamic navigation (#448)
+## Dynamic navigation (#448), the shipped default since #523
 
-Explicit `content-physics-8` selects `last-exit-0.8-physics-8` in the physics
-factory. It extends P6 with P5 drops, P2 footprints and the default planner's
-local repair. Earlier content, ordinary rooms and the frozen fixture retain
-their behavior. The new selection and bounds are experimental implementation
-assumptions for review; P9 and human feel remain prerequisites for promotion.
+`content-physics-8` selects `last-exit-0.8-physics-8` in the physics factory, and the
+shipped default `content-6` is the same content under its own name. It extends P6 with
+P5 drops, P2 footprints and the default planner's local repair. Earlier content sets
+and the frozen fixture retain their behavior. The bounds below were written as
+implementation assumptions for review and are the shipped values, accepted as they stand
+with tuning deferred.
 P9's local `/dev/physics` playtest ([42.20](42.20-physics-p9.md)) copies and pins
-this content at each reset. Its A/B/C scenes stage characters, props and hook
-testing; they introduce no new match rules or default selection. Human feel and
-the separate reviewed default checkpoint remain promotion requirements.
+`content-physics-8` at each reset. Its scenes stage characters, props, the hook, the
+squish shell and the jelly; they introduce no match rules. Ballistics (P7), the loot
+overhaul (L1/L2) and jelly/squish stay outside the default.
 
 Bots avoid currently visible active actors and solid props within 192 units,
 regardless of sleep. Loot remains a sensor. A temporary local route rejoins at

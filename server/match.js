@@ -5,7 +5,7 @@ import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { clearRoute } from '../shared/simulation/geometry.ts';
 import { generateLiveMap } from '../map/live.ts';
-import { defaultContent } from '../shared/simulation/content.ts';
+import { defaultContent, legacyContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { createPhysicsGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
 
@@ -79,9 +79,14 @@ export function createLobby(content = defaultContent()) {
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
-export function createMatch(seed, size, map, content = defaultContent()) {
+export function createMatch(seed, size, map, content = legacyContent()) {
   const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
   return matchOf(game);
+}
+
+/** The engine a content set is built for: physics content needs the physics world, the rest the legacy mover. */
+export function createMatchFor(seed, size, map, content = defaultContent()) {
+  return content.actorPhysics ? createPhysicsMatch(seed, size, map, content) : createMatch(seed, size, map, content);
 }
 
 /** Experimental explicit rules selection; not offered by the public room protocol. */

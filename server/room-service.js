@@ -4,7 +4,7 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
-import { createMatch, createLobby } from './match.js';
+import { createMatchFor, createLobby } from './match.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, viewEncoders, SPECTATOR_DELAY_TICKS } from './room-views.js';
@@ -32,7 +32,7 @@ const byRole = count => Object.fromEntries(ROLES.map(role => [role, count(role)]
  * `content` supplies each new room's content: the shipped default, or a differing set a test injects.
  */
 export function createRoomService({ replays, devTools = 'none', wallNow = Date.now, reportError = console.error,
-  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent, matchFactory = createMatch }) {
+  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent, matchFactory = createMatchFor }) {
   const rooms = new Map();
   const finalizations = new Set();
   let closing;
