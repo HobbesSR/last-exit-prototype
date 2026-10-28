@@ -50,7 +50,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [14-match-rules.md](14-match-rules.md) | Implemented defaults: capacities, inventory, objective, traps, timings, lifecycle |
 | [15-information-rules.md](15-information-rules.md) | What each viewer may know: sight, projections, spectators, privacy |
 | [16-deferred.md](16-deferred.md) | Settled decisions, and requirements deliberately postponed to later milestones |
-| [17-open-questions.md](17-open-questions.md) | Guide to question records: micro (17.1), map generation (17.2, including delegation decisions in 17.2.9), product (17.3), live service (17.4), playtests (17.5); verbatim answers stay in the relevant record |
+| [17-open-questions.md](17-open-questions.md) | Guide to question records: micro (17.1), map generation (17.2, including delegation decisions in 17.2.9 and portal cord source direction in 17.2.10), product (17.3), live service (17.4), playtests (17.5); verbatim answers stay in the relevant record |
 | [18-original-prompt.md](18-original-prompt.md) | The preserved original design stream and influences. A source record, not requirements |
 | [19-decomposition-design.md](19-decomposition-design.md) | Accepted decomposition SDK direction: candidate assignment, generator contracts, residuals and interfaces |
 
@@ -58,7 +58,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) builder delegation (20.7: preparation/execution, hut and compound adoption implemented), placeables (20.8) and a builder's usual structure (20.9); load the relevant 20.x part |
+| [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) builder delegation (20.7: preparation/execution, hut and compound adoption implemented), placeables (20.8) and a builder's usual structure (20.9); proposed, not implemented portal cord tooling (20.10); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [21.1-third-party-licenses.md](21.1-third-party-licenses.md) | Third-party licence audit (#551): what the server redistributes, evidence, obligations, unresolved items, and the update process behind `THIRD-PARTY-NOTICES.txt` |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
