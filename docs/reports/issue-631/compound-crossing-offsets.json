@@ -1,13 +1,13 @@
 {
   "experiment": "compound-crossing-offset-1",
-  "createdAt": "2026-10-28T06:18:15.379Z",
-  "commit": "34fbfef3ac5e2194e7946259f56cf7c9f2857999",
+  "createdAt": "2026-10-28T06:30:54.495Z",
+  "commit": "ae260491b047fce7e4623c7ad5346c7bad59a4b1",
   "commitMeaning": "Checkout HEAD; source hashes identify working-tree sources, including uncommitted edits.",
   "node": "v24.15.0",
   "contentVersion": "types-46",
   "sourceHashFormat": "sha256-utf8-lf",
   "sourceHashes": {
-    "tools/compound-crossing-offset-experiment.mjs": "5c17d8e06ba7cb65f7de7f96130799b0c9ba899d3553a44750fbb1c1915aaea0",
+    "tools/compound-crossing-offset-experiment.mjs": "caaeb15f5d41882c24d00c1367822c7fb573fa68e80933e9393bbc1d00fbafdf",
     "map/micro/delegation.ts": "07e23c6736ee0eb9dc95e71be4f0dca6d05cf9e4d4ddc555948a6a3c1e776a4b",
     "map/micro/delegation-execute.ts": "941972d0f70db60932f111b903bd5d05b75b1407a2f1f258d14cb4e1a50c8f22",
     "map/micro/strategies/compound.ts": "6d39b19f10b4c22e2ee271ecb4aa226acaceb5a8d7838561b9b6a3ae9e9dc24c",
@@ -1294,5 +1294,5 @@
     }
   ],
   "defects": [],
-  "limits": "One current-library 36x18 map and one specific seam. Each offset changes only this seam in a temporary copy of preparation and runs complete incremental admission, including partition, blockers and exact cover receiving preview. Root, retained and child portal reach and fill containment are reported separately against combined primary and preview geometry; errors are not suppressed. Other seams remain centered. Cover element counts are receiver previews, not a regenerated full compound or final gameplay validation. Centered replay equality is asserted for every prepared compound in this map. No policy, production output, version or fixture is changed; this does not establish general benefit or a safe offset selection policy."
+  "limits": "One current-library 36x18 map and one specific seam. Each offset changes only this seam in a temporary copy of preparation and runs complete incremental admission, including partition, blockers and exact cover receiving preview. Root, retained and child portal reach and fill containment are reported separately against combined primary and preview geometry; errors are not suppressed. Other seams remain centered. Cover element counts are receiver previews, not a regenerated full compound or final gameplay validation. Centered replay equality is asserted for every prepared compound in this map. Source hashes cover selected files, not their transitive dependency closure. No policy, production output, version or fixture is changed; this does not establish general benefit or a safe offset selection policy."
 }
