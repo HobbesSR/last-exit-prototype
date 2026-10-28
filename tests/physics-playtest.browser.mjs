@@ -314,6 +314,35 @@ try {
   await page.locator('#squish-show').uncheck();
   await page.locator('#squish-show').check();
   await page.locator('#squish-thickness').fill(String(thickness));
+  // The jelly of 42.21 as ordinary world bodies, within the world's 8-constraint limit.
+  const jelly = await page.evaluate(async () => {
+    const { PhysicsLab, sceneConfig, JELLY } = await import('/dev/physics-lab-model.js');
+    const lab = new PhysicsLab(), again = new PhysicsLab();
+    try {
+      await lab.start(sceneConfig('E'));
+      const body = id => lab.frame().bodies.find(entry => entry.id === id);
+      const nodes = () => Array.from({ length: JELLY.nodes }, (_, i) => body(`jelly:n${i}`));
+      const spokes = () => nodes().map(node => Math.hypot(node.x - body('jelly:core').x, node.y - body('jelly:core').y));
+      const out = { bodies: lab.frame().bodies.length, tethers: lab.frame().tethers.length, ring: JELLY.ring, node: JELLY.nodeRadius };
+      let minSpoke = Infinity, farthest = 0, finite = true;
+      for (let i = 0; i < 90; i++) {
+        lab.tick({ x: 1 });
+        minSpoke = Math.min(minSpoke, ...spokes()); farthest = Math.max(farthest, ...nodes().map(node => node.x));
+        finite &&= spokes().every(Number.isFinite);
+      }
+      for (let i = 0; i < 20; i++) lab.tick({ x: -1 });
+      for (let i = 0; i < 100; i++) lab.tick({});
+      Object.assign(out, { minSpoke, farthest, finite, worstRadial: Math.max(...spokes().map(length => Math.abs(length - JELLY.ring))) });
+      try { await again.import(lab.export()); out.replay = 'match'; } catch (error) { out.replay = error.message; }
+      return out;
+    } finally { lab.dispose(); again.dispose(); }
+  });
+  assert.deepEqual([jelly.bodies, jelly.tethers], [10, 8], 'scene E holds the actor, the jelly core and eight nodes on eight spokes');
+  assert.ok(jelly.finite, 'every spoke stays finite');
+  assert.ok(jelly.minSpoke < jelly.ring - 3, `pushed into the wall the ring deforms: shortest spoke ${jelly.minSpoke} of ${jelly.ring}`);
+  assert.ok(jelly.farthest + jelly.node <= 560 + 0.1, `no node passes the wall face at 560: ${jelly.farthest + jelly.node}`);
+  assert.ok(jelly.worstRadial < 0.01, `released, the ring recovers its rest radius: ${jelly.worstRadial}`);
+  assert.equal(jelly.replay, 'match', 'an exported jelly recording reruns to identical frames');
   // Leave the status past "Tick 0" so the next reset's wait for it cannot return before that reset finishes.
   await page.locator('#step').click();
   await page.locator('#scene').selectOption('A');
@@ -336,7 +365,7 @@ try {
   assert.equal(await page.locator('#status').textContent(), paused, 'Pause stops fixed ticks');
   assert.deepEqual(errors, []);
   await page.screenshot({ path: 'test-results/physics-playtest.png', fullPage: true });
-  console.log(JSON.stringify({ passed: true, checks: ['desktop and narrow layout', 'pointer aim after resize', 'form input isolation', 'held shortcut repeat and fresh button activation', 'play/pause', 'local start and movement', 'reset pins tuning', 'export/import exact rerun', 'A/B/C scenes', 'no console errors'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['desktop and narrow layout', 'pointer aim after resize', 'form input isolation', 'held shortcut repeat and fresh button activation', 'play/pause', 'local start and movement', 'reset pins tuning', 'export/import exact rerun', 'A/B/C scenes', 'squish shell and jelly scenes', 'no console errors'] }));
   await page.close();
 } finally { await browser.close(); await server.close(); }
 

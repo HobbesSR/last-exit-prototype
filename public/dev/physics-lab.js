@@ -1,4 +1,4 @@
-import { PhysicsLab, sceneConfig, TICK_HZ, TICK_MS } from './physics-lab-model.js';
+import { JELLY, PhysicsLab, sceneConfig, TICK_HZ, TICK_MS } from './physics-lab-model.js';
 import { SQUISH } from './squish-shell.js';
 
 const lab = new PhysicsLab();
@@ -75,6 +75,12 @@ function draw() {
     ctx.strokeStyle = shell.crushed ? '#ff6b60' : '#7bf0c0'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
     if (shell.crushed) { ctx.fillStyle = '#ff6b60'; ctx.fillText('CRUSHED', shell.x - 20, shell.y + shell.reach + 12); }
   }
+  // The jelly is one object: a filled ring through its nodes, over the individual bodies drawn below.
+  const ring = Array.from({ length: JELLY.nodes }, (_, i) => bodies.get(`jelly:n${i}`));
+  if (ring.every(Boolean)) {
+    ctx.beginPath(); ring.forEach((node, i) => { if (i) ctx.lineTo(node.x, node.y); else ctx.moveTo(node.x, node.y); }); ctx.closePath();
+    ctx.fillStyle = 'rgba(123, 240, 192, .22)'; ctx.strokeStyle = '#7bf0c0'; ctx.lineWidth = 2; ctx.fill(); ctx.stroke();
+  }
   const path = trail();
   path.forEach((point, index) => {
     ctx.fillStyle = `rgba(255, 252, 230, ${0.15 + 0.7 * index / Math.max(1, path.length - 1)})`;
@@ -92,12 +98,14 @@ function draw() {
       ctx.fillText(`${body.actorId}${cooling}`, body.x + 24, body.y - 20);
     } else shape(body, '#a6b5ff', body.sleeping);
   }
-  for (const contact of lab.contacts.at(-1) ?? []) {
+  // The jelly's springs and node contacts would bury it in labels; its ring is the readout, so skip its own bodies.
+  const jelly = id => id.startsWith('jelly:');
+  for (const contact of (lab.contacts.at(-1) ?? []).filter(item => !jelly(item.a) && !jelly(item.b))) {
     const { x, y } = contact.point, nx = contact.normal.x, ny = contact.normal.y;
     ctx.strokeStyle = '#ff6b60'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + nx * 22, y + ny * 22); ctx.stroke();
     ctx.fillStyle = '#ff6b60'; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
   }
-  for (const sample of lab.forces.at(-1) ?? []) {
+  for (const sample of (lab.forces.at(-1) ?? []).filter(item => !jelly(item.id))) {
     const magnitude = Math.hypot(sample.force.x, sample.force.y);
     if (magnitude < 0.001) continue;
     const length = Math.min(80, magnitude * 0.01), dx = sample.force.x / magnitude * length, dy = sample.force.y / magnitude * length;

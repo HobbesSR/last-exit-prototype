@@ -15,12 +15,33 @@ const SLITS = [140, 90, 60, 44, 34, 28].flatMap((gap, i) => {
   const x = 180 + i * 80, top = 400 - gap / 2, bottom = 400 + gap / 2;
   return [{ id: `slit-${i}-top`, x, y: 0, w: 40, h: top }, { id: `slit-${i}-bottom`, x, y: bottom, w: 40, h: 800 - bottom }];
 });
+/**
+ * The recorded jelly of 42.21 (core and a ring of nodes on springs, same 2000/60 spring) built from ordinary world
+ * bodies. The production world allows 8 constraints in total, and the recorded jelly's 16 joints do not fit, so this
+ * one has the 8 spokes only: no edge springs between neighbouring nodes. A lab object, never admitted by the game.
+ */
+export const JELLY = Object.freeze({ nodes: 8, ring: 24, nodeRadius: 4, coreRadius: 12, stiffness: 2000, damping: 60, maxForce: 20000 });
+const round = value => Math.round(value * 1e4) / 1e4; // Chrome and Node trig differ in the last bits.
+function addJelly(game, at) {
+  const { world } = physicsRuntime(game);
+  world.queueAddBody({ id: 'jelly:core', kind: 'prop', shape: { kind: 'circle', radius: JELLY.coreRadius }, x: at.x, y: at.y, mass: 4, linearDamping: 2 });
+  for (let i = 0; i < JELLY.nodes; i++) {
+    const angle = i * 2 * Math.PI / JELLY.nodes;
+    world.queueAddBody({ id: `jelly:n${i}`, kind: 'prop', shape: { kind: 'circle', radius: JELLY.nodeRadius },
+      x: at.x + round(JELLY.ring * Math.cos(angle)), y: at.y + round(JELLY.ring * Math.sin(angle)), mass: 2, linearDamping: 4 });
+    world.queueAddConstraint({ id: `jelly:s${i}`, a: 'jelly:core', b: `jelly:n${i}`, kind: 'spring', maxDistance: JELLY.ring,
+      restLength: JELLY.ring, stiffness: JELLY.stiffness, damping: JELLY.damping, maxForce: JELLY.maxForce });
+  }
+  world.commitMutations();
+}
 export const SCENES = Object.freeze({
   A: { name: 'A · character collision and crowd', spawns: [{ x: 240, y: 400 }, { x: 350, y: 400 }, { x: 460, y: 400 }, { x: 350, y: 500 }],
     obstacles: [{ id: 'doorway-top', x: 540, y: 0, w: 20, h: 370 }, { id: 'doorway-bottom', x: 540, y: 430, w: 20, h: 370 }], props: [], hook: false },
   B: { name: 'B · physical prop', spawns: [{ x: 220, y: 400 }], props: [{ id: 'crate', profile: 'crate', x: 370, y: 400, angle: Math.PI / 8 }], hook: false },
   C: { name: 'C · hook', spawns: [{ x: 320, y: 400 }], props: [], hook: true },
   D: { name: 'D · squeeze gauntlet', spawns: [{ x: 100, y: 400 }, { x: 100, y: 450 }], obstacles: SLITS, props: [], hook: false },
+  E: { name: 'E · jelly', spawns: [{ x: 220, y: 400 }], obstacles: [{ id: 'jelly-wall', x: 560, y: 0, w: 20, h: 800 }], props: [], hook: false,
+    jelly: { x: 420, y: 400 } },
 });
 
 export function sceneConfig(scene = 'A', seed = 449, tuning = {}) {
@@ -61,6 +82,7 @@ export class PhysicsLab {
     const copy = structuredClone(config);
     if (copy.content?.id !== 'content-physics-8') throw new RangeError('lab requires content-physics-8');
     const next = await createPhysicsGame(copy.seed, copy.map, copy.content);
+    if (SCENES[copy.scene]?.jelly) addJelly(next, SCENES[copy.scene].jelly);
     this.dispose();
     next.players.forEach(player => { player.bot = false; });
     this.game = next;
