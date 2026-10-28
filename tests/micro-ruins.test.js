@@ -54,7 +54,8 @@ test('density sets how many rooms stand, and decay turns walls to debris', () =>
   assert.equal(fallen.manifest.walls, 0);
   assert.ok(fallen.manifest.debris > 0);
   assert.ok(whole.manifest.rooms >= buildRegion(brief('field', 5, cells, portals, { density: 0.3 })).manifest.rooms);
-  for (const shape of blockers(fallen)) assert.equal(shape.kind, 'polygon');
+  for (const element of fallen.elements.filter(e => !e.label.startsWith('ruins-infill-crate-')))
+    for (const shape of elementShapes(element)) assert.equal(shape.kind, 'polygon');
   assert.throws(() => buildRegion(brief('field', 5, cells, portals, { decay: 2 })), /decay/);
 });
 

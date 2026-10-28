@@ -5,13 +5,15 @@ import { RUIN_ROOM_SPAN } from '../placeables/ruin-room-span.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createFillMask, createRegionMask } from '../geometry.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { commitHintWalls, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { disjoint } from '../../../shared/shape-construction.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { builtRegion } from '../result.ts';
+import { infillCrates as placeInfillCrates } from './infill.ts';
+import { CELL_SCALE } from '../../kernel/scale.ts';
 
 const DEFAULT_DENSITY = 0.7;
 const DEFAULT_DECAY = 0.35;
@@ -23,7 +25,8 @@ const WALL = 0.25;
 const MIN_CELLS = 24;
 
 /** Per-cell draw channels, so no choice shifts another. */
-const CHANNEL = { slot: 1, width: 2, height: 3, door: 4, doorAt: 5, loot: 6, phase: 7, span: 10, debris: 20, angle: 30, size: 40 };
+const CHANNEL = { slot: 1, width: 2, height: 3, door: 4, doorAt: 5, loot: 6, phase: 7, span: 10, debris: 20, angle: 30, size: 40,
+  infill: 100, infillLength: 101, infillOffset: 102 };
 /** The four sides of a room, in the order their channels are offset by. */
 const SIDES = ['north', 'east', 'south', 'west'] as const;
 type Side = typeof SIDES[number];
@@ -44,6 +47,10 @@ type Side = typeof SIDES[number];
  * Then plain walls stand along every hinted run where no piece or route is (`wallHints`).
  * So the region keeps the portal promise whenever its shape does. A region smaller than
  * `MIN_CELLS`, or with no owned 3 × 3 box for a room, goes to `open` (17 M24).
+ *
+ * Residual crates keep two cells from every eligible room slot, including density-skipped
+ * slots, plus existing extents and protected routes. Each needs a fully owned two-cell
+ * bypass ring; room interiors and door approaches remain clear.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear
  * of every piece. Ruins site no core elements; any the brief lists are left for the report.
@@ -66,6 +73,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   // A room's laid spans and their shapes, committed together once it is done: spans meet at its corners.
   let room: RegionElement[] = [], roomShapes: Shape[] = [];
   const pieces: Shape[] = [];
+  const reserved: { x: number; y: number; w: number; h: number }[] = [];
   let rooms = 0, walls = 0, debris = 0;
   const lay = (label: string, shape: Shape) => {
     if (!canvas.fits(shape)) return false;
@@ -78,7 +86,6 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
 
   for (const slot of [...mask.cells].sort(compareCells)) {
     if (!onLattice(slot.x, phase.x) || !onLattice(slot.y, phase.y)) continue;
-    if (draw(brief.seed, slot.x, slot.y, CHANNEL.slot) >= density) continue;
     const w = 3 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.width) * 2);
     const h = 3 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.height) * 2);
     if (!owns(slot.x, slot.y, w, h)) continue;
@@ -89,6 +96,9 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     };
     const open = SIDES.filter(side => beyond[side]);
     if (!open.length) continue;
+    // Reserve every eligible slot, including density-skipped and protected-away rooms.
+    reserved.push({ x: slot.x, y: slot.y, w, h });
+    if (draw(brief.seed, slot.x, slot.y, CHANNEL.slot) >= density) continue;
     const door = open[Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.door) * open.length)]!;
     rooms++;
     room = []; roomShapes = [];
@@ -128,9 +138,23 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
 
   const hinted = wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...protectedShapes, ...pieces] });
   commitHintWalls(canvas, hinted);
+  const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
+  const infillCrates = placeInfillCrates({ brief, canvas, chance: density * 0.5, channels: CHANNEL,
+    label: 'ruins-infill-crate',
+    site: cell => {
+      const shape = rect(cell.x * size, cell.y * size, size, size);
+      return reserved.every(box => Math.max(box.x - cell.x - 1, cell.x - box.x - box.w,
+        box.y - cell.y - 1, cell.y - box.y - box.h) >= aisle)
+        && access.contains(rect((cell.x - aisle) * size, (cell.y - aisle) * size,
+          (1 + 2 * aisle) * size, (1 + 2 * aisle) * size))
+        && canvas.fits(shape) && canvas.spaced(shape, aisle * size);
+    },
+    commitError: label => `Ruins placement ${label} failed its canvas commit.`,
+  });
   const elements = [...canvas.elements];
-  const loot = cellLoot(brief, createRegionMask(brief), [...pieces, ...hinted.shapes], CHANNEL.loot);
-  return builtRegion(brief, elements, loot, [], { rooms, walls, debris, hintWalls: hinted.shapes.length });
+  const lootPieces = infillCrates ? elements.flatMap(element => elementShapes(element, true)) : [...pieces, ...hinted.shapes];
+  const loot = cellLoot(brief, createRegionMask(brief), lootPieces, CHANNEL.loot);
+  return builtRegion(brief, elements, loot, [], { rooms, walls, debris, hintWalls: hinted.shapes.length, infillCrates });
 }
 
 /** Adapt a locally built slab to the legacy world-absolute element record. */
