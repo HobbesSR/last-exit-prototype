@@ -19,13 +19,19 @@ const MASKS = {
 // 54, "Drafted types": each is its own name, bound to the nearest built strategy.
 const STAND_INS = { market: 'hall' };
 
-test('each drafted type builds what its stand-in builds, under its own name', () => {
+test('market retains the primary hall stand-in without hall-only residual infill', () => {
   for (const [type, standIn] of Object.entries(STAND_INS)) {
     assert.equal(REGION_TYPES[type], REGION_TYPES[standIn], `${type} is bound to ${standIn}`);
     for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of [1, 2, 3]) {
       const drafted = buildRegion(brief(type, seed, cells, portals)), built = buildRegion(brief(standIn, seed, cells, portals));
       assert.equal(drafted.brief.type, type);
-      assert.deepEqual({ ...drafted, brief: { ...drafted.brief, type: standIn } }, built, `${type} ${name} seed ${seed}`);
+      assert.deepEqual(drafted.elements, built.elements.filter(e => !e.label.startsWith('hall-infill-crate-')),
+        `${type} ${name} seed ${seed}`);
+      const { infillCrates, ...primaryManifest } = built.manifest;
+      assert.deepEqual(drafted.manifest, { ...primaryManifest,
+        obstacles: primaryManifest.obstacles - (infillCrates ?? 0), loot: drafted.loot.length });
+      const marketLoot = new Set(drafted.loot.map(site => JSON.stringify(site)));
+      assert.ok(built.loot.every(site => marketLoot.has(JSON.stringify(site))));
       const check = validatePortalReach({ ...drafted.brief, blockers: drafted.elements.flatMap(element => elementShapes(element)) });
       assert.deepEqual(check.errors, [], `${type} ${name} seed ${seed} keeps the portal promise`);
     }
