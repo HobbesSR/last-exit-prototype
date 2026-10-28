@@ -132,8 +132,8 @@ default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
 2 × 1 cases). These are the stored case groups, not a new zero-drift run.
 They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
-The current baseline provenance is content commit `ab53527b2129e550147df76fe5e785c0e0482633`,
-captured `2026-10-28T04:16:39.713Z` under Node v24.15.0 (#624 / #531, 42.4).
+The current baseline provenance is content commit `c5db75156713887e1378c3b62c923acc4777d986`,
+captured `2026-10-28T15:42:59.222Z` under Node v24.15.0 (#534 / #529, 42.4).
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash

@@ -1,0 +1,1500 @@
+{
+  "audit": "market-population-1",
+  "baselineRef": "912e8c6",
+  "baselineCommit": "912e8c62e7049599bf61c257548865552b2bf7fe",
+  "commit": "c5db75156713887e1378c3b62c923acc4777d986",
+  "baselineSourceHash": "a06946e04dc54405238f80b12b83e1e9c587fb29f2dc873df3be73af87367268",
+  "sourceHashes": {
+    "tools/market-population-audit.mjs": "067f6eb0065c0c22665c10949ec18b6ccdbbbaeb6f20078694d15928625cd367",
+    "map/micro/strategies/market.ts": "fb014bda4745be7ddb969e80e96c4ca4dd50ab07c4b9121286f89702d90f9b2b",
+    "map/micro/strategies/hall.ts": "8ab2e7270040e888e009eb2dd425cc0a19242d392e8d1e80c4a451600a558aae",
+    "map/micro/placeables/market-stall.ts": "a895d66f41ffa8a339d8273f3a5e1b591ae7cf4b2ec307c5c4d89ea5762aaf4c",
+    "map/micro/geometry.ts": "d742f5934c3778f3757b6fd7f01c87bbeea17dff26f420f01c044f92926acd6d",
+    "map/micro/portals.ts": "0cd9205e7345c1f1231644416acb9609caf08f6cf0661431a182cb0e990c1d71",
+    "map/micro/region-types.ts": "3b72a43b09ca50aa092210fd8c718d1b9e59a6728395221b29dbe3ff665ccf86",
+    "tests/helpers/chain-briefs.js": "684a86d6c56a3835eab7229dc6d0686190f15f8f136cacb9ca620e931b34f5d7"
+  },
+  "dirty": "M docs/42.3-generation-and-delegation-evidence.md\n M map/tools/fixtures/chain-baseline.json\n?? .tmp-inward-author/\n?? .tmp-pr108-audit.zip\n?? .tmp-pr108-audit/\n?? .tmp-pr112-a019-audit.zip\n?? .tmp-pr112-a019-audit/\n?? .tmp-pr125-review/\n?? .tmp-pr133-review.zip\n?? .tmp-pr133-review/\n?? .tmp-pr138-review.zip\n?? .tmp-pr142-review.zip\n?? .tmp-pr152-review.zip\n?? .tmp-pr172-review-b0bf7807/\n?? .tmp-pr173-review-d8f58d02/\n?? .tmp-pr173-wfc-review/\n?? .tmp-pr176-review.zip\n?? .tmp-pr176-review/\n?? .tmp-pr178-review-78391e2aeb5e47ee9b4ad762275efc9d/\n?? .tmp-pr179-review.zip\n?? .tmp-pr179-review/\n?? .tmp-pr181-review.zip\n?? .tmp-pr181-review/\n?? .tmp-pr183-review.zip\n?? .tmp-pr183-review/\n?? .tmp-pr223-response.zip\n?? .tmp-pr223-response/\n?? .tmp-pr223-review.zip\n?? .tmp-pr223-review/\n?? .tmp-pr224-review.zip\n?? .tmp-pr224-review/\n?? .tmp-pr343-review.zip\n?? .tmp-pr343-review/\n?? .tmp-pr412-review-643a5f3e60cb4b9393710cf4681c0737/\n?? .tmp-pr473-final-df3f0320d9d04075ad3d20c7201cedf9/\n?? .tmp-pr473-response-17c34d1487914d16b7f00612c197e4d6/\n?? .tmp-pr473-review-6d91b3f33f524eaeb30815250e0d399e/\n?? .tmp-pr486-review-36141b2b2efc492c96093bc34253acc2/\n?? .tmp-pr571-review-13a77428a5e948ee91c46a1e196f3a7a/\n?? .tmp-pr573-final-faffe546ea4543659d99eeb28238c433/\n?? .tmp-pr573-response-136d4458970345eca693695d2ca6466a/\n?? .tmp-pr573-review-8a16e982442f4bb09faeeb1968c8ff38/\n?? .tmp-pr574-response-68b221a58d394d2aba166442cb999d42/\n?? .tmp-pr574-review-dbd501b377ff4f3ca035f2488122c539/\n?? .tmp-pr64-review2.zip\n?? .tmp-pr64-review2/\n?? .tmp-pr75-review-good.zip\n?? .tmp-pr75-review-good/\n?? pr138-review/\n?? pr142-review/\n?? pr148-review/\n?? pr152-review/",
+  "createdAt": "2026-10-28T15:43:35.279Z",
+  "node": "v24.15.0",
+  "contentVersion": "types-47",
+  "maps": [
+    {
+      "seed": "issue330-before-12x6",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "rows": [
+        {
+          "id": "market@96,90",
+          "before": {
+            "elements": 14,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 46,
+            "cells": 1296,
+            "occupiedCells": 33,
+            "freeCells": 1263,
+            "physicalArea": 33408,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 30,
+            "stalls": 30,
+            "awnings": 30,
+            "gates": 0,
+            "loot": 29,
+            "cells": 1296,
+            "occupiedCells": 120,
+            "freeCells": 1176,
+            "physicalArea": 210124.80000000008,
+            "roofCells": 240,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 2,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-24x12",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "rows": [
+        {
+          "id": "market@510,84",
+          "before": {
+            "elements": 39,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 240,
+            "cells": 3060,
+            "occupiedCells": 86,
+            "freeCells": 2974,
+            "physicalArea": 84096,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 70,
+            "stalls": 70,
+            "awnings": 70,
+            "gates": 0,
+            "loot": 156,
+            "cells": 3060,
+            "occupiedCells": 280,
+            "freeCells": 2780,
+            "physicalArea": 490291.19999999925,
+            "roofCells": 560,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@210,114",
+          "before": {
+            "elements": 39,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 184,
+            "cells": 5040,
+            "occupiedCells": 114,
+            "freeCells": 4926,
+            "physicalArea": 120384,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 140,
+            "stalls": 140,
+            "awnings": 140,
+            "gates": 0,
+            "loot": 113,
+            "cells": 5040,
+            "occupiedCells": 560,
+            "freeCells": 4480,
+            "physicalArea": 980582.4000000013,
+            "roofCells": 1120,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@468,126",
+          "before": {
+            "elements": 15,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 177,
+            "cells": 1764,
+            "occupiedCells": 50,
+            "freeCells": 1714,
+            "physicalArea": 54720,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 50,
+            "stalls": 50,
+            "awnings": 50,
+            "gates": 0,
+            "loot": 97,
+            "cells": 1764,
+            "occupiedCells": 200,
+            "freeCells": 1564,
+            "physicalArea": 350207.99999999977,
+            "roofCells": 400,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 1,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 2,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@600,144",
+          "before": {
+            "elements": 37,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 625,
+            "cells": 5364,
+            "occupiedCells": 285,
+            "freeCells": 5079,
+            "physicalArea": 320832,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 120,
+            "stalls": 120,
+            "awnings": 120,
+            "gates": 0,
+            "loot": 428,
+            "cells": 5364,
+            "occupiedCells": 480,
+            "freeCells": 4884,
+            "physicalArea": 840499.2000000007,
+            "roofCells": 960,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 1,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@234,210",
+          "before": {
+            "elements": 26,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 214,
+            "cells": 3960,
+            "occupiedCells": 157,
+            "freeCells": 3803,
+            "physicalArea": 185472,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 105,
+            "stalls": 105,
+            "awnings": 105,
+            "gates": 0,
+            "loot": 130,
+            "cells": 3960,
+            "occupiedCells": 420,
+            "freeCells": 3540,
+            "physicalArea": 735436.8000000002,
+            "roofCells": 840,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 2,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 1,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@504,240",
+          "before": {
+            "elements": 21,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 140,
+            "cells": 1764,
+            "occupiedCells": 60,
+            "freeCells": 1704,
+            "physicalArea": 63360,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 40,
+            "stalls": 40,
+            "awnings": 40,
+            "gates": 0,
+            "loot": 91,
+            "cells": 1764,
+            "occupiedCells": 160,
+            "freeCells": 1604,
+            "physicalArea": 280166.4,
+            "roofCells": 320,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 4,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-36x18",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "rows": [
+        {
+          "id": "market@282,126",
+          "before": {
+            "elements": 38,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 189,
+            "cells": 5040,
+            "occupiedCells": 121,
+            "freeCells": 4919,
+            "physicalArea": 130176,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 140,
+            "stalls": 140,
+            "awnings": 140,
+            "gates": 0,
+            "loot": 119,
+            "cells": 5040,
+            "occupiedCells": 560,
+            "freeCells": 4480,
+            "physicalArea": 980582.4000000013,
+            "roofCells": 1120,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 1,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@492,132",
+          "before": {
+            "elements": 36,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 188,
+            "cells": 3096,
+            "occupiedCells": 79,
+            "freeCells": 3017,
+            "physicalArea": 77184,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 79,
+            "stalls": 79,
+            "awnings": 79,
+            "gates": 0,
+            "loot": 117,
+            "cells": 3096,
+            "occupiedCells": 316,
+            "freeCells": 2780,
+            "physicalArea": 553328.6399999993,
+            "roofCells": 632,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 1,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@300,210",
+          "before": {
+            "elements": 31,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 181,
+            "cells": 5040,
+            "occupiedCells": 158,
+            "freeCells": 4882,
+            "physicalArea": 183168,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 140,
+            "stalls": 140,
+            "awnings": 140,
+            "gates": 0,
+            "loot": 116,
+            "cells": 5040,
+            "occupiedCells": 560,
+            "freeCells": 4480,
+            "physicalArea": 980582.4000000013,
+            "roofCells": 1120,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 4,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 1,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@468,252",
+          "before": {
+            "elements": 15,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 77,
+            "cells": 1296,
+            "occupiedCells": 42,
+            "freeCells": 1254,
+            "physicalArea": 44352,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 30,
+            "stalls": 30,
+            "awnings": 30,
+            "gates": 0,
+            "loot": 52,
+            "cells": 1296,
+            "occupiedCells": 120,
+            "freeCells": 1176,
+            "physicalArea": 210124.80000000008,
+            "roofCells": 240,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 4,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@534,258",
+          "before": {
+            "elements": 19,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 77,
+            "cells": 1260,
+            "occupiedCells": 50,
+            "freeCells": 1210,
+            "physicalArea": 51840,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 28,
+            "stalls": 28,
+            "awnings": 28,
+            "gates": 0,
+            "loot": 53,
+            "cells": 1260,
+            "occupiedCells": 112,
+            "freeCells": 1148,
+            "physicalArea": 196116.48000000007,
+            "roofCells": 224,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 2,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 1,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@852,258",
+          "before": {
+            "elements": 24,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 197,
+            "cells": 2160,
+            "occupiedCells": 147,
+            "freeCells": 2013,
+            "physicalArea": 173952,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 56,
+            "stalls": 56,
+            "awnings": 56,
+            "gates": 0,
+            "loot": 126,
+            "cells": 2160,
+            "occupiedCells": 224,
+            "freeCells": 1936,
+            "physicalArea": 392232.9599999996,
+            "roofCells": 448,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 2,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 3,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@12,270",
+          "before": {
+            "elements": 19,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 10,
+            "cells": 1260,
+            "occupiedCells": 50,
+            "freeCells": 1210,
+            "physicalArea": 51840,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 28,
+            "stalls": 28,
+            "awnings": 28,
+            "gates": 0,
+            "loot": 7,
+            "cells": 1260,
+            "occupiedCells": 112,
+            "freeCells": 1148,
+            "physicalArea": 196116.48000000007,
+            "roofCells": 224,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 2,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@414,276",
+          "before": {
+            "elements": 11,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 56,
+            "cells": 1296,
+            "occupiedCells": 58,
+            "freeCells": 1238,
+            "physicalArea": 67968,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 30,
+            "stalls": 30,
+            "awnings": 30,
+            "gates": 0,
+            "loot": 35,
+            "cells": 1296,
+            "occupiedCells": 120,
+            "freeCells": 1176,
+            "physicalArea": 210124.80000000008,
+            "roofCells": 240,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 4,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 2,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@588,276",
+          "before": {
+            "elements": 15,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 67,
+            "cells": 1296,
+            "occupiedCells": 42,
+            "freeCells": 1254,
+            "physicalArea": 44352,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 30,
+            "stalls": 30,
+            "awnings": 30,
+            "gates": 0,
+            "loot": 36,
+            "cells": 1296,
+            "occupiedCells": 120,
+            "freeCells": 1176,
+            "physicalArea": 210124.80000000008,
+            "roofCells": 240,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 1,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@1008,276",
+          "before": {
+            "elements": 25,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 216,
+            "cells": 1800,
+            "occupiedCells": 44,
+            "freeCells": 1756,
+            "physicalArea": 39744,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 49,
+            "stalls": 49,
+            "awnings": 49,
+            "gates": 0,
+            "loot": 123,
+            "cells": 1800,
+            "occupiedCells": 196,
+            "freeCells": 1604,
+            "physicalArea": 343203.8399999998,
+            "roofCells": 392,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@72,288",
+          "before": {
+            "elements": 16,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 20,
+            "cells": 1800,
+            "occupiedCells": 75,
+            "freeCells": 1725,
+            "physicalArea": 86400,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 49,
+            "stalls": 49,
+            "awnings": 49,
+            "gates": 0,
+            "loot": 15,
+            "cells": 1800,
+            "occupiedCells": 196,
+            "freeCells": 1604,
+            "physicalArea": 343203.8399999998,
+            "roofCells": 392,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 2,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@660,300",
+          "before": {
+            "elements": 12,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 99,
+            "cells": 1260,
+            "occupiedCells": 47,
+            "freeCells": 1213,
+            "physicalArea": 52992,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 28,
+            "stalls": 28,
+            "awnings": 28,
+            "gates": 0,
+            "loot": 69,
+            "cells": 1260,
+            "occupiedCells": 112,
+            "freeCells": 1148,
+            "physicalArea": 196116.48000000007,
+            "roofCells": 224,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 2,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@690,342",
+          "before": {
+            "elements": 17,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 109,
+            "cells": 1260,
+            "occupiedCells": 24,
+            "freeCells": 1236,
+            "physicalArea": 19584,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 35,
+            "stalls": 35,
+            "awnings": 35,
+            "gates": 0,
+            "loot": 57,
+            "cells": 1260,
+            "occupiedCells": 140,
+            "freeCells": 1120,
+            "physicalArea": 245145.6000000001,
+            "roofCells": 280,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 3,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        },
+        {
+          "id": "market@432,396",
+          "before": {
+            "elements": 35,
+            "stalls": 0,
+            "awnings": 0,
+            "gates": 0,
+            "loot": 602,
+            "cells": 9720,
+            "occupiedCells": 556,
+            "freeCells": 9164,
+            "physicalArea": 683136,
+            "roofCells": 0,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "after": {
+            "elements": 286,
+            "stalls": 286,
+            "awnings": 286,
+            "gates": 0,
+            "loot": 360,
+            "cells": 9720,
+            "occupiedCells": 1144,
+            "freeCells": 8576,
+            "physicalArea": 2003189.7599999902,
+            "roofCells": 2288,
+            "enclosedElements": 0,
+            "legacyEnclosedRoofCellsEstimate": 0,
+            "errors": {
+              "fill": [],
+              "portal": []
+            }
+          },
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "retainedLootReach": {
+            "sampledBaseline": 4,
+            "retained": 2,
+            "beforeUnreachable": 0,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0
+          },
+          "stallProbes": {
+            "sampledStalls": 4,
+            "points": 16,
+            "beforeUnreachable": 2,
+            "afterUnreachable": 0,
+            "newlyUnreachable": 0,
+            "failures": []
+          }
+        }
+      ],
+      "mapErrors": []
+    }
+  ],
+  "direct": [
+    {
+      "id": "market-rectangle",
+      "before": {
+        "elements": 1,
+        "stalls": 0,
+        "awnings": 0,
+        "gates": 0,
+        "loot": 130,
+        "cells": 432,
+        "occupiedCells": 56,
+        "freeCells": 376,
+        "physicalArea": 50400,
+        "roofCells": 0,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "after": {
+        "elements": 9,
+        "stalls": 9,
+        "awnings": 9,
+        "gates": 0,
+        "loot": 99,
+        "cells": 432,
+        "occupiedCells": 36,
+        "freeCells": 396,
+        "physicalArea": 43776,
+        "roofCells": 72,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "retainedLootReach": {
+        "sampledBaseline": 4,
+        "retained": 4,
+        "beforeUnreachable": 0,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0
+      },
+      "stallProbes": {
+        "sampledStalls": 4,
+        "points": 16,
+        "beforeUnreachable": 5,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0,
+        "failures": []
+      }
+    },
+    {
+      "id": "market-L",
+      "before": {
+        "elements": 1,
+        "stalls": 0,
+        "awnings": 0,
+        "gates": 0,
+        "loot": 133,
+        "cells": 432,
+        "occupiedCells": 32,
+        "freeCells": 400,
+        "physicalArea": 28800,
+        "roofCells": 0,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "after": {
+        "elements": 6,
+        "stalls": 6,
+        "awnings": 6,
+        "gates": 0,
+        "loot": 117,
+        "cells": 432,
+        "occupiedCells": 24,
+        "freeCells": 408,
+        "physicalArea": 29184,
+        "roofCells": 48,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "retainedLootReach": {
+        "sampledBaseline": 4,
+        "retained": 4,
+        "beforeUnreachable": 0,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0
+      },
+      "stallProbes": {
+        "sampledStalls": 4,
+        "points": 16,
+        "beforeUnreachable": 2,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0,
+        "failures": []
+      }
+    },
+    {
+      "id": "market-holed",
+      "before": {
+        "elements": 1,
+        "stalls": 0,
+        "awnings": 0,
+        "gates": 0,
+        "loot": 158,
+        "cells": 512,
+        "occupiedCells": 28,
+        "freeCells": 484,
+        "physicalArea": 25200,
+        "roofCells": 0,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "after": {
+        "elements": 3,
+        "stalls": 3,
+        "awnings": 3,
+        "gates": 0,
+        "loot": 148,
+        "cells": 512,
+        "occupiedCells": 12,
+        "freeCells": 500,
+        "physicalArea": 14592,
+        "roofCells": 24,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "retainedLootReach": {
+        "sampledBaseline": 4,
+        "retained": 4,
+        "beforeUnreachable": 0,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0
+      },
+      "stallProbes": {
+        "sampledStalls": 3,
+        "points": 12,
+        "beforeUnreachable": 5,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0,
+        "failures": []
+      }
+    },
+    {
+      "id": "market-nofit",
+      "before": {
+        "elements": 0,
+        "stalls": 0,
+        "awnings": 0,
+        "gates": 0,
+        "loot": 18,
+        "cells": 90,
+        "occupiedCells": 0,
+        "freeCells": 90,
+        "physicalArea": 0,
+        "roofCells": 0,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "after": {
+        "elements": 0,
+        "stalls": 0,
+        "awnings": 0,
+        "gates": 0,
+        "loot": 18,
+        "cells": 90,
+        "occupiedCells": 0,
+        "freeCells": 90,
+        "physicalArea": 0,
+        "roofCells": 0,
+        "enclosedElements": 0,
+        "legacyEnclosedRoofCellsEstimate": 0,
+        "errors": {
+          "fill": [],
+          "portal": []
+        }
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "retainedLootReach": {
+        "sampledBaseline": 4,
+        "retained": 4,
+        "beforeUnreachable": 0,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0
+      },
+      "stallProbes": {
+        "sampledStalls": 0,
+        "points": 0,
+        "beforeUnreachable": 0,
+        "afterUnreachable": 0,
+        "newlyUnreachable": 0,
+        "failures": []
+      }
+    }
+  ],
+  "limits": "Only the historical hall strategy is pinned; both builds use current dependencies and exactly the same current market briefs. Three authored maps and four chain-like direct shapes are bounded samples. Roof cells count explicit roof cells only; legacy enclosing buildings and their rectangular footprint in cell units are estimated separately. Physical area is a sum of primitive areas, not a union. At most four retained baseline loot sites use contestant routes; up to four new stalls have four sampled hunter targets one cell beyond their footprint, checked in both builds. Missing first portal yields unreachable targets. Portal and route search is sampled and a miss does not prove no route exists. New errors and access losses are compared with the baseline; pre-existing failures and map defects are recorded. No exhaustive reachability or balance claim."
+}
