@@ -260,6 +260,63 @@ try {
     'launch, release, refused while cooling down, then ready again');
   await page.locator('[data-tune="hookCooldown"]').fill('140');
   await page.locator('#scene').selectOption('A');
+  // The squish shell: outline from clearance, a pinch rule, and a real push into the arena edge.
+  const squish = await page.evaluate(async () => {
+    const { PhysicsLab, sceneConfig } = await import('/dev/physics-lab-model.js');
+    const { squishShell, stepSquish, SQUISH } = await import('/dev/squish-shell.js');
+    const { solidBlockers } = await import('/shared/simulation/swept.ts');
+    const lab = new PhysicsLab();
+    try {
+      await lab.start(sceneConfig('D'));
+      const core = lab.game.content.actorPhysics.geometry.contestant.bodyRadius, blockers = solidBlockers(lab.game);
+      const shell = (x, y, others = []) => squishShell({ x, y }, core, SQUISH.thickness, blockers, others);
+      const pushed = { open: shell(240, 400), oneSide: shell(200, 342), slit: shell(600, 400),
+        between: shell(240, 400, [{ x: 240 - 2 * core, y: 400, radius: core }, { x: 240 + 2 * core, y: 400, radius: core }]) };
+      let state; const crushed = [0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.7, 0.62, 0.3].map(value => (state = stepSquish(state, value)).crushed);
+      const body = id => lab.frame().bodies.find(entry => entry.id === `actor:${id}`);
+      const drive = (id, input, until, limit = 120) => { lab.selected = id; for (let i = 0; i < limit && !until(); i++) lab.tick(input); };
+      drive('c0', { x: -1 }, () => body('c0').x < 14);
+      const alone = lab.shells.get('c0').squeeze;
+      // c1 moves up to 30 units a tick, so line it up with a proportional steer rather than a bang-bang drive.
+      const clamp = value => Math.max(-1, Math.min(1, value));
+      const steer = (id, x, y, ticks, push = false) => {
+        lab.selected = id;
+        for (let i = 0; i < ticks; i++) { const at = body(id); lab.tick({ x: push ? -1 : clamp((x - at.x) / 40), y: clamp((y - at.y) / 40) }); }
+      };
+      steer('c1', body('c0').x + 70, body('c0').y, 40);
+      steer('c1', 0, body('c0').y, 14, true);
+      const pinned = lab.shells.get('c0').squeeze;
+      drive('c1', { x: 1 }, () => body('c1').x > body('c0').x + 60);
+      for (let i = 0; i < 3; i++) lab.tick({});
+      return { core, thickness: SQUISH.thickness, reach: core + SQUISH.thickness, open: pushed.open.squeeze, openMin: Math.min(...pushed.open.radii),
+        oneSide: pushed.oneSide.squeeze, slit: pushed.slit.squeeze, between: pushed.between.squeeze, crushed,
+        alone, pinned, released: lab.shells.get('c0').squeeze, events: lab.squishEvents.map(({ actorId, type }) => `${actorId} ${type}`) };
+    } finally { lab.dispose(); }
+  });
+  const near = (actual, expected, label) => assert.ok(Math.abs(actual - expected) < 0.02, `${label}: ${actual} vs ${expected}`);
+  const { thickness } = squish;
+  assert.equal(squish.openMin, squish.reach, 'a body in the open keeps its whole shell');
+  assert.equal(squish.open, 0, 'nothing in reach reads no squeeze');
+  near(squish.oneSide, (2 * squish.reach - 12 - squish.reach) / (2 * thickness), 'one wall 12 units away flattens one side only');
+  near(squish.slit, (2 * squish.reach - 28) / (2 * thickness), 'the 28-unit slit pinches both sides');
+  near(squish.between, 1, 'two bodies touching either side pinch it fully');
+  assert.deepEqual(squish.crushed, [false, false, false, false, false, true, true, true, false], 'crushed after the hold, held through 0.6, released below 0.6');
+  assert.ok(squish.alone > 0.3 && squish.alone < 0.6, `c0 alone against the arena edge is flattened on one side only: ${squish.alone}`);
+  assert.ok(squish.pinned >= 0.9, `c1 pushing c0 into the arena edge pinches it: ${squish.pinned}`);
+  assert.ok(squish.released < 0.6, `c0 recovers once released: ${squish.released}`);
+  assert.deepEqual(squish.events, ['c0 crushed', 'c0 recovered'], 'one crush and one recovery, in order');
+  await page.locator('#scene').selectOption('D');
+  await page.getByRole('button', { name: 'Start / Reset' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+  assert.match(await page.locator('#readout').textContent(), /squish 0%/, 'scene D starts free of any squeeze');
+  assert.equal(await page.locator('#squish-thickness').inputValue(), String(thickness), 'the field starts at the shell default');
+  await page.locator('#squish-thickness').fill('20');
+  await page.locator('#squish-show').uncheck();
+  await page.locator('#squish-show').check();
+  await page.locator('#squish-thickness').fill(String(thickness));
+  // Leave the status past "Tick 0" so the next reset's wait for it cannot return before that reset finishes.
+  await page.locator('#step').click();
+  await page.locator('#scene').selectOption('A');
   await page.getByRole('button', { name: 'Start / Reset' }).click();
   await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
   await page.getByRole('button', { name: 'Step tick' }).focus();
@@ -287,7 +344,7 @@ const disabled = await createArenaServer({ profileSummary: false, devTools: 'non
   replayDir: 'test-results/physics-playtest-disabled-replays' });
 try {
   const disabledBase = await listen(disabled);
-  for (const path of ['/dev/physics', '/dev/physics-lab.html', '/dev/physics-lab.js', '/dev/physics-lab-model.js']) {
+  for (const path of ['/dev/physics', '/dev/physics-lab.html', '/dev/physics-lab.js', '/dev/physics-lab-model.js', '/dev/squish-shell.js']) {
     assert.equal((await fetch(`${disabledBase}${path}`)).status, 404, `${path} stays hidden without dev tools`);
   }
 } finally { await disabled.close(); }

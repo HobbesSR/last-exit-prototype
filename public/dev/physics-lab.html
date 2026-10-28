@@ -37,6 +37,8 @@
     .preview-bar h2 { margin: 0; color: #e7f2ec; } .badge { color: #9eb4ae; font-size: .73rem; }
     .arena-surface { min-height: 0; min-width: 0; display: grid; place-items: center; background: #0a1112; container-type: size; padding: 8px; }
     canvas { display: block; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); background: #263b37; touch-action: none; }
+    #squish { margin-top: 14px; }
+    .check { display: flex; align-items: center; gap: 8px; } .check input { width: auto; }
     #impulse-dial { width: 140px; height: 140px; margin: 0 auto 10px; border-radius: 50%; cursor: crosshair; }
     .caption { border-top: 1px solid #34504d; padding: 8px 12px; }
     output { display: block; font-size: .78rem; color: #abdacc; line-height: 1.4; font-variant-numeric: tabular-nums; }
@@ -70,7 +72,7 @@
       <section class="panel parameters" aria-label="Scene and actor controls">
         <div class="group">
           <h2>Scene</h2>
-          <label>Scenario<select id="scene"><option value="A">A &middot; Collision and crowd</option><option value="B">B &middot; Physical prop</option><option value="C">C &middot; Hook</option></select></label>
+          <label>Scenario<select id="scene"><option value="A">A &middot; Collision and crowd</option><option value="B">B &middot; Physical prop</option><option value="C">C &middot; Hook</option><option value="D">D &middot; Squeeze gauntlet</option></select></label>
           <label>Seed<input id="seed" type="number" min="0" step="1" value="449"></label>
         </div>
         <div class="group">
@@ -90,7 +92,7 @@
       <section class="panel preview" aria-label="Simulation arena">
         <div class="preview-bar"><h2>Arena</h2><span class="badge">800 &times; 800 world units</span></div>
         <div class="arena-surface"><canvas id="arena" width="800" height="800" tabindex="0" aria-label="Physics playtest arena" aria-describedby="arena-help"></canvas></div>
-        <div class="caption"><output id="status" role="status">Select a scene and start.</output><output id="readout"></output><p class="hint" id="arena-help">Click arena to control &middot; WASD or arrows move &middot; Pointer aim &middot; Q skill &middot; E interact &middot; I impulse</p></div>
+        <div class="caption"><output id="status" role="status">Select a scene and start.</output><output id="readout"></output><output id="events"></output><p class="hint" id="arena-help">Click arena to control &middot; WASD or arrows move &middot; Pointer aim &middot; Q skill &middot; E interact &middot; I impulse</p></div>
       </section>
       <aside class="panel inspector" aria-label="Tuning, recording and help">
         <fieldset id="tuning"><legend>Character tuning</legend>
@@ -103,6 +105,13 @@
           <label>Hook cooldown (ticks, 20 = 1 s) <input data-tune="hookCooldown" type="number" min="1" max="100000" step="1"></label>
         </fieldset>
         <p class="hint">Copied match-pinned values. Reset creates a fresh world with these settings.</p>
+        <fieldset id="squish">
+          <legend>Squish shell (lab only)</legend>
+          <label class="check"><input id="squish-show" type="checkbox" checked> Show shell and crush state</label>
+          <label>Shell thickness beyond the body (units) <input id="squish-thickness" type="number" min="1" max="60" step="1"></label>
+          <label>Crush after held (ticks) <input id="squish-hold" type="number" min="1" max="200" step="1"></label>
+          <p class="hint">A soft outline around each solid body, flattened by whatever is closest in each direction, read the same tick. Crushed means two opposite sides are flattened to the body for the hold time. Applies live, is not recorded, and changes nothing in the simulation. Try scene D: select c1 and push c0 into a wall.</p>
+        </fieldset>
         <details open>
           <summary>Recording</summary>
           <div class="button-row"><button id="export">Export JSON</button><button id="download">Download JSON</button><button id="import">Import and rerun</button></div>

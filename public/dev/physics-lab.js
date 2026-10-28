@@ -1,4 +1,5 @@
 import { PhysicsLab, sceneConfig, TICK_HZ, TICK_MS } from './physics-lab-model.js';
+import { SQUISH } from './squish-shell.js';
 
 const lab = new PhysicsLab();
 const byId = id => document.getElementById(id);
@@ -63,6 +64,17 @@ function draw() {
     if (previous) { ctx.strokeStyle = '#f5f5ee'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(flight.x, flight.y); ctx.stroke(); }
     ctx.fillStyle = '#e9f5d4'; ctx.beginPath(); ctx.arc(flight.x, flight.y, 4, 0, Math.PI * 2); ctx.fill();
   }
+  if (byId('squish-show').checked) for (const shell of lab.shells.values()) {
+    ctx.beginPath();
+    shell.radii.forEach((radius, index) => {
+      const angle = index * 2 * Math.PI / shell.radii.length, x = shell.x + radius * Math.cos(angle), y = shell.y + radius * Math.sin(angle);
+      if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = shell.crushed ? 'rgba(255, 107, 96, .28)' : 'rgba(123, 240, 192, .14)';
+    ctx.strokeStyle = shell.crushed ? '#ff6b60' : '#7bf0c0'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
+    if (shell.crushed) { ctx.fillStyle = '#ff6b60'; ctx.fillText('CRUSHED', shell.x - 20, shell.y + shell.reach + 12); }
+  }
   const path = trail();
   path.forEach((point, index) => {
     ctx.fillStyle = `rgba(255, 252, 230, ${0.15 + 0.7 * index / Math.max(1, path.length - 1)})`;
@@ -125,8 +137,9 @@ function readout(frame) {
   const speeds = path.slice(1).map((point, index) => Math.hypot(point.x - path[index].x, point.y - path[index].y) * TICK_HZ);
   const motor = frame.physics?.world?.bodies?.find(body => body.spec.id === `actor:${id}`)?.motor;
   const skill = !player?.kit ? '' : player.cooldown > 0 ? ` · skill cooldown ${(player.cooldown / TICK_HZ).toFixed(1)} s` : ' · skill ready';
+  const shell = lab.shells.get(id), squish = shell ? ` · squish ${Math.round(shell.squeeze * 100)}%${shell.crushed ? ' CRUSHED' : ''}` : '';
   return `${id}: speed ${Math.round(speeds.at(-1) ?? 0)} u/s · target ${Math.round(motor ? Math.hypot(motor.x, motor.y) : 0)} u/s`
-    + ` · peak ${Math.round(Math.max(0, ...speeds))} u/s in the last ${TRAIL_TICKS / TICK_HZ} s${skill}`;
+    + ` · peak ${Math.round(Math.max(0, ...speeds))} u/s in the last ${TRAIL_TICKS / TICK_HZ} s${skill}${squish}`;
 }
 
 function refresh() {
@@ -141,6 +154,7 @@ function refresh() {
   const external = lab.forces.at(-1)?.filter(sample => Math.hypot(sample.force.x, sample.force.y) >= 0.001).length ?? 0;
   status(`Tick ${frame.tick} · ${frame.bodies?.length ?? 0} bodies · ${lab.contacts.at(-1)?.length ?? 0} final-substep contacts · ${external} external-force samples · ${frame.tethers?.length ?? 0} tethers`);
   byId('readout').textContent = readout(frame);
+  byId('events').textContent = lab.squishEvents.slice(-4).map(event => `tick ${event.tick}: ${event.actorId} ${event.type}`).join(' · ');
 }
 
 function input() {
@@ -197,6 +211,14 @@ function drawDial() {
   dialCtx.beginPath(); dialCtx.moveTo(c, c); dialCtx.lineTo(tip.x, tip.y); dialCtx.stroke();
   dialCtx.beginPath(); dialCtx.arc(tip.x, tip.y, 5, 0, Math.PI * 2); dialCtx.fill();
 }
+// The squish shell reads the world and writes nothing, so its controls apply live and are never recorded.
+byId('squish-thickness').value = SQUISH.thickness; byId('squish-hold').value = SQUISH.holdTicks;
+function applySquish() {
+  lab.setSquishTuning({ thickness: Number(byId('squish-thickness').value), holdTicks: Number(byId('squish-hold').value) });
+  if (lab.game) refresh();
+}
+for (const id of ['squish-show', 'squish-thickness', 'squish-hold']) byId(id).addEventListener('input', applySquish);
+
 function setImpulseFromDial(event) {
   const rect = dial.getBoundingClientRect(), k = DIAL / rect.width;
   let dx = (event.clientX - rect.left) * k - DIAL / 2, dy = (event.clientY - rect.top) * k - DIAL / 2;
