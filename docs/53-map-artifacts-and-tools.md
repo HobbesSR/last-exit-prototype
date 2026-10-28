@@ -176,8 +176,9 @@ integration check and the way to recapture.
     none;
   - **`features`**: the type's own manifest counts (for plant: machines, pipes, sheds,
     designed buildings, infill crates), as a total and the number of regions holding any, so a
-    corpus too thin to test a feature is visible. A replay that finds no region of the type is
-    refused rather than reported as clean.
+    corpus too thin to test a feature is visible. A replay is refused, rather than reported
+    clean, if the cache holds no region for any one requested strategy; one that was
+    exercised can't stand in for another, though `hall` and `market` count together.
 
   Any drift, throw or finding exits 1.
 - **The cache is valid exactly while the baseline's `briefs` and `results` hashes for each

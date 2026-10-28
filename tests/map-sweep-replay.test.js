@@ -85,11 +85,36 @@ test('a cache the baseline has moved past, or none at all, is refused', async ()
   await assert.rejects(replayBriefs(baseline, ['plant'], { dir: tempDir() }), /no briefs cache/);
 });
 
+/** A copy of the cache whose index says it holds none of `types`. */
+function without(...types) {
+  const dir = copy(), changed = index(dir);
+  for (const map of Object.values(changed.maps)) for (const type of types) delete map.types[type];
+  writeFileSync(join(dir, 'index.json'), JSON.stringify(changed));
+  return dir;
+}
+const typesHeld = (dir) => new Set(Object.values(index(dir).maps).flatMap((map) => Object.keys(map.types)));
+
 test('a type the cache holds no region of is refused rather than passing on nothing', async () => {
-  const dir = copy(), file = join(dir, 'index.json'), changed = index(dir);
-  for (const map of Object.values(changed.maps)) delete map.types.plant;
-  writeFileSync(file, JSON.stringify(changed));
-  await assert.rejects(replayBriefs(baseline, ['plant'], { dir }), /holds no region of type plant/);
+  await assert.rejects(replayBriefs(baseline, ['plant'], { dir: without('plant') }), /holds no region of type plant/);
+  await assert.rejects(replayBriefs(baseline, [], { dir: captured }), /no region type to replay/);
+});
+
+test('each requested strategy needs a region of its own, so one cannot pass for another', async () => {
+  const other = [...typesHeld(captured)].find((type) => !['plant', 'hall', 'market'].includes(type));
+  assert.ok(other, 'the quick cases hold a type besides plant and the hall pair');
+  const dir = without('plant');
+  await assert.rejects(replayBriefs(baseline, ['plant', other], { dir }), /holds no region of type plant$/);
+  await assert.rejects(replayBriefs(baseline, [other, 'plant'], { dir }), /holds no region of type plant$/);
+  assert.equal((await replayBriefs(baseline, [other], { dir, jobs: 2 })).types[0], other, 'the others are still replayable');
+});
+
+test('types bound to one strategy count together: either one exercises it', async () => {
+  assert.ok(typesHeld(captured).has('market'), 'the quick cases hold a market');
+  const dir = without('hall'), pair = typesToReplay('hall');
+  const markets = Object.values(index(dir).maps).reduce((n, m) => n + (m.types.market ?? 0), 0);
+  const report = await replayBriefs(baseline, pair, { dir, jobs: 2 });
+  assert.deepEqual([report.types, report.regions, report.drift], [pair, markets, []]);
+  await assert.rejects(replayBriefs(baseline, pair, { dir: without('hall', 'market') }), /holds no region of type hall or market$/);
 });
 
 /** The cheap playground maps alone, with one hash that this tree can't reproduce. */

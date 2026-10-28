@@ -191,12 +191,14 @@ function readIndex(baseline: SweepBaseline, dir: string): CacheIndex {
   return index;
 }
 
+/** The strategies by type name, so two types bound to one builder compare equal. */
+const registry: Record<string, unknown> = REGION_TYPES;
+
 /**
  * The types a `--type` list replays: those named, and any bound to the same strategy (in
  * `REGION_TYPES`, `market` is `hall`'s), since one builder change moves them together.
  */
 export function typesToReplay(requested: string): string[] {
-  const registry: Record<string, unknown> = REGION_TYPES;
   const names = requested.split(',').map((name) => name.trim()).filter(Boolean);
   const unknown = names.filter((name) => !Object.hasOwn(registry, name));
   if (!names.length || unknown.length)
@@ -229,10 +231,17 @@ export const replayFailed = (report: ReplayReport) => !!(report.drift.length || 
  */
 export async function replayBriefs(baseline: SweepBaseline, types: string[], { dir = DEFAULT_CACHE, reach = 'drifted', jobs = defaultJobs() }:
   { dir?: string; reach?: Reach; jobs?: number } = {}): Promise<ReplayReport> {
+  if (!types.length) throw new Error('no region type to replay');
   const index = readIndex(baseline, dir);
   const units = types.flatMap((type) => Object.entries(index.maps).filter(([, cached]) => cached.types[type])
     .map(([key]): ReplayUnit => ({ task: 'replay', type, key, regions: path.join(dir, REGIONS), reach })));
-  if (!units.length) throw new Error(`the briefs cache holds no region of type ${types.join(', ')}`);
+  // Each strategy needs a region of its own: types bound to one (hall and market) count together,
+  // but a request for several builders can't pass because one of them was exercised.
+  const strategies = new Map<unknown, string[]>();
+  for (const type of types) strategies.set(registry[type], [...strategies.get(registry[type]) ?? [], type]);
+  const unexercised = [...strategies.values()].filter((group) => !units.some((unit) => group.includes(unit.type)));
+  if (unexercised.length)
+    throw new Error(`the briefs cache holds no region of type ${unexercised.map((group) => group.join(' or ')).join(', ')}`);
   const replies = await runPool<ReplayUnit, ReplayReply>(new URL(import.meta.url), units, jobs);
   const report: ReplayReport = { types, maps: new Set(units.map((u) => u.key)).size, regions: 0, features: Object.fromEntries(types.map((t) => [t, {}])),
     drift: [], threw: [], reach, reachChecked: 0, brokenPromises: [] };
