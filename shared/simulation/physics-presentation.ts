@@ -7,14 +7,16 @@ import { bodyRadius } from '../physics/presentation-geometry.ts';
 export function capturePhysicsPresentation(physics: PhysicsGameplayState, frame: Pick<Snapshot, 'players' | 'items'>) {
   const actors = new Map(frame.players.map(p => [`actor:${p.id}`, p.id]));
   // Physical loot uses this reserved association when P5 admits it. Ordinary loot has no body.
-  const items = new Map(frame.items.map(item => [`item:${item.id}`, item.id]));
+  // Keyed by the item's own id, so no string is built per ground item each tick; a body's id is `item:<id>`.
+  const items = new Map(frame.items.map(item => [String(item.id), item.id]));
+  const itemOf = (bodyId: string) => bodyId.startsWith('item:') ? items.get(bodyId.slice(5)) : undefined;
   const placed = new Set(physics.discontinuities?.filter(d => d.kind === 'placed').map(d => d.id));
   const bodies: PhysicsBodyView[] = physics.world.bodies.filter(b => b.spec.kind !== 'static'
     && (b.spec.kind !== 'actor' || actors.has(b.spec.id))
-    && (!b.spec.id.startsWith('item:') || items.has(b.spec.id))).map(b => physicsBodyFields({
+    && (!b.spec.id.startsWith('item:') || itemOf(b.spec.id) !== undefined)).map(b => physicsBodyFields({
     id: b.spec.id, kind: b.spec.kind as 'actor' | 'prop', shape: b.spec.shape, ...b.transform, generation: b.generation,
     ...(actors.has(b.spec.id) ? { actorId: actors.get(b.spec.id)! } : {}),
-    ...(items.has(b.spec.id) ? { itemId: items.get(b.spec.id)! } : {}),
+    ...(itemOf(b.spec.id) !== undefined ? { itemId: itemOf(b.spec.id)! } : {}),
     ...(placed.has(b.spec.id) ? { discontinuity: 'placed' as const } : {}),
   }));
   const ids = new Set(bodies.map(b => b.id));
