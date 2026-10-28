@@ -126,7 +126,7 @@ things stay documents.
 ## Proving a change: the sweep
 
 `node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
-(from the repository root, about 25 s) reruns the pinned seed set and compares
+(from the repository root, two to three minutes, 42.3) reruns the pinned seed set and compares
 per-view content hashes: 224 entries, including 161 game-mode cases (120
 default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick

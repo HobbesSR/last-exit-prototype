@@ -49,10 +49,11 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   existing user answers in `docs/17-open-questions.md` or explicitly recorded
   assumptions appropriate to the task.
 - Run focused checks for changed behavior. `npm test` is the fast tier for
-  iterating; `npm run test:all` adds the slow seed sweeps and whole-match runs
-  (`docs/31`). Integration checkpoints use `npm run check`, `npm run test:all`,
-  `npm run test:browser`, `npm run bench` and `npm run bench:client` as
-  appropriate to the affected subsystem. Run timing
+  iterating; `npm run test:all` adds the slow seed sweeps and whole-match runs.
+  Choose the rest by changed area from the table in
+  [31](docs/31-verification.md#choosing-checks-by-changed-area): it gives each
+  area's inner-loop, pre-PR and integration checks and what each `tests/slow/` file
+  can move. Do not default to `test:all`, `test:browser` or the benchmarks. Run timing
   comparisons sequentially without competing tests/benchmarks; repeat suspected
   regressions three times. Do not claim the reported slowdown fixed without evidence.
   Forgejo CI runs the fast gates on each PR and the slow tier after merge, filing an
