@@ -4,7 +4,11 @@ const lab = new PhysicsLab();
 const byId = id => document.getElementById(id);
 const canvas = byId('arena'), ctx = canvas.getContext('2d');
 const keys = new Set();
-let playing = null, aim = 0, skillPending = false;
+let playing = null, aim = 0, skillPending = false, interactPending = false;
+// The live client's bindings (input-controller.js): WASD or arrows move, Q is the skill, E interacts.
+// Both are one-shot presses. Space is the live replay toggle and has no meaning here.
+const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
+const ARENA_KEYS = [...MOVE_KEYS, 'KeyQ', 'KeyE', 'Space'];
 const status = message => { byId('status').textContent = message; };
 const button = (id, action) => byId(id).addEventListener('click', () => Promise.resolve(action()).catch(error => status(error.message)));
 
@@ -111,15 +115,16 @@ function refresh() {
 }
 
 function input() {
-  const axis = (positive, negative) => Number(keys.has(positive)) - Number(keys.has(negative));
-  const value = { x: axis('KeyD', 'KeyA'), y: axis('KeyS', 'KeyW'), aim,
-    skill: skillPending, interact: keys.has('Enter') };
-  skillPending = false; return value;
+  const held = codes => codes.some(code => keys.has(code));
+  const axis = (positive, negative) => Number(held(positive)) - Number(held(negative));
+  const value = { x: axis(['KeyD', 'ArrowRight'], ['KeyA', 'ArrowLeft']), y: axis(['KeyS', 'ArrowDown'], ['KeyW', 'ArrowUp']), aim,
+    skill: skillPending, interact: interactPending };
+  skillPending = false; interactPending = false; return value;
 }
 function tick() { if (lab.game) { lab.tick(input()); refresh(); } }
 function stop() { if (playing) clearInterval(playing); playing = null; byId('play').textContent = 'Play'; }
 async function reset() {
-  stop(); keys.clear(); skillPending = false;
+  stop(); keys.clear(); skillPending = false; interactPending = false;
   const tuning = Object.fromEntries([...document.querySelectorAll('[data-tune]')].map(field => [field.dataset.tune, Number(field.value)]));
   const config = sceneConfig(byId('scene').value, Number(byId('seed').value), tuning);
   await lab.start(config); refresh();
@@ -151,19 +156,16 @@ button('download', () => {
 });
 button('import', async () => { stop(); await lab.import(JSON.parse(byId('recording').value)); refresh(); status(`Imported and reran ${lab.trace.length} ticks; retained frames match.`); });
 window.addEventListener('keydown', event => {
-  // A key pressed on the arena stays a simulation key through button focus.
-  // Suppress native button activation on repeats without blocking fresh presses.
-  if (keys.has(event.code)) event.preventDefault();
-  if (event.target !== canvas) return;
-  if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'Enter'].includes(event.code)) {
-    if (event.code === 'Space' && !keys.has('Space')) skillPending = true;
-    keys.add(event.code); event.preventDefault();
-  }
+  // Only keys pressed on the arena act, so editing a field or operating a button never moves anyone.
+  // Enter and Space belong to buttons again; Space is swallowed on the arena only to stop the page scrolling.
+  if (event.target !== canvas || !ARENA_KEYS.includes(event.code)) return;
+  event.preventDefault();
+  if (event.repeat) return;
+  if (event.code === 'KeyQ') skillPending = true;
+  else if (event.code === 'KeyE') interactPending = true;
+  else if (MOVE_KEYS.includes(event.code)) keys.add(event.code);
 });
-window.addEventListener('keyup', event => {
-  if (keys.has(event.code)) event.preventDefault();
-  keys.delete(event.code);
-});
+window.addEventListener('keyup', event => keys.delete(event.code));
 window.addEventListener('blur', () => keys.clear());
 canvas.addEventListener('blur', event => {
   // Keep held movement available while clicking Step; editable fields stop it.

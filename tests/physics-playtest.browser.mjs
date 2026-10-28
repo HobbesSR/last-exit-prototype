@@ -124,7 +124,7 @@ try {
   const hookArena = await page.locator('#arena').boundingBox();
   await page.mouse.move(hookArena.x + hookArena.width * 700 / 800, hookArena.y + hookArena.height * 400 / 800);
   await page.locator('#arena').focus();
-  await page.keyboard.press('Space');
+  await page.keyboard.press('KeyQ');
   await page.evaluate(() => document.querySelector('#step').click());
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const hook = JSON.parse(await page.locator('#recording').inputValue());
@@ -152,9 +152,11 @@ try {
     await page.getByRole('button', { name: 'Start / Reset' }).click();
     await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
     await page.locator(selector).focus();
-    for (const key of ['KeyD', 'Space', 'Enter']) await page.keyboard.down(key);
+    // A number field accepts "e" and a select moves on an arrow, so only the text area takes E and arrows.
+    const typed = selector === '#recording' ? ['KeyD', 'ArrowRight', 'KeyQ', 'KeyE'] : ['KeyD', 'KeyQ'];
+    for (const key of typed) await page.keyboard.down(key);
     await page.evaluate(() => document.querySelector('#step').click());
-    for (const key of ['Enter', 'Space', 'KeyD']) await page.keyboard.up(key);
+    for (const key of typed.toReversed()) await page.keyboard.up(key);
     await page.getByRole('button', { name: 'Export JSON' }).click();
     const record = JSON.parse(await page.locator('#recording').inputValue());
     assert.equal(record.trace.length, 1, `${selector} editing leaves one stepped input; status=${await page.locator('#status').textContent()}; seed=${await page.locator('#seed').inputValue()}`);
@@ -172,7 +174,7 @@ try {
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const focusRecord = JSON.parse(await page.locator('#recording').inputValue());
   assert.equal(focusRecord.trace[0].input.x, 0, 'focusing a form field clears held movement');
-  for (const key of ['Enter', 'Space']) {
+  for (const key of ['KeyE', 'KeyQ']) {
     await page.getByRole('button', { name: 'Start / Reset' }).click();
     await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
     await page.locator('#arena').focus();
@@ -180,13 +182,26 @@ try {
     await page.getByRole('button', { name: 'Step tick' }).click();
     for (let repeat = 0; repeat < 3; repeat++) await page.keyboard.down(key);
     await page.keyboard.up(key);
+    await page.getByRole('button', { name: 'Step tick' }).click();
     await page.getByRole('button', { name: 'Export JSON' }).click();
     const record = JSON.parse(await page.locator('#recording').inputValue());
-    assert.equal(record.trace.length, 1, `held ${key} does not trigger extra Step clicks after button focus`);
-    assert.equal(record.frames.length, 2, `held ${key} advances exactly one tick`);
-    assert.equal(record.trace[0].input.interact, key === 'Enter', `${key} initial canvas input interacts only for Enter`);
-    assert.equal(record.trace[0].input.skill, key === 'Space', `${key} initial canvas input uses skill only for Space`);
+    assert.equal(record.trace.length, 2, `held ${key} adds no extra Step clicks after button focus`);
+    assert.equal(record.frames.length, 3, `held ${key} advances exactly the stepped ticks`);
+    assert.equal(record.trace[0].input.interact, key === 'KeyE', `${key} pressed on the arena interacts only for E`);
+    assert.equal(record.trace[0].input.skill, key === 'KeyQ', `${key} pressed on the arena uses skill only for Q`);
+    assert.equal(record.trace[1].input.interact || record.trace[1].input.skill, false, `${key} is a one-shot press like the live client, not held`);
   }
+  await page.getByRole('button', { name: 'Start / Reset' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+  await page.locator('#arena').focus();
+  await page.keyboard.down('ArrowRight');
+  await page.keyboard.down('ArrowDown');
+  await page.getByRole('button', { name: 'Step tick' }).click();
+  await page.keyboard.up('ArrowRight');
+  await page.keyboard.up('ArrowDown');
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const arrows = JSON.parse(await page.locator('#recording').inputValue());
+  assert.deepEqual([arrows.trace[0].input.x, arrows.trace[0].input.y], [1, 1], 'arrow keys move like WASD');
   await page.getByRole('button', { name: 'Start / Reset' }).click();
   await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
   await page.getByRole('button', { name: 'Step tick' }).focus();
