@@ -88,6 +88,9 @@ strategy built on the micro SDK ([50](50-map-generation.md)). What has shipped:
 
 #### Region population epic #529
 
+Checkpoint as of 2026-10-28; defer to newer direction and status on
+[epic #529](http://192.168.1.170:3000/corey/astra_test/issues/529) and its children.
+
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers
 of function and detail, without exhausting incidental minutiae. Apply the
 selection and stopping policy in [32](32-delegation.md). The epic and child
@@ -96,7 +99,7 @@ not an accurate inventory of everything still missing.
 
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
-| Inward grounds | Review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
+| Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
 | Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins. Compound exterior crossing limitations remain; #630/#632 diagnose and experiment without production adoption. Treat offset-search adoption as deferred refinement for next-task selection unless evidence makes it a blocker for the chosen functional outcome. |
 | Hut and compound structures (#532) | Primary functional gaps: multiple houses where sites fit, useful compound courtyard composition, and secondary structures in oversized compounds. Deliver a coherent first capability with actual eligible-region and access evidence before broadening its grammar. |
 | Depot and hall composition (#533) | Short-lane depot crates and hall residual-wing crates are delivered partial improvements. Warehouse budget/composition and structural hall wings remain distinct candidates; secondary crates do not establish those capabilities. |
@@ -108,8 +111,8 @@ capabilities, #534's dedicated market and #533's warehouse composition against
 current authored-map reach and prerequisites. These are candidates, not a fixed
 handoff chain. The bounded production-decomposition pilot requested earlier has
 been delivered; completing all of #535 is not a prerequisite for every other
-workstream. Do not resume compound offset research merely because it is the
-latest handoff.
+workstream. At this 2026-10-28 checkpoint, do not resume compound offset research
+merely because it is the latest handoff; reassess against newer epic direction.
 
 The epic reaches its first functional tier when each workstream has a useful
 production capability on representative intended workloads, or an explicit

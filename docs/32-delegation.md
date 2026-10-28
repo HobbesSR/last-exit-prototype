@@ -9,10 +9,15 @@ deliverables. Delegation should reduce total context/rework, not just elapsed ti
 ### Epic-directed work
 
 When the user asks to advance an epic, select and execute the next useful outcome
-within its accepted scope. The user need not choose a child issue or repeat that
-implementation is authorized. Read the epic's current direction, relevant child
-status and latest handoffs, then check current code and owning requirements where
-needed. A handoff's next-step suggestion is evidence to evaluate, not a mandate.
+within its accepted scope. The user's direction supplies that authorization;
+this workflow document does not grant it. The user need not choose a child issue
+or repeat that implementation is authorized. Read the epic's current direction,
+relevant child status and latest handoffs, then check current code and owning
+requirements where needed. A handoff's next-step suggestion is evidence to
+evaluate, not a mandate.
+If the outcome needs an unanswered product choice or a reviewed contract/fixture
+decision, consult the owning [17](17-open-questions.md) record, record an assumption
+only where the existing requirements permit it, or escalate the unresolved decision.
 
 Work in tiers of function and detail:
 
@@ -48,6 +53,12 @@ require a successor task in every handoff. Close a workstream only when its stat
 acceptance is met or its remaining scope has explicitly been deferred; openness
 alone does not make it the next priority. Keep epic-specific sequencing in
 [41](41-roadmap.md) and its Forgejo tracker, rather than embedding it in this policy.
+
+Reusable epic kickoff (replace `#N` with the epic number):
+
+> Advance epic #N. Read its current direction and relevant child status, choose the highest-value ready functional improvement, and implement it. Work in tiers of function and detail; prioritize missing capabilities over incidental polish. Briefly explain your choice and stopping criteria, run the relevant checks, and open a PR. Treat handoff suggestions as candidates, not mandates.
+
+### Routing by work type
 
 | Work | Preferred owner |
 | --- | --- |
