@@ -85,9 +85,10 @@ export function validatePortalReach(input: PortalReachInput, options: PortalReac
     const mask = createAccessMask(input), stands = portalStands(input), radius = hunterClearance(input.cellSize);
     if (stands.length < 2) return { valid: true, errors, routes, joins, meshBuilds };
     const route = (from: Vec2, to: Vec2): Vec2[] | null => {
-      const direct = travelClear(mask, input.blockers, from, to, radius);
-      let points = direct ? [from, to] : findRegionRoute(mask, input.blockers, from, to, radius);
-      let search: PortalJoin['search'] = points ? (direct ? 'direct' : 'grid') : 'none';
+      let points = findRegionRoute(mask, input.blockers, from, to, radius);
+      // The planner already sweeps direct visibility first. A two-point result
+      // is that straight witness; avoid repeating its sweep for provenance.
+      let search: PortalJoin['search'] = points ? (points.length === 2 ? 'direct' : 'grid') : 'none';
       if (!points && options.search === 'thorough') {
         if (!mesh) {
           // Overlap cell edges by construction-grid slivers, as shared openGround does.

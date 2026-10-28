@@ -42,17 +42,21 @@ test('the whole-portal promise is refused when a builder narrows a portal or cut
   const result = buildRegion(brief('open')), blockers = blockersOf(result);
   assert.deepEqual(validatePortalReach({ ...result.brief, blockers }).errors, []);
   // A post in the east portal's mouth leaves a doorway, but not the whole portal.
-  const narrowed = validatePortalReach({ ...result.brief, blockers: [...blockers, rect(924, 360, 16, 16)] });
-  assert.ok(narrowed.errors.some(e => /Portal east is obstructed/.test(e)), narrowed.errors.join(' '));
-  const cut = validatePortalReach({ ...result.brief, blockers: [...blockers, rect(470, 0, 20, 720)] });
-  assert.ok(cut.errors.some(e => /unreachable from portal west/.test(e)), cut.errors.join(' '));
+  for (const options of [undefined, { search: 'thorough' }]) {
+    const narrowed = validatePortalReach({ ...result.brief, blockers: [...blockers, rect(924, 360, 16, 16)] }, options);
+    assert.ok(narrowed.errors.some(e => /Portal east is obstructed/.test(e)), narrowed.errors.join(' '));
+    const cut = validatePortalReach({ ...result.brief, blockers: [...blockers, rect(470, 0, 20, 720)] }, options);
+    assert.ok(cut.errors.some(e => /unreachable from portal west/.test(e)), cut.errors.join(' '));
+  }
 });
 
 test('a wall sitting right on the boundary seals the portal even when no stand disc touches it', () => {
   // A thin sliver at the west boundary, spanning the whole portal, that no inset stand circle reaches.
   const sliver = [rect(0, 320, 0.5, 80)];
-  const sealed = validatePortalReach({ ...brief(), blockers: sliver });
-  assert.ok(sealed.errors.some(e => /Portal west is obstructed/.test(e)), sealed.errors.join(' '));
+  for (const options of [undefined, { search: 'thorough' }]) {
+    const sealed = validatePortalReach({ ...brief(), blockers: sliver }, options);
+    assert.ok(sealed.errors.some(e => /Portal west is obstructed/.test(e)), sealed.errors.join(' '));
+  }
   // The same sliver clear of every portal changes nothing.
   const clear = validatePortalReach({ ...brief(), blockers: [rect(0, 0, 0.5, 80)] });
   assert.deepEqual(clear.errors, []);
