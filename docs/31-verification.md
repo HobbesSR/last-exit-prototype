@@ -17,7 +17,7 @@ npm run bench:client
 
 `npm test` and `npm run test:all` cap file concurrency at four, keeping CPU and memory contention
 bounded on the shared machine. Each command runs every case in its selected tier; `test:all` includes the slow tier;
-timing assertions and isolated file budgets are unchanged. The dated concurrency incident is retained in [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints).
+isolated file budgets are unchanged. The dated concurrency incident is retained in [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints).
 Use the normal scripts for integration; focused `node --test` commands remain
 available. The chain sweep's internal worker pool is separate.
 
@@ -41,9 +41,9 @@ contract where one exists: the fixture's map hashes and scripted trace stay in
 Large end-to-end builder timing witnesses also belong in the slow tier when
 they include decomposition and full child micro-generation. The 200 x 150
 macro-block witness is `tests/slow/micro-block-scale.test.js` (#610), following
-Corey's 2026-10-27 tier guidance. Its inputs and 5-second timing assertion are
-unchanged; moving tiers does not establish that the concurrent timing miss is
-fixed. Smaller block ownership, portal, determinism and physical builder
+Corey's 2026-10-27 tier guidance. Its inputs and 5-second limit are unchanged, and
+the limit is now opt-in like the other macro-sized ones (`BUILD_BUDGETS`, below);
+moving tiers does not establish that the concurrent timing miss is fixed. Smaller block ownership, portal, determinism and physical builder
 contracts remain in the fast tier. Run the slow scale file explicitly when
 changing that path; `test:micro` does not include it.
 
@@ -220,18 +220,43 @@ repeat a suspected regression three times before believing it. Do not claim the
 reported slowdown fixed without a captured slow run; see
 [42](42-performance-history.md).
 
-The hut's 172 by 172, 228-portal fixture builds its full geometry and enforces an
-8-second wall-clock budget in the normal suite. This includes yard delegation
-and receiving-cover construction; the measured cost compared with house-only
-generation is recorded in [42](42-performance-history.md). Isolated timing runs use
-`node --test --test-name-pattern=macro-sized tests/micro-hut.test.js`; they
-separate builder cost from normal suite contention. The file also remains
-subject to the strict 15-second isolated budget.
+The hut's 172 by 172, 228-portal fixture builds its full geometry in the normal suite,
+including yard delegation and receiving-cover construction; the measured cost compared
+with house-only generation is recorded in [42](42-performance-history.md). The file
+remains subject to the strict 15-second isolated budget.
 
-The hut's 8-second budget and the other macro-sized "builds quickly" budgets in the micro tests go
-through `tests/helpers/budget.js`, which skips them when `CI` is set: they are tuned on
-the desktop, and a slower runner would fail them on its speed rather than on the change
-(#567). The tests still build the region and check what it contains.
+**Build durations are measured on request, not asserted by default** (#548, which
+supersedes #567's `CI` skip). The macro-sized cases build one region with hundreds of
+portals and check what it holds: the cover, compound, depot, hut and plant cases in
+`tests/micro-*.test.js`, and the slow `micro-block-scale`. Those assertions are the
+functional witness and stay in the fast tier; each fast-tier case costs 0.3 to 2 s alone
+(measurements in [42.3](42.3-generation-and-delegation-evidence.md#build-duration-assertions-made-opt-in-548-2026-10-27)).
+How long a build took depends on the machine and what else it runs, so the default run
+neither asserts nor prints it. `tests/helpers/budget.js` reads `BUILD_BUDGETS`, and an
+unrecognised value fails with the supported ones:
+
+| `BUILD_BUDGETS` | Does |
+| --- | --- |
+| unset | nothing: the case builds and checks its contents |
+| `report` | prints each duration against its limit and never fails; the measuring path |
+| `enforce` | fails a case past its limit; the enforcing path |
+
+```powershell
+$env:BUILD_BUDGETS = 'report'   # or 'enforce'
+node --test --test-concurrency=1 --test-name-pattern=macro-sized tests/micro-cover.test.js tests/micro-compound.test.js tests/micro-depot.test.js tests/micro-plant.test.js tests/micro-hut.test.js tests/slow/micro-block-scale.test.js
+Remove-Item Env:BUILD_BUDGETS
+```
+
+On a POSIX shell, put `BUILD_BUDGETS=report` before `node`. Add one file to the list to
+time just that builder; the pattern selects the macro-sized case alone, which separates
+builder cost from the rest of the file and from suite contention. `enforce` is for a quiet
+machine and one file at a time, with no other agent's tests or benchmarks running: the
+limits (cover 2 s, compound, depot and plant 3 s, block 5 s, hut 8 s) are ceilings that catch a builder
+turning quadratic, set above that machine's isolated readings, and are not capacity
+promises. They sit 1.4 to 7 times above the readings, the block's 5 s the closest, so a loaded or
+slower machine can fail one without a regression; repeat before believing it. CI does not
+set the variable. A threshold that should gate every run belongs in a deterministic
+count (work, portals visited, pieces placed), not a duration.
 
 Other agents' worktrees share this machine's CPU. `npm run bench` and
 `npm run bench:client` therefore take a machine-wide lock and wait for each
@@ -305,7 +330,7 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
 | `micro-block-promise`, `micro-plant-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
-| `micro-block-scale` | one macro-sized block, hundreds of portals | builds within 5 s (skipped under `CI`) | the block builder and its delegation |
+| `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
 
 A new `tests/slow/` file adds its row here in the same change.
 

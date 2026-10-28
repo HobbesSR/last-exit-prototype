@@ -181,8 +181,8 @@ test('a macro-sized hut region with hundreds of portals builds in bounded time',
   assert.ok(house(result));
   assert.ok(portals.length > 200 && cells.length > 29000);
   // Includes whole-yard delegation and cover generation, not just the house.
-  // The 8-second budget runs in the normal parallel suite, not in CI (31, measurements in 42).
-  assertWithinBudget(elapsed, 8000);
+  // The 8-second budget is opt-in (BUILD_BUDGETS, 31; measurements in 42).
+  assertWithinBudget(elapsed, 8000, 'macro hut built');
 });
 
 test('an observer sees the house its element was realized from, and changes nothing', () => {
