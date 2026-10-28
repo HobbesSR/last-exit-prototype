@@ -183,6 +183,12 @@ pages and rooms, so it takes minutes; a feature that needs only its own server a
 tabs gets its own script, as `tests/dev-view.browser.mjs` (the dev view, 24) does,
 so it can be iterated on in seconds. `npm run test:browser` runs them all.
 
+The shipped default is physics content (#523), and `tests/browser.mjs` pins the legacy set and factory it was
+written for: its fixtures swap a room's map and place actors by assigning positions on the server's game, which a
+physics world does not accept. `tests/default-physics.browser.mjs` is the default room's core client flow (lobby,
+start, walking, dropping an item); the `physics-*` scripts cover the physics client's other features. A new browser
+check of default behavior goes in one of those, not in `browser.mjs`.
+
 `npm run test:times` times every unit test file alone, slowest first, and marks files over
 budget (15 s fast tier, 60 s slow tier) with their slowest tests; `-- --strict` exits 1 on
 any, and file paths limit it. With no paths it times every unit file of `npm run test:all`

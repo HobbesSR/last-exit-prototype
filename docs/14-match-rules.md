@@ -46,6 +46,9 @@ numbers, roster and planner over the physics engine of the sections below. A liv
 with `createPhysicsMatch`; the room service chooses the engine by content, physics content for
 the physics world and the rest for the legacy mover. Its lobby therefore offers the Hook kit
 alongside Warden, Specter and Striker, while the default roster's gladiators keep their kits.
+It differs from `content-physics-8` in two values that real maps need and the lab's small scenes did not:
+ground capacity 16,384 (a 36x18 map has 8,608 items) and `worldPhysics.dropReserve` 48, the dynamic-body
+slots that ordinary map items leave free so a player's drop can be admitted ([42.20](42.20-physics-p9.md)).
 `createGame`, `createMatch` and the legacy tools default to `content-5` (`legacyContent()`),
 because they are the legacy engine's entry points, so characterization, the frozen fixture and
 old recordings are unchanged ([31](31-verification.md)). Tuning is as it was in the experimental

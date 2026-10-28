@@ -136,9 +136,12 @@ const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content
 // P8 keeps P6's physical content and adopts local repair plus temporary body detours.
 const CONTENT_PHYSICS_8: MatchContent = { ...CONTENT_PHYSICS_6, id: 'content-physics-8', replanning: 'repair', dynamicNavigation: true };
 SHIPPED['content-physics-8'] = CONTENT_PHYSICS_8;
-// The shipped physics default (#523): content-physics-8 with ground capacity for every live zone size. The lab's
-// 4096 holds a 24x12 map at 94% and refuses 36x18 (8,608 items on seed 4217), so a room of the largest size could not start.
-SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: { groundCapacity: 16384 } };
+// The shipped physics default (#523): content-physics-8 with two changes the lab's small scenes never needed.
+// Ground capacity for every live zone size: the lab's 4096 holds a 24x12 map at 94% and refuses 36x18 (8,608 items on seed
+// 4217), so a room of the largest size could not start. And a drop reserve: a real 12x6 map has 974 items, which fill the
+// world's 128 dynamic bodies (11 actors and 117 items) at tick 0, so no player could drop anything.
+SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: { groundCapacity: 16384 },
+  worldPhysics: { ...CONTENT_PHYSICS_8.worldPhysics!, dropReserve: 48 } };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {

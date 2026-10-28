@@ -29,7 +29,8 @@ export function validateWorldPhysics(content: MatchContent, map: GameMap): void 
       profile.prop.linearDamping, profile.prop.angularDamping, profile.prop.friction]
       .every(n => Number.isFinite(n) && n >= 0 && n <= 10000)
     || profile.loot.radius < 1 || profile.loot.radius > 16 || profile.prop.hx < 1 || profile.prop.hy < 1
-    || profile.loot.mass < 1e-6 || profile.prop.mass < 1e-6 || profile.loot.dropSpeed > 60) throw new RangeError('invalid world physics profile');
+    || profile.loot.mass < 1e-6 || profile.prop.mass < 1e-6 || profile.loot.dropSpeed > 60
+    || profile.dropReserve !== undefined && (!Number.isInteger(profile.dropReserve) || profile.dropReserve < 0 || profile.dropReserve > 96)) throw new RangeError('invalid world physics profile');
   const ids = new Set<string>();
   if ((map.physicsProps?.length ?? 0) > 64) throw new RangeError('physics prop authoring capacity');
   // Conservative circumscribed footprint admits rotating crates without intersecting static geometry.
@@ -70,7 +71,9 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
   // A transfer that preflighted a batch owns its released slots before retrying overflow.
   for (const item of [...s.map.items].sort((a, b) => Number(r.itemLaunches.has(b.id)) - Number(r.itemLaunches.has(a.id)) || order(a.id, b.id))) {
     const id = bodyId(item);
-    if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r)) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
+    // A launched or dropped item may use the drop reserve; an ordinary map item must leave it free.
+    const reserve = r.itemLaunches.has(item.id) ? 0 : profile.dropReserve ?? 0;
+    if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r) + reserve) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
       || !physicalDropPlacementClear(s, r, item.x, item.y)) continue;
     const motion = r.itemLaunches.get(item.id);
     r.world.queueAddBody({ id, kind: 'prop', collisionProfile: 'loot', shape: { kind: 'circle', radius: profile.loot.radius },

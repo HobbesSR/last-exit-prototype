@@ -39,10 +39,12 @@ test('shipped content ids return independent deeply frozen retained and current 
   // content-5 repairs a contestant's route round nearby changes at once (#470 part 2); otherwise content-4.
   const { id: id5, replanning: replanning5, ...rest5 } = contentById('content-5'), { id: _4, replanning: _r4, ...four } = contentById('content-4');
   assert.deepEqual([id5, replanning5, rest5], ['content-5', 'repair', four]);
-  // content-6 is content-physics-8 under a shipped name (#523), the first set built for the physics engine, with
-  // ground capacity for every live zone size: the lab's 4096 refuses a 36x18 map's 8,608 items.
+  // content-6 is content-physics-8 under a shipped name (#523), the first set built for the physics engine, with two
+  // differences real maps need: ground capacity for every live zone size (the lab's 4096 refuses a 36x18 map's 8,608
+  // items) and a drop reserve (a real map's items fill the world's body slots, so no drop could be admitted).
   const { id: id6, ...six } = contentById('content-6'), { id: _8, ...physics8 } = contentById('content-physics-8');
-  assert.deepEqual([id6, six], ['content-6', { ...physics8, itemInstances: { groundCapacity: 16384 } }]);
+  assert.deepEqual([id6, six], ['content-6', { ...physics8, itemInstances: { groundCapacity: 16384 },
+    worldPhysics: { ...physics8.worldPhysics, dropReserve: 48 } }]);
   assert.ok(six.actorPhysics && six.hook, 'it carries the character, world and hook physics');
   assert.equal(rest5.actorPhysics, undefined, 'content-5 stays on the legacy mover');
   assert.notEqual(legacy, legacyAgain);
