@@ -32,7 +32,8 @@ only moves when generation or simulation moves.
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
 the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
 merged on the fast tier; `npm run test:slow` runs it locally when a change is likely to move
-it, such as generation or simulation work. Integration checkpoints still run `test:all`. A test belongs in `tests/slow/` when it costs seconds and sweeps
+it, such as generation or simulation work. An integration checkpoint runs the slow files its
+area can move, not the whole tier by default ([Choosing checks by changed area](#choosing-checks-by-changed-area)). A test belongs in `tests/slow/` when it costs seconds and sweeps
 seeds or plays whole matches. The fast tier keeps a cheap witness of the same
 contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
@@ -55,8 +56,8 @@ Corey's exact tier guidance (2026-10-27):
 
 > macro block timings that bring in things like decomposition and microgenerations may no longer be viable for the fast track
 
-Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
-plus unit tests, in that directory). Its `tests/slow/` holds the larger authored-size
+Changes under `map/macro/` run its own suite with `npm run test:mapgen` from the repository
+root (typecheck plus the unit tests in that directory). Its `tests/slow/` holds the larger authored-size
 quota checks and runs in that same default macro suite; the seeds and assertions
 are shared with the fast content checks, not reduced to fit the timing budget. The historical macro-suite checkpoint is also retained in 42.3. The Map Lab (`map/tools/lab/`) has its
 own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
@@ -264,7 +265,7 @@ the change cannot move adds minutes and no evidence (#542). Three tiers:
 | Tier | When | Runs |
 | --- | --- | --- |
 | Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, or a replay. Seconds |
-| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and `npm run test:mapgen` under `map/macro/`; plus the area's extras |
+| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; plus the area's extras |
 | Integration | once per PR, where the area can move it | The sweep, slow files, browser scripts and benchmarks the area calls for |
 
 | Changed area | Inner loop | Before the PR, beyond those gates | Integration |
