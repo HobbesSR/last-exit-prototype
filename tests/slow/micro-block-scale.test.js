@@ -12,7 +12,7 @@ test('a macro-sized block with hundreds of portals builds quickly', () => {
   const started = performance.now();
   const result = buildRegion(brief('macro', 3, cells, portals));
   const elapsed = performance.now() - started;
-  assertWithinBudget(elapsed, 5000);
+  assertWithinBudget(elapsed, 5000, 'macro block built');
   assert.ok(result.manifest.structures > 50, `${result.manifest.structures} structures`);
   assert.equal(result.manifest.lots, undefined);
 });

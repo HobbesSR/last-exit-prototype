@@ -121,7 +121,7 @@ test('cover builds a macro-sized region with hundreds of portals in bounded time
   const start = performance.now(), result = buildRegion(brief('macro', 1, cells, portals));
   const elapsed = performance.now() - start;
   assert.ok(portals.length > 400 && result.elements.length > 200, `${portals.length} portals, ${result.elements.length} pieces`);
-  assertWithinBudget(elapsed, 2000);
+  assertWithinBudget(elapsed, 2000, 'macro cover built');
 });
 
 test('cover can place geometry against a hinted edge while protecting portals', () => {

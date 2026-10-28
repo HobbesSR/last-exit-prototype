@@ -166,7 +166,7 @@ test('a macro-sized depot with hundreds of portals builds quickly', () => {
   for (let y = 2; y < 146; y += 4) portals.push({ id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: 200, y, length: 2 });
   const started = performance.now();
   const result = buildRegion(brief('macro', 3, cells, portals));
-  assertWithinBudget(performance.now() - started, 3000);
+  assertWithinBudget(performance.now() - started, 3000, 'macro depot built');
   assert.ok(result.manifest.warehouses > 10 && result.manifest.rows > 100);
   assert.ok(bounds(blockers(result)[0]).w > 0);
 });
