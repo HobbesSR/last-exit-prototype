@@ -255,16 +255,25 @@ claim complete process isolation. Public deployment limits are in
 
 Design proposed for review, not implemented: [20.10](20.10-portal-cords.md).
 Source direction is in [17.2.10](17.2.10-portal-cord-direction.md). Implementation
-starts after design review/merge; this sequence is local to this workstream.
+follows reviewed contracts; #644 may begin before the design PR merges because
+it implements parameterized fallback without changing the default. This sequence
+is local to this workstream.
 
 | Order | Issue | Functional outcome |
 | --- | --- | --- |
 | 1 | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
 | 2 | [#645](/corey/astra_test/issues/645) | Atomic prospective parcels anywhere in the fill, with deformable connectivity witness |
-| 3 | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing |
+| 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
+| 3b | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing |
 | 4 | [#647](/corey/astra_test/issues/647) | Intentional hut then compound adoption, replacing pragmatic perimeter collars with measured peripheral handoffs |
 
-Each stage depends on the preceding capability. The first SDK milestone accepts
+After #645, growth (#649) and handoffs (#646) can proceed independently.
+Within #646, establish no-transfer handoffs before whole-child portal transfer.
+Hut adoption in #647 may start on the no-transfer capability if its selected
+peripheral patches retain original portals; it must not claim transfer coverage.
+Current hut delegation uses the retained-portal default. Candidate usefulness
+and final geometry still need measured evidence after collar removal.
+The first SDK milestone accepts
 a useful parcel that fixed protections reject while preserving the portal promise.
 The composition milestone must demonstrate boundary-flush child ownership, not
 just more interior residue. Adoption includes compatibility and recovery review
