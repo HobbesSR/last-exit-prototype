@@ -1,0 +1,1298 @@
+{
+  "experiment": "compound-crossing-offset-1",
+  "createdAt": "2026-10-28T06:18:15.379Z",
+  "commit": "34fbfef3ac5e2194e7946259f56cf7c9f2857999",
+  "commitMeaning": "Checkout HEAD; source hashes identify working-tree sources, including uncommitted edits.",
+  "node": "v24.15.0",
+  "contentVersion": "types-46",
+  "sourceHashFormat": "sha256-utf8-lf",
+  "sourceHashes": {
+    "tools/compound-crossing-offset-experiment.mjs": "5c17d8e06ba7cb65f7de7f96130799b0c9ba899d3553a44750fbb1c1915aaea0",
+    "map/micro/delegation.ts": "07e23c6736ee0eb9dc95e71be4f0dca6d05cf9e4d4ddc555948a6a3c1e776a4b",
+    "map/micro/delegation-execute.ts": "941972d0f70db60932f111b903bd5d05b75b1407a2f1f258d14cb4e1a50c8f22",
+    "map/micro/strategies/compound.ts": "6d39b19f10b4c22e2ee271ecb4aa226acaceb5a8d7838561b9b6a3ae9e9dc24c",
+    "map/micro/strategies/cover.ts": "820720735bed32032259bc2a40bf2265231f481d73a86f848904025f34fc798c",
+    "map/micro/geometry.ts": "08c2d170764647ccce9864f0f57323ba64f848ab68ecb39a3b2865ce81e515f9",
+    "map/micro/margins.ts": "d8c6a470cf8063a3a54b217fc80ed663f070e86ffeb318c84562466c23133e7a",
+    "map/micro/portals.ts": "37e68a5bad6b7b803d2d0b69af076fc1e6d307b61eaa2ed2707fb79d7efd17ba",
+    "map/kernel/margins.ts": "414ea8367ea0ecaf92269b357ef0e1f77ee74e8b6e27294031c7bc001fbb7c1f",
+    "map/micro/region-types.ts": "42ec61cfcbde438986697290c5694e4a1810ea7ff4e3336f6c0b0cac0125445c",
+    "map/chain.ts": "e2bb981ca75319525ab4b75d6e2b29ec03500a9b9e2d02b794defa0eca03752e",
+    "map/macro/src/chain/map.ts": "b85ac3193065a3ea681cf46995a622db2be82612d5f2d0833768014a0c79ddd9"
+  },
+  "seed": "issue330-before-36x18",
+  "target": {
+    "id": "compound@792,168",
+    "offer": "exterior:794,170",
+    "run": {
+      "axis": "v",
+      "x": 803,
+      "y": 170,
+      "length": 20
+    }
+  },
+  "width": 2,
+  "centeredOffset": 9,
+  "centered": [
+    {
+      "id": "compound@564,78",
+      "accepted": [],
+      "cover": []
+    },
+    {
+      "id": "compound@234,108",
+      "accepted": [],
+      "cover": []
+    },
+    {
+      "id": "compound@792,168",
+      "accepted": [],
+      "cover": []
+    },
+    {
+      "id": "compound@180,294",
+      "accepted": [
+        "exterior:182,296"
+      ],
+      "cover": [
+        {
+          "key": "exterior:182,296",
+          "elements": 8
+        }
+      ]
+    },
+    {
+      "id": "compound@414,300",
+      "accepted": [
+        "exterior:416,302"
+      ],
+      "cover": [
+        {
+          "key": "exterior:416,302",
+          "elements": 1
+        }
+      ]
+    },
+    {
+      "id": "compound@276,330",
+      "accepted": [
+        "exterior:278,332"
+      ],
+      "cover": [
+        {
+          "key": "exterior:278,332",
+          "elements": 115
+        }
+      ]
+    }
+  ],
+  "baseline": {
+    "event": {
+      "offerKeys": [
+        "exterior:794,170"
+      ],
+      "a": "compound@792,168",
+      "b": "compound@792,168/delegate/exterior%3A794%2C170",
+      "run": {
+        "axis": "v",
+        "x": 803,
+        "y": 170,
+        "length": 20
+      },
+      "portal": {
+        "axis": "v",
+        "x": 803,
+        "y": 179,
+        "length": 2,
+        "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,179,2]"
+      },
+      "reason": "protected-footprint",
+      "protectedCells": [
+        {
+          "x": 803,
+          "y": 178
+        }
+      ]
+    },
+    "rejected": [
+      {
+        "key": "exterior:794,170",
+        "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+      },
+      {
+        "key": "exterior:829,170",
+        "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+      }
+    ],
+    "accepted": [],
+    "cover": [],
+    "geometry": {
+      "rootPortalErrors": [],
+      "retainedPortalErrors": [],
+      "childPortalErrors": [],
+      "parentShapesOutsideRetainedFill": 0,
+      "allShapesOutsideRootFill": 0,
+      "childShapesOutsideFill": []
+    }
+  },
+  "trials": [
+    {
+      "offset": 0,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,170,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 802,
+            "y": 169
+          },
+          {
+            "x": 803,
+            "y": 169
+          },
+          {
+            "x": 803,
+            "y": 170
+          },
+          {
+            "x": 803,
+            "y": 171
+          },
+          {
+            "x": 803,
+            "y": 172
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 1,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 171,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,171,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 170
+          },
+          {
+            "x": 803,
+            "y": 171
+          },
+          {
+            "x": 803,
+            "y": 172
+          },
+          {
+            "x": 803,
+            "y": 173
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 2,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 172,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,172,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 171
+          },
+          {
+            "x": 803,
+            "y": 172
+          },
+          {
+            "x": 803,
+            "y": 173
+          },
+          {
+            "x": 803,
+            "y": 174
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 3,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 173,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,173,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 172
+          },
+          {
+            "x": 803,
+            "y": 173
+          },
+          {
+            "x": 803,
+            "y": 174
+          },
+          {
+            "x": 803,
+            "y": 175
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 4,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 174,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,174,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 173
+          },
+          {
+            "x": 803,
+            "y": 174
+          },
+          {
+            "x": 803,
+            "y": 175
+          },
+          {
+            "x": 803,
+            "y": 176
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 5,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 175,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,175,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 174
+          },
+          {
+            "x": 803,
+            "y": 175
+          },
+          {
+            "x": 803,
+            "y": 176
+          },
+          {
+            "x": 803,
+            "y": 177
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 6,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 176,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,176,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 175
+          },
+          {
+            "x": 803,
+            "y": 176
+          },
+          {
+            "x": 803,
+            "y": 177
+          },
+          {
+            "x": 803,
+            "y": 178
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 7,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 177,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,177,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 176
+          },
+          {
+            "x": 803,
+            "y": 177
+          },
+          {
+            "x": 803,
+            "y": 178
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 8,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 178,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,178,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 177
+          },
+          {
+            "x": 803,
+            "y": 178
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 9,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 179,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,179,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 803,
+            "y": 178
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    },
+    {
+      "offset": 10,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 180,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,180,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 180,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,180,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 11,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 181,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,181,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 181,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,181,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 12,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 182,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,182,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 182,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,182,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 13,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 183,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,183,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 183,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,183,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 14,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 184,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,184,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 184,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,184,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 15,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 185,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,185,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 185,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,185,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 16,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 186,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,186,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 186,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,186,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 17,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 187,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,187,2]"
+        },
+        "reason": "selected",
+        "protectedCells": []
+      },
+      "accepted": [
+        "exterior:794,170"
+      ],
+      "rejected": [
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [
+        {
+          "key": "exterior:794,170",
+          "elements": 2
+        }
+      ],
+      "geometry": {
+        "rootPortalErrors": [],
+        "retainedPortalErrors": [],
+        "childPortalErrors": [
+          {
+            "key": "exterior:794,170",
+            "errors": []
+          }
+        ],
+        "parentShapesOutsideRetainedFill": 0,
+        "allShapesOutsideRootFill": 0,
+        "childShapesOutsideFill": [
+          {
+            "key": "exterior:794,170",
+            "count": 0
+          }
+        ]
+      },
+      "crossings": [
+        {
+          "a": "compound@792,168",
+          "b": "compound@792,168/delegate/exterior%3A794%2C170",
+          "portal": {
+            "axis": "v",
+            "x": 803,
+            "y": 187,
+            "length": 2,
+            "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,187,2]"
+          }
+        }
+      ]
+    },
+    {
+      "offset": 18,
+      "event": {
+        "offerKeys": [
+          "exterior:794,170"
+        ],
+        "a": "compound@792,168",
+        "b": "compound@792,168/delegate/exterior%3A794%2C170",
+        "run": {
+          "axis": "v",
+          "x": 803,
+          "y": 170,
+          "length": 20
+        },
+        "portal": {
+          "axis": "v",
+          "x": 803,
+          "y": 188,
+          "length": 2,
+          "id": "compound@792,168/interface/[\"compound@792,168\",\"compound@792,168/delegate/exterior%3A794%2C170\",\"v\",803,188,2]"
+        },
+        "reason": "protected-footprint",
+        "protectedCells": [
+          {
+            "x": 802,
+            "y": 190
+          },
+          {
+            "x": 803,
+            "y": 190
+          }
+        ]
+      },
+      "accepted": [],
+      "rejected": [
+        {
+          "key": "exterior:794,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+        },
+        {
+          "key": "exterior:829,170",
+          "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+        }
+      ],
+      "cover": [],
+      "geometry": null,
+      "crossings": []
+    }
+  ],
+  "defects": [],
+  "limits": "One current-library 36x18 map and one specific seam. Each offset changes only this seam in a temporary copy of preparation and runs complete incremental admission, including partition, blockers and exact cover receiving preview. Root, retained and child portal reach and fill containment are reported separately against combined primary and preview geometry; errors are not suppressed. Other seams remain centered. Cover element counts are receiver previews, not a regenerated full compound or final gameplay validation. Centered replay equality is asserted for every prepared compound in this map. No policy, production output, version or fixture is changed; this does not establish general benefit or a safe offset selection policy."
+}
