@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-46` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-47` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -132,8 +132,8 @@ default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
 2 × 1 cases). These are the stored case groups, not a new zero-drift run.
 They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
-The current baseline provenance is content commit `ab53527b2129e550147df76fe5e785c0e0482633`,
-captured `2026-10-28T04:16:39.713Z` under Node v24.15.0 (#624 / #531, 42.4).
+The current baseline provenance is content commit `c5db75156713887e1378c3b62c923acc4777d986`,
+captured `2026-10-28T15:42:59.222Z` under Node v24.15.0 (#534 / #529, 42.4).
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash
@@ -165,7 +165,8 @@ integration check and the way to recapture.
   editing a builder, or from a checkout that matches the baseline.
 - `sweep --check FILE --type plant` rebuilds only that type's briefs, in parallel, and compares
   each result's hash with the cache's. `--type` takes a list, and a type bound to another's
-  strategy is replayed with it (`market` is `hall`'s). It reports, per region and not per map:
+  strategy is replayed with it. Market and hall now have independent strategies.
+  It reports, per region and not per map:
   - **`drift`**: the regions whose result moved, by map and region id, with the manifest counts
     that moved (an empty set means the geometry moved and no count did);
   - **`threw`**: the regions whose builder threw on a brief it built before;
@@ -178,7 +179,7 @@ integration check and the way to recapture.
     designed buildings, infill crates), as a total and the number of regions holding any, so a
     corpus too thin to test a feature is visible. A replay is refused, rather than reported
     clean, if the cache holds no region for any one requested strategy; one that was
-    exercised can't stand in for another, though `hall` and `market` count together.
+    exercised can't stand in for another. `hall` and `market` must each be exercised.
 
   Any drift, throw or finding exits 1.
 - **The cache is valid exactly while the baseline's `briefs` and `results` hashes for each

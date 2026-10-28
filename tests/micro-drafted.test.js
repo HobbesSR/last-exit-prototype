@@ -16,24 +16,14 @@ const MASKS = {
   ell: [cellsOf(18, 18, (x, y) => y < 9 || x < 9), [{ id: 'east', axis: 'v', x: 18, y: 2, length: 2 }, { id: 'south', axis: 'h', x: 1, y: 18, length: 3 }]],
 };
 
-// 54, "Drafted types": each is its own name, bound to the nearest built strategy.
-const STAND_INS = { market: 'hall' };
-
-test('market retains the primary hall stand-in without hall-only residual infill', () => {
-  for (const [type, standIn] of Object.entries(STAND_INS)) {
-    assert.equal(REGION_TYPES[type], REGION_TYPES[standIn], `${type} is bound to ${standIn}`);
-    for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of [1, 2, 3]) {
-      const drafted = buildRegion(brief(type, seed, cells, portals)), built = buildRegion(brief(standIn, seed, cells, portals));
-      assert.equal(drafted.brief.type, type);
-      assert.deepEqual(drafted.elements, built.elements.filter(e => !e.label.startsWith('hall-infill-crate-')),
-        `${type} ${name} seed ${seed}`);
-      const { infillCrates, ...primaryManifest } = built.manifest;
-      assert.deepEqual(drafted.manifest, { ...primaryManifest,
-        obstacles: primaryManifest.obstacles - (infillCrates ?? 0), loot: drafted.loot.length });
-      const marketLoot = new Set(drafted.loot.map(site => JSON.stringify(site)));
-      assert.ok(built.loot.every(site => marketLoot.has(JSON.stringify(site))));
-      const check = validatePortalReach({ ...drafted.brief, blockers: drafted.elements.flatMap(element => elementShapes(element)) });
-      assert.deepEqual(check.errors, [], `${type} ${name} seed ${seed} keeps the portal promise`);
-    }
+test('market has its own strategy and keeps the portal promise', () => {
+  assert.notEqual(REGION_TYPES.market, REGION_TYPES.hall);
+  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of [1, 2, 3]) {
+    const market = buildRegion(brief('market', seed, cells, portals));
+    assert.equal(market.brief.type, 'market');
+    assert.ok(market.elements.every(element => element.label.startsWith('market-stall-')));
+    assert.equal(market.manifest.infillCrates, undefined);
+    const check = validatePortalReach({ ...market.brief, blockers: market.elements.flatMap(element => elementShapes(element)) });
+    assert.deepEqual(check.errors, [], `${name} seed ${seed} keeps the portal promise`);
   }
 });

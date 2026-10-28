@@ -28,7 +28,7 @@ try {
   assert.ok((await debug()).portalRoutes.length > 0, 'game builders expose sampled hunter routes for the clearance overlay');
   assert.deepEqual(await page.locator('#builder option').evaluateAll(options => options.map(option => option.value)),
     Object.keys(REGION_TYPES).sort().map(type => `region:${type}`));
-  assert.equal(await page.locator('#builder option[value="region:market"]').textContent(), 'Market (hall strategy)');
+  assert.equal(await page.locator('#builder option[value="region:market"]').textContent(), 'Market');
   // Exercise the catalogue through the browser module loader, including core-site builders.
   for (const type of Object.keys(REGION_TYPES)) {
     await selectBuilder(type);
@@ -44,6 +44,15 @@ try {
     const expected = JSON.parse(JSON.stringify(buildRegion(regionExample({ type: 'market', shape }))));
     assert.notDeepEqual(expected.brief.cells, previousCells, `${shape} has its own cells`);
     assert.deepEqual((await debug()).result, expected, `${shape} control builds its own region`);
+    if (shape === 'l' || shape === 'rectangle') {
+      assert.ok(expected.manifest.stalls > 0, `${shape} has market stalls`);
+      assert.equal(expected.manifest.awnings, expected.manifest.stalls);
+      await page.getByLabel('Show roofs', { exact: true }).check();
+      assert.equal((await debug()).drawn.roofCells,
+        expected.elements.reduce((n, element) => n + element.template.roofs.reduce((m, roof) => m + roof.cells.length, 0), 0));
+      await page.screenshot({ path: `test-results/534-market-${shape === 'l' ? 'l' : 'rectangle'}.png` });
+      await page.getByLabel('Show roofs', { exact: true }).uncheck();
+    }
     previousCells = expected.brief.cells;
   }
   // Exercise production SDK allocation through the browser's module loader and

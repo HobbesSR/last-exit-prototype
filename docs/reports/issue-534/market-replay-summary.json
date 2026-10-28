@@ -1,0 +1,27 @@
+{
+  "contentCommit": "c5db75156713887e1378c3b62c923acc4777d986",
+  "baselineCommit": "ab53527b2129e550147df76fe5e785c0e0482633",
+  "contentVersion": "types-47",
+  "types": [
+    "market"
+  ],
+  "maps": 160,
+  "regions": 390,
+  "features": {
+    "market": {
+      "stalls": {
+        "total": 15313,
+        "regions": 390
+      },
+      "awnings": {
+        "total": 15313,
+        "regions": 390
+      }
+    }
+  },
+  "changedRegions": 390,
+  "threw": [],
+  "reach": "drifted",
+  "reachChecked": 390,
+  "brokenPromises": []
+}

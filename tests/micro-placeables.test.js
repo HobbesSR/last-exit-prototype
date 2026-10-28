@@ -21,6 +21,7 @@ const MACHINERY = new Set(['index.ts', 'placeable.ts', 'frame.ts']);
  * and `REGION_TYPES_VERSION`, then update both here (20.8).
  */
 const PINNED = {
+  'market-stall': ['market-stall-1', 'cde73df150452c0b'],
   warehouse: ['warehouse-2', '909410dc06fd461f'],
   'container-row': ['container-row-1', '9840d185b0ad635e'],
   house: ['house-1', 'c41930e3e9dfa4d7'],
@@ -154,4 +155,36 @@ test('building by id checks what it is given', () => {
   const built = buildPlaceable('container-row', { length: 4, alongX: false }, SIZE);
   assert.deepEqual(built.demand.body, { w: 1, h: 4 });
   assert.equal(built.elements[0].template.parts.length, 2);
+});
+
+test('market stall counters alternate edges and awnings cover the footprint without enclosing it', () => {
+  for (const alongX of [true, false]) for (const length of [2, 3, 4]) {
+    const counters = [];
+    for (const flipped of [false, true]) for (const roofed of [false, true]) {
+      const params = { length, alongX, flipped, roofed };
+      const built = buildPlaceable('market-stall', params, SIZE);
+      const [element] = built.elements, { template } = element;
+      assert.deepEqual(built.demand.body, alongX ? { w: length, h: 2 } : { w: 2, h: length });
+      assert.ok(!template.encloses);
+      const obstacles = template.parts.filter(p => p.part === 'obstacle');
+      assert.equal(obstacles.length, 1);
+      const counter = bounds(obstacles[0].shape);
+      if (!roofed) counters.push(counter);
+      const roofs = template.roofs ?? [];
+      assert.equal(roofs.length, roofed ? 1 : 0);
+      if (roofed) {
+        const covered = new Set(roofs[0].cells.map(c => `${c.x},${c.y}`));
+        assert.equal(covered.size, length * 2);
+        for (let y = 0; y < built.demand.body.h; y++) for (let x = 0; x < built.demand.body.w; x++)
+          assert.ok(covered.has(`${x},${y}`));
+      }
+    }
+    const transverse = counters.map(b => alongX ? b.y : b.x);
+    assert.notEqual(transverse[0], transverse[1], 'flipping moves the counter to the other long edge');
+  }
+  for (const params of [{ length: 1, alongX: true, flipped: false, roofed: true },
+    { length: 2.5, alongX: true, flipped: false, roofed: true },
+    { length: 5, alongX: true, flipped: false, roofed: true },
+    { length: 2, alongX: 'x', flipped: false, roofed: true }])
+    assert.throws(() => buildPlaceable('market-stall', params, SIZE));
 });

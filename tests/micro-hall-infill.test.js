@@ -67,11 +67,13 @@ test('single-portal side lobe remains accessible; rectangular halls and fallback
   assert.equal(fallback.elements.length, 0);
 });
 
-test('market retains its original hall output and manifest', () => {
+test('market uses its own stalls rather than hall residual infill', () => {
   const result = buildRegion(brief(cells, { type: 'market', parameters: { roofed: true } }));
-  assert.equal(digest(result.elements), '7e2fa6824bcc432c8baa2f62d4d60f39563618850b7f4591f5e8f62f40acac02');
+  assert.ok(result.manifest.stalls > 0);
+  assert.equal(result.manifest.awnings, result.manifest.stalls);
   assert.equal(result.manifest.infillCrates, undefined);
-  assert.equal(digest(result.loot), 'd9a91c93a05ea5aa6c592f73c46762702e33ba6ef789dd6f14fc41813948f531');
+  assert.equal(crates(result).length, 0);
+  assert.ok(result.elements.every(element => element.label.startsWith('market-stall-')));
 });
 
 test('the primary rectangle stays reserved when all pillars are protected away', () => {

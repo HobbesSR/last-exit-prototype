@@ -50,7 +50,7 @@ type Box = { x: number; y: number; w: number; h: number };
  *
  * After the primary assembly, hall residual wings may receive crates outside a two-cell
  * buffer around the rectangle. Each crate requires a fully owned two-cell bypass ring
- * and two-cell separation from other pieces. The market stand-in skips this pass.
+ * and two-cell separation from other pieces. Market uses its own dedicated builder.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear
  * of all final obstacles, including pillars, hint walls, crates and gates. A hall sites no

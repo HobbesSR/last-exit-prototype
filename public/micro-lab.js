@@ -112,7 +112,24 @@ function draw() {
   if ($('allocation').checked) drawn.allocation = inWorld(drawAllocation);
   if ($('routes').checked) for (const route of portalRoutes) { ctx.strokeStyle = route.role === 'hunter' ? '#e9ad59' : '#72d8d2'; ctx.lineWidth = Math.max(2, route.radius * scale / 4); ctx.beginPath(); route.points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.stroke(); }
   for (const element of result.elements) for (const part of element.template.parts) if (part.part === 'obstacle') { const points = outline(transform(part.shape, element.x, element.y)); path(points); ctx.fillStyle = part.kind === 'tree' ? '#567d4e' : '#84918c'; ctx.fill(); ctx.strokeStyle = '#c4d3bd'; ctx.lineWidth = 1; ctx.stroke(); }
-  if ($('roofs').checked) for (const element of result.elements) if (element.template.encloses) { const p = project({ x: element.x, y: element.y }); ctx.fillStyle = '#3d2c3bb8'; ctx.fillRect(p.x, p.y, element.template.w * scale, element.template.h * scale); }
+  if ($('roofs').checked) {
+    drawn.roofCells = 0;
+    ctx.fillStyle = '#3d2c3bb8';
+    for (const element of result.elements) {
+      if (element.template.roofs?.length) for (const roof of element.template.roofs) {
+        const unit = roof.cellSize ?? 40;
+        for (const cell of roof.cells) {
+          const p = project({ x: element.x + (roof.origin?.x ?? 0) + cell.x * unit,
+            y: element.y + (roof.origin?.y ?? 0) + cell.y * unit });
+          ctx.fillRect(p.x, p.y, unit * scale, unit * scale);
+          drawn.roofCells++;
+        }
+      } else if (element.template.encloses) {
+        const p = project({ x: element.x, y: element.y });
+        ctx.fillRect(p.x, p.y, element.template.w * scale, element.template.h * scale);
+      }
+    }
+  }
   for (const gate of collision.gates) { const p = project(local(gate)); ctx.fillStyle = gate.open ? '#6abf87' : '#d66955'; ctx.fillRect(p.x - gate.w * scale / 2, p.y - gate.h * scale / 2, gate.w * scale, gate.h * scale); }
   for (const loot of result.loot) { const p = project(loot); ctx.fillStyle = '#f2ca55'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#fff1ae'; ctx.lineWidth = 1; ctx.stroke(); }
   for (const site of result.coreElements) { const p = project(site); ctx.strokeStyle = '#a9a2ff'; ctx.lineWidth = 2; ctx.strokeRect(p.x - 7, p.y - 7, 14, 14); ctx.fillStyle = '#ddd9ff'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(site.kind, p.x, p.y - 11); }
