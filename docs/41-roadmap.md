@@ -250,3 +250,24 @@ new policy answers. Public deployment is not authorized here.
 Removing that mutable test surface is a later hardening step; until then, do not
 claim complete process isolation. Public deployment limits are in
 [28](28-operational-limits.md).
+
+## Portal cords and peripheral handoffs (#643)
+
+Design proposed for review, not implemented: [20.10](20.10-portal-cords.md).
+Source direction is in [17.2.10](17.2.10-portal-cord-direction.md). Implementation
+starts after design review/merge; this sequence is local to this workstream.
+
+| Order | Issue | Functional outcome |
+| --- | --- | --- |
+| 1 | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
+| 2 | [#645](/corey/astra_test/issues/645) | Atomic prospective parcels anywhere in the fill, with deformable connectivity witness |
+| 3 | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing |
+| 4 | [#647](/corey/astra_test/issues/647) | Intentional hut then compound adoption, replacing pragmatic perimeter collars with measured peripheral handoffs |
+
+Each stage depends on the preceding capability. The first SDK milestone accepts
+a useful parcel that fixed protections reject while preserving the portal promise.
+The composition milestone must demonstrate boundary-flush child ownership, not
+just more interior residue. Adoption includes compatibility and recovery review
+under [53](53-map-artifacts-and-tools.md) and [20.7](20.7-builder-delegation.md).
+Broader migrations, envelope relaxation, exact shortest paths and optimal growth
+are not prerequisites.

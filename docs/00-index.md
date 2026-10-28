@@ -158,3 +158,7 @@ on 2026-09-29. Its former docs are archived in
 that were retired when the chain landed (51.14.5, #146). `map/macro/design_notes.txt` is the original
 statement of the map's intent. `map/macro/README.md` covers running it, and
 `map/macro/AGENTS.md` its commands.
+
+## Proposed portal cord tooling (#643)
+
+[17.2.10](17.2.10-portal-cord-direction.md) records source direction and provenance for #643. [20.10](20.10-portal-cords.md) owns the proposed claims, continuous route proofs and peripheral handoffs. Not implemented.

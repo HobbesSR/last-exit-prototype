@@ -126,3 +126,7 @@ Integration with the macro project in `map/macro/` was accepted
 (2026-09-28 and 29) and is live: a region type's strategy, written on this SDK, fills each
 region the macro chain hands down. [50](50-map-generation.md) records who owns
 what, and [51](51-generation-chain.md) the chain.
+
+## Proposed portal cord tooling (#643)
+
+The proposed optional cord SDK in [20.10](20.10-portal-cords.md) combines arbitrary interior placement with carve-first peripheral delegation. It preserves the portal promise and builder ownership of policy; new mechanics are not implemented.
