@@ -88,8 +88,8 @@ strategy built on the micro SDK ([50](50-map-generation.md)). What has shipped:
 
 #### Region population epic #529
 
-Checkpoint as of 2026-10-28; defer to newer direction and status on
-[epic #529](http://192.168.1.170:3000/corey/astra_test/issues/529) and its children.
+Checkpoint as of 2026-10-28; defer to newer direction and status on Forgejo
+epic #529 and its children.
 
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers
 of function and detail, without exhausting incidental minutiae. Apply the
