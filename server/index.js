@@ -75,7 +75,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared'), policy !== 'none'));
 
   // Local physics diagnostics are developer-only even via their static filenames.
-  app.use(['/dev/physics', '/dev/physics-lab.html', '/dev/physics-lab.js', '/dev/physics-lab-model.js'],
+  app.use(['/dev/physics', '/dev/physics-lab.html', '/dev/physics-lab.js', '/dev/physics-lab-model.js', '/dev/squish-shell.js'],
     (req, res, next) => policy === 'none' ? res.sendStatus(404) : next());
 
   if (policy !== 'none') {

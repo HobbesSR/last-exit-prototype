@@ -37,6 +37,9 @@
     .preview-bar h2 { margin: 0; color: #e7f2ec; } .badge { color: #9eb4ae; font-size: .73rem; }
     .arena-surface { min-height: 0; min-width: 0; display: grid; place-items: center; background: #0a1112; container-type: size; padding: 8px; }
     canvas { display: block; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); background: #263b37; touch-action: none; }
+    #squish { margin-top: 14px; }
+    .check { display: flex; align-items: center; gap: 8px; } .check input { width: auto; }
+    #impulse-dial { width: 140px; height: 140px; margin: 0 auto 10px; border-radius: 50%; cursor: crosshair; }
     .caption { border-top: 1px solid #34504d; padding: 8px 12px; }
     output { display: block; font-size: .78rem; color: #abdacc; line-height: 1.4; font-variant-numeric: tabular-nums; }
     .caption .hint { font-size: .73rem; margin-top: 4px; }
@@ -62,31 +65,34 @@
     </header>
     <div class="actions" aria-label="Simulation actions">
       <button id="reset">Start / Reset</button><button id="step">Step tick</button><button id="play">Play</button>
+      <select id="speed" aria-label="Playback speed"><option value="1">1&times; (live rate)</option><option value="0.5">&frac12;&times; slow</option><option value="0.25">&frac14;&times; slow</option></select>
       <span class="hint">Scene, seed and tuning apply on Reset.</span>
     </div>
     <div class="workspace">
       <section class="panel parameters" aria-label="Scene and actor controls">
         <div class="group">
           <h2>Scene</h2>
-          <label>Scenario<select id="scene"><option value="A">A &middot; Collision and crowd</option><option value="B">B &middot; Physical prop</option><option value="C">C &middot; Hook</option></select></label>
+          <label>Scenario<select id="scene"><option value="A">A &middot; Collision and crowd</option><option value="B">B &middot; Physical prop</option><option value="C">C &middot; Hook</option><option value="D">D &middot; Squeeze gauntlet</option><option value="E">E &middot; Jelly</option></select></label>
           <label>Seed<input id="seed" type="number" min="0" step="1" value="449"></label>
         </div>
         <div class="group">
           <h2>Actor</h2>
           <label>Selected actor<select id="actor"></select></label>
-          <div class="button-row"><button id="skill">Skill next tick</button><button id="cast">Cast ahead</button></div>
+          <div class="button-row"><button id="skill" title="The same as pressing Q on the arena">Skill next tick</button><button id="cast" title="A look-ahead along your aim; nothing moves">Cast ahead</button></div>
+          <p class="hint">Cast ahead shows where a wall or crate would stop you, 200 units along your aim. A look-ahead only.</p>
         </div>
         <div class="group">
           <h2>Impulse</h2>
+          <canvas id="impulse-dial" width="140" height="140" role="img" aria-label="Impulse direction and strength. Click or drag to set it."></canvas>
           <div class="pair"><label>X<input id="impulse-x" type="number" value="300" step="10"></label><label>Y<input id="impulse-y" type="number" value="0" step="10"></label></div>
           <button id="impulse">Queue impulse</button>
-          <p class="hint">Applies to the selected actor on the next tick.</p>
+          <p class="hint">Click or drag the circle to aim it: the rim is the Max impulse tuning, the centre is none. Applies to the selected actor on the next tick. With the arena focused, press I to queue it.</p>
         </div>
       </section>
       <section class="panel preview" aria-label="Simulation arena">
         <div class="preview-bar"><h2>Arena</h2><span class="badge">800 &times; 800 world units</span></div>
         <div class="arena-surface"><canvas id="arena" width="800" height="800" tabindex="0" aria-label="Physics playtest arena" aria-describedby="arena-help"></canvas></div>
-        <div class="caption"><output id="status" role="status">Select a scene and start.</output><p class="hint" id="arena-help">Click arena to control &middot; WASD move &middot; Pointer aim &middot; Space skill &middot; Enter interact</p></div>
+        <div class="caption"><output id="status" role="status">Select a scene and start.</output><output id="readout"></output><output id="events"></output><p class="hint" id="arena-help">Click arena to control &middot; WASD or arrows move &middot; Pointer aim &middot; Q skill &middot; E interact &middot; I impulse</p></div>
       </section>
       <aside class="panel inspector" aria-label="Tuning, recording and help">
         <fieldset id="tuning"><legend>Character tuning</legend>
@@ -96,8 +102,16 @@
           <label>Max speed <input data-tune="maxSpeed" type="number" min="1" max="100000" step="1"></label>
           <label>Contestant body radius <input data-tune="contestantBodyRadius" type="number" min="1" max="100" step="0.1"></label>
           <label>Gladiator body radius <input data-tune="gladiatorBodyRadius" type="number" min="1" max="100" step="0.1"></label>
+          <label>Hook cooldown (ticks, 20 = 1 s) <input data-tune="hookCooldown" type="number" min="1" max="100000" step="1"></label>
         </fieldset>
         <p class="hint">Copied match-pinned values. Reset creates a fresh world with these settings.</p>
+        <fieldset id="squish">
+          <legend>Squish shell (lab only)</legend>
+          <label class="check"><input id="squish-show" type="checkbox" checked> Show shell and crush state</label>
+          <label>Shell thickness beyond the body (units) <input id="squish-thickness" type="number" min="1" max="60" step="1"></label>
+          <label>Crush after held (ticks) <input id="squish-hold" type="number" min="1" max="200" step="1"></label>
+          <p class="hint">A soft outline around each solid body, flattened by whatever is closest in each direction, read the same tick. Crushed means two opposite sides are flattened to the body for the hold time. Applies live, is not recorded, and changes nothing in the simulation. Try scene D: select c1 and push c0 into a wall.</p>
+        </fieldset>
         <details open>
           <summary>Recording</summary>
           <div class="button-row"><button id="export">Export JSON</button><button id="download">Download JSON</button><button id="import">Import and rerun</button></div>
@@ -107,7 +121,7 @@
         <details>
           <summary>Controls and diagnostic legend</summary>
           <p class="hint">Step advances one 50 ms tick. Play runs fixed ticks. Cast ahead sweeps 200 units against static geometry and solid props; actors and sensor loot are excluded.</p>
-          <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
+          <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Pale dots: the selected actor's last 40 ticks, one per tick, so wide gaps are fast and bunched dots are slow. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
         </details>
       </aside>
     </div>

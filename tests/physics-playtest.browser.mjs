@@ -124,7 +124,7 @@ try {
   const hookArena = await page.locator('#arena').boundingBox();
   await page.mouse.move(hookArena.x + hookArena.width * 700 / 800, hookArena.y + hookArena.height * 400 / 800);
   await page.locator('#arena').focus();
-  await page.keyboard.press('Space');
+  await page.keyboard.press('KeyQ');
   await page.evaluate(() => document.querySelector('#step').click());
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const hook = JSON.parse(await page.locator('#recording').inputValue());
@@ -152,9 +152,11 @@ try {
     await page.getByRole('button', { name: 'Start / Reset' }).click();
     await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
     await page.locator(selector).focus();
-    for (const key of ['KeyD', 'Space', 'Enter']) await page.keyboard.down(key);
+    // A number field accepts "e" and a select moves on an arrow, so only the text area takes E and arrows.
+    const typed = selector === '#recording' ? ['KeyD', 'ArrowRight', 'KeyQ', 'KeyE'] : ['KeyD', 'KeyQ'];
+    for (const key of typed) await page.keyboard.down(key);
     await page.evaluate(() => document.querySelector('#step').click());
-    for (const key of ['Enter', 'Space', 'KeyD']) await page.keyboard.up(key);
+    for (const key of typed.toReversed()) await page.keyboard.up(key);
     await page.getByRole('button', { name: 'Export JSON' }).click();
     const record = JSON.parse(await page.locator('#recording').inputValue());
     assert.equal(record.trace.length, 1, `${selector} editing leaves one stepped input; status=${await page.locator('#status').textContent()}; seed=${await page.locator('#seed').inputValue()}`);
@@ -172,7 +174,7 @@ try {
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const focusRecord = JSON.parse(await page.locator('#recording').inputValue());
   assert.equal(focusRecord.trace[0].input.x, 0, 'focusing a form field clears held movement');
-  for (const key of ['Enter', 'Space']) {
+  for (const key of ['KeyE', 'KeyQ']) {
     await page.getByRole('button', { name: 'Start / Reset' }).click();
     await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
     await page.locator('#arena').focus();
@@ -180,13 +182,170 @@ try {
     await page.getByRole('button', { name: 'Step tick' }).click();
     for (let repeat = 0; repeat < 3; repeat++) await page.keyboard.down(key);
     await page.keyboard.up(key);
+    await page.getByRole('button', { name: 'Step tick' }).click();
     await page.getByRole('button', { name: 'Export JSON' }).click();
     const record = JSON.parse(await page.locator('#recording').inputValue());
-    assert.equal(record.trace.length, 1, `held ${key} does not trigger extra Step clicks after button focus`);
-    assert.equal(record.frames.length, 2, `held ${key} advances exactly one tick`);
-    assert.equal(record.trace[0].input.interact, key === 'Enter', `${key} initial canvas input interacts only for Enter`);
-    assert.equal(record.trace[0].input.skill, key === 'Space', `${key} initial canvas input uses skill only for Space`);
+    assert.equal(record.trace.length, 2, `held ${key} adds no extra Step clicks after button focus`);
+    assert.equal(record.frames.length, 3, `held ${key} advances exactly the stepped ticks`);
+    assert.equal(record.trace[0].input.interact, key === 'KeyE', `${key} pressed on the arena interacts only for E`);
+    assert.equal(record.trace[0].input.skill, key === 'KeyQ', `${key} pressed on the arena uses skill only for Q`);
+    assert.equal(record.trace[1].input.interact || record.trace[1].input.skill, false, `${key} is a one-shot press like the live client, not held`);
   }
+  await page.getByRole('button', { name: 'Start / Reset' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+  await page.locator('#arena').focus();
+  await page.keyboard.down('ArrowRight');
+  await page.keyboard.down('ArrowDown');
+  await page.getByRole('button', { name: 'Step tick' }).click();
+  await page.keyboard.up('ArrowRight');
+  await page.keyboard.up('ArrowDown');
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const arrows = JSON.parse(await page.locator('#recording').inputValue());
+  assert.deepEqual([arrows.trace[0].input.x, arrows.trace[0].input.y], [1, 1], 'arrow keys move like WASD');
+  await page.locator('#impulse-dial').scrollIntoViewIfNeeded();
+  const dial = await page.locator('#impulse-dial').boundingBox();
+  const pick = async (dx, dy) => {
+    await page.mouse.click(dial.x + dial.width / 2 + dx, dial.y + dial.height / 2 + dy);
+    return [Number(await page.locator('#impulse-x').inputValue()), Number(await page.locator('#impulse-y').inputValue())];
+  };
+  const maxImpulse = Number(await page.locator('[data-tune="maxImpulse"]').inputValue());
+  assert.deepEqual(await pick(0, 0), [0, 0], 'the dial centre is no impulse');
+  assert.deepEqual(await pick(60, 0), [maxImpulse, 0], 'the dial rim at right is the full impulse along +x');
+  assert.deepEqual(await pick(0, -60), [0, -maxImpulse], 'up on the dial is -y, as in the arena');
+  const [cx, cy] = await pick(48, 48);
+  assert.ok(Math.hypot(cx, cy) <= maxImpulse + 0.5 && cx > 0 && cy > 0, `a pick outside the rim clamps to it: ${cx}, ${cy}`);
+  await pick(0, 60);
+  await page.locator('#arena').focus();
+  await page.keyboard.press('KeyI');
+  await page.getByRole('button', { name: 'Step tick' }).click();
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const keyed = JSON.parse(await page.locator('#recording').inputValue());
+  const queued = keyed.trace.find(action => action.kind === 'impulse');
+  assert.deepEqual(queued?.value, { x: 0, y: maxImpulse }, 'I queues the dial value for the selected actor');
+  assert.deepEqual([queued.tick, keyed.trace.at(-1).tick], [1, 2], 'the key-queued impulse lands before the next stepped tick');
+  await page.locator('#impulse-y').fill('-150');
+  await page.locator('#arena').focus();
+  await page.keyboard.press('KeyI');
+  assert.match(await page.locator('#status').textContent(), /Impulse \(0, -150\) queued/, 'typed fields remain the exact form');
+  assert.match(await page.locator('#readout').textContent(), /^c0: speed [1-9]\d* u\/s · target \d+ u\/s · peak [1-9]\d* u\/s in the last 2 s/,
+    'the readout reports the stepped actor moving');
+  // A slower speed only stretches the timer gap between the same fixed ticks.
+  await page.evaluate(() => {
+    const real = window.setInterval; window.__gaps = [];
+    window.setInterval = (fn, gap, ...rest) => { window.__gaps.push(gap); return real(fn, gap, ...rest); };
+  });
+  await page.locator('#speed').selectOption('0.25');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await page.locator('#speed').selectOption('1');
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => window.__gaps), [200, 50], 'quarter speed waits four times as long; changing speed restarts the timer');
+  // The hook cooldown is tunable, displayed, and what gates a relaunch.
+  await page.locator('#scene').selectOption('C');
+  assert.equal(await page.locator('[data-tune="hookCooldown"]').inputValue(), '140', 'the field defaults to the content value');
+  await page.locator('[data-tune="hookCooldown"]').fill('6');
+  await page.getByRole('button', { name: 'Start / Reset' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+  await page.locator('#actor').selectOption('g0');
+  const press = async () => { await page.locator('#skill').click(); await page.locator('#step').click(); };
+  await press();
+  assert.match(await page.locator('#readout').textContent(), /skill cooldown \d\.\d s/, 'the cooldown is shown after a launch');
+  await press();
+  await press();
+  await page.evaluate(() => { for (let i = 0; i < 6; i++) document.getElementById('step').click(); });
+  await press();
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const cooled = JSON.parse(await page.locator('#recording').inputValue());
+  assert.deepEqual([cooled.content.hook.cooldownTicks, cooled.content.kits.hook.cooldown], [6, 6]);
+  assert.deepEqual([1, 2, 3, 10].map(tick => cooled.frames[tick].hookFlights?.length ?? 0), [1, 0, 0, 1],
+    'launch, release, refused while cooling down, then ready again');
+  await page.locator('[data-tune="hookCooldown"]').fill('140');
+  await page.locator('#scene').selectOption('A');
+  // The squish shell: outline from clearance, a pinch rule, and a real push into the arena edge.
+  const squish = await page.evaluate(async () => {
+    const { PhysicsLab, sceneConfig } = await import('/dev/physics-lab-model.js');
+    const { squishShell, stepSquish, SQUISH } = await import('/dev/squish-shell.js');
+    const { solidBlockers } = await import('/shared/simulation/swept.ts');
+    const lab = new PhysicsLab();
+    try {
+      await lab.start(sceneConfig('D'));
+      const core = lab.game.content.actorPhysics.geometry.contestant.bodyRadius, blockers = solidBlockers(lab.game);
+      const shell = (x, y, others = []) => squishShell({ x, y }, core, SQUISH.thickness, blockers, others);
+      const pushed = { open: shell(240, 400), oneSide: shell(200, 342), slit: shell(600, 400),
+        between: shell(240, 400, [{ x: 240 - 2 * core, y: 400, radius: core }, { x: 240 + 2 * core, y: 400, radius: core }]) };
+      let state; const crushed = [0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.7, 0.62, 0.3].map(value => (state = stepSquish(state, value)).crushed);
+      const body = id => lab.frame().bodies.find(entry => entry.id === `actor:${id}`);
+      const drive = (id, input, until, limit = 120) => { lab.selected = id; for (let i = 0; i < limit && !until(); i++) lab.tick(input); };
+      drive('c0', { x: -1 }, () => body('c0').x < 14);
+      const alone = lab.shells.get('c0').squeeze;
+      // c1 moves up to 30 units a tick, so line it up with a proportional steer rather than a bang-bang drive.
+      const clamp = value => Math.max(-1, Math.min(1, value));
+      const steer = (id, x, y, ticks, push = false) => {
+        lab.selected = id;
+        for (let i = 0; i < ticks; i++) { const at = body(id); lab.tick({ x: push ? -1 : clamp((x - at.x) / 40), y: clamp((y - at.y) / 40) }); }
+      };
+      steer('c1', body('c0').x + 70, body('c0').y, 40);
+      steer('c1', 0, body('c0').y, 14, true);
+      const pinned = lab.shells.get('c0').squeeze;
+      drive('c1', { x: 1 }, () => body('c1').x > body('c0').x + 60);
+      for (let i = 0; i < 3; i++) lab.tick({});
+      return { core, thickness: SQUISH.thickness, reach: core + SQUISH.thickness, open: pushed.open.squeeze, openMin: Math.min(...pushed.open.radii),
+        oneSide: pushed.oneSide.squeeze, slit: pushed.slit.squeeze, between: pushed.between.squeeze, crushed,
+        alone, pinned, released: lab.shells.get('c0').squeeze, events: lab.squishEvents.map(({ actorId, type }) => `${actorId} ${type}`) };
+    } finally { lab.dispose(); }
+  });
+  const near = (actual, expected, label) => assert.ok(Math.abs(actual - expected) < 0.02, `${label}: ${actual} vs ${expected}`);
+  const { thickness } = squish;
+  assert.equal(squish.openMin, squish.reach, 'a body in the open keeps its whole shell');
+  assert.equal(squish.open, 0, 'nothing in reach reads no squeeze');
+  near(squish.oneSide, (2 * squish.reach - 12 - squish.reach) / (2 * thickness), 'one wall 12 units away flattens one side only');
+  near(squish.slit, (2 * squish.reach - 28) / (2 * thickness), 'the 28-unit slit pinches both sides');
+  near(squish.between, 1, 'two bodies touching either side pinch it fully');
+  assert.deepEqual(squish.crushed, [false, false, false, false, false, true, true, true, false], 'crushed after the hold, held through 0.6, released below 0.6');
+  assert.ok(squish.alone > 0.3 && squish.alone < 0.6, `c0 alone against the arena edge is flattened on one side only: ${squish.alone}`);
+  assert.ok(squish.pinned >= 0.9, `c1 pushing c0 into the arena edge pinches it: ${squish.pinned}`);
+  assert.ok(squish.released < 0.6, `c0 recovers once released: ${squish.released}`);
+  assert.deepEqual(squish.events, ['c0 crushed', 'c0 recovered'], 'one crush and one recovery, in order');
+  await page.locator('#scene').selectOption('D');
+  await page.getByRole('button', { name: 'Start / Reset' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+  assert.match(await page.locator('#readout').textContent(), /squish 0%/, 'scene D starts free of any squeeze');
+  assert.equal(await page.locator('#squish-thickness').inputValue(), String(thickness), 'the field starts at the shell default');
+  await page.locator('#squish-thickness').fill('20');
+  await page.locator('#squish-show').uncheck();
+  await page.locator('#squish-show').check();
+  await page.locator('#squish-thickness').fill(String(thickness));
+  // The jelly of 42.21 as ordinary world bodies, within the world's 8-constraint limit.
+  const jelly = await page.evaluate(async () => {
+    const { PhysicsLab, sceneConfig, JELLY } = await import('/dev/physics-lab-model.js');
+    const lab = new PhysicsLab(), again = new PhysicsLab();
+    try {
+      await lab.start(sceneConfig('E'));
+      const body = id => lab.frame().bodies.find(entry => entry.id === id);
+      const nodes = () => Array.from({ length: JELLY.nodes }, (_, i) => body(`jelly:n${i}`));
+      const spokes = () => nodes().map(node => Math.hypot(node.x - body('jelly:core').x, node.y - body('jelly:core').y));
+      const out = { bodies: lab.frame().bodies.length, tethers: lab.frame().tethers.length, ring: JELLY.ring, node: JELLY.nodeRadius };
+      let minSpoke = Infinity, farthest = 0, finite = true;
+      for (let i = 0; i < 90; i++) {
+        lab.tick({ x: 1 });
+        minSpoke = Math.min(minSpoke, ...spokes()); farthest = Math.max(farthest, ...nodes().map(node => node.x));
+        finite &&= spokes().every(Number.isFinite);
+      }
+      for (let i = 0; i < 20; i++) lab.tick({ x: -1 });
+      for (let i = 0; i < 100; i++) lab.tick({});
+      Object.assign(out, { minSpoke, farthest, finite, worstRadial: Math.max(...spokes().map(length => Math.abs(length - JELLY.ring))) });
+      try { await again.import(lab.export()); out.replay = 'match'; } catch (error) { out.replay = error.message; }
+      return out;
+    } finally { lab.dispose(); again.dispose(); }
+  });
+  assert.deepEqual([jelly.bodies, jelly.tethers], [10, 8], 'scene E holds the actor, the jelly core and eight nodes on eight spokes');
+  assert.ok(jelly.finite, 'every spoke stays finite');
+  assert.ok(jelly.minSpoke < jelly.ring - 3, `pushed into the wall the ring deforms: shortest spoke ${jelly.minSpoke} of ${jelly.ring}`);
+  assert.ok(jelly.farthest + jelly.node <= 560 + 0.1, `no node passes the wall face at 560: ${jelly.farthest + jelly.node}`);
+  assert.ok(jelly.worstRadial < 0.01, `released, the ring recovers its rest radius: ${jelly.worstRadial}`);
+  assert.equal(jelly.replay, 'match', 'an exported jelly recording reruns to identical frames');
+  // Leave the status past "Tick 0" so the next reset's wait for it cannot return before that reset finishes.
+  await page.locator('#step').click();
+  await page.locator('#scene').selectOption('A');
   await page.getByRole('button', { name: 'Start / Reset' }).click();
   await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
   await page.getByRole('button', { name: 'Step tick' }).focus();
@@ -206,7 +365,7 @@ try {
   assert.equal(await page.locator('#status').textContent(), paused, 'Pause stops fixed ticks');
   assert.deepEqual(errors, []);
   await page.screenshot({ path: 'test-results/physics-playtest.png', fullPage: true });
-  console.log(JSON.stringify({ passed: true, checks: ['desktop and narrow layout', 'pointer aim after resize', 'form input isolation', 'held shortcut repeat and fresh button activation', 'play/pause', 'local start and movement', 'reset pins tuning', 'export/import exact rerun', 'A/B/C scenes', 'no console errors'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['desktop and narrow layout', 'pointer aim after resize', 'form input isolation', 'held shortcut repeat and fresh button activation', 'play/pause', 'local start and movement', 'reset pins tuning', 'export/import exact rerun', 'A/B/C scenes', 'squish shell and jelly scenes', 'no console errors'] }));
   await page.close();
 } finally { await browser.close(); await server.close(); }
 
@@ -214,7 +373,7 @@ const disabled = await createArenaServer({ profileSummary: false, devTools: 'non
   replayDir: 'test-results/physics-playtest-disabled-replays' });
 try {
   const disabledBase = await listen(disabled);
-  for (const path of ['/dev/physics', '/dev/physics-lab.html', '/dev/physics-lab.js', '/dev/physics-lab-model.js']) {
+  for (const path of ['/dev/physics', '/dev/physics-lab.html', '/dev/physics-lab.js', '/dev/physics-lab-model.js', '/dev/squish-shell.js']) {
     assert.equal((await fetch(`${disabledBase}${path}`)).status, 404, `${path} stays hidden without dev tools`);
   }
 } finally { await disabled.close(); }
