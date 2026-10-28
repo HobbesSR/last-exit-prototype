@@ -31,7 +31,7 @@ export type RegionTypeRegistry = Readonly<Record<RegionTypeId, RegionStrategy>>;
 
 /**
  * The game's region types. Each catalogue type (54) is registered under its own name, with
- * its strategy in `strategies/`; a drafted one is bound to its nearest built strategy.
+ * its own strategy in `strategies/`. No current type uses a shared-strategy stand-in.
  */
 export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   open: buildOpen,

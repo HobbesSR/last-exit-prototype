@@ -93,7 +93,6 @@ test('market fills both wings of an L and ignores cell ordering', () => {
   assert.deepEqual(buildRegion(reorderedBrief(input, 42)).elements, result.elements);
 });
 
-
 test('market rows alternate counter edges and share seeded cross-lanes', () => {
   const result = buildRegion(field(38, 22, { seed: 3 }));
   const rows = new Map();

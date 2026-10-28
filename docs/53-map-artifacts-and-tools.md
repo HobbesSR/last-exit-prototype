@@ -179,7 +179,7 @@ integration check and the way to recapture.
     designed buildings, infill crates), as a total and the number of regions holding any, so a
     corpus too thin to test a feature is visible. A replay is refused, rather than reported
     clean, if the cache holds no region for any one requested strategy; one that was
-    exercised can't stand in for another, though `hall` and `market` count together.
+    exercised can't stand in for another. `hall` and `market` must each be exercised.
 
   Any drift, throw or finding exits 1.
 - **The cache is valid exactly while the baseline's `briefs` and `results` hashes for each

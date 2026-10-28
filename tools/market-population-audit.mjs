@@ -126,7 +126,7 @@ try {
   const sourceHashes = Object.fromEntries(await Promise.all(paths.map(async path => [path, createHash('sha256').update(await readFile(path)).digest('hex')])));
   const report = { audit: 'market-population-1', baselineRef, baselineCommit, commit: git('rev-parse', 'HEAD'),
     baselineSourceHash: createHash('sha256').update(oldSource).digest('hex'), sourceHashes,
-    dirty: git('status', '--porcelain'), createdAt: new Date().toISOString(), node: process.version,
+    dirty: git('status', '--porcelain', '--untracked-files=no'), createdAt: new Date().toISOString(), node: process.version,
     contentVersion: REGION_TYPES_VERSION, maps, direct,
     limits: 'Only the historical hall strategy is pinned; both builds use current dependencies and exactly the same current market briefs. Three authored maps and four chain-like direct shapes are bounded samples. Roof cells count explicit roof cells only; legacy enclosing buildings and their rectangular footprint in cell units are estimated separately. Physical area is a sum of primitive areas, not a union. At most four retained baseline loot sites use contestant routes; up to four new stalls have four sampled hunter targets one cell beyond their footprint, checked in both builds. Missing first portal yields unreachable targets. Portal and route search is sampled and a miss does not prove no route exists. New errors and access losses are compared with the baseline; pre-existing failures and map defects are recorded. No exhaustive reachability or balance claim.' };
   const out = resolve(args.get('out') ?? 'test-results/534/market.json');

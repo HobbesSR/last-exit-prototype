@@ -2,8 +2,8 @@
 
 Status: every type in the catalogue below has a strategy registered in
 `REGION_TYPES` (`map/micro/region-types.ts`), and the shipped libraries use
-them all; the drafted `market` is bound to `hall`'s strategy until its own is
-written. First drafted 2026-10-02 (B2, #85). Corey's answers to its questions,
+them all. Each type now has its own strategy, including `market` (#534).
+First drafted 2026-10-02 (B2, #85). Corey's answers to its questions,
 17 M18 to M25, are recorded in 17 and applied here. The catalogue itself stayed
 deferred (M18): B3 and B4 built its minimal set to hook the chain up top to
 bottom, and further types followed. Marked proposals and numbers are not
@@ -102,7 +102,7 @@ Builder mechanics are in [20.3](20.3-builders-decomposition.md).
 | --- | --- |
 | [54.1](54.1-ground-and-friction.md) | The `open` ground and the friction types: `cover`, `rubble`, `ruins` and `hall`. |
 | [54.2](54.2-structures.md) | The structure section: `checkpoint`, `park`, `hut`, `depot`, `plant` and `compound`. The catalogue table lists `checkpoint` and `park` in the friction family; their entries sit in this section. |
-| [54.3](54.3-district-and-drafted.md) | The `block` district, which decomposes into the other types, and the drafted `market`. |
+| [54.3](54.3-district-and-drafted.md) | The `block` district, which decomposes into the other types, and `market` stall rows. |
 | [54.4](54.4-core-element-classes.md) | The core element classes: `arrival`, `departure`, `charging` and `transit`. |
 
 ## Today's names
@@ -144,7 +144,7 @@ above).
 | `depot` | `example-depot` (built, #159) | — |
 | `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
 | `block` | `decomposition/example.ts`, the retired `realize.ts` and `negotiate.ts` (built on spacing instead, #161) | — |
-| `market` | `hall` (its stand-in) | `pillar-hall` |
+| `market` | Dedicated `market-stall` rows and awnings (#534) | Former stand-in: `pillar-hall` via `hall` |
 | `plant` | `depot`'s warehouse for its shed (built, #219) | — |
 | `checkpoint` | `cover`'s barriers and `depot`'s warehouse for its post (built, #220) | — |
 | `park` | `cover`'s spacing, its clusters' aisles (built, #221) | `open-field` |
@@ -222,7 +222,7 @@ These landing links preserve bookmarks into the former single file.
 
 <a id="drafted-types"></a>
 
-- Drafted types: [54.3](54.3-district-and-drafted.md#drafted-types).
+- Former drafted types: [54.3](54.3-district-and-drafted.md#market); `market` now has its own builder.
 
 <a id="market"></a>
 

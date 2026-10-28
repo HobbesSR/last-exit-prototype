@@ -322,8 +322,8 @@ catalogue, and it grows from here. The fixture libraries in
 `map/macro/tests/fixtures/` stay with the stage tests.
 
 - **Classes:** one per catalogue type, each bound to the region type of the
-  same name. A drafted type paints its own name and builds what its stand-in
-  builds (54, "Drafted types").
+  same name. The registry can bind a drafted type to a stand-in under that
+  name, but no current type needs one: `market` has its own builder (54.3).
 - **Tiles:**
   - `field`: plain open ground, a light fallback in the fill (weight 2.5, down
     from 6 in #214). Its perimeter explicitly states `any`, allowing a neighboring tile's passable promise or hint to resolve it.
