@@ -24,6 +24,16 @@ export interface PatchOffer {
 export interface PreparedPatch { key: string; brief: RegionBrief }
 export interface PatchRejection { key: string; reason: string }
 export interface BriefCrossing { a: string; b: string; portal: Portal }
+/** One crossing candidate examined while preparing a particular set of offers. */
+export interface CrossingCandidateEvent {
+  offerKeys: string[];
+  a: string;
+  b: string;
+  run: Run;
+  portal: Portal | null;
+  reason: 'too-short' | 'protected-footprint' | 'blocked-travel' | 'selected';
+  protectedCells: Cell[];
+}
 export interface PreparedDelegation {
   retained: RegionBrief;
   children: PreparedPatch[];
@@ -252,13 +262,15 @@ export function prepareCanonicalInitialPartition(input: RegionBrief, children: r
 }
 
 /** Prepare builder-authored offers only; malformed requests throw, ordinary infeasibility retains cells with reasons. */
-export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy): PreparedDelegation {
+export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy,
+  observer?: (event: CrossingCandidateEvent) => void): PreparedDelegation {
   if (typeof policy?.receiving !== 'function') throw new Error('Preparation needs explicit receiving-builder feasibility policy.');
-  return prepareCanonicalDelegation(canonicalDelegationBrief(input), offers, policy);
+  return prepareCanonicalDelegation(canonicalDelegationBrief(input), offers, policy, observer);
 }
 
 /** Internal executor path: input has already passed canonicalDelegationBrief or preparation. */
-export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy): PreparedDelegation {
+export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy,
+  observer?: (event: CrossingCandidateEvent) => void): PreparedDelegation {
   if (typeof policy?.receiving !== 'function') throw new Error('Preparation needs explicit receiving-builder feasibility policy.');
   const owned = new Set(parent.cells.map(cellKey));
   const keys = new Set<string>(), requested = new Set<string>();
@@ -327,16 +339,22 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
     for (const seam of boundaryRuns(local)) {
       let selected: Portal | undefined;
       for (const run of [...seam.runs].sort((a, b) => b.length - a.length || a.axis.localeCompare(b.axis) || a.y - b.y || a.x - b.x)) {
-        if (run.length < width) continue;
+        const emit = observer ? (reason: CrossingCandidateEvent['reason'], portal: Portal | null, protectedCells: Cell[] = []) =>
+          observer(structuredClone({ offerKeys: accepted.map(o => o.key), a: seam.a, b: seam.b, run, portal, reason, protectedCells })) : undefined;
+        if (run.length < width) { emit?.('too-short', null); continue; }
         const offset = Math.floor((run.length - width) / 2);
         const crossing = { axis: run.axis, x: run.x + (run.axis === 'h' ? offset : 0), y: run.y + (run.axis === 'v' ? offset : 0), length: width };
         const portal: Portal = { ...crossing, id: `${parent.id}/interface/${JSON.stringify([seam.a, seam.b, crossing.axis, crossing.x, crossing.y, crossing.length])}` };
         if (parent.portals.some(p => p.id === portal.id)) throw new Error('Generated crossing identity collides with inherited portal.');
-        if (protectedAddresses.length && clearFootprint([portal], protectedAddresses).length) continue;
+        const protectedIntersection = protectedAddresses.length ? clearFootprint([portal], protectedAddresses) : [];
+        if (protectedIntersection.length) { emit?.('protected-footprint', portal, protectedIntersection); continue; }
         const playableMask = mask ??= createRegionMask({ cells: [...parent.cells, ...parent.clearCells!], cellSize: parent.cellSize });
         const owner = local.find(b => b.id === seam.a)!;
         const stands = portalStands({ ...owner, portals: [portal] })[0]!.points;
-        if (!stands.length || !stands.every((p, i) => travelClear(playableMask, blockers, p, stands[Math.max(0, i - 1)]!, radius))) continue;
+        if (!stands.length || !stands.every((p, i) => travelClear(playableMask, blockers, p, stands[Math.max(0, i - 1)]!, radius))) {
+          emit?.('blocked-travel', portal); continue;
+        }
+        emit?.('selected', portal);
         selected = portal; break;
       }
       if (!selected) throw new InfeasiblePatch(`No compatible hunter crossing between ${seam.a} and ${seam.b}.`);
