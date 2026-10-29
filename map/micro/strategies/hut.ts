@@ -195,11 +195,14 @@ function peripheralOffers(brief: RegionBrief): PatchOffer[] {
     const id = `${x},${y},${w},${h}`;
     if (seen.has(id)) continue;
     seen.add(id);
+    if (w * h > cells.length) continue;
     const patch = [];
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
-      if (owned.has(i, j)) patch.push({ x: i, y: j });
+    let complete = true;
+    for (let j = y; j < y + h && complete; j++) for (let i = x; i < x + w; i++) {
+      if (!owned.has(i, j)) { complete = false; break; }
+      patch.push({ x: i, y: j });
     }
-    if (patch.length !== w * h) continue;
+    if (!complete) continue;
     offers.push({ key: `yard:${id}`, cells: patch, type: 'cover', reasonTags: ['unused-yard-lobe'] });
     if (offers.length === 36) break;
   }
