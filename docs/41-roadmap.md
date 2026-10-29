@@ -112,8 +112,9 @@ plant, ruins and cover currently freeze routes before content placement; residua
 infill cannot negotiate meaningful primary parcels across those routes. Existing
 canvas, placeables, infill and recovery infrastructure remains useful. This is
 a composition opportunity, not evidence that prior deliveries are defective.
-With #646's optional handoff transaction implemented, establish #647's measured hut
-adoption. Also select a contrasting fixed-route builder (depot or market are
+#647's hut-only milestone adopts #646's handoff transaction for useful boundary
+rectangles with movable yard routes; review its visual, geometry, recovery and
+cost evidence in 42.3 before compound adoption. Also select a contrasting fixed-route builder (depot or market are
 candidates) for an opt-in comparison of composition, entrance/side-pocket access,
 useful handoff shapes, determinism/recovery and generation cost. Portal connectivity
 alone does not preserve authored aisles or doorstep access. Reassess earlier #529
@@ -272,14 +273,15 @@ This is also a shared prerequisite for #529's composition sequence above.
 | Done | [#645](/corey/astra_test/issues/645) | Opt-in atomic retained-content parcels anywhere in the fill, with deformable connectivity witness; no production adoption |
 | 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
 | Done | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing; synthetic fixtures and recovery, no production adoption |
-| 4 | [#647](/corey/astra_test/issues/647) | Intentional hut then compound adoption, replacing pragmatic perimeter collars with measured peripheral handoffs |
+| Hut milestone | [#647](/corey/astra_test/issues/647) | Hut milestone approved in #654; compound adoption is outside that milestone. Each builder may choose interior or boundary handoffs (17.2.10) |
 
 Growth (#649) remains independent of the implemented handoffs (#646).
 Both no-transfer handoffs and whole-child portal transfer have synthetic coverage.
 Hut adoption in #647 may start on the no-transfer capability if its selected
 peripheral patches retain original portals; it must not claim transfer coverage.
-Current hut delegation uses the retained-portal default. Candidate usefulness
-and final geometry still need measured evidence after collar removal.
+Hut uses explicit retained-portal handoffs. Its boundary rectangles, interior-first
+reroute witness and thorough final geometry are measured in 42.3; no production
+whole-portal transfer is claimed.
 The first SDK milestone accepts
 a useful parcel that fixed protections reject while preserving the portal promise.
 The composition milestone must demonstrate boundary-flush child ownership, not

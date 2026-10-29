@@ -1,5 +1,5 @@
 import type { Side } from '../port-terms.ts';
-import { circle } from '../../../shared/shape.ts';
+import { circle, rect } from '../../../shared/shape.ts';
 import { rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
@@ -7,13 +7,13 @@ import { portalStands } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { HOUSE } from '../placeables/house.ts';
 import type { HouseDetails } from '../placeables/house.ts';
-import { demandShapes, placedElements } from '../placeables/placeable.ts';
+import { placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
-import { createAddressedArea } from '../addressed.ts';
+import { createProspectiveParcels } from '../prospective-parcels.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
@@ -71,21 +71,46 @@ export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltR
   return { ...result, brief };
 }
 
+/** Detached observations of the optional yard delegation attempt. */
+export interface HutYardDiagnostics {
+  briefId: string;
+  outcome: 'no-fill' | 'no-house' | 'no-eligible-candidates' | 'init' | 'claim' | 'populate' | 'settle' | 'all-refused' | 'delegated';
+  reason?: string;
+  considered: number;
+  filtered: number;
+  probed: number;
+  accepted: number;
+  refusals: Record<string, number>;
+  eligibleOffers: PatchOffer[];
+  probes: Array<{ key: string; verdict: 'accepted' | 'refused'; reason?: string }>;
+}
+export interface HutExecutionOptions extends ExecutionOptions {
+  observeYard?: (diagnostics: HutYardDiagnostics) => void;
+}
+const yardDiagnostics = (briefId: string, outcome: HutYardDiagnostics['outcome']): HutYardDiagnostics =>
+  ({ briefId, outcome, considered: 0, filtered: 0, probed: 0, accepted: 0, refusals: {}, eligibleOffers: [], probes: [] });
+
 /** Owning generation object for inspection and versioned snapshot recovery (20.7). */
-export function buildHutGeneration(brief: RegionBrief, options: ExecutionOptions = {}) {
+export function buildHutGeneration(brief: RegionBrief, options: HutExecutionOptions = {}) {
   // Preparation rechecks receivers as interfaces change. Reuse only an exact
   // interface's cover preview within this invocation, including for dispatch.
-  return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY, cover: previewedCoverExecution() }, options);
+  const { observeYard, ...executionOptions } = options;
+  return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY,
+    hut: { ...HUT_EXECUTION_REGISTRY.hut!, build: (b, c, observe) => buildRetainedHut(b, c, observe, observeYard) },
+    cover: previewedCoverExecution() }, executionOptions);
 }
 
 export const HUT_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  hut: { version: 'hut-yard-1', build: buildRetainedHut },
+  hut: { version: 'hut-yard-3', build: buildRetainedHut },
   cover: COVER_EXECUTION,
 });
 
-function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {
+function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver, observeYard?: HutExecutionOptions['observeYard']): BuiltRegion {
   const size = brief.cellSize, mask = createFillMask(brief), accessMask = createAccessMask(brief);
-  if (!mask.cells.length) return context.empty('hut has no usable fill');
+  if (!mask.cells.length) {
+    observeYard?.(yardDiagnostics(brief.id, 'no-fill'));
+    return context.empty('hut has no usable fill');
+  }
   const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design`).next() * 2 ** 31);
   let site: Site | undefined;
   for (const { spaces, boxes } of LARGER) {
@@ -100,7 +125,10 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   }
   const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
   site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site`, (w, h, side) => houseFor(w, h, side, 1, size, seed));
-  if (!site) return context.empty('hut has no house with a reachable doorstep');
+  if (!site) {
+    observeYard?.(yardDiagnostics(brief.id, 'no-house'));
+    return context.empty('hut has no house with a reachable doorstep');
+  }
 
   const { design, allocation, realization } = site.house.details;
   const [element] = placedElements(site.house, 'hut-building', site.x, site.y, size) as [RegionElement];
@@ -108,8 +136,7 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   if (!createBuilderCanvas(brief).commit({ elements: [element] })) throw new Error('Hut placement failed its canvas commit.');
   observe?.({ label: element.label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
-  const offers = yardOffers(brief, site);
-  if (offers.length) context.delegate(offers, { blockers: shapes });
+  delegateYard(brief, site, element, context, observeYard);
   brief = context.brief;
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:hut-loot`), loot: LootSite[] = [];
@@ -126,73 +153,114 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
 
 type Site = { x: number; y: number; house: House; steps: string[] };
 
-/**
- * Keep the house and its two-cell yard, and a hunter standing-block tree from its
- * doorstep to the original entrances. Only the unused connected yard lobes are
- * offered. This is hut authorship; the child receives no private house state.
- */
-function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
-  const key = (x: number, y: number) => `${x},${y}`;
-  const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
-  const { w, h } = site.house.demand.body;
-  const inHouse = (x: number, y: number) => x >= site.x && x < site.x + w && y >= site.y && y < site.y + h;
-  const area = createAddressedArea(owned), size = brief.cellSize;
-  // Grant the house and its doorstep, then keep the same two-cell yard band
-  // without overlapping the demand already recorded.
-  if (!area.markAll(demandShapes(site.house.demand, site.x, site.y, size))) throw new Error('House demand overlaps itself.');
-  if (!area.markCells(owned.cells.filter(c => c.x >= site.x - BODY && c.x < site.x + w + BODY
-    && c.y >= site.y - BODY && c.y < site.y + h + BODY && !area.addressed(c.x, c.y))))
-    throw new Error('House yard band overlaps its demand.');
-  area.markCells(owned.cells.filter(c => !area.addressed(c.x, c.y) && (!fill.has(c.x, c.y)
-    || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d)))));
-  const fits = (x: number, y: number) => {
-    for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!access.has(i, j) || inHouse(i, j)) return false;
-    return true;
+/** Try a capped number of peripheral boxes, allowing the coordinator to move yard cords. */
+function delegateYard(brief: RegionBrief, site: Site, element: RegionElement, context: ExecutionContext, observe?: HutExecutionOptions['observeYard']): void {
+  const diagnostics = yardDiagnostics(brief.id, 'no-eligible-candidates');
+  const report = (outcome: HutYardDiagnostics['outcome'], reason?: string) => {
+    diagnostics.outcome = outcome;
+    if (reason !== undefined) diagnostics.reason = reason;
+    observe?.(structuredClone(diagnostics));
   };
-  // A zero-cost step inside intentional yard prefers existing circulation over
-  // hundreds of separate spokes when a large region has many perimeter portals.
-  const root = site.steps[0]!, parents = new Map<string, string | null>([[root, null]]);
-  const distances = new Map([[root, 0]]), buckets: string[][] = [[root]];
-  const entrances: string[] = [];
-  for (const { portal: p } of portalStands(brief)) {
-    let entrance: string | undefined;
-    for (let i = 0; i + BODY <= p.length; i++) {
-      const x = p.axis === 'h' ? p.x + i : p.x - 1, y = p.axis === 'h' ? p.y - 1 : p.y + i;
-      if (fits(x, y)) { entrance = key(x, y); break; }
-    }
-    if (!entrance) return [];
-    entrances.push(entrance);
+  const size = brief.cellSize, { w, h } = site.house.demand.body;
+  const steps = site.steps.map(step => step.split(',').map(Number) as [number, number]);
+  // The retained-portal policy requires each original portal's owned seam
+  // cells to stay with the parent. These checks are necessary refusals, so
+  // discard them before constructing the optional routing coordinator.
+  const reserved = new Set<string>();
+  for (let y = site.y; y < site.y + h; y++) for (let x = site.x; x < site.x + w; x++) reserved.add(`${x},${y}`);
+  for (const [x, y] of steps) for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) reserved.add(`${i},${j}`);
+  const owned = createRegionMask(brief);
+  for (const p of brief.portals) for (let i = 0; i < p.length; i++) {
+    const before = p.axis === 'h' ? { x: p.x + i, y: p.y - 1 } : { x: p.x - 1, y: p.y + i };
+    const after = p.axis === 'h' ? { x: p.x + i, y: p.y } : { x: p.x, y: p.y + i };
+    const cell = owned.has(before.x, before.y) ? before : after;
+    reserved.add(`${cell.x},${cell.y}`);
   }
-  const pending = new Set(entrances);
-  for (let distance = 0; distance < buckets.length && pending.size; distance++) for (let head = 0; head < buckets[distance]!.length && pending.size; head++) {
-    const at = buckets[distance]![head]!;
-    if (distances.get(at) !== distance) continue;
-    pending.delete(at);
-    const [x, y] = at.split(',').map(Number) as [number, number];
-    for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
-      const next = key(nx, ny);
-      if (!fits(nx, ny)) continue;
-      let cost = 0;
-      for (let j = ny; j < ny + BODY; j++) for (let i = nx; i < nx + BODY; i++) if (!area.addressed(i, j)) cost = 1;
-      const nextDistance = distance + cost;
-      if (nextDistance < (distances.get(next) ?? Infinity)) {
-        distances.set(next, nextDistance); parents.set(next, at);
-        (buckets[nextDistance] ??= []).push(next);
-      }
+  const offers = peripheralOffers(brief, reserved, diagnostics);
+  diagnostics.eligibleOffers = offers;
+  if (!offers.length) { report('no-eligible-candidates'); return; }
+  const fixedAccess = steps.map(([x, y]) => rect(x * size, y * size, BODY * size, BODY * size));
+  const terminals = steps.map(([x, y]) => ({ x: (x + BODY / 2) * size, y: (y + BODY / 2) * size }));
+  const created = createProspectiveParcels(brief, { handoff: context, fixedAccess, terminals });
+  // An independently sited house remains valid when the optional continuous search cannot prove it.
+  if (!created.ok) { report('init', created.reason); return; }
+  const coordinator = created.coordinator;
+  const claim = coordinator.tryClaim([rect(site.x * size, site.y * size, w * size, h * size)]);
+  if (!claim.ok) { report('claim', claim.reason); return; }
+  const populated = coordinator.populate(claim.handle, { elements: [element] });
+  if (!populated.ok) { report('populate', populated.reason); return; }
+  const settled = coordinator.settle(claim.handle, 'populated');
+  if (!settled.ok) { report('settle', settled.reason); return; }
+
+  let accepted = false;
+  const transferred = new Set<string>();
+  for (const offer of offers) {
+    if (offer.cells.some(c => transferred.has(`${c.x},${c.y}`))) continue;
+    diagnostics.probed++;
+    const proposal = coordinator.probeHandoff([offer], { externalPortals: 'retained' });
+    if (!proposal.ok) {
+      diagnostics.probes.push({ key: offer.key, verdict: 'refused', reason: proposal.reason });
+      diagnostics.refusals[proposal.reason] = (diagnostics.refusals[proposal.reason] ?? 0) + 1;
+      continue;
+    }
+    const acceptance = coordinator.acceptHandoff(proposal.proposal);
+    if (acceptance.ok) {
+      accepted = true;
+      diagnostics.accepted++;
+      diagnostics.probes.push({ key: offer.key, verdict: 'accepted' });
+      for (const c of offer.cells) transferred.add(`${c.x},${c.y}`);
+    } else {
+      diagnostics.probes.push({ key: offer.key, verdict: 'refused', reason: acceptance.reason });
+      diagnostics.refusals[acceptance.reason] = (diagnostics.refusals[acceptance.reason] ?? 0) + 1;
     }
   }
-  // Do not offer land if the house's actual yard cannot connect an original entrance.
-  if (pending.size) return [];
-  for (const entrance of entrances) {
-    for (let at: string | null = entrance; at !== null; at = parents.get(at)!) {
-      const [x, y] = at.split(',').map(Number) as [number, number];
-      for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!area.addressed(i, j)) area.markCells([{ x: i, y: j }]);
-    }
+  if (accepted && !coordinator.executeHandoffs().ok) throw new Error('Verified hut handoff could not execute.');
+  report(accepted ? 'delegated' : 'all-refused');
+}
+
+/**
+ * Candidate rectangles start flush against each extent corner or edge. Several
+ * scales allow a smaller useful box when a larger lobe meets a portal or house.
+ * Require a complete owned rectangle and at least a 3-by-3 pocket for cover;
+ * refusals and narrow remnants remain with the hut. The fixed candidate cap
+ * limits the number of expensive probes, not their cost: preparation and routing
+ * still grow with region geometry and the accepted batch.
+ */
+function peripheralOffers(brief: RegionBrief, reserved: Set<string>, diagnostics: HutYardDiagnostics): PatchOffer[] {
+  const owned = createRegionMask(brief), cells = owned.cells;
+  const minX = Math.min(...cells.map(c => c.x)), maxX = Math.max(...cells.map(c => c.x));
+  const minY = Math.min(...cells.map(c => c.y)), maxY = Math.max(...cells.map(c => c.y));
+  const width = maxX - minX + 1, height = maxY - minY + 1;
+  const dims = (n: number) => [...new Set([Math.floor(n / 2), Math.floor(n / 3), 3].filter(v => v >= 3))];
+  const boxes: Array<{ x: number; y: number; w: number; h: number }> = [];
+  // Interleave corner boxes and centered slabs at each scale so the cap
+  // leaves both kinds available even on broad regions.
+  for (const w of dims(width)) for (const h of dims(height)) {
+    for (const x of [minX, maxX - w + 1]) for (const y of [minY, maxY - h + 1]) boxes.push({ x, y, w, h });
+    boxes.push({ x: minX + Math.floor((width - w) / 2), y: minY, w, h },
+      { x: minX + Math.floor((width - w) / 2), y: maxY - h + 1, w, h },
+      { x: minX, y: minY + Math.floor((height - h) / 2), w, h },
+      { x: maxX - w + 1, y: minY + Math.floor((height - h) / 2), w, h });
   }
-  // The canonical first cell uniquely names a connected lobe in this batch.
-  // Keep identities short even on macro-sized yards; snapshots retain its full footprint.
-  return area.unaddressedComponents().filter(cells => cells.length >= 9)
-    .map((cells): PatchOffer => ({ key: `yard:${cells[0]!.x},${cells[0]!.y}`, cells, type: 'cover', reasonTags: ['unused-yard-lobe'] }));
+  const seen = new Set<string>(), offers: PatchOffer[] = [];
+  for (const { x, y, w, h } of boxes) {
+    const id = `${x},${y},${w},${h}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (w * h > cells.length) continue;
+    const patch = [];
+    let complete = true;
+    for (let j = y; j < y + h && complete; j++) for (let i = x; i < x + w; i++) {
+      if (!owned.has(i, j)) { complete = false; break; }
+      patch.push({ x: i, y: j });
+    }
+    if (!complete) continue;
+    diagnostics.considered++;
+    if (patch.some(c => reserved.has(`${c.x},${c.y}`))) { diagnostics.filtered++; continue; }
+    offers.push({ key: `yard:${id}`, cells: patch, type: 'cover', reasonTags: ['unused-yard-lobe'] });
+    if (offers.length === 36) break;
+  }
+  return offers;
 }
 
 /**

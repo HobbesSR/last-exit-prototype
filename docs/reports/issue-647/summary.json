@@ -1,0 +1,6842 @@
+{
+  "syntheticUptake": {
+    "cases": 20,
+    "beforeWithChildren": 13,
+    "afterWithChildren": 16,
+    "beforeChildren": 28,
+    "afterChildren": 35
+  },
+  "maps": [
+    {
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "seed": "issue330-before-12x6",
+      "valid": true,
+      "defects": [],
+      "candidates": 8,
+      "uniqueHuts": 8,
+      "topLevel": 8,
+      "blockLots": 0,
+      "uptake": {
+        "beforeWithChildren": 2,
+        "afterWithChildren": 6,
+        "beforeChildren": 7,
+        "afterChildren": 7,
+        "displacedInitialRoutes": 3
+      }
+    },
+    {
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "seed": "issue330-before-24x12",
+      "valid": true,
+      "defects": [],
+      "candidates": 32,
+      "uniqueHuts": 32,
+      "topLevel": 31,
+      "blockLots": 1,
+      "uptake": {
+        "beforeWithChildren": 15,
+        "afterWithChildren": 29,
+        "beforeChildren": 41,
+        "afterChildren": 29,
+        "displacedInitialRoutes": 16
+      }
+    },
+    {
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "seed": "issue330-before-36x18",
+      "valid": true,
+      "defects": [],
+      "candidates": 38,
+      "uniqueHuts": 38,
+      "topLevel": 37,
+      "blockLots": 1,
+      "uptake": {
+        "beforeWithChildren": 20,
+        "afterWithChildren": 32,
+        "beforeChildren": 54,
+        "afterChildren": 32,
+        "displacedInitialRoutes": 22
+      }
+    }
+  ],
+  "baseline": {
+    "commit": "71a00c3",
+    "note": "Pinned hut source with current supporting modules, loaded as temporary sibling.",
+    "findings": [
+      {
+        "name": "broad-concave",
+        "seed": 1,
+        "failures": [
+          {
+            "scope": "cord-broad-concave",
+            "fill": [],
+            "reach": [
+              "Portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A2%2C2\",\"h\",5,2,2] is unreachable from portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A19%2C2\",\"h\",21,2,2].",
+              "Portal north is unreachable from portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A19%2C2\",\"h\",21,2,2].",
+              "Portal west is unreachable from portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A19%2C2\",\"h\",21,2,2]."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "currentCommit": "bfb28be1f0470e9c04c2e56059e7f8106ae1325d",
+  "hutStatus": "",
+  "seeds": 4,
+  "failed": false,
+  "timing": {
+    "unit": "ms per synthetic input set",
+    "warmups": 1,
+    "rounds": [
+      {
+        "before": 368.2146000000066,
+        "after": 1613.4097000000183
+      },
+      {
+        "before": 344.1967000000295,
+        "after": 1399.5168999999878
+      },
+      {
+        "before": 356.54370000003837,
+        "after": 1410.5918999999994
+      }
+    ],
+    "macro": {
+      "cells": 29584,
+      "portals": 228,
+      "rounds": [
+        {
+          "before": 1585.0136000000057,
+          "after": 550.5293999999994,
+          "beforeChildren": 2,
+          "afterChildren": 0
+        },
+        {
+          "before": 1582.1490999999805,
+          "after": 548.4550000000163,
+          "beforeChildren": 2,
+          "afterChildren": 0
+        },
+        {
+          "before": 1646.7448999999906,
+          "after": 535.6975999999559,
+          "beforeChildren": 2,
+          "afterChildren": 0
+        }
+      ]
+    }
+  },
+  "rawSha256": "2a61b89956c22703a43db8cd71bd5b16a5bc4bf9452712594b3e44a050555c9b",
+  "gzipSha256": "6d637e52c5177f43015d5d8a0500de6bee6ca7612b0f3830391118e666a8f5cc",
+  "retainedPanels": [
+    0,
+    4,
+    8,
+    12,
+    16,
+    22,
+    20,
+    30,
+    28,
+    62,
+    60,
+    59,
+    97
+  ],
+  "records": [
+    {
+      "name": "small",
+      "seed": 1,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "small",
+      "seed": 2,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "small",
+      "seed": 3,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "small",
+      "seed": 4,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "rectangle",
+      "seed": 1,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 18
+        },
+        "cells": 432,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:12,12,12,6",
+          "yard:6,0,12,9"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:2,2",
+            "cells": 208
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 20,
+          "gates": 3,
+          "loot": 58,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:12,12,12,6",
+            "cells": 72
+          },
+          {
+            "key": "yard:6,0,12,9",
+            "cells": 108
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 24,
+          "gates": 3,
+          "loot": 72,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "rectangle",
+      "seed": 2,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 18
+        },
+        "cells": 432,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:0,0,12,6",
+          "yard:12,0,12,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:2,2",
+            "cells": 184
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 25,
+          "gates": 3,
+          "loot": 35,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:0,0,12,6",
+            "cells": 72
+          },
+          {
+            "key": "yard:0,12,8,6",
+            "cells": 48
+          },
+          {
+            "key": "yard:12,0,12,6",
+            "cells": 72
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 35,
+          "gates": 3,
+          "loot": 61,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "rectangle",
+      "seed": 3,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 18
+        },
+        "cells": 432,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:2,2",
+            "cells": 184
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 34,
+          "gates": 3,
+          "loot": 24,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:0,0,12,6",
+            "cells": 72
+          },
+          {
+            "key": "yard:0,15,12,3",
+            "cells": 36
+          },
+          {
+            "key": "yard:12,15,12,3",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 28,
+          "gates": 3,
+          "loot": 80,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "rectangle",
+      "seed": 4,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 18
+        },
+        "cells": 432,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:12,0,12,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:2,2",
+            "cells": 160
+          },
+          {
+            "key": "yard:7,2",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 24,
+          "gates": 3,
+          "loot": 21,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 4,
+        "accepted": [
+          {
+            "key": "yard:0,0,12,3",
+            "cells": 36
+          },
+          {
+            "key": "yard:0,15,12,3",
+            "cells": 36
+          },
+          {
+            "key": "yard:12,0,12,6",
+            "cells": 72
+          },
+          {
+            "key": "yard:12,15,12,3",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 432,
+          "structures": 1,
+          "obstacles": 34,
+          "gates": 3,
+          "loot": 64,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "broad-concave",
+      "seed": 1,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 28,
+          "h": 12
+        },
+        "cells": 296,
+        "density": 0.8809523809523809
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:0,4,9,3"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:19,2",
+            "cells": 28
+          },
+          {
+            "key": "yard:2,2",
+            "cells": 72
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 22,
+          "gates": 3,
+          "loot": 15,
+          "coreElements": 0
+        },
+        "failures": [
+          {
+            "scope": "cord-broad-concave",
+            "fill": [],
+            "reach": [
+              "Portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A2%2C2\",\"h\",5,2,2] is unreachable from portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A19%2C2\",\"h\",21,2,2].",
+              "Portal north is unreachable from portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A19%2C2\",\"h\",21,2,2].",
+              "Portal west is unreachable from portal cord-broad-concave/interface/[\"cord-broad-concave\",\"cord-broad-concave/delegate/yard%3A19%2C2\",\"h\",21,2,2]."
+            ]
+          }
+        ]
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:0,4,9,3",
+            "cells": 27
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 22,
+          "gates": 3,
+          "loot": 48,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "broad-concave",
+      "seed": 2,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 28,
+          "h": 12
+        },
+        "cells": 296,
+        "density": 0.8809523809523809
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:2,2",
+            "cells": 84
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 20,
+          "gates": 3,
+          "loot": 34,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:9,8,9,4",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 22,
+          "gates": 3,
+          "loot": 59,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "broad-concave",
+      "seed": 3,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 28,
+          "h": 12
+        },
+        "cells": 296,
+        "density": 0.8809523809523809
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:18,2",
+            "cells": 32
+          },
+          {
+            "key": "yard:2,2",
+            "cells": 48
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 21,
+          "gates": 3,
+          "loot": 24,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:19,0,9,6",
+            "cells": 54
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 23,
+          "gates": 3,
+          "loot": 41,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "broad-concave",
+      "seed": 4,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 28,
+          "h": 12
+        },
+        "cells": 296,
+        "density": 0.8809523809523809
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:18,2",
+            "cells": 32
+          },
+          {
+            "key": "yard:2,2",
+            "cells": 72
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 25,
+          "gates": 3,
+          "loot": 9,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:19,0,9,6",
+            "cells": 54
+          },
+          {
+            "key": "yard:9,8,9,4",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 296,
+          "structures": 1,
+          "obstacles": 29,
+          "gates": 3,
+          "loot": 40,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "ring",
+      "seed": 1,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 14,
+          "h": 14
+        },
+        "cells": 180,
+        "density": 0.9183673469387755
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:7,10,7,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 19,
+          "gates": 3,
+          "loot": 35,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:0,0,4,4",
+            "cells": 16
+          },
+          {
+            "key": "yard:7,10,7,4",
+            "cells": 28
+          }
+        ],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 24,
+          "gates": 3,
+          "loot": 26,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "ring",
+      "seed": 2,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 14,
+          "h": 14
+        },
+        "cells": 180,
+        "density": 0.9183673469387755
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:0,0,4,4",
+          "yard:10,0,4,7"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 19,
+          "gates": 3,
+          "loot": 37,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:0,0,4,4",
+            "cells": 16
+          },
+          {
+            "key": "yard:10,0,4,7",
+            "cells": 28
+          }
+        ],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 23,
+          "gates": 3,
+          "loot": 15,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "ring",
+      "seed": 3,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 14,
+          "h": 14
+        },
+        "cells": 180,
+        "density": 0.9183673469387755
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:7,11,7,3"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:11,8",
+            "cells": 17
+          },
+          {
+            "key": "yard:7,2",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 22,
+          "gates": 3,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:10,0,4,7",
+            "cells": 28
+          },
+          {
+            "key": "yard:7,11,7,3",
+            "cells": 21
+          }
+        ],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 22,
+          "gates": 3,
+          "loot": 16,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "ring",
+      "seed": 4,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 14,
+          "h": 14
+        },
+        "cells": 180,
+        "density": 0.9183673469387755
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:0,0,4,4",
+          "yard:10,0,4,7"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 19,
+          "gates": 3,
+          "loot": 33,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:0,0,4,4",
+            "cells": 16
+          },
+          {
+            "key": "yard:10,0,4,7",
+            "cells": 28
+          }
+        ],
+        "manifest": {
+          "cells": 180,
+          "structures": 1,
+          "obstacles": 24,
+          "gates": 3,
+          "loot": 20,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "chain-internal-margins",
+      "seed": 1,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 30,
+          "h": 22
+        },
+        "cells": 660,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:15,5,15,11"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 4,
+        "accepted": [
+          {
+            "key": "yard:13,2",
+            "cells": 30
+          },
+          {
+            "key": "yard:13,6",
+            "cells": 220
+          },
+          {
+            "key": "yard:2,2",
+            "cells": 18
+          },
+          {
+            "key": "yard:2,6",
+            "cells": 72
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 32,
+          "gates": 3,
+          "loot": 58,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:0,0,15,3",
+            "cells": 45
+          },
+          {
+            "key": "yard:15,19,15,3",
+            "cells": 45
+          },
+          {
+            "key": "yard:15,5,15,11",
+            "cells": 165
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 26,
+          "gates": 3,
+          "loot": 138,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "chain-internal-margins",
+      "seed": 2,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 30,
+          "h": 22
+        },
+        "cells": 660,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:15,5,15,11"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 4,
+        "accepted": [
+          {
+            "key": "yard:13,2",
+            "cells": 30
+          },
+          {
+            "key": "yard:13,6",
+            "cells": 210
+          },
+          {
+            "key": "yard:2,2",
+            "cells": 18
+          },
+          {
+            "key": "yard:2,6",
+            "cells": 72
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 28,
+          "gates": 3,
+          "loot": 82,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:0,0,15,3",
+            "cells": 45
+          },
+          {
+            "key": "yard:15,19,15,3",
+            "cells": 45
+          },
+          {
+            "key": "yard:15,5,15,11",
+            "cells": 165
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 31,
+          "gates": 3,
+          "loot": 132,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "chain-internal-margins",
+      "seed": 3,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 30,
+          "h": 22
+        },
+        "cells": 660,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:0,11,15,11"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:13,2",
+            "cells": 30
+          },
+          {
+            "key": "yard:2,2",
+            "cells": 18
+          },
+          {
+            "key": "yard:2,6",
+            "cells": 274
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 24,
+          "gates": 3,
+          "loot": 87,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:0,0,15,3",
+            "cells": 45
+          },
+          {
+            "key": "yard:0,11,15,11",
+            "cells": 165
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 23,
+          "gates": 3,
+          "loot": 164,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "chain-internal-margins",
+      "seed": 4,
+      "shape": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 30,
+          "h": 22
+        },
+        "cells": 660,
+        "density": 1
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:13,2",
+            "cells": 30
+          },
+          {
+            "key": "yard:2,2",
+            "cells": 18
+          },
+          {
+            "key": "yard:2,6",
+            "cells": 274
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 28,
+          "gates": 3,
+          "loot": 54,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:0,0,15,3",
+            "cells": 45
+          },
+          {
+            "key": "yard:0,19,15,3",
+            "cells": 45
+          }
+        ],
+        "manifest": {
+          "cells": 660,
+          "structures": 1,
+          "obstacles": 25,
+          "gates": 3,
+          "loot": 181,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@126,36",
+      "seed": 2891111077,
+      "shape": {
+        "bounds": {
+          "x": 126,
+          "y": 36,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:132,36,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@354,72",
+      "seed": 4040202052,
+      "shape": {
+        "bounds": {
+          "x": 354,
+          "y": 72,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@228,126",
+      "seed": 3807177968,
+      "shape": {
+        "bounds": {
+          "x": 228,
+          "y": 126,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:231,134,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:230,133",
+            "cells": 9
+          },
+          {
+            "key": "yard:235,128",
+            "cells": 9
+          },
+          {
+            "key": "yard:235,133",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:231,134,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@240,138",
+      "seed": 2876416089,
+      "shape": {
+        "bounds": {
+          "x": 240,
+          "y": 138,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:248,141,4,3",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@258,138",
+      "seed": 2433508124,
+      "shape": {
+        "bounds": {
+          "x": 258,
+          "y": 138,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:258,141,4,3"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:258,141,4,3",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@144,156",
+      "seed": 2563864212,
+      "shape": {
+        "bounds": {
+          "x": 144,
+          "y": 156,
+          "w": 24,
+          "h": 24
+        },
+        "cells": 252,
+        "density": 0.4375
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:144,156,3,3"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 4,
+        "accepted": [
+          {
+            "key": "yard:151,164",
+            "cells": 9
+          },
+          {
+            "key": "yard:152,169",
+            "cells": 9
+          },
+          {
+            "key": "yard:157,170",
+            "cells": 9
+          },
+          {
+            "key": "yard:158,175",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 252,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 1,
+          "loot": 4,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 2,
+        "accepted": [
+          {
+            "key": "yard:144,156,3,3",
+            "cells": 9
+          },
+          {
+            "key": "yard:160,177,8,3",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 252,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 12,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@144,174",
+      "seed": 2261572880,
+      "shape": {
+        "bounds": {
+          "x": 144,
+          "y": 174,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-12x6 / hut@174,174",
+      "seed": 461629579,
+      "shape": {
+        "bounds": {
+          "x": 174,
+          "y": 174,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-12x6",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:182,177,4,3",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@396,0",
+      "seed": 2044427323,
+      "shape": {
+        "bounds": {
+          "x": 396,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:402,0,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@426,6",
+      "seed": 3365752163,
+      "shape": {
+        "bounds": {
+          "x": 426,
+          "y": 6,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 4,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:429,12,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@366,18",
+      "seed": 1197095257,
+      "shape": {
+        "bounds": {
+          "x": 366,
+          "y": 18,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:369,18,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:368,20",
+            "cells": 9
+          },
+          {
+            "key": "yard:368,25",
+            "cells": 9
+          },
+          {
+            "key": "yard:373,20",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:369,18,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 4,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@288,36",
+      "seed": 3503121652,
+      "shape": {
+        "bounds": {
+          "x": 288,
+          "y": 36,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:288,44,3,4",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@288,54",
+      "seed": 3468580676,
+      "shape": {
+        "bounds": {
+          "x": 288,
+          "y": 54,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:288,54,3,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:288,54,3,4",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@426,54",
+      "seed": 614660966,
+      "shape": {
+        "bounds": {
+          "x": 426,
+          "y": 54,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:429,54,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@186,72",
+      "seed": 1932115589,
+      "shape": {
+        "bounds": {
+          "x": 186,
+          "y": 72,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:192,72,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@492,72",
+      "seed": 3406401607,
+      "shape": {
+        "bounds": {
+          "x": 492,
+          "y": 72,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:498,72,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@420,138",
+      "seed": 2713280819,
+      "shape": {
+        "bounds": {
+          "x": 420,
+          "y": 138,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:423,146,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:422,140",
+            "cells": 9
+          },
+          {
+            "key": "yard:422,145",
+            "cells": 9
+          },
+          {
+            "key": "yard:427,145",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:423,146,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@96,144",
+      "seed": 974236863,
+      "shape": {
+        "bounds": {
+          "x": 96,
+          "y": 144,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:102,144,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@108,150",
+      "seed": 331429128,
+      "shape": {
+        "bounds": {
+          "x": 108,
+          "y": 150,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:111,156,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:110,157",
+            "cells": 9
+          },
+          {
+            "key": "yard:115,152",
+            "cells": 9
+          },
+          {
+            "key": "yard:115,157",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:111,156,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@582,156",
+      "seed": 1177860700,
+      "shape": {
+        "bounds": {
+          "x": 582,
+          "y": 156,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:585,164,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:584,158",
+            "cells": 9
+          },
+          {
+            "key": "yard:584,163",
+            "cells": 9
+          },
+          {
+            "key": "yard:589,163",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:585,164,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 8,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@54,180",
+      "seed": 3833203817,
+      "shape": {
+        "bounds": {
+          "x": 54,
+          "y": 180,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:57,188,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:56,187",
+            "cells": 9
+          },
+          {
+            "key": "yard:61,182",
+            "cells": 9
+          },
+          {
+            "key": "yard:61,187",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:57,188,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@546,186",
+      "seed": 2782836301,
+      "shape": {
+        "bounds": {
+          "x": 546,
+          "y": 186,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:549,194,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:548,188",
+            "cells": 9
+          },
+          {
+            "key": "yard:548,193",
+            "cells": 9
+          },
+          {
+            "key": "yard:553,193",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:549,194,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@708,192",
+      "seed": 2530866868,
+      "shape": {
+        "bounds": {
+          "x": 708,
+          "y": 192,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:708,195,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:710,194",
+            "cells": 9
+          },
+          {
+            "key": "yard:710,199",
+            "cells": 9
+          },
+          {
+            "key": "yard:715,194",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:708,195,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 1,
+          "loot": 8,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@42,198",
+      "seed": 3516250239,
+      "shape": {
+        "bounds": {
+          "x": 42,
+          "y": 198,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:45,198,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:44,200",
+            "cells": 9
+          },
+          {
+            "key": "yard:44,205",
+            "cells": 9
+          },
+          {
+            "key": "yard:49,200",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:45,198,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@558,204",
+      "seed": 2388079269,
+      "shape": {
+        "bounds": {
+          "x": 558,
+          "y": 204,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:561,212,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:560,206",
+            "cells": 9
+          },
+          {
+            "key": "yard:560,211",
+            "cells": 9
+          },
+          {
+            "key": "yard:565,211",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:561,212,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@576,204",
+      "seed": 4259411705,
+      "shape": {
+        "bounds": {
+          "x": 576,
+          "y": 204,
+          "w": 7,
+          "h": 12
+        },
+        "cells": 84,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:578,206",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:580,204,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@30,210",
+      "seed": 4267320771,
+      "shape": {
+        "bounds": {
+          "x": 30,
+          "y": 210,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:36,213,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@594,210",
+      "seed": 3540876920,
+      "shape": {
+        "bounds": {
+          "x": 594,
+          "y": 210,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:600,213,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@558,228",
+      "seed": 2388373459,
+      "shape": {
+        "bounds": {
+          "x": 558,
+          "y": 228,
+          "w": 7,
+          "h": 12
+        },
+        "cells": 84,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:560,235",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:562,234,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 4,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@144,234",
+      "seed": 3340730619,
+      "shape": {
+        "bounds": {
+          "x": 144,
+          "y": 234,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:144,242,3,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:144,242,3,4",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@552,246",
+      "seed": 2386602089,
+      "shape": {
+        "bounds": {
+          "x": 552,
+          "y": 246,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:555,246,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:554,248",
+            "cells": 9
+          },
+          {
+            "key": "yard:559,248",
+            "cells": 9
+          },
+          {
+            "key": "yard:559,253",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:555,246,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 6,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@432,270",
+      "seed": 3239309957,
+      "shape": {
+        "bounds": {
+          "x": 432,
+          "y": 270,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:435,278,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:434,272",
+            "cells": 9
+          },
+          {
+            "key": "yard:434,277",
+            "cells": 9
+          },
+          {
+            "key": "yard:439,277",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:435,278,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 4,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@570,282",
+      "seed": 812582657,
+      "shape": {
+        "bounds": {
+          "x": 570,
+          "y": 282,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@288,288",
+      "seed": 1909731845,
+      "shape": {
+        "bounds": {
+          "x": 288,
+          "y": 288,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:288,294,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@402,294",
+      "seed": 170737620,
+      "shape": {
+        "bounds": {
+          "x": 402,
+          "y": 294,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:405,294,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:404,296",
+            "cells": 9
+          },
+          {
+            "key": "yard:409,296",
+            "cells": 9
+          },
+          {
+            "key": "yard:409,301",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:405,294,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@288,336",
+      "seed": 122565751,
+      "shape": {
+        "bounds": {
+          "x": 288,
+          "y": 336,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:288,336,3,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:288,336,3,4",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@414,342",
+      "seed": 2661047427,
+      "shape": {
+        "bounds": {
+          "x": 414,
+          "y": 342,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:417,342,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:416,344",
+            "cells": 9
+          },
+          {
+            "key": "yard:421,344",
+            "cells": 9
+          },
+          {
+            "key": "yard:421,349",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:417,342,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 1,
+          "loot": 4,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@288,354",
+      "seed": 89996251,
+      "shape": {
+        "bounds": {
+          "x": 288,
+          "y": 354,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:294,357,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / hut@426,354",
+      "seed": 1795198637,
+      "shape": {
+        "bounds": {
+          "x": 426,
+          "y": 354,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-24x12 / block@294,174/lot-6",
+      "seed": 353824437,
+      "shape": {
+        "bounds": {
+          "x": 406,
+          "y": 176,
+          "w": 6,
+          "h": 8
+        },
+        "cells": 48,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-24x12",
+        "location": "block-lot",
+        "block": "block@294,174"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 48,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 48,
+          "structures": 1,
+          "obstacles": 13,
+          "gates": 2,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@624,0",
+      "seed": 4236691246,
+      "shape": {
+        "bounds": {
+          "x": 624,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 4,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:624,0,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@642,12",
+      "seed": 695952221,
+      "shape": {
+        "bounds": {
+          "x": 642,
+          "y": 12,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:645,18,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@606,30",
+      "seed": 2253988861,
+      "shape": {
+        "bounds": {
+          "x": 606,
+          "y": 30,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:609,38,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:608,37",
+            "cells": 9
+          },
+          {
+            "key": "yard:613,32",
+            "cells": 9
+          },
+          {
+            "key": "yard:613,37",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:609,38,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@600,54",
+      "seed": 3039513145,
+      "shape": {
+        "bounds": {
+          "x": 600,
+          "y": 54,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:603,62,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:602,56",
+            "cells": 9
+          },
+          {
+            "key": "yard:602,61",
+            "cells": 9
+          },
+          {
+            "key": "yard:607,61",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:603,62,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 5,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@306,108",
+      "seed": 3624251350,
+      "shape": {
+        "bounds": {
+          "x": 306,
+          "y": 108,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:314,108,4,3",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@570,108",
+      "seed": 1198385289,
+      "shape": {
+        "bounds": {
+          "x": 570,
+          "y": 108,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:573,116,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:572,110",
+            "cells": 9
+          },
+          {
+            "key": "yard:572,115",
+            "cells": 9
+          },
+          {
+            "key": "yard:577,115",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:573,116,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@654,108",
+      "seed": 4071968598,
+      "shape": {
+        "bounds": {
+          "x": 654,
+          "y": 108,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:654,108,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@852,108",
+      "seed": 1526313850,
+      "shape": {
+        "bounds": {
+          "x": 852,
+          "y": 108,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:852,108,6,3"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:852,108,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@216,120",
+      "seed": 2564953362,
+      "shape": {
+        "bounds": {
+          "x": 216,
+          "y": 120,
+          "w": 6,
+          "h": 7
+        },
+        "cells": 42,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 42,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 42,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@822,120",
+      "seed": 1635074867,
+      "shape": {
+        "bounds": {
+          "x": 822,
+          "y": 120,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:822,123,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:824,122",
+            "cells": 9
+          },
+          {
+            "key": "yard:824,127",
+            "cells": 9
+          },
+          {
+            "key": "yard:829,127",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:822,123,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 6,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@258,150",
+      "seed": 2331311627,
+      "shape": {
+        "bounds": {
+          "x": 258,
+          "y": 150,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:261,150,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:260,152",
+            "cells": 9
+          },
+          {
+            "key": "yard:260,157",
+            "cells": 9
+          },
+          {
+            "key": "yard:265,152",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:261,150,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@228,156",
+      "seed": 127559022,
+      "shape": {
+        "bounds": {
+          "x": 228,
+          "y": 156,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:231,164,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:230,158",
+            "cells": 9
+          },
+          {
+            "key": "yard:230,163",
+            "cells": 9
+          },
+          {
+            "key": "yard:235,163",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:231,164,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@546,192",
+      "seed": 563813835,
+      "shape": {
+        "bounds": {
+          "x": 546,
+          "y": 192,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:552,195,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:548,199",
+            "cells": 9
+          },
+          {
+            "key": "yard:553,194",
+            "cells": 9
+          },
+          {
+            "key": "yard:553,199",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:552,195,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@258,198",
+      "seed": 185747871,
+      "shape": {
+        "bounds": {
+          "x": 258,
+          "y": 198,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:261,206,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:260,205",
+            "cells": 9
+          },
+          {
+            "key": "yard:265,200",
+            "cells": 9
+          },
+          {
+            "key": "yard:265,205",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:261,206,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@528,204",
+      "seed": 195099509,
+      "shape": {
+        "bounds": {
+          "x": 528,
+          "y": 204,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:531,204,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:530,206",
+            "cells": 9
+          },
+          {
+            "key": "yard:530,211",
+            "cells": 9
+          },
+          {
+            "key": "yard:535,206",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:531,204,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@588,210",
+      "seed": 1830605866,
+      "shape": {
+        "bounds": {
+          "x": 588,
+          "y": 210,
+          "w": 12,
+          "h": 7
+        },
+        "cells": 84,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:595,212",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:594,214,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@18,216",
+      "seed": 1434818350,
+      "shape": {
+        "bounds": {
+          "x": 18,
+          "y": 216,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:26,216,4,3",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@60,216",
+      "seed": 1955074265,
+      "shape": {
+        "bounds": {
+          "x": 60,
+          "y": 216,
+          "w": 7,
+          "h": 12
+        },
+        "cells": 84,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:64,222,3,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:62,223",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:64,222,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@96,216",
+      "seed": 1846366688,
+      "shape": {
+        "bounds": {
+          "x": 96,
+          "y": 216,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:99,216,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:103,218",
+            "cells": 9
+          },
+          {
+            "key": "yard:98,218",
+            "cells": 9
+          },
+          {
+            "key": "yard:98,223",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:99,216,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@6,222",
+      "seed": 2464268834,
+      "shape": {
+        "bounds": {
+          "x": 6,
+          "y": 222,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:9,222,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:13,224",
+            "cells": 9
+          },
+          {
+            "key": "yard:13,229",
+            "cells": 9
+          },
+          {
+            "key": "yard:8,224",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:9,222,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@582,228",
+      "seed": 4117460283,
+      "shape": {
+        "bounds": {
+          "x": 582,
+          "y": 228,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:582,231,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:584,230",
+            "cells": 9
+          },
+          {
+            "key": "yard:584,235",
+            "cells": 9
+          },
+          {
+            "key": "yard:589,235",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:582,231,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@270,234",
+      "seed": 1802178414,
+      "shape": {
+        "bounds": {
+          "x": 270,
+          "y": 234,
+          "w": 7,
+          "h": 12
+        },
+        "cells": 84,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:274,234,3,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:272,236",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:274,234,3,6",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 84,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@12,306",
+      "seed": 1484565774,
+      "shape": {
+        "bounds": {
+          "x": 12,
+          "y": 306,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:15,306,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:14,308",
+            "cells": 9
+          },
+          {
+            "key": "yard:19,308",
+            "cells": 9
+          },
+          {
+            "key": "yard:19,313",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:15,306,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@864,318",
+      "seed": 926996016,
+      "shape": {
+        "bounds": {
+          "x": 864,
+          "y": 318,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:870,321,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@858,324",
+      "seed": 2151011828,
+      "shape": {
+        "bounds": {
+          "x": 858,
+          "y": 324,
+          "w": 6,
+          "h": 12
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:861,324,3,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:861,324,3,4",
+            "cells": 12
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@582,348",
+      "seed": 2462396570,
+      "shape": {
+        "bounds": {
+          "x": 582,
+          "y": 348,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:585,354,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:584,355",
+            "cells": 9
+          },
+          {
+            "key": "yard:589,350",
+            "cells": 9
+          },
+          {
+            "key": "yard:589,355",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:585,354,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@216,396",
+      "seed": 2136947009,
+      "shape": {
+        "bounds": {
+          "x": 216,
+          "y": 396,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:222,399,6,6"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:218,398",
+            "cells": 9
+          },
+          {
+            "key": "yard:223,398",
+            "cells": 9
+          },
+          {
+            "key": "yard:223,403",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:222,399,6,6",
+            "cells": 36
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@216,426",
+      "seed": 889843859,
+      "shape": {
+        "bounds": {
+          "x": 216,
+          "y": 426,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@252,426",
+      "seed": 2095845211,
+      "shape": {
+        "bounds": {
+          "x": 252,
+          "y": 426,
+          "w": 7,
+          "h": 6
+        },
+        "cells": 42,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 42,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 42,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@288,426",
+      "seed": 2220496840,
+      "shape": {
+        "bounds": {
+          "x": 288,
+          "y": 426,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:294,429,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@858,426",
+      "seed": 1683117431,
+      "shape": {
+        "bounds": {
+          "x": 858,
+          "y": 426,
+          "w": 6,
+          "h": 6
+        },
+        "cells": 36,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 36,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 1,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@432,498",
+      "seed": 1712297986,
+      "shape": {
+        "bounds": {
+          "x": 432,
+          "y": 498,
+          "w": 6,
+          "h": 7
+        },
+        "cells": 42,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 42,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 42,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@450,510",
+      "seed": 857117717,
+      "shape": {
+        "bounds": {
+          "x": 450,
+          "y": 510,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:453,510,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:452,512",
+            "cells": 9
+          },
+          {
+            "key": "yard:452,517",
+            "cells": 9
+          },
+          {
+            "key": "yard:457,512",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:453,510,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 8,
+          "gates": 1,
+          "loot": 6,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@486,516",
+      "seed": 228534784,
+      "shape": {
+        "bounds": {
+          "x": 486,
+          "y": 516,
+          "w": 12,
+          "h": 12
+        },
+        "cells": 144,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:489,524,6,4"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 3,
+        "accepted": [
+          {
+            "key": "yard:488,518",
+            "cells": 9
+          },
+          {
+            "key": "yard:488,523",
+            "cells": 9
+          },
+          {
+            "key": "yard:493,523",
+            "cells": 9
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:489,524,6,4",
+            "cells": 24
+          }
+        ],
+        "manifest": {
+          "cells": 144,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@474,534",
+      "seed": 2074907993,
+      "shape": {
+        "bounds": {
+          "x": 474,
+          "y": 534,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:474,537,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@516,534",
+      "seed": 872732486,
+      "shape": {
+        "bounds": {
+          "x": 516,
+          "y": 534,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [
+          "yard:516,537,6,3"
+        ],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 3,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:516,537,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / hut@540,534",
+      "seed": 128522881,
+      "shape": {
+        "bounds": {
+          "x": 540,
+          "y": 534,
+          "w": 12,
+          "h": 6
+        },
+        "cells": 72,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 7,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 1,
+        "accepted": [
+          {
+            "key": "yard:540,537,6,3",
+            "cells": 18
+          }
+        ],
+        "manifest": {
+          "cells": 72,
+          "structures": 1,
+          "obstacles": 9,
+          "gates": 1,
+          "loot": 0,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    },
+    {
+      "name": "issue330-before-36x18 / block@852,222/lot-6",
+      "seed": 1297099300,
+      "shape": {
+        "bounds": {
+          "x": 898,
+          "y": 231,
+          "w": 7,
+          "h": 9
+        },
+        "cells": 63,
+        "density": 1
+      },
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "block-lot",
+        "block": "block@852,222"
+      },
+      "checks": {
+        "actualDoorAccess": true,
+        "houseUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "cords": {
+        "displaced": [],
+        "finalAccess": true
+      },
+      "before": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 63,
+          "structures": 1,
+          "obstacles": 19,
+          "gates": 3,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      },
+      "after": {
+        "children": 0,
+        "accepted": [],
+        "manifest": {
+          "cells": 63,
+          "structures": 1,
+          "obstacles": 19,
+          "gates": 3,
+          "loot": 2,
+          "coreElements": 0
+        },
+        "failures": []
+      }
+    }
+  ]
+}

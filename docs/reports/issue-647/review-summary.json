@@ -1,0 +1,295 @@
+{
+  "currentCommit": "faf7c19dd09c2a3848eb931ee2b3f6650b115c84",
+  "hutStatus": "",
+  "seeds": 4,
+  "failed": false,
+  "syntheticUptake": {
+    "cases": 20,
+    "beforeWithChildren": 13,
+    "afterWithChildren": 16,
+    "beforeChildren": 28,
+    "afterChildren": 57
+  },
+  "maps": [
+    {
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "seed": "issue330-before-12x6",
+      "valid": true,
+      "defects": [],
+      "candidates": 8,
+      "uniqueHuts": 8,
+      "topLevel": 8,
+      "blockLots": 0,
+      "uptake": {
+        "beforeWithChildren": 2,
+        "afterWithChildren": 6,
+        "beforeChildren": 7,
+        "afterChildren": 7,
+        "displacedInitialRoutes": 3
+      }
+    },
+    {
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "seed": "issue330-before-24x12",
+      "valid": true,
+      "defects": [],
+      "candidates": 32,
+      "uniqueHuts": 32,
+      "topLevel": 31,
+      "blockLots": 1,
+      "uptake": {
+        "beforeWithChildren": 15,
+        "afterWithChildren": 29,
+        "beforeChildren": 41,
+        "afterChildren": 32,
+        "displacedInitialRoutes": 16
+      }
+    },
+    {
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "seed": "issue330-before-36x18",
+      "valid": true,
+      "defects": [],
+      "candidates": 38,
+      "uniqueHuts": 38,
+      "topLevel": 37,
+      "blockLots": 1,
+      "uptake": {
+        "beforeWithChildren": 20,
+        "afterWithChildren": 32,
+        "beforeChildren": 54,
+        "afterChildren": 35,
+        "displacedInitialRoutes": 22
+      }
+    }
+  ],
+  "retentionDistributions": {
+    "synthetic": {
+      "before": {
+        "retainedFraction": {
+          "samples": 20,
+          "min": 0.48484848484848486,
+          "median": 0.6891891891891893,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.48484848484848486,
+            "name": "chain-internal-margins",
+            "seed": 1
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 20,
+          "min": 0.4551282051282051,
+          "median": 0.6461538461538462,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.4551282051282051,
+            "name": "chain-internal-margins",
+            "seed": 1
+          }
+        }
+      },
+      "after": {
+        "retainedFraction": {
+          "samples": 20,
+          "min": 0.4621212121212121,
+          "median": 0.6888888888888889,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.4621212121212121,
+            "name": "chain-internal-margins",
+            "seed": 1
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 20,
+          "min": 0.4310897435897436,
+          "median": 0.6255876068376068,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.4310897435897436,
+            "name": "chain-internal-margins",
+            "seed": 1
+          }
+        }
+      }
+    },
+    "production": {
+      "before": {
+        "retainedFraction": {
+          "samples": 78,
+          "min": 0.8125,
+          "median": 1,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.8125,
+            "name": "issue330-before-12x6 / hut@228,126",
+            "seed": 3807177968,
+            "source": {
+              "map": "issue330-before-12x6",
+              "location": "top-level"
+            }
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 78,
+          "min": 0.7954545454545454,
+          "median": 1,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.7954545454545454,
+            "name": "issue330-before-12x6 / hut@228,126",
+            "seed": 3807177968,
+            "source": {
+              "map": "issue330-before-12x6",
+              "location": "top-level"
+            }
+          }
+        }
+      },
+      "after": {
+        "retainedFraction": {
+          "samples": 78,
+          "min": 0.7083333333333334,
+          "median": 0.8095238095238095,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.7083333333333334,
+            "name": "issue330-before-24x12 / hut@420,138",
+            "seed": 2713280819,
+            "source": {
+              "map": "issue330-before-24x12",
+              "location": "top-level"
+            }
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 78,
+          "min": 0.6785714285714286,
+          "median": 0.7728571428571429,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.6785714285714286,
+            "name": "issue330-before-24x12 / hut@396,0",
+            "seed": 2044427323,
+            "source": {
+              "map": "issue330-before-24x12",
+              "location": "top-level"
+            }
+          }
+        }
+      }
+    }
+  },
+  "diagnosticCounts": {
+    "cases": 98,
+    "withoutHouseEvent": 0,
+    "outcomes": {
+      "no-eligible-candidates": 15,
+      "delegated": 83
+    },
+    "fallbackReasons": {},
+    "refusals": {
+      "rejected": 255,
+      "external": 102,
+      "interior": 4
+    },
+    "considered": 4235,
+    "filtered": 3068,
+    "probed": 492,
+    "accepted": 131
+  },
+  "timing": {
+    "unit": "ms per synthetic input set",
+    "warmups": 1,
+    "rounds": [
+      {
+        "before": 434.57470000001194,
+        "after": 2994.6530000000057
+      },
+      {
+        "before": 421.1317999999883,
+        "after": 2838.729600000006
+      },
+      {
+        "before": 447.44130000000587,
+        "after": 2896.138500000001
+      }
+    ],
+    "macro": {
+      "cells": 29584,
+      "portals": 228,
+      "rounds": [
+        {
+          "before": 2105.810799999992,
+          "after": 712.391300000003,
+          "beforeChildren": 2,
+          "afterChildren": 0
+        },
+        {
+          "before": 2589.0553999999975,
+          "after": 863.7825000000012,
+          "beforeChildren": 2,
+          "afterChildren": 0
+        },
+        {
+          "before": 2423.7558000000136,
+          "after": 815.6585999999952,
+          "beforeChildren": 2,
+          "afterChildren": 0
+        }
+      ],
+      "diagnostics": [
+        {
+          "briefId": "field",
+          "outcome": "no-eligible-candidates",
+          "considered": 72,
+          "filtered": 72,
+          "probed": 0,
+          "accepted": 0,
+          "refusals": {},
+          "eligibleOffers": [],
+          "probes": []
+        }
+      ]
+    }
+  },
+  "checks": {
+    "cases": 98,
+    "failedCases": []
+  },
+  "orderWitness": [
+    {
+      "name": "rectangle",
+      "seed": 1,
+      "order": {
+        "forward": {
+          "acceptedKeys": [
+            "yard:0,0,3,6",
+            "yard:12,12,12,6",
+            "yard:21,0,3,6",
+            "yard:6,0,12,9"
+          ],
+          "acceptedCells": 216,
+          "errors": []
+        },
+        "reverse": {
+          "acceptedKeys": [
+            "yard:0,0,3,3",
+            "yard:10,0,3,3",
+            "yard:10,15,3,3",
+            "yard:21,0,3,6",
+            "yard:21,15,3,3"
+          ],
+          "acceptedCells": 54,
+          "errors": []
+        }
+      }
+    }
+  ],
+  "rawSha256": "f4ae597ad85ac352a48acaa962c5b0d75e3039d07db20a76b97768a32dc322b5",
+  "gzipSha256": "4e6c4cdde4c7d15fefeb3a35f418ecd3e2d550c3d2b996f2f917159e1c8a31ff"
+}
