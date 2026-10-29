@@ -1,5 +1,5 @@
 import type { PhysicsBodyView, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
-import type { ItemId, Snapshot, Player, Vec2 } from '../types.ts';
+import type { GroundItem, ItemId, Snapshot, Player, Vec2 } from '../types.ts';
 import { physicsBodyFields, physicsHookFlightFields, physicsTetherFields } from './projection-contract.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
 
@@ -26,10 +26,10 @@ export function capturePhysicsPresentation(physics: PhysicsGameplayState, player
   return { physicsProfile: physics.profile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}) };
 }
 
-/** Apply existing potential-visibility authorization to the captured tick, including delayed views. */
-export function projectPhysicsPresentation(frame: Snapshot, viewer: Player | undefined, authorizedPlayers: Set<string>, inRange: (p: Vec2 & { radius?: number }) => boolean) {
+/** Apply existing potential-visibility authorization to the captured tick, including delayed views. `items` are the frame's items the view holds. */
+export function projectPhysicsPresentation(frame: Snapshot, viewer: Player | undefined, authorizedPlayers: Set<string>, items: readonly GroundItem[], inRange: (p: Vec2 & { radius?: number }) => boolean) {
   if (!frame.bodies) return {};
-  const authorizedItems = new Set<string | number>(frame.items.filter(inRange).map(i => i.id));
+  const authorizedItems = new Set<string | number>(items.map(i => i.id));
   const bodies = frame.bodies.filter(body => {
     if (body.kind === 'actor') return body.actorId !== undefined && authorizedPlayers.has(body.actorId);
     if (body.itemId !== undefined && !authorizedItems.has(body.itemId)) return false;
