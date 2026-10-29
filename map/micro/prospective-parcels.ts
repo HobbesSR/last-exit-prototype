@@ -1,3 +1,4 @@
+import { clearFootprint } from '../kernel/margins.ts';
 import { rect, type Shape } from '../../shared/shape.ts';
 import { construct } from '../../shared/shape-construction.ts';
 import type { Vec2 } from '../../shared/types.ts';
@@ -7,10 +8,15 @@ import { discoverCordWitness, type CordWitness } from './cord-witness.ts';
 import { createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
 import { areaContains, parcelArea } from './parcel-area.ts';
 import type { RegionBrief } from './types.ts';
+import type { PatchOffer, PreparedDelegation } from './delegation.ts';
+import type { ExecutionContext, ExecutionPolicyData } from './delegation-execute.ts';
+import { sameDelegationJSON } from './delegation-json.ts';
 
 export interface ParcelHandle { readonly id: number }
 export interface ParcelProposal { readonly revision: number; readonly area: readonly Shape[]; readonly witness: CordWitness }
+export interface HandoffProposal { readonly revision: number; readonly prepared: PreparedDelegation; readonly witness: CordWitness }
 export interface ParcelOptions {
+  handoff?: Pick<ExecutionContext, 'prepareDelegation' | 'delegate'>;
   /** Immutable standing/access obligations; live cords are never placed here. */
   fixedAccess?: readonly Shape[];
   terminals?: readonly Vec2[];
@@ -18,7 +24,7 @@ export interface ParcelOptions {
 }
 type Parcel = { handle: ParcelHandle; area: Shape[]; assembly: CanvasAssembly | undefined; settled: boolean };
 type Operation = { kind: 'assembly'; assembly: CanvasAssembly } | { kind: 'empty'; area: Shape[] } | { kind: 'parcel'; handle: ParcelHandle };
-type Refusal = 'stale' | 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle' | 'populated';
+type Refusal = 'stale' | 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle' | 'populated' | 'handoff' | 'rejected' | 'partition';
 type Failed = { ok: false; reason: Refusal; counters?: ReturnType<typeof discoverCordWitness>['counters'] };
 type Proposed = { ok: true; proposal: ParcelProposal; counters: ReturnType<typeof discoverCordWitness>['counters'] } | Failed;
 
@@ -37,15 +43,20 @@ function assemblyWithinBudget(assembly: CanvasAssembly): boolean {
 /**
  * Optional, private transaction owner. Claim trials replay a detached canvas;
  * ordinary writes prove circulation before the canvas's atomic commit.
- * No RNG, region IDs, ownership transfer, or production strategy is involved.
+ * Hypothetical ownership is published only through one verified execution batch.
+ * Claim and handoff probes consume no builder RNG or runtime IDs.
  */
 export function createProspectiveParcels(input: RegionBrief, options: ParcelOptions = {}) {
-  const brief = structuredClone(input), fixed = structuredClone(options.fixedAccess ?? []);
+  let brief = structuredClone(input);
+  const fixed = structuredClone(options.fixedAccess ?? []);
   const terminals = structuredClone(options.terminals ?? []), budget = structuredClone(options.budget);
   let parcels: Parcel[] = [], operations: Operation[] = [], revision = 0, nextId = 1;
   // Ordinary assemblies only append. Parcel population is covered by its envelope,
   // so parcel replay/extension/cancellation never invalidates this private cache.
   const committedBlockers: Shape[] = [];
+  const handoffContext = options.handoff;
+  let acceptedOffers: PatchOffer[] = [], acceptedPolicy: ExecutionPolicyData | undefined, acceptedPlan: PreparedDelegation | undefined, executed = false;
+  const handoffs = new WeakMap<HandoffProposal, { revision: number; offers: PatchOffer[]; policy: ExecutionPolicyData; prepared: PreparedDelegation; witness: CordWitness }>();
   const proposals = new WeakMap<ParcelProposal, { revision: number; area: Shape[]; witness: CordWitness; extend: ParcelHandle | undefined }>();
   if (fixed.length > 16384) return { ok: false as const, reason: 'budget' as const, counters: { meshBuilds: 0, sweeps: 0, paths: 0 } };
   if (fixed.some(s => !validShape(s))) throw new TypeError('Fixed access must contain valid convex shapes');
@@ -53,11 +64,12 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   if (!initial.ok) return { ok: false as const, reason: initial.reason, counters: initial.counters };
   let canvas = createBuilderCanvas(brief, fixed);
   if (fixed.some(s => !canvas.access.contains(s))) return { ok: false as const, reason: 'canvas' as const };
-  let witness = initial.witness;
+  let witness = initial.witness, routingBrief = brief;
   const fail = (reason: Refusal): Failed => ({ ok: false, reason });
   const lookup = (handle: ParcelHandle) => parcels.find(p => p.handle === handle);
-  const replay = (ps: Parcel[], ops = operations) => {
-    const trial = createBuilderCanvas(brief, fixed);
+  const replay = (ps: Parcel[], ops = operations, target = brief) => {
+    const trial = createBuilderCanvas(target, fixed);
+    if (fixed.some(s => !trial.access.contains(s)) || ps.some(p => p.area.some(s => !trial.fill.contains(s)))) return null;
     for (const op of ops) {
       if (op.kind === 'assembly') { if (!trial.commit(op.assembly)) return null; }
       else if (op.kind === 'empty') { if (!trial.markEmpty(op.area)) return null; }
@@ -69,9 +81,10 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
     }
     return trial;
   };
-  const blockers = (ps: Parcel[]): Shape[] => [
+  const blockers = (ps: Parcel[], policy = acceptedPolicy): Shape[] => [
     ...ps.flatMap(p => p.area),
     ...committedBlockers,
+    ...(policy?.blockers ?? []),
   ];
   const publish = (ps: Parcel[], ops: Operation[], trial: NonNullable<ReturnType<typeof replay>>, next: CordWitness) => {
     parcels = ps; operations = ops; canvas = trial; witness = next; revision++;
@@ -83,7 +96,80 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
     if (!ledger.markAll(areas)) throw new Error('Invalid parcel allocation ledger');
     return ledger;
   };
+  const handoffPolicy = (policy: ExecutionPolicyData): ExecutionPolicyData => ({
+    ...policy,
+    blockers: [...(policy.blockers ?? []),
+      ...operations.flatMap(op => op.kind === 'assembly' ? assemblyFootprints(op.assembly) : []),
+      ...parcels.flatMap(p => p.area)],
+  });
+  const retainedProof = (prepared: PreparedDelegation): RegionBrief => {
+    const children = prepared.children.flatMap(c => c.brief.cells);
+    const childCells = new Set(children.map(c => `${c.x},${c.y}`));
+    const threshold = new Set(clearFootprint(prepared.retained.portals, children).map(c => `${c.x},${c.y}`));
+    // Only crossing thresholds may supply child-owned access context.
+    return { ...prepared.retained, clearCells: (prepared.retained.clearCells ?? [])
+      .filter(c => !childCells.has(`${c.x},${c.y}`) || threshold.has(`${c.x},${c.y}`)) };
+  };
+  const retainsAccess = (prepared: PreparedDelegation, proofBrief: RegionBrief, added: readonly Shape[] = []): boolean => {
+    const proofAccess = createAccessMask(proofBrief);
+    const obligations = [...fixed, ...added, ...operations.flatMap(op => op.kind === 'assembly' ? [...(op.assembly.access ?? [])]
+      : op.kind === 'parcel' ? [...(lookup(op.handle)?.assembly?.access ?? [])] : [])];
+    const childSquares = prepared.children.flatMap(c => c.brief.cells.map(cell =>
+      rect(cell.x * brief.cellSize, cell.y * brief.cellSize, brief.cellSize, brief.cellSize)));
+    return !obligations.some(s => !proofAccess.contains(s) || childSquares.some(square => shapesShareArea(s, square)))
+      && !terminals.some(p => childSquares.some(s => s.kind === 'rect' && p.x >= s.x && p.x <= s.x + s.w && p.y >= s.y && p.y <= s.y + s.h));
+  };
   const coordinator = {
+    probeHandoff(additional: readonly PatchOffer[], policyData?: ExecutionPolicyData) {
+      if (!handoffContext || executed) return fail('handoff');
+      if (!Array.isArray(additional) || !additional.length) throw new TypeError('Handoff needs additional offers');
+      const policy = structuredClone(policyData ?? acceptedPolicy ?? {});
+      if (acceptedPolicy && !sameDelegationJSON(policy, acceptedPolicy)) return fail('handoff');
+      const offers = [...structuredClone(acceptedOffers), ...structuredClone(additional)];
+      // Preparation needs all physical occupancy and pessimistic envelopes, not merely
+      // the collision subset used by the routing proof.
+      const executionPolicy = handoffPolicy(policy);
+      const prepared = handoffContext.prepareDelegation(offers, executionPolicy);
+      if (prepared.rejected.length || prepared.children.length !== offers.length) return fail('rejected');
+      const trial = replay(parcels, operations, prepared.retained);
+      if (!trial) return fail('canvas');
+      // Child-owned clear-margin cells are access context for a crossing, not a
+      // licence to route through the child interior.
+      const proofBrief = retainedProof(prepared);
+      if (!retainsAccess(prepared, proofBrief)) return fail('canvas');
+      const found = discoverCordWitness(proofBrief, blockers(parcels, policy), terminals, witness, budget);
+      if (!found.ok) return { ...fail(found.reason), counters: found.counters };
+      const proposal: HandoffProposal = { revision, prepared: structuredClone(prepared), witness: structuredClone(found.witness) };
+      handoffs.set(proposal, { revision, offers, policy, prepared, witness: found.witness });
+      return { ok: true as const, proposal, counters: found.counters };
+    },
+    acceptHandoff(proposal: HandoffProposal) {
+      const saved = handoffs.get(proposal);
+      if (!saved || saved.revision !== revision || executed) return fail('stale');
+      const trial = replay(parcels, operations, saved.prepared.retained);
+      if (!trial) return fail('canvas');
+      brief = structuredClone(saved.prepared.retained);
+      routingBrief = retainedProof(saved.prepared);
+      acceptedOffers = saved.offers; acceptedPolicy = saved.policy; acceptedPlan = saved.prepared;
+      publish(parcels, operations, trial, saved.witness);
+      handoffs.delete(proposal);
+      return { ok: true as const };
+    },
+    executeHandoffs() {
+      if (!handoffContext || executed || !acceptedPlan || !acceptedPolicy) return fail('handoff');
+      const policy = handoffPolicy(acceptedPolicy);
+      const prepared = handoffContext.prepareDelegation(acceptedOffers, policy);
+      if (prepared.rejected.length || !sameDelegationJSON(prepared, acceptedPlan)) return fail('partition');
+      if (!replay(parcels, operations, prepared.retained)) return fail('canvas');
+      const proofBrief = retainedProof(prepared);
+      if (!retainsAccess(prepared, proofBrief)) return fail('canvas');
+      const found = discoverCordWitness(proofBrief, blockers(parcels), terminals, witness, budget);
+      if (!found.ok) return { ...fail(found.reason), counters: found.counters };
+      executed = true;
+      const dispatch = handoffContext.delegate(acceptedOffers, policy);
+      if (!sameDelegationJSON(dispatch.prepared, prepared)) throw new Error('Delegation execution changed the verified partition');
+      return { ok: true as const, dispatch };
+    },
     get revision() { return revision; },
     get witness(): CordWitness { return structuredClone(witness); },
     get elements() { return structuredClone(canvas.elements); },
@@ -122,7 +208,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       const ps = prior ? parcels.map(p => p === prior ? candidate : p) : [...parcels, candidate];
       const trial = replay(ps);
       if (!trial) return fail('canvas');
-      const found = discoverCordWitness(brief, blockers(ps), terminals, witness, budget);
+      const found = discoverCordWitness(routingBrief, blockers(ps), terminals, witness, budget);
       if (!found.ok) return { ...fail(found.reason), counters: found.counters };
       const proposal: ParcelProposal = { revision, area: structuredClone(area), witness: structuredClone(found.witness) };
       proposals.set(proposal, { revision, area, witness: found.witness, extend });
@@ -153,6 +239,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if (p.assembly) return fail('populated');
       const owned = structuredClone(assembly);
       if (owned.elements.length + canvas.elements.length > 4096 || !assemblyWithinBudget(owned)) return fail('budget');
+      if (acceptedPlan && !retainsAccess(acceptedPlan, routingBrief, owned.access)) return fail('canvas');
       const intent = owned.areas ?? owned.elements.map(e => rect(e.x, e.y, e.template.w, e.template.h));
       const physical = assemblyFootprints(owned);
       if (intent.length + physical.length > 16384) return fail('budget');
@@ -189,11 +276,12 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if (operations.length >= 1024) return false;
       const owned = structuredClone(assembly);
       if (owned.elements.length + canvas.elements.length > 4096 || !assemblyWithinBudget(owned)) return false;
+      if (acceptedPlan && !retainsAccess(acceptedPlan, routingBrief, owned.access)) return false;
       const intent = owned.areas ?? owned.elements.map(e => rect(e.x, e.y, e.template.w, e.template.h));
       if ([...intent, ...assemblyFootprints(owned), ...(owned.access ?? [])].some(a => parcels.some(p => p.area.some(s => shapesOverlap(a, s))))) return false;
       const ops: Operation[] = [...operations, { kind: 'assembly', assembly: owned }];
       const addedBlockers = assemblyBlockers(owned);
-      const found = discoverCordWitness(brief, [...blockers(parcels), ...addedBlockers], terminals, witness, budget);
+      const found = discoverCordWitness(routingBrief, [...blockers(parcels), ...addedBlockers], terminals, witness, budget);
       if (!found.ok) return false;
       // Search first; canvas.commit itself is atomic. No live write occurs on either refusal.
       if (!canvas.commit(owned)) return false;

@@ -184,6 +184,72 @@ test('complete offers permit only empty, malformed offers throw and one batch is
   assert.throws(() => executeDelegation(brief(), repeated), /one patch batch/);
 });
 
+test('hypothetical cumulative batches recheck receivers, stay detached, and match the one dispatched batch', () => {
+  const receiverCalls = [];
+  let childBuilds = 0;
+  let finalPrepared;
+  const west = offer('west', cells(0, 0, 2, 6));
+  const east = offer('east', cells(10, 0, 2, 6));
+  const registry = {
+    parent: entry((_input, context) => {
+      const first = context.prepareDelegation([west]);
+      assert.deepEqual(first.children.map(child => child.key), ['west']);
+      const cumulative = context.prepareDelegation([east, west]);
+      const cumulativeExpected = structuredClone(cumulative);
+
+      // Hypothetical preparation returns disposable views. Neither edits to a
+      // prior view nor to this view may affect the next preparation or dispatch.
+      first.children[0].brief.cells.length = 0;
+      cumulative.children[0].brief.portals.length = 0;
+      cumulative.retained.cells.length = 0;
+      finalPrepared = context.prepareDelegation([west, east]);
+      assert.deepEqual(finalPrepared, cumulativeExpected);
+      assert.ok(receiverCalls.filter(call => call.key === 'west').length >= 3,
+        'the earlier receiver is rechecked as the cumulative interface changes');
+
+      const dispatched = context.delegate([west, east]);
+      assert.deepEqual(dispatched.prepared, cumulativeExpected,
+        'the final one-shot dispatch has the exact interfaces selected by the hypothetical probe');
+      assert.equal(dispatched.children.length, 2);
+      assert.throws(() => context.prepareDelegation([west]), /after a delegation batch/);
+      assert.throws(() => context.delegate([]), /one patch batch/);
+      return built(context.brief);
+    }),
+    child: entry(input => { childBuilds++; return built(input); }, (childBrief, candidate) => {
+      receiverCalls.push({ key: candidate.key, brief: structuredClone(childBrief) });
+      return null;
+    }),
+  };
+
+  const result = executeDelegation(brief(), registry);
+  assert.equal(childBuilds, 2, 'preparations do not dispatch children');
+  assert.deepEqual(result.preparation, finalPrepared);
+  assert.deepEqual(result.children.map(child => child.input), finalPrepared.children.map(child => child.brief));
+  assert.deepEqual(result.registryVersions, { parent: 'test-1', child: 'test-1' });
+});
+
+test('hypothetical preparation at depth zero bypasses receivers just like dispatch', () => {
+  let receivingCalls = 0;
+  let hypothetical;
+  const registry = {
+    parent: entry((_input, context) => {
+      const patches = [offer('edge', cells(10, 0, 2, 6))];
+      hypothetical = context.prepareDelegation(patches);
+      assert.deepEqual(hypothetical.rejected, []);
+      const dispatched = context.delegate(patches);
+      assert.deepEqual(dispatched.prepared, hypothetical);
+      assert.equal(dispatched.children[0].actualBuilder, 'empty');
+      return built(context.brief);
+    }),
+    child: entry(input => built(input), () => { receivingCalls++; return 'never at depth zero'; }),
+  };
+
+  const result = executeDelegation(brief(), registry, { maxDepth: 0 });
+  assert.equal(receivingCalls, 0);
+  assert.deepEqual(result.preparation, hypothetical);
+  assert.deepEqual(result.registryVersions, { parent: 'test-1' }, 'bypassed receivers are not consulted or versioned');
+});
+
 test('equivalent reordered input gives identical execution and child cannot alter parent interface', () => {
   const patches = [offer('west', cells(0, 0, 2, 6)), offer('east', cells(10, 0, 2, 6))];
   const registry = (reverse) => ({
