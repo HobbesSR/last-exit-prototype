@@ -12,28 +12,41 @@ const published = new WeakSet<readonly GroundItem[]>();
 
 /**
  * Records by coarse cell, so a rule that reaches a few units looks at a few cells instead of the whole map (#641).
+ * Two cell sizes: fine cells serve pickup and interact reach, wide cells a viewer's reach, which would cover
+ * thousands of fine ones. A record sits in one cell of each size.
  * `order` restores list order: the list only ever appends, removes and replaces in place, so a sequence number
  * given on entry, and kept by a replacement, sorts exactly as positions do. A grid belongs to one list and moves
  * to the copy when that list is copied, so a list that a frame still holds never sees a later change.
  * Only a frozen record sits in a cell, since nothing can move it there. One not yet published may still be
  * edited in place, so it waits in `loose`, which every query reads, until a frame has frozen it.
  */
-interface Entry { order: number; bucket: GroundItem[] }
-interface Grid { cells: Map<number, GroundItem[]>; loose: GroundItem[]; entries: Map<GroundItem, Entry>; next: number }
+interface Entry { order: number; buckets: GroundItem[][] }
+interface Level { size: number; cells: Map<number, GroundItem[]> }
+interface Grid { levels: Level[]; loose: GroundItem[]; entries: Map<GroundItem, Entry>; next: number }
 const grids = new WeakMap<readonly GroundItem[], Grid>();
-const CELL = 64, SPAN = 1 << 15;
+const SIZES = [64, 256], SPAN = 1 << 15;
+/** A query box wider than this many fine cells reads wide cells instead. */
+const FINE_SPAN = 8;
 
 /** A cell's key, or undefined for a position no cell holds (non-finite or far off the map). */
-function cellKey(x: number, y: number): number | undefined {
-  const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL);
+function cellKey(size: number, x: number, y: number): number | undefined {
+  const cx = Math.floor(x / size), cy = Math.floor(y / size);
   return Math.abs(cx) < SPAN && Math.abs(cy) < SPAN ? (cx + SPAN) * 2 * SPAN + cy + SPAN : undefined;
 }
 
+const cellable = (item: GroundItem) => Object.isFrozen(item) && cellKey(SIZES[0]!, item.x, item.y) !== undefined;
+
 function enter(grid: Grid, item: GroundItem, order = grid.next++): void {
-  const key = Object.isFrozen(item) ? cellKey(item.x, item.y) : undefined;
-  let bucket = key === undefined ? grid.loose : grid.cells.get(key);
-  if (!bucket) grid.cells.set(key!, bucket = []);
-  bucket.push(item); grid.entries.set(item, { order, bucket });
+  const buckets: GroundItem[][] = [];
+  if (!cellable(item)) buckets.push(grid.loose);
+  else for (const level of grid.levels) {
+    const key = cellKey(level.size, item.x, item.y)!;
+    let bucket = level.cells.get(key);
+    if (!bucket) level.cells.set(key, bucket = []);
+    buckets.push(bucket);
+  }
+  for (const bucket of buckets) bucket.push(item);
+  grid.entries.set(item, { order, buckets });
 }
 
 function unlink(bucket: GroundItem[], item: GroundItem): void {
@@ -44,7 +57,8 @@ function unlink(bucket: GroundItem[], item: GroundItem): void {
 function leave(list: readonly GroundItem[], item: GroundItem): number | undefined {
   const grid = grids.get(list), entry = grid?.entries.get(item);
   if (!entry) { grids.delete(list); return undefined; }
-  unlink(entry.bucket, item); grid!.entries.delete(item);
+  for (const bucket of entry.buckets) unlink(bucket, item);
+  grid!.entries.delete(item);
   return entry.order;
 }
 
@@ -52,17 +66,40 @@ function gridOf(list: readonly GroundItem[]): Grid {
   let grid = grids.get(list);
   // A list edited without these functions (a test arranging a scenario) is gridded again.
   if (!grid || grid.entries.size !== list.length) {
-    grid = { cells: new Map(), loose: [], entries: new Map(), next: 0 };
+    grid = { levels: SIZES.map(size => ({ size, cells: new Map() })), loose: [], entries: new Map(), next: 0 };
     for (const item of list) enter(grid, item);
     grids.set(list, grid);
   } else if (grid.loose.length) {
     // Records frozen since they entered move to their cells; the rest stay loose.
-    for (const item of grid.loose.slice()) if (Object.isFrozen(item) && cellKey(item.x, item.y) !== undefined) {
+    for (const item of grid.loose.slice()) if (cellable(item)) {
       const { order } = grid.entries.get(item)!;
       unlink(grid.loose, item); enter(grid, item, order);
     }
   }
   return grid;
+}
+
+/** The records of `grid` that could be within `reach` of `at`, unordered: the loose ones and those in cells the reach overlaps. */
+function candidates(grid: Grid, at: Vec2, reach: number): GroundItem[] {
+  const found = grid.loose.slice();
+  // One unit past the reach, so a rounding difference between this bound and the caller's distance cannot exclude.
+  const [fine, wide] = grid.levels as [Level, Level];
+  const level = 2 * (reach + 1) > FINE_SPAN * fine.size ? wide : fine, { size } = level;
+  const x0 = Math.floor((at.x - reach - 1) / size), x1 = Math.floor((at.x + reach + 1) / size);
+  const y0 = Math.floor((at.y - reach - 1) / size), y1 = Math.floor((at.y + reach + 1) / size);
+  for (let cx = x0; cx <= x1; cx++) for (let cy = y0; cy <= y1; cy++) {
+    const key = cellKey(size, cx * size, cy * size), bucket = key === undefined ? undefined : level.cells.get(key);
+    if (bucket) for (const item of bucket) found.push(item);
+  }
+  return found;
+}
+
+/** `items` in list order, by their sequence numbers in `grid`. */
+function inOrder(grid: Grid, items: GroundItem[]): GroundItem[] {
+  if (items.length < 2) return items;
+  const keyed = items.map(item => ({ order: grid.entries.get(item)!.order, item }));
+  keyed.sort((a, b) => a.order - b.order);
+  return keyed.map(k => k.item);
 }
 
 function writable(s: Game): GroundItem[] {
@@ -107,16 +144,36 @@ export function removeItem(s: Game, item: GroundItem): number {
 export function itemsNear(s: Game, at: Vec2, reach: number): GroundItem[] {
   const list = s.map.items;
   if (!Number.isFinite(at.x) || !Number.isFinite(at.y)) return list.slice();
-  const grid = gridOf(list), found = grid.loose.slice();
-  // One unit past the reach, so a rounding difference between this bound and the caller's distance cannot exclude.
-  const x0 = Math.floor((at.x - reach - 1) / CELL), x1 = Math.floor((at.x + reach + 1) / CELL);
-  const y0 = Math.floor((at.y - reach - 1) / CELL), y1 = Math.floor((at.y + reach + 1) / CELL);
-  for (let cx = x0; cx <= x1; cx++) for (let cy = y0; cy <= y1; cy++) {
-    const key = cellKey(cx * CELL, cy * CELL), bucket = key === undefined ? undefined : grid.cells.get(key);
-    if (bucket) for (const item of bucket) found.push(item);
-  }
-  if (found.length > 1) found.sort((a, b) => grid.entries.get(a)!.order - grid.entries.get(b)!.order);
-  return found;
+  const grid = gridOf(list);
+  return inOrder(grid, candidates(grid, at, reach));
+}
+
+/** Frame lists that copy a published ground list with a few records swapped (physics poses): each swap by the record it replaces. */
+const posed = new WeakMap<readonly GroundItem[], { ground: readonly GroundItem[]; swaps: Map<GroundItem, GroundItem> }>();
+
+/** A frame's copy of the published `ground` with the records at some positions swapped; `framedItems` still reads the ground's grid. */
+export function poseItems(ground: readonly GroundItem[], swaps: ReadonlyMap<number, GroundItem>): GroundItem[] {
+  const list = ground.slice(), byRecord = new Map<GroundItem, GroundItem>();
+  for (const [at, record] of swaps) { byRecord.set(list[at]!, record); list[at] = record; }
+  posed.set(list, { ground, swaps: byRecord });
+  return list;
+}
+
+/**
+ * The records of a frame's item list that pass `keep`, in list order: exactly `frame.filter(keep)` whenever `keep`
+ * passes nothing farther than `reach` from `at`. The grid only spares testing the rest. A frame list that is
+ * neither the live ground list nor a posed copy of it (an older frame) is filtered whole.
+ */
+export function framedItems(s: Game, frame: readonly GroundItem[], at: Vec2, reach: number, keep: (item: GroundItem) => boolean): GroundItem[] {
+  const live = s.map.items, pose = posed.get(frame);
+  if (!Number.isFinite(at.x) || !Number.isFinite(at.y) || frame !== live && pose?.ground !== live) return frame.filter(keep);
+  const grid = gridOf(live), near = candidates(grid, at, reach);
+  if (frame === live) return inOrder(grid, near.filter(keep));
+  // A posed record may have moved out of the cells its ground record sits in, so every swap is a candidate.
+  const offered = new Set(near), out: GroundItem[] = [];
+  for (const record of pose!.swaps.keys()) offered.add(record);
+  for (const record of inOrder(grid, [...offered])) { const item = pose!.swaps.get(record) ?? record; if (keep(item)) out.push(item); }
+  return out;
 }
 
 function positions(list: readonly GroundItem[]): Map<string, number> {

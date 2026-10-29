@@ -4,7 +4,7 @@ import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, GroundItem, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
-import { groundItem, groundPosition, publishItems } from './ground-items.ts';
+import { framedItems, groundItem, groundPosition, poseItems, publishItems } from './ground-items.ts';
 import { physicsState } from './physics-runtime.ts';
 import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
 import { MAX_PHYSICS_SPEED } from '../physics/motion-limits.ts';
@@ -54,8 +54,10 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
   const authorized = frame.players.filter(p => couldSee(s, viewer, p));
+  // Items have no radius; the grid only spares testing those out of reach, and inRange still decides.
+  const items = viewer ? framedItems(s, frame.items, viewer, POTENTIAL, inRange) : frame.items;
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
-    ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), inRange) : {}),
+    ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), items, inRange) : {}),
     ...(frame.bodies && viewer ? { predictionMotor: {
       acceleration: s.content.actorPhysics?.acceleration ?? DEFAULT_CHARACTER_MOTOR.acceleration,
       braking: s.content.actorPhysics?.braking ?? DEFAULT_CHARACTER_MOTOR.braking,
@@ -64,7 +66,7 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
     players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
-    items: frame.items.filter(inRange).map(itemFields), gates: frame.gates?.map(gateFields),
+    items: items.map(itemFields), gates: frame.gates?.map(gateFields),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }
@@ -81,13 +83,13 @@ export function snapshot(s: Game): Snapshot {
     // A physical item's stored/projection pose changes the item layer too, even before its gameplay
     // owner synchronizes the map record. Never change that gameplay record while taking a snapshot:
     // a differing pose gives the frame its own list.
-    let items = ground;
+    const poses = new Map<number, GroundItem>();
     for (const body of presentation?.bodies ?? []) {
       const at = body.itemId === undefined ? undefined : groundPosition(s, String(body.itemId)), item = at === undefined ? undefined : ground[at];
       if (!item || Object.is(item.x, body.x) && Object.is(item.y, body.y)) continue;
-      if (items === ground) items = ground.slice();
-      (items as GroundItem[])[at!] = Object.freeze({ ...item, x: body.x, y: body.y });
+      poses.set(at!, Object.freeze({ ...item, x: body.x, y: body.y }));
     }
+    const items = poses.size ? poseItems(ground, poses) : ground;
     stop('sim.snapshot.presentation');
     start('sim.snapshot.clone');
     // The ground list is shared, not cloned: published records are frozen and replaced when they change.

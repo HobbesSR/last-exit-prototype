@@ -5,7 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { stepPhysics } from '../shared/simulation/phased.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups } from '../shared/simulation/loot.ts';
-import { addItems, groundItem, groundList, itemsNear, publishItems, removeItem, replaceItem } from '../shared/simulation/ground-items.ts';
+import { addItems, framedItems, groundItem, groundList, itemsNear, poseItems, publishItems, removeItem, replaceItem } from '../shared/simulation/ground-items.ts';
 
 // #655 stage 1 (22.1 "Frames"): frames share the ground list and its records, and a change replaces only what it touches.
 const arena = items => ({ width: 600, height: 400,
@@ -81,6 +81,40 @@ test('the item grid offers every record in reach, in list order, through adds, r
   const p = { x: 500, y: 500 };
   assert.ok(itemsNear(s, p, 45).length < s.map.items.length / 4, 'a query reads a neighbourhood, not the map');
   assert.deepEqual(itemsNear(s, { x: NaN, y: 0 }, 45), s.map.items, 'a position that compares as nothing is offered everything');
+});
+
+test('a viewer\'s items through the grid are exactly the whole-list filter, for live, posed and older frames (#641)', () => {
+  let seed = 4217;
+  const random = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+  const at = () => random() < 0.02 ? NaN : random() * 9000 - 500;
+  const s = { map: { items: Array.from({ length: 1500 }, (_, i) => ({ id: `i${i}`, kind: 'med', x: at(), y: at() })) } };
+  const frames = [];
+  let serial = 1500, wide = 0;
+  for (let step = 0; step < 600; step++) {
+    const items = s.map.items, item = items[Math.floor(random() * items.length)], roll = random();
+    if (roll < 0.2) addItems(s, { id: `i${serial++}`, kind: 'med', x: at(), y: at() });
+    else if (roll < 0.3 && item) removeItem(s, item);
+    else if (roll < 0.5 && item) replaceItem(s, item, { ...item, x: item.x + random() * 400 - 200, y: item.y + random() * 400 - 200 });
+    else if (roll < 0.55) s.map.items.push({ id: `pushed${serial++}`, kind: 'med', x: at(), y: at() }); // A test arranging a scenario.
+    const ground = publishItems(s);
+    // A frame's posed copy: some records moved by their bodies, by any distance, across any cell or the view edge.
+    const swaps = new Map();
+    for (let k = random() * 6; k > 0; k--) {
+      const i = Math.floor(random() * ground.length);
+      swaps.set(i, Object.freeze({ ...ground[i], x: random() < 0.5 ? ground[i].x + random() * 60 - 30 : at(), y: at() }));
+    }
+    const frame = swaps.size ? poseItems(ground, swaps) : ground;
+    frames.push(frame);
+    const viewer = { x: random() * 8000, y: random() * 8000 }, reach = [1692, 600, 45][step % 3];
+    for (const list of [frame, frames[Math.floor(random() * frames.length)]]) {
+      const inRange = i => Math.hypot(viewer.x - i.x, viewer.y - i.y) < reach;
+      const expected = list.filter(inRange), got = framedItems(s, list, viewer, reach, inRange);
+      assert.deepEqual(got, expected, `step ${step}`);
+      if (reach > 1000 && got.length) wide++;
+    }
+  }
+  assert.ok(wide > 50, 'the view reach is exercised with something in range');
+  assert.deepEqual(framedItems(s, s.map.items, { x: NaN, y: 0 }, 1692, () => true), s.map.items, 'a viewer that compares as nothing is tested against everything');
 });
 
 test('physics writes back only the item bodies that moved', async () => {
