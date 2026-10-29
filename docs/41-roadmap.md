@@ -106,8 +106,8 @@ not an accurate inventory of everything still missing.
 | Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
 | District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. |
 
-The next shared capability is prospective parcels and movable cords (#645),
-following independent optional thorough validation (#644). Depot, hall, market,
+The opt-in shared capability now includes prospective parcels and movable cords
+(#645), following independent optional thorough validation (#644). Depot, hall, market,
 plant, ruins and cover currently freeze routes before content placement; residual
 infill cannot negotiate meaningful primary parcels across those routes. Existing
 canvas, placeables, infill and recovery infrastructure remains useful. This is
@@ -262,13 +262,14 @@ claim complete process isolation. Public deployment limits are in
 
 Design reviewed in #648: [20.10](20.10-portal-cords.md).
 Source direction is in [17.2.10](17.2.10-portal-cord-direction.md). Optional
-validation is implemented; coordination and builder adoption remain pending.
+validation and retained-content coordination are implemented; handoff coordination,
+growth helpers and builder adoption remain pending.
 This is also a shared prerequisite for #529's composition sequence above.
 
 | Order | Issue | Functional outcome |
 | --- | --- | --- |
 | Done | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
-| 2 | [#645](/corey/astra_test/issues/645) | Atomic prospective parcels anywhere in the fill, with deformable connectivity witness |
+| Done | [#645](/corey/astra_test/issues/645) | Opt-in atomic retained-content parcels anywhere in the fill, with deformable connectivity witness; no production adoption |
 | 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
 | 3b | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing |
 | 4 | [#647](/corey/astra_test/issues/647) | Intentional hut then compound adoption, replacing pragmatic perimeter collars with measured peripheral handoffs |

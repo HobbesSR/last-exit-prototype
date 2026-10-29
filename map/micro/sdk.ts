@@ -42,3 +42,8 @@ export { createAddressedArea } from './addressed.ts';
 export type { AddressedArea } from './addressed.ts';
 export { createBuilderCanvas } from './canvas.ts';
 export type { CanvasAssembly } from './canvas.ts';
+export { createProspectiveParcels } from './prospective-parcels.ts';
+export type { ProspectiveParcels, ParcelHandle, ParcelProposal, ParcelOptions } from './prospective-parcels.ts';
+export { parcelArea, parcelCells, areaContains } from './parcel-area.ts';
+export { discoverCordWitness } from './cord-witness.ts';
+export type { CordWitness, CordEdge, CordCounters, CordBudget, CordWitnessResult } from './cord-witness.ts';

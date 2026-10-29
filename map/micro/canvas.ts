@@ -18,6 +18,21 @@ export interface CanvasAssembly {
   extents?: readonly Shape[];
 }
 
+/** Full physical/content footprint, including non-colliding roofs and enclosed interiors. */
+export function assemblyFootprints(assembly: CanvasAssembly): Shape[] {
+  return assembly.elements.flatMap(e => [
+    ...elementShapes(e, true),
+    ...(e.template.encloses ? [rect(e.x, e.y, e.template.w, e.template.h)] : []),
+    ...e.template.parts.flatMap(p => p.part === 'reserve' ? [rect(e.x + p.x, e.y + p.y, p.w, p.h)]
+      : p.part === 'spot' ? [circle(e.x + p.x, e.y + p.y, 1)] : []),
+    ...(e.template.roofs ?? []).flatMap(roof => {
+      const size = roof.cellSize ?? 40;
+      return roof.cells.map(c => rect(e.x + (roof.origin?.x ?? 0) + c.x * size,
+        e.y + (roof.origin?.y ?? 0) + c.y * size, size, size));
+    }),
+  ]);
+}
+
 /**
  * Production region-2 placement. Siting, RNG, route search and result manifests remain
  * the strategy's responsibility. An assembly's elements and addressed areas commit together.
