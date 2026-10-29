@@ -101,7 +101,7 @@ the report records two tracked dirty files, documentation and a test-helper
 comment, with no behavior difference. The root dependency lockfile is unchanged.
 
 Workload: five synthetic shapes (small, rectangle, concave, holed, internal
-margins), seeds 1?4, plus every unique top-level/nested compound from the three
+margins), seeds 1-4, plus every unique top-level/nested compound from the three
 same authored maps named in the hut section. There are 18 production inputs,
 five nested in block lots. All owners and containing results pass thorough
 portal checks against combined final blockers; fill checks use each owner's
@@ -145,7 +145,7 @@ node tools/compound-cord-audit.mjs --render-from=docs/reports/issue-647/compound
 `compound-timing.json.gz` retains the separate synthetic timing run's complete
 inputs/results and raw paired rounds. One warmup then three sequential rounds
 run under the machine-wide benchmark lock, with no other jobs from this task.
-The synthetic set has changed content (20 ? 68 children). The dense 30,000-cell,
+The synthetic set has changed content (20 -> 68 children). The dense 30,000-cell,
 170-portal fixture has zero children and unchanged ring both sides; current
 initialization reports `budget` before any handoff probe. These are measured
 slowdowns, not fixes. The raw timing report includes all thirteen eligible
@@ -170,3 +170,15 @@ extraction plus recheck). Original hut artifacts are untouched.
 | `compound-concave.png` | `f7c57dba110295998e670460a919d961a901711c86fd7ca0cd4e8785e0b27b0e` |
 | `compound-peripheral.png` | `78b54d41a216453bc3aa0e033b2250302f8485aa98bf598420d737abc134a3d0` |
 | `compound-open-yard.png` | `31c561f88df88d5568a9da90131c70018eac85d144bdd6ac69c862e99e98f182` |
+
+
+### Correction to first compound interpretation
+
+The original PR described 14,607 production cells as transferred. That was the
+sum of offers, including rejected ones. Actual transfer, computed from original
+minus retained ownership, is 4,576; the first compound milestone transfers 729.
+Synthetic original transfer is 3,071, not its 7,487 offered cells. Original gzip,
+summary and PNG bytes are preserved. Their generation trees and retained counts
+support these corrected totals. The follow-up report explicitly distinguishes
+offered from transferred cells. Corey selected improving coverage before merge
+in response to review 498 (verbatim direction in 17.2.10).

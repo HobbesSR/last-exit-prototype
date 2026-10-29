@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Same-input compound cord evidence (#647). Run with Node's TypeScript support. */
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -42,9 +42,10 @@ function options(args) {
     else if (arg.startsWith('--seeds=')) out.seeds = Number(arg.slice(8));
     else if (arg.startsWith('--out=')) out.dir = arg.slice(6);
     else if (arg.startsWith('--render-from=')) out.renderFrom = arg.slice(14);
+    else if (arg.startsWith('--compare-from=')) out.compareFrom = arg.slice(15);
     else throw Error(`Unknown argument: ${arg}`);
   }
-  if (!Number.isInteger(out.seeds) || out.seeds < 1 || out.seeds > 50 || !out.dir || out.renderFrom === '') throw Error('Use --seeds=1..50, --out=DIRECTORY, --timing, --maps, --render-from=FILE.');
+  if (!Number.isInteger(out.seeds) || out.seeds < 1 || out.seeds > 50 || !out.dir || out.renderFrom === '' || out.compareFrom === '') throw Error('Use --seeds=1..50, --out=DIRECTORY, --timing, --maps, --render-from=FILE, --compare-from=FILE.');
   return out;
 }
 const brief = (c, seed) => chainBrief({ ...c, id: `cord-${c.name}`, type: 'compound', seed });
@@ -122,6 +123,18 @@ function retention(brief, node) {
     retainedYardCells: retainedYard, retainedFraction: original ? retained / original : null,
     retainedYardFraction: originalYard ? retainedYard / originalYard : null };
 }
+function counts(node) {
+  return { children: node.children?.length ?? 0,
+    offeredCells: (node.offers ?? []).reduce((n, offer) => n + offer.cells.length, 0),
+    transferredCells: node.input.cells.length - node.retained.brief.cells.length };
+}
+function aggregate(records, side) {
+  const available = records.map(r => side === 'previousReview' ? r.previousReview : counts(r[side].generation)).filter(Boolean);
+  return { cases: available.length, childCount: available.reduce((n, c) => n + c.children, 0),
+    regionsWithChildren: available.filter(c => c.children > 0).length,
+    offeredCells: available.reduce((n, c) => n + c.offeredCells, 0),
+    transferredCells: available.reduce((n, c) => n + c.transferredCells, 0) };
+}
 function distributions(records) {
   const distribution = (side, field) => {
     const items = records.filter(r => Number.isFinite(r[side].retention[field]))
@@ -161,12 +174,12 @@ function panel(b, result, owners, cords) {
 }
 function renderReport(report) {
   const panels = report.records.map(r => `<section><h2>${esc(r.name)} - seed ${esc(r.seed)}</h2><div class="pair"><figure><figcaption>Before (${esc(report.baseline.commit)})</figcaption>${panel(r.brief, r.before.result, r.before.owners)}</figure><figure><figcaption>After</figcaption>${panel(r.brief, r.after.result, r.after.owners, r.cords)}</figure></div><p>After overlays: dashed amber is the initial full ring-box route; blue is independently rediscovered final access, dots are gate approaches. Displaced initial routes: ${esc(r.cords?.initialReady === false ? `unavailable (${r.cords.initialFailure})` : (r.cords?.displaced?.join(', ') || 'none'))}. Checks: ${esc(JSON.stringify(r.checks))}; geometry failures before ${r.before.failures.length}, after ${r.after.failures.length}. Retention before/after: ${esc(JSON.stringify([r.before.retention, r.after.retention]))}. See JSON for details.</p></section>`);
-  return `<!doctype html><meta charset="utf-8"><title>Compound cord audit</title><style>body{font:16px system-ui;margin:2em}section{border-top:1px solid #aaa}.pair{display:flex;gap:1em}figure{margin:0;flex:1}svg{width:100%;max-height:500px;background:#fff}figcaption{font-weight:bold}p,code{overflow-wrap:anywhere}</style><h1>Compound cord audit</h1><p>Same brief and seed. Cell colours indicate owners; brown geometry is the ring, green is cover, magenta marks external portals. Baseline uses current supporting modules. Raw results and diagnostic errors: <a href="results.json">results.json</a>.</p>${report.diagnosticCounts ? `<h2>Yard candidate and fallback diagnostics</h2><p><code>${esc(JSON.stringify(report.diagnosticCounts))}</code></p>` : ''}${report.retentionDistributions ? `<h2>Retained ownership and yard distributions</h2><p><code>${esc(JSON.stringify(report.retentionDistributions))}</code></p>` : ''}${report.maps ? `<h2>Production maps</h2><p>All unique top-level compounds and block lots are shown below. Counts, map defects and uptake: <code>${esc(JSON.stringify(report.maps))}</code></p>` : ''}${panels.join('')}`;
+  return `<!doctype html><meta charset="utf-8"><title>Compound cord audit</title><style>body{font:16px system-ui;margin:2em}section{border-top:1px solid #aaa}.pair{display:flex;gap:1em}figure{margin:0;flex:1}svg{width:100%;max-height:500px;background:#fff}figcaption{font-weight:bold}p,code{overflow-wrap:anywhere}</style><h1>Compound cord audit</h1><p>Same brief and seed. Cell colours indicate owners; brown geometry is the ring, green is cover, magenta marks external portals. ${report.comparisonSource ? 'Matching baseline geometry is historical and was not rerun; other baseline cases use current supporting modules.' : 'Baseline uses current supporting modules.'} Raw results and diagnostic errors: <a href="results.json">results.json</a>.</p>${report.diagnosticCounts ? `<h2>Yard candidate and fallback diagnostics</h2><p><code>${esc(JSON.stringify(report.diagnosticCounts))}</code></p>` : ''}${report.retentionDistributions ? `<h2>Retained ownership and yard distributions</h2><p><code>${esc(JSON.stringify(report.retentionDistributions))}</code></p>` : ''}${report.maps ? `<h2>Production maps</h2><p>All unique top-level compounds and block lots are shown below. Counts, map defects and uptake: <code>${esc(JSON.stringify(report.maps))}</code></p>` : ''}${panels.join('')}`;
 }
 async function main() {
   const opts = options(process.argv.slice(2)), dir = resolve(ROOT, opts.dir);
   if (opts.renderFrom) {
-    if (opts.maps || opts.timing) throw Error('--render-from cannot be combined with --maps or --timing.');
+    if (opts.maps || opts.timing || opts.compareFrom) throw Error('--render-from cannot be combined with --maps, --timing or --compare-from.');
     const inputPath = resolve(ROOT, opts.renderFrom);
     const outputPath = resolve(dir, 'results.json');
     const bytes = await readFile(inputPath);
@@ -179,6 +192,15 @@ async function main() {
     process.stdout.write(`Rendered ${dir} from ${inputPath} without rebuilding.\n`);
     return;
   }
+  let comparison, comparisonSource;
+  if (opts.compareFrom) {
+    const inputPath = resolve(ROOT, opts.compareFrom), bytes = await readFile(inputPath);
+    comparison = JSON.parse((inputPath.endsWith('.gz') ? gunzipSync(bytes) : bytes).toString('utf8'));
+    if (!Array.isArray(comparison.records)) throw Error('Comparison report has no records.');
+    comparisonSource = { path: opts.compareFrom, sha256: createHash('sha256').update(bytes).digest('hex'),
+      contentCommit: comparison.currentCommit, baselineCommit: comparison.baseline?.commit, reuseCount: 0,
+      note: 'Matching original before geometry and failures are historical report observations, not rerun; snapshot checks are current.' };
+  }
   const source = execFileSync('git', ['show', `${BASELINE}:map/micro/strategies/compound.ts`], { cwd: ROOT, encoding: 'utf8' });
   const path = resolve(ROOT, 'map/micro/strategies', `.compound-cord-baseline-${randomUUID()}.ts`);
   try {
@@ -190,9 +212,24 @@ async function main() {
     const records = [];
     for (const input of inputs) {
       const yardDiagnostics = [];
-      const before = old.buildCompoundGeneration(input.brief), after = buildCompoundGeneration(input.brief, { observeYard: report => yardDiagnostics.push(report) });
-      const beforeResult = flattenDelegationResult(before), afterResult = flattenDelegationResult(after);
-      const prior = inspect(before), current = inspect(after), checks = {};
+      const matched = comparison?.baseline?.commit === BASELINE
+        ? comparison.records.find(r => isDeepStrictEqual(r.brief, input.brief)) : undefined;
+      if (matched) comparisonSource.reuseCount++;
+      const before = matched ? matched.before.generation : old.buildCompoundGeneration(input.brief);
+      const after = buildCompoundGeneration(input.brief, { observeYard: report => yardDiagnostics.push(report) });
+      const beforeResult = matched ? matched.before.result : flattenDelegationResult(before), afterResult = flattenDelegationResult(after);
+      const prior = matched ? { owners: matched.before.owners, whole: matched.before.whole, failures: matched.before.failures } : inspect(before);
+      const current = inspect(after), checks = {};
+      let previousReview;
+      if (matched) {
+        const previous = matched.after.generation, previousResult = matched.after.result;
+        checks.previousReviewFullSnapshot = isDeepStrictEqual(previousResult, delegationSnapshotResult(JSON.parse(JSON.stringify(saveDelegationSnapshot(previous)))));
+        try {
+          delegationSnapshotResult(JSON.parse(JSON.stringify(saveDelegationSnapshot(previous, { omitResults: true }))), COMPOUND_EXECUTION_REGISTRY);
+          checks.previousReviewOmittedRefused = false;
+        } catch (error) { checks.previousReviewOmittedRefused = String(error).includes('compound'); }
+        previousReview = { ...counts(previous), retention: matched.after.retention };
+      }
       const cords = compoundCordEvidence(after, afterResult);
       checks.actualGateAccess = cords ? cords.finalAccess : ring(afterResult).length === 0;
       checks.ringUnchanged = isDeepStrictEqual(ring(beforeResult), ring(afterResult));
@@ -211,7 +248,7 @@ async function main() {
       }
       const xs = input.brief.cells.map(c => c.x), ys = input.brief.cells.map(c => c.y);
       const bounds = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs) + 1, h: Math.max(...ys) - Math.min(...ys) + 1 };
-      records.push({ name: input.name, seed: input.seed, shape: { bounds, cells: input.brief.cells.length, density: input.brief.cells.length / (bounds.w * bounds.h) }, ...(input.source ? { source: input.source } : {}), brief: input.brief, checks, cords, yardDiagnostics, before: { generation: before, result: beforeResult, retention: retention(input.brief, before), ...prior }, after: { generation: after, result: afterResult, retention: retention(input.brief, after), ...current } });
+      records.push({ name: input.name, seed: input.seed, shape: { bounds, cells: input.brief.cells.length, density: input.brief.cells.length / (bounds.w * bounds.h) }, ...(input.source ? { source: input.source } : {}), brief: input.brief, checks, cords, yardDiagnostics, before: { generation: before, result: beforeResult, retention: matched ? matched.before.retention : retention(input.brief, before), geometrySource: matched ? 'historical comparison report; not rerun' : 'current inspection', ...prior }, ...(previousReview ? { previousReview } : {}), after: { generation: after, result: afterResult, retention: retention(input.brief, after), ...current } });
 
     }
     let timing;
@@ -273,7 +310,10 @@ async function main() {
       }
     }
     const retentionDistributions = { synthetic: distributions(synthetic), production: distributions(records.filter(r => r.source)) };
-    const report = { diagnosticCounts, retentionDistributions, syntheticUptake, ...(production ? { maps: production.maps } : {}), baseline: { commit: BASELINE, note: 'Pinned compound source with current supporting modules, loaded as temporary sibling.', findings: baselineFindings }, currentCommit, trackedDirtyFiles: execFileSync('git', ['status', '--short', '--untracked-files=no'], { cwd: ROOT, encoding: 'utf8' }).trim(), seeds: opts.seeds, failed, records, ...(timing ? { timing } : {}) };
+    const allocation = { definition: 'Offered cells sum all root offers, including rejected offers; transferred cells are root input cells minus retained cells.',
+      synthetic: Object.fromEntries(['before', 'previousReview', 'after'].map(side => [side, aggregate(synthetic, side)])),
+      production: Object.fromEntries(['before', 'previousReview', 'after'].map(side => [side, aggregate(records.filter(r => r.source), side)])) };
+    const report = { allocation, ...(comparisonSource ? { comparisonSource } : {}), diagnosticCounts, retentionDistributions, syntheticUptake, ...(production ? { maps: production.maps } : {}), baseline: { commit: BASELINE, note: comparisonSource ? 'Matching before geometry is reused from the comparison report; other baseline cases use pinned compound source with current supporting modules. See each geometrySource.' : 'Pinned compound source with current supporting modules, loaded as temporary sibling.', findings: baselineFindings }, currentCommit, trackedDirtyFiles: execFileSync('git', ['status', '--short', '--untracked-files=no'], { cwd: ROOT, encoding: 'utf8' }).trim(), seeds: opts.seeds, failed, records, ...(timing ? { timing } : {}) };
     await mkdir(dir, { recursive: true });
     await writeFile(resolve(dir, 'results.json'), JSON.stringify(report, null, 2) + '\n');
     await writeFile(resolve(dir, 'index.html'), renderReport(report));

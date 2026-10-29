@@ -8,11 +8,14 @@ import { SIZE, MASKS, PARAMETERS, brief, build, blockers, ringElements, compound
 /**
  * micro-compound's checks over every mask and gate count at each of `seeds`. Together they cost
  * 64 cases at four seeds, the portal check's reach searches about half of that, so the fast
- * tier runs one seed and `tests/slow/micro-compound-sweeps.test.js` the first four (31, #543).
+ * tier runs one seed and the two `tests/slow/micro-compound-sweeps*.test.js` files the first four (31, #543).
  */
-function forEachCase(seeds, check) {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of seeds) for (const parameters of PARAMETERS)
-    check(name, seed, parameters, brief(name, seed, cells, portals, parameters));
+function forEachCase(seeds, check, maskNames = Object.keys(MASKS)) {
+  for (const name of maskNames) {
+    const [cells, portals] = MASKS[name];
+    for (const seed of seeds) for (const parameters of PARAMETERS)
+      check(name, seed, parameters, brief(name, seed, cells, portals, parameters));
+  }
 }
 
 export function assertPortalPromise(seeds) {
@@ -40,7 +43,7 @@ export function assertRoofedRing(seeds) {
   });
 }
 
-export function assertObservedRing(seeds) {
+export function assertObservedRing(seeds, maskNames = Object.keys(MASKS)) {
   forEachCase(seeds, (name, seed, parameters, input) => {
     const traces = [];
     const result = buildRegion(input, undefined, trace => traces.push(trace));
@@ -56,7 +59,7 @@ export function assertObservedRing(seeds) {
     assert.deepEqual(origin, { x: box.x * SIZE, y: box.y * SIZE });
     assert.equal(allocation.footprint.length, box.w * box.h - (box.w - 6) * (box.h - 6));
     for (const space of design.spaces) assert.ok(realization.openings.some(o => o.a === space.id || o.b === space.id), `${name} ${seed}: ${space.id} has an opening`);
-  });
+  }, maskNames);
 }
 
 export function assertCompoundDeterminism(seeds) {

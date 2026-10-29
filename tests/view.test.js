@@ -483,14 +483,14 @@ test('live map: roofs have unique ids, keep map id order, and declare multi-room
   // #530's inward grounds, infill, #534's market and #647's hut/compound yards change object/loot counts.
   // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
   const map1 = generateLiveMap(1);
-  assert.equal(map1.obstacles?.at(-1)?.id, 'o762', 'obstacle IDs stay pinned on seed 1');
-  assert.equal(map1.gates?.at(-1)?.id, 'door-438', 'gate IDs stay pinned on seed 1');
-  assert.equal(map1.items?.at(-1)?.id, 'item-1775', 'item IDs stay pinned on seed 1');
+  assert.equal(map1.obstacles?.at(-1)?.id, 'o768', 'obstacle IDs stay pinned on seed 1');
+  assert.equal(map1.gates?.at(-1)?.id, 'door-444', 'gate IDs stay pinned on seed 1');
+  assert.equal(map1.items?.at(-1)?.id, 'item-1782', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o820', 'obstacle IDs stay pinned on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-515', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-1754', 'item IDs stay pinned on seed 2');
+  assert.equal(map2.obstacles?.at(-1)?.id, 'o813', 'obstacle IDs stay pinned on seed 2');
+  assert.equal(map2.gates?.at(-1)?.id, 'door-508', 'gate IDs stay pinned on seed 2');
+  assert.equal(map2.items?.at(-1)?.id, 'item-1763', 'item IDs stay pinned on seed 2');
 
   for (const map of [map1, map2]) {
     const ids = new Set(map.roofs.map(r => r.id));

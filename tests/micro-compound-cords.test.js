@@ -17,20 +17,27 @@ const input = () => {
       { id: 'west', axis: 'v', x: 0, y: 8, length: 2 },
       { id: 'east', axis: 'v', x: 40, y: 8, length: 2 }] };
 };
+const crossingInput = () => {
+  const cells = cellsOf(36, 30, (x, y) => y < 18 || x < 20);
+  return { id: 'compound-concave', seed: 2, type: 'compound', cellSize: 40, cells,
+    zones: [{ tier: 1, bonus: 0, lootChance: 0.3, cells }], portals: [
+      { id: 'west', axis: 'v', x: 0, y: 12, length: 2 },
+      { id: 'east', axis: 'v', x: 36, y: 12, length: 2 }] };
+};
 const roundTrip = x => JSON.parse(JSON.stringify(x));
 
 test('compound moves a yard cord while preserving ring, actual gate access and all owner routes', () => {
-  const original = input(); let diagnostics;
+  const original = crossingInput(); let diagnostics;
   const node = buildCompoundGeneration(original, { observeYard: d => diagnostics = d });
   const whole = flattenDelegationResult(node), evidence = compoundCordEvidence(node, whole);
   assert.ok(evidence.displaced.length, 'an accepted boundary rectangle crosses the original route');
-  assert.ok(evidence.displaced.some(key => node.offers.find(o => o.key === key).cells.some(c => c.x === 0 || c.y === 0 || c.x === 39 || c.y === 33)));
+  assert.ok(evidence.displaced.some(key => node.offers.find(o => o.key === key).cells.some(c => c.x === 0 || c.y === 0 || c.x === 35 || c.y === 29)));
   assert.equal(evidence.finalAccess, true);
   assert.ok(evidence.terminals.length >= 2);
   assert.equal(diagnostics.outcome, 'delegated');
   assert.ok(diagnostics.accepted && diagnostics.probed <= 48);
-  assert.ok(diagnostics.eligibleOffers.some(o => o.cells.every(c => c.x > 0 && c.y > 0 && c.x < 39 && c.y < 33)), 'explicit interior offers are considered');
-  assert.ok(node.offers.some(o => o.cells.every(c => c.x > 0 && c.y > 0 && c.x < 39 && c.y < 33)),
+  assert.ok(diagnostics.eligibleOffers.some(o => o.cells.every(c => c.x > 0 && c.y > 0 && c.x < 35 && c.y < 29)), 'interior offers are considered');
+  assert.ok(node.offers.some(o => o.cells.every(c => c.x > 0 && c.y > 0 && c.x < 35 && c.y < 29)),
     'an interior yard patch is actually relinquished alongside peripheral patches');
   assert.deepEqual(validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)), []);
   const blockers = whole.elements.flatMap(e => elementShapes(e));
@@ -42,6 +49,22 @@ test('compound moves a yard cord while preserving ring, actual gate access and a
   assert.deepEqual(buildCompoundGeneration(reversed), node);
   for (const omitResults of [false, true])
     assert.deepEqual(readDelegationSnapshot(roundTrip(saveDelegationSnapshot(node, { omitResults })), COMPOUND_EXECUTION_REGISTRY), node);
+});
+
+test('original concave compound retains final owner routes and gate access', () => {
+  let diagnostics;
+  const node = buildCompoundGeneration(input(), { observeYard: d => diagnostics = d });
+  const whole = flattenDelegationResult(node), evidence = compoundCordEvidence(node, whole);
+  assert.equal(diagnostics.outcome, 'delegated');
+  assert.ok(diagnostics.accepted);
+  assert.equal(evidence.finalAccess, true);
+  assert.ok(evidence.terminals.length >= 2);
+  assert.deepEqual(validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)), []);
+  const blockers = whole.elements.flatMap(e => elementShapes(e));
+  for (const owner of [...executionLeaves(node), whole]) {
+    assert.deepEqual(validateFillConstraints(owner.brief, owner.elements.flatMap(e => elementShapes(e, true))), []);
+    assert.deepEqual(validatePortalReach({ ...owner.brief, blockers }, { search: 'thorough' }).errors, []);
+  }
 });
 
 test('compound yard observations are detached and terminal empty is explicit', () => {

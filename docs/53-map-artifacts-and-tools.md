@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-49` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-50` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -325,3 +325,11 @@ unchanged. The compound implementation advances to `compound-yard-3`:
 current full/omitted snapshots recover, full historical results preserve their
 saved interfaces, and omitted historical results require `compound-yard-2`
 (20.7). The frozen simulation characterization fixture is untouched.
+
+
+PR #657 review advances the still-unmerged compound content to `types-50` /
+`compound-yard-4` for yard-shape-relative candidates and an explicit adopter
+capacity guard. Ring geometry and hut output remain unchanged. Full historical
+results from both `compound-yard-2` and `compound-yard-3` remain readable;
+omitted historical results require their recorded implementation. No wire,
+macro, library, crossing, executor encoding or frozen simulation fixture change.

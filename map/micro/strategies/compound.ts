@@ -13,7 +13,7 @@ import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
-import { delegateYardCandidates, yardDiagnostics, yardExtentBoxes } from '../yard-handoff.ts';
+import { delegateYardCandidates, yardDiagnostics } from '../yard-handoff.ts';
 import type { YardDiagnostics } from '../yard-handoff.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
@@ -28,6 +28,8 @@ const MAX_SIDE = 24;
 const DEPTH = 3;
 const MIN_ROOM = 3;
 const MIN_GATES = 1, MAX_GATES = 4, DEFAULT_GATES = 2;
+/** Measured optional-adoption capacity, not the SDK portal limit. */
+const MAX_HANDOFF_PORTALS = 128;
 /** A gate's passage through the ring: a doorway (52). */
 const PASSAGE = CELL_SCALE.doorway;
 
@@ -218,7 +220,7 @@ export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): B
 }
 
 /** Detached observations of the optional yard delegation attempt. */
-export type CompoundYardDiagnostics = YardDiagnostics<'no-space' | 'no-site'>;
+export type CompoundYardDiagnostics = YardDiagnostics<'no-space' | 'no-site' | 'portal-capacity'>;
 export interface CompoundExecutionOptions extends ExecutionOptions {
   observeYard?: (diagnostics: CompoundYardDiagnostics) => void;
 }
@@ -231,7 +233,7 @@ export function buildCompoundGeneration(brief: RegionBrief, options: CompoundExe
 }
 
 export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  compound: { version: 'compound-yard-3', build: buildRetainedCompound },
+  compound: { version: 'compound-yard-4', build: buildRetainedCompound },
   cover: COVER_EXECUTION,
 });
 
@@ -262,50 +264,60 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
 
 /** Try a capped number of yard boxes, allowing the coordinator to move yard cords. */
 function delegateYard(brief: RegionBrief, site: Box, steps: { x: number; y: number }[], elements: RegionElement[], context: ExecutionContext, observe?: CompoundExecutionOptions['observeYard']): void {
-  delegateYardCandidates<'no-space' | 'no-site'>(brief, context, {
+  // Optional compound adoption is bounded separately from the SDK. The measured
+  // 170-portal witness exhausted initialization without any child; avoid paying
+  // for that known unsupported scale. Authored sample inputs stay below 128.
+  if (brief.portals.length > MAX_HANDOFF_PORTALS) {
+    const diagnostics = yardDiagnostics<'no-space' | 'no-site' | 'portal-capacity'>(brief.id, 'portal-capacity');
+    diagnostics.reason = `compound handoffs support at most ${MAX_HANDOFF_PORTALS} original portals`;
+    observe?.(diagnostics);
+    return;
+  }
+  delegateYardCandidates<'no-space' | 'no-site' | 'portal-capacity'>(brief, context, {
     retainedBox: site, steps: steps.map(({ x, y }) => [x, y]), elements, label: 'compound',
     offersFor: (reserved, diagnostics) => yardOffers(brief, reserved, diagnostics), observe,
   });
 }
 
 /**
- * Peripheral candidates start flush against each extent corner or edge. Several
- * scales allow a smaller useful box when a larger lobe meets a portal or ring.
- * Require a complete owned rectangle and at least a 3-by-3 pocket for cover;
- * refusals and narrow remnants remain with the compound. The fixed candidate cap
- * limits the number of expensive probes, not their cost: preparation and routing
- * still grow with region geometry and the accepted batch.
+ * Partition actual unreserved yard into up to eight maximal rectangles. Try each
+ * whole hunk before one-cell circulation insets and smaller side slabs. This is
+ * compound authorship, not a shared SDK shape or perimeter requirement. Greedy
+ * extraction/acceptance is bounded and deterministic, not an area optimum.
  */
 function yardOffers(brief: RegionBrief, reserved: Set<string>, diagnostics: CompoundYardDiagnostics): PatchOffer[] {
-  const owned = createRegionMask(brief), fill = createFillMask(brief), cells = owned.cells;
-  const { boxes, minX, minY, width, height } = yardExtentBoxes(cells);
-  // Explicit interior patches follow the peripheral sequence, at quarter-grid positions.
-  const boundaryCount = boxes.length;
-  for (const w of [6, 3].filter(n => n < width)) for (const h of [6, 3].filter(n => n < height))
-    for (const fx of [0.25, 0.5, 0.75]) for (const fy of [0.25, 0.5, 0.75])
-      boxes.push({ x: minX + Math.floor((width - w) * fx), y: minY + Math.floor((height - h) * fy), w, h });
+  const owned = createRegionMask(brief), fill = createFillMask(brief);
+  const remaining = new Set(owned.cells.filter(c => !reserved.has(`${c.x},${c.y}`)).map(c => `${c.x},${c.y}`));
   const seen = new Set<string>(), offers: PatchOffer[] = [];
-  let boundaryEligible = 0, interiorEligible = 0;
-  for (const [index, { x, y, w, h }] of boxes.entries()) {
-    const boundary = index < boundaryCount;
-    if (boundary ? boundaryEligible >= 36 : interiorEligible >= 12) continue;
-    const id = `${x},${y},${w},${h}`;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    if (w * h > cells.length) continue;
-    const patch = [];
-    let complete = true;
-    for (let j = y; j < y + h && complete; j++) for (let i = x; i < x + w; i++) {
-      if (!owned.has(i, j)) { complete = false; break; }
-      patch.push({ x: i, y: j });
+  for (let iteration = 0; iteration < 8; iteration++) {
+    const box = largestRectangle({ ...owned, has: (x, y) => remaining.has(`${x},${y}`) }, 3);
+    if (!box) break;
+    const { x, y, w, h } = box, boxes: Box[] = [box];
+    // An inset gives the retained parent room to circulate beside a large
+    // child. It is a candidate alternative, not a frozen perimeter collar.
+    if (w >= 5 && h >= 5) boxes.push({ x: x + 1, y: y + 1, w: w - 2, h: h - 2 });
+    if (w >= 5) boxes.push({ x: x + 1, y, w: w - 2, h });
+    if (h >= 5) boxes.push({ x, y: y + 1, w, h: h - 2 });
+    for (const ratio of [0.75, 0.5]) {
+      const sw = Math.max(3, Math.floor(w * ratio)), sh = Math.max(3, Math.floor(h * ratio));
+      boxes.push({ x, y, w: sw, h }, { x: x + w - sw, y, w: sw, h },
+        { x, y, w, h: sh }, { x, y: y + h - sh, w, h: sh });
     }
-    if (!complete) continue;
-    diagnostics.considered++;
-    const hasFillPocket = patch.some(c => [0, 1, 2].every(dy => [0, 1, 2].every(dx =>
-      c.x + dx < x + w && c.y + dy < y + h && fill.has(c.x + dx, c.y + dy))));
-    if (!hasFillPocket || patch.some(c => reserved.has(`${c.x},${c.y}`))) { diagnostics.filtered++; continue; }
-    offers.push({ key: `yard:${id}`, cells: patch, type: 'cover', reasonTags: ['unused-exterior-yard'] });
-    if (boundary) boundaryEligible++; else interiorEligible++;
+    // Discovery partitions the yard independently of admission. Refused cells
+    // remain owned; alternatives overlap only inside this same discovered box.
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) remaining.delete(`${i},${j}`);
+    for (const candidate of boxes) {
+      const { x, y, w, h } = candidate, id = `${x},${y},${w},${h}`;
+      if (seen.has(id)) continue;
+      seen.add(id); diagnostics.considered++;
+      const cells = [];
+      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) cells.push({ x: i, y: j });
+      const hasFillPocket = cells.some(c => [0, 1, 2].every(dy => [0, 1, 2].every(dx =>
+        c.x + dx < x + w && c.y + dy < y + h && fill.has(c.x + dx, c.y + dy))));
+      if (!hasFillPocket) { diagnostics.filtered++; continue; }
+      offers.push({ key: `yard:${id}`, cells, type: 'cover', reasonTags: ['unused-exterior-yard'] });
+      if (offers.length === 48) return offers;
+    }
   }
   return offers;
 }

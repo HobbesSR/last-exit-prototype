@@ -179,7 +179,7 @@ test('compound delegation is canonical across cell, portal and zone order', () =
   assert.deepEqual(buildCompoundGeneration(reversed), buildCompoundGeneration(original));
 });
 
-test('a broad macro yard retains ownership when optional routing cannot initialize', () => {
+test('a broad macro yard retains ownership at the portal capacity guard', () => {
   const cells = cellsOf(200, 150), portals = [];
   for (let x = 2; x < 196; x += 4) portals.push(
     { id: `n${x}`, axis: 'h', x, y: 0, length: 2 }, { id: `s${x}`, axis: 'h', x, y: 150, length: 2 });
@@ -189,7 +189,10 @@ test('a broad macro yard retains ownership when optional routing cannot initiali
   const node = buildCompoundGeneration(brief('macro', cells, portals,
     { seed: 3, parameters: { gates: 4 }, zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }] }),
     { observeYard: value => diagnostics = value });
-  assert.equal(diagnostics.outcome, 'init');
+  assert.equal(diagnostics.outcome, 'portal-capacity');
+  assert.equal(diagnostics.considered, 0);
+  assert.equal(diagnostics.probed, 0);
+  assert.deepEqual(diagnostics.eligibleOffers, []);
   assert.equal(node.children?.length ?? 0, 0);
   assert.equal(node.retained.brief.cells.length, cells.length);
 });

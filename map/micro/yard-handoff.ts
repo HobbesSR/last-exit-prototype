@@ -57,7 +57,7 @@ export function delegateYardCandidates<O extends string>(brief: RegionBrief, con
   const fixedAccess = steps.map(([x, y]) => rect(x * size, y * size, BODY * size, BODY * size));
   const terminals = steps.map(([x, y]) => ({ x: (x + BODY / 2) * size, y: (y + BODY / 2) * size }));
   const created = createProspectiveParcels(brief, { handoff: context, fixedAccess, terminals });
-  // An independently sited house remains valid when the optional continuous search cannot prove it.
+  // Independently sited retained content remains valid when the optional continuous search cannot prove it.
   if (!created.ok) { report('init', created.reason); return; }
   const coordinator = created.coordinator;
   const claim = coordinator.tryClaim([rect(retainedBox.x * size, retainedBox.y * size, w * size, h * size)]);
