@@ -2,197 +2,1230 @@
   "inputHash": "b061c4ed8260fb89ad7a6fc142fe5531b68759bfa99e094d526e5ba878880c02",
   "measuredResultsSha256": "20cd4292f4d23aab993b05c09398d545e8c8378bdd659406844ac1e4acb80859",
   "node": "v24.15.0",
-  "sourceChanges": [
+  "sourceHashEncoding": "utf8-lf-single-final-newline; measured-only explicit historical trailing-whitespace cleanup",
+  "sourceFiles": [
+    {
+      "path": "map/kernel/cell.ts",
+      "measuredSha256": "e9c28027b21699a9aefc5321e5a0b32cca38f271ea922c2df911b576ee92e8cb",
+      "finalSha256": "202981a01a49b951970b42cc6ee9ba99c4832f336b77178cf32a1c2e0ec3ad02",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/kernel/contract.ts",
+      "measuredSha256": "07fa33036e2dc208504159ba4ad00fabd908ca3d9640170893eefd6800cc4824",
+      "finalSha256": "5d1e5b2e0315c655557b52e508066c0f5b520f97667a93ad8b76bec4773e537c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/kernel/margins.ts",
+      "measuredSha256": "2666c47ee596b0f3c259988b60867d39aa0b4511baf56080f1fa0ae1d7e868db",
+      "finalSha256": "414ea8367ea0ecaf92269b357ef0e1f77ee74e8b6e27294031c7bc001fbb7c1f",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/kernel/run-cases.ts",
+      "measuredSha256": "7c3eccd9eff19f7a0793c00cd8028c1baa8fc42451772c5e3c858388cd0c37a0",
+      "finalSha256": "665f6421fae21c1238b9b070f8c54c9da59c682259627f6e66cc5393bad86ca0",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/kernel/run.ts",
+      "measuredSha256": "3df6102ff54e3185b03038456d8321a853c69ee2d7f39bfa0d5e3a8d660965d0",
+      "finalSha256": "1cb9601fbdfe27061909179dce0a14d61fdb42bb67fafaa8df5f68cf4f08470b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/kernel/scale.ts",
+      "measuredSha256": "cb97135c22b8c3da2c7da525f205c925b7d941705232b2b288ea5063309cdf78",
+      "finalSha256": "f171c2bb130da7028bc1cf3df3b2bbfa27936439545b87874f13b67df01ce926",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/adapter.ts",
+      "measuredSha256": "9171273415b1cbad70f6fda8d6fb3aa829c35215e06a840f45f3e56507bc6afe",
+      "finalSha256": "05a7f52865d1876869e423b2e241dab71965940f341e1abfa32a8f32ed342f5b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/addressed.ts",
+      "measuredSha256": "7eeaddad8c27a6800e9a41c559e234e88cbef64f2e2552f5baee5a49809e869e",
+      "finalSha256": "52793ef026100a3cd44cc3a41657ad2c89d6a31b33aed6743536b08dd3d1cb2e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/brief-link.ts",
+      "measuredSha256": "1eee0c7f965ca2c99fe4a690b90624868817e83eadfc007826177d835e6919b1",
+      "finalSha256": "f1bc4d147ba3daa8e1168b4a11a9e0d265555418fb6d38aa9a1b0a482b4a51ed",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/allocation.ts",
+      "measuredSha256": "53dafbd63fe7ee166ed4dc2b4e7796c4ba54ae9964a0b02d5c895535e3d2a4d5",
+      "finalSha256": "2e7ddf3ae32435331b97cc184bae1bd4f6e84f653305ea5fbc1c6d2f20fb0180",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/boundaries.ts",
+      "measuredSha256": "1d7a1df7630718f72760fdf22aa620a0db6a48e5f6b4f663d31b0a5cbf597461",
+      "finalSha256": "809c9a2685d4e256e48e3f4c572e540c0a6e7e046fb665b14dd9f9e98d07a24e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/decals.ts",
+      "measuredSha256": "687adc01cfa030dcdbd5290bbbaf56f5a0c526c7a479312d9042a8ac0f56fa02",
+      "finalSha256": "68866a00920b0a0699e4174278ea7780fc003b921e81edc777e2b9b297dc2050",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/design.ts",
+      "measuredSha256": "9cef0c7d61ccff7de5db744ff56ac35a2de8bdfe246934ae03d27fa1154c5ff1",
+      "finalSha256": "a5ad5f1f1d30a226817e50e06d5f9183a80c47670c203e699423f3776023b4c8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/draw.ts",
+      "measuredSha256": "b36bcc753233cdace57dccd1c5da94392a1d2f0c7dc43975bab1a20481ea6b72",
+      "finalSha256": "26141caccc18e0b282cd76b229dfc07feb208454d6828a1faa902ec4ed410a99",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/groups.ts",
+      "measuredSha256": "0278231f152c3c857a2bb2b100f4651727641d9edc9a2a40bcb350a9770e5d31",
+      "finalSha256": "fcde661817c3f7fdbeb8c8515a43775a9606210649b5004f515c009d98ec2761",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/openings.ts",
+      "measuredSha256": "ed0a7caf63f575538864c69418b048c0a9dc6cdee6dd346b879af4964cb10002",
+      "finalSha256": "bd9e350681fd4e15886163342f007bd462da97828b19585f94d8e8e917c4186a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/pieces.ts",
+      "measuredSha256": "8cf38155b8333927dde6c0c75dadfc78af8dc2387a9d5f7fd9068d7db6c0c93b",
+      "finalSha256": "a16e67b9e0badd7de4e3a322739ceffb51ceec17a3910d517d95afe90d134cdc",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/realize.ts",
+      "measuredSha256": "e4900b2758d332936339eda3f76279248fe426ba5b33b0749bddcb85cd2a1e6d",
+      "finalSha256": "e1a5713cba29171cc36e8053353af80aed4a087265ef4b9b8ac13f1dd6705aba",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/trace.ts",
+      "measuredSha256": "304ae07486e16228a6d5c922e6018b2eb101afdd02bdffec55fa9deab5171905",
+      "finalSha256": "62398dfcd361af6e5beed624da11ab6f01813cee2999f2efc0d37cb563c2351c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/building/walls.ts",
+      "measuredSha256": "3db64074e54dfa4f6184ab46a06fb888fc36539385b7549f77fd3ea74db8c4b1",
+      "finalSha256": "c11653ec010494cd89f0f37245c37105515c9cb606eb6db5f08e2534abfc3f1e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/canvas.ts",
+      "measuredSha256": "3bbe8b5d63887e230c3b7ebe4e4c08e98ba740d13ea9b6a7b1c67b5ab29b4614",
+      "finalSha256": "4840f2fd591c9973e60471d98169200ee03cec43b8ec9c2cd2f1b7acf01db8e0",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/components.ts",
+      "measuredSha256": "3bf2b7a3ac9896427d7ccb59d968c9a773e24c3de63956ea846966896874ee38",
+      "finalSha256": "8ab894ceb370503af70ed671127f06717486d3ef33ec8ecb96bf5c17abc62f6b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/compose.ts",
+      "measuredSha256": "fbd15f94bd3787ae1ba682316bc082549c38a5f2504e64bffc71a0a2e504c3f0",
+      "finalSha256": "57e98397938376b73c0c649542de1a8f250ece24aca62352b06cc02708aff047",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/cord-witness.ts",
+      "measuredSha256": "016446d731fb7f73a209bd1cc6868302b58fdb01912717b373652590b1085c1d",
+      "finalSha256": "4922f276b6d45dfda5cf32d3d9e14448183a1152d44a0aa0d55400f997596502",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/allocation.ts",
+      "measuredSha256": "1d92207352bb68aedf0c75fe7cb90ef7450433dfba0d12f1fc765839d3a06e4f",
+      "finalSha256": "7288e901fc7c605459dd277afb4f24abad503b688cd5cb19261581fe32978f43",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/analysis.ts",
+      "measuredSha256": "f88e0b0f78755f1b21f0a6226c05d05e9c6a050915edd5101060690995f309a3",
+      "finalSha256": "9eba734436840937435f1beddd179b3df8349514dd9f8a26771bcd9a64cd04f9",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/context.ts",
+      "measuredSha256": "9c791356cb59cda50540a63ee62a481c35abab32f4a3862118fade9c55e50f01",
+      "finalSha256": "7fce95c25ccdfd978827a1408a2ee45c0c32529caaa5ea942d87f97282ebb407",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/example.ts",
+      "measuredSha256": "728075e1cd6816fc2f392a789f3595394045e9daee93ab97d6cb1ab14e9e49d4",
+      "finalSha256": "e990459546ed5037f54f42c7ead1f1c4fb18b4a8d9b3b67d96ecfe02253230eb",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/explore.ts",
+      "measuredSha256": "e41fd55b5558fa99e2b4aaef6af096e7c9809af44b6d9d1c5078cc8c8125f29b",
+      "finalSha256": "e41fd55b5558fa99e2b4aaef6af096e7c9809af44b6d9d1c5078cc8c8125f29b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/interfaces.ts",
+      "measuredSha256": "044ecef551b6eda5a05bb05e341bda25c60cc71fcec7b6f6c9457fc9baf82969",
+      "finalSha256": "d3610fe309492dd6119ad4c79b1acdbb206370937ba9c5b850f0aa5e7e6c0739",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/types.ts",
+      "measuredSha256": "505c1726da6afbd2c0638c282ce0f269cff043d2df2be7275deed57afd18999d",
+      "finalSha256": "a7f021fc41d7321089769ffafb64dfbfbb0c1cd4cc2f30f7b8bfb69233df5233",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/validate.ts",
+      "measuredSha256": "05489d38bf21202fc803d3226d08c6726dfa64b55f8f45ca436ae5bd07a7db8a",
+      "finalSha256": "d7b7c50bce1eea72afa0bddb83ec6a74330fb0b63997631ae7f5ad20d25e5f29",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/decomposition/work-budget.ts",
+      "measuredSha256": "1252bed0bfff1e290d745eaaa7522f360f197556ba4dce50e7090237c4a31ea9",
+      "finalSha256": "23b0ccd8d5e32dbc1a39b4e21de9fb54b598f58a008ee0d3089318b7185103e4",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/delegation-execute.ts",
+      "measuredSha256": "85144aa1b27c743c1c5009b9924a40bff7a1f64766bf74ef5d7df486e3665cbc",
+      "finalSha256": "c594b493e228f1c188f1bc83984ff4336d1a2b203fdc153c378c71f9ac2d17ea",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/delegation-json.ts",
+      "measuredSha256": "d4a06d6b35cc86d80cbb4591887ce2b535a98ffcad73fd70d2d880f5c992eba2",
+      "finalSha256": "d703d57663adf8f9d97fbec132f9bf5a4981548cc68dca8187023f7670b50ae6",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/delegation-snapshot.ts",
+      "measuredSha256": "5798f57087ec8433769208035e8f025f97a8692e69bf5d1b94a80405d30e8c58",
+      "finalSha256": "5798f57087ec8433769208035e8f025f97a8692e69bf5d1b94a80405d30e8c58",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/delegation.ts",
+      "measuredSha256": "ef942c02a94d1e30fbc51315a5c587ddf5da79a65cd510e064f3e2c473ac7069",
+      "finalSha256": "07e23c6736ee0eb9dc95e71be4f0dca6d05cf9e4d4ddc555948a6a3c1e776a4b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/diagnose.ts",
+      "measuredSha256": "6237abe6cfc21d72d6e31c7360d52b77ebf2110bd93e895b459f75a64b954bff",
+      "finalSha256": "27babb34986f4572e757be678d1a49526cf01ec7380690dac7bb0c076699bd18",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/difference.ts",
+      "measuredSha256": "214483261a8e5e17bef722f97654a7f0c34b3eeca5b1777bd4232c9386cf4a37",
+      "finalSha256": "e0194dcfa000ff278e8a1a12e2da488a4167371673b3ec283f9790b1c94574e8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
     {
       "path": "map/micro/experiments/depot-canvas.ts",
       "measuredSha256": "c1888220bb47673f407befb6501f8f79042d0bdf108e4fa05113b1d3ad4da6af",
-      "finalSha256": "465c1b5163a117c44f4f956aa24ea8433ca60b75248b9742d476dca36dab52e5",
-      "change": "trailing whitespace / blank lines at EOF only"
+      "finalSha256": "399ab1dd911d9f8d5bd0e0d5cd97bf1056d44c048e28d83ffd31663f35d48aeb",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": true
+    },
+    {
+      "path": "map/micro/fill.ts",
+      "measuredSha256": "9bcec96bc6c2cc6e735168feaf905fbbb187e6e877f67199fe83f53091393fac",
+      "finalSha256": "a62a369e43b43ea52b7f979480165032c8041de33a28c00bd4934f8a61276a45",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/geometry.ts",
+      "measuredSha256": "d742f5934c3778f3757b6fd7f01c87bbeea17dff26f420f01c044f92926acd6d",
+      "finalSha256": "08c2d170764647ccce9864f0f57323ba64f848ab68ecb39a3b2865ce81e515f9",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/hint-walls.ts",
+      "measuredSha256": "15b33f3eea10dcdbc03a45a274781ad23aca5bbc971f3fae30b37ded248a091f",
+      "finalSha256": "bc202e8181a3e42a936ad3cf51690a003dc89a8aaeb6104524667aa19a8af966",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/hints.ts",
+      "measuredSha256": "db6ab1a799bc2922110c9d55f15fd749296038e06052a5a2cb1af68cbec8bbb8",
+      "finalSha256": "86b57185f9161bcb715c01e17915d4855f49159ab8108c613978736404330e2e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/limits.ts",
+      "measuredSha256": "ca6849810e0feaf65c0f1de551ff73cdf6a4c0b4fea3fcc784c4d8dd9aa11cbf",
+      "finalSha256": "740dc5a3db56e9b7f6af581c7c28623fe09cb55f0345988400ff72760d9bd97a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/margins.ts",
+      "measuredSha256": "ea9ca3154e77660a159dffe7fd57c6168dccd5f75c7e3e694a5877287cea7598",
+      "finalSha256": "d8c6a470cf8063a3a54b217fc80ed663f070e86ffeb318c84562466c23133e7a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/metrics.ts",
+      "measuredSha256": "c9e6b182ed3dad6510329cd1f4904addb362b10290aba59d12f3683b4189cb27",
+      "finalSha256": "3b01f55940a25d977cb5da4335047b12e37fef3cb9de67d340fcc14dd73f4129",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/parcel-area.ts",
+      "measuredSha256": "a0af18a3c4e913301e3bacc3943634d5001b68e8538c6314d0ea87977b91202d",
+      "finalSha256": "441afaf0020ac5a29ed31721f8eba743ddab983fb69a9ce9afa60e1fdf023bf8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/checkpoint-barrier.ts",
+      "measuredSha256": "91ca99c3c9e24398f299411983de7536116e7d7a9e440805b840dc84faa361e0",
+      "finalSha256": "5915cbc5daa253f76c06921319e6c3d8458a526f15c18f1ff1d06c40847cf183",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/compound-ring.ts",
+      "measuredSha256": "f6c277f49414b4c511432cd6c7a2f782e9958c2b2ec68db28a12aa4ee8fa69d3",
+      "finalSha256": "4330c2adb6af30a2f66b9cf4b1aef093ddb352f24bae602bfffe0685b627d36c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/container-row.ts",
+      "measuredSha256": "c6ce749af6e21b44e816fd832e3390a6a49e4be1e9ce4727d1b913eb4a5b340a",
+      "finalSha256": "bab992f7fe586d27335d4b8655710cb619f05f11a1768549e1fdcfa2a08faded",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/cover-piece.ts",
+      "measuredSha256": "49cde3bb086ed192e03137bb5c915620422236cee8b4e4f387ed6016b9430989",
+      "finalSha256": "5e0d800b2feb5ed9ded98b156f0805b84b89ab039916e2a20c7c439c2ea89368",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/fallen-slab.ts",
+      "measuredSha256": "e75241439b3bf38f80cebd017439d6621b04ab58f6ee92d6bab411a80c511f45",
+      "finalSha256": "cce07d443b431c7e75b2ee46d3290c4006b2c1262b53b3e087e6818e40f8678a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/frame.ts",
+      "measuredSha256": "2e91d71465f286bde48ec2e702113a979d8e019b4cdfb10a9426608b86224fa9",
+      "finalSha256": "67db089711ab87f7b34ee0b18c8c4fa5c343720cbc2148a1b59e7cdc8371e436",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/hall-pillar.ts",
+      "measuredSha256": "d2c687921c73e813049abf5d6f48932d2eb7d3d7e9362c8b5c4a147ece9eb38b",
+      "finalSha256": "2216ea1a3a40a26f0282091f64e79c099377ff6527520de67ee6dd1fc81bd79a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/house.ts",
+      "measuredSha256": "50086c74c39d719e4fd192c450ad69331f647e1749c4aee0e1604ef8c8f4038d",
+      "finalSha256": "8adf6c0ae8702aac51c1df3178a5707e1ba7cc5dbfd5c2070fc805dc0d304082",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/index.ts",
+      "measuredSha256": "7c190ada4a285e2c8eb6934586fbacdbb1aacea087d46800aa782cbc42dd8cc9",
+      "finalSha256": "751dce462fb165b1a7bd7b4969aeda9300dcd6e0c9e85476f63911a83446f5c7",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/market-stall.ts",
+      "measuredSha256": "a804d6d09ae8313803e46d0a19e21dfb934ccabb48e194e9f125837d80915589",
+      "finalSha256": "a895d66f41ffa8a339d8273f3a5e1b591ae7cf4b2ec307c5c4d89ea5762aaf4c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/park-hedge-run.ts",
+      "measuredSha256": "34be4220d6ce7d7805195f4d00f3a0e609e98e889eb5da009bbe771de5947874",
+      "finalSha256": "152cfc391d3f7f9ceb3e1f75bcc7afe35c64653447f25f3894f3a34bf5490a3e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/park-tree.ts",
+      "measuredSha256": "ac546bae1ef3ff19caf18d3f9b49b286cbba4c8111af88d602bc83436da86cf5",
+      "finalSha256": "a4eda9b620341377c92d7fc5d93bd9ebfd659b33c38dfd376b94478c806c5ad3",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/placeable.ts",
+      "measuredSha256": "4962aa7316d8981c297161350ca2c480434a2c98964966a6d321a4f9bfc900d1",
+      "finalSha256": "82b8b841713482ee0302100334789ba7e864dc0db153cc5fc6a90a2bc1139a49",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/plant-machine.ts",
+      "measuredSha256": "9efb5f2ae3f0033f317e5d657c658a046133f00e474a1fbd3ff02550870b4d51",
+      "finalSha256": "982629bd3f2a46a43a21e146562c73c0d6d842c40be1e7068b4abd68c5460aa6",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/plant-pipe-run.ts",
+      "measuredSha256": "cd69bc864836f158d44a8ec3f75044a4c055bad06661da533583d73cf8d1101c",
+      "finalSha256": "939f1ea6591968a5b9f42ff7c466e7371f3debf55edcc727c9620eef141c6ba7",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/rubble-debris.ts",
+      "measuredSha256": "c357506c4bfaae4371ffe0fc26e02d38c8f7fb01961c6ad16faf864a0b083bab",
+      "finalSha256": "7000efbaa826e5866d381b97e232971cccd5b83efaf71822d48d2b87ea4548c3",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/ruin-room-span.ts",
+      "measuredSha256": "6ff26adef3b00c6b8041d4c9ffe4095b6a356e63903ecf80686258edb6ac1d49",
+      "finalSha256": "ea8decfd43d0b41c1ae9e4985d3b6000a35d8ef1be2f112bb765c87881c66c05",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/wall-run.ts",
+      "measuredSha256": "8568870b575bddb4f9805c5b5fcef1979a50312f3c1119095bb328a8574b7269",
+      "finalSha256": "2415ac10628f39cd4b08fcc3a3fc4ef25df1fdc65a714e3ed35a516c053ace95",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placeables/warehouse.ts",
+      "measuredSha256": "ff089cd6ec2c882ba61bc2e8c05d150f2e850554de1b346618e7d538df1e52bb",
+      "finalSha256": "f1c9bd46ae2bfed2abbcf0a56e3ac8dc33e8cd566ddaddee5dc0104355d2d39b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/placement.ts",
+      "measuredSha256": "74c48c9dd7d2f32839fcdec7136f8a8afa8b895e636df1c3a0dc231764e364e2",
+      "finalSha256": "bf46fdde66b7ed0434db18799a42fbd0104f1d08ff55d7321fb492ac54539601",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/port-terms.ts",
+      "measuredSha256": "f6ea8108cd7046d94ea837395e77ac8bf770e82426e421241c1731aa5d8e1e6b",
+      "finalSha256": "95ec95216bf71f9f672e86e97e598571cd290005973580a17bfe38168b2fcf51",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/portals.ts",
+      "measuredSha256": "02adcbc39cb8165640e83629ddd99f25ab5316c2f5def6e4f2690749051f190f",
+      "finalSha256": "1a12f0b1400ed6299f98dc21e9a8758d24a7ecc9ebb9e2ecd0a9b829dbf2eac2",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/prospective-parcels.ts",
+      "measuredSha256": "24890c32864e857f9ff98ed3b032c884db4726ac12f3f4ea7e0ecca13431aaca",
+      "finalSha256": "30dd45463976d11a0211c5e52a4fc3a6369575749676531f6df9570fae0c342c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/random.ts",
+      "measuredSha256": "63acf74f671a241210f69096939d7150f7c84d13efbb23d17f003c332924e6b2",
+      "finalSha256": "720b58d8c57a818b511951eb3dd3bbde542bb8b3ab8d0997924b2ab6e34ea7b8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/region-examples.ts",
+      "measuredSha256": "9c30b8a159e7ce0f54b5de52e75469b744de78da3adaf7a36fb2159c1f8b3048",
+      "finalSha256": "683a1c0675b93e76ab8abe8d0c801ad6b9205877a1440f2c916531d2e6021829",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/region-types.ts",
+      "measuredSha256": "01b31c6847cbcdceea7106ebe8b54d91906af3f52729467e21624f9a6d0fcb86",
+      "finalSha256": "01b31c6847cbcdceea7106ebe8b54d91906af3f52729467e21624f9a6d0fcb86",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/result.ts",
+      "measuredSha256": "eaa7574107a4c52848ab5204c4a47f28236ed1efc90a094f27671a389e5a9e32",
+      "finalSha256": "e59a3bb1da27fc9c77b6661eade8b4578351bf9c7b320499e7ebdd1bac99f4c9",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/sdk.ts",
+      "measuredSha256": "c50948b068869b22b80557c0a8decd6431a827194e5b59967f5fdf47497a2bca",
+      "finalSha256": "b7ef886d8482e85bd8a5043ee2fd94decb5120539a9151f3c5f3dd8ff484b350",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/arrival.ts",
+      "measuredSha256": "01ea45c73f15b97353587f0d4d29b7ac5b5b8534d8a3af584041b261c7d227a9",
+      "finalSha256": "a01f387cd516e74481d70415bbc1a9fa31ea419a26ea28c3855db4d46ab775bc",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/block-circulation.ts",
+      "measuredSha256": "2ffe01f8dc1256f2e018f91819707df0ea79c0d06a12aaac7aec019a3fe06075",
+      "finalSha256": "a97919695d4cc5a744c5767866e7e101b20a96fe36debdd5b9b1cf9386976319",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/block.ts",
+      "measuredSha256": "17803b16a0ee2135d384174a77a1f28ea81c47be4dde173479f7f5f2515d58ec",
+      "finalSha256": "6517c0aae2e81284400cb713e81f09bcabbfb7c37eea7130409011ad7cac5140",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/charging.ts",
+      "measuredSha256": "2842304f47f9a3d8fea365c3e541bfa7235e2bace4419d1c9ad6a3ba879070e3",
+      "finalSha256": "41fa26de2671e766a2584af2f5e1e4eecfb1f8d23b5cb940299fd81d5f800fce",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/checkpoint.ts",
+      "measuredSha256": "9f93af0f824a62faa5f1a0214d87e44ae818afe646529acc368114897d8106fb",
+      "finalSha256": "4fc98a8c7504818def094c990f1e0c7f34e959b54d3f66ecdff6e879a69e7f09",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/compound.ts",
+      "measuredSha256": "0312d10ec66e93e5ba25081acbaf3f2a24d0d6c07721caf67d22bd02ce12135b",
+      "finalSha256": "0312d10ec66e93e5ba25081acbaf3f2a24d0d6c07721caf67d22bd02ce12135b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/cover.ts",
+      "measuredSha256": "a4162ba67eb2bfc44199054ee74b8e54b8f144a4b46fc2394b857b4ef18d69d7",
+      "finalSha256": "820720735bed32032259bc2a40bf2265231f481d73a86f848904025f34fc798c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/departure.ts",
+      "measuredSha256": "740e3bc23b3456ff205c1b13d6443ee3b22b114d2f6341dc2d1c8daa1c454fb0",
+      "finalSha256": "82e127587d60e1cbd2fc8d06de2f6967720dd3030f230b01b37c98c30f55daa4",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/depot.ts",
+      "measuredSha256": "5e9442b7f46fbf54077a441cc9e05a99030d950c606875b3b3cd25e17ce96595",
+      "finalSha256": "e7835223b0de67f3cd0b0b035d20ba3554744dd94856c493a03da8f96afce103",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/hall.ts",
+      "measuredSha256": "598a25a1ee34c60fb85f135bc4f1d61ca845fc3d6b32f67d5d8858128f9d6b30",
+      "finalSha256": "16d1d737135b63488b18d7ec919ed8f79df608c2ee8a1d6c83c77a81a2f013b1",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/hut.ts",
+      "measuredSha256": "f5615ad1766018fd86c83c16dcf0e0209a956a922f57ddb22c7d0b4c7f4f67e5",
+      "finalSha256": "94b90cd54f63facf33559fdab2856d593b3463149770e0ebb4e034017c471c41",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/infill.ts",
+      "measuredSha256": "43dabcfcfc430ec3d844ed5290df3674b9bd7308e0b83e196e7ee1ac41e30191",
+      "finalSha256": "a2817f9c94052f51619352347769973fb041da064a0c28049b3a6d9a915738dc",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/lattice.ts",
+      "measuredSha256": "e7ea144e1c4901ef4ef1aa48012c74f8171727d4e4f23458d47f8f9b90f2c4c5",
+      "finalSha256": "94d3316a8203fe294f03ae8485a25c12a6ee1d7fbd52672f13bd6ea01b287d9e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/market.ts",
+      "measuredSha256": "848539fe42c89ac075a276a4a446b17af38a60775e189e571226a485829c21f2",
+      "finalSha256": "fb014bda4745be7ddb969e80e96c4ca4dd50ab07c4b9121286f89702d90f9b2b",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/open.ts",
+      "measuredSha256": "841a7dfc80a1d5c8c6ddb0f7be60a4bd7c7c00fb5bc274d56f10e6d1fce3da8f",
+      "finalSha256": "c01c5f51bff76f36f6d46dfd020d6a611d48fd2066d205d81b2924341b0df9cb",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/park.ts",
+      "measuredSha256": "07715d72ba4c3afa4b203364dade5a57c51890f46b856e0776466c27d0a206dc",
+      "finalSha256": "abb7334b6b975379ccc60c39a652d3bbed67fef9d746e466f0adca7846584255",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/plant.ts",
+      "measuredSha256": "968b89a12585d98c5ab1a34ffec2adcd9b0b007827e4b2ea7e261c68975bf0e0",
+      "finalSha256": "4dfb8565dd49a2c542206f9040e1095db25b8ee2cf1250605e61558860dc9b68",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/rubble.ts",
+      "measuredSha256": "2034d0332f25e8d83f32f3168ca78a5fd91b98a23d32129cfc59949cb01306bb",
+      "finalSha256": "5b776b28db9b0d7da92b3518ad4d288ba7f2a5978ee16f96bbfe97222ec8d19c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/ruins.ts",
+      "measuredSha256": "3b27b8585e9182e8a13070095e99d7ce060493764f98b1f327246c44e4ebb475",
+      "finalSha256": "50643117632de628b9cf3d68742e865773d2ea50b84a656c82e8b144dba1fac0",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/scatter.ts",
+      "measuredSha256": "13c6118a52bc62f1a54850733893d6814681425cd5ebfcba91fbd0e540797435",
+      "finalSha256": "32c78030dcdb0f119fa893fec27762996920372e17b2c6fb64202bc4b24399ec",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/strategies/transit.ts",
+      "measuredSha256": "9ada521aa4195164ad0771e08ce5a4a02486950db4f2f99fcd58a43d143bd792",
+      "finalSha256": "f28f7703dc8b97b36f74606e0ba0b4b191a233ba90ef59f72a7f0710f2914152",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/types.ts",
+      "measuredSha256": "3b5322424471c635ffa34bdb1a0d30ef48e12bc11f9ff38ac8ece35d158ef20e",
+      "finalSha256": "b096c0b883981c7cf8e51e4dc9d8f6459d3ad2b3d69917a66f8163d74d781d3e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "map/micro/yard-handoff.ts",
+      "measuredSha256": "5e580f27c3a275ace09ba653e8bd1bee70ee268eff79a2767b69a06516e3e911",
+      "finalSha256": "e99c3c78eb1cf39e18ff394f70b386b17add92055ef495c0ade03efd65e09753",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/constrainautor.d.ts",
+      "measuredSha256": "8ba67db7ddb98a15ab05a671737400e5d17c842ea2440db61cb932734f819ccd",
+      "finalSha256": "aed18b093a016ebd5b134e7651381b99614db1a453728a04d0ca9558a5518645",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/discovery.ts",
+      "measuredSha256": "6f7975049234560960534b1d9dc6f7a4aec6c2bd4f8b1d5cb49813d45aafb441",
+      "finalSha256": "68aa2f16cf4a40cbc261f8eda3193c31e8bdcffad0100b2d48632a219a10afdb",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/equipment.ts",
+      "measuredSha256": "d4531adeb70901a17a8523be3336b65eda5c3d1be95b50ce21986ac6818dddee",
+      "finalSha256": "23c676d0da2f1016f18efa49667d643ae687a82924cafcafc0d9259f1b31408e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/frame-layers.ts",
+      "measuredSha256": "176907ea501b814fc31b6be4d084fbe2e934d0bfe3a98e25718356f54b620612",
+      "finalSha256": "ca610def3b4f8790788551ef71706ea6cf48dfd214e8756d44fd8cdc8b379080",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/free-space.ts",
+      "measuredSha256": "49182991c47e2b51d85121cab5a72f4b3613da86862208abcc09c0679dd29121",
+      "finalSha256": "862cb8ff8a9466bf2e90d43d5e5eeff2c98480f75a3b8597846dc02184ce433f",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/gate-query.ts",
+      "measuredSha256": "3b3114763aa492d10c91888853d9c5b6ad53909606803ba23a11484a23521423",
+      "finalSha256": "6aeb22d31a04ec526a95b748f2a1494ab3e375fcd0596526cdc292b4248e1345",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/index-heap.ts",
+      "measuredSha256": "81ab624d220673a5eb56548c4560d55cd261b73f85bbc984abffdd3a892a3281",
+      "finalSha256": "5b4b69cf4506b426d86803eca736021ae1f8beede5a10c4d1f1411d433b2ff73",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/item-instances.ts",
+      "measuredSha256": "ed69f4f187bcbb2ec221d18c300a347132e05a2a2f378b50657e7a3949787e1f",
+      "finalSha256": "2eca7ab3d7b7b9f8a415344b140e1a575720d82cdd98006be93345c17019bbca",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/loot-tiers.ts",
+      "measuredSha256": "7cc59eb0575f0eb85ada4818744234c7a9e135f9525314ae1a77b7b44535f535",
+      "finalSha256": "55f662f22b8cd14c725494f969f83856c0263e55f0019ab5512dc52bed9325c0",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map.ts",
+      "measuredSha256": "3dffa181bad31b39afd4420199d88c6e7ddc85181f5f52648890b6616c408e72",
+      "finalSha256": "6827e2e06399c66da48278aa82c657842c2dae9a664c2eb325def0a34144fff8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/context.ts",
+      "measuredSha256": "ffde02af79fbac442f597309cdbcdc54d00c91302e5e4fd82dce6b8418251d9c",
+      "finalSha256": "e527bc0b8d31bcf1778f9f72f6df79dd889c3501ee6b3c2a7d0800e82d05192a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/element.ts",
+      "measuredSha256": "cd9f363e98398ff698d7520d31f03437355addb6daa0fdcc7a61729738e04d7d",
+      "finalSha256": "a7a7a563b0804572c244783fc50f435b17c383505436bcf78598c507cb9028c2",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/generate.ts",
+      "measuredSha256": "f9bf98a8309695206de6217cff7d748c2f94f166f1cec04568b4978d9be58b09",
+      "finalSha256": "6ff5bc382b4396494085cedcebeb7e4debbd889248ee3a0693ba26fa43f0d151",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/graph.ts",
+      "measuredSha256": "853201a034b6021a4bdb8785e0d88710f3deb42848209590985b7f19cfde9a87",
+      "finalSha256": "0455f75752bb0a2b49ecd740e278cb8920719e8a7a3a01e064095702999fa049",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/navigation.ts",
+      "measuredSha256": "09b30fe3a843d293cdb7905c99cf38601b8f462c5fdf884ae15c08c61d40d0d0",
+      "finalSha256": "54859eec60292123e10f2e1a0fa9867355eb1689c6f2bef5b7adba874e2d255a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/objectives.ts",
+      "measuredSha256": "b36c705ba71fd1c2db3c02a951755be514ed7127e2b9b0cf101e9658214ba055",
+      "finalSha256": "01eadcbb2e88652160bf1ea1d7a281091a2730e63e08536058827415eb258ad7",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/route.ts",
+      "measuredSha256": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+      "finalSha256": "f7045f478e59054692461d83ab91a6c0f8507fdeaeb04fa2d387b0473d63a26f",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/structures.ts",
+      "measuredSha256": "1b6dd03da6b2d68daa7564220a232894890bec9829f235b3e6374a8a566b8e03",
+      "finalSha256": "0b4698aefd3a1c1b98156286f4c1925e920a797bcaa3c28822574426ff830f98",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/templates.ts",
+      "measuredSha256": "012afc24b610639817d8b16fe0189cd1fa67f7cc0a7613fb7e6561183d8ff315",
+      "finalSha256": "7bc0176c87656877ba25ada172b275719afd3624a2f5d14011d126a006683a8c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/terrain.ts",
+      "measuredSha256": "15f32b6514666a75d0a6e51ad3a64d34340ed9e9105fc6a649af14483c587075",
+      "finalSha256": "d86aba2b1e914ed7edf3a18ca02cc3ec80c8f06afea687f8af7e946bcab51cc8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/topology.ts",
+      "measuredSha256": "7b4ba8429abb68a6889c9c1cb8fedc12b606ec76e205a827164d51dd9ff03757",
+      "finalSha256": "d16fadc350f38238bf09bcaf3204f1f7ee87b6662389f8717a6c145bc7acf55c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/map/world.ts",
+      "measuredSha256": "e4a6fcbb82b3c83467db28c5cfce7046b69558508bcec95f62cefad8b95a5cac",
+      "finalSha256": "56b328ac17b804f53a39d9094b791898ed0d093c2732506df204478d809a9782",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/math.ts",
+      "measuredSha256": "8e7294b0b939ddfe27ad60ca6378b45c293043fd668f4e069ead21563e9eb387",
+      "finalSha256": "cbe7b4876b86a76c3cec15e7b6e0bbad4cfa43abf43642eec531e3f508b73345",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/movement.ts",
+      "measuredSha256": "2bba598e2974020137c38f981a3fa5d5712f6283a60d2df6ae81c9f02d2c0644",
+      "finalSha256": "a50c4082cfad368f83b9a27b3753e4b587b3e24cb6c8c0400f5e0e83bfd4472f",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/navigation/grid-level.ts",
+      "measuredSha256": "863a99640f23440689b643e55404aebb5911d8dbd55952710361bd6523bb8390",
+      "finalSha256": "4b2f60d92dd77787b0548b4bd96e5017620d129a3720978eac8335f1fc1c3740",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/navigation/knowledge.ts",
+      "measuredSha256": "3b074f453fd496666cc9497802f6c5ca5bafc0fbae796bc22e0d9b422fa6670d",
+      "finalSha256": "a4789e872444fc67e57e6c73252b4ef6b773d80624b9559675ce577562c5f8e8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/navigation/mesh-level.ts",
+      "measuredSha256": "dfc3ac51af6510972c297f2f373aa35978438d09f93219ec530349b9e75f4756",
+      "finalSha256": "cf380e7c68633b84d52d571c56918397200b1d4bb93d733ee8f4e7c1ed16431d",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/navigation/portal-graph.ts",
+      "measuredSha256": "232b68f2c9fb2e2aac203ade72e25c2856feef7bd65811838b5d066b9c1dc7e7",
+      "finalSha256": "38966e40aa741bc3ed121f751bde8314370b42b02fe82057905ccbbc7dde281d",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/numbers.ts",
+      "measuredSha256": "20b10309086bffd343f72aeab0fe1a1d896cb6b38d55d6ec3971c9c1fb793b8f",
+      "finalSha256": "5e89942257e70d5fc4276c8424335b6743f31e0c2e0ae5f87a98b409b20b886e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/physics/constraints.ts",
+      "measuredSha256": "6260ff53a2ea274bfc23ef0f9383cf2c738f0a1bbf4dde2c433a396537650dd1",
+      "finalSha256": "583db059d2553c6ce9aae8d1a6038c51be85fcae54a26f71ff38efb2e054f4b5",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/physics/motion-limits.ts",
+      "measuredSha256": "9c4de805fb8891b64a3c7b941ad84f243e663de91bbb902967397e56f8ba4583",
+      "finalSha256": "9c4de805fb8891b64a3c7b941ad84f243e663de91bbb902967397e56f8ba4583",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/physics/presentation-geometry.ts",
+      "measuredSha256": "eb71f61b6a59dc5a8ba5873c6527defd92c5bf3907c6dbc9340b408551dfadc4",
+      "finalSha256": "9f1c61e2da19a3a80b0d9b2ffaaf689e83e6a578863be5b83972b13e39468264",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/physics/types.ts",
+      "measuredSha256": "1e6c298423e939de142a4df69d36cdf9e442ba6700a55f7a62f7ddcbaa5b899d",
+      "finalSha256": "cb8edb1c8d1de66c24085b39acee3079e3ae14612ef73c51b2cc8d2e60c88b59",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/physics/world.ts",
+      "measuredSha256": "400b2ba810f5e6a51ec18536e073fc829eab42e52dc2b3600fb8ef626855ff0c",
+      "finalSha256": "38919bfe448505b7fec574f7a8b4c64a62029232d71916c891201d8b70e163b6",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/presentation.ts",
+      "measuredSha256": "04194b97f599ea15f5d761a0d879d758e6b82d55f94d05c0fe147102f4ceea9d",
+      "finalSha256": "e7715ee24380e8c97376c936e1ce2c852f59956351d917e7c3bde145f64d0e1a",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/profiler.ts",
+      "measuredSha256": "34160303ebe060857143d67e11efbcbf61024158948c5b7eb19b1cf5976c6538",
+      "finalSha256": "3811182d22ea61f3adfc5345e8757d2c97656f718e2d83e03a116e8ec755c746",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/recording.ts",
+      "measuredSha256": "c94b5bd4210901a5d97bb6c03a23d92e9e85850375c4f111c160b6fa781ac092",
+      "finalSha256": "181bb3f90470614980ae7170c78a6db71e4ad8d8a860a3e65f94fe833fb324da",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/shape-construction.ts",
+      "measuredSha256": "7a1a20e527ffe19a41078a41d01b1db63c88599e60e49de98cbdf3bbc6e50ab0",
+      "finalSha256": "5bde906323e174b289c2fe8ccaf5b2747f326eabc623fa7c058022fc3a1ca85d",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/shape.ts",
+      "measuredSha256": "909892d034c74f8a83b0791902d27cd463366901ad571c03c0a399cf3d3e5b9d",
+      "finalSha256": "53f09e7495c1360d116e06b28a809c68ede722df30ad6c00a191772297219e43",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation.ts",
+      "measuredSha256": "eefc1456b64dddbd5559a7dbe34d1da2a39619bfda1828416684ec0daecdcd39",
+      "finalSha256": "fdb6aff8b2a84b6ed71cf2f4c017f3560255d34135acf7cd7e02d4ef7ee701a2",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/actor-physics.ts",
+      "measuredSha256": "6a7f253d2c1059d7e8a1d786e23010c0c57f36fbd4285006894821eaaeaeb012",
+      "finalSha256": "ad33ed307cce5dd587c6cdd4f923e5f91442f414af42c224e9d1b9e96559556c",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/ammo.ts",
+      "measuredSha256": "1d39a505f0c18a2f2dc4453927b42864c773ef33a5995cf6ae68f21de5762213",
+      "finalSha256": "13373cef53cec60a3bd859c1405be160b39f8b2e8e2889e99c54d863d1a9f194",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/bots.ts",
+      "measuredSha256": "70937ed2142f076e5d9f8b37df6cc5404c9c547bb0d70dfdd9e5e8b4fc7c8bd4",
+      "finalSha256": "53cd3b21b759908b8f50dc2572ab90a3850fe5a8cea31a288acadf378488d7c7",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/combat.ts",
+      "measuredSha256": "1cd49f98725905f94811b17d176d2fe52ebe98ef67918ddb8aea165b0aad64c6",
+      "finalSha256": "6945ff7805a07e7589147bf3633e202ea4b8c7836004005c1d071ba4ca385156",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/content.ts",
+      "measuredSha256": "a260186b5a9ed39002129f07f0737d7206fd5a5c335390c43906d1abb7f44264",
+      "finalSha256": "f976db3d1025f947a46a814132131b39c7d04a720b2fff1623913e8273dfb2d9",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/dev.ts",
+      "measuredSha256": "e3910bb42684485acb75dc60e3c0fffe02fa39b8b14a704f90efa92b125c24ad",
+      "finalSha256": "535a4cccd3169819b438d42d8c7f992bfa04830eeb4c12c6a423916baa57636e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/dynamic-navigation.ts",
+      "measuredSha256": "d8748cd6243bfce2a402ce6680d2e02f95512bf32abcb270882c617c4a97d58c",
+      "finalSha256": "42b5325d643b75b10b171246fc32acd9bc3975bdb2c41557d899d866d0c15a38",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/explosion-physics.ts",
+      "measuredSha256": "89875db48f589576503d872fac851046c497340b293a6cdce90e32be349a04bb",
+      "finalSha256": "7d03b51d574f1f169070e34ccb161e4b226607a95049383639013cf0a0fe9ab9",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/geometry.ts",
+      "measuredSha256": "b9843e2c2a72c4f694547e14f44c3fdcb196049ced574b54210a36134b7129b6",
+      "finalSha256": "379d3b8fbddaad82ddc0c5903816972c84e37386203e3122a29587f3726772f1",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/hook.ts",
+      "measuredSha256": "084c0758a33ac5305700354a1b9e29e77e1b69afcde2c88d3b4e35348ec9ea1d",
+      "finalSha256": "2bbdfaa1aa9ec99285536d8b2e18c12813782b272f493a244406a75eb2d7bae8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/input.ts",
+      "measuredSha256": "aa9d52b06834a8a63e365fb2ea80db643c8a94518c6b4e0587fd3da14e42792c",
+      "finalSha256": "d5263c9d1ef29e60bb5f78dc11d005f3b4579e68a0c928c6ed7b388b5e9c06d3",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/interactions.ts",
+      "measuredSha256": "2264acaac58f2ce98ec205f5596795f09a383b393a4c92b2960ad18ff2101aa6",
+      "finalSha256": "597a406ff87f858d7b0a0e29b866e3d78d0130642eca65aa0a95b02f9d27d6b7",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/lifecycle.ts",
+      "measuredSha256": "18d3f2999c9f996d0829f22598f626b62640c3536f384e4245bfccbd8ea85b7b",
+      "finalSha256": "751fe05b8eaf064d819d434b76146fd0099c3fd11358ec2169048cd499dc700e",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/loot.ts",
+      "measuredSha256": "11a63d25d996f85bb333f5140e3951c428aebec4ee3af9e0aaa49977271a7196",
+      "finalSha256": "4150ea0ffae3146b9a786eaa919f3f1c053524a1d68d0fefd050f4c1131cba85",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/phased.ts",
+      "measuredSha256": "aa1fe6c63752a2434139046c08399cd1a67ebeb3c1b0922c41b2f9b252c2d57c",
+      "finalSha256": "806a017fc26c337a1f594be4fa6b32856adb45c1146158f4f950e238e04bc83f",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/physics-geometry.ts",
+      "measuredSha256": "e5f5fca2eaf3cd7c6d5d50a202455fb83d86aea35468869570b8eeef8f313ab4",
+      "finalSha256": "e5f5fca2eaf3cd7c6d5d50a202455fb83d86aea35468869570b8eeef8f313ab4",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/physics-presentation.ts",
+      "measuredSha256": "d0d7f4dc84c8cdf5491a6a72f25789441f8e34ca59b3bcbd07634d83fffa1d02",
+      "finalSha256": "a5e3053e57d84214505e364a468a927b0caf090c335bf24d9392586905553272",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/physics-projectiles.ts",
+      "measuredSha256": "75e2ca8aaafb4d82f6688a07e38404fa7ba70b89380ea07130cec012451f030a",
+      "finalSha256": "ca1e3a304d06ace7eb40c126371962fe38aac39919cb1aadf8ba37312c337bd8",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/physics-runtime.ts",
+      "measuredSha256": "62be467d1c0e1f0eb88c63128abe19f01af0af9940a8cccbfe4ae69dab781f77",
+      "finalSha256": "e5a99bbdfc9cd09323e9ff9f5daa2987154b9b4867501591971d7b3e4e5ad383",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/projection-contract.ts",
+      "measuredSha256": "60fdab69e55c5181ba0945e6988bfec2b7857019c36a2a63ab28f58e97bb84b3",
+      "finalSha256": "c90ead3246365e4056965a77f3ef9fc5a07efe4bb9be6836db204fdf98e4b05d",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/rewind.ts",
+      "measuredSha256": "52d3b61cd8d308ca63a8cdffcea084d1ee828f2e89aeabfcb7e58b1cec0e603d",
+      "finalSha256": "55d9885a0465decbfe00aceb09838d010d62dcaecea1d118bb0997459c0d7926",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/rules.ts",
+      "measuredSha256": "121db04f71644ce9d65f0747b9377ede0832ea3a6fab2082a6f4158c32d1622d",
+      "finalSha256": "eeff09ca365ae516b44e19446063a0e44c0c497b0f974198b1d4fc7e7d371856",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/state.ts",
+      "measuredSha256": "b1caf7bcde74dfd646da8a2b6a7f8a7017c99104a82bdc0a155588584dfa7a47",
+      "finalSha256": "9a7c53760e604f68cfeaa84631a2b930e0009f33ea7b7288efb5ab4801b7d3d0",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/swept.ts",
+      "measuredSha256": "f102b007a1513a186be006d76214beacfcdaa14a324f9184d8e3cc8c9428cd78",
+      "finalSha256": "488ec41385606c1944643d2a63ce0619ce230d3a7efbb92f420a0a3a47e57958",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/tick-rules.ts",
+      "measuredSha256": "e8f2526fd9b7ccda064eff307953cd900db64b97adcd2f16b22beec76dc37556",
+      "finalSha256": "e8f2526fd9b7ccda064eff307953cd900db64b97adcd2f16b22beec76dc37556",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/visibility.ts",
+      "measuredSha256": "8f0498636a66c36aeb4ec18693a17da123cca069b6857862ba22e7a2e930bd9a",
+      "finalSha256": "b3f399f7defb4104295e6e31fc8fc879e7ac3badfd4a68ac07df9d3a4bcfc2f0",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/waiting.ts",
+      "measuredSha256": "13a05d0271aeae48f8275a1592c45faeee451570f98a10385ec645f3b0f045d2",
+      "finalSha256": "0a93e46af973e9077264258a79238384670efafb1c85a26c3a1816f9066ee297",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/simulation/world-physics.ts",
+      "measuredSha256": "93636687176871ac7daca54d1d36e0e95f71fd737a47d76eb44e8d8fbb43f6c0",
+      "finalSha256": "505c069d1456cff4619fb819a9e6aa8712e9246c1d4b9b15b13117192008cbce",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/traps.ts",
+      "measuredSha256": "92eeb4cc10af16553c90c84f0e2c7e0d2f34baca954dfc05cc36c35fceb97002",
+      "finalSha256": "af578de59e45bd8acd4cd6d01947ea123b04d868701da854329f33f648c35fd5",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/types.ts",
+      "measuredSha256": "50a920e556ff67a240c2f43ebdd752cfb84c26ed3598383bff72cd3e46366321",
+      "finalSha256": "b271423d71af755de2487d54a94e08deb9e75e45d4b8ed7273cd474159c86c72",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/vector.ts",
+      "measuredSha256": "9da19e6c5219d822eaefaa1bd706376dcbf4e8c203166d5ba14fc5d592f58bf3",
+      "finalSha256": "d4ccf25494f55e863397d004ff327aeb02df6620e0b06a91492ddc1093a1fdd7",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/vendor.d.ts",
+      "measuredSha256": "2f3439dc118f11a4affde78ac37fe65fa7887a32a5663d9d6d0fdafb27fb74dd",
+      "finalSha256": "df6790c4dc5a7046693a24eb790efd2009c8c51e898327881f36f40f4ad77623",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/view.ts",
+      "measuredSha256": "3f392f7c47cf1871b50c737d901a476dd05274e9cfab8c436f12bc1bd98777e0",
+      "finalSha256": "797a170d54bdd8ed06378c32e6c29b8cb2db7951a588e1e3d0845ee0c354efb7",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
+    },
+    {
+      "path": "shared/waiting-yard.ts",
+      "measuredSha256": "78bf71c506ed15606ad6d61a19af5ac9f1bbd0873ff3f05cc41187a2938f84e7",
+      "finalSha256": "1ecf3433df3ee0d571d3a2f48083451199add2c73440d2b1bda389cb0d872f4f",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": false
     },
     {
       "path": "tools/depot-cord-audit.mjs",
       "measuredSha256": "72bc1343da8b90173886a817077b8fd4633236ec162d56bf73338537c976411a",
-      "finalSha256": "220fc193a53c3f649a132b61049e627ed70371ad0e8c01a7ddf3ffa0ff92293a",
-      "change": "trailing whitespace / blank lines at EOF only"
+      "finalSha256": "0930bb578682652e86960452775521a3e112dc69fdd0240fa346a70cf8d3c1b3",
+      "normalization": "utf8-lf-single-final-newline",
+      "historicalCleanup": true
     }
   ],
-  "finalSourceHashes": {
-    "map/kernel/cell.ts": "e9c28027b21699a9aefc5321e5a0b32cca38f271ea922c2df911b576ee92e8cb",
-    "map/kernel/contract.ts": "07fa33036e2dc208504159ba4ad00fabd908ca3d9640170893eefd6800cc4824",
-    "map/kernel/margins.ts": "2666c47ee596b0f3c259988b60867d39aa0b4511baf56080f1fa0ae1d7e868db",
-    "map/kernel/run-cases.ts": "7c3eccd9eff19f7a0793c00cd8028c1baa8fc42451772c5e3c858388cd0c37a0",
-    "map/kernel/run.ts": "3df6102ff54e3185b03038456d8321a853c69ee2d7f39bfa0d5e3a8d660965d0",
-    "map/kernel/scale.ts": "cb97135c22b8c3da2c7da525f205c925b7d941705232b2b288ea5063309cdf78",
-    "map/micro/adapter.ts": "9171273415b1cbad70f6fda8d6fb3aa829c35215e06a840f45f3e56507bc6afe",
-    "map/micro/addressed.ts": "7eeaddad8c27a6800e9a41c559e234e88cbef64f2e2552f5baee5a49809e869e",
-    "map/micro/brief-link.ts": "1eee0c7f965ca2c99fe4a690b90624868817e83eadfc007826177d835e6919b1",
-    "map/micro/building/allocation.ts": "53dafbd63fe7ee166ed4dc2b4e7796c4ba54ae9964a0b02d5c895535e3d2a4d5",
-    "map/micro/building/boundaries.ts": "1d7a1df7630718f72760fdf22aa620a0db6a48e5f6b4f663d31b0a5cbf597461",
-    "map/micro/building/decals.ts": "687adc01cfa030dcdbd5290bbbaf56f5a0c526c7a479312d9042a8ac0f56fa02",
-    "map/micro/building/design.ts": "9cef0c7d61ccff7de5db744ff56ac35a2de8bdfe246934ae03d27fa1154c5ff1",
-    "map/micro/building/draw.ts": "b36bcc753233cdace57dccd1c5da94392a1d2f0c7dc43975bab1a20481ea6b72",
-    "map/micro/building/groups.ts": "0278231f152c3c857a2bb2b100f4651727641d9edc9a2a40bcb350a9770e5d31",
-    "map/micro/building/openings.ts": "ed0a7caf63f575538864c69418b048c0a9dc6cdee6dd346b879af4964cb10002",
-    "map/micro/building/pieces.ts": "8cf38155b8333927dde6c0c75dadfc78af8dc2387a9d5f7fd9068d7db6c0c93b",
-    "map/micro/building/realize.ts": "e4900b2758d332936339eda3f76279248fe426ba5b33b0749bddcb85cd2a1e6d",
-    "map/micro/building/trace.ts": "304ae07486e16228a6d5c922e6018b2eb101afdd02bdffec55fa9deab5171905",
-    "map/micro/building/walls.ts": "3db64074e54dfa4f6184ab46a06fb888fc36539385b7549f77fd3ea74db8c4b1",
-    "map/micro/canvas.ts": "3bbe8b5d63887e230c3b7ebe4e4c08e98ba740d13ea9b6a7b1c67b5ab29b4614",
-    "map/micro/components.ts": "3bf2b7a3ac9896427d7ccb59d968c9a773e24c3de63956ea846966896874ee38",
-    "map/micro/compose.ts": "fbd15f94bd3787ae1ba682316bc082549c38a5f2504e64bffc71a0a2e504c3f0",
-    "map/micro/cord-witness.ts": "016446d731fb7f73a209bd1cc6868302b58fdb01912717b373652590b1085c1d",
-    "map/micro/decomposition/allocation.ts": "1d92207352bb68aedf0c75fe7cb90ef7450433dfba0d12f1fc765839d3a06e4f",
-    "map/micro/decomposition/analysis.ts": "f88e0b0f78755f1b21f0a6226c05d05e9c6a050915edd5101060690995f309a3",
-    "map/micro/decomposition/context.ts": "9c791356cb59cda50540a63ee62a481c35abab32f4a3862118fade9c55e50f01",
-    "map/micro/decomposition/example.ts": "728075e1cd6816fc2f392a789f3595394045e9daee93ab97d6cb1ab14e9e49d4",
-    "map/micro/decomposition/explore.ts": "e41fd55b5558fa99e2b4aaef6af096e7c9809af44b6d9d1c5078cc8c8125f29b",
-    "map/micro/decomposition/interfaces.ts": "044ecef551b6eda5a05bb05e341bda25c60cc71fcec7b6f6c9457fc9baf82969",
-    "map/micro/decomposition/types.ts": "505c1726da6afbd2c0638c282ce0f269cff043d2df2be7275deed57afd18999d",
-    "map/micro/decomposition/validate.ts": "05489d38bf21202fc803d3226d08c6726dfa64b55f8f45ca436ae5bd07a7db8a",
-    "map/micro/decomposition/work-budget.ts": "1252bed0bfff1e290d745eaaa7522f360f197556ba4dce50e7090237c4a31ea9",
-    "map/micro/delegation-execute.ts": "85144aa1b27c743c1c5009b9924a40bff7a1f64766bf74ef5d7df486e3665cbc",
-    "map/micro/delegation-json.ts": "d4a06d6b35cc86d80cbb4591887ce2b535a98ffcad73fd70d2d880f5c992eba2",
-    "map/micro/delegation-snapshot.ts": "5798f57087ec8433769208035e8f025f97a8692e69bf5d1b94a80405d30e8c58",
-    "map/micro/delegation.ts": "ef942c02a94d1e30fbc51315a5c587ddf5da79a65cd510e064f3e2c473ac7069",
-    "map/micro/diagnose.ts": "6237abe6cfc21d72d6e31c7360d52b77ebf2110bd93e895b459f75a64b954bff",
-    "map/micro/difference.ts": "214483261a8e5e17bef722f97654a7f0c34b3eeca5b1777bd4232c9386cf4a37",
-    "map/micro/experiments/depot-canvas.ts": "465c1b5163a117c44f4f956aa24ea8433ca60b75248b9742d476dca36dab52e5",
-    "map/micro/fill.ts": "9bcec96bc6c2cc6e735168feaf905fbbb187e6e877f67199fe83f53091393fac",
-    "map/micro/geometry.ts": "d742f5934c3778f3757b6fd7f01c87bbeea17dff26f420f01c044f92926acd6d",
-    "map/micro/hint-walls.ts": "15b33f3eea10dcdbc03a45a274781ad23aca5bbc971f3fae30b37ded248a091f",
-    "map/micro/hints.ts": "db6ab1a799bc2922110c9d55f15fd749296038e06052a5a2cb1af68cbec8bbb8",
-    "map/micro/limits.ts": "ca6849810e0feaf65c0f1de551ff73cdf6a4c0b4fea3fcc784c4d8dd9aa11cbf",
-    "map/micro/margins.ts": "ea9ca3154e77660a159dffe7fd57c6168dccd5f75c7e3e694a5877287cea7598",
-    "map/micro/metrics.ts": "c9e6b182ed3dad6510329cd1f4904addb362b10290aba59d12f3683b4189cb27",
-    "map/micro/parcel-area.ts": "a0af18a3c4e913301e3bacc3943634d5001b68e8538c6314d0ea87977b91202d",
-    "map/micro/placeables/checkpoint-barrier.ts": "91ca99c3c9e24398f299411983de7536116e7d7a9e440805b840dc84faa361e0",
-    "map/micro/placeables/compound-ring.ts": "f6c277f49414b4c511432cd6c7a2f782e9958c2b2ec68db28a12aa4ee8fa69d3",
-    "map/micro/placeables/container-row.ts": "c6ce749af6e21b44e816fd832e3390a6a49e4be1e9ce4727d1b913eb4a5b340a",
-    "map/micro/placeables/cover-piece.ts": "49cde3bb086ed192e03137bb5c915620422236cee8b4e4f387ed6016b9430989",
-    "map/micro/placeables/fallen-slab.ts": "e75241439b3bf38f80cebd017439d6621b04ab58f6ee92d6bab411a80c511f45",
-    "map/micro/placeables/frame.ts": "2e91d71465f286bde48ec2e702113a979d8e019b4cdfb10a9426608b86224fa9",
-    "map/micro/placeables/hall-pillar.ts": "d2c687921c73e813049abf5d6f48932d2eb7d3d7e9362c8b5c4a147ece9eb38b",
-    "map/micro/placeables/house.ts": "50086c74c39d719e4fd192c450ad69331f647e1749c4aee0e1604ef8c8f4038d",
-    "map/micro/placeables/index.ts": "7c190ada4a285e2c8eb6934586fbacdbb1aacea087d46800aa782cbc42dd8cc9",
-    "map/micro/placeables/market-stall.ts": "a804d6d09ae8313803e46d0a19e21dfb934ccabb48e194e9f125837d80915589",
-    "map/micro/placeables/park-hedge-run.ts": "34be4220d6ce7d7805195f4d00f3a0e609e98e889eb5da009bbe771de5947874",
-    "map/micro/placeables/park-tree.ts": "ac546bae1ef3ff19caf18d3f9b49b286cbba4c8111af88d602bc83436da86cf5",
-    "map/micro/placeables/placeable.ts": "4962aa7316d8981c297161350ca2c480434a2c98964966a6d321a4f9bfc900d1",
-    "map/micro/placeables/plant-machine.ts": "9efb5f2ae3f0033f317e5d657c658a046133f00e474a1fbd3ff02550870b4d51",
-    "map/micro/placeables/plant-pipe-run.ts": "cd69bc864836f158d44a8ec3f75044a4c055bad06661da533583d73cf8d1101c",
-    "map/micro/placeables/rubble-debris.ts": "c357506c4bfaae4371ffe0fc26e02d38c8f7fb01961c6ad16faf864a0b083bab",
-    "map/micro/placeables/ruin-room-span.ts": "6ff26adef3b00c6b8041d4c9ffe4095b6a356e63903ecf80686258edb6ac1d49",
-    "map/micro/placeables/wall-run.ts": "8568870b575bddb4f9805c5b5fcef1979a50312f3c1119095bb328a8574b7269",
-    "map/micro/placeables/warehouse.ts": "ff089cd6ec2c882ba61bc2e8c05d150f2e850554de1b346618e7d538df1e52bb",
-    "map/micro/placement.ts": "74c48c9dd7d2f32839fcdec7136f8a8afa8b895e636df1c3a0dc231764e364e2",
-    "map/micro/port-terms.ts": "f6ea8108cd7046d94ea837395e77ac8bf770e82426e421241c1731aa5d8e1e6b",
-    "map/micro/portals.ts": "02adcbc39cb8165640e83629ddd99f25ab5316c2f5def6e4f2690749051f190f",
-    "map/micro/prospective-parcels.ts": "24890c32864e857f9ff98ed3b032c884db4726ac12f3f4ea7e0ecca13431aaca",
-    "map/micro/random.ts": "63acf74f671a241210f69096939d7150f7c84d13efbb23d17f003c332924e6b2",
-    "map/micro/region-examples.ts": "9c30b8a159e7ce0f54b5de52e75469b744de78da3adaf7a36fb2159c1f8b3048",
-    "map/micro/region-types.ts": "01b31c6847cbcdceea7106ebe8b54d91906af3f52729467e21624f9a6d0fcb86",
-    "map/micro/result.ts": "eaa7574107a4c52848ab5204c4a47f28236ed1efc90a094f27671a389e5a9e32",
-    "map/micro/sdk.ts": "c50948b068869b22b80557c0a8decd6431a827194e5b59967f5fdf47497a2bca",
-    "map/micro/strategies/arrival.ts": "01ea45c73f15b97353587f0d4d29b7ac5b5b8534d8a3af584041b261c7d227a9",
-    "map/micro/strategies/block-circulation.ts": "2ffe01f8dc1256f2e018f91819707df0ea79c0d06a12aaac7aec019a3fe06075",
-    "map/micro/strategies/block.ts": "17803b16a0ee2135d384174a77a1f28ea81c47be4dde173479f7f5f2515d58ec",
-    "map/micro/strategies/charging.ts": "2842304f47f9a3d8fea365c3e541bfa7235e2bace4419d1c9ad6a3ba879070e3",
-    "map/micro/strategies/checkpoint.ts": "9f93af0f824a62faa5f1a0214d87e44ae818afe646529acc368114897d8106fb",
-    "map/micro/strategies/compound.ts": "0312d10ec66e93e5ba25081acbaf3f2a24d0d6c07721caf67d22bd02ce12135b",
-    "map/micro/strategies/cover.ts": "a4162ba67eb2bfc44199054ee74b8e54b8f144a4b46fc2394b857b4ef18d69d7",
-    "map/micro/strategies/departure.ts": "740e3bc23b3456ff205c1b13d6443ee3b22b114d2f6341dc2d1c8daa1c454fb0",
-    "map/micro/strategies/depot.ts": "5e9442b7f46fbf54077a441cc9e05a99030d950c606875b3b3cd25e17ce96595",
-    "map/micro/strategies/hall.ts": "598a25a1ee34c60fb85f135bc4f1d61ca845fc3d6b32f67d5d8858128f9d6b30",
-    "map/micro/strategies/hut.ts": "f5615ad1766018fd86c83c16dcf0e0209a956a922f57ddb22c7d0b4c7f4f67e5",
-    "map/micro/strategies/infill.ts": "43dabcfcfc430ec3d844ed5290df3674b9bd7308e0b83e196e7ee1ac41e30191",
-    "map/micro/strategies/lattice.ts": "e7ea144e1c4901ef4ef1aa48012c74f8171727d4e4f23458d47f8f9b90f2c4c5",
-    "map/micro/strategies/market.ts": "848539fe42c89ac075a276a4a446b17af38a60775e189e571226a485829c21f2",
-    "map/micro/strategies/open.ts": "841a7dfc80a1d5c8c6ddb0f7be60a4bd7c7c00fb5bc274d56f10e6d1fce3da8f",
-    "map/micro/strategies/park.ts": "07715d72ba4c3afa4b203364dade5a57c51890f46b856e0776466c27d0a206dc",
-    "map/micro/strategies/plant.ts": "968b89a12585d98c5ab1a34ffec2adcd9b0b007827e4b2ea7e261c68975bf0e0",
-    "map/micro/strategies/rubble.ts": "2034d0332f25e8d83f32f3168ca78a5fd91b98a23d32129cfc59949cb01306bb",
-    "map/micro/strategies/ruins.ts": "3b27b8585e9182e8a13070095e99d7ce060493764f98b1f327246c44e4ebb475",
-    "map/micro/strategies/scatter.ts": "13c6118a52bc62f1a54850733893d6814681425cd5ebfcba91fbd0e540797435",
-    "map/micro/strategies/transit.ts": "9ada521aa4195164ad0771e08ce5a4a02486950db4f2f99fcd58a43d143bd792",
-    "map/micro/types.ts": "3b5322424471c635ffa34bdb1a0d30ef48e12bc11f9ff38ac8ece35d158ef20e",
-    "map/micro/yard-handoff.ts": "5e580f27c3a275ace09ba653e8bd1bee70ee268eff79a2767b69a06516e3e911",
-    "shared/constrainautor.d.ts": "8ba67db7ddb98a15ab05a671737400e5d17c842ea2440db61cb932734f819ccd",
-    "shared/discovery.ts": "6f7975049234560960534b1d9dc6f7a4aec6c2bd4f8b1d5cb49813d45aafb441",
-    "shared/equipment.ts": "d4531adeb70901a17a8523be3336b65eda5c3d1be95b50ce21986ac6818dddee",
-    "shared/frame-layers.ts": "176907ea501b814fc31b6be4d084fbe2e934d0bfe3a98e25718356f54b620612",
-    "shared/free-space.ts": "49182991c47e2b51d85121cab5a72f4b3613da86862208abcc09c0679dd29121",
-    "shared/gate-query.ts": "3b3114763aa492d10c91888853d9c5b6ad53909606803ba23a11484a23521423",
-    "shared/index-heap.ts": "81ab624d220673a5eb56548c4560d55cd261b73f85bbc984abffdd3a892a3281",
-    "shared/item-instances.ts": "ed69f4f187bcbb2ec221d18c300a347132e05a2a2f378b50657e7a3949787e1f",
-    "shared/loot-tiers.ts": "7cc59eb0575f0eb85ada4818744234c7a9e135f9525314ae1a77b7b44535f535",
-    "shared/map.ts": "3dffa181bad31b39afd4420199d88c6e7ddc85181f5f52648890b6616c408e72",
-    "shared/map/context.ts": "ffde02af79fbac442f597309cdbcdc54d00c91302e5e4fd82dce6b8418251d9c",
-    "shared/map/element.ts": "cd9f363e98398ff698d7520d31f03437355addb6daa0fdcc7a61729738e04d7d",
-    "shared/map/generate.ts": "f9bf98a8309695206de6217cff7d748c2f94f166f1cec04568b4978d9be58b09",
-    "shared/map/graph.ts": "853201a034b6021a4bdb8785e0d88710f3deb42848209590985b7f19cfde9a87",
-    "shared/map/navigation.ts": "09b30fe3a843d293cdb7905c99cf38601b8f462c5fdf884ae15c08c61d40d0d0",
-    "shared/map/objectives.ts": "b36c705ba71fd1c2db3c02a951755be514ed7127e2b9b0cf101e9658214ba055",
-    "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
-    "shared/map/structures.ts": "1b6dd03da6b2d68daa7564220a232894890bec9829f235b3e6374a8a566b8e03",
-    "shared/map/templates.ts": "012afc24b610639817d8b16fe0189cd1fa67f7cc0a7613fb7e6561183d8ff315",
-    "shared/map/terrain.ts": "15f32b6514666a75d0a6e51ad3a64d34340ed9e9105fc6a649af14483c587075",
-    "shared/map/topology.ts": "7b4ba8429abb68a6889c9c1cb8fedc12b606ec76e205a827164d51dd9ff03757",
-    "shared/map/world.ts": "e4a6fcbb82b3c83467db28c5cfce7046b69558508bcec95f62cefad8b95a5cac",
-    "shared/math.ts": "8e7294b0b939ddfe27ad60ca6378b45c293043fd668f4e069ead21563e9eb387",
-    "shared/movement.ts": "2bba598e2974020137c38f981a3fa5d5712f6283a60d2df6ae81c9f02d2c0644",
-    "shared/navigation/grid-level.ts": "863a99640f23440689b643e55404aebb5911d8dbd55952710361bd6523bb8390",
-    "shared/navigation/knowledge.ts": "3b074f453fd496666cc9497802f6c5ca5bafc0fbae796bc22e0d9b422fa6670d",
-    "shared/navigation/mesh-level.ts": "dfc3ac51af6510972c297f2f373aa35978438d09f93219ec530349b9e75f4756",
-    "shared/navigation/portal-graph.ts": "232b68f2c9fb2e2aac203ade72e25c2856feef7bd65811838b5d066b9c1dc7e7",
-    "shared/numbers.ts": "20b10309086bffd343f72aeab0fe1a1d896cb6b38d55d6ec3971c9c1fb793b8f",
-    "shared/physics/constraints.ts": "6260ff53a2ea274bfc23ef0f9383cf2c738f0a1bbf4dde2c433a396537650dd1",
-    "shared/physics/motion-limits.ts": "9c4de805fb8891b64a3c7b941ad84f243e663de91bbb902967397e56f8ba4583",
-    "shared/physics/presentation-geometry.ts": "eb71f61b6a59dc5a8ba5873c6527defd92c5bf3907c6dbc9340b408551dfadc4",
-    "shared/physics/types.ts": "1e6c298423e939de142a4df69d36cdf9e442ba6700a55f7a62f7ddcbaa5b899d",
-    "shared/physics/world.ts": "400b2ba810f5e6a51ec18536e073fc829eab42e52dc2b3600fb8ef626855ff0c",
-    "shared/presentation.ts": "04194b97f599ea15f5d761a0d879d758e6b82d55f94d05c0fe147102f4ceea9d",
-    "shared/profiler.ts": "34160303ebe060857143d67e11efbcbf61024158948c5b7eb19b1cf5976c6538",
-    "shared/recording.ts": "c94b5bd4210901a5d97bb6c03a23d92e9e85850375c4f111c160b6fa781ac092",
-    "shared/shape-construction.ts": "7a1a20e527ffe19a41078a41d01b1db63c88599e60e49de98cbdf3bbc6e50ab0",
-    "shared/shape.ts": "909892d034c74f8a83b0791902d27cd463366901ad571c03c0a399cf3d3e5b9d",
-    "shared/simulation.ts": "eefc1456b64dddbd5559a7dbe34d1da2a39619bfda1828416684ec0daecdcd39",
-    "shared/simulation/actor-physics.ts": "6a7f253d2c1059d7e8a1d786e23010c0c57f36fbd4285006894821eaaeaeb012",
-    "shared/simulation/ammo.ts": "1d39a505f0c18a2f2dc4453927b42864c773ef33a5995cf6ae68f21de5762213",
-    "shared/simulation/bots.ts": "70937ed2142f076e5d9f8b37df6cc5404c9c547bb0d70dfdd9e5e8b4fc7c8bd4",
-    "shared/simulation/combat.ts": "1cd49f98725905f94811b17d176d2fe52ebe98ef67918ddb8aea165b0aad64c6",
-    "shared/simulation/content.ts": "a260186b5a9ed39002129f07f0737d7206fd5a5c335390c43906d1abb7f44264",
-    "shared/simulation/dev.ts": "e3910bb42684485acb75dc60e3c0fffe02fa39b8b14a704f90efa92b125c24ad",
-    "shared/simulation/dynamic-navigation.ts": "d8748cd6243bfce2a402ce6680d2e02f95512bf32abcb270882c617c4a97d58c",
-    "shared/simulation/explosion-physics.ts": "89875db48f589576503d872fac851046c497340b293a6cdce90e32be349a04bb",
-    "shared/simulation/geometry.ts": "b9843e2c2a72c4f694547e14f44c3fdcb196049ced574b54210a36134b7129b6",
-    "shared/simulation/hook.ts": "084c0758a33ac5305700354a1b9e29e77e1b69afcde2c88d3b4e35348ec9ea1d",
-    "shared/simulation/input.ts": "aa9d52b06834a8a63e365fb2ea80db643c8a94518c6b4e0587fd3da14e42792c",
-    "shared/simulation/interactions.ts": "2264acaac58f2ce98ec205f5596795f09a383b393a4c92b2960ad18ff2101aa6",
-    "shared/simulation/lifecycle.ts": "18d3f2999c9f996d0829f22598f626b62640c3536f384e4245bfccbd8ea85b7b",
-    "shared/simulation/loot.ts": "11a63d25d996f85bb333f5140e3951c428aebec4ee3af9e0aaa49977271a7196",
-    "shared/simulation/phased.ts": "aa1fe6c63752a2434139046c08399cd1a67ebeb3c1b0922c41b2f9b252c2d57c",
-    "shared/simulation/physics-geometry.ts": "e5f5fca2eaf3cd7c6d5d50a202455fb83d86aea35468869570b8eeef8f313ab4",
-    "shared/simulation/physics-presentation.ts": "d0d7f4dc84c8cdf5491a6a72f25789441f8e34ca59b3bcbd07634d83fffa1d02",
-    "shared/simulation/physics-projectiles.ts": "75e2ca8aaafb4d82f6688a07e38404fa7ba70b89380ea07130cec012451f030a",
-    "shared/simulation/physics-runtime.ts": "62be467d1c0e1f0eb88c63128abe19f01af0af9940a8cccbfe4ae69dab781f77",
-    "shared/simulation/projection-contract.ts": "60fdab69e55c5181ba0945e6988bfec2b7857019c36a2a63ab28f58e97bb84b3",
-    "shared/simulation/rewind.ts": "52d3b61cd8d308ca63a8cdffcea084d1ee828f2e89aeabfcb7e58b1cec0e603d",
-    "shared/simulation/rules.ts": "121db04f71644ce9d65f0747b9377ede0832ea3a6fab2082a6f4158c32d1622d",
-    "shared/simulation/state.ts": "b1caf7bcde74dfd646da8a2b6a7f8a7017c99104a82bdc0a155588584dfa7a47",
-    "shared/simulation/swept.ts": "f102b007a1513a186be006d76214beacfcdaa14a324f9184d8e3cc8c9428cd78",
-    "shared/simulation/tick-rules.ts": "e8f2526fd9b7ccda064eff307953cd900db64b97adcd2f16b22beec76dc37556",
-    "shared/simulation/visibility.ts": "8f0498636a66c36aeb4ec18693a17da123cca069b6857862ba22e7a2e930bd9a",
-    "shared/simulation/waiting.ts": "13a05d0271aeae48f8275a1592c45faeee451570f98a10385ec645f3b0f045d2",
-    "shared/simulation/world-physics.ts": "93636687176871ac7daca54d1d36e0e95f71fd737a47d76eb44e8d8fbb43f6c0",
-    "shared/traps.ts": "92eeb4cc10af16553c90c84f0e2c7e0d2f34baca954dfc05cc36c35fceb97002",
-    "shared/types.ts": "50a920e556ff67a240c2f43ebdd752cfb84c26ed3598383bff72cd3e46366321",
-    "shared/vector.ts": "9da19e6c5219d822eaefaa1bd706376dcbf4e8c203166d5ba14fc5d592f58bf3",
-    "shared/vendor.d.ts": "2f3439dc118f11a4affde78ac37fe65fa7887a32a5663d9d6d0fdafb27fb74dd",
-    "shared/view.ts": "3f392f7c47cf1871b50c737d901a476dd05274e9cfab8c436f12bc1bd98777e0",
-    "shared/waiting-yard.ts": "78bf71c506ed15606ad6d61a19af5ac9f1bbd0873ff3f05cc41187a2938f84e7",
-    "tools/depot-cord-audit.mjs": "220fc193a53c3f649a132b61049e627ed70371ad0e8c01a7ddf3ffa0ff92293a"
-  },
-  "verificationToolSha256": "fbec309964d70a3bdcbf8e5af55fb2b8f45ad654bb3e47c167e6f8cf1f6fda62",
+  "verificationToolHashEncoding": "utf8-lf",
+  "verificationToolSha256": "fb077120e65cd15281ebb91d3e2e56626a5cf3510a3cb2d7e3527957e98d7e16",
+  "verificationSupportSha256": "626ed45c1bf4ec1c29f45579476937efcb9c35d35f9dd20ca02db9d45266dbe4",
   "comparisons": [
     {
       "name": "crossing-1",
@@ -519,5 +1552,5 @@
       "diagnosticsEqual": true
     }
   ],
-  "scope": "No executable change after measurement: only recorded trailing whitespace/EOF cleanup. All 54 complete results, refusal counters, initial/final witnesses and empty intent match the geometry capture. Original measured source bytes are retained separately; timings remain bound to those source hashes."
+  "scope": "All 174 exact measured source texts are archived and checked against original raw hashes. Checkout comparison permits LF/CRLF and EOF blank-line normalization, plus explicit archived historical cleanup on two files; any other source change refuses. All 54 complete results, refusal counters, initial/final witnesses and empty intent match the retained capture. Original results and timing measurements are unchanged."
 }

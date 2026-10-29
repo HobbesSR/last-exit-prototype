@@ -18,15 +18,27 @@ Each workload retains the exact brief, hash, complete production/fixed/movable
 results, collision/portal/door/room/bypass/spacing checks, accepted pieces crossing
 the old route bands, intentional empty areas and final swept witnesses. The report
 pins the source checkpoint, hashes of micro/kernel/shared TypeScript and the audit,
-Node/platform, dirty-source state and exact input hash. Hashes identify measured
-Windows worktree bytes, including line endings; the recorded commit is the starting
-checkpoint. Final review removes trailing whitespace/EOF blank lines only.
-`measured-sources.json.gz` preserves those original source bytes and
-`final-source-verification.json` binds the final hashes, with exact equality of all
-54 complete results, refusal counters, initial/final witnesses and empty intent.
-The separate verifier refuses any unrecorded source change. Different checkout
-line-ending policies can change byte hashes without changing executable code. The audit
-refuses a source change during capture. `index.html` provides the comparison table and three inspected screenshot pairs;
+Node/platform, dirty-source state and exact input hash. Original hashes identify
+measured Windows worktree bytes, including mixed line endings and EOF blank lines.
+`measured-sources.json.gz` now retains **all 174 exact measured source texts**;
+each text's raw hash must match the unchanged original `results.json.gz` inventory.
+The former three-entry archive is preserved as `measured-sources-original.json.gz`.
+This includes `parcel-area.ts`: its measured raw bytes were still available and
+match the recorded hash; Git's version differs only in EOL/EOF whitespace.
+
+`tools/depot-cord-verify.mjs` checks the complete archived inventory before rebuilding.
+Checkout comparison normalizes CRLF to LF and EOF blank lines to one final newline.
+The two historical trailing-whitespace cleanups are explicitly tagged in the archive
+and applied only to measured expected text. The helper pins the two authorized
+paths; forged cleanup tags cannot extend that exception. Token edits, new inline whitespace,
+missing source entries and tampered archive text still refuse. No hash inventory is
+silently skipped or replaced with a claimed historical source we cannot recover.
+`final-source-verification.json` records canonical hashes and all 54 exact output/
+diagnostic comparisons. Its `verificationToolSha256` and support-module hash use
+UTF-8 with LF line endings, matching normal Git blob bytes independently of checkout
+EOL conversion. Original geometry and cost measurements remain unchanged.
+
+The audit refuses a source change during capture. `index.html` provides the comparison table and three inspected screenshot pairs;
 `all-workloads.html.gz` preserves the complete eighteen-workload HTML preview
 alongside the production reference. These are collision/intent previews, not art/roof renders.
 
@@ -150,7 +162,7 @@ new-door refusal, invalid geometry rollback, deliberate empty intent, density ze
 and undersized fallbacks. Reordering is additionally checked on all eighteen
 retained briefs and all three policies.
 
-Validation on the measured executable source, with final whitespace cleanup independently checked:
+Validation on the measured executable source, with portable source verification checked separately:
 
 - `npm run check` and `npm run typecheck`: pass.
 - `npm test`: 1,263/1,263 pass.
@@ -167,8 +179,11 @@ Validation on the measured executable source, with final whitespace cleanup inde
   authored depot and large authored depot; full HTML retained for every workload.
 - Source hashes and exact output hashes match between geometry and all three
   sequential timing rounds. After final whitespace-only cleanup, all 54 complete
-  outputs/diagnostics match again under `tools/depot-cord-verify.mjs`; typecheck and
-  seven focused tests pass. `git diff --check` passes. Binary archives and inspected
+  outputs/diagnostics match again under `tools/depot-cord-verify.mjs`. Review #503
+  corrects the verifier to reproduce from clean LF and CRLF Git exports, checks all
+  174 archived raw source hashes, and pins its final LF-normalized self-hash. Five
+  provenance regressions reject source/archive tampering; typecheck passes.
+  `git diff --check` passes. Binary archives and inspected
   PNGs have byte hashes in `sha256.json`.
 
 The unregistered experiment does not move production outputs, so output-specific
@@ -199,3 +214,22 @@ compare source/input hashes before interpreting a new report.
 Owning mechanics: 20.3.4; cords: 20.10; recovery: 20.7/53; verification: 31;
 epic selection and stopping: 32/41. The reports retain evidence for a decision;
 they do not close #529, #532, #533 or #535 or promote an experimental policy.
+
+## Review #503 correction
+
+The original verifier compared raw local byte hashes and had archived only three
+source files, so normal Git EOL conversion and `parcel-area.ts`'s extra EOF blank
+lines caused false source-change failures on a clean checkout. Its recorded
+self-hash also did not match the final committed script. This was a verification/
+provenance defect; the reviewer independently reproduced every full build and
+diagnostic. The correction preserves the original result/timing archives, retains
+the complete measured source inventory, and regenerates verification metadata
+using explicitly defined normalization. No depot/SDK implementation, content,
+threshold, budget or performance result changes.
+
+Clean-export validation uses Git `checkout-index` on the staged candidate tree,
+once with `core.autocrlf=false` and once with `core.autocrlf=true`, with empty
+scratch directories and only the installed dependency directory linked in. Both
+run the exact advertised verifier command; the resulting 54 comparisons and
+LF-normalized verifier self-hash are checked against the candidate Git blob.
+See `clean-checkout-verification.json` for the retained outcome and source tree.

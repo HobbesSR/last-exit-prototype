@@ -15,9 +15,13 @@
     "bytes": 52128,
     "sha256": "6130d3726451a7b743f693f18add95336ba0d68d43eca348b8dc6c6ddfc94471"
   },
-  "measured-sources.json.gz": {
+  "measured-sources-original.json.gz": {
     "bytes": 9013,
     "sha256": "95f56aee6ce8c6209886e055a04cace54d2994a3c620b27a8e3d6a6e0b969ade"
+  },
+  "measured-sources.json.gz": {
+    "bytes": 336230,
+    "sha256": "25c322b2d1aa9a718cd53de3f5abca5e42eb9c107f7e745102d12b623dd7a50d"
   },
   "recovery.json.gz": {
     "bytes": 25312,

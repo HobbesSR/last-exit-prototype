@@ -1,27 +1,21 @@
-// Verify final source after whitespace-only cleanup against every retained comparison output.
+// Reproduce retained outputs and source provenance across normal Git EOL policies.
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 import { buildDepot, buildDepotExperiment } from '../map/micro/strategies/depot.ts';
+import { compareMeasuredSource, hashSource } from './depot-cord-source.mjs';
 const dir = process.argv[2] ?? 'docs/reports/issue-663';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const resultsBytes = await readFile(`${dir}/results.json.gz`);
 const report = JSON.parse(gunzipSync(resultsBytes));
 const measured = JSON.parse(gunzipSync(await readFile(`${dir}/measured-sources.json.gz`)));
-const normalized = text => text.replace(/[ \t]+(?=\r?$)/gm, '').replace(/(?:\r?\n)+$/, text.includes('\r\n') ? '\r\n' : '\n');
-const sourceChanges = [];
-const finalSourceHashes = {};
+const inventory = new Map(measured.map(entry => [entry.path, entry]));
+assert.equal(inventory.size, measured.length, 'duplicate measured source');
+assert.equal(inventory.size, Object.keys(report.sourceHashes).length, 'complete measured inventory required');
+const sourceFiles = [];
 for (const [path, wanted] of Object.entries(report.sourceHashes)) {
-  const actual = await readFile(path);
-  finalSourceHashes[path] = hash(actual);
-  if (hash(actual) !== wanted) {
-    const before = measured.find(entry => entry.path === path);
-    assert.ok(before, `${path}: unrecorded source change`);
-    assert.equal(hash(before.text), wanted, `${path}: measured source archive`);
-    assert.equal(normalized(before.text), actual.toString(), `${path}: only trailing whitespace and EOF blank lines may change`);
-    sourceChanges.push({ path, measuredSha256: wanted, finalSha256: hash(actual), change: 'trailing whitespace / blank lines at EOF only' });
-  }
+  sourceFiles.push(compareMeasuredSource(path, await readFile(path, 'utf8'), inventory.get(path), wanted));
 }
 const comparisons = [];
 for (const row of report.rows) {
@@ -34,9 +28,13 @@ for (const row of report.rows) {
   }
   console.log(`Verified ${row.name}`);
 }
-const tool = 'tools/depot-cord-verify.mjs';
 await writeFile(`${dir}/final-source-verification.json`, JSON.stringify({
   inputHash: report.inputHash, measuredResultsSha256: hash(resultsBytes), node: process.version,
-  sourceChanges, finalSourceHashes, verificationToolSha256: hash(await readFile(tool)), comparisons,
-  scope: 'No executable change after measurement: only recorded trailing whitespace/EOF cleanup. All 54 complete results, refusal counters, initial/final witnesses and empty intent match the geometry capture. Original measured source bytes are retained separately; timings remain bound to those source hashes.'
+  sourceHashEncoding: 'utf8-lf-single-final-newline; measured-only explicit historical trailing-whitespace cleanup',
+  sourceFiles,
+  verificationToolHashEncoding: 'utf8-lf',
+  verificationToolSha256: hashSource(await readFile('tools/depot-cord-verify.mjs', 'utf8')),
+  verificationSupportSha256: hashSource(await readFile('tools/depot-cord-source.mjs', 'utf8')),
+  comparisons,
+  scope: 'All 174 exact measured source texts are archived and checked against original raw hashes. Checkout comparison permits LF/CRLF and EOF blank-line normalization, plus explicit archived historical cleanup on two files; any other source change refuses. All 54 complete results, refusal counters, initial/final witnesses and empty intent match the retained capture. Original results and timing measurements are unchanged.'
 }, null, 2) + '\n');

@@ -1,0 +1,32 @@
+{
+  "candidateTree": "d62526325d9508efdeeecab8758d3cca42513d23",
+  "method": "git checkout-index of the staged candidate tree into fresh directories; only node_modules linked; exact advertised verifier command",
+  "command": "node tools/depot-cord-verify.mjs docs/reports/issue-663",
+  "node": "v24.15.0",
+  "cases": [
+    {
+      "autocrlf": false,
+      "sourceFiles": 174,
+      "comparisons": 54,
+      "parcelAreaCRLF": 0,
+      "parcelAreaBareLF": 105,
+      "verificationToolSha256": "fb077120e65cd15281ebb91d3e2e56626a5cf3510a3cb2d7e3527957e98d7e16",
+      "gitBlobSelfHashMatches": true,
+      "verificationSupportSha256": "626ed45c1bf4ec1c29f45579476937efcb9c35d35f9dd20ca02db9d45266dbe4",
+      "gitBlobSupportHashMatches": true,
+      "passed": true
+    },
+    {
+      "autocrlf": true,
+      "sourceFiles": 174,
+      "comparisons": 54,
+      "parcelAreaCRLF": 105,
+      "parcelAreaBareLF": 0,
+      "verificationToolSha256": "fb077120e65cd15281ebb91d3e2e56626a5cf3510a3cb2d7e3527957e98d7e16",
+      "gitBlobSelfHashMatches": true,
+      "verificationSupportSha256": "626ed45c1bf4ec1c29f45579476937efcb9c35d35f9dd20ca02db9d45266dbe4",
+      "gitBlobSupportHashMatches": true,
+      "passed": true
+    }
+  ]
+}
