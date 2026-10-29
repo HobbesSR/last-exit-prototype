@@ -88,7 +88,6 @@ export function snapshot(s: Game): Snapshot {
       if (items === ground) items = ground.slice();
       (items as GroundItem[])[ground.indexOf(item)] = Object.freeze({ ...item, x: body.x, y: body.y });
     }
-    if (items !== ground) Object.freeze(items);
     stop('sim.snapshot.presentation');
     start('sim.snapshot.clone');
     // The ground list is shared, not cloned: published records are frozen and replaced when they change.

@@ -22,9 +22,11 @@ test('an unchanged ground is shared between frames, frozen, and never cloned', (
   const first = snapshot(s), second = snapshot(s);
   assert.equal(second.items, first.items);
   assert.equal(first.items, s.map.items);
-  assert.ok(Object.isFrozen(first.items) && first.items.every(Object.isFrozen));
+  assert.ok(first.items.every(Object.isFrozen));
   assert.throws(() => { first.items[0].count = 1; }, TypeError);
-  assert.throws(() => { first.items.push(pile('c', 100)); }, TypeError);
+  // The list itself is marked, not frozen (V8 filters and serializes frozen arrays slowly): a rule's change copies it.
+  groundList(s).push(pile('c', 100));
+  assert.deepEqual(first.items.map(item => item.id), ['a', 'b']);
 });
 
 test('a partial pickup replaces only its own record; published frames keep what they showed', () => {

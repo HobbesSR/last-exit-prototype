@@ -7,10 +7,12 @@ import type { Game, GroundItem } from '../types.ts';
 
 /** Positions by item id, per list. Built on demand and carried across a copy that only replaces records. */
 const indexes = new WeakMap<readonly GroundItem[], Map<string, number>>();
+/** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
+const published = new WeakSet<readonly GroundItem[]>();
 
 function writable(s: Game): GroundItem[] {
   const list = s.map.items;
-  if (!Object.isFrozen(list)) return list;
+  if (!published.has(list)) return list;
   const copy = list.slice(), index = indexes.get(list);
   if (index) indexes.set(copy, index);
   return s.map.items = copy;
@@ -65,9 +67,9 @@ export function settledItem(item: GroundItem, draft: GroundItem): GroundItem {
 /** Freeze the ground list and its new records for frames to share. Free when nothing changed since the last frame. */
 export function publishItems(s: Game): readonly GroundItem[] {
   const list = s.map.items;
-  if (!Object.isFrozen(list)) {
+  if (!published.has(list)) {
     for (const item of list) if (!Object.isFrozen(item)) Object.freeze(item);
-    Object.freeze(list);
+    published.add(list);
   }
   return list;
 }
