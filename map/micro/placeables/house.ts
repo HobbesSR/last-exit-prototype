@@ -9,7 +9,7 @@ import type { Placeable } from './placeable.ts';
 
 /*
  * `house`: a roofed house of one to three spaces behind one outside door (56 L5). `hut` builds
- * its one house with it. It demands its doorstep, the hunter's 2 × 2 blocks outside the door.
+ * its houses with it. It demands its doorstep, the hunter's 2 × 2 blocks outside the door.
  */
 
 /** Wall thickness, in cells. */

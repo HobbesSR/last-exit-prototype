@@ -1,0 +1,103 @@
+{
+  "review": 506,
+  "contentCommit": "08baba16e04126fc0543859046bd3816988bddb8",
+  "sweep": {
+    "checked": 224,
+    "seconds": 164,
+    "drift": []
+  },
+  "capture": {
+    "provenance": {
+      "commit": "08baba16e04126fc0543859046bd3816988bddb8",
+      "capturedAt": "2026-10-29T22:19:35.072Z",
+      "node": "v24.15.0",
+      "cases": [
+        {
+          "id": "game",
+          "params": {},
+          "seedPrefix": "sweep",
+          "count": 120
+        },
+        {
+          "id": "game-crowded",
+          "params": {
+            "exitCount": 3,
+            "contestantCount": 24,
+            "hunterCount": 6
+          },
+          "seedPrefix": "sweep",
+          "count": 20
+        },
+        {
+          "id": "game-sparse",
+          "params": {
+            "exitCount": 1,
+            "contestantCount": 2,
+            "hunterCount": 1
+          },
+          "seedPrefix": "sweep",
+          "count": 20
+        },
+        {
+          "id": "playground",
+          "params": {
+            "mode": "playground"
+          },
+          "seedPrefix": "sweep",
+          "count": 20
+        },
+        {
+          "id": "playground-4x2",
+          "params": {
+            "mode": "playground",
+            "zoneWidth": 4,
+            "zoneHeight": 2
+          },
+          "seedPrefix": "sweep",
+          "count": 20
+        },
+        {
+          "id": "playground-6x3",
+          "params": {
+            "mode": "playground",
+            "zoneWidth": 6,
+            "zoneHeight": 3
+          },
+          "seedPrefix": "sweep",
+          "count": 20
+        },
+        {
+          "id": "playground-2x1",
+          "params": {
+            "mode": "playground",
+            "zoneWidth": 2,
+            "zoneHeight": 1
+          },
+          "seedPrefix": "quick",
+          "count": 3
+        },
+        {
+          "id": "game",
+          "params": {},
+          "seedPrefix": "quick",
+          "count": 1
+        }
+      ]
+    },
+    "entries": 224,
+    "seconds": 126,
+    "generationErrors": 0,
+    "sameHashesAsPreviousCapture": true
+  },
+  "gates": {
+    "focusedHutCompound": 42,
+    "microUnits": 514,
+    "microBrowserScripts": 4,
+    "fastTests": 1277,
+    "fastFailures": 0,
+    "typecheck": "pass",
+    "check": "pass",
+    "newTestFileSeconds": 2.5
+  },
+  "scope": "No new full-map diagnostics for zero built drift; existing diagnostic evidence applies to identical hash sets. Three authored maps rerun with all-primary equality and all-doorstep/thorough-portal checks. No benchmark or full slow-tier rerun."
+}

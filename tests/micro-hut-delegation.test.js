@@ -124,7 +124,8 @@ test('depth zero keeps the hut and records cover requests as terminal empty chil
     assert.deepEqual(child.retained.brief, child.input);
   }
   const flat = flattenDelegationResult(node);
-  assert.equal(flat.elements.length, 1);
+  assert.deepEqual(flat.elements, node.retained.elements);
+  assert.ok(flat.elements.every(element => element.template.encloses));
   assert.deepEqual(validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)), []);
   assertGeometry(flat);
 });

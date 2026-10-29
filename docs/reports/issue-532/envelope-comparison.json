@@ -1,0 +1,853 @@
+{
+  "historicalRevision": "5077596",
+  "historicalScope": "Historical hut module loaded with current supporting modules",
+  "measure": "Sum of enclosing house template rectangle areas in cell equivalents; fillCells is the original brief fill mask. Neither measures total delegated cover or empty intent.",
+  "samples": [
+    {
+      "seed": "size-12-1",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "fillCells": 121,
+      "beforeEnvelopeCells": 33,
+      "afterEnvelopeCells": 33,
+      "huts": [
+        {
+          "id": "hut@72,36",
+          "fillCells": 29,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@12,72",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@324,72",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 9,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-24-1",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "fillCells": 1379,
+      "beforeEnvelopeCells": 257,
+      "afterEnvelopeCells": 599,
+      "huts": [
+        {
+          "id": "hut@354,0",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@162,72",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@468,72",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@516,72",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@534,72",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@282,102",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@240,114",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@270,120",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@576,144",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@684,144",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 9,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@714,192",
+          "fillCells": 142,
+          "beforeHouses": 1,
+          "afterHouses": 5,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 48,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@30,210",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@48,210",
+          "fillCells": 23,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@210,210",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@678,210",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@384,228",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@570,228",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@402,234",
+          "fillCells": 36,
+          "beforeHouses": 1,
+          "afterHouses": 2,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 21,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@264,258",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@396,258",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@264,276",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@384,342",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-36-1",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "fillCells": 2582,
+      "beforeEnvelopeCells": 513,
+      "afterEnvelopeCells": 1143,
+      "huts": [
+        {
+          "id": "hut@492,0",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 9,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@510,0",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@534,0",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@558,6",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@432,12",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@582,60",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@432,66",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@624,66",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@246,108",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@408,108",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@816,108",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@852,108",
+          "fillCells": 49,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@216,114",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@234,114",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@858,120",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@486,138",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@624,180",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@708,192",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@546,210",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@48,216",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@66,216",
+          "fillCells": 23,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@84,216",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@198,216",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 9,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@1038,216",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@1026,228",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@858,234",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@1026,246",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@1032,276",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@72,318",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 9,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@114,318",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@138,318",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 16,
+          "afterEnvelopeCells": 16,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@894,318",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@330,342",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@432,390",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@216,414",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@258,426",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@804,426",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 9,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@630,438",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 9,
+          "afterEnvelopeCells": 36,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@438,450",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@630,462",
+          "fillCells": 36,
+          "beforeHouses": 1,
+          "afterHouses": 2,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 21,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@432,468",
+          "fillCells": 46,
+          "beforeHouses": 1,
+          "afterHouses": 1,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 12,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@438,480",
+          "fillCells": 72,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        },
+        {
+          "id": "hut@432,516",
+          "fillCells": 78,
+          "beforeHouses": 1,
+          "afterHouses": 4,
+          "beforeEnvelopeCells": 12,
+          "afterEnvelopeCells": 39,
+          "primaryEqual": true,
+          "doorReach": {
+            "ok": true
+          }
+        }
+      ]
+    }
+  ]
+}

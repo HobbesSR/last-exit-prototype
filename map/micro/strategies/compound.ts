@@ -274,7 +274,7 @@ function delegateYard(brief: RegionBrief, site: Box, steps: { x: number; y: numb
     return;
   }
   delegateYardCandidates<'no-space' | 'no-site' | 'portal-capacity'>(brief, context, {
-    retainedBox: site, steps: steps.map(({ x, y }) => [x, y]), elements, label: 'compound',
+    retainedBoxes: [site], steps: steps.map(({ x, y }) => [x, y]), elements, label: 'compound',
     offersFor: (reserved, diagnostics) => yardOffers(brief, reserved, diagnostics), observe,
   });
 }

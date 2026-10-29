@@ -26,23 +26,23 @@ type Box = { x: number; y: number; w: number; h: number };
 
 /** Run the shared optional yard handoff transaction, leaving candidate policy to the builder. */
 export function delegateYardCandidates<O extends string>(brief: RegionBrief, context: ExecutionContext, options: {
-  retainedBox: Box; steps: [number, number][]; elements: RegionElement[]; label: string;
+  retainedBoxes: Box[]; steps: [number, number][]; elements: RegionElement[]; label: string;
   offersFor: (reserved: Set<string>, diagnostics: YardDiagnostics<O>) => PatchOffer[];
   observe?: ((diagnostics: YardDiagnostics<O>) => void) | undefined;
 }): void {
-  const { retainedBox, steps, elements, label, offersFor, observe } = options;
+  const { retainedBoxes: boxes, steps, elements, label, offersFor, observe } = options;
   const diagnostics: YardDiagnostics<O> = yardDiagnostics<O>(brief.id, 'no-eligible-candidates');
   const report = (outcome: YardDiagnostics<O>['outcome'], reason?: string) => {
     diagnostics.outcome = outcome;
     if (reason !== undefined) diagnostics.reason = reason;
     observe?.(structuredClone(diagnostics));
   };
-  const size = brief.cellSize, { w, h } = retainedBox;
+  const size = brief.cellSize;
   // The retained-portal policy requires each original portal's owned seam
   // cells to stay with the parent. These checks are necessary refusals, so
   // discard them before constructing the optional routing coordinator.
   const reserved = new Set<string>();
-  for (let y = retainedBox.y; y < retainedBox.y + h; y++) for (let x = retainedBox.x; x < retainedBox.x + w; x++) reserved.add(`${x},${y}`);
+  for (const box of boxes) for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++) reserved.add(`${x},${y}`);
   for (const [x, y] of steps) for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) reserved.add(`${i},${j}`);
   const owned = createRegionMask(brief);
   for (const p of brief.portals) for (let i = 0; i < p.length; i++) {
@@ -60,7 +60,7 @@ export function delegateYardCandidates<O extends string>(brief: RegionBrief, con
   // Independently sited retained content remains valid when the optional continuous search cannot prove it.
   if (!created.ok) { report('init', created.reason); return; }
   const coordinator = created.coordinator;
-  const claim = coordinator.tryClaim([rect(retainedBox.x * size, retainedBox.y * size, w * size, h * size)]);
+  const claim = coordinator.tryClaim(boxes.map(box => rect(box.x * size, box.y * size, box.w * size, box.h * size)));
   if (!claim.ok) { report('claim', claim.reason); return; }
   const populated = coordinator.populate(claim.handle, { elements });
   if (!populated.ok) { report('populate', populated.reason); return; }

@@ -6,17 +6,21 @@ import { hunterClearance } from '../../map/micro/portals.ts';
 
 /** Recover actual outside door approaches from the realized building, not candidate policy. */
 export function hutApproaches(node) {
-  const house = node.retained.elements.find(e => e.label === 'hut-building');
-  const trace = node.observerEvents?.find(t => t.label === 'hut-building');
-  if (!house || !trace) return null;
-  const door = trace.realization.openings.find(o => o.connectionId === 'door');
-  const size = node.input.cellSize, { run, center } = door;
-  const start = (run.axis === 'h' ? run.x : run.y) + center - 1;
-  const offsets = [...new Set([Math.floor(start), Math.ceil(start)])];
-  const steps = offsets.map(t => run.axis === 'h'
-    ? { x: house.x / size + t, y: house.y / size + (run.y === 0 ? -2 : house.template.h / size) }
-    : { x: house.x / size + (run.x === 0 ? -2 : house.template.w / size), y: house.y / size + t });
-  return { house, fixedAccess: steps.map(p => rect(p.x * size, p.y * size, size * 2, size * 2)),
+  const houses = node.retained.elements.filter(e => e.label === 'hut-building' || /^hut-building-\d+$/.test(e.label));
+  if (!houses.length) return null;
+  const size = node.input.cellSize, steps = [];
+  for (const house of houses) {
+    const trace = node.observerEvents?.find(t => t.label === house.label);
+    if (!trace) return null;
+    const door = trace.realization.openings.find(o => o.connectionId === 'door');
+    const { run, center } = door;
+    const start = (run.axis === 'h' ? run.x : run.y) + center - 1;
+    const offsets = [...new Set([Math.floor(start), Math.ceil(start)])];
+    steps.push(...offsets.map(t => run.axis === 'h'
+      ? { x: house.x / size + t, y: house.y / size + (run.y === 0 ? -2 : house.template.h / size) }
+      : { x: house.x / size + (run.x === 0 ? -2 : house.template.w / size), y: house.y / size + t }));
+  }
+  return { house: houses[0], houses, fixedAccess: steps.map(p => rect(p.x * size, p.y * size, size * 2, size * 2)),
     terminals: steps.map(p => ({ x: (p.x + 1) * size, y: (p.y + 1) * size })) };
 }
 
@@ -24,10 +28,10 @@ export function hutApproaches(node) {
 export function hutCordEvidence(node, whole) {
   const approach = hutApproaches(node);
   if (!approach) return null;
-  const { house, fixedAccess, terminals } = approach;
+  const { houses, fixedAccess, terminals } = approach;
   const initial = createProspectiveParcels(node.input, { fixedAccess, terminals });
   if (!initial.ok) throw Error(`Initial hut witness failed: ${initial.reason}`);
-  const claim = initial.coordinator.tryClaim([rect(house.x, house.y, house.template.w, house.template.h)]);
+  const claim = initial.coordinator.tryClaim(houses.map(house => rect(house.x, house.y, house.template.w, house.template.h)));
   if (!claim.ok) throw Error(`Initial hut envelope failed: ${claim.reason}`);
   const paths = initial.coordinator.witness.paths, mask = createAccessMask(node.input), radius = hunterClearance(node.input.cellSize);
   const displaced = (node.offers ?? []).filter(o => {
