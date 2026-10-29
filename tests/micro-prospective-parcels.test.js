@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createProspectiveParcels } from '../map/micro/prospective-parcels.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
-import { elementShapes } from '../map/micro/geometry.ts';
+import { createAccessMask, elementShapes, travelClear } from '../map/micro/geometry.ts';
+import { hunterClearance } from '../map/micro/portals.ts';
 import { rect, circle, polygon } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { chainBrief } from './helpers/chain-briefs.js';
@@ -243,4 +244,22 @@ test('incremental canvas writes publish only when canvas and routing both succee
 test('malformed fixed access is diagnosed before routing failure', () => {
   assert.throws(()=>createProspectiveParcels(brief({portals}),
     {fixedAccess:[rect(0,0,-1,1)],budget:{maxSweeps:0}}), {name:'TypeError',message:/Fixed access/});
+});
+
+test('cached ordinary blockers survive parcel replay and remain in repaired proofs', () => {
+  const b = brief({portals}), c = ready(b), island = rect(120,64,80,128);
+  const assembly = {areas:[island],elements:[{label:'island',x:0,y:0,template:{w:320,h:256,
+    parts:[{part:'obstacle',kind:'wall',shape:island}]}}]};
+  assert.equal(c.commit(assembly),true);
+  assembly.elements[0].template.parts[0].shape.x = 0; // Caller mutation cannot alter cached occupancy.
+  const h = c.tryClaim([rect(256,32,16,16)]).handle;
+  assert.equal(c.tryClaim([rect(272,32,16,16)],h).ok,true);
+  assert.deepEqual(c.cancel(h),{ok:true});
+  const upper = c.witness.paths.some(path=>path.some(p=>p.y < 64));
+  assert.equal(c.tryClaim([rect(80,upper ? 0 : 192,160,64)]).ok,true);
+  const blockers = [rect(120,64,80,128),...c.parcels.flatMap(p=>p.area)];
+  const mask = createAccessMask(b), radius = hunterClearance(b.cellSize);
+  for (const path of c.witness.paths) for (let i=0;i<path.length;i++)
+    assert.equal(travelClear(mask,blockers,path[Math.max(0,i-1)],path[i],radius),true);
+  assert.equal(validatePortalReach({...b,blockers},{search:'thorough'}).valid,true);
 });

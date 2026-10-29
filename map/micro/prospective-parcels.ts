@@ -43,6 +43,9 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   const brief = structuredClone(input), fixed = structuredClone(options.fixedAccess ?? []);
   const terminals = structuredClone(options.terminals ?? []), budget = structuredClone(options.budget);
   let parcels: Parcel[] = [], operations: Operation[] = [], revision = 0, nextId = 1;
+  // Ordinary assemblies only append. Parcel population is covered by its envelope,
+  // so parcel replay/extension/cancellation never invalidates this private cache.
+  const committedBlockers: Shape[] = [];
   const proposals = new WeakMap<ParcelProposal, { revision: number; area: Shape[]; witness: CordWitness; extend: ParcelHandle | undefined }>();
   if (fixed.length > 16384) return { ok: false as const, reason: 'budget' as const, counters: { meshBuilds: 0, sweeps: 0, paths: 0 } };
   if (fixed.some(s => !validShape(s))) throw new TypeError('Fixed access must contain valid convex shapes');
@@ -66,9 +69,9 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
     }
     return trial;
   };
-  const blockers = (ps: Parcel[], ops = operations): Shape[] => [
+  const blockers = (ps: Parcel[]): Shape[] => [
     ...ps.flatMap(p => p.area),
-    ...ops.flatMap(op => op.kind !== 'assembly' ? [] : assemblyBlockers(op.assembly)),
+    ...committedBlockers,
   ];
   const publish = (ps: Parcel[], ops: Operation[], trial: NonNullable<ReturnType<typeof replay>>, next: CordWitness) => {
     parcels = ps; operations = ops; canvas = trial; witness = next; revision++;
@@ -189,10 +192,12 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       const intent = owned.areas ?? owned.elements.map(e => rect(e.x, e.y, e.template.w, e.template.h));
       if ([...intent, ...assemblyFootprints(owned), ...(owned.access ?? [])].some(a => parcels.some(p => p.area.some(s => shapesOverlap(a, s))))) return false;
       const ops: Operation[] = [...operations, { kind: 'assembly', assembly: owned }];
-      const found = discoverCordWitness(brief, blockers(parcels, ops), terminals, witness, budget);
+      const addedBlockers = assemblyBlockers(owned);
+      const found = discoverCordWitness(brief, [...blockers(parcels), ...addedBlockers], terminals, witness, budget);
       if (!found.ok) return false;
       // Search first; canvas.commit itself is atomic. No live write occurs on either refusal.
       if (!canvas.commit(owned)) return false;
+      committedBlockers.push(...addedBlockers);
       publish(parcels, ops, canvas, found.witness);
       return true;
     },
