@@ -3,7 +3,7 @@ import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
-import type { Game, GroundItem, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
+import type { Game, GroundItem, Player, PlayerId, Projected, Snapshot, Vec2, World } from '../types.ts';
 import { framedItems, groundItem, groundPosition, poseItems, publishItems } from './ground-items.ts';
 import { physicsState } from './physics-runtime.ts';
 import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
@@ -40,6 +40,16 @@ export function visiblePoint(s: Game, viewer: Vec2, target: Vec2): boolean {
 // leaves the server for anyone but the player it describes. Recordings keep the full state.
 const OBSERVED = ['id', 'role', 'kit', 'name', 'x', 'y', 'heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
 export const observed = (p: Player) => Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]]));
+// Each published ground record's projection, made once and shared by every view and frame that carries the record.
+// Published records are frozen and replaced when they change, so an unchanged item projects to the same object and
+// its view layer matches its keyframe by identity (frame-layers.ts same()) instead of by value (#655).
+const projectedItems = new WeakMap<GroundItem, Projected<GroundItem>>();
+function projectedItem(item: GroundItem): Projected<GroundItem> {
+  if (!Object.isFrozen(item)) return itemFields(item);
+  let projected = projectedItems.get(item);
+  if (!projected) projectedItems.set(item, projected = Object.freeze(itemFields(item)));
+  return projected;
+}
 export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
   start('sim.playerView');
   try { return buildPlayerView(s, frame, id); } finally { stop('sim.playerView'); }
@@ -66,7 +76,7 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
     players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
-    items: items.map(itemFields), gates: frame.gates?.map(gateFields),
+    items: items.map(projectedItem), gates: frame.gates?.map(gateFields),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }

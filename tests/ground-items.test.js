@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, createPhysicsGame, disposePhysics, setInput, snapshot } from '../shared/simulation.ts';
+import { createGame, createPhysicsGame, disposePhysics, playerView, setInput, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { stepPhysics } from '../shared/simulation/phased.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -115,6 +115,23 @@ test('a viewer\'s items through the grid are exactly the whole-list filter, for 
   }
   assert.ok(wide > 50, 'the view reach is exercised with something in range');
   assert.deepEqual(framedItems(s, s.map.items, { x: NaN, y: 0 }, 1692, () => true), s.map.items, 'a viewer that compares as nothing is tested against everything');
+});
+
+test('an unchanged record projects to one shared object in every view and frame; a replaced one projects anew', () => {
+  const s = createGame(17, arena([pile('a', 300), pile('b', 500)]), content('content-ammo-1'));
+  for (const p of s.players) p.bot = false;
+  const viewers = [null, ...s.players.map(p => p.id)];
+  const first = snapshot(s), directed = playerView(s, first, null).items;
+  assert.deepEqual(directed.map(item => item.id), ['a', 'b']);
+  assert.ok(directed.every(Object.isFrozen));
+  // Player views carry the directed view's objects, so frame-layers same() matches them by identity.
+  for (const viewer of viewers) for (const item of playerView(s, first, viewer).items) assert.equal(item, directed.find(d => d.id === item.id));
+  replaceItem(s, s.map.items[0], { ...s.map.items[0], count: 5 });
+  const [a, b] = playerView(s, snapshot(s), null).items;
+  assert.notEqual(a, directed[0]); assert.equal(a.count, 5);
+  assert.equal(b, directed[1]);
+  // An older frame still projects as it showed.
+  assert.equal(playerView(s, first, null).items[0], directed[0]);
 });
 
 test('physics writes back only the item bodies that moved', async () => {
