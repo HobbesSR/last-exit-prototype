@@ -333,3 +333,20 @@ capacity guard. Ring geometry and hut output remain unchanged. Full historical
 results from both `compound-yard-2` and `compound-yard-3` remain readable;
 omitted historical results require their recorded implementation. No wire,
 macro, library, crossing, executor encoding or frozen simulation fixture change.
+
+## Tool-only depot cord comparison (#663)
+
+The depot experiment is not registered in `GAME_ENGINES` and cannot be selected
+through saved production region parameters. `types-50`, wire 8, macro 3, library 3,
+`region-2` and the delegation algorithm remain unchanged. No chain baseline or
+frozen characterization fixture is regenerated.
+
+Experimental owning snapshots use separate registry identities
+`depot-cord-comparison-1:fixed` and `depot-cord-comparison-1:movable`.
+Full-result snapshots recover saved geometry without an engine; omitted results
+require the matching experimental implementation and refuse the other identity.
+Tests exercise both recovery forms and canonical reordered briefs. The audit's
+source hashes and exact input briefs bind its raw outputs; it does not label
+experimental geometry as production content or promise historical regeneration
+under a future changed experiment. A production adoption would require its own
+content/compatibility decision and evidence under 20.7 and this document.

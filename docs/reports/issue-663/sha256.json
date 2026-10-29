@@ -1,0 +1,38 @@
+{
+  "all-workloads.html.gz": {
+    "bytes": 484142,
+    "sha256": "a346b682292063433ada251230a827e690a84d4157c2277d69a3cd94c4f12e66"
+  },
+  "authored-2880.png": {
+    "bytes": 234618,
+    "sha256": "84d8e2db28b4d77e479050f7b22366228ab577edbb334ee711af49212640771c"
+  },
+  "authored-756.png": {
+    "bytes": 121769,
+    "sha256": "b2b64cccdd574f57f7fefff0d2a81c167bd8c025ce65c6e6e94b358eb90d4a7e"
+  },
+  "crossing-5.png": {
+    "bytes": 52128,
+    "sha256": "6130d3726451a7b743f693f18add95336ba0d68d43eca348b8dc6c6ddfc94471"
+  },
+  "measured-sources-original.json.gz": {
+    "bytes": 9013,
+    "sha256": "95f56aee6ce8c6209886e055a04cace54d2994a3c620b27a8e3d6a6e0b969ade"
+  },
+  "measured-sources.json.gz": {
+    "bytes": 336230,
+    "sha256": "25c322b2d1aa9a718cd53de3f5abca5e42eb9c107f7e745102d12b623dd7a50d"
+  },
+  "recovery.json.gz": {
+    "bytes": 25312,
+    "sha256": "961be0188bb877ab175206661ad638db229ac477480e761ab4dad9e5f99afb3b"
+  },
+  "results.json.gz": {
+    "bytes": 933179,
+    "sha256": "20cd4292f4d23aab993b05c09398d545e8c8378bdd659406844ac1e4acb80859"
+  },
+  "timing-inputs.json.gz": {
+    "bytes": 64117,
+    "sha256": "66cf2cf6c5f6e56df81bb3d24b9368bc7afc71d4c56a667ae7d3ce927ca423ac"
+  }
+}

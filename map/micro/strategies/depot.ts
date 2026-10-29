@@ -15,6 +15,7 @@ import type { Placed } from '../placeables/placeable.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
+import { createDepotExperimentCanvas } from '../experiments/depot-canvas.ts';
 
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -62,6 +63,19 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * designs passed over with why. The manifest's `designed` counts warehouses of several spaces.
  */
 export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
+  return buildDepotWithPolicy(brief, observe);
+}
+
+/** Tool-only comparison. Not registered as a region type or a public brief parameter. */
+export function buildDepotExperiment(brief: RegionBrief, mode: 'fixed' | 'movable', observe?: BuildingObserver) {
+  let experimentalCanvas: NonNullable<ReturnType<typeof createDepotExperimentCanvas>['canvas']> | undefined;
+  const result = buildDepotWithPolicy(brief, observe, { mode, record: canvas => { experimentalCanvas = canvas; } });
+  return { result, diagnostics: experimentalCanvas?.diagnostics ?? null };
+}
+
+function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, experiment?: {
+  mode: 'fixed' | 'movable'; record: (canvas: NonNullable<ReturnType<typeof createDepotExperimentCanvas>['canvas']>) => void;
+}): BuiltRegion {
   const density = fraction(brief, 'Depot', 'density', DEFAULT_DENSITY);
   const room = brief.parameters?.roomCells ?? DEFAULT_ROOM;
   if (typeof room !== 'number' || !Number.isInteger(room) || room < MIN_ROOM || room > MAX_ROOM)
@@ -78,7 +92,10 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const alongX = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
   const cells = [...mask.cells].map(c => alongX ? { u: c.x, v: c.y } : { u: c.y, v: c.x });
 
-  const canvas = createBuilderCanvas(brief, protectedShapes);
+  const experimental = experiment && createDepotExperimentCanvas(brief, experiment.mode, protectedShapes);
+  if (experimental && !experimental.ok) throw new Error(`Depot experiment initialization refused: ${experimental.reason}`);
+  const canvas = experimental?.ok ? experimental.canvas : createBuilderCanvas(brief, protectedShapes);
+  if (experimental?.ok) experiment!.record(experimental.canvas);
   const boxAt = (u: number, v: number, length: number, width: number) => {
     const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
     return rect(x * size, y * size, w * size, h * size);
@@ -86,14 +103,19 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   // A box must be owned and clear of portal approaches; only other pieces need an aisle.
   const clear = (u: number, v: number, length: number, width: number) => {
     const box = boxAt(u, v, length, width);
-    return canvas.fits(box) && canvas.spaced(box, AISLE * size);
+    // Experimental controls add a complete local bypass, including unported side lobes.
+    // This is stronger than production boundary siting and is disclosed in paired evidence.
+    return canvas.fits(box) && canvas.spaced(box, AISLE * size)
+      && (!experiment || canvas.access.contains(boxAt(u - AISLE, v - AISLE, length + 2 * AISLE, width + 2 * AISLE)));
   };
   const place = (label: string, u: number, v: number, placed: Placed<unknown>) => {
     const [x, y] = alongX ? [u, v] : [v, u];
-    // Siting has already accepted this box. A canvas refusal is a broken placement
-    // invariant, rather than a new fallback that silently changes the seeded build.
-    if (!canvas.commit({ elements: placedElements(placed, label, x, y, size) }))
-      throw new Error(`Depot placement ${label} failed its canvas commit.`);
+    // Production siting guarantees commit. Experimental circulation/door admission
+    // may refuse a candidate atomically, before publishing observer events.
+    const access = experiment ? placed.demand.clear.map(b => rect((x + b.x) * size, (y + b.y) * size, b.w * size, b.h * size)) : [];
+    const accepted = canvas.commit({ elements: placedElements(placed, label, x, y, size), ...experiment ? { access } : {} });
+    if (!accepted && !experiment) throw new Error(`Depot placement ${label} failed its canvas commit.`);
+    return accepted;
   };
 
   // Lanes run along u, one every LANE cells across, at a seeded phase. Warehouses and rows both start on one.
@@ -113,14 +135,16 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
     .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.v - b.v || a.u - b.u)) {
     if (warehouses === target) break;
     if (!clear(u, v, room, across)) continue;
-    const label = `depot-warehouse-${++warehouses}`;
+    const label = `depot-warehouse-${warehouses + 1}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
     const [x, y] = alongX ? [u, v] : [v, u];
     const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed }, size));
     const { design, allocation, realization, rejected } = built.details;
+    if (experiment && !place(label, u, v, built)) continue;
+    warehouses++;
     if (design.spaces.length > 1) designed++;
     observe?.({ label, origin: { x: x * size, y: y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
-    place(label, u, v, built);
+    if (!experiment) place(label, u, v, built);
   }
 
   // Container rows packed along each lane, from its near end, around the warehouses. Each place
@@ -134,7 +158,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
       const length = CONTAINER * (ROW_MIN + Math.floor(draw(brief.seed, u, v, CHANNEL.length) * (ROW_MAX - ROW_MIN + 1)));
       if (!clear(u, v, length, 1)) { u++; continue; }
       if (draw(brief.seed, u, v, CHANNEL.row) < density) {
-        place(`depot-row-${++rows}`, u, v, expectPlaced(CONTAINER_ROW.build({ length, alongX }, size)));
+        if (place(`depot-row-${rows + 1}`, u, v, expectPlaced(CONTAINER_ROW.build({ length, alongX }, size)))) rows++;
       } else if (!canvas.markEmpty([boxAt(u, v, length, 1)])) {
         throw new Error('Depot empty row site failed its canvas mark.');
       }
@@ -144,7 +168,8 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
 
   // Fill only untouched lane cells. Row sites that lost their density roll are deliberate
   // open spans, and accepted crates address their cells before the next candidate is tried.
-  const infillCrates = placeInfillCrates({ brief, canvas, chance: density, channels: CHANNEL,
+  // Isolate primary composition: both experimental controls omit the secondary crate pass.
+  const infillCrates = experiment ? 0 : placeInfillCrates({ brief, canvas, chance: density, channels: CHANNEL,
     label: 'depot-infill-crate',
     drawAt: cell => alongX ? cell : { x: cell.y, y: cell.x },
     site: cell => {
