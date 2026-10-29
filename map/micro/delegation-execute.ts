@@ -13,6 +13,8 @@ export type ExecutionPolicyData = Omit<PatchPreparationPolicy, 'receiving'>;
 export interface ExecutionContext {
   /** Current retained interface after the one permitted patch batch. */
   readonly brief: RegionBrief;
+  /** Detached hypothetical batch, using this invocation's exact receiver/depth semantics. */
+  prepareDelegation(offers: readonly PatchOffer[], policyData?: ExecutionPolicyData): PreparedDelegation;
   delegate(offers: readonly PatchOffer[], policyData?: ExecutionPolicyData): DelegationDispatch;
   /** Abandon this invocation, including previous children and observer events. */
   empty(reason: string): never;
@@ -101,8 +103,21 @@ function executionDispatcher(registry: ExecutionRegistry, maxDepth: number) {
     let offers: PatchOffer[] | undefined, policyData: ExecutionPolicyData | undefined;
     let terminal: EmptyHandoff | undefined;
     const events: BuildingTrace[] = [];
+    const prepare = (requested: readonly PatchOffer[], policy: ExecutionPolicyData = {}) => prepareCanonicalDelegation(brief, requested, {
+      ...policy,
+      receiving(child, offer) {
+        if (depth >= maxDepth || offer.type === 'empty') return null;
+        const receiver = remember(offer.type).receiving;
+        return receiver ? receiver(child, offer) : null;
+      },
+    });
     const context: ExecutionContext = {
       get brief() { return structuredClone(current); },
+      prepareDelegation(requested, policy = {}) {
+        if (terminal) throw terminal;
+        if (dispatched || offers) throw new Error('Cannot prepare after a delegation batch.');
+        return structuredClone(prepare(structuredClone(requested), structuredClone(policy)));
+      },
       delegate(requested, policy = {}) {
         if (terminal) throw terminal;
         if (dispatched || offers) throw new Error('A builder may delegate one patch batch per invocation.');
@@ -111,15 +126,7 @@ function executionDispatcher(registry: ExecutionRegistry, maxDepth: number) {
         policyData = structuredClone(policy);
         // Let preparation validate the complete offer's ordinary input and policy. The
         // only special outcome is whole-region empty replacement after validation.
-        const prepared = prepareCanonicalDelegation(brief, offers, {
-          ...policy,
-          receiving(child, offer) {
-            if (depth >= maxDepth || offer.type === 'empty') return null;
-            const receiver = remember(offer.type).receiving;
-            // Preparation already gives the policy independent copies.
-            return receiver ? receiver(child, offer) : null;
-          },
-        });
+        const prepared = prepare(offers, policyData);
         const full = offers.filter(o => completeOffer(brief, o));
         offers.sort((a, b) => a.key.localeCompare(b.key));
         for (const offered of offers) {

@@ -52,12 +52,13 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
     || (previous?.edges.length ?? 0) > MAX_INPUTS
     || blockers.reduce((n, s) => n + (s.kind === 'polygon' ? s.points.length : s.kind === 'circle' ? 16 : 4), 0) > MAX_INPUTS) return fail('budget');
   // Avoid allocating millions of stands from individually legal long portal runs.
-  const standCount = brief.portals.length < 2 ? 0 : brief.portals.reduce((n, p) =>
+  const needsPortalStands = brief.portals.length >= 2 || terminals.length > 0;
+  const standCount = !needsPortalStands ? 0 : brief.portals.reduce((n, p) =>
     n + Math.max(0, Math.ceil((p.length * brief.cellSize - 2 * radius) / (brief.cellSize / 2)) + 1), 0);
   if (standCount + terminals.length > MAX_INPUTS) return fail('budget');
   const stands = portalStands(brief).sort((a, b) => a.portal.id < b.portal.id ? -1 : a.portal.id > b.portal.id ? 1 : 0);
-  const required = stands.length >= 2 ? stands.flatMap(s => s.points) : [];
-  if (stands.length >= 2 && stands.some(s => !s.points.length)) return fail('external');
+  const required = needsPortalStands ? stands.flatMap(s => s.points) : [];
+  if (needsPortalStands && stands.some(s => !s.points.length)) return fail('external');
   if (required.length + terminals.length > MAX_INPUTS) return fail('budget');
   const shapeKey = (s: Shape): string => `${s.kind}:${s.x},${s.y}:` + (s.kind === 'rect' ? `${s.w},${s.h}`
     : s.kind === 'circle' ? `${s.r}` : s.points.map(p => `${p.x},${p.y}`).join(';'));

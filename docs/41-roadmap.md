@@ -112,7 +112,7 @@ plant, ruins and cover currently freeze routes before content placement; residua
 infill cannot negotiate meaningful primary parcels across those routes. Existing
 canvas, placeables, infill and recovery infrastructure remains useful. This is
 a composition opportunity, not evidence that prior deliveries are defective.
-After #645, establish #646's no-transfer handoff milestone and #647's measured hut
+With #646's optional handoff transaction implemented, establish #647's measured hut
 adoption. Also select a contrasting fixed-route builder (depot or market are
 candidates) for an opt-in comparison of composition, entrance/side-pocket access,
 useful handoff shapes, determinism/recovery and generation cost. Portal connectivity
@@ -262,7 +262,7 @@ claim complete process isolation. Public deployment limits are in
 
 Design reviewed in #648: [20.10](20.10-portal-cords.md).
 Source direction is in [17.2.10](17.2.10-portal-cord-direction.md). Optional
-validation and retained-content coordination are implemented; handoff coordination,
+validation, retained-content coordination and handoff coordination are implemented;
 growth helpers and builder adoption remain pending.
 This is also a shared prerequisite for #529's composition sequence above.
 
@@ -271,11 +271,11 @@ This is also a shared prerequisite for #529's composition sequence above.
 | Done | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
 | Done | [#645](/corey/astra_test/issues/645) | Opt-in atomic retained-content parcels anywhere in the fill, with deformable connectivity witness; no production adoption |
 | 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
-| 3b | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing |
+| Done | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing; synthetic fixtures and recovery, no production adoption |
 | 4 | [#647](/corey/astra_test/issues/647) | Intentional hut then compound adoption, replacing pragmatic perimeter collars with measured peripheral handoffs |
 
-After #645, growth (#649) and handoffs (#646) can proceed independently.
-Within #646, establish no-transfer handoffs before whole-child portal transfer.
+Growth (#649) remains independent of the implemented handoffs (#646).
+Both no-transfer handoffs and whole-child portal transfer have synthetic coverage.
 Hut adoption in #647 may start on the no-transfer capability if its selected
 peripheral patches retain original portals; it must not claim transfer coverage.
 Current hut delegation uses the retained-portal default. Candidate usefulness
