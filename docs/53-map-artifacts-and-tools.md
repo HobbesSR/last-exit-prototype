@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-48` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-49` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -314,3 +314,14 @@ snapshots preserve their saved accepted offers; historical omitted results
 require their original `hut-yard-1` or `hut-yard-2` implementation, not
 current `hut-yard-3` (20.7).
 The frozen simulation characterization fixture is untouched.
+
+## Compound cord-aware yard adoption (#647)
+
+`types-49` intentionally changes compound child ownership, cover geometry and
+retained-yard loot through peripheral and interior exterior-yard rectangles.
+Ring siting, court, rooms, gates and primary geometry remain unchanged. Wire 8,
+macro 3, result `region-2`, crossing policy and delegation encoding remain
+unchanged. The compound implementation advances to `compound-yard-3`:
+current full/omitted snapshots recover, full historical results preserve their
+saved interfaces, and omitted historical results require `compound-yard-2`
+(20.7). The frozen simulation characterization fixture is untouched.

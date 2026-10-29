@@ -58,3 +58,11 @@ export function assertObservedRing(seeds) {
     for (const space of design.spaces) assert.ok(realization.openings.some(o => o.a === space.id || o.b === space.id), `${name} ${seed}: ${space.id} has an opening`);
   });
 }
+
+export function assertCompoundDeterminism(seeds) {
+  const [cells, portals] = MASKS.field;
+  for (const seed of seeds) {
+    const result = build(brief('field', seed, cells, portals));
+    assert.deepEqual(buildRegion(brief('field', seed, [...cells].reverse(), portals)).elements, result.elements);
+  }
+}

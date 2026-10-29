@@ -2,7 +2,7 @@ import test from 'node:test';
 import { SEEDS } from '../helpers/compound-fixtures.js';
 import { assertPortalPromise, assertRoofedRing, assertObservedRing } from '../helpers/compound-sweeps.js';
 
-// The fast tier's tests/micro-compound.test.js runs the first two seeds (31, #543).
+// Fast witnesses use the first seed; retain the original four-seed slow sweep (31, #543).
 const SWEPT = SEEDS.slice(0, 4);
 
 test('a compound region keeps the portal promise over seeds, masks and gate counts', () => assertPortalPromise(SWEPT));
