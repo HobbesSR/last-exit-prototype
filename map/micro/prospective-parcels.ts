@@ -116,6 +116,8 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       : op.kind === 'parcel' ? [...(lookup(op.handle)?.assembly?.access ?? [])] : [])];
     const childSquares = prepared.children.flatMap(c => c.brief.cells.map(cell =>
       rect(cell.x * brief.cellSize, cell.y * brief.cellSize, brief.cellSize, brief.cellSize)));
+    // Closed bounds deliberately refuse terminals on the child boundary too;
+    // an explicit retained anchor must stay unambiguously on the retained side.
     return !obligations.some(s => !proofAccess.contains(s) || childSquares.some(square => shapesShareArea(s, square)))
       && !terminals.some(p => childSquares.some(s => s.kind === 'rect' && p.x >= s.x && p.x <= s.x + s.w && p.y >= s.y && p.y <= s.y + s.h));
   };
