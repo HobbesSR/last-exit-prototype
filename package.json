@@ -20,6 +20,7 @@
     "test:times": "node tests/timing.mjs",
     "bench": "node tests/bench.mjs",
     "bench:client": "node tests/bench-client.mjs",
+    "bench:stages": "node tests/bench-stages.mjs",
     "physics:report": "node --expose-gc tools/physics/report.mjs",
     "physics:integration": "node --expose-gc tools/physics/integration-report.mjs",
     "physics:ballistics": "node tools/physics/ballistic-report.mjs",

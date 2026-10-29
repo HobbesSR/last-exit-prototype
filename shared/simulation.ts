@@ -65,16 +65,16 @@ export function step(s: Game): void {
     automaticPickups(s, p, input);
     stop('sim.pickups');
     if (p.status !== 'active') continue;
-    applyEnvironment(s, p);
+    start('sim.environment'); applyEnvironment(s, p); stop('sim.environment');
   }
   advanceDiscovery(s);
-  stepTraps(s, damage, effect);
+  start('sim.environment'); stepTraps(s, damage, effect); stop('sim.environment');
   start('sim.projectiles');
   advanceProjectiles(s);
   stop('sim.projectiles');
   finishMatch(s);
   // After every position this tick is final, because that is what the broadcast carries and so what
   // a client will have drawn by the time it aims at any of it.
-  recordRewind(s);
+  start('sim.rewind'); recordRewind(s); stop('sim.rewind');
   stop('sim.step');
 }

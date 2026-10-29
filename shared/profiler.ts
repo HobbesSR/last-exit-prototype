@@ -61,15 +61,18 @@ export function count(name: string, amount = 1): void {
   pending.set(name, (pending.get(name) ?? 0) + amount);
 }
 export function observe(name: string, value: number, unit: Unit = 'ms'): void { if (on) { const s = track(name, unit, 'event'); s.calls++; push(s, value); } }
-export function frame(): void {
-  if (!on) return;
+/** Banks the frame. Returns its frame-series totals, for a caller that keeps every frame rather than the window. */
+export function frame(): Record<string, number> | undefined {
+  if (!on) return undefined;
   frames++;
   for (const s of series.values()) if (s.scope === 'frame') {
     push(s, pending.get(s.name) ?? 0);
     s.callSamples.push(pendingCalls.get(s.name) || 0);
     if (s.callSamples.length > WINDOW) s.callSamples.shift();
   }
+  const totals = Object.fromEntries(pending);
   pending.clear(); pendingCalls.clear(); open.clear();
+  return totals;
 }
 export function report(): ProfileRow[] {
   return [...series.values()].map(s => {

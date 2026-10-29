@@ -119,6 +119,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.19-physics-p8.md](42.19-physics-p8.md) | Experimental local body detours, drop occupancy, privacy and crowd evidence (#448) |
 | [42.20-physics-p9.md](42.20-physics-p9.md) | Staged integration gates, local playtest tooling, measured envelopes and promotion limits (#449) |
 | [42.21-jelly-squish.md](42.21-jelly-squish.md) | Lab-only native-spring jelly, fixed-core compression signals and engine-free playback (#455); gameplay decisions remain open |
+| [42.22-tick-cost-attribution.md](42.22-tick-cost-attribution.md) | Server tick cost by stage at each size and engine, per-stage scaling exponents, over-budget tick classification, viewers, rooms and history memory (#637) |
 
 ### 5x — Map generation
 

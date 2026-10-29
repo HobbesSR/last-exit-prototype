@@ -65,4 +65,5 @@ console.log(`tick cost   mean ${ms(mean)}   p50 ${ms(stats.p50Ms)}   p95 ${ms(st
 console.log(`budget      ${ms(budget)} at ${HZ} Hz — mean uses ${stats.budgetUsedPct.toFixed(1)}%, ${over} of ${completed} ticks over budget`);
 console.log(`headroom    sustainable ${stats.sustainableHz.toFixed(0)} Hz at p95, about ${stats.roomHeadroom} concurrent room(s) inside budget`);
 console.log(profiler.format());
-console.log('\nsim.step is inclusive: its children (bots, move, actions, pickups, projectiles) are counted inside it.');
+console.log('\nsim.step and sim.snapshot are inclusive: their phases (sim.bots, sim.solve, sim.snapshot.clone and the rest) are counted inside them.');
+console.log('tests/bench-stages.mjs keeps every tick of every stage, with recording and broadcast (42.22).');
