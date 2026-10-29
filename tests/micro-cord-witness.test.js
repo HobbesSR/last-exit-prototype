@@ -122,3 +122,20 @@ test('large translated coordinates retain local mesh discovery and sweep the wor
   assert.equal(result.counters.meshBuilds, 1);
   assert.ok(result.witness.paths.some(p => p.length > 2));
 });
+
+test('mesh discovery preserves holes and disjoint row strips at fractional cell sizes', () => {
+  for (const size of [16.25, 32, 48.125]) {
+    const b = { ...brief(portals), cellSize: size,
+      cells: cellsOf(10, 8).filter(c => !(c.x >= 4 && c.x < 6 && c.y >= 2 && c.y < 6)) };
+    // The domain itself, rather than a blocker, forces the mesh around a hole.
+    const found = discoverCordWitness(b, []);
+    assertSwept(b, [], found);
+    assert.equal(found.counters.meshBuilds, 1);
+    assert.ok(found.witness.paths.some(p => p.length > 2));
+    assert.deepEqual(discoverCordWitness({ ...b, cells: [...b.cells].reverse() }, []), found);
+    const cut = { ...b, cells: b.cells.filter(c => c.x !== 4 || c.y === 0) };
+    const failed = discoverCordWitness(cut, []);
+    assert.equal(failed.ok, false);
+    assert.equal(failed.reason, 'external');
+  }
+});

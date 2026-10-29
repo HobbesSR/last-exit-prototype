@@ -1,0 +1,358 @@
+{
+  "timing": {
+    "all": {
+      "cases": 38,
+      "rounds": [
+        {
+          "beforeMs": 37354.81429999997,
+          "afterMs": 30078.323700000015,
+          "reduction": 0.19479391709892557
+        },
+        {
+          "beforeMs": 35263.79969999999,
+          "afterMs": 24482.952100000082,
+          "reduction": 0.305719964714974
+        },
+        {
+          "beforeMs": 28802.348500000022,
+          "afterMs": 22655.01410000003,
+          "reduction": 0.213431706792937
+        }
+      ],
+      "beforeMedianMs": 35263.79969999999,
+      "afterMedianMs": 24482.952100000082,
+      "medianPairedReduction": 0.213431706792937
+    },
+    "synthetic": {
+      "cases": 20,
+      "rounds": [
+        {
+          "beforeMs": 10413.217699999994,
+          "afterMs": 9129.886399999996,
+          "reduction": 0.12324060986451846
+        },
+        {
+          "beforeMs": 10706.946299999996,
+          "afterMs": 8104.117600000056,
+          "reduction": 0.24309720316799766
+        },
+        {
+          "beforeMs": 8374.220700000034,
+          "afterMs": 7162.346400000009,
+          "reduction": 0.14471487478232092
+        }
+      ],
+      "beforeMedianMs": 10413.217699999994,
+      "afterMedianMs": 8104.117600000056,
+      "medianPairedReduction": 0.14471487478232092
+    },
+    "production": {
+      "cases": 18,
+      "rounds": [
+        {
+          "beforeMs": 26941.596599999975,
+          "afterMs": 20948.43730000002,
+          "reduction": 0.22245004217752862
+        },
+        {
+          "beforeMs": 24556.853399999993,
+          "afterMs": 16378.834500000026,
+          "reduction": 0.33302389222228157
+        },
+        {
+          "beforeMs": 20428.127799999987,
+          "afterMs": 15492.66770000002,
+          "reduction": 0.24160119558288506
+        }
+      ],
+      "beforeMedianMs": 24556.853399999993,
+      "afterMedianMs": 16378.834500000026,
+      "medianPairedReduction": 0.24160119558288506
+    },
+    "withHandoffs": {
+      "cases": 29,
+      "rounds": [
+        {
+          "beforeMs": 37304.1326,
+          "afterMs": 30026.886800000015,
+          "reduction": 0.19507881011553085
+        },
+        {
+          "beforeMs": 35219.223400000046,
+          "afterMs": 24446.491900000052,
+          "reduction": 0.3058764634770448
+        },
+        {
+          "beforeMs": 28765.850200000074,
+          "afterMs": 22619.11460000006,
+          "reduction": 0.213681693997002
+        }
+      ],
+      "beforeMedianMs": 35219.223400000046,
+      "afterMedianMs": 24446.491900000052,
+      "medianPairedReduction": 0.213681693997002
+    },
+    "withoutHandoffs": {
+      "cases": 9,
+      "rounds": [
+        {
+          "beforeMs": 50.6816999999719,
+          "afterMs": 51.436900000000605,
+          "reduction": -0.014900841921820396
+        },
+        {
+          "beforeMs": 44.57629999994242,
+          "afterMs": 36.460200000030454,
+          "reduction": 0.18207208763227212
+        },
+        {
+          "beforeMs": 36.49829999994836,
+          "afterMs": 35.89949999997043,
+          "reduction": 0.016406243577886448
+        }
+      ],
+      "beforeMedianMs": 44.57629999994242,
+      "afterMedianMs": 36.460200000030454,
+      "medianPairedReduction": 0.016406243577886448
+    }
+  },
+  "beforeStages": {
+    "clone": {
+      "calls": 28516,
+      "inclusiveMs": 3769.7820999993055,
+      "exclusiveMs": 3769.7820999993055
+    },
+    "marginInheritance": {
+      "calls": 1071,
+      "inclusiveMs": 3845.634300000216,
+      "exclusiveMs": 3845.634300000216
+    },
+    "cordSweep": {
+      "calls": 304527,
+      "inclusiveMs": 1638.4683000074147,
+      "exclusiveMs": 1638.4683000074147
+    },
+    "cordMesh": {
+      "calls": 531,
+      "inclusiveMs": 7178.356099999968,
+      "exclusiveMs": 7178.356099999968
+    },
+    "cordSearch": {
+      "calls": 5186,
+      "inclusiveMs": 645.4888999989853,
+      "exclusiveMs": 645.4888999989853
+    },
+    "cordWitness": {
+      "calls": 560,
+      "inclusiveMs": 10961.662499999897,
+      "exclusiveMs": 1499.3491999935286
+    },
+    "initialization": {
+      "calls": 29,
+      "inclusiveMs": 862.1578000000154,
+      "exclusiveMs": 16.822999999974854
+    },
+    "replay": {
+      "calls": 716,
+      "inclusiveMs": 716.3736999999746,
+      "exclusiveMs": 716.3736999999746
+    },
+    "preparation": {
+      "calls": 646,
+      "inclusiveMs": 13995.74500000009,
+      "exclusiveMs": 3935.955700000435
+    },
+    "probeHandoff": {
+      "calls": 588,
+      "inclusiveMs": 23070.08809999981,
+      "exclusiveMs": 229.81719999991765
+    },
+    "partitionValidation": {
+      "calls": 1033,
+      "inclusiveMs": 7627.658900000082,
+      "exclusiveMs": 3891.1056999998764
+    },
+    "receiverPreview": {
+      "calls": 1714,
+      "inclusiveMs": 705.4641000002084,
+      "exclusiveMs": 705.4641000002084
+    },
+    "acceptHandoff": {
+      "calls": 69,
+      "inclusiveMs": 190.26950000003126,
+      "exclusiveMs": 7.948200000057113
+    },
+    "executeHandoffs": {
+      "calls": 29,
+      "inclusiveMs": 2809.8065000000206,
+      "exclusiveMs": 375.6784000000407
+    }
+  },
+  "afterStages": {
+    "clone": {
+      "calls": 28516,
+      "inclusiveMs": 3840.416200000098,
+      "exclusiveMs": 3840.416200000098
+    },
+    "marginInheritance": {
+      "calls": 1071,
+      "inclusiveMs": 3921.8687999999706,
+      "exclusiveMs": 3921.8687999999706
+    },
+    "cordSweep": {
+      "calls": 304527,
+      "inclusiveMs": 1695.0448000007177,
+      "exclusiveMs": 1695.0448000007177
+    },
+    "cordMesh": {
+      "calls": 531,
+      "inclusiveMs": 3198.2142000000076,
+      "exclusiveMs": 3198.2142000000076
+    },
+    "cordSearch": {
+      "calls": 5186,
+      "inclusiveMs": 718.2981999999993,
+      "exclusiveMs": 718.2981999999993
+    },
+    "cordWitness": {
+      "calls": 560,
+      "inclusiveMs": 7178.413299999989,
+      "exclusiveMs": 1566.8560999992656
+    },
+    "initialization": {
+      "calls": 29,
+      "inclusiveMs": 622.8154000000038,
+      "exclusiveMs": 17.09989999998993
+    },
+    "replay": {
+      "calls": 716,
+      "inclusiveMs": 741.6429000000234,
+      "exclusiveMs": 741.6429000000234
+    },
+    "preparation": {
+      "calls": 646,
+      "inclusiveMs": 14300.487900000031,
+      "exclusiveMs": 4074.827600000009
+    },
+    "probeHandoff": {
+      "calls": 588,
+      "inclusiveMs": 20239.366999999984,
+      "exclusiveMs": 227.81589999991388
+    },
+    "partitionValidation": {
+      "calls": 1033,
+      "inclusiveMs": 7764.642699999978,
+      "exclusiveMs": 3954.6565000000082
+    },
+    "receiverPreview": {
+      "calls": 1714,
+      "inclusiveMs": 721.5656999999812,
+      "exclusiveMs": 721.5656999999812
+    },
+    "acceptHandoff": {
+      "calls": 69,
+      "inclusiveMs": 197.4024000000045,
+      "exclusiveMs": 8.354500000011285
+    },
+    "executeHandoffs": {
+      "calls": 29,
+      "inclusiveMs": 2852.9577000000036,
+      "exclusiveMs": 380.74609999999234
+    }
+  },
+  "verdicts": {
+    "rejected": {
+      "count": 115,
+      "inclusiveMs": 798.1610000000001
+    },
+    "external": {
+      "count": 402,
+      "inclusiveMs": 17065.66549999982
+    },
+    "accepted": {
+      "count": 69,
+      "inclusiveMs": 4614.272299999975
+    },
+    "budget": {
+      "count": 2,
+      "inclusiveMs": 591.9893000000156
+    }
+  },
+  "probeVerdictsReasonsCountersUnchanged": true,
+  "denseOutcomesCountersPrimaryAndOutputUnchanged": true,
+  "dense": [
+    {
+      "portals": 128,
+      "ok": true,
+      "reason": null,
+      "counters": {
+        "meshBuilds": 1,
+        "sweeps": 4135,
+        "paths": 259
+      },
+      "beforeInitMedianMs": 1277.4956000000002,
+      "afterInitMedianMs": 502.94890000000123
+    },
+    {
+      "portals": 129,
+      "ok": true,
+      "reason": null,
+      "counters": {
+        "meshBuilds": 1,
+        "sweeps": 4144,
+        "paths": 261
+      },
+      "beforeInitMedianMs": 1519.7537000000011,
+      "afterInitMedianMs": 488.6193000000003
+    },
+    {
+      "portals": 140,
+      "ok": true,
+      "reason": null,
+      "counters": {
+        "meshBuilds": 1,
+        "sweeps": 4542,
+        "paths": 283
+      },
+      "beforeInitMedianMs": 1590.9726999999984,
+      "afterInitMedianMs": 521.9315999999999
+    },
+    {
+      "portals": 150,
+      "ok": false,
+      "reason": "budget",
+      "counters": {
+        "meshBuilds": 1,
+        "sweeps": 4646,
+        "paths": 244
+      },
+      "beforeInitMedianMs": 1442.2684000000008,
+      "afterInitMedianMs": 379.3724000000002
+    },
+    {
+      "portals": 160,
+      "ok": false,
+      "reason": "budget",
+      "counters": {
+        "meshBuilds": 1,
+        "sweeps": 4660,
+        "paths": 232
+      },
+      "beforeInitMedianMs": 1284.9243999999962,
+      "afterInitMedianMs": 345.8050999999996
+    },
+    {
+      "portals": 170,
+      "ok": false,
+      "reason": "budget",
+      "counters": {
+        "meshBuilds": 1,
+        "sweeps": 4670,
+        "paths": 220
+      },
+      "beforeInitMedianMs": 1171.7432999999946,
+      "afterInitMedianMs": 302.65840000000026
+    }
+  ],
+  "retainedIssue647SerializedOutputsUnchanged": 38
+}
