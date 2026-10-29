@@ -63,21 +63,27 @@ try {
   const hut = await page.evaluate(() => window.microLabDebug());
   assert.equal(hut.result.version, 'region-2');
   assert.deepEqual(hut.promise, [], 'the hut keeps its portal promise');
-  assert.equal(hut.buildings.length, 1);
-  const [trace] = hut.buildings, building = hut.result.elements.find(element => element.label === trace.label);
-  assert.ok(building, 'the trace names an element of the result');
-  assert.deepEqual(trace.realization.template, building.template, 'the trace is what the element was realized from');
+  assert.ok(hut.buildings.length > 1, 'the roomy example composes several houses');
+  assert.equal(hut.buildings.length, hut.result.elements.filter(e => e.template.encloses).length);
+  const expected = { allocation: { cells: 0 }, spans: { spans: 0 }, openings: { openings: 0 }, graph: { nodes: 0, edges: 0, warnings: 0 } };
+  for (const trace of hut.buildings) {
+    const building = hut.result.elements.find(element => element.label === trace.label);
+    assert.ok(building, 'each trace names an element of the result');
+    assert.deepEqual(trace.realization.template, building.template, 'each trace matches its realized element');
+    const placed = new Set(trace.realization.openings.map(opening => opening.connectionId));
+    const cells = trace.allocation.spaces.reduce((sum, space) => sum + space.cells.length, 0);
+    assert.equal(cells, building.template.w * building.template.h / trace.cellSize ** 2);
+    expected.allocation.cells += cells;
+    expected.spans.spans += trace.realization.boundaries.reduce((sum, boundary) => sum + boundary.spans.length, 0);
+    expected.openings.openings += building.template.parts.filter(part => part.part === 'gate' || part.kind === 'window').length;
+    expected.graph.nodes += trace.design.spaces.length;
+    expected.graph.edges += trace.design.connections.length;
+    expected.graph.warnings += trace.design.connections.filter(c => !placed.has(c.id)).length;
+  }
+  assert.deepEqual(hut.drawn, expected);
   assert.equal(Object.hasOwn(hut.result, 'buildings') || JSON.stringify(hut.result).includes('"design"'), false, 'designs are not stored (M30)');
-  const placed = new Set(trace.realization.openings.map(opening => opening.connectionId));
-  assert.deepEqual(hut.drawn, {
-    allocation: { cells: trace.allocation.spaces.reduce((sum, space) => sum + space.cells.length, 0) },
-    spans: { spans: trace.realization.boundaries.reduce((sum, boundary) => sum + boundary.spans.length, 0) },
-    openings: { openings: building.template.parts.filter(part => part.part === 'gate' || part.kind === 'window').length },
-    graph: { nodes: trace.design.spaces.length, edges: trace.design.connections.length, warnings: trace.design.connections.filter(c => !placed.has(c.id)).length },
-  });
-  // The example rectangle holds a three-space house (56 L5), with every asked connection met.
-  assert.equal(hut.drawn.graph.nodes, 3);
-  assert.equal(hut.drawn.allocation.cells, building.template.w * building.template.h / trace.cellSize ** 2);
+  // The primary house still has three spaces (56 L5).
+  assert.equal(hut.buildings[0].design.spaces.length, 3);
   assert.match(await page.locator('#buildings').textContent(), /hut-building: 3 spaces, \d+ connections, \d+ openings/);
   assert.equal(await page.locator('#buildings .warning, #buildings .error').count(), 0);
   await page.screenshot({ path: 'test-results/micro-lab-hut.png' });
@@ -87,9 +93,14 @@ try {
   await page.waitForFunction(() => window.microLabDebug().result?.brief?.seed === 11);
   const missed = await page.evaluate(() => window.microLabDebug());
   assert.deepEqual(missed.promise, [], 'unmet guidance is not a broken promise');
-  assert.equal(missed.drawn.graph.warnings, 1);
-  assert.equal(await page.locator('#buildings .warning').count(), 1);
-  assert.match(await page.locator('#buildings .warning').textContent(), /Guidance not met: link-1 \(door, front–back-1\)/);
+  const missedWarnings = missed.buildings.reduce((sum, trace) => {
+    const placed = new Set(trace.realization.openings.map(o => o.connectionId));
+    return sum + trace.design.connections.filter(c => !placed.has(c.id)).length;
+  }, 0);
+  assert.ok(missedWarnings >= 1);
+  assert.equal(missed.drawn.graph.warnings, missedWarnings);
+  assert.equal(await page.locator('#buildings .warning').count(), missedWarnings);
+  assert.match(await page.locator('#buildings .warning').first().textContent(), /Guidance not met: link-1 \(door, front–back-1\)/);
   assert.equal(await page.locator('#buildings .error').count(), 0);
   await page.screenshot({ path: 'test-results/micro-lab-hut-unmet.png' });
   // A compound's ring is one design over its ring's cells, split into one element per space.
@@ -156,7 +167,7 @@ try {
   assert.deepEqual(pilot.result, JSON.parse(JSON.stringify(buildRegion(pilotBrief))));
   assert.ok(pilot.result.elements.some(element => element.template.encloses));
   assert.ok(pilot.result.elements.some(element => element.label.includes('/delegate/')));
-  assert.equal(pilot.buildings.length, 1, 'cover does not manufacture building traces');
+  assert.equal(pilot.buildings.length, pilot.result.elements.filter(e => e.template.encloses).length, 'each house has a trace; cover adds none');
   await page.screenshot({ path: 'test-results/micro-lab-hut-delegation.png' });
   // The compound adopter keeps its traced ring/court and adds exterior cover.
   const compoundCells = Array.from({ length: 40 * 34 }, (_, i) => ({ x: i % 40, y: Math.floor(i / 40) }))

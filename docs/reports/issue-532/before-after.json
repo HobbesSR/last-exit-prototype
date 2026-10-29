@@ -1,0 +1,3360 @@
+{
+  "before": [
+    {
+      "seed": "size-12-1",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "huts": [
+        {
+          "id": "hut@72,36",
+          "cells": 36,
+          "fillCells": 29,
+          "houseCount": 1,
+          "freeCells": 27,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 75,
+            "y": 36,
+            "w": 3,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@12,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 12,
+            "y": 75,
+            "w": 12,
+            "h": 3
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@324,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 64,
+          "occupiedCells": 8,
+          "largest": {
+            "x": 329,
+            "y": 72,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 2
+        }
+      ]
+    },
+    {
+      "seed": "size-24-1",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "huts": [
+        {
+          "id": "hut@354,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 359,
+            "y": 0,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@162,72",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 167,
+            "y": 72,
+            "w": 7,
+            "h": 8
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@468,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 473,
+            "y": 72,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@516,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 520,
+            "y": 72,
+            "w": 7,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@534,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 539,
+            "y": 72,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@282,102",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 287,
+            "y": 102,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@240,114",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 130,
+          "occupiedCells": 14,
+          "largest": {
+            "x": 240,
+            "y": 114,
+            "w": 3,
+            "h": 12
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@270,120",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 134,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 270,
+            "y": 120,
+            "w": 10,
+            "h": 7
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@576,144",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 581,
+            "y": 144,
+            "w": 7,
+            "h": 8
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@684,144",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 684,
+            "y": 145,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@714,192",
+          "cells": 252,
+          "fillCells": 142,
+          "houseCount": 1,
+          "freeCells": 239,
+          "occupiedCells": 13,
+          "largest": {
+            "x": 708,
+            "y": 198,
+            "w": 6,
+            "h": 12
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@30,210",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 35,
+            "y": 210,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@48,210",
+          "cells": 42,
+          "fillCells": 23,
+          "houseCount": 1,
+          "freeCells": 33,
+          "occupiedCells": 9,
+          "largest": null,
+          "rectangles": 0
+        },
+        {
+          "id": "hut@210,210",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 134,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 215,
+            "y": 210,
+            "w": 7,
+            "h": 11
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@678,210",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 678,
+            "y": 210,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@384,228",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 384,
+            "y": 233,
+            "w": 7,
+            "h": 7
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@570,228",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 570,
+            "y": 233,
+            "w": 5,
+            "h": 7
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@402,234",
+          "cells": 84,
+          "fillCells": 36,
+          "houseCount": 1,
+          "freeCells": 75,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 402,
+            "y": 236,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@264,258",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 264,
+            "y": 261,
+            "w": 7,
+            "h": 7
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@396,258",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 401,
+            "y": 260,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@264,276",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 130,
+          "occupiedCells": 14,
+          "largest": {
+            "x": 264,
+            "y": 280,
+            "w": 12,
+            "h": 4
+          },
+          "rectangles": 5
+        },
+        {
+          "id": "hut@384,342",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 389,
+            "y": 342,
+            "w": 7,
+            "h": 8
+          },
+          "rectangles": 4
+        }
+      ]
+    },
+    {
+      "seed": "size-36-1",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "huts": [
+        {
+          "id": "hut@492,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 64,
+          "occupiedCells": 8,
+          "largest": {
+            "x": 493,
+            "y": 0,
+            "w": 7,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@510,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 510,
+            "y": 2,
+            "w": 7,
+            "h": 4
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@534,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 539,
+            "y": 2,
+            "w": 7,
+            "h": 4
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@558,6",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 563,
+            "y": 6,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@432,12",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 432,
+            "y": 17,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@582,60",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 582,
+            "y": 63,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@432,66",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 432,
+            "y": 71,
+            "w": 9,
+            "h": 7
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@624,66",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 135,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 624,
+            "y": 69,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@246,108",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 250,
+            "y": 108,
+            "w": 7,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@408,108",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 409,
+            "y": 109,
+            "w": 6,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@816,108",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 816,
+            "y": 110,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@852,108",
+          "cells": 72,
+          "fillCells": 49,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 852,
+            "y": 109,
+            "w": 9,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@216,114",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 216,
+            "y": 114,
+            "w": 7,
+            "h": 7
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@234,114",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 234,
+            "y": 117,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@858,120",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 858,
+            "y": 125,
+            "w": 5,
+            "h": 7
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@486,138",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 491,
+            "y": 140,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@624,180",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 629,
+            "y": 184,
+            "w": 7,
+            "h": 8
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@708,192",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 134,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 708,
+            "y": 195,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@546,210",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 134,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 551,
+            "y": 210,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@48,216",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 48,
+            "y": 218,
+            "w": 8,
+            "h": 4
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@66,216",
+          "cells": 42,
+          "fillCells": 23,
+          "houseCount": 1,
+          "freeCells": 32,
+          "occupiedCells": 10,
+          "largest": null,
+          "rectangles": 0
+        },
+        {
+          "id": "hut@84,216",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 134,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 84,
+            "y": 218,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@198,216",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 202,
+            "y": 217,
+            "w": 8,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@1038,216",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 1043,
+            "y": 216,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@1026,228",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 1026,
+            "y": 232,
+            "w": 7,
+            "h": 8
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@858,234",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 858,
+            "y": 238,
+            "w": 7,
+            "h": 7
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@1026,246",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 1031,
+            "y": 249,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@1032,276",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 1032,
+            "y": 277,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@72,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 64,
+          "occupiedCells": 8,
+          "largest": {
+            "x": 77,
+            "y": 318,
+            "w": 7,
+            "h": 4
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@114,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 114,
+            "y": 318,
+            "w": 12,
+            "h": 3
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@138,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 143,
+            "y": 318,
+            "w": 5,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@894,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 894,
+            "y": 318,
+            "w": 12,
+            "h": 3
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@330,342",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 330,
+            "y": 342,
+            "w": 7,
+            "h": 9
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@432,390",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 131,
+          "occupiedCells": 13,
+          "largest": {
+            "x": 437,
+            "y": 395,
+            "w": 7,
+            "h": 7
+          },
+          "rectangles": 3
+        },
+        {
+          "id": "hut@216,414",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 133,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 216,
+            "y": 416,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@258,426",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 258,
+            "y": 426,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@804,426",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 808,
+            "y": 426,
+            "w": 8,
+            "h": 4
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@630,438",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 135,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 630,
+            "y": 438,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@438,450",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 438,
+            "y": 454,
+            "w": 7,
+            "h": 8
+          },
+          "rectangles": 4
+        },
+        {
+          "id": "hut@630,462",
+          "cells": 84,
+          "fillCells": 36,
+          "houseCount": 1,
+          "freeCells": 74,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 630,
+            "y": 463,
+            "w": 7,
+            "h": 6
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@432,468",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 434,
+            "y": 472,
+            "w": 4,
+            "h": 8
+          },
+          "rectangles": 1
+        },
+        {
+          "id": "hut@438,480",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 438,
+            "y": 480,
+            "w": 7,
+            "h": 10
+          },
+          "rectangles": 2
+        },
+        {
+          "id": "hut@432,516",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 1,
+          "freeCells": 132,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 436,
+            "y": 516,
+            "w": 6,
+            "h": 12
+          },
+          "rectangles": 2
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "seed": "size-12-1",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "defects": [],
+      "huts": [
+        {
+          "id": "hut@72,36",
+          "cells": 36,
+          "fillCells": 29,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 3456,
+              "y": 1728,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 27,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 75,
+            "y": 36,
+            "w": 3,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@12,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 912,
+              "y": 3456,
+              "w": 192,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 12,
+            "y": 75,
+            "w": 12,
+            "h": 3
+          },
+          "rectangles": 2,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@324,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 15648,
+              "y": 3456,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 9,
+          "freeCells": 64,
+          "occupiedCells": 8,
+          "largest": {
+            "x": 329,
+            "y": 72,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 2,
+          "reachErrors": []
+        }
+      ]
+    },
+    {
+      "seed": "size-24-1",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "defects": [],
+      "huts": [
+        {
+          "id": "hut@354,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 17088,
+              "y": 0,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 359,
+            "y": 0,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@162,72",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 7872,
+              "y": 3456,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 8112,
+              "y": 3792,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 8112,
+              "y": 3552,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 7872,
+              "y": 3792,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": {
+            "x": 162,
+            "y": 76,
+            "w": 7,
+            "h": 3
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@468,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 22512,
+              "y": 3504,
+              "w": 192,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 473,
+            "y": 72,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@516,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 24816,
+              "y": 3456,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 520,
+            "y": 72,
+            "w": 7,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@534,72",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 25728,
+              "y": 3456,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 539,
+            "y": 72,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@282,102",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 13584,
+              "y": 4992,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 13632,
+              "y": 5232,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 13872,
+              "y": 5232,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 13872,
+              "y": 4992,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 114,
+          "occupiedCells": 30,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@240,114",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 11856,
+              "y": 5520,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 11856,
+              "y": 5808,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 11616,
+              "y": 5568,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 11616,
+              "y": 5808,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": {
+            "x": 245,
+            "y": 118,
+            "w": 7,
+            "h": 3
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@270,120",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 13008,
+              "y": 6096,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 13296,
+              "y": 6096,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 13056,
+              "y": 5856,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 13296,
+              "y": 5856,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": {
+            "x": 274,
+            "y": 125,
+            "w": 3,
+            "h": 7
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@576,144",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 27744,
+              "y": 6912,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 27984,
+              "y": 7248,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 27984,
+              "y": 7008,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 27744,
+              "y": 7248,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": {
+            "x": 576,
+            "y": 147,
+            "w": 7,
+            "h": 4
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@684,144",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 33168,
+              "y": 6960,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 9,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 684,
+            "y": 145,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@714,192",
+          "cells": 252,
+          "fillCells": 142,
+          "houseCount": 5,
+          "houseBounds": [
+            {
+              "x": 33744,
+              "y": 10176,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 34320,
+              "y": 9552,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 33792,
+              "y": 9888,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 34032,
+              "y": 9840,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 34080,
+              "y": 9600,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 48,
+          "freeCells": 213,
+          "occupiedCells": 39,
+          "largest": {
+            "x": 696,
+            "y": 210,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 3,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@30,210",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 1488,
+              "y": 10176,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 35,
+            "y": 210,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@48,210",
+          "cells": 42,
+          "fillCells": 23,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 2400,
+              "y": 10176,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 33,
+          "occupiedCells": 9,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@210,210",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 10128,
+              "y": 10176,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 10416,
+              "y": 10176,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 10176,
+              "y": 10416,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 10416,
+              "y": 10416,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@678,210",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 32880,
+              "y": 10176,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 678,
+            "y": 210,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@384,228",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 18480,
+              "y": 11040,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 18768,
+              "y": 11040,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 18528,
+              "y": 11280,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 18768,
+              "y": 11280,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": {
+            "x": 388,
+            "y": 228,
+            "w": 3,
+            "h": 7
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@570,228",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 27456,
+              "y": 10992,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 570,
+            "y": 233,
+            "w": 5,
+            "h": 7
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@402,234",
+          "cells": 84,
+          "fillCells": 36,
+          "houseCount": 2,
+          "houseBounds": [
+            {
+              "x": 19344,
+              "y": 11568,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 19392,
+              "y": 11328,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 21,
+          "freeCells": 69,
+          "occupiedCells": 15,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@264,258",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 13008,
+              "y": 12720,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 13008,
+              "y": 12480,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 12768,
+              "y": 12480,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 12768,
+              "y": 12720,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@396,258",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 19056,
+              "y": 12720,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 19104,
+              "y": 12480,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 19344,
+              "y": 12720,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 19344,
+              "y": 12480,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@264,276",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 13008,
+              "y": 13632,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 12768,
+              "y": 13344,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 12768,
+              "y": 13584,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 13008,
+              "y": 13344,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 114,
+          "occupiedCells": 30,
+          "largest": {
+            "x": 269,
+            "y": 281,
+            "w": 7,
+            "h": 3
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@384,342",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 18528,
+              "y": 16464,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 18768,
+              "y": 16752,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 18528,
+              "y": 16752,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 18768,
+              "y": 16512,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 114,
+          "occupiedCells": 30,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        }
+      ]
+    },
+    {
+      "seed": "size-36-1",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "defects": [],
+      "huts": [
+        {
+          "id": "hut@492,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 24000,
+              "y": 48,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 9,
+          "freeCells": 64,
+          "occupiedCells": 8,
+          "largest": {
+            "x": 493,
+            "y": 0,
+            "w": 7,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@510,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 24816,
+              "y": 0,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 510,
+            "y": 2,
+            "w": 7,
+            "h": 4
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@534,0",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 25728,
+              "y": 0,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 539,
+            "y": 2,
+            "w": 7,
+            "h": 4
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@558,6",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 26880,
+              "y": 336,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 27120,
+              "y": 624,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 26880,
+              "y": 624,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 27120,
+              "y": 384,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@432,12",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 20736,
+              "y": 624,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 432,
+            "y": 17,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@582,60",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 28272,
+              "y": 3216,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 28032,
+              "y": 3216,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 28032,
+              "y": 2976,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 28272,
+              "y": 2976,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 114,
+          "occupiedCells": 30,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@432,66",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 20736,
+              "y": 3264,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 21072,
+              "y": 3264,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 21072,
+              "y": 3504,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 20832,
+              "y": 3504,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": {
+            "x": 436,
+            "y": 66,
+            "w": 3,
+            "h": 7
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@624,66",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 30288,
+              "y": 3504,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30048,
+              "y": 3504,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30048,
+              "y": 3264,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30288,
+              "y": 3264,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@246,108",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 11856,
+              "y": 5184,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 250,
+            "y": 108,
+            "w": 7,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@408,108",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 19920,
+              "y": 5184,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 409,
+            "y": 109,
+            "w": 6,
+            "h": 5
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@816,108",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 39504,
+              "y": 5520,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 39264,
+              "y": 5520,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 39264,
+              "y": 5280,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 39504,
+              "y": 5280,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@852,108",
+          "cells": 72,
+          "fillCells": 49,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 41328,
+              "y": 5184,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 852,
+            "y": 109,
+            "w": 9,
+            "h": 5
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@216,114",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 10368,
+              "y": 5808,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 10464,
+              "y": 5568,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 10704,
+              "y": 5808,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 10704,
+              "y": 5568,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": {
+            "x": 220,
+            "y": 119,
+            "w": 3,
+            "h": 7
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@234,114",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 11568,
+              "y": 5808,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 11568,
+              "y": 5568,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 11328,
+              "y": 5808,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 11328,
+              "y": 5568,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 114,
+          "occupiedCells": 30,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@858,120",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 41280,
+              "y": 5808,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 858,
+            "y": 125,
+            "w": 5,
+            "h": 7
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@486,138",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 23376,
+              "y": 6960,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 23664,
+              "y": 6720,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 23424,
+              "y": 6720,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 23664,
+              "y": 6960,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@624,180",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 30048,
+              "y": 8976,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 30048,
+              "y": 8736,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30288,
+              "y": 8736,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30288,
+              "y": 8976,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 114,
+          "occupiedCells": 30,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@708,192",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 34320,
+              "y": 9552,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 34080,
+              "y": 9552,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 34320,
+              "y": 9312,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 34080,
+              "y": 9312,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@546,210",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 26256,
+              "y": 10176,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 26544,
+              "y": 10176,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 26544,
+              "y": 10416,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 26304,
+              "y": 10416,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@48,216",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 2688,
+              "y": 10368,
+              "w": 144,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 48,
+            "y": 218,
+            "w": 8,
+            "h": 4
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@66,216",
+          "cells": 42,
+          "fillCells": 23,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 3216,
+              "y": 10368,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 32,
+          "occupiedCells": 10,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@84,216",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 4368,
+              "y": 10704,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 4128,
+              "y": 10464,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 4128,
+              "y": 10704,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 4368,
+              "y": 10464,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@198,216",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 9552,
+              "y": 10416,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 9,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 202,
+            "y": 217,
+            "w": 8,
+            "h": 5
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@1038,216",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 49872,
+              "y": 10368,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 60,
+          "occupiedCells": 12,
+          "largest": {
+            "x": 1043,
+            "y": 216,
+            "w": 6,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@1026,228",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 49584,
+              "y": 11280,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 49344,
+              "y": 11280,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 49584,
+              "y": 11040,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 49344,
+              "y": 11040,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@858,234",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 41520,
+              "y": 11568,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 41280,
+              "y": 11568,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 41280,
+              "y": 11328,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 41520,
+              "y": 11328,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@1026,246",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 49344,
+              "y": 12144,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 49344,
+              "y": 11904,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 49584,
+              "y": 11904,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 49584,
+              "y": 12144,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@1032,276",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 49872,
+              "y": 13296,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 49632,
+              "y": 13344,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 49872,
+              "y": 13584,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 49632,
+              "y": 13584,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@72,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 3552,
+              "y": 15312,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 9,
+          "freeCells": 64,
+          "occupiedCells": 8,
+          "largest": {
+            "x": 77,
+            "y": 318,
+            "w": 7,
+            "h": 4
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@114,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 5520,
+              "y": 15408,
+              "w": 192,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 114,
+            "y": 318,
+            "w": 12,
+            "h": 3
+          },
+          "rectangles": 2,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@138,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 6672,
+              "y": 15360,
+              "w": 192,
+              "h": 192
+            }
+          ],
+          "houseEnvelopeCells": 16,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 143,
+            "y": 318,
+            "w": 5,
+            "h": 6
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@894,318",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 42960,
+              "y": 15408,
+              "w": 192,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 62,
+          "occupiedCells": 10,
+          "largest": {
+            "x": 894,
+            "y": 318,
+            "w": 12,
+            "h": 3
+          },
+          "rectangles": 2,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@330,342",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 16176,
+              "y": 16512,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 16176,
+              "y": 16752,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 15936,
+              "y": 16512,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 15936,
+              "y": 16752,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@432,390",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 21072,
+              "y": 18816,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 20832,
+              "y": 19056,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 20832,
+              "y": 18816,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 21072,
+              "y": 19056,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@216,414",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 10704,
+              "y": 20208,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 10704,
+              "y": 19968,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 10464,
+              "y": 20208,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 10464,
+              "y": 19968,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@258,426",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 12720,
+              "y": 20544,
+              "w": 192,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 61,
+          "occupiedCells": 11,
+          "largest": {
+            "x": 258,
+            "y": 426,
+            "w": 7,
+            "h": 5
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@804,426",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 38640,
+              "y": 20544,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 9,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 808,
+            "y": 426,
+            "w": 8,
+            "h": 4
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@630,438",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 30576,
+              "y": 21120,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30576,
+              "y": 21360,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30336,
+              "y": 21120,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 30336,
+              "y": 21360,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 36,
+          "freeCells": 116,
+          "occupiedCells": 28,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@438,450",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 21360,
+              "y": 21936,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 21120,
+              "y": 21936,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 21360,
+              "y": 21696,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 21120,
+              "y": 21696,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 114,
+          "occupiedCells": 30,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@630,462",
+          "cells": 84,
+          "fillCells": 36,
+          "houseCount": 2,
+          "houseBounds": [
+            {
+              "x": 30576,
+              "y": 22224,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 30336,
+              "y": 22272,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 21,
+          "freeCells": 68,
+          "occupiedCells": 16,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@432,468",
+          "cells": 72,
+          "fillCells": 46,
+          "houseCount": 1,
+          "houseBounds": [
+            {
+              "x": 20736,
+              "y": 22512,
+              "w": 192,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 12,
+          "freeCells": 63,
+          "occupiedCells": 9,
+          "largest": {
+            "x": 434,
+            "y": 472,
+            "w": 4,
+            "h": 8
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@438,480",
+          "cells": 144,
+          "fillCells": 72,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 21360,
+              "y": 23088,
+              "w": 144,
+              "h": 192
+            },
+            {
+              "x": 21120,
+              "y": 23376,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 21360,
+              "y": 23376,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 21120,
+              "y": 23136,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": null,
+          "rectangles": 0,
+          "reachErrors": []
+        },
+        {
+          "id": "hut@432,516",
+          "cells": 144,
+          "fillCells": 78,
+          "houseCount": 4,
+          "houseBounds": [
+            {
+              "x": 20736,
+              "y": 24864,
+              "w": 192,
+              "h": 144
+            },
+            {
+              "x": 21072,
+              "y": 25104,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 21072,
+              "y": 24864,
+              "w": 144,
+              "h": 144
+            },
+            {
+              "x": 20832,
+              "y": 25104,
+              "w": 144,
+              "h": 144
+            }
+          ],
+          "houseEnvelopeCells": 39,
+          "freeCells": 115,
+          "occupiedCells": 29,
+          "largest": {
+            "x": 436,
+            "y": 516,
+            "w": 3,
+            "h": 7
+          },
+          "rectangles": 1,
+          "reachErrors": []
+        }
+      ]
+    }
+  ],
+  "summaries": {
+    "before": [
+      {
+        "seed": "size-12-1",
+        "size": "12x6",
+        "hutCount": 3,
+        "houses": 3,
+        "cells": 180,
+        "fillCells": 121,
+        "freeCells": 153,
+        "occupiedCells": 27,
+        "envelopeCells": 0,
+        "multi": 0,
+        "noFit": 0,
+        "defects": 0,
+        "reachErrors": 0
+      },
+      {
+        "seed": "size-24-1",
+        "size": "24x12",
+        "hutCount": 22,
+        "houses": 22,
+        "cells": 2538,
+        "fillCells": 1379,
+        "freeCells": 2293,
+        "occupiedCells": 245,
+        "envelopeCells": 0,
+        "multi": 0,
+        "noFit": 0,
+        "defects": 0,
+        "reachErrors": 0
+      },
+      {
+        "seed": "size-36-1",
+        "size": "36x18",
+        "hutCount": 43,
+        "houses": 43,
+        "cells": 4734,
+        "fillCells": 2582,
+        "freeCells": 4272,
+        "occupiedCells": 462,
+        "envelopeCells": 0,
+        "multi": 0,
+        "noFit": 0,
+        "defects": 0,
+        "reachErrors": 0
+      }
+    ],
+    "after": [
+      {
+        "seed": "size-12-1",
+        "size": "12x6",
+        "hutCount": 3,
+        "houses": 3,
+        "cells": 180,
+        "fillCells": 121,
+        "freeCells": 153,
+        "occupiedCells": 27,
+        "envelopeCells": 33,
+        "multi": 0,
+        "noFit": 0,
+        "defects": 0,
+        "reachErrors": 0
+      },
+      {
+        "seed": "size-24-1",
+        "size": "24x12",
+        "hutCount": 22,
+        "houses": 60,
+        "cells": 2538,
+        "fillCells": 1379,
+        "freeCells": 2072,
+        "occupiedCells": 466,
+        "envelopeCells": 599,
+        "multi": 13,
+        "noFit": 0,
+        "defects": 0,
+        "reachErrors": 0
+      },
+      {
+        "seed": "size-36-1",
+        "size": "36x18",
+        "hutCount": 43,
+        "houses": 113,
+        "cells": 4734,
+        "fillCells": 2582,
+        "freeCells": 3857,
+        "occupiedCells": 877,
+        "envelopeCells": 1143,
+        "multi": 24,
+        "noFit": 0,
+        "defects": 0,
+        "reachErrors": 0
+      }
+    ]
+  }
+}

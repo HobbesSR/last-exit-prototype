@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-50` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-51` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -312,7 +312,7 @@ Wire 8, macro 3, result `region-2` and the delegation algorithm stay unchanged.
 Current full/omitted owning snapshots are checked, and full historical hut
 snapshots preserve their saved accepted offers; historical omitted results
 require their original `hut-yard-1` or `hut-yard-2` implementation, not
-current `hut-yard-3` (20.7).
+current `hut-yard-4` (20.7).
 The frozen simulation characterization fixture is untouched.
 
 ## Compound cord-aware yard adoption (#647)
@@ -350,3 +350,13 @@ source hashes and exact input briefs bind its raw outputs; it does not label
 experimental geometry as production content or promise historical regeneration
 under a future changed experiment. A production adoption would require its own
 content/compatibility decision and evidence under 20.7 and this document.
+
+## Multi-house hut content (#532)
+
+`types-51` / `hut-yard-4` intentionally changes hut structure counts, geometry,
+retained-yard ownership and loot, including huts nested in blocks. House placeable
+geometry is unchanged; compound content, wire/macro/library versions, crossing
+policy and delegation encoding remain unchanged. Current full and omitted hut
+snapshots recover; full historical snapshots preserve their saved geometry, while
+omitted snapshots from older hut implementations are rejected rather than rebuilt
+as current content. The capture record is in 42.4 and fill evidence in 42.3.

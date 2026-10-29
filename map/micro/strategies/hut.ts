@@ -1,5 +1,5 @@
 import type { Side } from '../port-terms.ts';
-import { circle } from '../../../shared/shape.ts';
+import { circle, rect } from '../../../shared/shape.ts';
 import { rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
@@ -15,6 +15,7 @@ import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { delegateYardCandidates, yardDiagnostics, yardExtentBoxes } from '../yard-handoff.ts';
 import type { YardDiagnostics } from '../yard-handoff.ts';
+import type { BuilderCanvas } from '../canvas.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
@@ -24,6 +25,8 @@ import { builtRegion } from '../result.ts';
 const BOX = 4;
 /** A hunter fits a 2 × 2 block of cells, and moving it by one cell sweeps a 2 × 3 rectangle. */
 const BODY = 2;
+/** Bound composition work in unusually large merged regions; residual yards may still take cover. */
+const MAX_HOUSES = 8;
 /**
  * The larger designs, tried before the one-space house, largest first (54 `hut`, 56 L5). Each
  * names its spaces and the boxes it may take, in cells. Rooms are at least 3 × 3 (56).
@@ -42,7 +45,7 @@ const houseFor = (w: number, h: number, door: Side, spaces: number, size: number
 };
 
 /**
- * The `hut` region type (54): one small building with optional yard-to-cover delegation.
+ * The `hut` region type (54): up to eight small buildings with optional yard-to-cover delegation.
  *
  * The builder works in cells, where a hunter is a 2 × 2 block of yard cells. It tries designs
  * largest first: three spaces, then two, then the one-space house in a 4 × 4 box. Each design
@@ -57,7 +60,10 @@ const houseFor = (w: number, h: number, door: Side, spaces: number, size: number
  * miss on a side doesn't take that side. The house stands in the box with walls and a roof.
  * It has one door outside, so no route runs through it, and every space is reached through
  * that door. A region with no such box takes the terminal empty path (20.7).
- * After placement, unused yard lobes may be offered without changing the house.
+ * Repeat that design search for additional houses, with two-cell inter-house aisles and a
+ * complete two-cell exterior access ring. Cumulative floods protect every earlier doorstep
+ * as well as the portals. Stop at the first no-fit search or eight houses, then offer unused
+ * yard lobes without changing the houses.
  *
  * Loot rolls each cell's chance and takes the cell's tier (52, "Tier zones"), where a loot
  * disc stands clear of the walls and the door. A hut sites no core elements; any the brief
@@ -88,7 +94,7 @@ export function buildHutGeneration(brief: RegionBrief, options: HutExecutionOpti
 }
 
 export const HUT_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  hut: { version: 'hut-yard-3', build: buildRetainedHut },
+  hut: { version: 'hut-yard-4', build: buildRetainedHut },
   cover: COVER_EXECUTION,
 });
 
@@ -99,31 +105,44 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
     return context.empty('hut has no usable fill');
   }
   const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design`).next() * 2 ** 31);
-  let site: Site | undefined;
-  for (const { spaces, boxes } of LARGER) {
-    const houses = new Map<string, House | null>();
-    const cached = (w: number, h: number, side: Side) => {
-      const key = `${w},${h},${side}`;
-      if (!houses.has(key)) houses.set(key, houseFor(w, h, side, spaces, size, seed) ?? null);
-      return houses.get(key) ?? undefined;
-    };
-    site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}`, cached);
-    if (site) break;
+  const canvas = createBuilderCanvas(brief), sites: Site[] = [];
+  // A bounded primary composition pass, before any yard is offered to cover.
+  // Preserve the original first-house channels; each later house has its own.
+  for (let index = 0; index < MAX_HOUSES; index++) {
+    const suffix = index ? `:house-${index}` : '';
+    let site: Site | undefined;
+    for (const { spaces, boxes } of LARGER) {
+      const houses = new Map<string, House | null>();
+      const cached = (w: number, h: number, side: Side) => {
+        const key = `${w},${h},${side}`;
+        if (!houses.has(key)) houses.set(key, houseFor(w, h, side, spaces, size, seed) ?? null);
+        return houses.get(key) ?? undefined;
+      };
+      site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}${suffix}`, cached, sites, canvas);
+      if (site) break;
+    }
+    const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
+    site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site${suffix}`,
+      (w, h, side) => houseFor(w, h, side, 1, size, seed), sites, canvas);
+    if (!site) break;
+    const { design, allocation, realization } = site.house.details;
+    const label = index ? `hut-building-${index + 1}` : 'hut-building';
+    const [element] = placedElements(site.house, label, site.x, site.y, size) as [RegionElement];
+    const access = site.steps.map(step => {
+      const [x, y] = step.split(',').map(Number) as [number, number];
+      return rect(x * size, y * size, BODY * size, BODY * size);
+    });
+    if (!canvas.commit({ elements: [element], access })) throw new Error('Hut placement failed its canvas commit.');
+    sites.push(site);
+    observe?.({ label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
   }
-  const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
-  site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site`, (w, h, side) => houseFor(w, h, side, 1, size, seed));
-  if (!site) {
+  if (!sites.length) {
     observeYard?.(yardDiagnostics(brief.id, 'no-house'));
     return context.empty('hut has no house with a reachable doorstep');
   }
-
-  const { design, allocation, realization } = site.house.details;
-  const [element] = placedElements(site.house, 'hut-building', site.x, site.y, size) as [RegionElement];
-  // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
-  if (!createBuilderCanvas(brief).commit({ elements: [element] })) throw new Error('Hut placement failed its canvas commit.');
-  observe?.({ label: element.label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
-  const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
-  delegateYard(brief, site, element, context, observeYard);
+  const elements = [...canvas.elements];
+  const shapes = elements.flatMap(e => elementShapes(e, true)), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
+  delegateYard(brief, sites, elements, context, observeYard);
   brief = context.brief;
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:hut-loot`), loot: LootSite[] = [];
@@ -135,16 +154,17 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
     if (ownedMask.contains(disc) && !shapes.some(shape => shapesOverlap(disc, shape))) loot.push({ x, y, tier: zone.tier });
   }
 
-  return builtRegion(brief, [element], loot);
+  return builtRegion(brief, elements, loot);
 }
 
 type Site = { x: number; y: number; house: House; steps: string[] };
 
 /** Try a capped number of peripheral boxes, allowing the coordinator to move yard cords. */
-function delegateYard(brief: RegionBrief, site: Site, element: RegionElement, context: ExecutionContext, observe?: HutExecutionOptions['observeYard']): void {
+function delegateYard(brief: RegionBrief, sites: Site[], elements: RegionElement[], context: ExecutionContext, observe?: HutExecutionOptions['observeYard']): void {
   delegateYardCandidates<'no-fill' | 'no-house'>(brief, context, {
-    retainedBox: { x: site.x, y: site.y, ...site.house.demand.body },
-    steps: site.steps.map(step => step.split(',').map(Number) as [number, number]), elements: [element], label: 'hut',
+    retainedBox: { x: sites[0]!.x, y: sites[0]!.y, ...sites[0]!.house.demand.body },
+    retainedBoxes: sites.map(site => ({ x: site.x, y: site.y, ...site.house.demand.body })),
+    steps: sites.flatMap(site => site.steps.map(step => step.split(',').map(Number) as [number, number])), elements, label: 'hut',
     offersFor: (reserved, diagnostics) => peripheralOffers(brief, reserved, diagnostics), observe,
   });
 }
@@ -187,12 +207,14 @@ function peripheralOffers(brief: RegionBrief, reserved: Set<string>, diagnostics
  * with its door on a side, or nothing where that side can't take it.
  */
 function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, accessMask: ReturnType<typeof createRegionMask>, boxes: ReadonlyArray<readonly [number, number]>, channel: string,
-  built: (w: number, h: number, side: Side) => House | undefined): Site | undefined {
+  built: (w: number, h: number, side: Side) => House | undefined, sites: Site[], canvas: BuilderCanvas): Site | undefined {
   const xs = mask.cells.map(c => c.x), ys = mask.cells.map(c => c.y);
   const width = Math.max(...xs) - Math.min(...xs) + 1, height = Math.max(...ys) - Math.min(...ys) + 1;
   const key = (x: number, y: number) => `${x},${y}`;
+  const occupied = (x: number, y: number) => sites.some(site => x >= site.x && y >= site.y
+    && x < site.x + site.house.demand.body.w && y < site.y + site.house.demand.body.h);
   const fits = (x: number, y: number, inBox: (x: number, y: number) => boolean) => {
-    for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!accessMask.has(i, j) || inBox(i, j)) return false;
+    for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!accessMask.has(i, j) || occupied(i, j) || inBox(i, j)) return false;
     return true;
   };
   // Label the blocks a hunter can stand on, joined where it can step one cell across.
@@ -238,16 +260,21 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
       let inFill = true;
       for (let j = y; j < y + h && inFill; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j)) { inFill = false; break; }
       if (!inFill) continue;
+      const footprint = rect(x * mask.cellSize, y * mask.cellSize, w * mask.cellSize, h * mask.cellSize);
+      if (!canvas.fits(footprint) || !canvas.spaced(footprint, BODY * mask.cellSize)) continue;
       const sides = random.shuffle(SIDES);
       const inBox = (i: number, j: number) => i >= x && i < x + w && j >= y && j < y + h;
       // A convex box with a clear ring a hunter wide can't divide the yard: a route through it goes round.
       let ring = true;
       for (let j = y - BODY; j < y + h + BODY && ring; j++) for (let i = x - BODY; i < x + w + BODY && ring; i++) ring = accessMask.has(i, j);
-      const yard = ring ? empty : label(inBox);
+      // Additional houses need a complete exterior bypass, including in unported lobes.
+      if (sites.length && !ring) continue;
+      const shortcut = ring && !sites.length;
+      const yard = shortcut ? empty : label(inBox);
       // Entrances stay in the yard, since the box is in the fill and off every margin. Those the empty region joined must stay joined.
       const joined = new Map<number, number | undefined>();
       let divided = false;
-      for (const e of ring ? [] : entrances) {
+      for (const e of shortcut ? [] : entrances) {
         const before = empty.get(e)!;
         if (!joined.has(before)) joined.set(before, yard.get(e));
         else divided ||= joined.get(before) !== yard.get(e);
@@ -256,6 +283,7 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
       const reached = new Set(entrances.map(e => yard.get(e)));
       // Each doorstep block must be yard that a portal reaches.
       const clear = (step: string) => yard.has(step) && (!entrances.length || reached.has(yard.get(step)));
+      if (!sites.every(site => site.steps.every(clear))) continue;
       for (const side of sides) {
         const house = built(w, h, side);
         if (!house) continue;
