@@ -47,3 +47,16 @@ test('terminal empty huts expose no-fill and no-house outcomes', () => {
   buildHutGeneration(input(2), { observeYard: event => events.push(event) });
   assert.deepEqual(events.map(e => e.outcome), ['no-fill', 'no-house']);
 });
+
+test('a continuous initialization miss records its reason and keeps the sited house', () => {
+  const cells = [...cellsOf(10, 10), ...cellsOf(10, 10).map(c => ({ x: c.x + 20, y: c.y })),
+    ...cellsOf(10, 1).map(c => ({ x: c.x + 10, y: 4 }))];
+  const brief = chainBrief({ id: 'separated', type: 'hut', cells, seed: 1, portals: [
+    { id: 'west', axis: 'v', x: 0, y: 3, length: 2 }, { id: 'east', axis: 'v', x: 30, y: 3, length: 2 }] });
+  const events = [], node = buildHutGeneration(brief, { observeYard: event => events.push(event) });
+  assert.equal(events[0].outcome, 'init');
+  assert.equal(events[0].reason, 'external');
+  assert.deepEqual(node.retained.brief, node.input);
+  assert.equal(node.children?.length ?? 0, 0);
+  assert.ok(node.retained.elements.some(e => e.label === 'hut-building'));
+});

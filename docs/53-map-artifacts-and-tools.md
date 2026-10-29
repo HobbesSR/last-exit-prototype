@@ -132,8 +132,8 @@ default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
 2 × 1 cases). These are the stored case groups, not a new zero-drift run.
 They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
-The current baseline provenance is content commit `bfb28be1f0470e9c04c2e56059e7f8106ae1325d`,
-captured `2026-10-29T03:27:06.055Z` under Node v24.15.0 (#647, 42.4).
+The current baseline provenance is content commit `faf7c19dd09c2a3848eb931ee2b3f6650b115c84`,
+captured `2026-10-29T06:21:21.656Z` under Node v24.15.0 (#647, 42.4).
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash
@@ -311,5 +311,6 @@ through cord-aware boundary handoffs. House siting and geometry are unchanged.
 Wire 8, macro 3, result `region-2` and the delegation algorithm stay unchanged.
 Current full/omitted owning snapshots are checked, and full historical hut
 snapshots preserve their saved accepted offers; historical omitted results
-require `hut-yard-1`, not the new `hut-yard-2` implementation (20.7).
+require their original `hut-yard-1` or `hut-yard-2` implementation, not
+current `hut-yard-3` (20.7).
 The frozen simulation characterization fixture is untouched.

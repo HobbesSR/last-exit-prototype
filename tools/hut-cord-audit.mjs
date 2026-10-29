@@ -6,6 +6,7 @@ import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
+import { gunzipSync } from 'node:zlib';
 import { isDeepStrictEqual } from 'node:util';
 import { buildHutGeneration, HUT_EXECUTION_REGISTRY } from '../map/micro/strategies/hut.ts';
 import { flattenDelegationResult } from '../map/micro/delegation-execute.ts';
@@ -161,7 +162,7 @@ function panel(b, result, owners, cords) {
   return svg + '</svg>';
 }
 function renderReport(report) {
-  const panels = report.records.map(r => `<section><h2>${esc(r.name)} ? seed ${esc(r.seed)}</h2><div class="pair"><figure><figcaption>Before (${esc(report.baseline.commit)})</figcaption>${panel(r.brief, r.before.result, r.before.owners)}</figure><figure><figcaption>After</figcaption>${panel(r.brief, r.after.result, r.after.owners, r.cords)}</figure></div><p>After overlays: dashed amber is the initial house-envelope route; blue is independently rediscovered final access, dots are door approaches. Displaced initial routes: ${esc(r.cords?.displaced?.join(', ') || 'none')}. Checks: ${esc(JSON.stringify(r.checks))}; geometry failures before ${r.before.failures.length}, after ${r.after.failures.length}. Retention before/after: ${esc(JSON.stringify([r.before.retention, r.after.retention]))}. See JSON for details.</p></section>`);
+  const panels = report.records.map(r => `<section><h2>${esc(r.name)} - seed ${esc(r.seed)}</h2><div class="pair"><figure><figcaption>Before (${esc(report.baseline.commit)})</figcaption>${panel(r.brief, r.before.result, r.before.owners)}</figure><figure><figcaption>After</figcaption>${panel(r.brief, r.after.result, r.after.owners, r.cords)}</figure></div><p>After overlays: dashed amber is the initial house-envelope route; blue is independently rediscovered final access, dots are door approaches. Displaced initial routes: ${esc(r.cords?.displaced?.join(', ') || 'none')}. Checks: ${esc(JSON.stringify(r.checks))}; geometry failures before ${r.before.failures.length}, after ${r.after.failures.length}. Retention before/after: ${esc(JSON.stringify([r.before.retention, r.after.retention]))}. See JSON for details.</p></section>`);
   return `<!doctype html><meta charset="utf-8"><title>Hut cord audit</title><style>body{font:16px system-ui;margin:2em}section{border-top:1px solid #aaa}.pair{display:flex;gap:1em}figure{margin:0;flex:1}svg{width:100%;max-height:500px;background:#fff}figcaption{font-weight:bold}p,code{overflow-wrap:anywhere}</style><h1>Hut cord audit</h1><p>Same brief and seed. Cell colours indicate owners; brown geometry is the house, green is cover, magenta marks external portals. Baseline uses current supporting modules. Raw results and diagnostic errors: <a href="results.json">results.json</a>.</p>${report.diagnosticCounts ? `<h2>Yard candidate and fallback diagnostics</h2><p><code>${esc(JSON.stringify(report.diagnosticCounts))}</code></p>` : ''}${report.retentionDistributions ? `<h2>Retained ownership and yard distributions</h2><p><code>${esc(JSON.stringify(report.retentionDistributions))}</code></p>` : ''}${report.maps ? `<h2>Production maps</h2><p>All unique top-level huts and block lots are shown below. Counts, map defects and uptake: <code>${esc(JSON.stringify(report.maps))}</code></p>` : ''}${panels.join('')}`;
 }
 async function main() {
@@ -170,7 +171,8 @@ async function main() {
     if (opts.maps || opts.timing) throw Error('--render-from cannot be combined with --maps or --timing.');
     const inputPath = resolve(ROOT, opts.renderFrom);
     const outputPath = resolve(dir, 'results.json');
-    const raw = await readFile(inputPath, 'utf8');
+    const bytes = await readFile(inputPath);
+    const raw = (inputPath.endsWith('.gz') ? gunzipSync(bytes) : bytes).toString('utf8');
     const report = JSON.parse(raw);
     if (!Array.isArray(report.records)) throw Error('Report has no records.');
     await mkdir(dir, { recursive: true });

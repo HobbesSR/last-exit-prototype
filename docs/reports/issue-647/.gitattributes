@@ -1,0 +1,5 @@
+# Preserve retained evidence bytes; source/configuration and digests are in README.
+* -text -diff -whitespace
+README.md text eol=lf diff
+.gitattributes text eol=lf diff
+review-summary.json text eol=lf diff
