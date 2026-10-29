@@ -4,7 +4,7 @@ import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, GroundItem, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
-import { groundItem, publishItems } from './ground-items.ts';
+import { groundItem, groundPosition, publishItems } from './ground-items.ts';
 import { physicsState } from './physics-runtime.ts';
 import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
 import { MAX_PHYSICS_SPEED } from '../physics/motion-limits.ts';
@@ -83,10 +83,10 @@ export function snapshot(s: Game): Snapshot {
     // a differing pose gives the frame its own list.
     let items = ground;
     for (const body of presentation?.bodies ?? []) {
-      const item = body.itemId === undefined ? undefined : groundItem(s, String(body.itemId));
+      const at = body.itemId === undefined ? undefined : groundPosition(s, String(body.itemId)), item = at === undefined ? undefined : ground[at];
       if (!item || Object.is(item.x, body.x) && Object.is(item.y, body.y)) continue;
       if (items === ground) items = ground.slice();
-      (items as GroundItem[])[ground.indexOf(item)] = Object.freeze({ ...item, x: body.x, y: body.y });
+      (items as GroundItem[])[at!] = Object.freeze({ ...item, x: body.x, y: body.y });
     }
     stop('sim.snapshot.presentation');
     start('sim.snapshot.clone');

@@ -5,7 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { stepPhysics } from '../shared/simulation/phased.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups } from '../shared/simulation/loot.ts';
-import { groundItem, groundList } from '../shared/simulation/ground-items.ts';
+import { groundItem, groundList, replaceItem } from '../shared/simulation/ground-items.ts';
 
 // #655 stage 1 (22.1 "Frames"): frames share the ground list and its records, and a change replaces only what it touches.
 const arena = items => ({ width: 600, height: 400,
@@ -55,6 +55,7 @@ test('adding to a published ground copies the list once and leaves the frame alo
   assert.deepEqual(s.map.items.map(item => item.id), ['a', 'b', 'c']);
   assert.equal(s.map.items[0], frame.items[0]);
   assert.equal(groundItem(s, 'c')?.id, 'c');
+  assert.throws(() => replaceItem(s, s.map.items[0], { ...s.map.items[0], id: 'other' }), /replacing ground item a/);
 });
 
 test('physics writes back only the item bodies that moved', async () => {

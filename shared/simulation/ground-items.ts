@@ -31,19 +31,26 @@ function positions(list: readonly GroundItem[]): Map<string, number> {
   return index;
 }
 
-/** The ground record with this id, without scanning the list on every call. */
-export function groundItem(s: Game, id: string): GroundItem | undefined {
+/** Where the ground record with this id sits in `s.map.items`, without scanning the list on every call. */
+export function groundPosition(s: Game, id: string): number | undefined {
   const list = s.map.items;
   let index = positions(list), at = index.get(id);
   // A list edited in place without groundList (a test arranging a scenario) is indexed again.
   if (index.size !== list.length || at !== undefined && String(list[at]?.id) !== id) {
     indexes.delete(list); index = positions(list); at = index.get(id);
   }
-  return at === undefined ? undefined : list[at];
+  return at;
 }
 
-/** Put `next` where `item` is on the ground. */
+/** The ground record with this id. */
+export function groundItem(s: Game, id: string): GroundItem | undefined {
+  const at = groundPosition(s, id);
+  return at === undefined ? undefined : s.map.items[at];
+}
+
+/** Put `next` where `item` is on the ground. The id stays: the position index is carried across. */
 export function replaceItem(s: Game, item: GroundItem, next: GroundItem): void {
+  if (next.id !== item.id) throw new Error(`replacing ground item ${item.id} with ${next.id}`);
   const list = writable(s), hinted = indexes.get(list)?.get(String(item.id));
   const at = hinted !== undefined && list[hinted] === item ? hinted : list.indexOf(item);
   if (at < 0) throw new Error(`ground item ${item.id} is not on the ground`);
