@@ -104,12 +104,12 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
     observeYard?.(yardDiagnostics(brief.id, 'no-fill'));
     return context.empty('hut has no usable fill');
   }
-  const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design`).next() * 2 ** 31);
   const canvas = createBuilderCanvas(brief), sites: Site[] = [];
   // A bounded primary composition pass, before any yard is offered to cover.
   // Preserve the original first-house channels; each later house has its own.
   for (let index = 0; index < MAX_HOUSES; index++) {
     const suffix = index ? `:house-${index}` : '';
+    const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design${suffix}`).next() * 2 ** 31);
     let site: Site | undefined;
     for (const { spaces, boxes } of LARGER) {
       const houses = new Map<string, House | null>();
@@ -162,7 +162,6 @@ type Site = { x: number; y: number; house: House; steps: string[] };
 /** Try a capped number of peripheral boxes, allowing the coordinator to move yard cords. */
 function delegateYard(brief: RegionBrief, sites: Site[], elements: RegionElement[], context: ExecutionContext, observe?: HutExecutionOptions['observeYard']): void {
   delegateYardCandidates<'no-fill' | 'no-house'>(brief, context, {
-    retainedBox: { x: sites[0]!.x, y: sites[0]!.y, ...sites[0]!.house.demand.body },
     retainedBoxes: sites.map(site => ({ x: site.x, y: site.y, ...site.house.demand.body })),
     steps: sites.flatMap(site => site.steps.map(step => step.split(',').map(Number) as [number, number])), elements, label: 'hut',
     offersFor: (reserved, diagnostics) => peripheralOffers(brief, reserved, diagnostics), observe,

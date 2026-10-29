@@ -1,0 +1,1495 @@
+{
+  "node": "v24.15.0",
+  "head": "54e4967fef600110bdf65e99bb651f47216cf90f",
+  "sourceBlobs": {
+    "map/micro/strategies/hut.ts": "f886f4f4b92e63c6154f71eed6c57392727a8b05",
+    "map/micro/yard-handoff.ts": "04c33122814e03f54d7ecb921b4b28aad6f46fc8",
+    "map/micro/strategies/compound.ts": "cb2048cb4cc0718fa42963780278c5e7644bfdd1"
+  },
+  "historicalRevision": "507759621e150d8ec3d70a6d433343946868e796",
+  "priorRevision": "54e4967fef600110bdf65e99bb651f47216cf90f",
+  "priorScope": "Prior hut module with current supporting modules; obsolete retainedBox argument removed, retaining the existing retainedBoxes array.",
+  "historicalScope": "Historical hut module with current supporting modules; only its retainedBox argument is adapted to retainedBoxes: [retainedBox] for the current yard handoff.",
+  "measure": "Envelope is rectangular house template area in cell equivalents; occupied is measureFill owned cells minus free cells across final combined geometry. Clone pairs compare template.parts; allocation pairs additionally require the same space count.",
+  "samples": [
+    {
+      "seed": "size-12-1",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "defects": [],
+      "hutCount": 3,
+      "houseCount": 3,
+      "envelopeCells": 33,
+      "occupiedCells": 27,
+      "sameSizePairs": 0,
+      "clonePairs": 0,
+      "sameSizeAllocationPairs": 0,
+      "differingAllocationPairs": 0,
+      "hutsChangedFromPrior": 0,
+      "roomCounts": {
+        "1": 3
+      },
+      "clonePairsByRooms": {},
+      "huts": [
+        {
+          "id": "hut@72,36",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@12,72",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 10,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@324,72",
+          "houses": 1,
+          "envelopeCells": 9,
+          "occupiedCells": 8,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        }
+      ]
+    },
+    {
+      "seed": "size-24-1",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "defects": [],
+      "hutCount": 22,
+      "houseCount": 60,
+      "envelopeCells": 599,
+      "occupiedCells": 466,
+      "sameSizePairs": 51,
+      "clonePairs": 12,
+      "sameSizeAllocationPairs": 51,
+      "differingAllocationPairs": 0,
+      "hutsChangedFromPrior": 0,
+      "roomCounts": {
+        "1": 60
+      },
+      "clonePairsByRooms": {
+        "1,1": 12
+      },
+      "huts": [
+        {
+          "id": "hut@354,0",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@162,72",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@468,72",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@516,72",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@534,72",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@282,102",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 30,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@240,114",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@270,120",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@576,144",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@684,144",
+          "houses": 1,
+          "envelopeCells": 9,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@714,192",
+          "houses": 5,
+          "envelopeCells": 48,
+          "occupiedCells": 39,
+          "primaryEqual": true,
+          "doorstepTerminals": 9,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 5
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 5,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@30,210",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@48,210",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@210,210",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@678,210",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@384,228",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 2,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 2
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@570,228",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 12,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@402,234",
+          "houses": 2,
+          "envelopeCells": 21,
+          "occupiedCells": 15,
+          "primaryEqual": true,
+          "doorstepTerminals": 3,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 2
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 2,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@264,258",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@396,258",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@264,276",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 30,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@384,342",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 30,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 3,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 3
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        }
+      ]
+    },
+    {
+      "seed": "size-36-1",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "defects": [],
+      "hutCount": 43,
+      "houseCount": 113,
+      "envelopeCells": 1143,
+      "occupiedCells": 877,
+      "sameSizePairs": 84,
+      "clonePairs": 21,
+      "sameSizeAllocationPairs": 84,
+      "differingAllocationPairs": 0,
+      "hutsChangedFromPrior": 0,
+      "roomCounts": {
+        "1": 113
+      },
+      "clonePairsByRooms": {
+        "1,1": 21
+      },
+      "huts": [
+        {
+          "id": "hut@492,0",
+          "houses": 1,
+          "envelopeCells": 9,
+          "occupiedCells": 8,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@510,0",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 12,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@534,0",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 10,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@558,6",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@432,12",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@582,60",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 30,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@432,66",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@624,66",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 3,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 3
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@246,108",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@408,108",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 12,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@816,108",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@852,108",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@216,114",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@234,114",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 30,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@858,120",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 12,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@486,138",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@624,180",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 30,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@708,192",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@546,210",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@48,216",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@66,216",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 10,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@84,216",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@198,216",
+          "houses": 1,
+          "envelopeCells": 9,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@1038,216",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 12,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@1026,228",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 3,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 3
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@858,234",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@1026,246",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@1032,276",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@72,318",
+          "houses": 1,
+          "envelopeCells": 9,
+          "occupiedCells": 8,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@114,318",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 10,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@138,318",
+          "houses": 1,
+          "envelopeCells": 16,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@894,318",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 10,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@330,342",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@432,390",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@216,414",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@258,426",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 11,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@804,426",
+          "houses": 1,
+          "envelopeCells": 9,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 2,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@630,438",
+          "houses": 4,
+          "envelopeCells": 36,
+          "occupiedCells": 28,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 6,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 6,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@438,450",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 30,
+          "primaryEqual": true,
+          "doorstepTerminals": 8,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@630,462",
+          "houses": 2,
+          "envelopeCells": 21,
+          "occupiedCells": 16,
+          "primaryEqual": true,
+          "doorstepTerminals": 4,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 2
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 2,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@432,468",
+          "houses": 1,
+          "envelopeCells": 12,
+          "occupiedCells": 9,
+          "primaryEqual": true,
+          "doorstepTerminals": 1,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 0,
+          "clonePairs": 0,
+          "sameSizeAllocationPairs": 0,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 1
+          },
+          "clonePairsByRooms": {},
+          "priorHouseCount": 1,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@438,480",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        },
+        {
+          "id": "hut@432,516",
+          "houses": 4,
+          "envelopeCells": 39,
+          "occupiedCells": 29,
+          "primaryEqual": true,
+          "doorstepTerminals": 7,
+          "doorReach": true,
+          "portalErrors": [],
+          "sameSizePairs": 3,
+          "clonePairs": 1,
+          "sameSizeAllocationPairs": 3,
+          "differingAllocationPairs": 0,
+          "roomCounts": {
+            "1": 4
+          },
+          "clonePairsByRooms": {
+            "1,1": 1
+          },
+          "priorHouseCount": 4,
+          "priorElementsEqual": true
+        }
+      ]
+    }
+  ]
+}

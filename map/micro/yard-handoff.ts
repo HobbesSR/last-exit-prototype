@@ -26,18 +26,18 @@ type Box = { x: number; y: number; w: number; h: number };
 
 /** Run the shared optional yard handoff transaction, leaving candidate policy to the builder. */
 export function delegateYardCandidates<O extends string>(brief: RegionBrief, context: ExecutionContext, options: {
-  retainedBox: Box; retainedBoxes?: Box[]; steps: [number, number][]; elements: RegionElement[]; label: string;
+  retainedBoxes: Box[]; steps: [number, number][]; elements: RegionElement[]; label: string;
   offersFor: (reserved: Set<string>, diagnostics: YardDiagnostics<O>) => PatchOffer[];
   observe?: ((diagnostics: YardDiagnostics<O>) => void) | undefined;
 }): void {
-  const { retainedBox, steps, elements, label, offersFor, observe } = options;
+  const { retainedBoxes: boxes, steps, elements, label, offersFor, observe } = options;
   const diagnostics: YardDiagnostics<O> = yardDiagnostics<O>(brief.id, 'no-eligible-candidates');
   const report = (outcome: YardDiagnostics<O>['outcome'], reason?: string) => {
     diagnostics.outcome = outcome;
     if (reason !== undefined) diagnostics.reason = reason;
     observe?.(structuredClone(diagnostics));
   };
-  const size = brief.cellSize, boxes = options.retainedBoxes ?? [retainedBox];
+  const size = brief.cellSize;
   // The retained-portal policy requires each original portal's owned seam
   // cells to stay with the parent. These checks are necessary refusals, so
   // discard them before constructing the optional routing coordinator.

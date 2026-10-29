@@ -1,5 +1,11 @@
 # Issue 532: authored hut capacity sample
 
+The initial measurements below pin the first PR checkpoint. The current review
+response is recorded in [review-seeds.json](review-seeds.json), reproduced with
+`node docs/reports/issue-532/review-seeds.mjs`. The historical scripts require
+their recorded source checkpoint; the review script adapts only the historical
+yard-call argument shape to the current single-array API.
+
 This report compares the checked-in hut strategy at revision `5077596` with the
 uncommitted working tree after the multi-house change on 2026-10-29.
 The final content checkpoint is `c3d79be`; no exact dirty-tree digest was
@@ -119,3 +125,32 @@ the deliberate content change, keeping the ID-order assertions. That run also
 had an early client-config test-process exit without a diagnostic. Its isolated
 rerun passed both tests, and the subsequent full suite passed without recurrence.
 The cause of that initial process exit is unknown.
+
+## PR #671 review 506: independent design channels
+
+Secondary houses now draw allocation seeds from `hut-design:house-N`; the primary
+keeps the original `hut-design` channel. A roomy repeated-dimension regression
+checks the realized allocations and geometry against the per-house channels,
+demonstrates a secondary plan differs from the reused legacy seed, and witnesses
+different multi-room allocations. The new regression file passes in 2.5 s.
+
+The [current authored replay](review-seeds.json) retains all 68 primary houses,
+all actual doorstep witnesses and thorough portal checks, with zero map defects.
+All 176 top-level houses in these three maps are single-room houses. Their
+allocation seed is intentionally ignored by `HOUSE`, so all 33 identical-template
+pairs (12 at 24 x 12, 21 at 36 x 18) remain fixed single-room repeats. No same-size
+multi-room pair occurs in this sample. Complete house elements match `54e4967`
+throughout these authored samples. The multi-room regression supplies the
+variation witness; independent seeds do not promise uniqueness or vary the fixed
+single-room placeable.
+
+The full 224-map sweep also has zero drift versus `54e4967`. Its existing
+199 changed-map diagnostics and original larger-library checks therefore remain
+applicable to these unchanged maps. The remaining micro and fast gates and the
+new capture provenance are recorded with this review checkpoint. `types-51` and
+`hut-yard-4` remain the identities of this still-unmerged content change.
+
+The optional shared yard adapter cleanup uses one required `retainedBoxes` array;
+compound passes its one ring in an array and retains identical behavior. Portal-free
+regions retain the existing component policy: this response adds no global
+house-to-house connectivity requirement to disconnected portal-free masks.

@@ -9,6 +9,8 @@ import { validatePortalReach } from '../map/micro/portals.ts';
 import { chainBrief, chainFixtures, reorderedBrief } from './helpers/chain-briefs.js';
 import { cellsOf } from './helpers/cells.js';
 import { hutApproaches } from './helpers/hut-cord-geometry.js';
+import { HOUSE } from '../map/micro/placeables/house.ts';
+import { rng } from '../map/micro/random.ts';
 
 const houses = node => node.retained.elements.filter(e => /^hut-building(?:-\d+)?$/.test(e.label));
 function checkGeometry(node) {
@@ -42,6 +44,37 @@ function checkGeometry(node) {
 
 const roomy = () => chainBrief({ id: 'multi-hut', type: 'hut', seed: 1, cells: cellsOf(32, 24), portals: [
   { id: 'w', axis: 'v', x: 0, y: 8, length: 3 }, { id: 'e', axis: 'v', x: 32, y: 12, length: 3 }] });
+
+test('each house uses its own design seed while the primary retains the legacy channel', () => {
+  const brief = roomy(), node = buildHutGeneration(brief), traces = node.observerEvents;
+  const legacySeed = Math.floor(rng(brief.seed, `${brief.id}:hut-design`).next() * 2 ** 31);
+  let secondaryDiffersFromLegacy = false;
+  const plans = [];
+  for (const [index, house] of houses(node).entries()) {
+    const trace = traces.find(event => event.label === house.label);
+    assert.ok(trace);
+    const w = house.template.w / brief.cellSize, h = house.template.h / brief.cellSize;
+    const door = trace.design.connections.find(connection => connection.id === 'door').side;
+    const spaces = trace.design.spaces.length;
+    const suffix = index ? `:house-${index}` : '';
+    const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design${suffix}`).next() * 2 ** 31);
+    const params = { w, h, door, spaces, seed };
+    const expected = HOUSE.build(params, brief.cellSize);
+    assert.ok(!('refused' in expected), house.label);
+    assert.deepEqual(trace.allocation, expected.details.allocation, house.label);
+    assert.deepEqual(trace.realization, expected.details.realization, house.label);
+    if (index && spaces > 1) {
+      const legacy = HOUSE.build({ ...params, seed: legacySeed }, brief.cellSize);
+      if (!('refused' in legacy) && JSON.stringify(legacy.details.allocation) !== JSON.stringify(trace.allocation))
+        secondaryDiffersFromLegacy = true;
+    }
+    plans.push({ w, h, spaces, allocation: trace.allocation });
+  }
+  assert.ok(secondaryDiffersFromLegacy, 'a secondary allocation must distinguish its own seed from the legacy seed');
+  assert.ok(plans.some((plan, i) => plans.slice(0, i).some(other => plan.w === other.w && plan.h === other.h
+    && plan.spaces === other.spaces && JSON.stringify(plan.allocation) !== JSON.stringify(other.allocation))),
+  'the repeated-dimension witness has different allocations');
+});
 
 test('roomy hut places several spaced houses before yard handoff and preserves every entrance', () => {
   const brief = roomy(), node = buildHutGeneration(brief);
