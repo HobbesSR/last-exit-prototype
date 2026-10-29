@@ -1,0 +1,326 @@
+{
+  "currentCommit": "f631cdd43f6b570f9dbeda46cc91cd98a0cf64f4",
+  "trackedDirtyFiles": "",
+  "comparisonSource": {
+    "path": "docs/reports/issue-647/compound-cords.json.gz",
+    "sha256": "4383a32bdf8004a801ed5fcd2f6221ef7d7ce250496168d9ced0d3ba19efc718",
+    "contentCommit": "3d4106fff2ed12240b9741f3d7fc46343079f269",
+    "baselineCommit": "ccb28eb",
+    "reuseCount": 38,
+    "note": "Matching original before geometry and failures are historical report observations, not rerun; snapshot checks are current."
+  },
+  "allocation": {
+    "definition": "Offered cells sum all root offers, including rejected offers; transferred cells are root input cells minus retained cells.",
+    "synthetic": {
+      "before": {
+        "cases": 20,
+        "childCount": 20,
+        "regionsWithChildren": 12,
+        "offeredCells": 7487,
+        "transferredCells": 3071
+      },
+      "previousReview": {
+        "cases": 20,
+        "childCount": 68,
+        "regionsWithChildren": 16,
+        "offeredCells": 5348,
+        "transferredCells": 5348
+      },
+      "after": {
+        "cases": 20,
+        "childCount": 39,
+        "regionsWithChildren": 16,
+        "offeredCells": 4364,
+        "transferredCells": 4364
+      }
+    },
+    "production": {
+      "before": {
+        "cases": 18,
+        "childCount": 3,
+        "regionsWithChildren": 3,
+        "offeredCells": 14607,
+        "transferredCells": 4576
+      },
+      "previousReview": {
+        "cases": 18,
+        "childCount": 23,
+        "regionsWithChildren": 4,
+        "offeredCells": 729,
+        "transferredCells": 729
+      },
+      "after": {
+        "cases": 18,
+        "childCount": 30,
+        "regionsWithChildren": 13,
+        "offeredCells": 9053,
+        "transferredCells": 9053
+      }
+    }
+  },
+  "diagnosticCounts": {
+    "cases": 38,
+    "withoutYardEvent": 0,
+    "outcomes": {
+      "no-space": 4,
+      "delegated": 29,
+      "no-eligible-candidates": 5
+    },
+    "fallbackReasons": {},
+    "refusals": {
+      "rejected": 115,
+      "external": 402,
+      "budget": 2
+    },
+    "considered": 1081,
+    "filtered": 14,
+    "probed": 588,
+    "accepted": 69
+  },
+  "maps": [
+    {
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "seed": "issue330-before-12x6",
+      "valid": true,
+      "defects": [],
+      "candidates": 0,
+      "uniqueCompounds": 0,
+      "topLevel": 0,
+      "blockLots": 0,
+      "uptake": {
+        "beforeWithChildren": 0,
+        "afterWithChildren": 0,
+        "beforeChildren": 0,
+        "afterChildren": 0,
+        "displacedInitialRoutes": 0
+      }
+    },
+    {
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "seed": "issue330-before-24x12",
+      "valid": true,
+      "defects": [],
+      "candidates": 4,
+      "uniqueCompounds": 4,
+      "topLevel": 4,
+      "blockLots": 0,
+      "uptake": {
+        "beforeWithChildren": 0,
+        "afterWithChildren": 4,
+        "beforeChildren": 0,
+        "afterChildren": 8,
+        "displacedInitialRoutes": 4
+      }
+    },
+    {
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "seed": "issue330-before-36x18",
+      "valid": true,
+      "defects": [],
+      "candidates": 14,
+      "uniqueCompounds": 14,
+      "topLevel": 9,
+      "blockLots": 5,
+      "uptake": {
+        "beforeWithChildren": 3,
+        "afterWithChildren": 9,
+        "beforeChildren": 3,
+        "afterChildren": 22,
+        "displacedInitialRoutes": 9
+      }
+    }
+  ],
+  "failed": false,
+  "verification": {
+    "pairs": 38,
+    "allChecksPassed": true,
+    "currentGeometryFailures": 0,
+    "displacedInitialRouteCases": 27
+  },
+  "retainedYardFractions": {
+    "synthetic": {
+      "before": {
+        "samples": 20,
+        "min": 0.476056338028169,
+        "median": 0.7176724137931034,
+        "max": 1,
+        "minimumCase": {
+          "value": 0.476056338028169,
+          "name": "concave",
+          "seed": 1
+        }
+      },
+      "after": {
+        "samples": 20,
+        "min": 0.4084507042253521,
+        "median": 0.6938074142700559,
+        "max": 1,
+        "minimumCase": {
+          "value": 0.4084507042253521,
+          "name": "concave",
+          "seed": 2
+        }
+      }
+    },
+    "production": {
+      "before": {
+        "samples": 18,
+        "min": 0.6043543543543544,
+        "median": 1,
+        "max": 1,
+        "minimumCase": {
+          "value": 0.6043543543543544,
+          "name": "issue330-before-36x18 / compound@276,330",
+          "seed": 2503646721,
+          "source": {
+            "map": "issue330-before-36x18",
+            "location": "top-level"
+          }
+        }
+      },
+      "after": {
+        "samples": 18,
+        "min": 0.4943820224719101,
+        "median": 0.747191011235955,
+        "max": 1,
+        "minimumCase": {
+          "value": 0.4943820224719101,
+          "name": "issue330-before-36x18 / compound@180,294",
+          "seed": 4103313628,
+          "source": {
+            "map": "issue330-before-36x18",
+            "location": "top-level"
+          }
+        }
+      }
+    }
+  },
+  "timing": {
+    "rounds": [
+      {
+        "before": 553.449099999998,
+        "after": 8070.442800000004
+      },
+      {
+        "before": 534.5900000000038,
+        "after": 8153.4240999999965
+      },
+      {
+        "before": 536.5092000000004,
+        "after": 8040.277299999994
+      }
+    ],
+    "macro": {
+      "cells": 30000,
+      "portals": 170,
+      "rounds": [
+        {
+          "before": 732.5580999999947,
+          "after": 416.1414999999979,
+          "beforeChildren": 0,
+          "afterChildren": 0
+        },
+        {
+          "before": 719.1966000000102,
+          "after": 406.94550000000163,
+          "beforeChildren": 0,
+          "afterChildren": 0
+        },
+        {
+          "before": 797.2045999999973,
+          "after": 419.12339999999676,
+          "beforeChildren": 0,
+          "afterChildren": 0
+        }
+      ]
+    },
+    "macroOutcome": [
+      {
+        "briefId": "field",
+        "outcome": "portal-capacity",
+        "considered": 0,
+        "filtered": 0,
+        "probed": 0,
+        "accepted": 0,
+        "refusals": {},
+        "eligibleOffers": [],
+        "probes": [],
+        "reason": "compound handoffs support at most 128 original portals"
+      }
+    ]
+  },
+  "selectedCases": [
+    {
+      "name": "concave",
+      "seed": 1,
+      "beforeActualTransferred": 372,
+      "previousReview": {
+        "children": 4,
+        "offeredCells": 105,
+        "transferredCells": 105,
+        "retention": {
+          "originalCells": 1040,
+          "retainedCells": 935,
+          "ringCells": 330,
+          "retainedRingCells": 330,
+          "originalYardCells": 710,
+          "retainedYardCells": 605,
+          "retainedFraction": 0.8990384615384616,
+          "retainedYardFraction": 0.852112676056338
+        }
+      },
+      "afterActualTransferred": 96,
+      "afterRetainedYard": 0.8647887323943662,
+      "afterChildren": 1
+    },
+    {
+      "name": "issue330-before-36x18 / compound@180,294",
+      "seed": 4103313628,
+      "beforeActualTransferred": 180,
+      "previousReview": {
+        "children": 0,
+        "offeredCells": 0,
+        "transferredCells": 0,
+        "retention": {
+          "originalCells": 1152,
+          "retainedCells": 1152,
+          "ringCells": 440,
+          "retainedRingCells": 440,
+          "originalYardCells": 712,
+          "retainedYardCells": 712,
+          "retainedFraction": 1,
+          "retainedYardFraction": 1
+        }
+      },
+      "afterActualTransferred": 360,
+      "afterRetainedYard": 0.4943820224719101,
+      "afterChildren": 2
+    },
+    {
+      "name": "issue330-before-36x18 / compound@276,330",
+      "seed": 2503646721,
+      "beforeActualTransferred": 4216,
+      "previousReview": {
+        "children": 8,
+        "offeredCells": 270,
+        "transferredCells": 270,
+        "retention": {
+          "originalCells": 11232,
+          "retainedCells": 10962,
+          "ringCells": 576,
+          "retainedRingCells": 576,
+          "originalYardCells": 10656,
+          "retainedYardCells": 10386,
+          "retainedFraction": 0.9759615384615384,
+          "retainedYardFraction": 0.9746621621621622
+        }
+      },
+      "afterActualTransferred": 5108,
+      "afterRetainedYard": 0.5206456456456456,
+      "afterChildren": 3
+    }
+  ]
+}

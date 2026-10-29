@@ -182,3 +182,60 @@ summary and PNG bytes are preserved. Their generation trees and retained counts
 support these corrected totals. The follow-up report explicitly distinguishes
 offered from transferred cells. Corey selected improving coverage before merge
 in response to review 498 (verbatim direction in 17.2.10).
+
+
+## Compound review response: compound-yard-4
+
+Content source `f631cdd43f6b570f9dbeda46cc91cd98a0cf64f4`, with clean tracked
+source during the runs. `compound-response.json.gz` is the complete current
+38-pair report; `compound-response-summary.json` is its compact allocation,
+validation, diagnostic, retention and selected-case summary. Before/source
+provenance is explicit: exact matching original-before trees, results and
+geometry observations are reused from `compound-cords.json.gz` (SHA-256 recorded
+inside the new report), not claimed reruns. Every current result/geometry/access,
+determinism and snapshot check reruns. Full first-PR results recover and omitted
+first-PR snapshots refuse the new implementation. All three full production
+maps regenerate and report no defects. All 38 pairs match/reuse the same input.
+
+The enhanced audit distinguishes offered cells from actual transfer (input minus
+retained). Production actual totals are 4,576 original / 729 first PR / 9,053
+response, across 3 / 4 / 13 compounds with children. All five nested lots keep
+their yards. New production rectangles are interior; boundary-flush cord movement
+is demonstrated by the synthetic plot and independently pinned concave test.
+This is not maximum-fill or universal-peripheral coverage. See 42.3 for the
+measured shares and remaining costs; no numerical balance approval is implied.
+
+```powershell
+node tools/compound-cord-audit.mjs --seeds=4 --maps --compare-from=docs/reports/issue-647/compound-cords.json.gz --out=test-results/compound-cords-response
+node tools/compound-cord-audit.mjs --seeds=4 --timing --compare-from=docs/reports/issue-647/compound-cords.json.gz --out=test-results/compound-cords-response-timing
+node tools/compound-cord-audit.mjs --render-from=docs/reports/issue-647/compound-response.json.gz --out=test-results/compound-cords-response-render
+```
+
+`compound-response-timing.json.gz` preserves the separate 20-case timing run,
+all timed inputs and raw three-round samples, after one warmup under the machine
+benchmark lock. No other jobs from this task ran during that comparison. The
+170-portal fixture now records `portal-capacity` with zero candidate/probe work
+and unchanged output. The synthetic result remains a substantial measured
+slowdown. Node v24.15.0, Windows x64, 2026-10-29; exact audit/timing start/finish
+and external CPU load, CPU/RAM identifiers remain unrecorded.
+
+`compound-response-boundary.png` shows rectangle seed 1 with a boundary patch
+crossing an initial cord; `compound-response-yard.png` shows the recovered
+production fixture; `compound-response-large.png` shows the largest production
+case. Rendered from the retained gzip with Chrome 156.0.8078.49, viewport
+1400x1000, device scale 1; 38 panels, no horizontal overflow; visually inspected.
+They are collision/ownership comparisons. Amber paths are initial pessimistic
+cords; blue paths prove final actual gate access. Full external owner/whole
+portal reach is independently checked in thorough mode, not inferred from blue
+paths. Original PNG/JSON/gzip artifacts and their hashes remain untouched.
+
+### Response artifact SHA-256
+
+| File | SHA-256 |
+| --- | --- |
+| `compound-response.json.gz` | `127b1bb80abc63fc1c7ec2d5328e1d41b6de3dec0d6c4e6bead6186aadc0cc77` |
+| `compound-response-timing.json.gz` | `3a2df4be773cf30ec85d5cf4f2b6dcfa2905dda1f8ef6956df068a0163d76ee6` |
+| `compound-response-summary.json` | `e1f5bb54fe93b320eb45f88616fe41481011c08b6645dc1e49c4078c36a9f854` |
+| `compound-response-boundary.png` | `d5eac4a9bfe25560cd5388908072bc8dc6e481f207e74a2c128fd20f2669f2cd` |
+| `compound-response-yard.png` | `3aa02e50a26c5d8f7720b45e368d19c3f041492941a7218e95415e8482cdbd7a` |
+| `compound-response-large.png` | `7a90e061a8bea14a774a2db06495665923374e1d5ee89b443ba6656969d0ac25` |

@@ -4,3 +4,4 @@ README.md text eol=lf diff
 .gitattributes text eol=lf diff
 review-summary.json text eol=lf diff
 compound-summary.json text eol=lf diff
+compound-response-summary.json text eol=lf diff
