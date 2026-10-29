@@ -1,15 +1,14 @@
 import type { PhysicsBodyView, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
-import type { Snapshot, Player, Vec2 } from '../types.ts';
+import type { ItemId, Snapshot, Player, Vec2 } from '../types.ts';
 import { physicsBodyFields, physicsHookFlightFields, physicsTetherFields } from './projection-contract.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
 
 /** Capture once, alongside private gameplay state. Complete lists express spawn/removal at each tick. */
-export function capturePhysicsPresentation(physics: PhysicsGameplayState, frame: Pick<Snapshot, 'players' | 'items'>) {
-  const actors = new Map(frame.players.map(p => [`actor:${p.id}`, p.id]));
+export function capturePhysicsPresentation(physics: PhysicsGameplayState, players: readonly Player[], groundId: (id: string) => ItemId | undefined) {
+  const actors = new Map(players.map(p => [`actor:${p.id}`, p.id]));
   // Physical loot uses this reserved association when P5 admits it. Ordinary loot has no body.
-  // Keyed by the item's own id, so no string is built per ground item each tick; a body's id is `item:<id>`.
-  const items = new Map(frame.items.map(item => [String(item.id), item.id]));
-  const itemOf = (bodyId: string) => bodyId.startsWith('item:') ? items.get(bodyId.slice(5)) : undefined;
+  // A body's id is `item:<id>`; `groundId` looks the item up by id, so nothing walks the ground list.
+  const itemOf = (bodyId: string) => bodyId.startsWith('item:') ? groundId(bodyId.slice(5)) : undefined;
   const placed = new Set(physics.discontinuities?.filter(d => d.kind === 'placed').map(d => d.id));
   const bodies: PhysicsBodyView[] = physics.world.bodies.filter(b => b.spec.kind !== 'static'
     && (b.spec.kind !== 'actor' || actors.has(b.spec.id))

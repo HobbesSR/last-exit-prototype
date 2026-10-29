@@ -54,7 +54,8 @@ test('real physics snapshot is detached and its public body is a closed display 
     const privateState = structuredClone(frame.physics), spec = privateState.world.bodies[0];
     privateState.world.bodies.push({ ...spec, spec: { ...spec.spec, id: 'actor:missing' } },
       { ...spec, spec: { ...spec.spec, id: 'item:missing', kind: 'prop' } });
-    assert.deepEqual(capturePhysicsPresentation(privateState, frame).bodies.map(b => b.id), [frame.bodies[0].id],
+    const groundId = id => frame.items.find(item => String(item.id) === id)?.id;
+    assert.deepEqual(capturePhysicsPresentation(privateState, frame.players, groundId).bodies.map(b => b.id), [frame.bodies[0].id],
       'stale actor/item bodies cannot become unassociated public props');
   } finally { disposePhysics(game); }
 });
@@ -67,7 +68,8 @@ test('projection gates actors, prop bounds, item associations and both tether en
     const near = { ...own, id: 'near', x: 110, y: 200, status: 'active' };
     const far = { ...own, id: 'far', x: POTENTIAL + 500, y: 200, status: 'active' };
     frame.players.push(near, far);
-    frame.items.push({ id: 'loot', x: 120, y: 200 }, { id: 'hidden-loot', x: POTENTIAL + 500, y: 200 });
+    // A frame's ground list is shared and frozen (22.1 "Frames"), so the scenario gets its own.
+    frame.items = [...frame.items, { id: 'loot', x: 120, y: 200 }, { id: 'hidden-loot', x: POTENTIAL + 500, y: 200 }];
     const ownBody = { ...frame.bodies[0], x: 100, y: 200, vx: 7, generation: 8, secret: 'own-secret', shape: { ...frame.bodies[0].shape, backend: 'shape-secret' } };
     const nearBody = body('actor:near', 110, 200, undefined, { kind: 'actor', actorId: 'near', pendingForce: 'private' });
     const farBody = body('actor:far', far.x, far.y, undefined, { kind: 'actor', actorId: 'far' });

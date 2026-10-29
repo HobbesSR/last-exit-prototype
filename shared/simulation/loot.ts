@@ -3,6 +3,7 @@ import { carriedCell, collectAmmo, collectEquipment, collectInstanceEquipment, s
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { draftItem, groundList, replaceItem, settledItem } from './ground-items.ts';
 import { HZ } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
 import type { AmmoFamily, EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
@@ -22,7 +23,7 @@ export function dropEquipment(s: Game, p: Player, item: InventoryItem): void {
       if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, p, candidate) && s.map.items.every(other => distance(other, candidate) > 32)) { point = candidate; break; }
     }
     const dropped: GroundItem = { ...item, count: 1, id: `equipment-drop-${s.serial++}` as ItemId, x: point.x, y: point.y, droppedBy: p.id, pickupAfter: s.tick + HZ };
-    s.map.items.push(dropped);
+    groundList(s).push(dropped);
   }
 }
 
@@ -106,7 +107,7 @@ export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = 
     const plan = planDrop(s, p, item, mandatory);
     if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
     s.itemSerial = plan.itemSerial;
-    s.map.items.push(...plan.records); records = plan.records;
+    groundList(s).push(...plan.records); records = plan.records;
   } else dropEquipment(s, p, item);
   p.inventory![slot] = null; p.charging = null; syncWeapon(p, s.content.weapons);
   if (records.length) launchPhysicalDrops(s, records, p);
@@ -114,22 +115,36 @@ export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = 
 }
 export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
   if (p.role === 'contestant') {
-    const keep = (item: GroundItem): boolean => {
-      if (distance(p, item) > 38 || !reachClear(s.map, p, item) || item.droppedBy === p.id && item.pickupAfter! > s.tick || p.bot && item.kind === 'cell' && carriedCell(p)) return true;
+    // What stays on the ground: the item itself, its partly taken record, or null once wholly taken.
+    const remains = (item: GroundItem): GroundItem | null => {
+      if (distance(p, item) > 38 || !reachClear(s.map, p, item) || item.droppedBy === p.id && item.pickupAfter! > s.tick || p.bot && item.kind === 'cell' && carriedCell(p)) return item;
+      const draft = draftItem(item);
       if (item.kind === 'access') p.keys++;
-      if (item.kind === 'ammo' && !(s.content.reloading && collectAmmo(s, p, item))) return true;
+      if (item.kind === 'ammo' && !(s.content.reloading && collectAmmo(s, p, draft, item))) return settledItem(item, draft);
       if (['weapon', 'med', 'shield', 'cell'].includes(item.kind)
-        && !(s.content.itemInstances ? collectInstanceEquipment(s, p, item) : collectEquipment(p, item, s.content.weapons))) return true;
+        && !(s.content.itemInstances ? collectInstanceEquipment(s, p, draft, item) : collectEquipment(p, draft, s.content.weapons))) return settledItem(item, draft);
       if (item.kind === 'cell') clearRoute(p);
-      effect(s, p, 'loot', 30); return false;
+      effect(s, p, 'loot', 30); return null;
     };
     if (s.content.itemInstances) {
       // Commit each consumed instance before the next pickup inspects ownership or allocates IDs.
       for (let i = 0; i < s.map.items.length;) {
-        if (keep(s.map.items[i]!)) i++;
-        else { s.map.items.splice(i, 1); physicsRuntime(s)?.synchronize(); }
+        const item = s.map.items[i]!, next = remains(item);
+        if (next === item) i++;
+        else if (next) { replaceItem(s, item, next); i++; }
+        else { groundList(s).splice(i, 1); physicsRuntime(s)?.synchronize(); }
       }
-    } else s.map.items = s.map.items.filter(keep);
+    } else {
+      // A new list only when something was taken or changed, so an untouched ground stays shared.
+      const items = s.map.items;
+      let next: GroundItem[] | undefined;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]!, kept = remains(item);
+        if (kept !== item) next ??= items.slice(0, i);
+        if (next && kept) next.push(kept);
+      }
+      if (next) s.map.items = next;
+    }
     if (!input.sneak && !p.cloak && s.map.sensors.some(sensor => distance(p, sensor) < 180)) p.revealed = 65;
   }
 }

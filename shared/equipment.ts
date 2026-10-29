@@ -66,12 +66,12 @@ const qualityOf = (item: { quality?: number | undefined }): number => item.quali
 /** Only equal qualities merge or refill; omitted quality means 1 (14). */
 export const sameQuality = (a: { quality?: number | undefined }, b: { quality?: number | undefined }): boolean => qualityOf(a) === qualityOf(b);
 const stackKind = (kind: string): kind is StackKind => kind === 'med' || kind === 'shield';
-const validIdentityState = (s: Game, p: Player, ground?: GroundItem): boolean => {
+const validIdentityState = (s: Game, p: Player, ground?: GroundItem, listed = ground): boolean => {
   const capacity = s.content.itemInstances?.groundCapacity;
   if (!Number.isSafeInteger(capacity) || capacity! < 0 || !Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0 || !p.inventory || p.inventory.length !== SLOT_COUNT) return false;
   const ids = new Set<string>();
   if (ground) {
-    if (!s.map.items.includes(ground) || typeof ground.id !== 'string' || !ground.id || ground.instanceId !== undefined && ground.instanceId !== ground.id || !validateItemPayload(ground, s)) return false;
+    if (!s.map.items.includes(listed!) || typeof ground.id !== 'string' || !ground.id || ground.instanceId !== undefined && ground.instanceId !== ground.id || !validateItemPayload(ground, s)) return false;
     ids.add(ground.id);
   }
   for (const item of p.inventory) {
@@ -85,9 +85,12 @@ const prepareCarried = (s: Game, p: Player): void => {
   for (const item of p.inventory ?? []) if (item) ensureItemIdentity(s, item);
 };
 
-/** Opt-in L0 transfer. True means the caller may remove the whole ground instance. */
-export function collectInstanceEquipment(s: Game, p: Player, item: GroundItem): boolean {
-  if (!validIdentityState(s, p, item) || item.kind === 'access' || item.kind === 'ammo') return false;
+/**
+ * Opt-in L0 transfer. True means the caller may remove the whole ground instance. A partial take
+ * writes to `item`, so a caller passes a draft of the published record `listed` (22.1 "Frames").
+ */
+export function collectInstanceEquipment(s: Game, p: Player, item: GroundItem, listed = item): boolean {
+  if (!validIdentityState(s, p, item, listed) || item.kind === 'access' || item.kind === 'ammo') return false;
   const inventory = p.inventory!;
   const root = item.lineageId ?? item.id;
   if (item.kind === 'weapon') {
@@ -146,8 +149,8 @@ function collectRounds(s: Game, p: Player, family: AmmoFamily, item: GroundItem,
 }
 
 /** An L2 ammo pickup adds to its family reserve, even with six full slots; a full reserve leaves it. */
-export function collectAmmo(s: Game, p: Player, item: GroundItem): boolean {
-  if (item.kind !== 'ammo' || !s.content.reloading || !validIdentityState(s, p, item)) return false;
+export function collectAmmo(s: Game, p: Player, item: GroundItem, listed = item): boolean {
+  if (item.kind !== 'ammo' || !s.content.reloading || !validIdentityState(s, p, item, listed)) return false;
   return collectRounds(s, p, item.family!, item, 'count');
 }
 

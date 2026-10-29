@@ -1,6 +1,7 @@
 import { AMMO_FAMILIES, equipped, isAmmoFamily } from '../equipment.ts';
 import { allocateItemId } from '../item-instances.ts';
 import { planAmmoDrop, scatterPoint } from './loot.ts';
+import { groundList } from './ground-items.ts';
 import type { AmmoFamily, Game, GroundItem, Player, PlayerInput, WeaponItem } from '../types.ts';
 
 // L2 reloading (14 "Reloading", #444): weapon-owned magazines, per-player reserves outside the six
@@ -49,7 +50,7 @@ export function seedAmmo(s: Game, rest: Map<GroundItem, number>): void {
   for (const [weapon, count] of rest) {
     const at = scatterPoint(s, weapon, s.itemSerial ?? 0, s.map.items) ?? { x: weapon.x, y: weapon.y };
     const id = allocateItemId(s);
-    s.map.items.push({ kind: 'ammo', id, lineageId: id, family: rules.weapons[weapon.weaponType ?? 'pistol'].family, count, x: at.x, y: at.y,
+    groundList(s).push({ kind: 'ammo', id, lineageId: id, family: rules.weapons[weapon.weaponType ?? 'pistol'].family, count, x: at.x, y: at.y,
       ...(weapon.buildingId !== undefined ? { buildingId: weapon.buildingId } : {}) });
   }
 }
@@ -82,7 +83,7 @@ export function dropReserve(s: Game, p: Player, family: AmmoFamily, count: numbe
   if (rounds <= 0) return false;
   const plan = planAmmoDrop(s, p, family, rounds, mandatory);
   if (!plan) return false;
-  s.itemSerial = plan.itemSerial; s.map.items.push(...plan.records);
+  s.itemSerial = plan.itemSerial; groundList(s).push(...plan.records);
   p.reserves[family] -= rounds;
   return true;
 }
