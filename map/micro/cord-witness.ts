@@ -99,7 +99,16 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
       if (!mesh) {
         if (counters.meshBuilds >= limits.maxMeshBuilds) return fail('budget');
         const box = mask.bounds, pad = 2 / CLIP_SCALE, size = mask.cellSize;
-        const domain = mask.cells.map(c => rect(c.x * size - box.x - pad, c.y * size - box.y - pad, size + 2 * pad, size + 2 * pad));
+        // The mask is row-major. Padding a whole contiguous strip has the same
+        // union as padding each cell separately, without sending thousands of
+        // overlapping interior edges through the mesh's clipping operation.
+        const domain: Shape[] = [];
+        for (let i = 0; i < mask.cells.length;) {
+          const first = mask.cells[i++]!;
+          let end = first.x + 1;
+          while (i < mask.cells.length && mask.cells[i]!.y === first.y && mask.cells[i]!.x === end) { end++; i++; }
+          domain.push(rect(first.x * size - box.x - pad, first.y * size - box.y - pad, (end - first.x) * size + 2 * pad, size + 2 * pad));
+        }
         const nearby = blockers.filter(s => {
           const b = bounds(s);
           return b.x <= box.x + box.w + pad && b.x + b.w >= box.x - pad && b.y <= box.y + box.h + pad && b.y + b.h >= box.y - pad;
