@@ -37,7 +37,7 @@ const stats = Object.fromEntries(Object.keys(collections).map(name => [name,
   { size: [], changed: [], added: [], removed: [], everChanged: new Set(), seen: new Set(), fields: {} }]));
 
 let previous = Object.fromEntries(Object.entries(collections).map(([name, pick]) => [name, keyed(pick(match.snapshot()))]));
-for (let tick = 0; tick < ticks && match.diagnosticState.phase !== 'ended'; tick++) {
+for (let tick = 0; tick < ticks && match.phase === 'live'; tick++) {
   const frame = match.advance();
   for (const [name, pick] of Object.entries(collections)) {
     const current = keyed(pick(frame)), before = previous[name], s = stats[name];

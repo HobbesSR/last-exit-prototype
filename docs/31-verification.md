@@ -298,6 +298,11 @@ ticks, outside the measured time, and fails a run whose recorder drops a frame. 
 the same density for sizes the protocol does not serve. It takes the same lock. Method and the
 first results are [42.22](42.22-tick-cost-attribution.md) (#637).
 
+`node tests/measure-changes.mjs` (`--size`, `--content`, `--seed`, `--ticks`, `--out`) counts how much
+of each published frame differs from the previous tick's, per collection and by entity id. It times
+nothing, so it needs no lock and runs in parallel. Results are in
+[42.22](42.22-tick-cost-attribution.md#change-fraction-per-tick-655) (#655).
+
 ## Choosing checks by changed area
 
 A check is worth running when something the change touched can move what it asserts.
