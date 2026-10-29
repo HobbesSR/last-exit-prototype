@@ -112,9 +112,10 @@ plant, ruins and cover currently freeze routes before content placement; residua
 infill cannot negotiate meaningful primary parcels across those routes. Existing
 canvas, placeables, infill and recovery infrastructure remains useful. This is
 a composition opportunity, not evidence that prior deliveries are defective.
-#647's hut-only milestone adopts #646's handoff transaction for useful boundary
-rectangles with movable yard routes; review its visual, geometry, recovery and
-cost evidence in 42.3 before compound adoption. Also select a contrasting fixed-route builder (depot or market are
+#647's hut milestone is approved in #654. Compound now adopts #646's handoff
+transaction as a separate measured milestone, preserving its ring/court/gates
+while admitting peripheral and interior yard rectangles with movable routes.
+Review both builders' visual, geometry, recovery and cost evidence in 42.3. Also select a contrasting fixed-route builder (depot or market are
 candidates) for an opt-in comparison of composition, entrance/side-pocket access,
 useful handoff shapes, determinism/recovery and generation cost. Portal connectivity
 alone does not preserve authored aisles or doorstep access. Reassess earlier #529
@@ -273,7 +274,7 @@ This is also a shared prerequisite for #529's composition sequence above.
 | Done | [#645](/corey/astra_test/issues/645) | Opt-in atomic retained-content parcels anywhere in the fill, with deformable connectivity witness; no production adoption |
 | 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
 | Done | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing; synthetic fixtures and recovery, no production adoption |
-| Hut milestone | [#647](/corey/astra_test/issues/647) | Hut milestone approved in #654; compound adoption is outside that milestone. Each builder may choose interior or boundary handoffs (17.2.10) |
+| Hut and compound adoption | [#647](/corey/astra_test/issues/647) | Hut approved in #654; compound follows as a separate measured milestone. Each builder may choose interior or boundary handoffs (17.2.10) |
 
 Growth (#649) remains independent of the implemented handoffs (#646).
 Both no-transfer handoffs and whole-child portal transfer have synthetic coverage.

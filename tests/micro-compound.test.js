@@ -8,11 +8,11 @@ import { circle } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { assertWithinBudget } from './helpers/budget.js';
 import { SIZE, brief, MASKS, SEEDS, build, blockers, compoundBox } from './helpers/compound-fixtures.js';
-import { assertPortalPromise, assertRoofedRing, assertObservedRing } from './helpers/compound-sweeps.js';
+import { assertPortalPromise, assertRoofedRing, assertCompoundDeterminism } from './helpers/compound-sweeps.js';
 
-// The fast tier runs two seeds of the portal, roofed-ring and observer sweeps; the slow tier's
-// tests/slow/micro-compound-sweeps.test.js runs the first four, as these once did (31, #543).
-const FAST = SEEDS.slice(0, 2);
+// The fast tier runs one seed of the portal, roofed-ring and determinism sweeps; the slow tier
+// keeps their full seed coverage (31, #543).
+const FAST = SEEDS.slice(0, 1);
 
 test('a compound region keeps the portal promise over seeds, masks and gate counts', () => assertPortalPromise(FAST));
 
@@ -39,11 +39,7 @@ test('a 24 by 18 yard keeps an intermediate ring size between its portals', () =
 });
 
 test('compounds are deterministic and independent of the order of the brief\'s cells', () => {
-  const [cells, portals] = MASKS.field;
-  for (const seed of SEEDS) {
-    const result = build(brief('field', seed, cells, portals));
-    assert.deepEqual(buildRegion(brief('field', seed, [...cells].reverse(), portals)).elements, result.elements);
-  }
+  assertCompoundDeterminism(FAST);
 });
 
 test('one compound has roofed rooms around a clear court and its gates', () => assertRoofedRing(FAST));
@@ -85,5 +81,3 @@ test('a macro-sized compound with hundreds of portals builds quickly', () => {
   const box = compoundBox(result);
   assert.deepEqual([box.w, box.h], [24, 24]);
 });
-
-test('the ring is one design: an observer sees it, and every room has an opening into the court or a neighbour', () => assertObservedRing(FAST));

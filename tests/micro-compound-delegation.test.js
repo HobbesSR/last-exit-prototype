@@ -117,18 +117,17 @@ test('concave seed 18 reaches the actual center of every chosen gate', () => {
   assert.deepEqual(validatePortalReach({ ...flat.brief, blockers: finalBlockers }).errors, []);
 });
 
-test('inherited nonfill strip rejects the authored 12 by 6 compound exterior offer', () => {
+test('inherited nonfill strips remain clear while compound probes alternate yard rectangles', () => {
   // compound@252,36 of generate('issue330-before-12x6'), stored because later content moves it (fixtures README).
   const original = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/compound-330-strip-brief.json.gz', import.meta.url))));
-  const node = buildCompoundGeneration(original), flat = flattenDelegationResult(node);
+  let diagnostics;
+  const node = buildCompoundGeneration(original, { observeYard: value => diagnostics = value }), flat = flattenDelegationResult(node);
   assert.equal(node.actualBuilder, 'compound');
-  assert.ok(node.offers?.length, 'the exterior patch remains a candidate');
-  assert.equal(node.children?.length ?? 0, 0, 'the conflicting patch stays retained');
-  assert.ok(node.preparation.rejected.some(({ reason }) => reason.includes('No compatible hunter crossing')));
-  assert.equal(node.retained.brief.cells.length, original.cells.length);
+  assert.equal(diagnostics.outcome, 'delegated');
+  assert.ok(node.children.length > 0, 'alternate rectangles avoid the old incompatible component');
   assert.deepEqual(validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)), []);
   assert.deepEqual(validateFillConstraints(flat.brief, placed(flat)), []);
-  assert.deepEqual(validatePortalReach({ ...flat.brief, blockers: blockers(flat) }).errors, []);
+  assert.deepEqual(validatePortalReach({ ...flat.brief, blockers: blockers(flat) }, { search: 'thorough' }).errors, []);
   for (const leaf of executionLeaves(node))
     assert.deepEqual(validatePortalReach({ ...leaf.brief, blockers: blockers(flat) }).errors, [], leaf.brief.id);
 });
@@ -180,17 +179,21 @@ test('compound delegation is canonical across cell, portal and zone order', () =
   assert.deepEqual(buildCompoundGeneration(reversed), buildCompoundGeneration(original));
 });
 
-test('a broad macro yard retains narrow circulation slivers before expensive preparation', () => {
+test('a broad macro yard retains ownership at the portal capacity guard', () => {
   const cells = cellsOf(200, 150), portals = [];
   for (let x = 2; x < 196; x += 4) portals.push(
     { id: `n${x}`, axis: 'h', x, y: 0, length: 2 }, { id: `s${x}`, axis: 'h', x, y: 150, length: 2 });
   for (let y = 2; y < 146; y += 4) portals.push(
     { id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: 200, y, length: 2 });
+  let diagnostics;
   const node = buildCompoundGeneration(brief('macro', cells, portals,
-    { seed: 3, parameters: { gates: 4 }, zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }] }));
-  assert.equal(node.offers.length, 2, 'the twelve two-cell-wide circulation strips are never offered');
-  assert.deepEqual(node.offers.map(offer => offer.cells.length), [12264, 12264]);
-  assert.equal(node.children.length, 0, 'the broad side components still require compatible crossings');
+    { seed: 3, parameters: { gates: 4 }, zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }] }),
+    { observeYard: value => diagnostics = value });
+  assert.equal(diagnostics.outcome, 'portal-capacity');
+  assert.equal(diagnostics.considered, 0);
+  assert.equal(diagnostics.probed, 0);
+  assert.deepEqual(diagnostics.eligibleOffers, []);
+  assert.equal(node.children?.length ?? 0, 0);
   assert.equal(node.retained.brief.cells.length, cells.length);
 });
 

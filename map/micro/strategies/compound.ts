@@ -8,13 +8,13 @@ import { portalStands } from '../portals.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { COMPOUND_RING } from '../placeables/compound-ring.ts';
-import { demandShapes, expectPlaced, placedElements } from '../placeables/placeable.ts';
-import type { Demand } from '../placeables/placeable.ts';
+import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { BuiltRegion, RegionBrief } from '../types.ts';
+import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
-import { createAddressedArea } from '../addressed.ts';
+import { delegateYardCandidates, yardDiagnostics } from '../yard-handoff.ts';
+import type { YardDiagnostics } from '../yard-handoff.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
@@ -28,6 +28,8 @@ const MAX_SIDE = 24;
 const DEPTH = 3;
 const MIN_ROOM = 3;
 const MIN_GATES = 1, MAX_GATES = 4, DEFAULT_GATES = 2;
+/** Measured optional-adoption capacity, not the SDK portal limit. */
+const MAX_HANDOFF_PORTALS = 128;
 /** A gate's passage through the ring: a doorway (52). */
 const PASSAGE = CELL_SCALE.doorway;
 
@@ -217,23 +219,29 @@ export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): B
     ...(node.retained.manifest.compoundGates === undefined ? {} : { compoundGates: node.retained.manifest.compoundGates }) } };
 }
 
+/** Detached observations of the optional yard delegation attempt. */
+export type CompoundYardDiagnostics = YardDiagnostics<'no-space' | 'no-site' | 'portal-capacity'>;
+export interface CompoundExecutionOptions extends ExecutionOptions {
+  observeYard?: (diagnostics: CompoundYardDiagnostics) => void;
+}
 /** Owning inputs, decisions and results for versioned recovery (20.7). */
-export function buildCompoundGeneration(brief: RegionBrief, options: ExecutionOptions = {}) {
-  // Direct registry recovery rebuilds accepted cover for receiving and build;
-  // this invocation shares those previews by exact child interface.
-  return executeDelegation(brief, { ...COMPOUND_EXECUTION_REGISTRY, cover: previewedCoverExecution() }, options);
+export function buildCompoundGeneration(brief: RegionBrief, options: CompoundExecutionOptions = {}) {
+  const { observeYard, ...executionOptions } = options;
+  return executeDelegation(brief, { ...COMPOUND_EXECUTION_REGISTRY,
+    compound: { ...COMPOUND_EXECUTION_REGISTRY.compound!, build: (b, c, observe) => buildRetainedCompound(b, c, observe, observeYard) },
+    cover: previewedCoverExecution() }, executionOptions);
 }
 
 export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  compound: { version: 'compound-yard-2', build: buildRetainedCompound },
+  compound: { version: 'compound-yard-4', build: buildRetainedCompound },
   cover: COVER_EXECUTION,
 });
 
-function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {
+function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver, observeYard?: CompoundExecutionOptions['observeYard']): BuiltRegion {
   const size = brief.cellSize;
   const { space, site } = locateCompound(brief);
-  if (!space) return context.empty('compound has no usable ring box');
-  if (!site) return context.empty('compound has no ring with reachable yard gates');
+  if (!space) { observeYard?.(yardDiagnostics(brief.id, 'no-space')); return context.empty('compound has no usable ring box'); }
+  if (!site) { observeYard?.(yardDiagnostics(brief.id, 'no-site')); return context.empty('compound has no ring with reachable yard gates'); }
   const { x: bx, y: by, w: W, h: H, gated } = site;
 
   const gatedBits = SIDES.reduce((bits, side, i) => bits | (gated.has(side) ? 1 << i : 0), 0);
@@ -248,84 +256,68 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   if (!createBuilderCanvas(brief).commit({ elements })) throw new Error('Compound placement failed its canvas commit.');
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const steps = ring.details.steps.map(step => ({ x: bx + step.x, y: by + step.y }));
-  const yard = exteriorYard(brief, site, steps, ring.demand);
-  if (yard.offers.length) context.delegate(yard.offers, { blockers: pieces, protectedCells: yard.protectedCells });
+  delegateYard(brief, site, steps, elements, context, observeYard);
   brief = context.brief;
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { rooms, compoundGates: passages.length });
 }
 
-/** Compound authorship: retain the complete court/ring, approach and perimeter;
- * reserve a swept standing-block tree to every portal and actual gate stand. */
-function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: number }[], demand: Demand):
-  { offers: PatchOffer[]; protectedCells: RegionBrief['cells'] } {
-  const key = (x: number, y: number) => `${x},${y}`;
-  const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
-  const inside = (x: number, y: number, pad = 0) => x >= box.x - pad && x < box.x + box.w + pad
-    && y >= box.y - pad && y < box.y + box.h + pad;
-  const area = createAddressedArea(owned), size = brief.cellSize, protectedKeys = new Set<string>();
-  // Grant the ring and gate stands first. Keep the same two-cell approach band
-  // without asking the addressed area to overlap that demand.
-  if (!area.markAll(demandShapes(demand, box.x, box.y, size))) throw new Error('Compound ring demand overlaps itself.');
-  if (!area.markCells(owned.cells.filter(c => inside(c.x, c.y, 2) && !area.addressed(c.x, c.y))))
-    throw new Error('Compound approach band overlaps its demand.');
-  area.markCells(owned.cells.filter(c => !area.addressed(c.x, c.y) && (!fill.has(c.x, c.y)
-    || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d)))));
-  // Inherited clear margins may be thin interior strips. They stay reserved;
-  // a new crossing there can have clear stands but no retained hunter route.
-  for (const c of owned.cells) if (inside(c.x, c.y) || !fill.has(c.x, c.y)) protectedKeys.add(key(c.x, c.y));
-  const fits = (x: number, y: number) => {
-    for (let j = y; j < y + 2; j++) for (let i = x; i < x + 2; i++) if (!access.has(i, j) || inside(i, j)) return false;
-    return true;
-  };
-  const targets = gates.map(c => key(c.x, c.y));
-  for (const { portal: p } of portalStands(brief)) for (let i = 0; i + 2 <= p.length; i++) targets.push(
-    p.axis === 'h' ? key(p.x + i, p.y - 1) : key(p.x - 1, p.y + i));
-  const none = { offers: [], protectedCells: owned.cells.filter(c => protectedKeys.has(key(c.x, c.y))) };
-  const root = targets[0];
-  if (!root || targets.some(t => { const [x, y] = t.split(',').map(Number); return !fits(x!, y!); })) return none;
-  // Prefer routes within the already retained bands. Fixed neighbor and target
-  // order makes ties independent of incoming cell/zone/portal array order.
-  const parents = new Map<string, string | null>([[root, null]]), distances = new Map([[root, 0]]);
-  const buckets: string[][] = [[root]], pending = new Set(targets);
-  for (let distance = 0; distance < buckets.length && pending.size; distance++) {
-    for (let head = 0; head < buckets[distance]!.length && pending.size; head++) {
-      const at = buckets[distance]![head]!;
-      if (distances.get(at) !== distance) continue;
-      pending.delete(at);
-      const [x, y] = at.split(',').map(Number) as [number, number];
-      for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
-        if (!fits(nx, ny)) continue;
-        const next = key(nx, ny);
-        let cost = 0;
-        for (let j = ny; j < ny + 2; j++) for (let i = nx; i < nx + 2; i++) if (!area.addressed(i, j)) cost = 1;
-        const nd = distance + cost;
-        if (nd >= (distances.get(next) ?? Infinity)) continue;
-        distances.set(next, nd); parents.set(next, at); (buckets[nd] ??= []).push(next);
-      }
+/** Try a capped number of yard boxes, allowing the coordinator to move yard cords. */
+function delegateYard(brief: RegionBrief, site: Box, steps: { x: number; y: number }[], elements: RegionElement[], context: ExecutionContext, observe?: CompoundExecutionOptions['observeYard']): void {
+  // Optional compound adoption is bounded separately from the SDK. The measured
+  // 170-portal witness exhausted initialization without any child; avoid paying
+  // for that known unsupported scale. Authored sample inputs stay below 128.
+  if (brief.portals.length > MAX_HANDOFF_PORTALS) {
+    const diagnostics = yardDiagnostics<'no-space' | 'no-site' | 'portal-capacity'>(brief.id, 'portal-capacity');
+    diagnostics.reason = `compound handoffs support at most ${MAX_HANDOFF_PORTALS} original portals`;
+    observe?.(diagnostics);
+    return;
+  }
+  delegateYardCandidates<'no-space' | 'no-site' | 'portal-capacity'>(brief, context, {
+    retainedBox: site, steps: steps.map(({ x, y }) => [x, y]), elements, label: 'compound',
+    offersFor: (reserved, diagnostics) => yardOffers(brief, reserved, diagnostics), observe,
+  });
+}
+
+/**
+ * Partition actual unreserved yard into up to eight maximal rectangles. Try each
+ * whole hunk before one-cell circulation insets and smaller side slabs. This is
+ * compound authorship, not a shared SDK shape or perimeter requirement. Greedy
+ * extraction/acceptance is bounded and deterministic, not an area optimum.
+ */
+function yardOffers(brief: RegionBrief, reserved: Set<string>, diagnostics: CompoundYardDiagnostics): PatchOffer[] {
+  const owned = createRegionMask(brief), fill = createFillMask(brief);
+  const remaining = new Set(owned.cells.filter(c => !reserved.has(`${c.x},${c.y}`)).map(c => `${c.x},${c.y}`));
+  const seen = new Set<string>(), offers: PatchOffer[] = [];
+  for (let iteration = 0; iteration < 8; iteration++) {
+    const box = largestRectangle({ ...owned, has: (x, y) => remaining.has(`${x},${y}`) }, 3);
+    if (!box) break;
+    const { x, y, w, h } = box, boxes: Box[] = [box];
+    // An inset gives the retained parent room to circulate beside a large
+    // child. It is a candidate alternative, not a frozen perimeter collar.
+    if (w >= 5 && h >= 5) boxes.push({ x: x + 1, y: y + 1, w: w - 2, h: h - 2 });
+    if (w >= 5) boxes.push({ x: x + 1, y, w: w - 2, h });
+    if (h >= 5) boxes.push({ x, y: y + 1, w, h: h - 2 });
+    for (const ratio of [0.75, 0.5]) {
+      const sw = Math.max(3, Math.floor(w * ratio)), sh = Math.max(3, Math.floor(h * ratio));
+      boxes.push({ x, y, w: sw, h }, { x: x + w - sw, y, w: sw, h },
+        { x, y, w, h: sh }, { x, y: y + h - sh, w, h: sh });
+    }
+    // Discovery partitions the yard independently of admission. Refused cells
+    // remain owned; alternatives overlap only inside this same discovered box.
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) remaining.delete(`${i},${j}`);
+    for (const candidate of boxes) {
+      const { x, y, w, h } = candidate, id = `${x},${y},${w},${h}`;
+      if (seen.has(id)) continue;
+      seen.add(id); diagnostics.considered++;
+      const cells = [];
+      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) cells.push({ x: i, y: j });
+      const hasFillPocket = cells.some(c => [0, 1, 2].every(dy => [0, 1, 2].every(dx =>
+        c.x + dx < x + w && c.y + dy < y + h && fill.has(c.x + dx, c.y + dy))));
+      if (!hasFillPocket) { diagnostics.filtered++; continue; }
+      offers.push({ key: `yard:${id}`, cells, type: 'cover', reasonTags: ['unused-exterior-yard'] });
+      if (offers.length === 48) return offers;
     }
   }
-  // A failure to reserve every required stand retains the yard; it does not
-  // silently weaken the parent's access promise or retry its region as cover.
-  if (pending.size) return none;
-  for (const target of targets) for (let at: string | null = target; at !== null; at = parents.get(at)!) {
-    const [x, y] = at.split(',').map(Number) as [number, number];
-    for (let j = y; j < y + 2; j++) for (let i = x; i < x + 2; i++) if (owned.has(i, j)) {
-      if (!area.addressed(i, j)) area.markCells([{ x: i, y: j }]);
-      protectedKeys.add(key(i, j));
-    }
-  }
-  const offers: PatchOffer[] = [];
-  for (const cells of area.unaddressedComponents()) {
-    const start = cells[0]!;
-    // Compound authorship keeps narrow strips as circulation. An offered
-    // component must contain a 3x3 yard pocket; this is a cheap suitability
-    // screen, not a substitute for the exact inherited cover preview.
-    const patch = new Set(cells.map(c => key(c.x, c.y)));
-    const hasPocket = cells.some(c => [0, 1, 2].every(dy => [0, 1, 2].every(dx => patch.has(key(c.x + dx, c.y + dy)))));
-    // The canonical first cell uniquely identifies a disjoint connected component.
-    // Keep IDs bounded; the owning snapshot records the complete footprint.
-    if (cells.length >= 9 && hasPocket) offers.push({ key: `exterior:${start.x},${start.y}`, cells, type: 'cover', reasonTags: ['unused-exterior-yard'] });
-  }
-  return { offers, protectedCells: owned.cells.filter(c => protectedKeys.has(key(c.x, c.y))) };
+  return offers;
 }

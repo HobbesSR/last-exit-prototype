@@ -1,0 +1,344 @@
+{
+  "currentCommit": "3d4106fff2ed12240b9741f3d7fc46343079f269",
+  "trackedDirtyFiles": "M docs/31-verification.md\n M tests/helpers/compound-sweeps.js",
+  "baseline": {
+    "commit": "ccb28eb",
+    "note": "Pinned compound source with current supporting modules, loaded as temporary sibling.",
+    "findings": []
+  },
+  "seeds": 4,
+  "failed": false,
+  "diagnosticCounts": {
+    "cases": 38,
+    "withoutYardEvent": 0,
+    "outcomes": {
+      "no-space": 4,
+      "delegated": 20,
+      "no-eligible-candidates": 14
+    },
+    "fallbackReasons": {},
+    "refusals": {
+      "external": 15,
+      "rejected": 1
+    },
+    "considered": 3297,
+    "filtered": 2857,
+    "probed": 107,
+    "accepted": 91
+  },
+  "retentionDistributions": {
+    "synthetic": {
+      "before": {
+        "retainedFraction": {
+          "samples": 20,
+          "min": 0.6423076923076924,
+          "median": 0.8044117647058824,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.6423076923076924,
+            "name": "concave",
+            "seed": 1
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 20,
+          "min": 0.476056338028169,
+          "median": 0.7176724137931034,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.476056338028169,
+            "name": "concave",
+            "seed": 1
+          }
+        }
+      },
+      "after": {
+        "retainedFraction": {
+          "samples": 20,
+          "min": 0.592292089249493,
+          "median": 0.8058823529411765,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.592292089249493,
+            "name": "holed",
+            "seed": 1
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 20,
+          "min": 0.4859335038363171,
+          "median": 0.6632653061224489,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.4859335038363171,
+            "name": "holed",
+            "seed": 1
+          }
+        }
+      }
+    },
+    "production": {
+      "before": {
+        "retainedFraction": {
+          "samples": 18,
+          "min": 0.6246438746438746,
+          "median": 1,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.6246438746438746,
+            "name": "issue330-before-36x18 / compound@276,330",
+            "seed": 2503646721,
+            "source": {
+              "map": "issue330-before-36x18",
+              "location": "top-level"
+            }
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 18,
+          "min": 0.6043543543543544,
+          "median": 1,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.6043543543543544,
+            "name": "issue330-before-36x18 / compound@276,330",
+            "seed": 2503646721,
+            "source": {
+              "map": "issue330-before-36x18",
+              "location": "top-level"
+            }
+          }
+        }
+      },
+      "after": {
+        "retainedFraction": {
+          "samples": 18,
+          "min": 0.9227941176470589,
+          "median": 1,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.9227941176470589,
+            "name": "issue330-before-36x18 / compound@564,78",
+            "seed": 3313010256,
+            "source": {
+              "map": "issue330-before-36x18",
+              "location": "top-level"
+            }
+          }
+        },
+        "retainedYardFraction": {
+          "samples": 18,
+          "min": 0.8990384615384616,
+          "median": 1,
+          "max": 1,
+          "minimumCase": {
+            "value": 0.8990384615384616,
+            "name": "issue330-before-36x18 / compound@564,78",
+            "seed": 3313010256,
+            "source": {
+              "map": "issue330-before-36x18",
+              "location": "top-level"
+            }
+          }
+        }
+      }
+    }
+  },
+  "syntheticUptake": {
+    "cases": 20,
+    "beforeWithChildren": 12,
+    "afterWithChildren": 16,
+    "beforeChildren": 20,
+    "afterChildren": 68
+  },
+  "maps": [
+    {
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "seed": "issue330-before-12x6",
+      "valid": true,
+      "defects": [],
+      "candidates": 0,
+      "uniqueCompounds": 0,
+      "topLevel": 0,
+      "blockLots": 0,
+      "uptake": {
+        "beforeWithChildren": 0,
+        "afterWithChildren": 0,
+        "beforeChildren": 0,
+        "afterChildren": 0,
+        "displacedInitialRoutes": 0
+      }
+    },
+    {
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "seed": "issue330-before-24x12",
+      "valid": true,
+      "defects": [],
+      "candidates": 4,
+      "uniqueCompounds": 4,
+      "topLevel": 4,
+      "blockLots": 0,
+      "uptake": {
+        "beforeWithChildren": 0,
+        "afterWithChildren": 1,
+        "beforeChildren": 0,
+        "afterChildren": 6,
+        "displacedInitialRoutes": 1
+      }
+    },
+    {
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "seed": "issue330-before-36x18",
+      "valid": true,
+      "defects": [],
+      "candidates": 14,
+      "uniqueCompounds": 14,
+      "topLevel": 9,
+      "blockLots": 5,
+      "uptake": {
+        "beforeWithChildren": 3,
+        "afterWithChildren": 3,
+        "beforeChildren": 3,
+        "afterChildren": 17,
+        "displacedInitialRoutes": 3
+      }
+    }
+  ],
+  "timing": {
+    "unit": "ms per synthetic input set",
+    "warmups": 1,
+    "rounds": [
+      {
+        "before": 532.9098000000013,
+        "after": 5082.154300000002
+      },
+      {
+        "before": 542.902399999999,
+        "after": 5142.1538999999975
+      },
+      {
+        "before": 544.8788000000059,
+        "after": 5032.294800000003
+      }
+    ],
+    "macro": {
+      "cells": 30000,
+      "portals": 170,
+      "rounds": [
+        {
+          "before": 784.2787000000026,
+          "after": 2090.5496000000057,
+          "beforeChildren": 0,
+          "afterChildren": 0
+        },
+        {
+          "before": 748.3269,
+          "after": 2167.2831000000006,
+          "beforeChildren": 0,
+          "afterChildren": 0
+        },
+        {
+          "before": 824.6786999999968,
+          "after": 2323.101300000002,
+          "beforeChildren": 0,
+          "afterChildren": 0
+        }
+      ]
+    },
+    "macroOutcome": [
+      {
+        "briefId": "field",
+        "outcome": "init",
+        "considered": 85,
+        "filtered": 72,
+        "probed": 0,
+        "accepted": 0,
+        "refusals": {},
+        "reason": "budget"
+      }
+    ]
+  },
+  "selectedCases": [
+    {
+      "name": "concave",
+      "seed": 1,
+      "source": null,
+      "checks": {
+        "actualGateAccess": true,
+        "ringUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "beforeChildren": 2,
+      "afterChildren": 4,
+      "afterOfferedCells": 105,
+      "initialDisplacements": [
+        "yard:8,21,6,6"
+      ],
+      "afterGeometryFailures": []
+    },
+    {
+      "name": "issue330-before-36x18 / compound@564,78",
+      "seed": 3313010256,
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualGateAccess": true,
+        "ringUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "beforeChildren": 0,
+      "afterChildren": 6,
+      "afterOfferedCells": 189,
+      "initialDisplacements": [
+        "yard:583,87,6,6",
+        "yard:583,97,6,3",
+        "yard:603,87,6,6",
+        "yard:603,97,6,3",
+        "yard:622,87,6,3"
+      ],
+      "afterGeometryFailures": []
+    },
+    {
+      "name": "issue330-before-36x18 / compound@276,330",
+      "seed": 2503646721,
+      "source": {
+        "map": "issue330-before-36x18",
+        "location": "top-level"
+      },
+      "checks": {
+        "actualGateAccess": true,
+        "ringUnchanged": true,
+        "deterministic": true,
+        "historicalFullSnapshot": true,
+        "historicalOmittedRefused": true,
+        "fullSnapshot": true,
+        "omittedSnapshot": true
+      },
+      "beforeChildren": 1,
+      "afterChildren": 8,
+      "afterOfferedCells": 270,
+      "initialDisplacements": [
+        "yard:313,346,6,6",
+        "yard:313,363,6,6",
+        "yard:351,346,6,6",
+        "yard:351,381,6,3",
+        "yard:388,346,6,6",
+        "yard:388,379,6,6"
+      ],
+      "afterGeometryFailures": []
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-# Issue #647 hut evidence
+# Issue #647 adoption evidence
 
-This directory preserves two distinct measurements. Do not replace the original
+This directory preserves separate hut and compound measurements. Do not replace the original
 files with a rerun. 42.3 owns durable findings; 20.7 and 53 own compatibility.
 
 ## Original hut-yard-2 milestone
@@ -88,3 +88,154 @@ will have new timing values; it must not be substituted for these retained bytes
 | `review-summary.json` | `cfe8faaafe1b5667c8b1a0583f0e9df6110995ea515c22d9e8ba83a92c59d8f4` |
 | `review.json.gz` | `4e6c4cdde4c7d15fefeb3a35f418ecd3e2d550c3d2b996f2f917159e1c8a31ff` |
 | `summary.json` | `014bf8650b143ac5803b3e69b8dc5d351c8199dd8345741c0b5158d19a8f71dd` |
+
+## Compound milestone: compound-yard-3
+
+`compound-cords.json.gz` preserves all 38 paired inputs, owning generation trees,
+results, diagnostics, allocation distributions and independent checks from
+`test-results/compound-cords-final/results.json`. Content source is
+`3d4106fff2ed12240b9741f3d7fc46343079f269`; baseline compound source is `ccb28eb`
+loaded as a temporary sibling with current supporting modules. This does not
+reconstruct historical dependencies. Production source was committed and clean;
+the report records two tracked dirty files, documentation and a test-helper
+comment, with no behavior difference. The root dependency lockfile is unchanged.
+
+Workload: five synthetic shapes (small, rectangle, concave, holed, internal
+margins), seeds 1-4, plus every unique top-level/nested compound from the three
+same authored maps named in the hut section. There are 18 production inputs,
+five nested in block lots. All owners and containing results pass thorough
+portal checks against combined final blockers; fill checks use each owner's
+own full physical footprint. Realized outer opening centers independently
+determine both whole-cell gate stands for half-cell doors. Actual gates are
+checked from their nearest original portal stand, with mesh fallback after a
+grid miss (31). Full and omitted current snapshots, historical full snapshots,
+historical omitted-version refusal and determinism all pass. The frozen
+characterization fixture is unchanged.
+
+`compound-summary.json` is the compact aggregate, with three selected case
+summaries. The full report contains every result and no current failing check.
+`compound-concave.png` shows peripheral and interior selection;
+`compound-peripheral.png` shows the production 3-by-21 boundary slab;
+`compound-open-yard.png` deliberately shows the largest production coverage
+loss. These are collision/ownership previews, not roofs or art. Dashed amber
+shows initial ring-envelope cords; blue shows independently checked final
+gate-access routes. External portal promises are checked separately for every
+owner and whole result. Chrome 156.0.8078.49, viewport 1400 by 1000, device scale
+1; the 38-panel regenerated report has no horizontal overflow. Full HTML is
+regenerated locally rather than committed.
+
+The first audit used one global final cord graph and reported a budget miss
+on `compound@276,330`; all final thorough portal checks passed. Preserve that
+finding in `compound-gate-budget-finding.json.gz`: it contains the original full
+failed record, its report provenance and the subsequent independent gate
+recheck. Original local source remains `test-results/compound-cords/results.json`.
+Its compound implementation is identical to the committed content source above;
+only the gate-verification method changed. The recheck proves two gate routes
+without increasing production/coordinator budgets. The corrected full audit
+is new evidence, not replacement of an unexplained gameplay failure.
+
+Commands, from the repository root:
+
+```powershell
+node tools/compound-cord-audit.mjs --seeds=4 --maps --out=test-results/compound-cords-final
+node tools/compound-cord-audit.mjs --seeds=4 --timing --out=test-results/compound-cords-timing
+node tools/compound-cord-audit.mjs --render-from=docs/reports/issue-647/compound-cords.json.gz --out=test-results/compound-cords-render
+```
+
+`compound-timing.json.gz` retains the separate synthetic timing run's complete
+inputs/results and raw paired rounds. One warmup then three sequential rounds
+run under the machine-wide benchmark lock, with no other jobs from this task.
+The synthetic set has changed content (20 -> 68 children). The dense 30,000-cell,
+170-portal fixture has zero children and unchanged ring both sides; current
+initialization reports `budget` before any handoff probe. These are measured
+slowdowns, not fixes. The raw timing report includes all thirteen eligible
+macro offers and fallback diagnostics. Allocation, cost and coverage limits
+are interpreted in 42.3; no hut-only percentage approval is generalized here.
+
+Runs occurred on 2026-10-29, Node v24.15.0 on Windows x64. Exact audit/timing
+start/finish timestamps, CPU/RAM identifiers and external CPU load were not
+recorded; unrelated agents share the machine. The chain capture has its own
+exact timestamp and source pin in 42.4. Retained gzip files use deterministic
+mtime 0 and contain the source JSON bytes (the single finding is a faithful
+extraction plus recheck). Original hut artifacts are untouched.
+
+### Compound artifact SHA-256
+
+| File | SHA-256 |
+| --- | --- |
+| `compound-cords.json.gz` | `4383a32bdf8004a801ed5fcd2f6221ef7d7ce250496168d9ced0d3ba19efc718` |
+| `compound-timing.json.gz` | `3d28258d31b15e3f8bd85f974592863619e4ec26c2726aa7f83b31ba3fc62be3` |
+| `compound-gate-budget-finding.json.gz` | `ee0762b6b9a1e2cb5f6c471baceb94984af70a43a296a6a55015d360c29fa7b1` |
+| `compound-summary.json` | `0f14dbf453b163442cae7881dcd6c6b02a68470c3b2cb757d2223960f507e136` |
+| `compound-concave.png` | `f7c57dba110295998e670460a919d961a901711c86fd7ca0cd4e8785e0b27b0e` |
+| `compound-peripheral.png` | `78b54d41a216453bc3aa0e033b2250302f8485aa98bf598420d737abc134a3d0` |
+| `compound-open-yard.png` | `31c561f88df88d5568a9da90131c70018eac85d144bdd6ac69c862e99e98f182` |
+
+
+### Correction to first compound interpretation
+
+The original PR described 14,607 production cells as transferred. That was the
+sum of offers, including rejected ones. Actual transfer, computed from original
+minus retained ownership, is 4,576; the first compound milestone transfers 729.
+Synthetic original transfer is 3,071, not its 7,487 offered cells. Original gzip,
+summary and PNG bytes are preserved. Their generation trees and retained counts
+support these corrected totals. The follow-up report explicitly distinguishes
+offered from transferred cells. Corey selected improving coverage before merge
+in response to review 498 (verbatim direction in 17.2.10).
+
+
+## Compound review response: compound-yard-4
+
+Content source `f631cdd43f6b570f9dbeda46cc91cd98a0cf64f4`, with clean tracked
+source during the runs. `compound-response.json.gz` is the complete current
+38-pair report; `compound-response-summary.json` is its compact allocation,
+validation, diagnostic, retention and selected-case summary. Before/source
+provenance is explicit: exact matching original-before trees, results and
+geometry observations are reused from `compound-cords.json.gz` (SHA-256 recorded
+inside the new report), not claimed reruns. Every current result/geometry/access,
+determinism and snapshot check reruns. Full first-PR results recover and omitted
+first-PR snapshots refuse the new implementation. All three full production
+maps regenerate and report no defects. All 38 pairs match/reuse the same input.
+
+The enhanced audit distinguishes offered cells from actual transfer (input minus
+retained). Production actual totals are 4,576 original / 729 first PR / 9,053
+response, across 3 / 4 / 13 compounds with children. All five nested lots keep
+their yards. New production rectangles are interior; boundary-flush cord movement
+is demonstrated by the synthetic plot and independently pinned concave test.
+This is not maximum-fill or universal-peripheral coverage. See 42.3 for the
+measured shares and remaining costs; no numerical balance approval is implied.
+
+```powershell
+node tools/compound-cord-audit.mjs --seeds=4 --maps --compare-from=docs/reports/issue-647/compound-cords.json.gz --out=test-results/compound-cords-response
+node tools/compound-cord-audit.mjs --seeds=4 --timing --compare-from=docs/reports/issue-647/compound-cords.json.gz --out=test-results/compound-cords-response-timing
+node tools/compound-cord-audit.mjs --render-from=docs/reports/issue-647/compound-response.json.gz --out=test-results/compound-cords-response-render
+```
+
+`compound-response-timing.json.gz` preserves the separate 20-case timing run,
+all timed inputs and raw three-round samples, after one warmup under the machine
+benchmark lock. No other jobs from this task ran during that comparison. The
+170-portal fixture now records `portal-capacity` with zero candidate/probe work
+and unchanged output. The synthetic result remains a substantial measured
+slowdown. Node v24.15.0, Windows x64, 2026-10-29; exact audit/timing start/finish
+and external CPU load, CPU/RAM identifiers remain unrecorded.
+
+`compound-response-boundary.png` shows rectangle seed 1 with a boundary patch
+crossing an initial cord; `compound-response-yard.png` shows the recovered
+production fixture; `compound-response-large.png` shows the largest production
+case. Rendered from the retained gzip with Chrome 156.0.8078.49, viewport
+1400x1000, device scale 1; 38 panels, no horizontal overflow; visually inspected.
+They are collision/ownership comparisons. Amber paths are initial pessimistic
+cords; blue paths prove final actual gate access. Full external owner/whole
+portal reach is independently checked in thorough mode, not inferred from blue
+paths. Original PNG/JSON/gzip artifacts and their hashes remain untouched.
+
+### Response artifact SHA-256
+
+| File | SHA-256 |
+| --- | --- |
+| `compound-response.json.gz` | `127b1bb80abc63fc1c7ec2d5328e1d41b6de3dec0d6c4e6bead6186aadc0cc77` |
+| `compound-response-timing.json.gz` | `3a2df4be773cf30ec85d5cf4f2b6dcfa2905dda1f8ef6956df068a0163d76ee6` |
+| `compound-response-summary.json` | `e1f5bb54fe93b320eb45f88616fe41481011c08b6645dc1e49c4078c36a9f854` |
+| `compound-response-boundary.png` | `d5eac4a9bfe25560cd5388908072bc8dc6e481f207e74a2c128fd20f2669f2cd` |
+| `compound-response-yard.png` | `3aa02e50a26c5d8f7720b45e368d19c3f041492941a7218e95415e8482cdbd7a` |
+| `compound-response-large.png` | `7a90e061a8bea14a774a2db06495665923374e1d5ee89b443ba6656969d0ac25` |

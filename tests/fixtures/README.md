@@ -139,3 +139,18 @@ that was supposed to be about the simulation. A pure content change needs only
 `generated` replaced; rebuild the traces only when they are meant to move. There is
 deliberately no script in the repository for this. To audit a fixture's provenance, run the scenario module
 in an isolated checkout of its checkpoint and compare the decompressed JSON.
+
+
+## Compound yard review input (#647 / #657)
+
+`compound-647-review-brief.json.gz` is the unchanged input for
+`compound@180,294` from `issue330-before-36x18` in
+`docs/reports/issue-647/compound-cords.json.gz` (content source
+`3d4106fff2ed12240b9741f3d7fc46343079f269`). Extracted during review 498 to pin
+an irregular production yard: the original `compound-yard-2` transferred 180
+cells; the first PR's extent-relative `compound-yard-3` selected none. The
+review regression requires actual ownership transfer, preserved ring/court,
+actual gate access and final owner/whole geometry, rather than counting offers.
+This is an input fixture, not a replacement characterization baseline.
+Gzip bytes use mtime 0; SHA-256
+`d4a1f8de12220f0de815047a0b0a2a69a5c327c56ba824e96b1bb227fdec0bf4`.
