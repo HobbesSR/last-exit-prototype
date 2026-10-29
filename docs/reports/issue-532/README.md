@@ -145,8 +145,9 @@ variation witness; independent seeds do not promise uniqueness or vary the fixed
 single-room placeable.
 
 The full 224-map sweep also has zero drift versus `54e4967`. Its existing
-199 changed-map diagnostics and original larger-library checks therefore remain
-applicable to these unchanged maps. The remaining micro and fast gates and the
+199 changed-map diagnostics therefore remain applicable to the unchanged sweep
+corpus. The original larger-library checks remain historical evidence; this
+review reruns the three authored samples rather than the whole slow library batch. The remaining micro and fast gates and the
 new capture provenance are recorded with this review checkpoint. `types-51` and
 `hut-yard-4` remain the identities of this still-unmerged content change.
 
@@ -154,3 +155,12 @@ The optional shared yard adapter cleanup uses one required `retainedBoxes` array
 compound passes its one ring in an array and retains identical behavior. Portal-free
 regions retain the existing component policy: this response adds no global
 house-to-house connectivity requirement to disconnected portal-free masks.
+
+Review validation: 514 micro unit tests plus all four micro browser scripts pass;
+`npm test` passes all 1,277 tests; syntax and typecheck pass. The focused hut and
+compound transaction tests also pass 42/42. The 224-map sweep reports zero drift
+from the first PR capture (164 s; elapsed check time, not a benchmark).
+
+Review recapture: `08baba16e04126fc0543859046bd3816988bddb8`, `2026-10-29T22:19:35.072Z`,
+Node v24.15.0, 224 entries, 126 s. All hash sets exactly equal the previous
+capture, matching the independent zero-drift run. Only provenance changes.
