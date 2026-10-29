@@ -273,7 +273,7 @@ This is also a shared prerequisite for #529's composition sequence above.
 | Done | [#645](/corey/astra_test/issues/645) | Opt-in atomic retained-content parcels anywhere in the fill, with deformable connectivity witness; no production adoption |
 | 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
 | Done | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing; synthetic fixtures and recovery, no production adoption |
-| Hut milestone | [#647](/corey/astra_test/issues/647) | Hut uses measured cord-aware boundary handoffs; compound is deferred until review of hut evidence |
+| Hut milestone | [#647](/corey/astra_test/issues/647) | Hut milestone approved in #654; compound adoption is outside that milestone. Each builder may choose interior or boundary handoffs (17.2.10) |
 
 Growth (#649) remains independent of the implemented handoffs (#646).
 Both no-transfer handoffs and whole-child portal transfer have synthetic coverage.
