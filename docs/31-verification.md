@@ -108,8 +108,8 @@ and the original seeds run in `tests/slow/` (#543, measured in
 `slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds and
 `slow/micro-plant-promise` all eight; `micro-compound` runs one of four seeds of its
 portal and roofed-ring checks; `micro-compound-observer` keeps the one-seed
-observer witness,
-and `slow/micro-compound-sweeps` runs all four. Compound cell-order determinism
+observer witness;
+`slow/micro-compound-sweeps` runs all four. Compound cell-order determinism
 keeps a fast seed and all eight original seeds in `slow/micro-compound-determinism`
 (#647). Each pair calls one function in
 `tests/helpers/` (`block-promise.js`, `plant-promise.js`, `compound-sweeps.js`) with a

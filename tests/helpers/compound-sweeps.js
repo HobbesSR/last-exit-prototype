@@ -8,7 +8,7 @@ import { SIZE, MASKS, PARAMETERS, brief, build, blockers, ringElements, compound
 /**
  * micro-compound's checks over every mask and gate count at each of `seeds`. Together they cost
  * 64 cases at four seeds, the portal check's reach searches about half of that, so the fast
- * tier runs two seeds and `tests/slow/micro-compound-sweeps.test.js` the first four (31, #543).
+ * tier runs one seed and `tests/slow/micro-compound-sweeps.test.js` the first four (31, #543).
  */
 function forEachCase(seeds, check) {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of seeds) for (const parameters of PARAMETERS)
