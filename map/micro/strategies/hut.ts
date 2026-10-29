@@ -71,21 +71,46 @@ export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltR
   return { ...result, brief };
 }
 
+/** Detached observations of the optional yard delegation attempt. */
+export interface HutYardDiagnostics {
+  briefId: string;
+  outcome: 'no-fill' | 'no-house' | 'no-eligible-candidates' | 'init' | 'claim' | 'populate' | 'settle' | 'all-refused' | 'delegated';
+  reason?: string;
+  considered: number;
+  filtered: number;
+  probed: number;
+  accepted: number;
+  refusals: Record<string, number>;
+  eligibleOffers: PatchOffer[];
+  probes: Array<{ key: string; verdict: 'accepted' | 'refused'; reason?: string }>;
+}
+export interface HutExecutionOptions extends ExecutionOptions {
+  observeYard?: (diagnostics: HutYardDiagnostics) => void;
+}
+const yardDiagnostics = (briefId: string, outcome: HutYardDiagnostics['outcome']): HutYardDiagnostics =>
+  ({ briefId, outcome, considered: 0, filtered: 0, probed: 0, accepted: 0, refusals: {}, eligibleOffers: [], probes: [] });
+
 /** Owning generation object for inspection and versioned snapshot recovery (20.7). */
-export function buildHutGeneration(brief: RegionBrief, options: ExecutionOptions = {}) {
+export function buildHutGeneration(brief: RegionBrief, options: HutExecutionOptions = {}) {
   // Preparation rechecks receivers as interfaces change. Reuse only an exact
   // interface's cover preview within this invocation, including for dispatch.
-  return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY, cover: previewedCoverExecution() }, options);
+  const { observeYard, ...executionOptions } = options;
+  return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY,
+    hut: { ...HUT_EXECUTION_REGISTRY.hut!, build: (b, c, observe) => buildRetainedHut(b, c, observe, observeYard) },
+    cover: previewedCoverExecution() }, executionOptions);
 }
 
 export const HUT_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  hut: { version: 'hut-yard-2', build: buildRetainedHut },
+  hut: { version: 'hut-yard-3', build: buildRetainedHut },
   cover: COVER_EXECUTION,
 });
 
-function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {
+function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver, observeYard?: HutExecutionOptions['observeYard']): BuiltRegion {
   const size = brief.cellSize, mask = createFillMask(brief), accessMask = createAccessMask(brief);
-  if (!mask.cells.length) return context.empty('hut has no usable fill');
+  if (!mask.cells.length) {
+    observeYard?.(yardDiagnostics(brief.id, 'no-fill'));
+    return context.empty('hut has no usable fill');
+  }
   const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design`).next() * 2 ** 31);
   let site: Site | undefined;
   for (const { spaces, boxes } of LARGER) {
@@ -100,7 +125,10 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   }
   const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
   site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site`, (w, h, side) => houseFor(w, h, side, 1, size, seed));
-  if (!site) return context.empty('hut has no house with a reachable doorstep');
+  if (!site) {
+    observeYard?.(yardDiagnostics(brief.id, 'no-house'));
+    return context.empty('hut has no house with a reachable doorstep');
+  }
 
   const { design, allocation, realization } = site.house.details;
   const [element] = placedElements(site.house, 'hut-building', site.x, site.y, size) as [RegionElement];
@@ -108,7 +136,7 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   if (!createBuilderCanvas(brief).commit({ elements: [element] })) throw new Error('Hut placement failed its canvas commit.');
   observe?.({ label: element.label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
-  delegateYard(brief, site, element, context);
+  delegateYard(brief, site, element, context, observeYard);
   brief = context.brief;
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:hut-loot`), loot: LootSite[] = [];
@@ -125,8 +153,14 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
 
 type Site = { x: number; y: number; house: House; steps: string[] };
 
-/** Try bounded, explicit peripheral boxes, allowing the coordinator to move yard cords. */
-function delegateYard(brief: RegionBrief, site: Site, element: RegionElement, context: ExecutionContext): void {
+/** Try a capped number of peripheral boxes, allowing the coordinator to move yard cords. */
+function delegateYard(brief: RegionBrief, site: Site, element: RegionElement, context: ExecutionContext, observe?: HutExecutionOptions['observeYard']): void {
+  const diagnostics = yardDiagnostics(brief.id, 'no-eligible-candidates');
+  const report = (outcome: HutYardDiagnostics['outcome'], reason?: string) => {
+    diagnostics.outcome = outcome;
+    if (reason !== undefined) diagnostics.reason = reason;
+    observe?.(structuredClone(diagnostics));
+  };
   const size = brief.cellSize, { w, h } = site.house.demand.body;
   const steps = site.steps.map(step => step.split(',').map(Number) as [number, number]);
   // The retained-portal policy requires each original portal's owned seam
@@ -142,29 +176,46 @@ function delegateYard(brief: RegionBrief, site: Site, element: RegionElement, co
     const cell = owned.has(before.x, before.y) ? before : after;
     reserved.add(`${cell.x},${cell.y}`);
   }
-  const offers = peripheralOffers(brief).filter(offer => !offer.cells.some(c => reserved.has(`${c.x},${c.y}`)));
-  if (!offers.length) return;
+  const offers = peripheralOffers(brief, reserved, diagnostics);
+  diagnostics.eligibleOffers = offers;
+  if (!offers.length) { report('no-eligible-candidates'); return; }
   const fixedAccess = steps.map(([x, y]) => rect(x * size, y * size, BODY * size, BODY * size));
   const terminals = steps.map(([x, y]) => ({ x: (x + BODY / 2) * size, y: (y + BODY / 2) * size }));
   const created = createProspectiveParcels(brief, { handoff: context, fixedAccess, terminals });
   // An independently sited house remains valid when the optional continuous search cannot prove it.
-  if (!created.ok) return;
+  if (!created.ok) { report('init', created.reason); return; }
   const coordinator = created.coordinator;
   const claim = coordinator.tryClaim([rect(site.x * size, site.y * size, w * size, h * size)]);
-  if (!claim.ok || !coordinator.populate(claim.handle, { elements: [element] }).ok
-    || !coordinator.settle(claim.handle, 'populated').ok) return;
+  if (!claim.ok) { report('claim', claim.reason); return; }
+  const populated = coordinator.populate(claim.handle, { elements: [element] });
+  if (!populated.ok) { report('populate', populated.reason); return; }
+  const settled = coordinator.settle(claim.handle, 'populated');
+  if (!settled.ok) { report('settle', settled.reason); return; }
 
   let accepted = false;
   const transferred = new Set<string>();
   for (const offer of offers) {
     if (offer.cells.some(c => transferred.has(`${c.x},${c.y}`))) continue;
+    diagnostics.probed++;
     const proposal = coordinator.probeHandoff([offer], { externalPortals: 'retained' });
-    if (proposal.ok && coordinator.acceptHandoff(proposal.proposal).ok) {
+    if (!proposal.ok) {
+      diagnostics.probes.push({ key: offer.key, verdict: 'refused', reason: proposal.reason });
+      diagnostics.refusals[proposal.reason] = (diagnostics.refusals[proposal.reason] ?? 0) + 1;
+      continue;
+    }
+    const acceptance = coordinator.acceptHandoff(proposal.proposal);
+    if (acceptance.ok) {
       accepted = true;
+      diagnostics.accepted++;
+      diagnostics.probes.push({ key: offer.key, verdict: 'accepted' });
       for (const c of offer.cells) transferred.add(`${c.x},${c.y}`);
+    } else {
+      diagnostics.probes.push({ key: offer.key, verdict: 'refused', reason: acceptance.reason });
+      diagnostics.refusals[acceptance.reason] = (diagnostics.refusals[acceptance.reason] ?? 0) + 1;
     }
   }
   if (accepted && !coordinator.executeHandoffs().ok) throw new Error('Verified hut handoff could not execute.');
+  report(accepted ? 'delegated' : 'all-refused');
 }
 
 /**
@@ -172,9 +223,10 @@ function delegateYard(brief: RegionBrief, site: Site, element: RegionElement, co
  * scales allow a smaller useful box when a larger lobe meets a portal or house.
  * Require a complete owned rectangle and at least a 3-by-3 pocket for cover;
  * refusals and narrow remnants remain with the hut. The fixed candidate cap
- * bounds expensive whole-partition and cord probes even on very large regions.
+ * limits the number of expensive probes, not their cost: preparation and routing
+ * still grow with region geometry and the accepted batch.
  */
-function peripheralOffers(brief: RegionBrief): PatchOffer[] {
+function peripheralOffers(brief: RegionBrief, reserved: Set<string>, diagnostics: HutYardDiagnostics): PatchOffer[] {
   const owned = createRegionMask(brief), cells = owned.cells;
   const minX = Math.min(...cells.map(c => c.x)), maxX = Math.max(...cells.map(c => c.x));
   const minY = Math.min(...cells.map(c => c.y)), maxY = Math.max(...cells.map(c => c.y));
@@ -203,6 +255,8 @@ function peripheralOffers(brief: RegionBrief): PatchOffer[] {
       patch.push({ x: i, y: j });
     }
     if (!complete) continue;
+    diagnostics.considered++;
+    if (patch.some(c => reserved.has(`${c.x},${c.y}`))) { diagnostics.filtered++; continue; }
     offers.push({ key: `yard:${id}`, cells: patch, type: 'cover', reasonTags: ['unused-yard-lobe'] });
     if (offers.length === 36) break;
   }
