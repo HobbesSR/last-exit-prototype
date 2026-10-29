@@ -7,6 +7,7 @@ import { clearRoute, distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
 import { event, effect, dropEquipment, planDrop } from './loot.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { draftItem, replaceItem, settledItem } from './ground-items.ts';
 import { actorRadius } from './actor-physics.ts';
 import type { CellItem, Game, GroundItem, Player, PlayerInput } from '../types.ts';
 import { hypot } from '../math.ts';
@@ -48,9 +49,14 @@ export function interact(s: Game, p: Player): void {
     .sort((a, b) => distance(p, a) - distance(p, b) || (s.content.itemInstances ? a.id < b.id ? -1 : a.id > b.id ? 1 : 0 : 0))[0];
   if (!p.bot && pickup && p.inventory!.every(Boolean)) {
     if (s.content.itemInstances) { swapInstanceEquipment(s, p, pickup); return; }
-    const index = p.selectedSlot!, old = equipped(p); p.inventory![index] = null;
-    if (collectEquipment(p, pickup, s.content.weapons)) { s.map.items = s.map.items.filter(i => i.id !== pickup.id); dropEquipment(s, p, old!); }
-    else p.inventory![index] = old;
+    const index = p.selectedSlot!, old = equipped(p), draft = draftItem(pickup); p.inventory![index] = null;
+    if (collectEquipment(p, draft, s.content.weapons)) { s.map.items = s.map.items.filter(i => i.id !== pickup.id); dropEquipment(s, p, old!); }
+    else {
+      p.inventory![index] = old;
+      // A partly emptied weapon stays on the ground with what is left.
+      const next = settledItem(pickup, draft);
+      if (next !== pickup) replaceItem(s, pickup, next);
+    }
     syncWeapon(p, s.content.weapons); return;
   }
   // The nearest gate takes the interaction even when it cannot be used; it never falls through to transit.

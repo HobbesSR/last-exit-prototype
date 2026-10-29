@@ -4,6 +4,7 @@ import { physicsRuntime, markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
 import { hypot } from '../math.ts';
+import { groundItem, replaceItem } from './ground-items.ts';
 
 export const PHYSICS_WORLD_VERSION = 'last-exit-0.8-physics-5';
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
@@ -62,9 +63,8 @@ export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
 export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: number, admit = true): void {
   const profile = s.content.worldPhysics;
   if (!profile) return;
-  // A held body is `item:<id>`, so test the item ids themselves rather than building a string per ground item on every call.
-  const present = new Set(s.map.items.map(item => String(item.id)));
-  for (const id of [...r.items].sort(order)) if (!present.has(id.slice(ITEM_PREFIX.length))) {
+  // A held body is `item:<id>`: look its item up by id rather than walking the ground list on every call.
+  for (const id of [...r.items].sort(order)) if (!groundItem(s, id.slice(ITEM_PREFIX.length))) {
     markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
     r.world.queueRemoveBody(id); r.items.delete(id);
   }
@@ -112,11 +112,11 @@ export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): v
   r.synchronize();
 }
 
+/** Walks the item bodies, not the ground; a record is replaced only when its body moved. */
 export function writePhysicalItemPoses(s: Game, r: PhysicsRuntime): void {
-  for (const item of s.map.items) {
-    if (!r.items.has(bodyId(item))) continue;
-    const pose = r.world.getTransform(bodyId(item));
-    if (pose) { item.x = pose.x; item.y = pose.y; }
+  for (const id of r.items) {
+    const item = groundItem(s, id.slice(ITEM_PREFIX.length)), pose = item && r.world.getTransform(id);
+    if (pose && !(Object.is(pose.x, item.x) && Object.is(pose.y, item.y))) replaceItem(s, item, { ...item, x: pose.x, y: pose.y });
   }
 }
 

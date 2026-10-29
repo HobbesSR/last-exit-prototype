@@ -183,13 +183,17 @@ test('ammo pickups fill reserves with six full slots, leave the remainder, and a
   p.reserves.pistol = 60;
   const pile = { id: 'pile', kind: 'ammo', family: 'pistol', count: 20, x: p.x, y: p.y };
   s.map.items.push(pile);
+  // A partial take replaces the ground record (22.1 "Frames"), so look it up again.
+  const ground = () => s.map.items.find(item => item.id === 'pile');
   automaticPickups(s, p, {});
-  assert.deepEqual([p.reserves.pistol, pile.count, s.map.items.includes(pile)], [72, 8, true]);
+  assert.deepEqual([p.reserves.pistol, ground()?.count, pile.count], [72, 8, 20]);
+  const left = ground();
   automaticPickups(s, p, {});
-  assert.deepEqual([p.reserves.pistol, pile.count, pile.id], [72, 8, 'pile'], 'a full reserve leaves the pickup untouched');
+  assert.deepEqual([p.reserves.pistol, ground()?.count], [72, 8]);
+  assert.equal(ground(), left, 'a full reserve leaves the pickup untouched');
   p.reserves.pistol = 0;
   automaticPickups(s, p, {});
-  assert.deepEqual([p.reserves.pistol, s.map.items.includes(pile)], [8, false]);
+  assert.deepEqual([p.reserves.pistol, ground()], [8, undefined]);
   assert.equal(collectAmmo(s, p, { id: 'bad', kind: 'ammo', family: 'laser', count: 3, x: 0, y: 0 }), false);
 });
 
@@ -245,7 +249,7 @@ test('the owner sees reserves and reload progress; other players and older conte
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
   // Ground ammo keeps its family on the live wire, as in recorded frames.
-  s.map.items.push({ id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y });
+  s.map.items = [...s.map.items, { id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
   const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === 'box');
   assert.equal(box.family, 'shell');
   const legacy = createGame(17, arena(), content('content-5'));

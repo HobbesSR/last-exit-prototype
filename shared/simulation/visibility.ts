@@ -3,7 +3,8 @@ import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
-import type { Game, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
+import type { Game, GroundItem, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
+import { groundItem, groundPosition, publishItems } from './ground-items.ts';
 import { physicsState } from './physics-runtime.ts';
 import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
 import { MAX_PHYSICS_SPEED } from '../physics/motion-limits.ts';
@@ -75,17 +76,24 @@ export function snapshot(s: Game): Snapshot {
     const physics = physicsState(s);
     stop('sim.snapshot.world');
     start('sim.snapshot.presentation');
-    const presentation = physics ? capturePhysicsPresentation(physics, { players: s.players, items: s.map.items }) : undefined;
-    const itemBodies = new Map(presentation?.bodies.filter(b => b.itemId !== undefined).map(b => [b.itemId, b]));
+    const ground = publishItems(s);
+    const presentation = physics ? capturePhysicsPresentation(physics, s.players, id => groundItem(s, id)?.id) : undefined;
     // A physical item's stored/projection pose changes the item layer too, even before its gameplay
-    // owner synchronizes the map record. Never mutate that gameplay record while taking a snapshot.
-    const items = itemBodies.size ? s.map.items.map(item => {
-      const body = itemBodies.get(item.id);
-      return body ? { ...item, x: body.x, y: body.y } : item;
-    }) : s.map.items;
+    // owner synchronizes the map record. Never change that gameplay record while taking a snapshot:
+    // a differing pose gives the frame its own list.
+    let items = ground;
+    for (const body of presentation?.bodies ?? []) {
+      const at = body.itemId === undefined ? undefined : groundPosition(s, String(body.itemId)), item = at === undefined ? undefined : ground[at];
+      if (!item || Object.is(item.x, body.x) && Object.is(item.y, body.y)) continue;
+      if (items === ground) items = ground.slice();
+      (items as GroundItem[])[at!] = Object.freeze({ ...item, x: body.x, y: body.y });
+    }
     stop('sim.snapshot.presentation');
     start('sim.snapshot.clone');
-    return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial } : {}), ...(physics ? { physics, ...presentation } : {}) });
+    // The ground list is shared, not cloned: published records are frozen and replaced when they change.
+    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial } : {}), ...(physics ? { physics, ...presentation } : {}) }) as unknown as Snapshot;
+    frame.items = items as GroundItem[];
+    return frame;
   }
   finally { stop('sim.snapshot.clone'); stop('sim.snapshot'); }
 }
