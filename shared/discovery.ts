@@ -1,6 +1,7 @@
 import { gateShape, insideMap, litPoint, visibilityPolygon } from './movement.ts';
 import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
+import { count } from './profiler.ts';
 import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GateObservation, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
 import { hypot } from './math.ts';
 export type { DiscoveryMemory, DiscoveryWire };
@@ -252,6 +253,7 @@ export function createDiscoveryEncoder(rekeyFloor = REKEY_FLOOR) {
       }
 
       if (list.length < table.set.size + newlyAdded.length || newlyAdded.length > rekeyFloor) {
+        count('work.rekey.discovered');
         table = { k: nextVersion(), all: list, set: new Set(list) };
         return {
           k: table.k,

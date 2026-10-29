@@ -27,7 +27,9 @@
 // Keyframe numbers are unique in the process, so one never matches a table from another view or room.
 // Contestant discovery uses the same delivery tracking and process-wide keyframe numbering through shared/discovery.ts.
 
-export const LAYERS = ['items', 'gates', 'bodies', 'tethers'] as const;
+import { count } from './profiler.ts';
+
+export const LAYERS =['items', 'gates', 'bodies', 'tethers'] as const;
 export type Layer = typeof LAYERS[number];
 type Id = string | number;
 type Entry = { id: Id };
@@ -49,6 +51,7 @@ export function createLayerEncoder() {
     let table = tables.get(layer);
     const changes = table && changesSince(table, list);
     if (!changes) {
+      count(`work.rekey.${layer}`);
       const byId = new Map(list.map(entry => [entry.id, entry]));
       // Entries without distinct ids cannot be addressed by a change, so that layer goes whole.
       if (byId.size !== list.length || byId.has(undefined as never)) { tables.delete(layer); return { plain: list }; }

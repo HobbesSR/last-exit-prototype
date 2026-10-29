@@ -68,9 +68,13 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }
 export function snapshot(s: Game): Snapshot {
+  // Inclusive; its parts are timed separately: the physics world copy, the presentation capture and the clone.
   start('sim.snapshot');
   try {
+    start('sim.snapshot.world');
     const physics = physicsState(s);
+    stop('sim.snapshot.world');
+    start('sim.snapshot.presentation');
     const presentation = physics ? capturePhysicsPresentation(physics, { players: s.players, items: s.map.items }) : undefined;
     const itemBodies = new Map(presentation?.bodies.filter(b => b.itemId !== undefined).map(b => [b.itemId, b]));
     // A physical item's stored/projection pose changes the item layer too, even before its gameplay
@@ -79,7 +83,9 @@ export function snapshot(s: Game): Snapshot {
       const body = itemBodies.get(item.id);
       return body ? { ...item, x: body.x, y: body.y } : item;
     }) : s.map.items;
+    stop('sim.snapshot.presentation');
+    start('sim.snapshot.clone');
     return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial } : {}), ...(physics ? { physics, ...presentation } : {}) });
   }
-  finally { stop('sim.snapshot'); }
+  finally { stop('sim.snapshot.clone'); stop('sim.snapshot'); }
 }

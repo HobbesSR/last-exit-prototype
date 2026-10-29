@@ -289,6 +289,14 @@ WebGL on SwiftShader, and `--diagnostics=FILE` saves the player-facing download.
 `tests/bench-session.mjs` samples one long match every interval instead, optionally
 roaming, at a native device scale, or against another checkout (`--root`); see 42.2 (#549).
 
+`npm run bench:stages` (`tests/bench-stages.mjs`) attributes the server tick by stage: it runs
+whole rooms through the server loop body (advance, recording, spectator history, broadcast with
+projection, layer encoding and serialization) and keeps every tick of every `sim.*`/`loop.*` timer,
+so each tick over 50 ms is classified by stage, keyframe cut and overlapping GC. `--rooms`,
+`--clients`, `--spectators` and `--no-record` shape the load; `--tile=CxR` repeats a real map at
+the same density for sizes the protocol does not serve. It takes the same lock. Method and the
+first results are [42.22](42.22-tick-cost-attribution.md) (#637).
+
 ## Choosing checks by changed area
 
 A check is worth running when something the change touched can move what it asserts.

@@ -22,6 +22,7 @@ import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSIO
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
+import { start, stop } from '../profiler.ts';
 
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const actorId = (p: Player) => `actor:${p.id}`;
@@ -158,7 +159,7 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
     r.gates.set(gate.id, gate.open);
     r.world.commitMutations();
   }
-  synchronizePhysicalItems(s, r, markTick, !deferItemAdmission);
+  start('sim.itemSync'); synchronizePhysicalItems(s, r, markTick, !deferItemAdmission); stop('sim.itemSync');
   if (s.content.worldPhysics) {
     r.pendingImpulses = r.pendingImpulses.filter(entry => r.world.getGeneration(entry.id) === entry.generation);
     r.pendingAttachments = r.pendingAttachments.filter(entry => r.world.getGeneration(entry.a) === entry.generationA
@@ -176,9 +177,11 @@ export function stepPhysics(s: Game): void {
   if (!r) throw new Error('physics world missing or disposed');
   if (s.phase !== 'live') return;
   stepping.add(s);
-  try { advancePhysics(s, r); } finally { stepping.delete(s); }
+  start('sim.step');
+  try { advancePhysics(s, r); } finally { stepping.delete(s); stop('sim.step'); }
 }
 
+// Timed by phase like the legacy step (sim.*; 42.22). Every synchronize call is counted in sim.sync.
 function advancePhysics(s: Game, r: PhysicsRuntime): void {
   // 1: all timers and previous-boundary lifecycle, before anyone decides.
   advanceTick(s);
@@ -188,7 +191,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     p.movedThisTick = 0; respawn(s, p);
     if (p.status === 'active') advanceTimers(p);
   }
-  synchronize(s, r, s.tick);
+  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
   prepareHooks(s);
   s.projectiles.push(...r.pendingSpawns.splice(0));
   for (const impulse of r.pendingImpulses.splice(0)) if ((r.actors.has(impulse.id) || s.content.worldPhysics && r.world.hasBody(impulse.id)) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
@@ -201,11 +204,13 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   r.world.commitMutations();
   // 2: roster-order collection from the same pre-movement world.
   const intents = new Map<Player, BotIntent>();
+  start('sim.bots');
   beginDynamicNavigationCollection(s);
   try {
     for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
-  } finally { endDynamicNavigationCollection(s); }
+  } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
   // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
+  start('sim.actions');
   for (const p of ordered(s)) {
     const intent = intents.get(p); if (!intent) continue;
     const input = intent.input;
@@ -223,9 +228,13 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     const speed = movementSpeed(p, input, HZ);
     r.world.setMotor(actorId(p), actorMotor(s, p, input.x ?? 0, input.y ?? 0, speed));
   }
+  stop('sim.actions');
   // 4: all bodies together. Query projectiles use these actual substep paths.
+  start('sim.solve');
   applyFloorDrag(s, r);
   const result = r.world.step();
+  stop('sim.solve');
+  start('sim.poses');
   writePhysicalItemPoses(s, r);
   for (const p of s.players) if (p.status === 'active') {
     const at = r.world.getTransform(actorId(p));
@@ -233,7 +242,9 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   }
   // Events are facts only; gameplay has no contact damage profile in P1.
   r.world.drainContacts();
+  stop('sim.poses');
   // 5: physical TOI first, then finalized-pose abilities/melee by stable caster ID.
+  start('sim.projectiles');
   solvePhysicsProjectiles(s, result.paths);
   finishHooks(s, result.paths);
   for (const p of ordered(s)) {
@@ -242,7 +253,9 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     if (input.skill && p.kit === 'warden') skill(s, p);
     if (input.attack && p.role === 'gladiator') attack(s, p);
   }
+  stop('sim.projectiles');
   // 6: interactions/pickups, environment, traps; trap spawns wait for next tick.
+  start('sim.pickups');
   for (const p of ordered(s)) {
     const input = intents.get(p)?.input;
     if (p.status !== 'active' || !input) continue;
@@ -252,15 +265,20 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     advanceCharging(s, p, (p.movedThisTick ?? 0) > 0.05 ? { x: 1 } : {});
     automaticPickups(s, p, input);
   }
+  stop('sim.pickups');
+  start('sim.environment');
   for (const p of ordered(s)) if (p.status === 'active') {
     applyEnvironment(s, p);
   }
   const admittedProjectiles = s.projectiles.length;
   stepTraps(s, damage, effect);
   r.pendingSpawns.push(...s.projectiles.splice(admittedProjectiles));
+  stop('sim.environment');
   if (r.pendingSpawns.length > 128) throw new RangeError('pending projectile capacity');
   // 7: next-boundary body state, discovery, terminal result, rewind and capture readiness.
-  synchronize(s, r, s.tick);
+  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
   advanceDiscovery(s);
-  finishMatch(s); synchronize(s, r, s.tick); recordRewind(s);
+  finishMatch(s);
+  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
+  start('sim.rewind'); recordRewind(s); stop('sim.rewind');
 }

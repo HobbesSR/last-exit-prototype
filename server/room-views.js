@@ -40,9 +40,11 @@ export function broadcast(room, state) {
     let view = views.get(key);
     if (view === undefined) {
       const projected = room.match.project(session.playerId || session.dev ? state : delayed, session.playerId);
+      profiler.start('loop.encode');
       const layers = encoderFor(room.layerEncoders, key, createLayerEncoder).encode(projected);
       const me = session.playerId && projected.players?.find(p => p.id === session.playerId);
       if (me?.discovered) layers.discovered = encoderFor(room.discoveryEncoders, key, createDiscoveryEncoder).encode(me.discovered);
+      profiler.stop('loop.encode');
       views.set(key, view = { state: projected, layers });
     }
     // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
@@ -62,7 +64,9 @@ export function broadcast(room, state) {
         const disc = whole.includes('discovered') ? view.layers.discovered.all() : view.layers.discovered.changes;
         frame.players = frame.players.map(p => p.id === session.playerId ? { ...p, discovered: disc } : p);
       }
+      profiler.start('loop.serialize');
       payloads.set(variant, payload = JSON.stringify({ type: 'state', state: frame }));
+      profiler.stop('loop.serialize');
     }
     if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;
   }
