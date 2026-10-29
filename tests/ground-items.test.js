@@ -5,7 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { stepPhysics } from '../shared/simulation/phased.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups } from '../shared/simulation/loot.ts';
-import { groundItem, groundList, replaceItem } from '../shared/simulation/ground-items.ts';
+import { addItems, groundItem, groundList, itemsNear, publishItems, removeItem, replaceItem } from '../shared/simulation/ground-items.ts';
 
 // #655 stage 1 (22.1 "Frames"): frames share the ground list and its records, and a change replaces only what it touches.
 const arena = items => ({ width: 600, height: 400,
@@ -56,6 +56,31 @@ test('adding to a published ground copies the list once and leaves the frame alo
   assert.equal(s.map.items[0], frame.items[0]);
   assert.equal(groundItem(s, 'c')?.id, 'c');
   assert.throws(() => replaceItem(s, s.map.items[0], { ...s.map.items[0], id: 'other' }), /replacing ground item a/);
+});
+
+test('the item grid offers every record in reach, in list order, through adds, removals, moves and frames (#641)', () => {
+  let seed = 641;
+  const random = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+  const at = () => random() < 0.03 ? NaN : random() * 2000 - 200;
+  const s = { map: { items: Array.from({ length: 300 }, (_, i) => ({ id: `i${i}`, kind: 'med', x: at(), y: at() })) } };
+  const frames = [];
+  let serial = 300;
+  for (let step = 0; step < 2000; step++) {
+    const items = s.map.items, roll = random(), item = items[Math.floor(random() * items.length)];
+    if (roll < 0.2) addItems(s, { id: `i${serial++}`, kind: 'med', x: at(), y: at() });
+    else if (roll < 0.35 && item) removeItem(s, item);
+    else if (roll < 0.6 && item) replaceItem(s, item, { ...item, x: item.x + random() * 80 - 40, y: item.y + random() * 80 - 40 });
+    else if (roll < 0.65 && item && !Object.isFrozen(item)) item.x = at(); // Before its first frame, a record may still be moved in place.
+    else if (roll < 0.75) frames.push({ list: publishItems(s), ids: s.map.items.map(i => i.id) });
+    const p = { x: random() * 1600, y: random() * 1600 }, reach = [38, 45, 130][step % 3];
+    const expected = s.map.items.filter(i => !(Math.hypot(i.x - p.x, i.y - p.y) > reach));
+    assert.deepEqual(itemsNear(s, p, reach).filter(i => expected.includes(i)), expected, `step ${step}`);
+  }
+  assert.ok(frames.length > 100);
+  for (const frame of frames) assert.deepEqual(frame.list.map(i => i.id), frame.ids, 'a published list never changes');
+  const p = { x: 500, y: 500 };
+  assert.ok(itemsNear(s, p, 45).length < s.map.items.length / 4, 'a query reads a neighbourhood, not the map');
+  assert.deepEqual(itemsNear(s, { x: NaN, y: 0 }, 45), s.map.items, 'a position that compares as nothing is offered everything');
 });
 
 test('physics writes back only the item bodies that moved', async () => {

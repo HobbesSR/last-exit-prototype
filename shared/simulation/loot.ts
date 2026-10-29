@@ -3,7 +3,7 @@ import { carriedCell, collectAmmo, collectEquipment, collectInstanceEquipment, s
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { draftItem, groundList, replaceItem, settledItem } from './ground-items.ts';
+import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
 import { HZ } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
 import type { AmmoFamily, EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
@@ -23,7 +23,7 @@ export function dropEquipment(s: Game, p: Player, item: InventoryItem): void {
       if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, p, candidate) && s.map.items.every(other => distance(other, candidate) > 32)) { point = candidate; break; }
     }
     const dropped: GroundItem = { ...item, count: 1, id: `equipment-drop-${s.serial++}` as ItemId, x: point.x, y: point.y, droppedBy: p.id, pickupAfter: s.tick + HZ };
-    groundList(s).push(dropped);
+    addItems(s, dropped);
   }
 }
 
@@ -107,7 +107,7 @@ export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = 
     const plan = planDrop(s, p, item, mandatory);
     if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
     s.itemSerial = plan.itemSerial;
-    groundList(s).push(...plan.records); records = plan.records;
+    addItems(s, ...plan.records); records = plan.records;
   } else dropEquipment(s, p, item);
   p.inventory![slot] = null; p.charging = null; syncWeapon(p, s.content.weapons);
   if (records.length) launchPhysicalDrops(s, records, p);
@@ -126,24 +126,20 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
       if (item.kind === 'cell') clearRoute(p);
       effect(s, p, 'loot', 30); return null;
     };
-    if (s.content.itemInstances) {
-      // Commit each consumed instance before the next pickup inspects ownership or allocates IDs.
-      for (let i = 0; i < s.map.items.length;) {
-        const item = s.map.items[i]!, next = remains(item);
-        if (next === item) i++;
-        else if (next) { replaceItem(s, item, next); i++; }
-        else { groundList(s).splice(i, 1); physicsRuntime(s)?.synchronize(); }
+    // Only records near enough to pass the reach test, in list order: pickups are taken in that order, and each
+    // commits before the next inspects ownership, inventory room or allocates IDs. An untouched ground stays shared.
+    let near = itemsNear(s, p, 38);
+    for (let k = 0; k < near.length; k++) {
+      const item = near[k]!, next = remains(item);
+      if (next === item) continue;
+      if (next) { replaceItem(s, item, next); continue; }
+      const at = removeItem(s, item), { x, y } = p;
+      if (s.content.itemInstances) physicsRuntime(s)?.synchronize();
+      // Synchronizing can place the player again; the records still to visit are then those after `at` near where it stands.
+      if (!Object.is(p.x, x) || !Object.is(p.y, y)) {
+        const later = new Set(s.map.items.slice(at));
+        near = itemsNear(s, p, 38).filter(other => later.has(other)); k = -1;
       }
-    } else {
-      // A new list only when something was taken or changed, so an untouched ground stays shared.
-      const items = s.map.items;
-      let next: GroundItem[] | undefined;
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i]!, kept = remains(item);
-        if (kept !== item) next ??= items.slice(0, i);
-        if (next && kept) next.push(kept);
-      }
-      if (next) s.map.items = next;
     }
     if (!input.sneak && !p.cloak && s.map.sensors.some(sensor => distance(p, sensor) < 180)) p.revealed = 65;
   }

@@ -7,7 +7,7 @@ import { clearRoute, distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
 import { event, effect, dropEquipment, planDrop } from './loot.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { draftItem, replaceItem, settledItem } from './ground-items.ts';
+import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
 import { actorRadius } from './actor-physics.ts';
 import type { CellItem, Game, GroundItem, Player, PlayerInput } from '../types.ts';
 import { hypot } from '../math.ts';
@@ -28,7 +28,7 @@ function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
   const drop = planDrop(s, p, outgoing, false, remaining, pickupStage.itemSerial);
   if (!drop || !canRepresentPhysicalDrop(s, drop.records.length, [pickup])) return;
   p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.reserves = draft.reserves; p.charging = null;
-  s.map.items = [...remaining, ...drop.records]; s.itemSerial = drop.itemSerial;
+  removeItem(s, pickup); addItems(s, ...drop.records); s.itemSerial = drop.itemSerial;
   launchPhysicalDrops(s, drop.records, p);
   syncWeapon(p, s.content.weapons);
 }
@@ -44,13 +44,13 @@ export function interact(s: Game, p: Player): void {
     const station = s.map.chargers.find(st => distance(p, st) < CHARGE_REACH && lineClear(s.map, p, st));
     if (station) { p.charging = station.id; return; }
   }
-  const pickup = p.inventory && s.map.items.filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < PICKUP_REACH && reachClear(s.map, p, i)
+  const pickup = p.inventory && itemsNear(s, p, PICKUP_REACH).filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < PICKUP_REACH && reachClear(s.map, p, i)
     && (!s.content.itemInstances || i.droppedBy !== p.id || !(i.pickupAfter! > s.tick)))
     .sort((a, b) => distance(p, a) - distance(p, b) || (s.content.itemInstances ? a.id < b.id ? -1 : a.id > b.id ? 1 : 0 : 0))[0];
   if (!p.bot && pickup && p.inventory!.every(Boolean)) {
     if (s.content.itemInstances) { swapInstanceEquipment(s, p, pickup); return; }
     const index = p.selectedSlot!, old = equipped(p), draft = draftItem(pickup); p.inventory![index] = null;
-    if (collectEquipment(p, draft, s.content.weapons)) { s.map.items = s.map.items.filter(i => i.id !== pickup.id); dropEquipment(s, p, old!); }
+    if (collectEquipment(p, draft, s.content.weapons)) { removeItem(s, pickup); dropEquipment(s, p, old!); }
     else {
       p.inventory![index] = old;
       // A partly emptied weapon stays on the ground with what is left.
