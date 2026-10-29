@@ -1,8 +1,8 @@
 // Per-tick stage attribution (#637, 42.22): runs whole rooms as the server loop does, without sockets or a clock.
 // Each tick is the loop body of server/room-service.js for every room in turn: the match advances (step, snapshot),
 // the frame goes to a replay writer and the spectator history, and broadcast projects, encodes and serializes it for
-// every session. The writer's gzip output is discarded, and the loop yields between ticks so its compression keeps
-// pace as it would on the server. Every tick's sim.* and loop.* timers are kept, not only the profiler's window, so
+// every session. The writer's gzip output is discarded. Between ticks, outside the measured interval, the loop waits
+// for the writer to drain, as the 50 ms gap between live ticks lets it; a run whose recorder drops a frame fails. Every tick's sim.* and loop.* timers are kept, not only the profiler's window, so
 // any tick over budget can be attributed. Sessions are viewers attached to bot seats: a bot keeps deciding, which a
 // joined player would not, so this is the bot room's cost plus the views.
 //
@@ -74,7 +74,7 @@ const gc = [];
 const observer = new PerformanceObserver(list => { for (const e of list.getEntries()) gc.push({ at: e.startTime, ms: e.duration, kind: e.detail?.kind ?? e.kind }); });
 observer.observe({ entryTypes: ['gc'] });
 profiler.enable(true);
-const totals = [], starts = [], frames = [], memory = [], tickNumbers = [];
+const totals = [], starts = [], frames = [], memory = [], tickNumbers = [], drains = [];
 let completed = 0;
 for (let tick = 0; tick < ticks; tick++) {
   const before = performance.now();
@@ -90,13 +90,19 @@ for (let tick = 0; tick < ticks; tick++) {
   completed = tick + 1;
   if (tick % 250 === 0) memory.push({ tick, heapMB: process.memoryUsage().heapUsed / 2 ** 20, rssMB: process.memoryUsage().rss / 2 ** 20 });
   if (rooms.every(r => r.match.phase !== 'live')) break;
-  await new Promise(resolve => setImmediate(resolve));
+  // Unpaced, the loop would outrun compression and the writer would drop frames, which a 20 Hz server does not.
+  // Drain between ticks, outside the measured interval, so every frame is recorded as it would be live.
+  const drainStarted = performance.now();
+  while (rooms.some(r => r.writer?.blocked)) await new Promise(resolve => setTimeout(resolve, 1));
+  drains.push(performance.now() - drainStarted);
 }
 await new Promise(resolve => setTimeout(resolve, 50));
 observer.disconnect();
 const historyBytes = rooms.map(r => v8.serialize(r.history).byteLength);
 const stateBytes = rooms.map(r => v8.serialize(r.history.at(-1)).byteLength);
+const droppedFrames = rooms.map(r => r.writer?.droppedFrames ?? 0);
 for (const room of rooms) { room.writer?.abort(new Error('bench finished')); room.match.dispose(); }
+if (droppedFrames.some(Boolean)) { console.error(`recorder dropped frames (${droppedFrames.join('/')}): the run does not measure healthy recording`); process.exit(1); }
 
 // Attribute: every tick's series, the top-level stages that partition it, and what no timer covers.
 const names = [...new Set(frames.flatMap(f => Object.keys(f ?? {})))].sort();
@@ -128,6 +134,7 @@ const result = {
   meta: { seed, content: baseContent.id, size: label, rooms: roomCount, clients, spectators, recording, ticks: completed, node: process.version,
     items: rooms.map(r => r.items), obstacles: rooms.map(r => r.obstacles), tilesMs: rooms.map(r => r.tilesMs) },
   tick: { ...tickStats, over: over.length }, stages, over,
+  recorder: { droppedFrames, drainMs: stats(drains) },
   gc: { count: gc.length, ms: gc.reduce((a, e) => a + e.ms, 0), max: Math.max(0, ...gc.map(e => e.ms)) },
   memory: { samples: memory, historyFrames: rooms.map(r => r.history.length), historyBytes, stateBytes },
 };
@@ -141,4 +148,5 @@ for (const [name, s] of Object.entries(stages).sort((a, b) => b[1].mean - a[1].m
   console.log(`${name.padEnd(28)} mean ${ms(s.mean)}  p99 ${ms(s.p99)}  max ${ms(s.max)}${s.share === null ? '' : `  ${(s.share * 100).toFixed(1).padStart(5)}%`}`);
 }
 for (const o of over) console.log(`over: tick ${o.tick} ${o.ms.toFixed(1)} ms  gc ${o.gcMs.toFixed(1)}  ${o.largest.map(([n, v]) => `${n} ${v.toFixed(1)}`).join(', ')}  ${JSON.stringify(o.rekeys)}`);
+console.log(`recorder dropped ${droppedFrames.join('/')} frames; drain between ticks mean ${result.recorder.drainMs.mean.toFixed(1)} ms, max ${result.recorder.drainMs.max.toFixed(1)} ms (unmeasured)`);
 console.log(`gc ${gc.length} pauses, ${result.gc.ms.toFixed(0)} ms total, max ${result.gc.max.toFixed(1)} ms; history ${result.memory.historyFrames.join('/')} frames, ${historyBytes.map(b => (b / 2 ** 20).toFixed(1)).join('/')} MiB serialized; state ${stateBytes.map(b => (b / 1024).toFixed(0)).join('/')} KiB`);

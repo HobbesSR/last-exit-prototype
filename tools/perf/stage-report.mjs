@@ -27,7 +27,9 @@ function table(run) {
 const f = v => v === undefined ? '-' : v.toFixed(2);
 const summary = {};
 for (const [name, run] of Object.entries(runs).sort()) {
-  summary[name] = { meta: run.meta, tick: run.tick, stages: table(run), over: run.over, gc: run.gc, memory: run.memory };
+  summary[name] = { meta: run.meta, tick: run.tick, stages: table(run), over: run.over, gc: run.gc, memory: run.memory, recorder: run.recorder };
+  if (!run.recorder) throw new Error(`${name} predates recorder draining; rerun it`);
+  if (run.recorder.droppedFrames.some(Boolean)) throw new Error(`${name} dropped recorder frames`);
 }
 // 1. Stage tables, real sizes whole match (r1 for physics) and averaged over physics repeats.
 const show = (names) => {
@@ -41,7 +43,7 @@ const show = (names) => {
 const present = names => names.filter(n => summary[n]);
 console.log('\n## Real sizes, whole match'); show(present(['real-12x6-legacy', 'real-12x6-physics-r1', 'real-24x12-legacy', 'real-24x12-physics-r1', 'real-36x18-legacy', 'real-36x18-physics-r1']));
 console.log('\n## Repeats (tick mean / p99 / max / over)');
-for (const n of Object.keys(summary).filter(n => n.startsWith('real-'))) console.log(`${n}: ${f(summary[n].tick.mean)} / ${f(summary[n].tick.p99)} / ${f(summary[n].tick.max)} / ${summary[n].tick.over} of ${summary[n].meta.ticks}; gc ${summary[n].gc.count} ${f(summary[n].gc.ms)} ms max ${f(summary[n].gc.max)}`);
+for (const n of Object.keys(summary).filter(n => n.startsWith('real-'))) console.log(`${n}: ${f(summary[n].tick.mean)} / ${f(summary[n].tick.p99)} / ${f(summary[n].tick.max)} / ${summary[n].tick.over} of ${summary[n].meta.ticks}; gc ${summary[n].gc.count} ${f(summary[n].gc.ms)} ms max ${f(summary[n].gc.max)}; recorder drain mean ${f(summary[n].recorder?.drainMs.mean)} max ${f(summary[n].recorder?.drainMs.max)} ms, dropped ${summary[n].recorder?.droppedFrames.join("/")}`);
 // 2. Exponents along the constant-density ladder, against items.
 const fit = points => { const xs = points.map(p => Math.log(p[0])), ys = points.map(p => Math.log(Math.max(p[1], 1e-4))); const mx = mean(xs), my = mean(ys);
   return xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / xs.reduce((s, x) => s + (x - mx) ** 2, 0); };
