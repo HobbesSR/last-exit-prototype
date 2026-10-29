@@ -164,7 +164,7 @@ async function main() {
     }
     let timing;
     if (opts.timing) {
-      const lock = await acquireMachineLock('bench');
+      const lock = await acquireMachineLock('bench', { pollMs: 100 });
       try {
       // Sequential rounds, warmup first; no rendering, validation or assertions inside measurements.
       const timingInputs = inputs.filter(i => !i.source);
@@ -211,7 +211,7 @@ async function main() {
     const report = { syntheticUptake, ...(production ? { maps: production.maps } : {}), baseline: { commit: BASELINE, note: 'Pinned hut source with current supporting modules, loaded as temporary sibling.', findings: baselineFindings }, currentCommit, hutStatus: execFileSync('git', ['status', '--short', '--', 'map/micro/strategies/hut.ts'], { cwd: ROOT, encoding: 'utf8' }).trim(), seeds: opts.seeds, failed, records, ...(timing ? { timing } : {}) };
     await mkdir(dir, { recursive: true });
     await writeFile(resolve(dir, 'results.json'), JSON.stringify(report, null, 2) + '\n');
-    await writeFile(resolve(dir, 'index.html'), `<!doctype html><meta charset="utf-8"><title>Hut cord audit</title><style>body{font:16px system-ui;margin:2em}section{border-top:1px solid #aaa}.pair{display:flex;gap:1em}figure{margin:0;flex:1}svg{width:100%;max-height:500px;background:#fff}figcaption{font-weight:bold}</style><h1>Hut cord audit</h1><p>Same brief and seed. Cell colours indicate owners; brown geometry is the house, green is cover, magenta marks external portals. Baseline uses current supporting modules. Full raw results and diagnostic errors: <a href="results.json">results.json</a>.</p>${production ? `<h2>Production maps</h2><p>All unique top-level huts and block lots are shown below. Counts, map defects and uptake: <code>${esc(JSON.stringify(production.maps))}</code></p>` : ''}${panels.join('')}`);
+    await writeFile(resolve(dir, 'index.html'), `<!doctype html><meta charset="utf-8"><title>Hut cord audit</title><style>body{font:16px system-ui;margin:2em}section{border-top:1px solid #aaa}.pair{display:flex;gap:1em}figure{margin:0;flex:1}svg{width:100%;max-height:500px;background:#fff}figcaption{font-weight:bold}p,code{overflow-wrap:anywhere}</style><h1>Hut cord audit</h1><p>Same brief and seed. Cell colours indicate owners; brown geometry is the house, green is cover, magenta marks external portals. Baseline uses current supporting modules. Full raw results and diagnostic errors: <a href="results.json">results.json</a>.</p>${production ? `<h2>Production maps</h2><p>All unique top-level huts and block lots are shown below. Counts, map defects and uptake: <code>${esc(JSON.stringify(production.maps))}</code></p>` : ''}${panels.join('')}`);
     process.stdout.write(`Wrote ${dir}; ${failed ? 'CURRENT FAILURES: inspect results.json' : 'current checks passed'}; ${baselineFindings.length} baseline cases with findings (retained in report)\n`);
     if (failed) process.exitCode = 1;
   } finally { await unlink(path).catch(e => { if (e.code !== 'ENOENT') throw e; }); }

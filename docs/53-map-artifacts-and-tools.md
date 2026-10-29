@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-47` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-48` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -132,8 +132,8 @@ default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
 2 × 1 cases). These are the stored case groups, not a new zero-drift run.
 They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
-The current baseline provenance is content commit `c5db75156713887e1378c3b62c923acc4777d986`,
-captured `2026-10-28T15:42:59.222Z` under Node v24.15.0 (#534 / #529, 42.4).
+The current baseline provenance is content commit `bfb28be1f0470e9c04c2e56059e7f8106ae1325d`,
+captured `2026-10-29T03:27:06.055Z` under Node v24.15.0 (#647, 42.4).
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash
@@ -303,3 +303,13 @@ recommendations aren't requirements until Corey adopts them. Examples: NFT
 budgets, 750 m, 12 × 12 tiles, a trapezoid boundary, and the planned path
 (50). Before building on an existing mechanism, trace whether Corey asked for
 it or an agent added it.
+
+## Hut boundary handoff adoption (#647)
+
+`types-48` intentionally changes hut child ownership, cover geometry and loot
+through cord-aware boundary handoffs. House siting and geometry are unchanged.
+Wire 8, macro 3, result `region-2` and the delegation algorithm stay unchanged.
+Current full/omitted owning snapshots are checked, and full historical hut
+snapshots preserve their saved accepted offers; historical omitted results
+require `hut-yard-1`, not the new `hut-yard-2` implementation (20.7).
+The frozen simulation characterization fixture is untouched.
