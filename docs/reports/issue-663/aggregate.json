@@ -1,0 +1,180 @@
+{
+  "inputHash": "b061c4ed8260fb89ad7a6fc142fe5531b68759bfa99e094d526e5ba878880c02",
+  "resultsSha256": "20cd4292f4d23aab993b05c09398d545e8c8378bdd659406844ac1e4acb80859",
+  "subsets": {
+    "isolated": {
+      "workloads": 6,
+      "policies": {
+        "production": {
+          "warehouses": 6,
+          "containerRows": 41,
+          "secondaryCrates": 53,
+          "loot": 435,
+          "occupiedCells": 399,
+          "warehouseEnvelopeCells": 288,
+          "warehouseParcelsCrossingOldRoute": 0,
+          "rowParcelsCrossingOldRoute": 0,
+          "portalAndFillErrors": 0,
+          "doorstepStands": 16,
+          "failedDoorstepStands": 2,
+          "failedRoomChecks": 4,
+          "intentionalEmptyCells": null,
+          "maxAcceptedOperations": null
+        },
+        "fixed": {
+          "warehouses": 3,
+          "containerRows": 25,
+          "secondaryCrates": 0,
+          "loot": 596,
+          "occupiedCells": 203,
+          "warehouseEnvelopeCells": 144,
+          "warehouseParcelsCrossingOldRoute": 0,
+          "rowParcelsCrossingOldRoute": 0,
+          "portalAndFillErrors": 0,
+          "doorstepStands": 10,
+          "failedDoorstepStands": 0,
+          "failedRoomChecks": 0,
+          "intentionalEmptyCells": 164,
+          "maxAcceptedOperations": 14
+        },
+        "movable": {
+          "warehouses": 6,
+          "containerRows": 23,
+          "secondaryCrates": 0,
+          "loot": 557,
+          "occupiedCells": 262,
+          "warehouseEnvelopeCells": 288,
+          "warehouseParcelsCrossingOldRoute": 5,
+          "rowParcelsCrossingOldRoute": 2,
+          "portalAndFillErrors": 0,
+          "doorstepStands": 24,
+          "failedDoorstepStands": 0,
+          "failedRoomChecks": 0,
+          "intentionalEmptyCells": 116,
+          "maxAcceptedOperations": 10
+        }
+      }
+    },
+    "authored": {
+      "workloads": 12,
+      "policies": {
+        "production": {
+          "warehouses": 57,
+          "containerRows": 308,
+          "secondaryCrates": 226,
+          "loot": 667,
+          "occupiedCells": 3217,
+          "warehouseEnvelopeCells": 2736,
+          "warehouseParcelsCrossingOldRoute": 0,
+          "rowParcelsCrossingOldRoute": 0,
+          "portalAndFillErrors": 0,
+          "doorstepStands": 210,
+          "failedDoorstepStands": 0,
+          "failedRoomChecks": 0,
+          "intentionalEmptyCells": null,
+          "maxAcceptedOperations": null
+        },
+        "fixed": {
+          "warehouses": 57,
+          "containerRows": 261,
+          "secondaryCrates": 0,
+          "loot": 783,
+          "occupiedCells": 2761,
+          "warehouseEnvelopeCells": 2736,
+          "warehouseParcelsCrossingOldRoute": 0,
+          "rowParcelsCrossingOldRoute": 0,
+          "portalAndFillErrors": 0,
+          "doorstepStands": 198,
+          "failedDoorstepStands": 0,
+          "failedRoomChecks": 0,
+          "intentionalEmptyCells": 1132,
+          "maxAcceptedOperations": 84
+        },
+        "movable": {
+          "warehouses": 57,
+          "containerRows": 264,
+          "secondaryCrates": 0,
+          "loot": 770,
+          "occupiedCells": 2769,
+          "warehouseEnvelopeCells": 2736,
+          "warehouseParcelsCrossingOldRoute": 0,
+          "rowParcelsCrossingOldRoute": 6,
+          "portalAndFillErrors": 0,
+          "doorstepStands": 198,
+          "failedDoorstepStands": 0,
+          "failedRoomChecks": 0,
+          "intentionalEmptyCells": 1130,
+          "maxAcceptedOperations": 86
+        }
+      }
+    }
+  },
+  "productionReferenceLimits": [
+    {
+      "name": "crossing-3",
+      "doors": [
+        {
+          "label": "depot-warehouse-1",
+          "point": {
+            "x": 720,
+            "y": 5
+          },
+          "external": false,
+          "reached": false
+        }
+      ],
+      "doorsteps": [
+        {
+          "label": "depot-warehouse-1",
+          "point": {
+            "x": 720,
+            "y": -40
+          },
+          "contained": false,
+          "clear": true,
+          "reached": false
+        }
+      ],
+      "rooms": [
+        {
+          "label": "depot-warehouse-1",
+          "space": "floor",
+          "reached": false
+        },
+        {
+          "label": "depot-warehouse-1",
+          "space": "office",
+          "reached": false
+        }
+      ]
+    },
+    {
+      "name": "crossing-5",
+      "doors": [],
+      "doorsteps": [
+        {
+          "label": "depot-warehouse-1",
+          "point": {
+            "x": 0,
+            "y": 160
+          },
+          "contained": false,
+          "clear": true,
+          "reached": false
+        }
+      ],
+      "rooms": [
+        {
+          "label": "depot-warehouse-1",
+          "space": "floor",
+          "reached": false
+        },
+        {
+          "label": "depot-warehouse-1",
+          "space": "office",
+          "reached": false
+        }
+      ]
+    }
+  ]
+}

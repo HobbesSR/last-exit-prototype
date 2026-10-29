@@ -115,12 +115,35 @@ a composition opportunity, not evidence that prior deliveries are defective.
 #647's hut milestone is approved in #654. Compound now adopts #646's handoff
 transaction as a separate measured milestone, preserving its ring/court/gates
 while admitting peripheral and interior yard rectangles with movable routes.
-Review both builders' visual, geometry, recovery and cost evidence in 42.3. Also select a contrasting fixed-route builder (depot or market are
-candidates) for an opt-in comparison of composition, entrance/side-pocket access,
-useful handoff shapes, determinism/recovery and generation cost. Portal connectivity
-alone does not preserve authored aisles or doorstep access. Reassess earlier #529
-work as retain/adapt/defer using that evidence before substantial new structural
-expansion; do not automatically rewrite every builder or resume offset research.
+Review both builders' visual, geometry, recovery and cost evidence in 42.3.
+The tool-only depot comparison (#663) supplies the contrasting fixed-route case:
+matched fixed/movable primary composition with explicit warehouse doorsteps,
+local aisle/side-pocket bypasses, independent geometry, determinism/recovery and
+source-bound cost evidence. Its stronger bypass policy and omitted secondary
+crate pass are experimental controls, not new requirements for every builder.
+Production remains unchanged; the comparison is not delivery of #533's increased
+warehouse budget or structural hall wings. Findings and limitations are in
+[42.3](42.3-generation-and-delegation-evidence.md#depot-movable-cord-comparison-663)
+and [the retained report](reports/issue-663/README.md).
+
+Disposition after the representative cord comparisons:
+- **Retain:** inward grounds, placeables, addressed canvas, deterministic infill,
+  ownership/interface validation and recovery, together with existing themed
+  production deliveries. The comparisons do not invalidate them.
+- **Adapt selectively:** upfront fixed-route admission when it blocks a selected
+  useful primary composition. Preserve each builder's explicit entrances, aisles,
+  skipped slots and intentional open space; portal connectivity is insufficient.
+  A measured experimental gain does not itself authorize production promotion.
+- **Defer:** automatic all-builder migration, generic preparation/cache work,
+  guard/budget changes and further compound-offset research absent a demonstrated
+  blocker. Do not expand #663 into quota tuning or exhaustive pocket refinement.
+
+For the next functional selection, compare #532's multiple houses/courtyard use
+(already supported by adopted cord tooling) with #533's structural hall/depot
+composition and the still-missing broader #535 capabilities. These primary gaps
+have greater functional value than polishing this comparison. Reassess actual
+reach/readiness at pickup; this is not a mandated successor or a closure of any
+broad workstream.
 See the 2026-10-28 sequencing checkpoint on #529 and [20.10](20.10-portal-cords.md).
 
 The epic reaches its first functional tier when each workstream has a useful

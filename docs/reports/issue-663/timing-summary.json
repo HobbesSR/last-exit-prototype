@@ -1,0 +1,35 @@
+{
+  "roundTotalsMs": [
+    {
+      "production": 245.91649999999572,
+      "fixed": 11350.799500000001,
+      "movable": 14181.329600000005
+    },
+    {
+      "production": 253.70539999999892,
+      "fixed": 10670.859000000004,
+      "movable": 12969.663700000012
+    },
+    {
+      "production": 224.41250000000582,
+      "fixed": 10263.713000000003,
+      "movable": 13258.2785
+    }
+  ],
+  "medianTotalsMs": {
+    "production": 245.91649999999572,
+    "fixed": 10670.859000000004,
+    "movable": 13258.2785
+  },
+  "pairedMovableOverFixedPercent": [
+    24.936834625613848,
+    21.542827058252833,
+    29.17623963179792
+  ],
+  "pairedMovableOverProductionTimes": [
+    57.66725534886944,
+    51.12096037372507,
+    59.0799465270413
+  ],
+  "outputsMatchGeometryCapture": true
+}

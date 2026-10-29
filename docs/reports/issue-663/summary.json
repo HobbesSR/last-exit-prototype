@@ -1,0 +1,1308 @@
+{
+  "inputHash": "b061c4ed8260fb89ad7a6fc142fe5531b68759bfa99e094d526e5ba878880c02",
+  "maps": [
+    {
+      "seed": "issue330-before-12x6",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "depots": 2,
+      "defects": []
+    },
+    {
+      "seed": "issue330-before-24x12",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "depots": 5,
+      "defects": []
+    },
+    {
+      "seed": "issue330-before-36x18",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "depots": 5,
+      "defects": []
+    }
+  ],
+  "rows": [
+    {
+      "name": "crossing-1",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 42,
+            "gates": 3,
+            "loot": 58,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 8,
+            "infillCrates": 10
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 22,
+            "gates": 3,
+            "loot": 85,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 4,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 9,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 22,
+            "gates": 3,
+            "loot": 85,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 4,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 9,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "crossing-2",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 41,
+            "gates": 3,
+            "loot": 74,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 6,
+            "infillCrates": 11
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 18,
+            "gates": 3,
+            "loot": 104,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 2,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 9,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 18,
+            "gates": 3,
+            "loot": 109,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 2,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-warehouse-1"
+          ],
+          "attempts": 7,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "crossing-3",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 38,
+            "gates": 3,
+            "loot": 73,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 6,
+            "infillCrates": 11
+          },
+          "errors": [],
+          "doorsFailed": [
+            {
+              "label": "depot-warehouse-1",
+              "point": {
+                "x": 720,
+                "y": 5
+              },
+              "external": false,
+              "reached": false
+            }
+          ],
+          "doorstepsFailed": [
+            {
+              "label": "depot-warehouse-1",
+              "point": {
+                "x": 720,
+                "y": -40
+              },
+              "contained": false,
+              "clear": true,
+              "reached": false
+            }
+          ],
+          "roomsFailed": [
+            {
+              "label": "depot-warehouse-1",
+              "space": "floor",
+              "reached": false
+            },
+            {
+              "label": "depot-warehouse-1",
+              "space": "office",
+              "reached": false
+            }
+          ],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 432,
+            "structures": 0,
+            "obstacles": 11,
+            "gates": 0,
+            "loot": 106,
+            "coreElements": 0,
+            "warehouses": 0,
+            "designed": 0,
+            "rows": 4,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 14,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 25,
+            "gates": 5,
+            "loot": 93,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 3,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-warehouse-1",
+            "depot-row-2"
+          ],
+          "attempts": 9,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "crossing-4",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 37,
+            "gates": 3,
+            "loot": 89,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 7,
+            "infillCrates": 8
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 432,
+            "structures": 0,
+            "obstacles": 16,
+            "gates": 0,
+            "loot": 106,
+            "coreElements": 0,
+            "warehouses": 0,
+            "designed": 0,
+            "rows": 6,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 11,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 20,
+            "gates": 3,
+            "loot": 99,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 3,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-warehouse-1",
+            "depot-row-1"
+          ],
+          "attempts": 10,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "crossing-5",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 35,
+            "gates": 3,
+            "loot": 66,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 7,
+            "infillCrates": 6
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [
+            {
+              "label": "depot-warehouse-1",
+              "point": {
+                "x": 0,
+                "y": 160
+              },
+              "contained": false,
+              "clear": true,
+              "reached": false
+            }
+          ],
+          "roomsFailed": [
+            {
+              "label": "depot-warehouse-1",
+              "space": "floor",
+              "reached": false
+            },
+            {
+              "label": "depot-warehouse-1",
+              "space": "office",
+              "reached": false
+            }
+          ],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 24,
+            "gates": 5,
+            "loot": 91,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 3,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 9,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 28,
+            "gates": 5,
+            "loot": 90,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 5,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-warehouse-1"
+          ],
+          "attempts": 9,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "crossing-6",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 39,
+            "gates": 5,
+            "loot": 75,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 7,
+            "infillCrates": 7
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 432,
+            "structures": 0,
+            "obstacles": 15,
+            "gates": 0,
+            "loot": 104,
+            "coreElements": 0,
+            "warehouses": 0,
+            "designed": 0,
+            "rows": 6,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 11,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 432,
+            "structures": 1,
+            "obstacles": 30,
+            "gates": 5,
+            "loot": 81,
+            "coreElements": 0,
+            "warehouses": 1,
+            "designed": 1,
+            "rows": 6,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-warehouse-1"
+          ],
+          "attempts": 10,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-12x6/depot@18,78",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 56,
+            "gates": 6,
+            "loot": 3,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 8,
+            "infillCrates": 10
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 46,
+            "gates": 6,
+            "loot": 4,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 8,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 16,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 45,
+            "gates": 6,
+            "loot": 4,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 8,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 16,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-12x6/depot@156,120",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 156,
+            "gates": 21,
+            "loot": 67,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 24,
+            "infillCrates": 19
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 137,
+            "gates": 21,
+            "loot": 73,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 24,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 57,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 138,
+            "gates": 21,
+            "loot": 70,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 25,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-row-1"
+          ],
+          "attempts": 58,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-24x12/depot@318,30",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 55,
+            "gates": 10,
+            "loot": 28,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 6,
+            "infillCrates": 6
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 49,
+            "gates": 10,
+            "loot": 31,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 6,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 16,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 49,
+            "gates": 10,
+            "loot": 31,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 6,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 16,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-24x12/depot@234,72",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 175,
+            "gates": 19,
+            "loot": 35,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 36,
+            "infillCrates": 19
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 139,
+            "gates": 15,
+            "loot": 36,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 30,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 57,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 139,
+            "gates": 15,
+            "loot": 36,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 30,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 57,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-24x12/depot@414,90",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 70,
+            "gates": 10,
+            "loot": 20,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 10,
+            "infillCrates": 11
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 59,
+            "gates": 10,
+            "loot": 24,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 10,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 16,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 58,
+            "gates": 10,
+            "loot": 23,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 10,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-row-1"
+          ],
+          "attempts": 16,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-24x12/depot@450,216",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 49,
+            "gates": 6,
+            "loot": 36,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 6,
+            "infillCrates": 7
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 42,
+            "gates": 6,
+            "loot": 39,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 6,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 16,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 42,
+            "gates": 6,
+            "loot": 37,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 6,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-row-1"
+          ],
+          "attempts": 16,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-24x12/depot@312,264",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 59,
+            "gates": 8,
+            "loot": 25,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 7,
+            "infillCrates": 10
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 49,
+            "gates": 8,
+            "loot": 28,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 7,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 16,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 50,
+            "gates": 8,
+            "loot": 28,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 8,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-row-1"
+          ],
+          "attempts": 16,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-36x18/depot@474,60",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 167,
+            "gates": 17,
+            "loot": 52,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 28,
+            "infillCrates": 31
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 136,
+            "gates": 17,
+            "loot": 62,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 28,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 52,
+          "refusals": {}
+        },
+        "movable": {
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 136,
+            "gates": 17,
+            "loot": 62,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 28,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 52,
+          "refusals": {}
+        }
+      }
+    },
+    {
+      "name": "issue330-before-36x18/depot@330,270",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 255,
+            "gates": 32,
+            "loot": 47,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 46,
+            "infillCrates": 25
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 212,
+            "gates": 32,
+            "loot": 57,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 39,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 86,
+          "refusals": {
+            "budget": 7
+          }
+        },
+        "movable": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 212,
+            "gates": 32,
+            "loot": 53,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 38,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-row-1"
+          ],
+          "attempts": 86,
+          "refusals": {
+            "routing-or-canvas": 8
+          }
+        }
+      }
+    },
+    {
+      "name": "issue330-before-36x18/depot@768,270",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 261,
+            "gates": 28,
+            "loot": 114,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 47,
+            "infillCrates": 34
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 183,
+            "gates": 28,
+            "loot": 155,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 29,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 79,
+          "refusals": {
+            "budget": 18
+          }
+        },
+        "movable": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 183,
+            "gates": 28,
+            "loot": 155,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 29,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 79,
+          "refusals": {
+            "routing-or-canvas": 18
+          }
+        }
+      }
+    },
+    {
+      "name": "issue330-before-36x18/depot@696,372",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 248,
+            "gates": 32,
+            "loot": 124,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 38,
+            "infillCrates": 31
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 209,
+            "gates": 32,
+            "loot": 135,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 34,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 85,
+          "refusals": {
+            "budget": 1
+          }
+        },
+        "movable": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 199,
+            "gates": 32,
+            "loot": 141,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 31,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 85,
+          "refusals": {
+            "routing-or-canvas": 4
+          }
+        }
+      }
+    },
+    {
+      "name": "issue330-before-36x18/depot@804,372",
+      "builds": {
+        "production": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 271,
+            "gates": 30,
+            "loot": 116,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 52,
+            "infillCrates": 23
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": []
+        },
+        "fixed": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 211,
+            "gates": 28,
+            "loot": 139,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 40,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [],
+          "attempts": 86,
+          "refusals": {
+            "budget": 5
+          }
+        },
+        "movable": {
+          "manifest": {
+            "cells": 2880,
+            "structures": 8,
+            "obstacles": 225,
+            "gates": 28,
+            "loot": 130,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 45,
+            "infillCrates": 0
+          },
+          "errors": [],
+          "doorsFailed": [],
+          "doorstepsFailed": [],
+          "roomsFailed": [],
+          "crossesFrozenRoute": [
+            "depot-row-1"
+          ],
+          "attempts": 86,
+          "refusals": {}
+        }
+      }
+    }
+  ]
+}
