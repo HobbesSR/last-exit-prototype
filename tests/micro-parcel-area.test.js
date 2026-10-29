@@ -15,6 +15,17 @@ test('union is disjoint, deterministic, and preserves holes and concavity', () =
   assert.equal(areaContains(l,[rect(1,1,1,1)]),false);
 });
 
+test('snap precedence ignores property insertion order and input order', () => {
+  const a = rect(0.001, 0, 2, 2), b = rect(0.002, 0, 2, 2);
+  const p = polygon(0, 0, [{x:1,y:0.001},{x:3,y:0.001},{x:3,y:1},{x:1,y:1}]);
+  const reorderedA = {h:a.h, w:a.w, y:a.y, x:a.x, kind:a.kind};
+  const reorderedB = {x:b.x, kind:b.kind, h:b.h, y:b.y, w:b.w};
+  const reorderedP = {points:p.points.map(({x,y}) => ({y,x})), y:p.y, x:p.x, kind:p.kind};
+  const expected = parcelArea([a, b, p]);
+  assert.deepEqual(parcelArea([reorderedB, reorderedP, reorderedA]), expected);
+  assert.deepEqual(parcelArea([p, b, a]), expected);
+});
+
 test('cell union and conservative physical containment', () => {
   const area = parcelCells([{x:0,y:0},{x:1,y:0}], 10);
   assert.equal(areaContains(area,[rect(9,1,2,8)]),true);

@@ -2,9 +2,9 @@ import { rect, type Shape } from '../../shared/shape.ts';
 import { construct } from '../../shared/shape-construction.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import { createAddressedArea } from './addressed.ts';
-import { assemblyFootprints, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
+import { assemblyBlockers, assemblyFootprints, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
 import { discoverCordWitness, type CordWitness } from './cord-witness.ts';
-import { createFillMask, createAccessMask, elementShapes, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
+import { createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
 import { areaContains, parcelArea } from './parcel-area.ts';
 import type { RegionBrief } from './types.ts';
 
@@ -35,8 +35,8 @@ function assemblyWithinBudget(assembly: CanvasAssembly): boolean {
 }
 
 /**
- * Optional, private transaction owner. Each trial replays a detached canvas, then
- * proves circulation against complete pessimistic envelopes before publication.
+ * Optional, private transaction owner. Claim trials replay a detached canvas;
+ * ordinary writes prove circulation before the canvas's atomic commit.
  * No RNG, region IDs, ownership transfer, or production strategy is involved.
  */
 export function createProspectiveParcels(input: RegionBrief, options: ParcelOptions = {}) {
@@ -45,10 +45,10 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   let parcels: Parcel[] = [], operations: Operation[] = [], revision = 0, nextId = 1;
   const proposals = new WeakMap<ParcelProposal, { revision: number; area: Shape[]; witness: CordWitness; extend: ParcelHandle | undefined }>();
   if (fixed.length > 16384) return { ok: false as const, reason: 'budget' as const, counters: { meshBuilds: 0, sweeps: 0, paths: 0 } };
+  if (fixed.some(s => !validShape(s))) throw new TypeError('Fixed access must contain valid convex shapes');
   const initial = discoverCordWitness(brief, [], terminals, undefined, budget);
   if (!initial.ok) return { ok: false as const, reason: initial.reason, counters: initial.counters };
   let canvas = createBuilderCanvas(brief, fixed);
-  if (fixed.some(s => !validShape(s))) throw new TypeError('Fixed access must contain valid convex shapes');
   if (fixed.some(s => !canvas.access.contains(s))) return { ok: false as const, reason: 'canvas' as const };
   let witness = initial.witness;
   const fail = (reason: Refusal): Failed => ({ ok: false, reason });
@@ -68,10 +68,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   };
   const blockers = (ps: Parcel[], ops = operations): Shape[] => [
     ...ps.flatMap(p => p.area),
-    ...ops.flatMap(op => op.kind !== 'assembly' ? [] : op.assembly.elements.flatMap(e => [
-      ...elementShapes(e, true),
-      ...e.template.parts.flatMap(p => p.part === 'reserve' ? [rect(e.x + p.x, e.y + p.y, p.w, p.h)] : []),
-    ])),
+    ...ops.flatMap(op => op.kind !== 'assembly' ? [] : assemblyBlockers(op.assembly)),
   ];
   const publish = (ps: Parcel[], ops: Operation[], trial: NonNullable<ReturnType<typeof replay>>, next: CordWitness) => {
     parcels = ps; operations = ops; canvas = trial; witness = next; revision++;
@@ -191,20 +188,20 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if (owned.elements.length + canvas.elements.length > 4096 || !assemblyWithinBudget(owned)) return false;
       const intent = owned.areas ?? owned.elements.map(e => rect(e.x, e.y, e.template.w, e.template.h));
       if ([...intent, ...assemblyFootprints(owned), ...(owned.access ?? [])].some(a => parcels.some(p => p.area.some(s => shapesOverlap(a, s))))) return false;
-      const ops: Operation[] = [...operations, { kind: 'assembly', assembly: owned }], trial = replay(parcels, ops);
-      if (!trial) return false;
+      const ops: Operation[] = [...operations, { kind: 'assembly', assembly: owned }];
       const found = discoverCordWitness(brief, blockers(parcels, ops), terminals, witness, budget);
       if (!found.ok) return false;
-      publish(parcels, ops, trial, found.witness);
+      // Search first; canvas.commit itself is atomic. No live write occurs on either refusal.
+      if (!canvas.commit(owned)) return false;
+      publish(parcels, ops, canvas, found.witness);
       return true;
     },
     markEmpty(shapes: readonly Shape[]): boolean {
       if (operations.length >= 1024 || shapes.length > 1024) return false;
       const area = structuredClone([...shapes]);
       if (area.some(a => parcels.some(p => p.area.some(s => shapesShareArea(a, s))))) return false;
-      const ops: Operation[] = [...operations, { kind: 'empty', area }], trial = replay(parcels, ops);
-      if (!trial) return false;
-      publish(parcels, ops, trial, witness);
+      if (!canvas.markEmpty(area)) return false;
+      publish(parcels, [...operations, { kind: 'empty', area }], canvas, witness);
       return true;
     },
   };

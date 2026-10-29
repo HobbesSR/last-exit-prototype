@@ -6,6 +6,7 @@ import { elementShapes } from '../map/micro/geometry.ts';
 import { rect, circle, polygon } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { chainBrief } from './helpers/chain-briefs.js';
+import { createBuilderCanvas } from '../map/micro/canvas.ts';
 
 const cells = cellsOf(10, 8);
 const portals = [{ id: 'left', axis: 'v', x: 0, y: 3, length: 2 }, { id: 'right', axis: 'v', x: 10, y: 3, length: 2 }];
@@ -211,4 +212,35 @@ test('oversized population is refused before expanding roof footprints', () => {
   e.template.roofs = [{cellSize:32,cells:Array.from({length:16385},()=>({x:0,y:0}))}];
   assert.deepEqual(c.populate(h,{elements:[e]}),{ok:false,reason:'budget'});
   assert.deepEqual(snapshot(c),saved);
+});
+
+test('incremental canvas writes publish only when canvas and routing both succeed', () => {
+  const b = brief({portals}), c = ready(b);
+  // A real cut passes the canvas but must not publish before routing refuses it.
+  for (const part of [{part:'obstacle',kind:'wall',shape:rect(0,0,32,256)},
+    {part:'reserve',x:0,y:0,w:32,h:256}]) {
+    const cut = {elements:[{label:'cut',x:144,y:0,template:{w:32,h:256,parts:[part]}}]};
+    assert.equal(createBuilderCanvas(b).commit(cut),true);
+    const before = snapshot(c);
+    assert.equal(c.commit(cut),false);
+    assert.deepEqual(snapshot(c),before);
+  }
+  // Routing can repair this candidate, but its intent overlaps already empty intent.
+  assert.equal(c.markEmpty([rect(120,64,80,128)]),true);
+  const before = snapshot(c);
+  assert.equal(c.commit({elements:[element(128,80)]}),false);
+  assert.deepEqual(snapshot(c),before);
+  const pending = c.probeClaim([rect(64,32,32,32)]);
+  assert.equal(pending.ok,true);
+  assert.equal(c.commit({elements:[element(224,64)]}),true);
+  assert.equal(c.acceptClaim(pending.proposal).reason,'stale');
+  const h = c.tryClaim([rect(64,64,32,32)]).handle;
+  assert.deepEqual(c.populate(h,{elements:[element()]}),{ok:true});
+  assert.deepEqual(c.cancel(c.tryClaim([rect(96,192,32,32)]).handle),{ok:true});
+  assert.equal(c.elements.length,2); // Replay preserves all preceding incremental commits.
+});
+
+test('malformed fixed access is diagnosed before routing failure', () => {
+  assert.throws(()=>createProspectiveParcels(brief({portals}),
+    {fixedAccess:[rect(0,0,-1,1)],budget:{maxSweeps:0}}), {name:'TypeError',message:/Fixed access/});
 });

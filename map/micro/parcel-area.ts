@@ -46,7 +46,9 @@ export function parcelArea(shapes: readonly Shape[]): Shape[] {
     throw new RangeError('Parcel area exceeds geometry budget');
   shapes.forEach(validate);
   // Snap precedence must not depend on input order.
-  const ordered = [...shapes].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  const shapeKey = (s: Shape): string => `${s.kind}:${s.x},${s.y}:` + (s.kind === 'rect' ? `${s.w},${s.h}`
+    : s.kind === 'circle' ? `${s.r}` : s.points.map(p => `${p.x},${p.y}`).join(';'));
+  const ordered = [...shapes].sort((a, b) => { const ka = shapeKey(a), kb = shapeKey(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
   return construct(ordered).pieces().flatMap(piece => {
     if (piece.kind !== 'polygon' || piece.points.length <= 64) return [piece];
     const points = outline(piece);

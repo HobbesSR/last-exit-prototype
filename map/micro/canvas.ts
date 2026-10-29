@@ -18,13 +18,21 @@ export interface CanvasAssembly {
   extents?: readonly Shape[];
 }
 
+const elementReserves = (e: RegionElement): Shape[] => e.template.parts.flatMap(p => p.part === 'reserve'
+  ? [rect(e.x + p.x, e.y + p.y, p.w, p.h)] : []);
+
+/** Routing occupancy excludes roofs, enclosed floor space and standing spots. */
+export function assemblyBlockers(assembly: CanvasAssembly): Shape[] {
+  return assembly.elements.flatMap(e => [...elementShapes(e, true), ...elementReserves(e)]);
+}
+
 /** Full physical/content footprint, including non-colliding roofs and enclosed interiors. */
 export function assemblyFootprints(assembly: CanvasAssembly): Shape[] {
   return assembly.elements.flatMap(e => [
     ...elementShapes(e, true),
     ...(e.template.encloses ? [rect(e.x, e.y, e.template.w, e.template.h)] : []),
-    ...e.template.parts.flatMap(p => p.part === 'reserve' ? [rect(e.x + p.x, e.y + p.y, p.w, p.h)]
-      : p.part === 'spot' ? [circle(e.x + p.x, e.y + p.y, 1)] : []),
+    ...elementReserves(e),
+    ...e.template.parts.flatMap(p => p.part === 'spot' ? [circle(e.x + p.x, e.y + p.y, 1)] : []),
     ...(e.template.roofs ?? []).flatMap(roof => {
       const size = roof.cellSize ?? 40;
       return roof.cells.map(c => rect(e.x + (roof.origin?.x ?? 0) + c.x * size,
@@ -67,8 +75,7 @@ export function createBuilderCanvas(brief: RegionBrief, protectedShapes: readonl
       const areas = next.areas ?? next.elements.map(e => rect(e.x, e.y, e.template.w, e.template.h));
       const geometry = next.elements.flatMap(e => elementShapes(e, true));
       const footprints = next.elements.flatMap(e => e.template.encloses ? [rect(e.x, e.y, e.template.w, e.template.h)] : []);
-      const reserves = next.elements.flatMap(e => e.template.parts.flatMap(p => p.part === 'reserve'
-        ? [rect(e.x + p.x, e.y + p.y, p.w, p.h)] : []));
+      const reserves = next.elements.flatMap(elementReserves);
       const spots = next.elements.flatMap(e => e.template.parts.flatMap(p => p.part === 'spot'
         ? [circle(e.x + p.x, e.y + p.y, 1)] : []));
       const roofs = next.elements.flatMap(e => (e.template.roofs ?? []).flatMap(roof => {
