@@ -125,3 +125,27 @@ unrelated whole-match/physics seed suites, generic benchmarks or full main-game
 browser suite ran; the area-specific gates above follow 31. This completes the
 selected first structural-wing outcome. Further thin-wing coverage, new shapes,
 optimal partitioning and broad movable-cord promotion remain deferred.
+
+
+## Review 517 follow-up (2026-10-30)
+
+The documentation option in the review is adopted: optional roofed bays remain
+independent enclosing roofs. Open joins do not establish shared reveal grouping,
+and fallback roofs may draw overhang at interior joins. Current authored halls
+remain unroofed; connected multi-bay roof presentation is deferred until explicit
+shared-group roof cells are implemented (20.3.3, 54.1). The synthetic roof-area
+measurements above establish geometry, not that presentation capability.
+
+The explicit inter-pillar check was already present in the reviewed head:
+`hall.ts` rejects a secondary candidate whose bounds keep less than
+`CELL_SCALE.doorway * size` from any earlier pillar. The existing wing test checks
+all pillar pairs across L/T/ring/stepped cases. No additional placement change is
+needed for that observation.
+
+The live-map view test now asserts a multi-room group across `[map1, map2]`,
+without a seed-specific conditional. Both maps still check exact generated IDs,
+roof uniqueness and concealment. Focused view/hall validation passes all 23 tests,
+and the retained-output verifier reproduces all 23 complete outputs and source
+hashes. The earlier full-suite and timing records above describe head `2799f96`;
+this follow-up changes documentation and the view assertion only. The generation
+sources, `types-54` identity and captured baseline remain unchanged.

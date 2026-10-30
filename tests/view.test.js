@@ -492,17 +492,12 @@ test('live map: roofs have unique ids, keep map id order, and declare multi-room
   assert.equal(map2.gates?.at(-1)?.id, 'door-829', 'gate IDs stay pinned on seed 2');
   assert.equal(map2.items?.at(-1)?.id, 'item-2059', 'item IDs stay pinned on seed 2');
 
+  assert.ok([map1, map2].some(map => [...roofGroups(map).values()].some(group => group.length > 1)),
+    'the live-map sample declares a multi-room group');
+
   for (const map of [map1, map2]) {
     const ids = new Set(map.roofs.map(r => r.id));
     assert.equal(ids.size, map.roofs.length, 'all roof ids are distinct across the live map');
-
-    // Roof groups must declare multi-room compounds, not drop to all singletons
-    const groups = roofGroups(map);
-    const uniqueGroupLists = [...new Set([...groups.values()])];
-    const groupSizes = uniqueGroupLists.map(list => list.length).sort((a, b) => b - a);
-    // Seed 1's current library selection has only single-room structures; seed 2
-    // retains the multi-room witness while both maps exercise unique IDs/order.
-    if (map === map2) assert.ok(groupSizes.some(size => size > 1), 'compound buildings declare multi-room groups');
 
     const samplePoints = map.roofs.map(r => ({
       id: r.id,
