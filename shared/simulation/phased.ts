@@ -75,7 +75,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   try {
     const geometry = buildPhysicsGeometry(s.map).sort((a, b) => compare(a.id, b.id));
     for (let i = 0; i < geometry.length; i++) {
-      world.queueAddBody(geometry[i]!);
+      world.queueAddBody({ ...geometry[i]!, mapGeometry: true });
       if (i % 512 === 511) world.commitMutations();
     }
     world.commitMutations();

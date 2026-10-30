@@ -8,6 +8,8 @@ export type BodyKind = 'actor' | 'prop' | 'static';
 export type BodySpec = {
   id: string; kind: BodyKind; shape: BodyShape; x: number; y: number;
   collisionProfile?: 'loot';
+  /** Static map geometry: its collider shares one fixed body with the rest of the map's (world.ts). */
+  mapGeometry?: true;
   angle?: number; vx?: number; vy?: number; omega?: number;
   mass?: number; friction?: number; restitution?: number;
   linearDamping?: number; angularDamping?: number;
