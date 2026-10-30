@@ -7,7 +7,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createReplayWriter, frameLine, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
-import { createMatch } from '../server/match.js';
+import { createGame, snapshot, step } from '../shared/simulation.ts';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { createFileReplayStore } from '../server/replay-store.js';
 
@@ -167,14 +167,14 @@ test('a header descriptor is written once and leaves frame bytes and digest unto
 });
 
 test('frames are written byte for byte as JSON.stringify writes them, with the ground from its kept JSON (#655)', async () => {
-  const match = createMatch(4217), chunks = [];
+  const s = createGame(4217), chunks = [], advance = () => { step(s); return snapshot(s); };
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const header = { id: 'ground', seed: 4217 };
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => { throw error; } });
   const records = [];
   const append = (state, commands) => { records.push({ state, commands }); assert.equal(writer.append(state, commands), true); };
-  for (let tick = 0; tick < 40; tick++) append(match.advance(), tick % 7 ? [] : [{ type: 'input', input: { name: 'Zoë ✓' } }]);
-  const frame = match.advance();
+  for (let tick = 0; tick < 40; tick++) append(advance(), tick % 7 ? [] : [{ type: 'input', input: { name: 'Zoë ✓' } }]);
+  const frame = advance();
   // Shapes the writer must still match: undefined values and commands, a ground nobody published, non-ASCII text.
   append({ ...frame, gone: undefined, name: 'Ünïcode ✓', items: frame.items.map(item => ({ ...item })) }, undefined);
   append({ tick: 1, items: [] }, []);
