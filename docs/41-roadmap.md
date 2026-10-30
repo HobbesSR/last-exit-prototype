@@ -101,7 +101,7 @@ not an accurate inventory of everything still missing.
 | --- | --- |
 | Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
 | Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins. Compound exterior crossing limitations remain; #630/#632 diagnose and experiment without production adoption. Treat offset-search adoption as deferred refinement for next-task selection unless evidence makes it a blocker for the chosen functional outcome. |
-| Hut and compound structures (#532) | Primary functional gaps: multiple houses where sites fit, useful compound courtyard composition, and secondary structures in oversized compounds. Deliver a coherent first capability with actual eligible-region and access evidence before broadening its grammar. |
+| Hut and compound structures (#532) | Multi-house huts and useful compound courtyard keeps/cover are delivered with authored admission and access evidence (20.3.4, 42.3). Secondary exterior structures in oversized compounds remain a functional gap. Larger hut designs need a separate authored-margin change on the sampled maps; further seed tuning does not expose them. Broader courtyard grammar and complete residual use are later refinements. |
 | Depot and hall composition (#533) | Short-lane depot crates and hall residual-wing crates are delivered partial improvements. Warehouse budget/composition and structural hall wings remain distinct candidates; secondary crates do not establish those capabilities. |
 | Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
 | District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. |
@@ -138,9 +138,10 @@ Disposition after the representative cord comparisons:
   guard/budget changes and further compound-offset research absent a demonstrated
   blocker. Do not expand #663 into quota tuning or exhaustive pocket refinement.
 
-For the next functional selection, compare #532's multiple houses/courtyard use
-(already supported by adopted cord tooling) with #533's structural hall/depot
-composition and the still-missing broader #535 capabilities. These primary gaps
+For the next functional selection, compare #532's secondary exterior structures
+and demonstrated larger-hut authoring prerequisite with #533's structural hall/depot
+composition and the still-missing broader #535 capabilities. Multi-house huts and
+courtyard composition now have representative production witnesses. The remaining primary gaps
 have greater functional value than polishing this comparison. Reassess actual
 reach/readiness at pickup; this is not a mandated successor or a closure of any
 broad workstream.

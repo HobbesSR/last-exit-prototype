@@ -244,4 +244,3 @@ test('a nested block compound lot keeps its prefixed ring and final portal promi
     assert.ok(block.elements.some(placed => placed.label === `${prefix}${element.label}`), `block retains ${element.label}`);
   assert.deepEqual(validatePortalReach({ ...block.brief, blockers: blockers(block) }).errors, []);
 });
-

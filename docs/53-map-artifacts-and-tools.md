@@ -11,7 +11,7 @@ names; the chain of inference is the separate reachability argument.
 
 ## Current compatibility domains
 
-These values describe separate acceptance checks as of 2026-10-20. A change to
+These values describe separate acceptance checks as of 2026-10-29. A change to
 one does not imply a change to the others. The dated capture trail is in
 [42.4](42.4-chain-checkpoint-history.md); builder execution and snapshots have
 their own compatibility rules in [20.7](20.7-builder-delegation.md).

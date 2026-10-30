@@ -22,7 +22,10 @@ checks, and all three maps have no report defects.
 | size-36-1 | 5 | 5 | 20 | 1,033 / 1,158 |
 
 Four keeps use three-space 6 × 6 designs and four use two-space 6 × 4
-designs. Courts are 16 × 14 or 18 × 18. Occupancy uses `measureFill` on
+designs. Their envelopes address 240 cells, plus 48 cells of cover footprints
+across the eight courts. These are new composition intent within the already
+retained ring parcel, not additional region ownership or physical occupancy.
+Courts are 16 × 14 or 18 × 18. Occupancy uses `measureFill` on
 each complete compound result; the comparison removes only the newly labeled
 court elements from that result. It isolates their physical contribution,
 including the enclosed floor remaining physically free; it is not a replay of
@@ -54,7 +57,7 @@ views stayed fixed. All 130 built-drift cases pass
 `checkMap(generate(seed, params), { diagnose: true })`. Its 384-second duration
 is a verification run, not a performance comparison. To reproduce, first run
 `node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
-against the pre-change baseline and save its output as
+against the pre-change baseline from `c3c0cfc` and save its output as
 `test-results/532-sweep-before.log`, then run
 `node docs/reports/issue-532/court-integration.mjs`. The report pins the input
 log digest and working-source hashes. A recaptured baseline has no drift and
@@ -67,3 +70,17 @@ The library checks cover 25 default-size maps, five each at 24 × 12 and
 is unchanged. The initial micro run found an old block observer assumption
 that included all `compound-*` pieces in the ring; its corrected check selects
 ring room/gate pieces and independently checks the keep trace.
+
+The final capture pins content commit `a6cfa52` at
+`2026-10-30T00:58:50.671Z`, Node v24.15.0, with all 224 cases and no generation
+errors. An independent full comparison against it reports zero drift (150
+seconds). Capture provenance is owned by 42.4; the source hashes above still
+match the generated implementation.
+
+The first full fast run passed 1,279 of 1,280 tests; its only failure was the
+old generated-ID pins in `view.test.js`. Seed 1 now ends at `o788`,
+`door-464`, `item-1800`; seed 2 at `o891`, `door-587`, `item-1824`.
+The assertions remain in place with those intentional content expectations.
+The complete view test passes and measures 10.9 seconds in isolation.
+
+Final `npm test`: all 1,280 tests passed, zero failed (196 seconds).
