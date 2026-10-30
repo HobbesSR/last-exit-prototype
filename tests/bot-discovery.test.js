@@ -7,13 +7,11 @@ import { createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_IN
 import { bounds, shapeOf } from '../shared/shape.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { generateLiveMap } from '../map/live.ts';
+import { arena } from './helpers/arena.js';
 
 // Contestant bots know what they have discovered, like people (15, #230).
 
-function openMap(items, buildings = []) {
-  const playableArea = { cellSize: 192, rows: Array.from({ length: 5 }, (_, y) => ({ y, runs: [[0, 10]] })) };
-  return { width: 1920, height: 960, playableArea, obstacles: [], gates: [], buildings, items };
-}
+const openMap = (items, buildings = []) => arena({ cols: 10, rows: 5, items, buildings }).map;
 
 test('the sight that discovers cells remembers the items it sees, not ones under a roof', () => {
   const building = { id: 'b1', nodeId: 'node-1', x: 384, y: 192, w: 192, h: 192 };
