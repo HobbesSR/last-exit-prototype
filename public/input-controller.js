@@ -6,7 +6,7 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
   const listen = (target, type, handler) => target.addEventListener(type, handler, { signal: listeners.signal });
   let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
   let selectedSlot;
-  let pulseDrop = false, pulseReload = false, pendingAmmoDrop = null;
+  let pulseDrop = false, pulseReload = false, pendingAmmoDrop = null, pendingTransit = null;
   let moveFrom = null, pendingMove = null, dragDropSource = null;
   const validSlot = index => Number.isInteger(index) && index >= 0 && index < 6;
   function selectSlot(index) {
@@ -40,7 +40,7 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
   }
   const movementStick = { x: 0, y: 0, active: false }, aimingStick = { x: 0, y: 0, active: false };
   const held = new Set();
-  function clearInput() { moveFrom = null; pendingMove = null; dragDropSource = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; pulseReload = false; pendingAmmoDrop = null; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
+  function clearInput() { moveFrom = null; pendingMove = null; dragDropSource = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; pulseReload = false; pendingAmmoDrop = null; pendingTransit = null; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
   listen(document, 'keydown', e => {
     if (e.target.matches('input,select,textarea') || document.querySelector('dialog:modal')) return;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
@@ -87,6 +87,7 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
     // Sent only when pressed, matching the server's optional L2 commands.
     if (!blocked && pulseReload) input.reload = true; pulseReload = false;
     if (!blocked && pendingAmmoDrop) input.dropAmmo = pendingAmmoDrop; pendingAmmoDrop = null;
+    if (!blocked && pendingTransit) input.transit = pendingTransit; pendingTransit = null;
     if (dragDropSource !== null) { if (!blocked) input.slot = dragDropSource; dragDropSource = null; selectedSlot = undefined; }
     else if (selectedSlot !== undefined) { input.slot = selectedSlot; selectedSlot = undefined; }
     return input;
@@ -96,6 +97,7 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
     selection: () => ({ moveFrom }), aim: () => currentAim,
     setPointerFire: value => pointerFire = value,
     skill: () => pulseSkill = true, interact: () => pulseInteract = true, drop: () => pulseDrop = true, reload: () => pulseReload = true,
+    transit: stationId => pendingTransit = stationId,
     // Preserve consumption after the application has sent and predicted this input.
     consumeActions: () => { pulseSkill = false; pulseInteract = false; },
     destroy() { listeners.abort(); for (const release of releaseCaptures) release(); clearInput(); }

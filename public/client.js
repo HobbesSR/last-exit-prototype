@@ -11,6 +11,8 @@ import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
+import { contentById } from '/shared/simulation/content.ts';
+import { transitOptions } from '/shared/simulation/transit.ts';
 import { PHYSICS_CHARACTER_VERSION } from '/shared/simulation/actor-physics.ts';
 import { downloadJson } from '/download.js';
 import { THEMES, DEFAULT_THEME, themeColors, css } from '/palette.js';
@@ -80,6 +82,7 @@ const hudController = createHUDController({
   selectSlot: index => inputController.selectSlot(index), arrange: () => inputController.toggleArrange(),
   skill: () => inputController.skill(), interact: () => inputController.interact(), drop: () => inputController.drop(),
   reload: () => inputController.reload(), dropAmmo: family => inputController.dropAmmo(family),
+  transit: stationId => inputController.transit(stationId),
   moveSlot: (from, to) => inputController.moveSlot(from, to), dropSlot: from => inputController.dropSlot(from),
   cancelPointerFire: () => inputController.setPointerFire(false),
   canDrag: () => !replayController.active() && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),
@@ -137,6 +140,14 @@ document.addEventListener('visibilitychange', () => {
   predicted = me && { ...me }; scene?.cutTo();
 });
 function changeMap(map) { resetPhysicsPrediction(); director.clearPosition(); arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
+/** Where the player may transit to now, when the live content lets a gladiator choose (#692); else null. */
+function transitChoices() {
+  if (replayController.active() || devFeed || !state || !predicted || !arenaMap) return null;
+  let selectable = false;
+  try { selectable = contentById(displayPresentation()?.contentId).transit === 'selectable'; } catch { /* an unknown id chooses nothing */ }
+  const me = state.players.find(p => p.id === playerId);
+  return selectable && me ? transitOptions({ map: arenaMap, hazardX: state.hazardX }, { ...me, x: predicted.x, y: predicted.y }) : null;
+}
 /** The descriptor of whatever is shown: the open recording, the dev feed, or the live room. */
 function displayPresentation() {
   if (replayController.active()) return replayController.presentation();
@@ -422,7 +433,7 @@ function updateHUD() {
   updateDevLeaveLabel();
   hudController.render({ state, arenaMap, playerId, view: currentView(), savedReplay,
     presentation: displayPresentation(), hz: replayController.active() ? replayController.hz() : HZ,
-    selection: inputController.selection(),
+    selection: inputController.selection(), transit: transitChoices(),
     visibility: { directed: directed(), fogged: directed() && director.fog() && !!director.followId(), viewer: director.viewer(), sight: scene?.sight },
     discovery: discoveryDecoder?.known
   });

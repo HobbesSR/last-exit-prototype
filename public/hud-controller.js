@@ -132,7 +132,7 @@ export function createHUDController(actions) {
     if (e.target.closest('[data-tip]')) e.preventDefault();
   });
   // `presentation` is the displayed match's content descriptor, null when unknown; `hz` its tick rate.
-  function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility, discovery, presentation = SHIPPED_PRESENTATION, hz = HZ }) {
+  function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility, discovery, transit, presentation = SHIPPED_PRESENTATION, hz = HZ }) {
     const me = state.players.find(p => p.id === playerId) || (view === 'replay' ? state.players[0] : null);
     // Every countdown divides by the displayed match's rate, never the shipped HZ (#427).
     const rate = tickRate(hz);
@@ -253,7 +253,8 @@ export function createHUDController(actions) {
       setHidden($('hazard-warning'), !isPlay || me.x - state.hazardX > 230);
       
       setHidden($('outcome'), !isOutcome);
-      const isEndedState = state.phase === 'finished' || me.status !== 'active';
+      // A gladiator in transit (#692) is between stations, not out of the match.
+      const isEndedState = state.phase === 'finished' || me.status !== 'active' && me.status !== 'transit';
       if (isEndedState) {
         const escaped = me.status === 'escaped';
         setText($('outcome-label'), escaped ? 'EXTRACTION CONFIRMED' : state.phase === 'finished' ? 'BROADCAST COMPLETE' : 'CONTESTANT ELIMINATED');
@@ -271,8 +272,18 @@ export function createHUDController(actions) {
         }
       }
     }
-    drawMinimap({ arenaMap, state, playerId, visibility, discovery });
+    drawMinimap({ arenaMap, state, playerId, visibility, discovery, transit });
   }
+  // Transit route selection (#692, 12): while the player can transit, the minimap rings every station it may go
+  // to, the default more strongly, and a click or tap on one sends the choice.
+  let transitShown = null;
+  listen($('minimap'), 'pointerdown', e => {
+    if (!transitShown) return;
+    const box = e.currentTarget.getBoundingClientRect(), x = (e.clientX - box.left) * 260 / box.width, y = (e.clientY - box.top) * 124 / box.height;
+    const near = transitShown.stations.map(st => ({ st, d: Math.hypot(st.x * transitShown.sx - x, st.y * transitShown.sy - y) }))
+      .filter(({ d }) => d < 12).sort((a, b) => a.d - b.d)[0];
+    if (near) { e.preventDefault(); actions.transit(near.st.id); }
+  });
   let mColors = null;
   const getMinimapColors = () => {
     if (mColors) return mColors;
@@ -292,12 +303,13 @@ export function createHUDController(actions) {
     };
   };
 
-  function drawMinimap({ arenaMap, state, playerId, visibility, discovery }) {
+  function drawMinimap({ arenaMap, state, playerId, visibility, discovery, transit }) {
     profiler.start('render.minimap');
-    try { paintMinimap({ arenaMap, state, playerId, visibility, discovery }); }
+    try { paintMinimap({ arenaMap, state, playerId, visibility, discovery, transit }); }
     finally { profiler.stop('render.minimap'); }
   }
-  function paintMinimap({ arenaMap, state, playerId, visibility, discovery }) {
+  function paintMinimap({ arenaMap, state, playerId, visibility, discovery, transit }) {
+    transitShown = null;
     if (!arenaMap || !state) return;
     const cols = getMinimapColors();
     const c = $('minimap').getContext('2d'); const sx = 260 / arenaMap.width, sy = 124 / arenaMap.height;
@@ -360,6 +372,15 @@ export function createHUDController(actions) {
     for (const station of arenaMap.chargers || []) {
       if (isContestant && !isFeatureDiscovered(memory, arenaMap, station)) continue;
       c.strokeStyle = cols.charger; c.strokeRect(station.x * sx - 2, station.y * sy - 2, 4, 4);
+    }
+    if (transit) {
+      transitShown = { stations: transit.ahead, sx, sy };
+      c.strokeStyle = cols.station;
+      for (const station of transit.ahead) {
+        c.lineWidth = station === transit.next ? 2 : 1;
+        c.beginPath(); c.arc(station.x * sx, station.y * sy, station === transit.next ? 6 : 5, 0, Math.PI * 2); c.stroke();
+      }
+      c.lineWidth = 1;
     }
     // The server sends more than the eye can reach, so the minimap applies the very same predicate the
     // renderer does — literally the same function, so the two views cannot drift apart again.

@@ -15,6 +15,7 @@ import { effect, dropInventorySlot, automaticPickups } from './simulation/loot.t
 import { respawn, finishMatch } from './simulation/lifecycle.ts';
 import { damage, skill, attack, advanceProjectiles } from './simulation/combat.ts';
 import { interact, advanceCharging } from './simulation/interactions.ts';
+import { arrive, transit } from './simulation/transit.ts';
 import { botInput } from './simulation/bots.ts';
 import { consumeInput } from './simulation/input.ts';
 import { recordRewind } from './simulation/rewind.ts';
@@ -37,7 +38,7 @@ export function step(s: Game): void {
   if (s.content.itemInstances) for (const p of players) for (const item of p.inventory ?? []) if (item) ensureItemIdentity(s, item);
   for (const p of players) {
     p.movedThisTick = 0;
-    respawn(s, p);
+    respawn(s, p); arrive(s, p);
     if (p.status !== 'active') continue;
     advanceTimers(p);
     if (p.bot) start('sim.bots');
@@ -59,6 +60,7 @@ export function step(s: Game): void {
     if (input.skill) skill(s, p);
     if (input.attack) attack(s, p);
     if (input.interact) interact(s, p);
+    if (input.transit && s.content.transit === 'selectable') transit(s, p, input.transit);
     advanceCharging(s, p, input);
     stop('sim.actions');
     start('sim.pickups');
