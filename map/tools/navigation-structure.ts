@@ -2,7 +2,7 @@
 import { composeRegions } from '../micro/compose.ts';
 import { builtMapCollision, builtMapFrame } from '../micro/adapter.ts';
 import { buildPortalGraph } from '../navigation.ts';
-import { entry, freePaths, locate, mapFreeSpace, type FreeSpace } from '../../shared/free-space.ts';
+import { entry, freePaths, locate, mapFreeSpace, type FreeSpace, type FreePath } from '../../shared/free-space.ts';
 import { navigationClearance, navigationMap } from '../../shared/map/navigation.ts';
 import { bodyRadius, sweptClear } from '../../shared/movement.ts';
 import { regionAt, type PortalGraph } from '../../shared/navigation/portal-graph.ts';
@@ -16,6 +16,41 @@ export interface RouteSample {
   category: string; stratum: string; from: Vec2; to: Vec2; fromRegion: number; toRegion: number;
   status: 'complete' | 'invalid-endpoint' | 'unreachable' | 'search-miss' | 'sweep-defect'; distance: number; length: number | null; ratio: number | null;
 }
+const routeComponents = new WeakMap<FreeSpace, Int32Array>();
+
+/** Classify a mesh-search witness using the same endpoint and swept-segment rules. */
+export function classifyNavigationRoute(nav: Parameters<typeof sweptClear>[0], space: FreeSpace, from: Vec2, to: Vec2,
+  path: FreePath | null | undefined, clearance: number, radius: number): RouteSample['status'] {
+  if (!sweptClear(nav, from, from, radius) || !sweptClear(nav, to, to, radius)) return 'invalid-endpoint';
+  if (!path) {
+    const a = entry(space, from, clearance + 1), b = entry(space, to, clearance + 1);
+    let labels = routeComponents.get(space);
+    if (!labels) {
+      labels = new Int32Array(space.triangles.length / 3).fill(-1);
+      for (let root = 0; root < labels.length; root++) {
+        if (labels[root] !== -1) continue;
+        labels[root] = root; const pending = [root];
+        while (pending.length) {
+          const t = pending.pop()!;
+          for (let k = 0; k < 3; k++) {
+            const edge = space.twins[t * 3 + k]!; if (edge < 0) continue;
+            const next = Math.floor(edge / 3); if (labels[next] !== -1) continue;
+            labels[next] = root; pending.push(next);
+          }
+        }
+      }
+      routeComponents.set(space, labels);
+    }
+    return a && b && labels[a.triangle] !== labels[b.triangle] ? 'unreachable' : 'search-miss';
+  }
+  for (let k = 0; k < path.points.length - 1; k++) {
+    const r = Math.min(clearance, k === 0 && path.leads[0] ? radius : clearance,
+      k === path.points.length - 2 && path.leads[1] ? radius : clearance);
+    if (!sweptClear(nav, path.points[k]!, path.points[k + 1]!, r)) return 'sweep-defect';
+  }
+  return 'complete';
+}
+
 export function summarizeRoutes(records: readonly RouteSample[]) {
   const ratios = records.flatMap(r => r.ratio === null ? [] : [r.ratio]).sort((a, b) => a - b);
   const percentile = (p: number) => ratios.length ? ratios[Math.ceil(p * ratios.length) - 1]! : null;
@@ -181,24 +216,6 @@ export function measureNavigationStructure(map: ToolMap) {
     };
     for (const points of pointsByRegion) addPairs(select(points, 16), 'within-region', 3);
     addPairs(select(pointsByRegion.flat(), 96, true), 'across-map', 24);
-    const components = new WeakMap<FreeSpace, Int32Array>([[space, pockets.componentOf]]);
-    const componentLabels = (mesh: FreeSpace) => {
-      const cached = components.get(mesh); if (cached) return cached;
-      const labels = new Int32Array(mesh.triangles.length / 3).fill(-1);
-      for (let root = 0; root < labels.length; root++) {
-        if (labels[root] !== -1) continue;
-        labels[root] = root; const pending = [root];
-        while (pending.length) {
-          const t = pending.pop()!;
-          for (let k = 0; k < 3; k++) {
-            const edge = mesh.twins[t * 3 + k]!; if (edge < 0) continue;
-            const to = Math.floor(edge / 3); if (labels[to] !== -1) continue;
-            labels[to] = root; pending.push(to);
-          }
-        }
-      }
-      components.set(mesh, labels); return labels;
-    };
     const grouped = new Map<string, typeof pairs>();
     for (const pair of pairs) { const key = `${pair.category === 'within-region' ? regionAt(graph, pair.from) : 'global'}/${pair.from.x},${pair.from.y}`; if (!grouped.has(key)) grouped.set(key, []); grouped.get(key)!.push(pair); }
     for (const group of grouped.values()) {
@@ -209,16 +226,8 @@ export function measureNavigationStructure(map: ToolMap) {
       const paths = freePaths(searchSpace, from, group.map(p => p.to), clearance + 1);
       group.forEach((p, i) => {
         const direct = distance(from, p.to); if (direct === 0) return;
-        const path = paths[i]; let status: RouteSample['status'] = 'complete';
-        if (!sweptClear(nav, from, from, radius) || !sweptClear(nav, p.to, p.to, radius)) status = 'invalid-endpoint';
-        else if (!path) {
-          const a = entry(searchSpace, from, clearance + 1), b = entry(searchSpace, p.to, clearance + 1), labels = componentLabels(searchSpace);
-          status = a && b && labels[a.triangle] !== labels[b.triangle] ? 'unreachable' : 'search-miss';
-        }
-        else for (let k = 0; k < path.points.length - 1; k++) {
-          const r = Math.min(clearance, k === 0 && path.leads[0] ? radius : clearance, k === path.points.length - 2 && path.leads[1] ? radius : clearance);
-          if (!sweptClear(nav, path.points[k]!, path.points[k + 1]!, r)) { status = 'sweep-defect'; break; }
-        }
+        const path = paths[i];
+        const status = classifyNavigationRoute(nav, searchSpace, from, p.to, path, clearance, radius);
         samples.push({ category: p.category, stratum: stratum(direct), from, to: p.to, fromRegion: regionAt(graph, from), toRegion: regionAt(graph, p.to), status,
           distance: direct, length: status === 'complete' ? path!.length : null, ratio: status === 'complete' ? path!.length / direct : null });
       });
