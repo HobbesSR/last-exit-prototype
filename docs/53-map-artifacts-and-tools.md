@@ -11,14 +11,14 @@ names; the chain of inference is the separate reachability argument.
 
 ## Current compatibility domains
 
-These values describe separate acceptance checks as of 2026-10-29. A change to
+These values describe separate acceptance checks as of 2026-10-30. A change to
 one does not imply a change to the others. The dated capture trail is in
 [42.4](42.4-chain-checkpoint-history.md); builder execution and snapshots have
 their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-54` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-55` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -398,3 +398,20 @@ rebuilding omitted results uses the existing strategy/library identity checks.
 The frozen gameplay characterization fixture is unchanged. Exact authored and
 synthetic comparison evidence is in 42.3 and the hall report; the final sweep
 capture is recorded in 42.4.
+
+## Compound exterior outbuilding (#532)
+
+`types-55` / `compound-yard-6` adds at most one optional HOUSE outbuilding to
+eligible compounds, before cover delegation, and retains its full access collar
+with the ring/court box in the shared yard transaction. Loot excludes the final
+added geometry. No placeable, macro, library, wire, snapshot encoding or crossing
+policy version changes. Full historical snapshots preserve stored results;
+omitted older results require their matching compound implementation and are
+refused by the current registry. Current full and omitted snapshots cover the
+new composition. Evidence and costs are in 42.3 and
+[the exterior report](reports/issue-532-exterior/README.md); capture is in 42.4.
+
+The current three-size authored sample contains no compounds at 12 × 6,
+three compounds with two outbuildings at 24 × 12, and six compounds with four
+outbuildings at 36 × 18. Admission alone does not establish final access;
+the report separately records geometric validation.

@@ -1,0 +1,20 @@
+npm notice run last-exit@0.1.0 test:times
+npm notice run node tests/timing.mjs --strict tests/micro-compound-exterior.test.js tests/micro-compound-snapshots.test.js tests/micro-compound-observer.test.js tests/micro-compound-observer-shaped.test.js tests/micro-rubble.test.js tests/view.test.js tests/slow/micro-compound-siting-solution.test.js
+    6.7s  tests/micro-compound-exterior.test.js
+    5.4s  tests/micro-compound-snapshots.test.js
+    6.3s  tests/micro-compound-observer.test.js
+   15.1s  tests/micro-compound-observer-shaped.test.js
+    0.4s  tests/micro-rubble.test.js
+    6.8s  tests/view.test.js
+   49.4s  tests/slow/micro-compound-siting-solution.test.js
+
+slowest first (budget: fast tier 15s, slow tier 60s per file)
+   49.4s      tests/slow/micro-compound-siting-solution.test.js
+   15.1s OVER tests/micro-compound-observer-shaped.test.js
+             14.8s  the ring is one design: an observer sees it, and every room has an opening into the court or a neighbour (ell and ring)
+    6.8s      tests/view.test.js
+    6.7s      tests/micro-compound-exterior.test.js
+    6.3s      tests/micro-compound-observer.test.js
+    5.4s      tests/micro-compound-snapshots.test.js
+    0.4s      tests/micro-rubble.test.js
+total 90s serial across 7 files

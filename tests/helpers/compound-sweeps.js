@@ -49,7 +49,9 @@ export function assertObservedRing(seeds, maskNames = Object.keys(MASKS)) {
     const result = buildRegion(input, undefined, trace => traces.push(trace));
     assert.deepEqual(result, build(input), `${name} ${seed}: observing changes nothing`);
     assert.equal(traces.filter(trace => trace.label === 'compound').length, 1);
-    assert.ok(traces.every(trace => ['compound', 'compound-keep'].includes(trace.label) && !trace.realization.issues.length));
+    assert.ok(traces.every(trace => ['compound', 'compound-keep', 'compound-outbuilding'].includes(trace.label) && !trace.realization.issues.length));
+    for (const label of ['compound-keep', 'compound-outbuilding'])
+      assert.equal(traces.filter(t => t.label === label).length, result.elements.filter(e => e.label === label).length);
     const { label, design, allocation, realization, origin } = traces.find(trace => trace.label === 'compound');
     assert.equal(label, 'compound');
     assert.deepEqual(realization.misses, []);

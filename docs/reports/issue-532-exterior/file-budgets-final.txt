@@ -1,0 +1,9 @@
+npm notice run last-exit@0.1.0 test:times
+npm notice run node tests/timing.mjs --strict tests/micro-compound-observer-shaped.test.js tests/micro-compound-observer-ring.test.js
+    7.8s  tests/micro-compound-observer-shaped.test.js
+    9.6s  tests/micro-compound-observer-ring.test.js
+
+slowest first (budget: fast tier 15s, slow tier 60s per file)
+    9.6s      tests/micro-compound-observer-ring.test.js
+    7.8s      tests/micro-compound-observer-shaped.test.js
+total 17s serial across 2 files

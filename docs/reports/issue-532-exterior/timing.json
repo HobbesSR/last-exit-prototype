@@ -1,0 +1,78 @@
+{
+  "node": "v24.15.0",
+  "baselineSha256": "25299ddd0c827860e73dd051894198fa6b15cf0c61fb7a12ee33b70e15d2ffaa",
+  "beforeSourceSha256": "b2d6eddedd70177b402b5f3a2823c1160d7fff72eced7cd8514bd53bc96caea9",
+  "afterSourceHashes": {
+    "map/micro/strategies/compound.ts": "7602fbef7896034f71fb9ee8e6516106bdae5e5c305f1926eb7316e981551337",
+    "map/micro/strategies/compound-exterior.ts": "e090ea8030502738aecc061f6b54032e25b197dc4c0f82b082d1838fb512b235",
+    "map/micro/yard-handoff.ts": "1b07e072a333f083fe4fac7aba58fc55ba2108634b7259dbeff7150b3a041331"
+  },
+  "rows": [
+    {
+      "id": "compound@246,228",
+      "cells": 1152,
+      "portals": 24,
+      "trials": [
+        {
+          "beforeMs": 343.8219999999999,
+          "afterMs": 575.0808999999999,
+          "ratio": 1.6726122819365838
+        },
+        {
+          "beforeMs": 327.1225999999997,
+          "afterMs": 540.3899000000001,
+          "ratio": 1.6519491468947747
+        },
+        {
+          "beforeMs": 319.5628999999999,
+          "afterMs": 548.1893000000005,
+          "ratio": 1.7154347391389946
+        }
+      ]
+    },
+    {
+      "id": "compound@348,162",
+      "cells": 11232,
+      "portals": 76,
+      "trials": [
+        {
+          "beforeMs": 7108.343400000002,
+          "afterMs": 8790.885100000003,
+          "ratio": 1.2366995522472932
+        },
+        {
+          "beforeMs": 7381.325299999997,
+          "afterMs": 8814.561500000003,
+          "ratio": 1.194170578012597
+        },
+        {
+          "beforeMs": 7091.847300000001,
+          "afterMs": 8599.063899999994,
+          "ratio": 1.21252806726394
+        }
+      ]
+    },
+    {
+      "id": "compound@252,186",
+      "cells": 1296,
+      "portals": 24,
+      "trials": [
+        {
+          "beforeMs": 1045.9910999999993,
+          "afterMs": 1036.1571000000113,
+          "ratio": 0.9905983903687249
+        },
+        {
+          "beforeMs": 1041.4323999999906,
+          "afterMs": 1037.0665000000008,
+          "ratio": 0.9958077931894669
+        },
+        {
+          "beforeMs": 1057.4783000000025,
+          "afterMs": 1052.4358000000066,
+          "ratio": 0.9952315806385853
+        }
+      ]
+    }
+  ]
+}

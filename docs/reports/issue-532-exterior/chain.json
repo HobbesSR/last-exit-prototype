@@ -1,0 +1,51 @@
+{
+  "version": "types-55",
+  "afterSha256": "5fe6f05cff10223828859f5ea2a800ff92c2d7cd46500eaa060b35a4f10911bf",
+  "rows": [
+    {
+      "seed": "size-12-1",
+      "params": {
+        "zoneWidth": 12,
+        "zoneHeight": 6,
+        "exitCount": 2,
+        "contestantCount": 8,
+        "hunterCount": 3,
+        "lootChance": 0.04,
+        "lootTierStep": 0.09
+      },
+      "compounds": 0,
+      "outbuildings": 0,
+      "defects": []
+    },
+    {
+      "seed": "size-24-1",
+      "params": {
+        "zoneWidth": 24,
+        "zoneHeight": 12,
+        "exitCount": 2,
+        "contestantCount": 8,
+        "hunterCount": 3,
+        "lootChance": 0.04,
+        "lootTierStep": 0.09
+      },
+      "compounds": 3,
+      "outbuildings": 2,
+      "defects": []
+    },
+    {
+      "seed": "size-36-1",
+      "params": {
+        "zoneWidth": 36,
+        "zoneHeight": 18,
+        "exitCount": 2,
+        "contestantCount": 8,
+        "hunterCount": 3,
+        "lootChance": 0.04,
+        "lootTierStep": 0.09
+      },
+      "compounds": 6,
+      "outbuildings": 4,
+      "defects": []
+    }
+  ]
+}

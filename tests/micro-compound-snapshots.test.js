@@ -15,9 +15,9 @@ const concave = () => brief('compound-concave', cellsOf(40, 34, (x, y) => y < 20
 ]);
 const roundTrip = value => JSON.parse(JSON.stringify(value));
 
-test('observer sees the ring and keep once and snapshots preserve both events', () => {
+test('observer sees each retained building once and snapshots preserve the events', () => {
   const observed = [], node = buildCompoundGeneration(concave(), { observe: trace => observed.push(trace) });
-  assert.deepEqual(observed.map(trace => trace.label), ['compound', 'compound-keep']);
+  assert.deepEqual(observed.map(trace => trace.label), ['compound', 'compound-keep', 'compound-outbuilding']);
   assert.deepEqual(node.observerEvents, observed);
   assert.deepEqual(readDelegationSnapshot(roundTrip(saveDelegationSnapshot(node))).observerEvents, observed);
 });
@@ -32,8 +32,8 @@ test('full and omitted compound snapshots recover the same hierarchy and result'
   assert.deepEqual(readDelegationSnapshot(omitted, COMPOUND_EXECUTION_REGISTRY), node);
   assert.deepEqual(delegationSnapshotResult(omitted, COMPOUND_EXECUTION_REGISTRY), flat);
   const older = roundTrip(omitted);
-  older.generation.registryVersions.compound = 'compound-yard-4';
-  older.generation.builderVersion = 'compound-yard-4';
+  older.generation.registryVersions.compound = 'compound-yard-5';
+  older.generation.builderVersion = 'compound-yard-5';
   assert.throws(() => readDelegationSnapshot(older, COMPOUND_EXECUTION_REGISTRY), /compound/);
 });
 
