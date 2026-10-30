@@ -1,0 +1,2052 @@
+{
+  "scriptSha256": "5deaee93c4a3782bb8cb711abe0718d9802b7289ed73f4889308739ffb8ab060",
+  "node": "v24.15.0",
+  "records": [
+    {
+      "key": "game/sweep-8",
+      "regions": 281,
+      "ms": 9727.4487,
+      "check": {
+        "seed": "sweep-8",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 281,
+          "cells": 33696,
+          "portals": 965,
+          "elements": 493,
+          "coreElementSites": 22,
+          "loot": 940
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-11",
+      "regions": 310,
+      "ms": 11015.7994,
+      "check": {
+        "seed": "sweep-11",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 310,
+          "cells": 33696,
+          "portals": 984,
+          "elements": 501,
+          "coreElementSites": 22,
+          "loot": 840
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-23",
+      "regions": 278,
+      "ms": 10956.467399999998,
+      "check": {
+        "seed": "sweep-23",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 278,
+          "cells": 33696,
+          "portals": 952,
+          "elements": 472,
+          "coreElementSites": 22,
+          "loot": 873
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-30",
+      "regions": 263,
+      "ms": 9756.711099999997,
+      "check": {
+        "seed": "sweep-30",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 263,
+          "cells": 33696,
+          "portals": 881,
+          "elements": 509,
+          "coreElementSites": 22,
+          "loot": 879
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-44",
+      "regions": 298,
+      "ms": 9758.887799999997,
+      "check": {
+        "seed": "sweep-44",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 298,
+          "cells": 33696,
+          "portals": 960,
+          "elements": 491,
+          "coreElementSites": 22,
+          "loot": 968
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-46",
+      "regions": 247,
+      "ms": 9146.462600000006,
+      "check": {
+        "seed": "sweep-46",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 247,
+          "cells": 33696,
+          "portals": 941,
+          "elements": 495,
+          "coreElementSites": 22,
+          "loot": 861
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-48",
+      "regions": 290,
+      "ms": 9429.574900000007,
+      "check": {
+        "seed": "sweep-48",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 290,
+          "cells": 33696,
+          "portals": 937,
+          "elements": 517,
+          "coreElementSites": 22,
+          "loot": 896
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-57",
+      "regions": 295,
+      "ms": 6321.625999999989,
+      "check": {
+        "seed": "sweep-57",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 295,
+          "cells": 33696,
+          "portals": 973,
+          "elements": 472,
+          "coreElementSites": 22,
+          "loot": 922
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-61",
+      "regions": 287,
+      "ms": 12792.123899999991,
+      "check": {
+        "seed": "sweep-61",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 287,
+          "cells": 33696,
+          "portals": 955,
+          "elements": 532,
+          "coreElementSites": 22,
+          "loot": 773
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-64",
+      "regions": 296,
+      "ms": 9684.694900000002,
+      "check": {
+        "seed": "sweep-64",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 296,
+          "cells": 33696,
+          "portals": 1020,
+          "elements": 500,
+          "coreElementSites": 22,
+          "loot": 706
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-83",
+      "regions": 279,
+      "ms": 12745.737100000013,
+      "check": {
+        "seed": "sweep-83",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 279,
+          "cells": 33696,
+          "portals": 942,
+          "elements": 547,
+          "coreElementSites": 22,
+          "loot": 807
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-86",
+      "regions": 294,
+      "ms": 10049.852999999988,
+      "check": {
+        "seed": "sweep-86",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 294,
+          "cells": 33696,
+          "portals": 970,
+          "elements": 478,
+          "coreElementSites": 22,
+          "loot": 864
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-88",
+      "regions": 301,
+      "ms": 6270.604800000001,
+      "check": {
+        "seed": "sweep-88",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 301,
+          "cells": 33696,
+          "portals": 979,
+          "elements": 516,
+          "coreElementSites": 22,
+          "loot": 954
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-104",
+      "regions": 276,
+      "ms": 6616.021600000007,
+      "check": {
+        "seed": "sweep-104",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 276,
+          "cells": 33696,
+          "portals": 936,
+          "elements": 462,
+          "coreElementSites": 22,
+          "loot": 958
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-105",
+      "regions": 288,
+      "ms": 13830.658399999986,
+      "check": {
+        "seed": "sweep-105",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 288,
+          "cells": 33696,
+          "portals": 954,
+          "elements": 653,
+          "coreElementSites": 22,
+          "loot": 781
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-107",
+      "regions": 310,
+      "ms": 10598.206399999995,
+      "check": {
+        "seed": "sweep-107",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 310,
+          "cells": 33696,
+          "portals": 1008,
+          "elements": 476,
+          "coreElementSites": 22,
+          "loot": 836
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/sweep-111",
+      "regions": 294,
+      "ms": 12398.403499999986,
+      "check": {
+        "seed": "sweep-111",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 294,
+          "cells": 33696,
+          "portals": 1001,
+          "elements": 504,
+          "coreElementSites": 22,
+          "loot": 848
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game-crowded/sweep-8",
+      "regions": 281,
+      "ms": 9627.876699999993,
+      "check": {
+        "seed": "sweep-8",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 24,
+            "found": 24
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 6,
+            "found": 6
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 281,
+          "cells": 33696,
+          "portals": 965,
+          "elements": 495,
+          "coreElementSites": 42,
+          "loot": 938
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game-crowded/sweep-11",
+      "regions": 310,
+      "ms": 11385.18729999999,
+      "check": {
+        "seed": "sweep-11",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 24,
+            "found": 24
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 6,
+            "found": 6
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 310,
+          "cells": 33696,
+          "portals": 984,
+          "elements": 501,
+          "coreElementSites": 42,
+          "loot": 839
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game-sparse/sweep-8",
+      "regions": 281,
+      "ms": 9454.066100000025,
+      "check": {
+        "seed": "sweep-8",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 281,
+          "cells": 33696,
+          "portals": 965,
+          "elements": 496,
+          "coreElementSites": 13,
+          "loot": 943
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game-sparse/sweep-11",
+      "regions": 310,
+      "ms": 11455.154999999999,
+      "check": {
+        "seed": "sweep-11",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 310,
+          "cells": 33696,
+          "portals": 984,
+          "elements": 501,
+          "coreElementSites": 13,
+          "loot": 841
+        },
+        "brokenPromises": []
+      }
+    },
+    {
+      "key": "game/quick-1",
+      "regions": 294,
+      "ms": 9511.517000000022,
+      "check": {
+        "seed": "quick-1",
+        "valid": true,
+        "defects": [],
+        "coreElements": [
+          {
+            "instance": "landing#17",
+            "element": "spawn",
+            "promised": 8,
+            "found": 8
+          },
+          {
+            "instance": "evac#18",
+            "element": "hunter-spawn",
+            "promised": 3,
+            "found": 3
+          },
+          {
+            "instance": "evac#18",
+            "element": "exit",
+            "promised": 2,
+            "found": 2
+          },
+          {
+            "instance": "transit-station#19",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#20",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#21",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#22",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#23",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "transit-station#24",
+            "element": "warp",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#25",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#26",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          },
+          {
+            "instance": "charging-station#27",
+            "element": "charger",
+            "promised": 1,
+            "found": 1
+          }
+        ],
+        "metrics": {
+          "regions": 294,
+          "cells": 33696,
+          "portals": 1023,
+          "elements": 570,
+          "coreElementSites": 22,
+          "loot": 796
+        },
+        "brokenPromises": []
+      }
+    }
+  ]
+}

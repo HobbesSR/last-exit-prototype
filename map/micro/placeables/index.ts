@@ -11,6 +11,7 @@ import { RUIN_ROOM_SPAN } from './ruin-room-span.ts';
 import { RUBBLE_DEBRIS } from './rubble-debris.ts';
 import { PARK_TREE } from './park-tree.ts';
 import { PARK_HEDGE_RUN } from './park-hedge-run.ts';
+import { PARK_HEDGE_POCKET } from './park-hedge-pocket.ts';
 import { PLANT_MACHINE } from './plant-machine.ts';
 import { PLANT_PIPE_RUN } from './plant-pipe-run.ts';
 import { MARKET_STALL } from './market-stall.ts';
@@ -36,6 +37,7 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [RUBBLE_DEBRIS.id]: RUBBLE_DEBRIS,
   [PARK_TREE.id]: PARK_TREE,
   [PARK_HEDGE_RUN.id]: PARK_HEDGE_RUN,
+  [PARK_HEDGE_POCKET.id]: PARK_HEDGE_POCKET,
   [PLANT_MACHINE.id]: PLANT_MACHINE,
   [PLANT_PIPE_RUN.id]: PLANT_PIPE_RUN,
   [MARKET_STALL.id]: MARKET_STALL,

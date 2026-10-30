@@ -35,6 +35,7 @@ const PINNED = {
   'rubble-debris': ['rubble-debris-1', '209ff412b34fdc6a'],
   'park-tree': ['park-tree-1', '92d74038005d8c5a'],
   'park-hedge-run': ['park-hedge-run-1', '53e26ff94e80e196'],
+  'park-hedge-pocket': ['park-hedge-pocket-1', '5c0b909aa757d1ce'],
   'plant-machine': ['plant-machine-1', '8975ce930b7a04e3'],
   'plant-pipe-run': ['plant-pipe-run-1', '3c4eed0ac5a59880'],
 };
@@ -187,4 +188,29 @@ test('market stall counters alternate edges and awnings cover the footprint with
     { length: 5, alongX: true, flipped: false, roofed: true },
     { length: 2, alongX: 'x', flipped: false, roofed: true }])
     assert.throws(() => buildPlaceable('market-stall', params, SIZE));
+});
+
+test('hedge pocket is a connected enclosure with a centered east opening', () => {
+  for (const size of [10, 40]) {
+    const result = buildPlaceable('park-hedge-pocket', {}, size);
+    assert.deepEqual(result.demand, { body: { w: 14, h: 14 }, clear: [] });
+    assert.equal(result.elements.length, 1);
+    const { x, y, template } = result.elements[0];
+    assert.deepEqual([x, y, template.w, template.h], [0, 0, 14 * size, 14 * size]);
+    assert.equal(template.parts.length, 5);
+    for (const part of template.parts) assert.deepEqual([part.part, part.kind], ['obstacle', 'hedge']);
+    const boxes = template.parts.map(part => bounds(part.shape));
+    assert.deepEqual(boxes, [[0, 0, 1, 14], [1, 0, 13, 1], [1, 13, 13, 1],
+      [13, 1, 1, 4.75], [13, 8.25, 1, 4.75]].map(([x, y, w, h]) =>
+      ({ x: x * size, y: y * size, w: w * size, h: h * size })));
+    const [west, north, south, upper, lower] = boxes;
+    assert.equal(west.x + west.w, north.x);
+    assert.equal(west.x + west.w, south.x);
+    assert.equal(north.y + north.h, upper.y);
+    assert.equal(lower.y + lower.h, south.y);
+    assert.equal(lower.y - (upper.y + upper.h), 2.5 * size);
+    assert.equal((upper.y + upper.h + lower.y) / 2, 7 * size);
+  }
+  assert.throws(() => buildPlaceable('park-hedge-pocket', null, SIZE), RangeError);
+  assert.throws(() => buildPlaceable('park-hedge-pocket', { opening: 2 }, SIZE), RangeError);
 });

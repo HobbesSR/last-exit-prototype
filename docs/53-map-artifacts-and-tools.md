@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-55` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-56` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results; one park hedge pocket (#698, 42.25) |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -132,8 +132,8 @@ default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
 2 × 1 cases). These are the stored case groups, not a new zero-drift run.
 They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
-The current baseline provenance is content commit `4cc00fa115236fcb996f4acbb86071885c7557eb`,
-captured `2026-10-30T04:32:23.161Z` under Node v24.15.0 (#533 hall wings, 42.4).
+The current baseline provenance is content commit `d81e2226953a7ea5dbfe239d2fbd6c6e21553461`,
+captured `2026-10-30T20:12:20.856Z` under Node v24.15.0 (#698 park hedge pocket, 42.4).
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash

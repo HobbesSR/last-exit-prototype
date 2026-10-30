@@ -12,6 +12,7 @@ import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { builtRegion } from '../result.ts';
+import { siteParkPocket } from './park-pocket.ts';
 
 /**
  * Clear cells between pieces and across each hedge gap: a doorway (52), so a hunter fits each.
@@ -62,8 +63,12 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
 
 
   const canvas = createBuilderCanvas(brief, protectedShapes);
+  const pocket = hedgeChance > 0 ? siteParkPocket(brief, canvas) : { envelope: null };
   // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
-  const clear = ({ x, y, w, h }: Box) => canvas.fits(rect(x * size, y * size, w * size, h * size));
+  const clear = ({ x, y, w, h }: Box) => {
+    const box = rect(x * size, y * size, w * size, h * size);
+    return canvas.fits(box) && (!pocket.envelope || canvas.spaced(box));
+  };
 
   const slots = latticeSlots(brief, mask, PERIOD, { x: CHANNEL.phaseX, y: CHANNEL.phaseY });
   const key = (x: number, y: number) => `${x},${y}`;
@@ -119,5 +124,5 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return builtRegion(brief, elements, loot, [], { trees, clumps, hedges });
+  return builtRegion(brief, elements, loot, [], { trees, clumps, hedges, ...(pocket.envelope ? { pockets: 1 } : {}) });
 }

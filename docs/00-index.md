@@ -122,6 +122,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.22-tick-cost-attribution.md](42.22-tick-cost-attribution.md) | Server tick cost by stage at each size and engine, per-stage scaling exponents, over-budget tick classification, viewers, rooms and history memory (#637) |
 | [42.23-navigation-structure.md](42.23-navigation-structure.md) | Saved-map navigation measurement and the three-size detour, dead-end, empty-space and boundary baseline (#688) |
 | [42.24-static-barrier.md](42.24-static-barrier.md) | Opt-in connected static barrier: matched detour/pocket witnesses, retained target failures and adoption limits (#694) |
+| [42.25-park-pocket.md](42.25-park-pocket.md) | One production park hedge pocket: paired detour, access, loot, structure, cost and compatibility evidence (#698) |
 
 ### 5x — Map generation
 

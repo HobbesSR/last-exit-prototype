@@ -159,7 +159,9 @@ test('a rectangular park past 32 portals keeps every portal reachable', () => {
   assert.equal(portals.length, 36);
   for (const seed of [5, 6]) {
     const input = brief('many-portals', seed, cells, portals), result = buildRegion(input);
-    assert.ok(result.manifest.clumps > 20, `seed ${seed} still fills: ${result.manifest.clumps} clumps`);
+    // A connected pocket intentionally replaces several scatter slots (types-56).
+    assert.ok(result.manifest.clumps > 20 || (result.manifest.pockets === 1 && result.manifest.clumps > 10),
+      `seed ${seed} still composes scatter or a pocket: ${JSON.stringify(result.manifest)}`);
     assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, [], `seed ${seed}`);
   }
 });
