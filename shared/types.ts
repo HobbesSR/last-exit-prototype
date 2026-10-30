@@ -293,6 +293,12 @@ export interface MatchContent {
    * above zero the gladiator is out of the world (`status: 'transit'`) until it lands. Unset, instant.
    */
   transitTime?: { base: Tick; perUnit: number } | undefined;
+  /**
+   * How gladiator bots hunt (#683, 14 "Gladiator bots"); requires `transit: 'selectable'`. `sweep`: with no contestant
+   * seen and nothing heard, a gladiator sweeps regions ahead of the wall rather than waiting at a station, and it
+   * transits toward a lead or a sweep when walking to a station and transiting is quicker. Unset, neither.
+   */
+  hunting?: 'sweep' | undefined;
 }
 
 /**

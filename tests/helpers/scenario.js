@@ -71,11 +71,13 @@ export function run(s, { ticks, events = [], done, trace }) {
 /**
  * A gunfight at distance `distance` (#697, 42.22): on open ground, one gladiator bot and a scripted
  * contestant `distance` east of it firing `weapon` every `every` ticks until tick `until`. The exit is
- * behind the gladiator, so patrol leads away from the fight. Returns the tick the gladiator came within
- * 400 of the shooter, or null within `ticks`.
+ * behind the gladiator, so patrol leads away from the fight. Transit stations stand at `stations`, x offsets
+ * from the gladiator along its row. Returns the tick the gladiator came within 400 of the shooter, or null
+ * within `ticks`.
  */
-export async function gunfight(distance, { content, weapon = 'pistol', every = 20, until, ticks = 3000, scatter } = {}) {
-  const { map } = openField(distance + 1200, { scatter, exit: { x: 96, y: 576 } });
+export async function gunfight(distance, { content, weapon = 'pistol', every = 20, until, ticks = 3000, scatter, stations = [] } = {}) {
+  const { map } = openField(distance + 1200, { scatter, exit: { x: 96, y: 576 },
+    stations: stations.map((dx, i) => ({ id: `st${i}`, nodeId: `n${i}`, x: 600 + dx, y: 576 })) });
   const y = map.height / 2, at = { x: 600 + distance, y };
   const { s, players: [g, shooter] } = await stagePhysics(map, { content,
     actors: [{ role: 'gladiator', x: 600, y }, { role: 'contestant', bot: false, ...at }] });

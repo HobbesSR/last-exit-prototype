@@ -78,11 +78,10 @@ Corey, 2026-10-30, on #683: the destination is **"Make it selectable"**. Built u
   hold-to-pick gesture first proposed (hold interact, release on the selection, Esc cancels): rings shown
   whenever a transit is possible need no hold or cancel, and the same tap works on touch. Off-screen edge
   markers for stations are not built.
-- **Bots** (#683). Bots send the same input. Each usable station links to every station ahead, so a
-  gladiator's top-level plan (22.6) can take transit to the station nearest its goal when the walk to the
-  station plus a small fixed cost beats walking. With no contestant seen and nothing heard, a gladiator
-  sweeps regions ahead of the wall, where contestants are likely to be, rather than waiting at a station
-  (Corey, same day).
+- **Bots** (#683, built under `content-11`, [14](14-match-rules.md#gladiator-bots)). Bots send the same
+  input. A gladiator takes transit to the station nearest its goal when the walk to a station plus a small
+  fixed cost beats walking. With no contestant seen and nothing heard, it sweeps regions ahead of the wall,
+  where contestants are likely to be, rather than waiting at a station (Corey, same day).
 - **Input contract.** The station choice is the `transit` input field: sanitized and recorded like the
   others (24, 26).
 
