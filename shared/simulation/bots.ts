@@ -74,6 +74,7 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null
     state.cell = -1;
   }
   const { cols, rows } = discoveryGrid(s.map);
+  count('work.bots.frontier', seen.size);
   let best = -1, bestScore = Infinity;
   // Sight order is deterministic, and ties keep the first, so the choice is too.
   for (const index of seen) {
@@ -475,17 +476,21 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   // Mixed temperaments create occasional betrayal, rather than every converging bot starting
   // a deathmatch simultaneously. All bots can retaliate; roughly one third initiate disputes.
   const opportunistic = p.id.charCodeAt(p.id.length - 1) % 3 === 0;
+  start('sim.bots.sight');
   const nearest = s.players.filter(t => t.id !== p.id && (t.role !== p.role || p.aggressor === t.id && s.tick < p.aggressionUntil!
     || p.role === 'contestant' && opportunistic && s.tick > 30 * HZ && distance(p, t) < (s.tick > 120 * HZ ? 320 : 180))
     && t.status === 'active' && visibleTo(s, p, t)).sort((a, b) => distance(p, a) - distance(p, b))[0];
+  stop('sim.bots.sight');
   let target: Vec2 = p.role === 'gladiator' ? nearest || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
   let exploring = false;
   const tiles = s.content.navigation === 'tiles';
   if (p.role === 'contestant') {
     // A contestant knows what it has discovered (15, #230). Without discovery (content-1) it keeps the
     // whole map, which is what the frozen characterization traces recorded.
+    start('sim.bots.items');
     const memory = p.discovery, pursuit = memory ? pursuitOf(p) : null;
     const known = (feature: Vec2) => !memory || isFeatureDiscovered(memory, s.map, feature);
+    count('work.bots.items', memory ? memory.items?.size ?? 0 : s.map.items.length);
     const items = memory ? [...memory.items?.values() ?? []].filter(i => !(pursuit!.ignored.get(i.id)! > s.tick)) : s.map.items;
     // Over tiles, a door is locked when the bot last saw it locked; the grid planner reads the doors as they stand.
     const locked = (g: Gate) => { const seen = tiles ? memory?.gates?.get(g.id) : g; return !!seen && !!seen.locked && !seen.open; };
@@ -495,7 +500,9 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       : !charged ? s.map.chargers.filter(st => st.x > s.hazardX + 100 && known(st)) : [];
     if (memory && !objective.length && !(charged && known(s.map.exit))) {
       // Nothing it needs is known: search for it, and fall back on the exit only once nothing is left to search.
+      stop('sim.bots.items'); start('sim.bots.explore');
       const frontier = exploreTarget(s, p, memory);
+      stop('sim.bots.explore'); start('sim.bots.items');
       if (frontier) { target = frontier; exploring = true; } else if (!known(s.map.exit)) target = p;
     }
     if (objective.length) {
@@ -523,6 +530,7 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
         || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && refills(slot)))
       && (i.kind !== 'weapon' || i.ammo !== 0 && !inventory.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && full(slot)))).sort((a, b) => distance(p, a) - distance(p, b))[0];
     if (loot && loot.kind !== 'cell' && !p.charging && (!nearest || distance(p, nearest) > 250)) { target = loot; exploring = false; }
+    stop('sim.bots.items');
     if (pursuit && !exploring) {
       pursuit.cell = -1;
       const item = target as Partial<GroundItem>;
@@ -530,6 +538,7 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       else if (!item.kind) pursuit.goal = '';
     }
   }
+  start('sim.bots.plan');
   if (tiles) {
     const status = repathTiles(s, p, target);
     if (status === 'no-known-route' || status === 'invalid-endpoint') {
@@ -558,11 +567,13 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     p.path = straightenPath(s.map, p.role, p, steps, p.keys > 0 ? 'all' : true);
     stop('sim.repath');
   }
+  stop('sim.bots.plan'); start('sim.bots.steer');
   let waypoint = tiles ? p.route?.[0] ?? target : p.path?.[0] ? center(...p.path[0]) : target;
   if (distance(p, target) < 55 && lineClear(s.map, p, target)) waypoint = target;
   else if (tiles) { while (p.route?.length && passed(s, p, p.route[0]!, p.route[1] ?? target)) p.route.shift(); waypoint = p.route?.[0] ?? target; }
   else if (distance(p, waypoint) < 11 && p.path?.length) { p.path.shift(); waypoint = p.path[0] ? center(...p.path[0]) : target; }
   let dx = waypoint.x - p.x, dy = waypoint.y - p.y;
+  stop('sim.bots.steer'); start('sim.bots.sight');
   const hunter = p.role === 'contestant' && s.players.find(t => t.role === 'gladiator' && t.status === 'active' && distance(p, t) < 170 && visibleTo(s, p, t));
   if (hunter) {
     // Keep firing, but do not blindly follow an objective path straight into melee range.
@@ -575,9 +586,12 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     }).filter(o => canOccupy(s.map, o.point.x, o.point.y, 12) && reachClear(s.map, p, o.point)).sort((a, b) => b.score - a.score);
     if (options.length) { dx = options[0].x * 9; dy = options[0].y * 9; }
   }
+  stop('sim.bots.sight');
   if (s.content.dynamicNavigation) {
+    start('sim.bots.dynamic');
     const next = dynamicWaypoint(s, p, { x: p.x + dx, y: p.y + dy });
     dx = next.x - p.x; dy = next.y - p.y;
+    stop('sim.bots.dynamic');
   }
   const length = Math.max(9, hypot(dx, dy));
   if (p.role === 'contestant' && cell != null && cell.charge < s.content.cellChargeTicks && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) {

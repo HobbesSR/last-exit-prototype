@@ -205,7 +205,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   // 2: roster-order collection from the same pre-movement world.
   const intents = new Map<Player, BotIntent>();
   start('sim.bots');
-  beginDynamicNavigationCollection(s);
+  start('sim.bots.collect'); beginDynamicNavigationCollection(s); stop('sim.bots.collect');
   try {
     for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
   } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
