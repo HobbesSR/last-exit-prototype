@@ -97,6 +97,14 @@ closed segments; a circle becomes a `CIRCLE_SEGMENTS`-sided outline (16), which 
 because changing it changes which rays graze a tree. Windows are excluded from sight edges but not
 from collision, so a shot and a look pass a window while a body and a dropped item do not.
 
+`lineClear` and `reachClear` answer whether any edge blocks a segment, so they read only the edges near it.
+Sight edges sit in the same 200-unit grid, each under every bucket its bounds touch. Gates are kept in it by
+their boxes, and whether a gate is open is read when the query meets it. A query walks the buckets within
+one unit of the segment (`cellsAlong`). A blocking edge meets the segment at a point inside both, so the
+edge is in a bucket the walk visits, and the answer is the one every edge of the map would give. That
+keeps the cost of a query independent of the map's size (#639). `tests/visibility.test.js` holds the
+answers to a brute-force check over every edge.
+
 `visibilityPolygon` sweeps rays in ascending angle over an active set of segments, keeping each
 vertex's angle so `litPoint` can answer per-entity visibility with a binary search instead of a fresh
 ray. What a viewer may *know* — reveals, cloak, roof concealment — is a gameplay rule and lives in
