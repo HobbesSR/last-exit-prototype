@@ -1,5 +1,5 @@
 import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
-import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
+import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_CELL_SIZE, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import { gridRoute } from '../map/route.ts';
@@ -150,14 +150,26 @@ function leadOf(s: Game, p: Player): Lead | null {
 }
 
 // A cue names a cell, and its centre may be inside a building: head for the nearest spot in the cell the bot can stand on.
+// A gladiator knows the whole map (15). A contestant judges only what it knows (15, 22.6.2): a cell it has not
+// discovered is planned as open, so it heads for the centre; in a known cell only static geometry counts, since doors
+// are the planner's to judge from what it observed, and only spots whose body lies inside that cell, so geometry in an
+// unknown neighbour cannot decide the choice.
 const CELL_OFFSETS = (() => {
   const offsets: Vec2[] = [];
   for (let y = -96; y <= 96; y += 32) for (let x = -96; x <= 96; x += 32) offsets.push({ x, y });
   return offsets.sort((a, b) => a.x * a.x + a.y * a.y - (b.x * b.x + b.y * b.y));
 })();
 function standingIn(s: Game, p: Player, centre: Vec2): Vec2 {
-  const radius = navigationClearance(p.role);
-  for (const { x, y } of CELL_OFFSETS) if (canOccupy(s.map, centre.x + x, centre.y + y, radius)) return { x: centre.x + x, y: centre.y + y };
+  const radius = navigationClearance(p.role), memory = p.role === 'contestant' ? p.discovery : undefined;
+  if (memory) {
+    const cell = cellIndexAt(s.map, centre.x, centre.y);
+    if (!contestantKnowledge(memory, p.keys).known(cell)) return centre;
+  }
+  const reach = memory ? DISCOVERY_CELL_SIZE / 2 - radius : Infinity;
+  for (const { x, y } of CELL_OFFSETS) {
+    if (Math.abs(x) > reach || Math.abs(y) > reach) continue;
+    if (canOccupy(s.map, centre.x + x, centre.y + y, radius, !!memory)) return { x: centre.x + x, y: centre.y + y };
+  }
   return centre;
 }
 

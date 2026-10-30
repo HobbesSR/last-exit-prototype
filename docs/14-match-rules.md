@@ -79,7 +79,9 @@ what they hear.
 
 `content-9` (#685, selectable) is `content-8` with bots acting on what they hear, by temperament
 (`hearingResponse: 'temperament'`, 17.3 #26). A cue fades long before a bot could cross the map to it, so a
-bot remembers where it last heard a shot, its *lead*: the nearest spot in that cell it could stand on. A newer
+bot remembers where it last heard a shot, its *lead*: the nearest spot in that cell it could stand on. A gladiator
+judges that from the whole map. A contestant judges from what it knows: the centre of a cell it has not discovered,
+otherwise a spot clear of the cell's static geometry (15, 22.6.2). A newer
 shot replaces the lead. The bot drops it on coming within 400 units, after 10 seconds without getting closer,
 when it finds no way there, or after 60 seconds.
 - **Gladiators**, seeing no contestant, go to their lead before falling back on their station.

@@ -4,7 +4,7 @@
 // Per match: outcome (escaped, eliminated, kills by gladiators), how far gladiators travelled, how long they spent
 // still (under STILL_RANGE in STILL_TICKS) while the match was live, the share of ticks a gladiator saw a contestant
 // and the share it held a heard-gunfire cue (#684), how far each contestant shot was from the nearest gladiator (the
-// distances hearing ranges are set against), how many cues a gladiator later came within REACHED of (and, of those heard from beyond FAR, how many were followed by seeing a contestant within FOUND_WITHIN, and how soon), how fast contestants
+// distances hearing ranges are set against), how many cues a gladiator later came within REACHED of (and, of those heard from beyond FAR, how many it reached within WITHIN, and how many led it to see a contestant within CONTACT of the cue in that time, and how soon), how fast contestants
 // close on the newest cue they hear (opportunists and the rest apart, #685), and route-search work (expansions, repaths, portal plans) and the bot phase's cost. Runs sequentially under the bench lock.
 import { writeFileSync } from 'node:fs';
 import { generateLiveMap, liveZoneSize } from '../../map/live.ts';
@@ -25,7 +25,7 @@ const SIZES = (process.env.SIZES ?? '12x6:4,24x12:2,36x18:2').split(',').map(ent
   return { size, seeds: Number(seeds), first: Number(first) };
 });
 const MAX_TICKS = Number(process.env.MAX_TICKS) || Infinity;
-const STILL_TICKS = 100, STILL_RANGE = 40, REACHED = 400, FAR = 1500, FOUND_WITHIN = 60 * 20;
+const STILL_TICKS = 100, STILL_RANGE = 40, REACHED = 400, FAR = 1500, WITHIN = (Number(process.env.WITHIN_S) || 120) * 20, CONTACT = 800;
 const WORK = ['work.route.expansions', 'work.repath', 'work.route.portalPlans', 'sim.bots', 'sim.bots.plan'];
 
 async function playMatch(size, seed, contentId) {
@@ -35,7 +35,7 @@ async function playMatch(size, seed, contentId) {
   const match = await createMatchFor(seed, zone, map, content), s = match.diagnosticState;
   const gladiators = s.players.filter(p => p.role === 'gladiator'), anchor = new Map(gladiators.map(p => [p, { x: p.x, y: p.y, tick: 0 }]));
   let travelled = 0, still = 0, seeing = 0, hearing = 0, active = 0, ticks = 0, lastShot = s.serial, reached = 0;
-  const shotDistances = [], arrivals = [], heardCues = new Map(gladiators.map(p => [p, new Map()]));
+  const shotDistances = [], arrivals = [], contacts = [], heardCues = new Map(gladiators.map(p => [p, new Map()]));
   const contestants = s.players.filter(p => p.role === 'contestant'), closing = { opportunist: [0, 0], cautious: [0, 0] };
   const sums = Object.fromEntries(WORK.map(name => [name, 0]));
   profiler.reset(); profiler.enable(true);
@@ -63,14 +63,20 @@ async function playMatch(size, seed, contentId) {
       active++;
       const was = before.get(p);
       travelled += Math.hypot(p.x - was.x, p.y - was.y);
-      const sees = s.players.some(t => t.role === 'contestant' && t.status === 'active' && visibleTo(s, p, t));
-      if (sees) seeing++;
+      const seen = s.players.filter(t => t.role === 'contestant' && t.status === 'active' && visibleTo(s, p, t));
+      if (seen.length) seeing++;
       const cues = heardBy(p, s.tick), held = heardCues.get(p);
       if (cues.length) hearing++;
-      for (const cue of cues) if (!held.has(`${cue.x},${cue.y},${cue.tick}`)) held.set(`${cue.x},${cue.y},${cue.tick}`, { ...cue, reached: false, found: false, far: Math.hypot(p.x - cue.x, p.y - cue.y) > FAR });
+      for (const cue of cues) if (!held.has(`${cue.x},${cue.y},${cue.tick}`)) held.set(`${cue.x},${cue.y},${cue.tick}`, { ...cue, reached: false, arrived: false, contact: false, far: Math.hypot(p.x - cue.x, p.y - cue.y) > FAR });
       for (const cue of held.values()) if (!cue.reached && Math.hypot(p.x - cue.x, p.y - cue.y) < REACHED) { cue.reached = true; reached++; }
-      // A shot heard from afar has led somewhere when the gladiator next sees a contestant within FOUND_WITHIN of it.
-      if (sees) for (const cue of held.values()) if (cue.far && !cue.found && s.tick - cue.tick <= FOUND_WITHIN) { cue.found = true; arrivals.push(s.tick - cue.tick); }
+      // A shot heard from afar, followed: the gladiator later comes within REACHED of where it was heard, or sees a
+      // contestant standing within CONTACT of it, within WITHIN of hearing it. Contact anywhere else does not count.
+      for (const cue of held.values()) {
+        const since = s.tick - cue.tick;
+        if (!cue.far || since <= 0 || since > WITHIN) continue;
+        if (!cue.arrived && Math.hypot(p.x - cue.x, p.y - cue.y) < REACHED) { cue.arrived = true; arrivals.push(since); }
+        if (!cue.contact && seen.some(t => Math.hypot(t.x - cue.x, t.y - cue.y) < CONTACT)) { cue.contact = true; contacts.push(since); }
+      }
       const a = anchor.get(p);
       if (Math.hypot(p.x - a.x, p.y - a.y) >= STILL_RANGE) anchor.set(p, { x: p.x, y: p.y, tick: s.tick });
       else if (s.tick - a.tick >= STILL_TICKS) still++;
@@ -85,7 +91,7 @@ async function playMatch(size, seed, contentId) {
     gladiatorKills: gladiators.reduce((sum, p) => sum + (p.kills ?? 0), 0),
     travelledPerTick: travelled / Math.max(1, active), stillShare: still / Math.max(1, active), seeingShare: seeing / Math.max(1, active),
     hearingShare: hearing / Math.max(1, active), shots: shotDistances.length, shotDistance: quantiles(shotDistances),
-    cuesHeard: [...heardCues.values()].reduce((sum, held) => sum + held.size, 0), cuesReached: reached, farCues: [...heardCues.values()].reduce((sum, held) => sum + [...held.values()].filter(cue => cue.far).length, 0), farFound: arrivals.length, foundTicks: quantiles(arrivals),
+    cuesHeard: [...heardCues.values()].reduce((sum, held) => sum + held.size, 0), cuesReached: reached, farCues: [...heardCues.values()].reduce((sum, held) => sum + [...held.values()].filter(cue => cue.far).length, 0), farArrived: arrivals.length, arrivalTicks: quantiles(arrivals), farContact: contacts.length, contactTicks: quantiles(contacts),
     closingPerTick: Object.fromEntries(Object.entries(closing).map(([kind, [sum, n]]) => [kind, n ? sum / n : null])), listeningTicks: closing.opportunist[1] + closing.cautious[1],
     perTick: Object.fromEntries(WORK.map(name => [name, sums[name] / Math.max(1, ticks)])),
   };
@@ -106,7 +112,7 @@ for (const { size, seeds, first } of SIZES) for (let seed = first; seed < first 
   console.log(`${size} seed ${seed} ${content}: ${row.ticks} ticks, escaped ${row.escaped}, eliminated ${row.eliminated}, gladiator kills ${row.gladiatorKills},`
     + ` travel ${row.travelledPerTick.toFixed(2)}/tick, still ${(100 * row.stillShare).toFixed(1)}%, seeing ${(100 * row.seeingShare).toFixed(1)}%,`
     + ` hearing ${(100 * row.hearingShare).toFixed(1)}%, shots ${row.shots} (nearest gladiator p25/50/75 ${row.shotDistance.p25}/${row.shotDistance.p50}/${row.shotDistance.p75}),`
-    + ` cues ${row.cuesHeard} reached ${row.cuesReached}, heard from beyond ${FAR} ${row.farCues}, then saw a contestant within ${FOUND_WITHIN / 20} s ${row.farFound} (ticks p25/50/75 ${row.foundTicks.p25}/${row.foundTicks.p50}/${row.foundTicks.p75}), closing opp/caut ${row.closingPerTick.opportunist?.toFixed(2)}/${row.closingPerTick.cautious?.toFixed(2)} per tick,`
+    + ` cues ${row.cuesHeard} reached ${row.cuesReached}, heard from beyond ${FAR} ${row.farCues}, within ${WITHIN / 20} s reached ${row.farArrived} (ticks p50 ${row.arrivalTicks.p50}) and contact there ${row.farContact} (ticks p50 ${row.contactTicks.p50}), closing opp/caut ${row.closingPerTick.opportunist?.toFixed(2)}/${row.closingPerTick.cautious?.toFixed(2)} per tick,`
     + ` expansions ${row.perTick['work.route.expansions'].toFixed(0)}/tick, sim.bots ${row.perTick['sim.bots'].toFixed(2)} ms`);
 }
 if (process.argv[2]) writeFileSync(process.argv[2], JSON.stringify({ contents: CONTENTS, node: process.version, results }, null, 1));
