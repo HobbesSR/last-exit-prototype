@@ -566,7 +566,12 @@ vertex for vertex.
 `tests/overhead.browser.mjs` uses a small controlled map with real Phaser textures
 to check that a crown occludes an actor beyond the trunk, intermediate group alpha
 changes pixels without rasterising or replacing textures, and camera culling and
-map replacement release overhead textures. It runs in `test:browser`.
+map replacement release overhead textures. `tests/art-witness.browser.mjs` drives
+the arena renderer over a controlled map and frozen presentation state across all
+six palettes, fog on/off, exterior/interior roof views, LOD cutoffs and a short
+motion pass, checking WebGL glass alpha, rendered edges and withheld-entity privacy
+and writing paired captures and a contact sheet under `test-results/art-witness/`
+([41.2](41.2-art-direction-plan.md) step 1, #587). Both run in `test:browser`.
 
 Boundary tests enforce ownership, not just behavior: server application code may
 not use the diagnostic `room.game` escape hatch, transport may not reach the
