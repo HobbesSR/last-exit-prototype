@@ -7,6 +7,7 @@ import { visiblePoint, visibleTo } from './visibility.ts';
 import type { CollisionMap, Game, Player, Vec2 } from '../types.ts';
 import type { BodySpec, Transform } from '../physics/types.ts';
 import { cos, hypot, sin } from '../math.ts';
+import { count, start, stop } from '../profiler.ts';
 
 // Local overlays never enter the static mesh, discovery, snapshots or replay state.
 const RANGE = 192, MARGIN = 2, EDGES_PER_BOT = 192, EDGES_PER_TICK = 1536;
@@ -22,9 +23,10 @@ export function dynamicNavigationWork(s: Game): number { return work.get(s)?.tic
 const sortedPlayers = (s: Game) => [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 /** Scope sharing to the immutable pre-movement collection, never merely to a tick number. */
 export function beginDynamicNavigationCollection(s: Game): void {
-  if (s.content.dynamicNavigation && s.players.some(p => p.bot && p.status === 'active')) collectionObservations.set(s, {
-    players: sortedPlayers(s), props: physicsRuntime(s)?.world.solidPropStates() ?? [],
-  });
+  if (!s.content.dynamicNavigation || !s.players.some(p => p.bot && p.status === 'active')) return;
+  const props = physicsRuntime(s)?.world.solidPropStates() ?? [];
+  count('work.bots.props', props.length);
+  collectionObservations.set(s, { players: sortedPlayers(s), props });
 }
 export function endDynamicNavigationCollection(s: Game): void { collectionObservations.delete(s); }
 
@@ -78,7 +80,10 @@ function knownSegment(s: Game, p: Player, a: Vec2, b: Vec2, radius: number): boo
 /** Return a detour or advance to a queue; prop contact remains the physical motor's job. */
 export function dynamicWaypoint(s: Game, p: Player, destination: Vec2): Vec2 {
   if (!s.content.dynamicNavigation) return destination;
-  const bodies = observations(s, p), shapes = bodies.map(body => body.shape), radius = actorRadius(s, p);
+  start('sim.bots.observe');
+  const bodies = observations(s, p);
+  stop('sim.bots.observe');
+  const shapes = bodies.map(body => body.shape), radius = actorRadius(s, p);
   // Rejoin beyond the observed body's far side, even if its centre is at the observation horizon.
   const length = distance(p, destination), horizon = RANGE + 64, scale = length > horizon ? horizon / length : 1;
   const goal = { x: p.x + (destination.x - p.x) * scale, y: p.y + (destination.y - p.y) * scale };
