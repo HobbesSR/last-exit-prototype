@@ -13,6 +13,7 @@ interface Box { x: number; y: number; w: number; h: number }
 /** Two clear cells surround each footprint and separate it from every other one.
  * Each bypass therefore joins the untouched court perimeter and ring approaches. */
 export function buildCompoundCourt(brief: RegionBrief, ring: Box, observe?: BuildingObserver): RegionElement[] {
+  // This canvas excludes the ring; allowed() is safe only while every footprint stays two cells inside the court.
   const size = brief.cellSize, canvas = createBuilderCanvas(brief), boxes: Box[] = [];
   const court = { x: ring.x + 3, y: ring.y + 3, w: ring.w - 6, h: ring.h - 6 };
   const center = { x: ring.x + Math.floor(ring.w / 2) - 1, y: ring.y + Math.floor(ring.h / 2) - 1 };
