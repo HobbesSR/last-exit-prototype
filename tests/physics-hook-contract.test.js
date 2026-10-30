@@ -70,7 +70,7 @@ test('schema 14 retains flight/pending/pull/cancel states through compressed rec
     assert.deepEqual(frames.map(f => f.physics.hooks.map(h => h.phase)), [[], ['flying'], ['pending'], ['pulling'], []]);
     await writer.finish({ ticks: s.tick, escaped: 0 });
     const archive = JSON.parse(gunzipSync(Buffer.concat(chunks)));
-    assert.equal(archive.schema, 14);
+    assert.equal(archive.schema, 15);
     assert.equal(recordingFit(archive), 'ok');
     const timeline = createReplayTimeline(archive);
     for (const tick of [4, 1, 3, 0, 2, 4]) assert.deepEqual(timeline.at(tick).state, frames[tick]);

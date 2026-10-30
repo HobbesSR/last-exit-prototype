@@ -92,6 +92,19 @@ when it finds no way there, or after 60 seconds.
 
 Bots read only the cues they heard, never the shooter (15). The distances and times are placeholders.
 
+<a id="transit"></a>
+
+**Transit.** A gladiator within 70 units of a transit station, with its rail cooldown spent, transits by
+interacting: to the next station ahead of it, or the first ahead of the wall (`x > hazardX + TILE`) if none is
+past it. The rail effect marks departure and landing, and the cooldown is 180 ticks. A landing the physics world
+cannot place is refused with no effect and no cooldown. `content-10` (#692, selectable) is `content-9` with
+selectable transit (`transit: 'selectable'`, 12): the `transit` input names any other station ahead of the wall,
+and an unknown, behind-the-wall or current station is refused the same way. Under any content, `transitTime`
+sets how long a transit takes, `base + perUnit` × the distance in ticks, rounded. Unset or zero, transit is
+instant, and `content-10` sets both to 0. Above zero the gladiator has `status: 'transit'` until it lands: out of
+the world, unhittable and unable to act. It lands at the start of its arrival tick, waiting a tick at a time while
+its landing can't be placed, and the cooldown starts there (17.3 #26).
+
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
 ## Experimental physical world profile (#445)

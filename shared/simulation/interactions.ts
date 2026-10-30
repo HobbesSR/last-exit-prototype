@@ -1,10 +1,11 @@
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
-import { lineClear, reachClear, gateShape, bodyRadius, TILE } from '../movement.ts';
+import { lineClear, reachClear, gateShape, bodyRadius } from '../movement.ts';
 import { carriedCell, equipped, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { nearbyGate } from '../gate-query.ts';
 import { observeGate } from '../discovery.ts';
 import { clearRoute, distance } from './geometry.ts';
-import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
+import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH } from './rules.ts';
+import { transit } from './transit.ts';
 import { event, effect, dropEquipment, planDrop } from './loot.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
@@ -78,19 +79,7 @@ export function interact(s: Game, p: Player): void {
     if (p.discovery) observeGate(p.discovery, gate);
     return;
   }
-  if (p.role === 'gladiator' && p.railCd === 0) {
-    const station = s.map.stations.find(st => distance(p, st) < TRANSIT_REACH);
-    if (station) {
-      const candidates = s.map.stations.filter(st => st.x > s.hazardX + TILE && st.id !== station.id);
-      const next = candidates.find(st => st.x > p.x + TILE) || candidates[0];
-      if (next) {
-        const runtime = s.content.actorPhysics ? physicsRuntime(s) : undefined;
-        const at = runtime ? runtime.placement(p, next) : next;
-        if (!at) return; // No effects/cooldown when the physical landing cannot be represented.
-        effect(s, p, 'rail', 60); p.x = at.x; p.y = at.y; clearRoute(p); p.railCd = 180; effect(s, p, 'rail', 60);
-      }
-    }
-  }
+  if (p.role === 'gladiator') transit(s, p);
 }
 export function advanceCharging(s: Game, p: Player, input: PlayerInput): void {
   if (p.charging) {

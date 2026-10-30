@@ -24,7 +24,7 @@ the latter carry player `reserves` and `reload`, `ammo` ground items and
 pickup as an unknown item, so the floor stays.
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-5`, and recordings use schema 14 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+default content is `content-5`, and recordings use schema 15 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Schema 10 adds required engine-free physics presentation for experimental physics
@@ -105,6 +105,8 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 15 | Optional `transit` command, player `transit` state and `status: 'transit'` (#692) | unchanged |
+| 14 | Optional private hook state and hook-flight presentation (#446) | unchanged |
 | 13 | Optional L2 player reserves and reload, `ammo` ground items and `reload`/`dropAmmo` commands (#444) | unchanged |
 | 12 | Optional P5 map `physicsProps`, floor `drag` and private body collision/damping state (#445) | unchanged |
 | 11 | Optional L0 item identity/lineage/quality and private allocation counter (#442) | unchanged |
@@ -316,6 +318,14 @@ order, input consumption, player sizes, combat and timers are unchanged. The
 intentional new map content is named by `generator` and embedded in full, rather
 than rebuilding an old recording with today's chain. Frozen characterization
 continues to use its stored legacy maps and is not regenerated.
+
+## Schema 15: transit route selection (#692)
+
+Schema 15 records the optional `transit` command (a station id) with the others, and, while a gladiator is in
+transit, its `status: 'transit'` and private `transit` state (destination and arrival tick). Both appear only
+under content that uses them: `content-10` tunes travel time to zero, so its frames never carry the state.
+The change is additive, so minimum readers are unchanged. A reader that does not know the status draws nothing
+for that player, as for any player that is not active.
 
 ## Schema 14: experimental hook (#446)
 

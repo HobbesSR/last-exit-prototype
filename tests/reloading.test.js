@@ -294,7 +294,7 @@ test('current recordings keep reserves, reloads and ammo pickups exactly through
   const chunks = [], frames = [];
   const header = { id: 'ammo-roundtrip', version: s.version, contentId: s.content.id, schema: SCHEMA,
     minSchema: minimumReaderForMatch(s.map, false), seed: s.seed, hz: 20, createdAt: 1, map: structuredClone(s.map) };
-  assert.equal(header.schema, 14);
+  assert.equal(header.schema, 15);
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => assert.fail(error.message) });
   const retain = () => { const frame = snapshot(s); frames.push(JSON.parse(JSON.stringify(frame))); assert.equal(writer.append(frame, []), true); };

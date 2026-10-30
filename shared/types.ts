@@ -113,7 +113,7 @@ export type Serial = number;
 export type Role = 'contestant' | 'gladiator';
 export type Kit = 'warden' | 'specter' | 'striker' | 'hook';
 export type Phase = 'live' | 'finished';
-export type PlayerStatus = 'active' | 'eliminated' | 'respawning' | 'escaped' | 'stranded';
+export type PlayerStatus = 'active' | 'eliminated' | 'respawning' | 'escaped' | 'stranded' | 'transit';
 export type WeaponType = 'pistol' | 'rifle' | 'scattergun';
 export type ItemKind = 'weapon' | 'med' | 'shield' | 'cell' | 'access' | 'ammo';
 /** L2 reserve rounds (14 "Reloading"); a weapon draws from exactly one family. */
@@ -282,6 +282,17 @@ export interface MatchContent {
    * it needs in mind goes there too, and the others explore away from fresh cues. Unset, bots ignore cues.
    */
   hearingResponse?: 'temperament' | undefined;
+  /**
+   * Transit routes (#692, 12 "Transit route selection"). `selectable`: a gladiator ready to transit may name
+   * any other station ahead of the wall with the `transit` input. Unset, only interact transits, to the next
+   * station ahead.
+   */
+  transit?: 'selectable' | undefined;
+  /**
+   * How long any transit takes, in ticks: `base + perUnit` × the distance travelled, rounded. Zero is instant;
+   * above zero the gladiator is out of the world (`status: 'transit'`) until it lands. Unset, instant.
+   */
+  transitTime?: { base: Tick; perUnit: number } | undefined;
 }
 
 /**
@@ -542,6 +553,8 @@ export interface PlayerInput {
   /** L2 one-shot commands; present only when sent, so older inputs and snapshots keep their shape. */
   reload?: true | undefined;
   dropAmmo?: { family: AmmoFamily; count: number } | undefined;
+  /** A transit destination, by station id (#692); one-shot, present only when sent. */
+  transit?: StationId | undefined;
   /** Monotonic client sequence number; the server rejects anything not newer than the last. */
   seq?: number | undefined;
 }
@@ -594,6 +607,8 @@ export interface Player extends Vec2 {
   /** The charger being used, or null when not charging. */
   charging?: ChargerId | null | undefined;
   respawnAt?: Tick | null | undefined;
+  /** Where a gladiator in transit lands, and on which tick (#692); present only while `status` is `transit`. */
+  transit?: { to: StationId; arriveAt: Tick } | undefined;
   /** The tick the last client packet was accepted on, used to expire stale input. */
   inputTick?: Tick | undefined;
   /** World distance covered this tick; motion mines read it. */
