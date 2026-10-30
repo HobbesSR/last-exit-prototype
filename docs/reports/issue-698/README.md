@@ -13,6 +13,11 @@ The legacy builder is read from that base and its source hash is pinned. Only it
 rewritten into a gitignored temporary module so they resolve at their original
 locations; those dependency modules have unchanged behavior here.
 
+The capture pins raw source bytes. For comparisons across checkout line endings,
+`artifact-verification.json` also supplies `lfSourceHashes`: UTF-8 source with
+CRLF normalized to LF before SHA-256. This supplement was computed only after
+all original raw source digests matched; it does not replace historical pins.
+
 For width 12, 24 and 36, `size-W-after.json.gz` is a complete wire-8 map with
 the actual production results at `types-56`. `size-W-report.json.gz` retains
 all changed owner geometry, admission counts, independent thorough owner proof,
@@ -64,3 +69,8 @@ The cached wider-family replay is retained separately as `park-replay.json`.
 The full content sweep, changed-map diagnostics, final capture provenance and
 verification results are recorded in 42.25/42.4 and the issue/PR handoff. No
 historical #688/#694 capture or gameplay fixture is replaced by this report.
+
+`verification.json` records the completed gates, intentional pre-capture failures,
+unchanged sweep cases, final zero-drift comparison, fixture check and retained
+artifact hashes. `artifact-verification.json` also binds the normalized source
+digests to all 300 corresponding blobs at implementation commit `d81e222`.

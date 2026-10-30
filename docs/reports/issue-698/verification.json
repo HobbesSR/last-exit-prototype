@@ -1,0 +1,164 @@
+{
+  "contentCommit": "d81e2226953a7ea5dbfe239d2fbd6c6e21553461",
+  "baselineProvenance": {
+    "commit": "d81e2226953a7ea5dbfe239d2fbd6c6e21553461",
+    "capturedAt": "2026-10-30T20:12:20.856Z",
+    "node": "v24.15.0",
+    "cases": [
+      {
+        "id": "game",
+        "params": {},
+        "seedPrefix": "sweep",
+        "count": 120
+      },
+      {
+        "id": "game-crowded",
+        "params": {
+          "exitCount": 3,
+          "contestantCount": 24,
+          "hunterCount": 6
+        },
+        "seedPrefix": "sweep",
+        "count": 20
+      },
+      {
+        "id": "game-sparse",
+        "params": {
+          "exitCount": 1,
+          "contestantCount": 2,
+          "hunterCount": 1
+        },
+        "seedPrefix": "sweep",
+        "count": 20
+      },
+      {
+        "id": "playground",
+        "params": {
+          "mode": "playground"
+        },
+        "seedPrefix": "sweep",
+        "count": 20
+      },
+      {
+        "id": "playground-4x2",
+        "params": {
+          "mode": "playground",
+          "zoneWidth": 4,
+          "zoneHeight": 2
+        },
+        "seedPrefix": "sweep",
+        "count": 20
+      },
+      {
+        "id": "playground-6x3",
+        "params": {
+          "mode": "playground",
+          "zoneWidth": 6,
+          "zoneHeight": 3
+        },
+        "seedPrefix": "sweep",
+        "count": 20
+      },
+      {
+        "id": "playground-2x1",
+        "params": {
+          "mode": "playground",
+          "zoneWidth": 2,
+          "zoneHeight": 1
+        },
+        "seedPrefix": "quick",
+        "count": 3
+      },
+      {
+        "id": "game",
+        "params": {},
+        "seedPrefix": "quick",
+        "count": 1
+      }
+    ]
+  },
+  "sameSweepCases": true,
+  "generationErrors": 0,
+  "finalFast": {
+    "command": "npm test",
+    "tests": 1337,
+    "passed": 1337,
+    "failed": 0,
+    "ms": 176860.0906
+  },
+  "beforeCaptureFast": {
+    "passed": 1323,
+    "expectedBaselineAndReplayCascadeFailures": 13,
+    "explanation": "Intentional types-56 content/version change against the types-55 baseline; all resolved by final expectation capture."
+  },
+  "micro": {
+    "command": "npm run test:micro",
+    "tests": 540,
+    "passed": 540,
+    "ms": 242373.7729,
+    "browserChecksPassed": true,
+    "note": "Final fast gate also includes the added route-budget refusal case, independently timed after addition."
+  },
+  "staticAndTypes": "npm run check and npm run typecheck passed; final syntax check repeated after test-only additions.",
+  "selectedSlow": {
+    "command": "node --test --test-concurrency=1 tests/slow/map-library.test.js tests/slow/map-library-24.test.js tests/slow/map-library-36.test.js tests/slow/map-library-36-tail.test.js",
+    "tests": 5,
+    "passed": 5,
+    "ms": 334344.8386,
+    "unchangedLargerFileMs": [
+      72673.9731,
+      75303.9867,
+      106169.1166
+    ]
+  },
+  "isolatedEditedFastBudgets": {
+    "runner": "node tests/timing.mjs --strict",
+    "seconds": {
+      "micro-placeables": 0.3,
+      "micro-park-pocket": 2.9,
+      "micro-park": 8.1,
+      "micro-rubble": 0.4
+    },
+    "allUnder15Seconds": true
+  },
+  "changedMapDiagnostics": {
+    "maps": 22,
+    "regions": 6363,
+    "allValid": true,
+    "secondsRounded": 222.5
+  },
+  "postCapture": {
+    "checked": 224,
+    "seconds": 112,
+    "drift": []
+  },
+  "frozenFixture": {
+    "file": "tests/fixtures/behavior-nav-1.json.gz",
+    "unchangedFromBase": true,
+    "sha256": "708222c5e226019b2d601e4574f2d83c3832ed1b0cb09827bc5e9866e83ed7c8"
+  },
+  "notRunLocally": [
+    "Full test:all / entire slow tier",
+    "Full macro suite (no macro changes; Forgejo CI includes it)",
+    "Full browser suite (micro browsers and 24-panel report QA ran)"
+  ],
+  "retainedArtifactsSha256": {
+    "artifact-verification.json": "da9bf768fa3accef4bd0d85549ada711bb424bad71c9e363e17c2019d167f1f6",
+    "changed-map-diagnostics.json": "5a9da56a93bd5a98a9513a2580822317763d3459b56be60750f67ef926321672",
+    "full-drift.json": "a5d434ab91e66e9b762c4fb1c1c9937dea6d52c2205e126ae88daafab92a03f1",
+    "index.html": "067c752afa34a27ce9ebc1733c9f63ff505d402dd071c8e590ec0011376a349e",
+    "initial-runtime-observations.json": "010b0bbefc782835c1879666bb85bc9c159dc5932ad20f1e615fe88f5e811266",
+    "manifest.json": "b4efe826c43bffbc1fefcdb8b358f5a6420cce3ddd625fd724d45bce448542ff",
+    "park-replay.json": "c3a1ab04a77fc1b628bc3e365b316fcbcd831d91ebebe37ea9ddaa5d1aaf6403",
+    "post-capture.json": "6e62dd57489223cb4105d781afa9d4f882441c3d8ee366eeb5116d94272e2307",
+    "preview-qa.json": "64c508e3879cd62c63fe1ee09ed5daf4b50c0331cca23ac255bbe4fc02db9180",
+    "size-12-after.json.gz": "5877ffa6dfd9c96a8205cd03ae35f10695da9ad995460d04b51ad9f24b28333c",
+    "size-12-report.json.gz": "90c6a1c35538850ff5f9fe23fd1fd549ee1e6f36cba12efc04a4b24614008e4d",
+    "size-24-after.json.gz": "01b7a8ac9da248d7683304f50967be7eacb99fba74b96ad0affb4a9471ccbc91",
+    "size-24-report.json.gz": "4f8ae1aaf716f109189dfae3db7badb727243d5fbaee9e4b2ddecb9c6c2b5b77",
+    "size-36-after.json.gz": "2ce3c7bf6b274124ed0e6882ff44510a4ae137733d4219cccc506c015a911d73",
+    "size-36-report.json.gz": "90c34637aef27a23c5382b77a39c4632991dbc95b08bfafe3c511744b6f557d1",
+    "summary.json": "9ca507272da08fb28bc32a34ffbac3970c13882666a971b4e5945378db4dbc83",
+    "timing.json": "5a897a309da7e9a7755d9efdf6aede3d1263991de5e03826246e54adf795206c"
+  }
+}
