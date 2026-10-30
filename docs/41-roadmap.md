@@ -111,6 +111,14 @@ measurement tool and [three-size baseline](42.23-navigation-structure.md).
 No main lever is selected by that baseline; use matched before/after reports
 to assess a subsequent named mechanics experiment.
 
+The bounded connected static-barrier experiment (#694,
+[42.24](42.24-static-barrier.md)) retains one opt-in pocket/detour witness and
+exposes post-siting loot collisions. It does not promote production geometry or
+general #649 growth. Its next missing integration capability is static
+composition before target siting with target access protected; macro boundary
+control remains a separate candidate for map-scale progression. Reassess these
+candidates under 32 rather than treating the experiment as automatic adoption.
+
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
 | Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
