@@ -4,7 +4,7 @@ import { count } from './profiler.ts';
 import { finite } from './numbers.ts';
 import { shapeOf, bounds, nearBounds, edgesOf, body, separate, segmentShapeDistance, rect } from './shape.ts';
 import type { Bounded, Edge, Shape } from './shape.ts';
-import type { Box, CollisionMap, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
+import type { Box, CollisionMap, Gate, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
 import { atan2, cos, hypot, sin } from './math.ts';
 
 // Geometry is described once in `shape.ts` and consumed here. This module owns what the simulation
@@ -33,6 +33,8 @@ interface Geometry {
   /** Obstacle colliders indexed by `BUCKET`-sized cell, keyed `"<col>,<row>"`. */
   buckets: Map<string, Collider[]>;
   segments: Edge[];
+  /** `segments` indexed like `buckets`, each under every cell its bounds touch. */
+  sight: Map<string, Edge[]>;
 }
 /** A visibility polygon vertex, which keeps the ray angle that produced it. */
 export interface VisibilityPoint extends Vec2 {
@@ -62,8 +64,45 @@ function geometry(map: CollisionMap): Geometry {
       const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key)!.push(entry);
     }
   }
-  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)) };
+  const segments = shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)), sight = new Map<string, Edge[]>();
+  for (const edge of segments) bucketBox(sight, edgeBox(edge), edge);
+  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments, sight };
   shapeCache.set(map, cached); return cached;
+}
+const edgeBox = (edge: Edge): Box => {
+  const x = Math.min(edge.a.x, edge.b.x), y = Math.min(edge.a.y, edge.b.y);
+  return { x, y, w: Math.max(edge.a.x, edge.b.x) - x, h: Math.max(edge.a.y, edge.b.y) - y };
+};
+function bucketBox<T>(buckets: Map<string, T[]>, box: Box, entry: T): void {
+  for (let x = Math.floor(box.x / BUCKET); x <= Math.floor((box.x + box.w) / BUCKET); x++) for (let y = Math.floor(box.y / BUCKET); y <= Math.floor((box.y + box.h) / BUCKET); y++) {
+    const key = `${x},${y}`, list = buckets.get(key);
+    if (list) list.push(entry); else buckets.set(key, [entry]);
+  }
+}
+// Gates indexed by their boxes, which never move; whether one is open is read when it is met.
+const gateCache = new WeakMap<Gate[], { count: number; buckets: Map<string, Gate[]> }>();
+function gateBuckets(map: CollisionMap): Map<string, Gate[]> {
+  let cached = gateCache.get(map.gates);
+  if (cached?.count !== map.gates.length) {
+    const buckets = new Map<string, Gate[]>();
+    for (const g of map.gates) bucketBox(buckets, gateShape(g), g);
+    gateCache.set(map.gates, cached = { count: map.gates.length, buckets });
+  }
+  return cached.buckets;
+}
+/**
+ * Visit, until `visit` returns true, what the buckets hold in every cell within SIGHT_PAD of segment `ab`.
+ * A segment meets an edge at a point inside both, so the edge is listed in a visited cell; the pad covers
+ * rounding at cell borders. An entry listed in several cells may be visited more than once.
+ */
+const SIGHT_PAD = 1;
+function someAlong<T>(buckets: Map<string, T[]>, a: Vec2, b: Vec2, visit: (entry: T) => boolean): boolean {
+  let found = false;
+  cellsAlong(a, b, SIGHT_PAD, BUCKET, (col, row) => {
+    if (found) return;
+    for (const entry of buckets.get(`${col},${row}`) ?? []) if (visit(entry)) { found = true; return; }
+  });
+  return found;
 }
 function nearbyShapes(map: CollisionMap, x: World, y: World, radius: World): Set<Collider> {
   const found = new Set<Collider>(), { buckets } = geometry(map);
@@ -284,12 +323,20 @@ export function lineClear(map: CollisionMap, a: Vec2, b: Vec2, ignoreGateId: Gat
   const length = hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
-  const edges = sightEdges(map);
-  count('work.rayEdgeTests', edges.length);
-  return !edges.some(edge => edge.gateId !== ignoreGateId
-    && Math.max(edge.a.x, edge.b.x) >= Math.min(a.x, b.x) && Math.min(edge.a.x, edge.b.x) <= Math.max(a.x, b.x)
-    && Math.max(edge.a.y, edge.b.y) >= Math.min(a.y, b.y) && Math.min(edge.a.y, edge.b.y) <= Math.max(a.y, b.y)
+  const left = Math.min(a.x, b.x), right = Math.max(a.x, b.x), top = Math.min(a.y, b.y), bottom = Math.max(a.y, b.y);
+  let tests = 0;
+  const blocks = (edge: Edge) => (tests++, Math.max(edge.a.x, edge.b.x) >= left && Math.min(edge.a.x, edge.b.x) <= right
+    && Math.max(edge.a.y, edge.b.y) >= top && Math.min(edge.a.y, edge.b.y) <= bottom
     && hitRay(a, dx, dy, edge) < length - 0.1);
+  // Only edges near the segment, found through the buckets: the answer is whether any edge blocks, so it
+  // is the same as testing every edge (`sightEdges`), whatever order they are met in.
+  const blocked = someAlong(geometry(map).sight, a, b, blocks) || someAlong(gateBuckets(map), a, b, g => {
+    if (g.open || g.id === ignoreGateId) return false;
+    const box = gateShape(g);
+    return box.x + box.w >= left && box.x <= right && box.y + box.h >= top && box.y <= bottom && edgesOf(shapeOf(box)).some(blocks);
+  });
+  count('work.rayEdgeTests', tests);
+  return !blocked;
 }
 // Hands and dropped equipment cannot pass through a window or pipe even though sight and shots can.
 export function reachClear(map: CollisionMap, a: Vec2, b: Vec2): boolean {
@@ -297,7 +344,7 @@ export function reachClear(map: CollisionMap, a: Vec2, b: Vec2): boolean {
   const length = hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
-  return !geometry(map).shapes.some(o => seeThrough(o.kind) && edgesOf(o.shape).some(edge => hitRay(a, dx, dy, edge) < length));
+  return !someAlong(geometry(map).buckets, a, b, o => seeThrough(o.kind) && edgesOf(o.shape).some(edge => hitRay(a, dx, dy, edge) < length));
 }
 export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World = VISION): VisibilityPoint[] {
   count('calls.visibilityPolygon');

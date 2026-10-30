@@ -1,7 +1,7 @@
 // Guards the wedge-culled visibility polygon against a brute-force implementation of the same rays.
 // The optimisation must be exact: every vertex identical, not merely close.
 import { generateMap } from '../shared/map.ts';
-import { visibilityPolygon, litPoint, lineClear, canOccupy, VISION } from '../shared/movement.ts';
+import { visibilityPolygon, litPoint, lineClear, reachClear, canOccupy, VISION } from '../shared/movement.ts';
 import { outline, shapeOf } from '../shared/shape.ts';
 // Exact agreement needs the same trig as shared/; Math.* differs from it in the last bit on ARM (#566).
 import { atan2, cos, sin } from '../shared/math.ts';
@@ -93,4 +93,44 @@ test('an eye buried in geometry lights nothing', () => {
   const poly = visibilityPolygon(map, inside);
   assert.equal(litPoint(poly, inside, inside.x + 200, inside.y), false);
   assert.equal(litPoint(poly, inside, inside.x, inside.y + 200), false);
+});
+
+// lineClear and reachClear look edges up by bucket (#639); every edge of the map must still give the same answer.
+test('bucketed sight and reach checks match testing every edge', () => {
+  const seeThrough = o => o.kind === 'window' || o.kind === 'pipe' || o.kind === 'hedge';
+  const crosses = (a, b, L, e) => {
+    const dx = (b.x - a.x) / L, dy = (b.y - a.y) / L;
+    return Math.max(e.a.x, e.b.x) >= Math.min(a.x, b.x) && Math.min(e.a.x, e.b.x) <= Math.max(a.x, b.x)
+      && Math.max(e.a.y, e.b.y) >= Math.min(a.y, b.y) && Math.min(e.a.y, e.b.y) <= Math.max(a.y, b.y) && hitRay(a, dx, dy, e) < L - 0.1;
+  };
+  let compared = 0, blocked = 0;
+  for (const seed of [4217, 11, 777]) {
+    const map = generateMap(seed), solid = map.obstacles.filter(o => !seeThrough(o)).flatMap(edgesOf);
+    const clear = map.obstacles.filter(seeThrough).flatMap(edgesOf);
+    let state = seed;
+    const random = () => (state = (state * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const vertices = solid.flatMap(e => [e.a, e.b]);
+    // Endpoints on obstacle corners and on bucket borders (200) as well as anywhere.
+    const point = () => { const r = random();
+      if (r < 0.3) return vertices[Math.floor(random() * vertices.length)];
+      if (r < 0.5) return { x: Math.round(random() * map.width / 200) * 200, y: random() * map.height };
+      return { x: random() * map.width, y: random() * map.height }; };
+    for (let round = 0; round < 4; round++) {
+      for (const g of map.gates) g.open = random() < 0.5;
+      const gates = map.gates.filter(g => !g.open).map(g => ({ id: g.id, edges: edgesOf(gateShape(g)) }));
+      for (let i = 0; i < 1500; i++) {
+        const a = point(), angle = random() * 2 * Math.PI, length = random() < 0.2 ? random() * 5 : random() * 700;
+        const b = random() < 0.3 ? point() : { x: a.x + Math.cos(angle) * length, y: a.y + Math.sin(angle) * length };
+        const ignore = random() < 0.2 && map.gates.length ? map.gates[Math.floor(random() * map.gates.length)].id : null;
+        const L = Math.hypot(b.x - a.x, b.y - a.y);
+        const sight = L < 0.01 || !solid.some(e => crosses(a, b, L, e)) && !gates.some(g => g.id !== ignore && g.edges.some(e => crosses(a, b, L, e)));
+        const reach = (L < 0.01 || !solid.some(e => crosses(a, b, L, e)) && !gates.some(g => g.edges.some(e => crosses(a, b, L, e))))
+          && (L < 0.01 || !clear.some(e => hitRay(a, (b.x - a.x) / L, (b.y - a.y) / L, e) < L));
+        assert.equal(lineClear(map, a, b, ignore), sight, `sight ${JSON.stringify([a, b, ignore])} seed ${seed}`);
+        assert.equal(reachClear(map, a, b), reach, `reach ${JSON.stringify([a, b])} seed ${seed}`);
+        compared++; if (!sight) blocked++;
+      }
+    }
+  }
+  assert.ok(blocked > compared / 10 && blocked < compared * 0.9, `a mix of blocked and clear segments (${blocked} of ${compared})`);
 });

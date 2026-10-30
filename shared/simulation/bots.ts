@@ -211,9 +211,17 @@ function plannerOf(map: CollisionMap, role: Role) {
   return planner;
 }
 
+const gateIndex = new WeakMap<Gate[], { count: number; byId: Map<GateId, Gate> }>();
+/** The map's gates by id. Gates are only ever added, so the list's identity and length key it; each is read as it stands. */
+function gatesById(map: CollisionMap): Map<GateId, Gate> {
+  let index = gateIndex.get(map.gates);
+  if (index?.count !== map.gates.length) gateIndex.set(map.gates, index = { count: map.gates.length, byId: new Map(map.gates.map(g => [g.id, g])) });
+  return index.byId;
+}
+
 /** The whole map as it stands: what a gladiator plans with. */
 function fullKnowledge(s: Game, keys: number): Knowledge {
-  const gates = new Map(s.map.gates.map(g => [g.id, g]));
+  const gates = gatesById(s.map);
   return { known: () => true, door: (id: GateId) => { const g = gates.get(id); return g && { open: g.open, locked: !!g.locked }; }, keys, revision: 0 };
 }
 
@@ -222,7 +230,16 @@ function fullKnowledge(s: Game, keys: number): Knowledge {
  * stand; it does not watch them, since a door only ever stops being locked, which no route through
  * other doors needs to hear about.
  */
-const doorsSeen = (p: Player): string => [...p.discovery?.gates ?? []].map(([id, g]) => `${id}:${+g.open}${+g.locked}`).join();
+function doorsSeen(p: Player): string {
+  const gates = p.discovery?.gates, revision = p.discovery?.revision ?? 0, size = gates?.size ?? 0;
+  const kept = seenDoors.get(p);
+  if (kept && kept.gates === gates && kept.revision === revision && kept.size === size) return kept.value;
+  const value = [...gates ?? []].map(([id, g]) => `${id}:${+g.open}${+g.locked}`).join();
+  seenDoors.set(p, { gates, revision, size, value });
+  return value;
+}
+/** `doorsSeen` as last written, kept while the memory's revision says no door observation can have changed. */
+const seenDoors = new WeakMap<Player, { gates: DiscoveryMemory['gates']; revision: number; size: number; value: string }>();
 
 /** Cells along a route whose tiles the knowledge does not hold. */
 function unknownAlong(planner: ReturnType<typeof createKnowledgePlanner>, knowledge: Knowledge, map: CollisionMap, points: readonly Vec2[]): number[] {
@@ -340,7 +357,7 @@ function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant
  */
 function repairNear(s: Game, p: Player, plan: Plan, planner: ReturnType<typeof createKnowledgePlanner>, knowledge: Knowledge): boolean | null {
   const seen = doorsSeen(p), before = new Map(plan.doors.split(',').map(d => [d.slice(0, d.lastIndexOf(':')), d]));
-  const gates = new Map(s.map.gates.map(g => [g.id, g]));
+  const gates = gatesById(s.map);
   // A door seen unlocked or open after being seen locked may shorten the route anywhere, not only here.
   const changes: Vec2[] = [];
   let opened = false;
