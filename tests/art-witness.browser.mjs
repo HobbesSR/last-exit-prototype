@@ -212,7 +212,7 @@ function createWitnessScene() {
     { id: 'item-ammo', kind: 'ammo', x: 410, y: 525 },
     { id: 'item-cell', kind: 'cell', x: 460, y: 525, charge: 1 },
     { id: 'item-shield', kind: 'shield', x: 510, y: 525 },
-    { id: 'item-hidden', kind: 'med', x: 1070, y: 140 },
+    { id: 'item-hidden', kind: 'med', x: 1090, y: 175 },
   ];
 
   // Traps: `mine`, `spider` (with web ring), `turret`, `flame` (warning), `flame` (firing), plus hidden trap behind wall:
@@ -222,7 +222,7 @@ function createWitnessScene() {
     { id: 'trap-turret', kind: 'turret', x: 705, y: 525, heading: -0.5 },
     { id: 'trap-flame-warn', kind: 'flame', x: 770, y: 525, heading: -Math.PI / 2, warning: true, firing: false },
     { id: 'trap-flame-fire', kind: 'flame', x: 1040, y: 500, heading: -Math.PI / 2, warning: false, firing: true },
-    { id: 'trap-hidden', kind: 'mine', x: 1095, y: 140, heading: 0 },
+    { id: 'trap-hidden', kind: 'mine', x: 1110, y: 175, heading: 0 },
   ];
 
   // Projectiles & effects (`shock`, `scan`, `smoke`):
@@ -378,7 +378,7 @@ function createWitnessScene() {
     street: { x: 205, y: 400 },
     streetLine: { x: 205, y: 450 },
     floor: { x: 215, y: 660 },
-    shadedGround: { x: 1140, y: 120 },
+    shadedGround: { x: 1120, y: 175 },
   };
 
   return { map, state, sampleProbes, surfaceRefs };
@@ -455,6 +455,8 @@ try {
     const f = window.witness, s = f.scene;
     s.scene.pause();
 
+    const realNow = performance.now.bind(performance);
+    let fakeClock = realNow();
     f.settle = async ({ palette, directed, fog, followId, camera, selfPos, frameAlpha = 0, now = fixedNow, roofSteps = 30 } = {}) => {
       if (palette && palette !== f.palette) {
         f.palette = palette;
@@ -472,26 +474,24 @@ try {
         if (body) { body.x = selfPos.x; body.y = selfPos.y; body.generation++; }
       }
       s.cutTo();
-      // Step enough frames to settle insideBlend, roof alpha fades, and all visible tile RenderTextures.
-      // Note: `noteFrame()` uses real `performance.now()` delta when called rapidly, so set `insideBlend`
-      // and roof alphas to their steady-state targets when `roofSteps > 10`.
-      for (let i = 0; i < roofSteps; i++) {
-        s.update(now, 50);
-        if (roofSteps > 10) {
-          const inside = !f.directed && s.eye && f.map.buildings?.some(b => !s.coveredBuildingIds.has(b.id) && s.eye.x > b.x && s.eye.x < b.x + b.w && s.eye.y > b.y && s.eye.y < b.y + b.h);
-          s.insideBlend = inside ? 1 : 0;
-          for (const [id, r] of s.roofs) {
-            const b = f.map.buildings?.find(x => x.id === id);
-            const isInside = b && s.eye && s.eye.x > b.x && s.eye.x < b.x + b.w && s.eye.y > b.y && s.eye.y < b.y + b.h;
-            r.alpha = (!f.fog && f.directed) || isInside ? 0 : 1;
-          }
+      // Step a monotonic deterministic clock so `noteFrame()` advances `insideBlend` and roof fades
+      // through the real renderer (`arena-scene.js`) without overriding `insideBlend` or `roof.alpha`.
+      fakeClock = Math.max(fakeClock, realNow());
+      performance.now = () => fakeClock;
+      try {
+        for (let i = 0; i < roofSteps; i++) {
+          fakeClock += 50;
+          s.update(now, 50);
         }
-      }
-      for (let guard = 0; guard < 40; guard++) {
-        s.update(now, 50);
-        const tilesDone = [...s.tiles.values()].every(t => t.empty || t.resolution > 0);
-        const overheadDone = [...s.overheadTiles.values()].every(t => !s.overheadGroups.get(t.group)?.visible || t.empty || t.resolution > 0);
-        if (tilesDone && overheadDone) break;
+        for (let guard = 0; guard < 40; guard++) {
+          fakeClock += 16;
+          s.update(now, 16);
+          const tilesDone = [...s.tiles.values()].every(t => t.empty || t.resolution > 0);
+          const overheadDone = [...s.overheadTiles.values()].every(t => !s.overheadGroups.get(t.group)?.visible || t.empty || t.resolution > 0);
+          if (tilesDone && overheadDone) break;
+        }
+      } finally {
+        performance.now = realNow;
       }
       // Wait one animation frame so Phaser's WebGL pipeline flushes the scene to the drawingBuffer.
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -572,11 +572,30 @@ try {
       } else {
         // Also verify privacy in the fogged frame:
         // - `occluded-actor` (behind `occluder-wall`), `cloaked-actor`, and `indoor-actor` (under `shop-room` roof) must be hidden.
+        // - `item-hidden` (x=1070, y=140) and `trap-hidden` (x=1095, y=140) behind `occluder-wall` must not be drawn.
         // - `self`, `ally`, `warden`, `specter`, `striker` (in open sight) must be visible.
         // - `shadedGround` (behind `occluder-wall`) is dimmed by `shade` relative to lit `ground`.
-        const fogCheck = await page.evaluate(({ surfaceRefs }) => {
+        const fogCheck = await page.evaluate(({ surfaceRefs, fixedNow }) => {
           const f = window.witness, s = f.scene;
           const vis = id => s.actors.get(id)?.container.visible ?? false;
+          const hiddenItem = f.state.items.find(i => i.id === 'item-hidden');
+          const hiddenTrap = f.state.traps.find(t => t.id === 'trap-hidden');
+          const litItem = f.state.items.find(i => i.id === 'item-med');
+          const litTrap = f.state.traps.find(t => t.id === 'trap-mine');
+          // Read WebGL pixels from the already-rendered fogged frame BEFORE calling `s.update()` inside apaused scene.
+          const hiddenItemPixelHex = f.pixelAtWorld(hiddenItem.x, hiddenItem.y).hex;
+          const hiddenTrapPixelHex = f.pixelAtWorld(hiddenTrap.x, hiddenTrap.y).hex;
+          const litGroundHex = f.pixelAtWorld(surfaceRefs.ground.x, surfaceRefs.ground.y).hex;
+          const shadedGroundHex = f.pixelAtWorld(surfaceRefs.shadedGround.x, surfaceRefs.shadedGround.y).hex;
+          const dynamicCalls = [];
+          const orig = {};
+          for (const m of ['fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'fillCircle', 'strokeCircle', 'fillEllipse']) {
+            orig[m] = s.dynamic[m].bind(s.dynamic);
+            s.dynamic[m] = (...args) => { dynamicCalls.push([m, args]); return orig[m](...args); };
+          }
+          s.update(fixedNow, 16);
+          for (const [m, fn] of Object.entries(orig)) s.dynamic[m] = fn;
+          const nearCoord = (args, x, y) => Math.abs(args[0] - x) <= 16 && Math.abs(args[1] - y) <= 16;
           return {
             selfVisible: vis('self'),
             allyVisible: vis('ally'),
@@ -586,10 +605,16 @@ try {
             cloakedVisible: vis('cloaked-actor'),
             occludedVisible: vis('occluded-actor'),
             indoorVisible: vis('indoor-actor'),
-            litGroundHex: f.pixelAtWorld(surfaceRefs.ground.x, surfaceRefs.ground.y).hex,
-            shadedGroundHex: f.pixelAtWorld(surfaceRefs.shadedGround.x, surfaceRefs.shadedGround.y).hex,
+            litItemDrawn: dynamicCalls.some(([, a]) => nearCoord(a, litItem.x, litItem.y)),
+            litTrapDrawn: dynamicCalls.some(([, a]) => nearCoord(a, litTrap.x, litTrap.y)),
+            hiddenItemDrawn: dynamicCalls.some(([, a]) => nearCoord(a, hiddenItem.x, hiddenItem.y)),
+            hiddenTrapDrawn: dynamicCalls.some(([, a]) => nearCoord(a, hiddenTrap.x, hiddenTrap.y)),
+            hiddenItemPixelHex,
+            hiddenTrapPixelHex,
+            litGroundHex,
+            shadedGroundHex,
           };
-        }, { surfaceRefs: witnessData.surfaceRefs });
+        }, { surfaceRefs: witnessData.surfaceRefs, fixedNow: FIXED_NOW });
 
         assert.equal(fogCheck.selfVisible, true, `${themeId}: self visible in fog`);
         assert.equal(fogCheck.allyVisible, true, `${themeId}: lit ally visible in fog`);
@@ -599,6 +624,12 @@ try {
         assert.equal(fogCheck.cloakedVisible, false, `${themeId}: unrevealed cloaked actor hidden in fog`);
         assert.equal(fogCheck.occludedVisible, false, `${themeId}: wall-occluded actor hidden in fog`);
         assert.equal(fogCheck.indoorVisible, false, `${themeId}: roof-concealed actor hidden in fog`);
+        assert.equal(fogCheck.litItemDrawn, true, `${themeId}: lit item drawn in fog`);
+        assert.equal(fogCheck.litTrapDrawn, true, `${themeId}: lit trap drawn in fog`);
+        assert.equal(fogCheck.hiddenItemDrawn, false, `${themeId}: wall-occluded item withheld from dynamic draw calls in fog`);
+        assert.equal(fogCheck.hiddenTrapDrawn, false, `${themeId}: wall-occluded trap withheld from dynamic draw calls in fog`);
+        assert.equal(fogCheck.hiddenItemPixelHex, fogCheck.shadedGroundHex, `${themeId}: withheld item position renders bare shaded ground`);
+        assert.equal(fogCheck.hiddenTrapPixelHex, fogCheck.shadedGroundHex, `${themeId}: withheld trap position renders bare shaded ground`);
         assert.notEqual(fogCheck.litGroundHex, fogCheck.shadedGroundHex, `${themeId}: out-of-sight ground is shaded`);
 
         // Now move `self` behind `occluder-wall` at (1050, 120) while keeping the camera on (620, 450)
@@ -625,6 +656,13 @@ try {
           }
           return { surfaces, probes };
         }, { surfaceRefs: witnessData.surfaceRefs, sampleProbes: witnessData.sampleProbes, playZoom: PLAY_ZOOM });
+        for (const surf of ['ground', 'street', 'floor']) {
+          assert.notEqual(
+            shadedSample.surfaces[surf],
+            themeMeasurements[themeId].lit.surfaces[surf],
+            `${themeId}: shaded ${surf} surface ref differs from lit ${surf}`,
+          );
+        }
         themeMeasurements[themeId].shaded = shadedSample;
       }
     }
@@ -672,7 +710,7 @@ try {
         fog: true,
         followId: 'self',
         selfPos: { x: 880, y: 665 },
-        roofSteps: 50,
+        roofSteps: 40,
       });
       return {
         zoom: s.cameras.main.zoom,
@@ -753,10 +791,14 @@ try {
       } else {
         assert.equal(lodInfo.labelsVisible, true, `${lod.id}: map labels shown at or above LOD_LABEL_ZOOM`);
       }
-      // Check item and gate calls specifically (`item-med` is at x=260, y=525, so base box is x=248):
-      const itemRounded = lodInfo.dynamicCalls.some(([m, a]) => m === 'fillRoundedRect' && a[0] === 248);
-      const itemBaseRect = lodInfo.dynamicCalls.some(([m, a]) => m === 'fillRect' && a[0] === 248 && a[2] === 24);
-      const itemLowRect = lodInfo.dynamicCalls.some(([m, a]) => m === 'fillRect' && a[0] === 252 && a[2] === 16);
+      // Check item and gate calls specifically (`item-med` position derived from `witnessData.state.items[0]`):
+      const sampleItem = witnessData.state.items[0];
+      const ITEM_BASE_SIZE = 24, ITEM_LOW_SIZE = 16;
+      const itemBaseLeft = sampleItem.x - ITEM_BASE_SIZE / 2;
+      const itemLowLeft = sampleItem.x - ITEM_LOW_SIZE / 2;
+      const itemRounded = lodInfo.dynamicCalls.some(([m, a]) => m === 'fillRoundedRect' && a[0] === itemBaseLeft);
+      const itemBaseRect = lodInfo.dynamicCalls.some(([m, a]) => m === 'fillRect' && a[0] === itemBaseLeft && a[2] === ITEM_BASE_SIZE);
+      const itemLowRect = lodInfo.dynamicCalls.some(([m, a]) => m === 'fillRect' && a[0] === itemLowLeft && a[2] === ITEM_LOW_SIZE);
       const itemShadow = lodInfo.dynamicCalls.some(([m]) => m === 'fillEllipse');
       const gateRounded = lodInfo.fixtureCalls.some(([m]) => m === 'strokeRoundedRect' || m === 'fillRoundedRect');
       if (lod.zoom < LOD_LOW_ZOOM) {
@@ -912,16 +954,35 @@ try {
   ].map(c => {
     const lit = lookup(c.theme, 'lit', c.kind, c.surface);
     const shaded = lookup(c.theme, 'shaded', c.kind, c.surface);
+    const protoShaded = lookup('prototype', 'shaded', c.kind, c.surface);
+    const shadedProtoFloor = Number(Math.min(1.5, protoShaded.fillRatio).toFixed(2));
+    const fillBelowProtoFloor = lit.fillRatio < c.protoFloor;
+    const edgeSeparatesAtOrAboveProtoFloor = lit.bestRenderedRatio >= c.protoFloor;
+    const shadedFillBelowFloor = shaded.fillRatio < shadedProtoFloor;
+    const shadedEdgeSeparatesAtOrAboveProtoFloor = shaded.bestRenderedRatio >= c.protoFloor;
+    const shadedEdgeSeparatesAtOrAboveShadedFloor = shaded.bestRenderedRatio >= shadedProtoFloor;
+    const gateStatus = (!edgeSeparatesAtOrAboveProtoFloor || !shadedEdgeSeparatesAtOrAboveProtoFloor)
+      ? 'failed-gate'
+      : (fillBelowProtoFloor || shadedFillBelowFloor)
+        ? 'edge-only-low-fill'
+        : 'pass';
     return {
       ...c,
+      shadedProtoFloor,
       litFillRatio: lit.fillRatio,
       litEdgeRatio: lit.edgeBestRatio,
       litShadowRatio: lit.shadowBestRatio,
       litBestRendered: lit.bestRenderedRatio,
       shadedFillRatio: shaded.fillRatio,
+      shadedEdgeRatio: shaded.edgeBestRatio,
+      shadedShadowRatio: shaded.shadowBestRatio,
       shadedBestRendered: shaded.bestRenderedRatio,
-      fillBelowProtoFloor: lit.fillRatio < c.protoFloor,
-      edgeSeparatesAtOrAboveProtoFloor: lit.bestRenderedRatio >= c.protoFloor,
+      fillBelowProtoFloor,
+      edgeSeparatesAtOrAboveProtoFloor,
+      shadedFillBelowFloor,
+      shadedEdgeSeparatesAtOrAboveProtoFloor,
+      shadedEdgeSeparatesAtOrAboveShadedFloor,
+      gateStatus,
     };
   });
 
@@ -936,11 +997,13 @@ try {
     renderedLineVsStreetContrast: Number(contrast(neonStreetLineRenderedHex, neonStreetHex).toFixed(2)),
     contrastAgainstMinePink: Number(contrast(neonStreetLineRenderedHex, 0xff778c).toFixed(2)),
     contrastAgainstGladiatorRing: Number(contrast(neonStreetLineRenderedHex, 0xff7d8a).toFixed(2)),
-    note: 'Street line is drawn at 2px width and 0.35 alpha over cobalt-concrete street, yielding a muted violet-slate trace rather than full-value #D94BC6.',
+    status: 'observation-for-step-2',
+    note: 'Observation for later steps (#585/#583/#593): street line is drawn at 2px width and 0.35 alpha over cobalt-concrete street, rendering as #846ba5 (1.00 luminance ratio vs street; 1.79 vs #ff778c mine ring; 1.85 vs #ff7d8a gladiator ring). Luminance ratio alone cannot establish hue-based signal separation; visual evaluation against active pink/magenta gameplay signals remains part of the promotion gate.',
   };
 
   // Record all cases where fill-only contrast is below 1.15 (near-equal luminance fill) so later steps (#585/#583/#593) have complete evidence:
   const lowFillCandidates = branchSummary.filter(r => r.fillRatio < 1.15);
+  const openFindings = comment6317Candidates.filter(c => c.gateStatus !== 'pass');
 
   const report = {
     schema: 'art-witness-1',
@@ -957,6 +1020,7 @@ try {
     themes: themeNames,
     captures,
     comment6317Candidates,
+    openFindings,
     broadcastPinkAssessment,
     lowFillCandidates,
     branchSummary,
@@ -977,6 +1041,7 @@ try {
   th, td { border: 1px solid #2b3d4f; padding: 6px 10px; text-align: left; }
   th { background: #182635; }
   .warn { color: #ffba62; font-weight: 600; }
+  .fail { color: #ff778c; font-weight: 700; }
   .ok { color: #55f0b1; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; margin: 16px 0; }
   figure { margin: 0; background: #14202e; border: 1px solid #2b3d4f; border-radius: 6px; padding: 10px; }
@@ -993,9 +1058,9 @@ try {
 <table>
   <thead>
     <tr>
-      <th>Theme</th><th>Branch / Surface</th><th>Proto Floor</th>
-      <th>Lit Fill Ratio</th><th>Lit Edge Ratio</th><th>Lit Shadow Ratio</th><th>Lit Best Rendered</th>
-      <th>Shaded Fill Ratio</th><th>Shaded Best Rendered</th><th>Status</th>
+      <th>Theme</th><th>Branch / Surface</th><th>Lit Floor</th><th>Shaded Floor</th>
+      <th>Lit Fill</th><th>Lit Edge</th><th>Lit Shadow</th><th>Lit Best</th>
+      <th>Shaded Fill</th><th>Shaded Best</th><th>Gate Verdict (41.2)</th>
     </tr>
   </thead>
   <tbody>
@@ -1003,19 +1068,24 @@ try {
       <td><code>${c.theme}</code></td>
       <td><code>${c.kind}</code> on <code>${c.surface}</code></td>
       <td>${c.protoFloor.toFixed(2)}</td>
+      <td>${c.shadedProtoFloor.toFixed(2)}</td>
       <td class="${c.fillBelowProtoFloor ? 'warn' : 'ok'}">${c.litFillRatio.toFixed(2)}</td>
       <td>${c.litEdgeRatio.toFixed(2)}</td>
       <td>${c.litShadowRatio.toFixed(2)}</td>
-      <td class="${c.edgeSeparatesAtOrAboveProtoFloor ? 'ok' : 'warn'}">${c.litBestRendered.toFixed(2)}</td>
-      <td class="${c.shadedFillRatio < 1.15 ? 'warn' : ''}">${c.shadedFillRatio.toFixed(2)}</td>
-      <td>${c.shadedBestRendered.toFixed(2)}</td>
-      <td>${c.fillBelowProtoFloor ? '<span class="warn">Low interior fill; relies on edge/shadow stroke</span>' : '<span class="ok">Meets floor</span>'}</td>
+      <td class="${c.edgeSeparatesAtOrAboveProtoFloor ? 'ok' : 'fail'}">${c.litBestRendered.toFixed(2)}</td>
+      <td class="${c.shadedFillBelowFloor ? 'warn' : 'ok'}">${c.shadedFillRatio.toFixed(2)}</td>
+      <td class="${c.shadedEdgeSeparatesAtOrAboveProtoFloor ? 'ok' : 'fail'}">${c.shadedBestRendered.toFixed(2)}</td>
+      <td>${c.gateStatus === 'failed-gate'
+        ? '<span class="fail">Failed gate: shaded best below proto floor (open finding)</span>'
+        : c.gateStatus === 'edge-only-low-fill'
+          ? '<span class="warn">Open finding: low interior fill (relies on edge/shadow stroke)</span>'
+          : '<span class="ok">Pass</span>'}</td>
     </tr>`).join('\n')}
   </tbody>
 </table>
 
-<h2>Neon Aftermath <code>broadcastPink</code> Street Line Check</h2>
-<p>Raw swatch: <code>${broadcastPinkAssessment.rawSwatch}</code> · Rendered at <code>0.35</code> alpha on street (<code>${broadcastPinkAssessment.streetHex}</code>) → <code>${broadcastPinkAssessment.renderedStreetLineHex}</code> (line vs street contrast <code>${broadcastPinkAssessment.renderedLineVsStreetContrast}</code>; contrast vs mine <code>#ff778c</code>: <code>${broadcastPinkAssessment.contrastAgainstMinePink}</code>; vs gladiator ring <code>#ff7d8a</code>: <code>${broadcastPinkAssessment.contrastAgainstGladiatorRing}</code>).</p>
+<h2>Neon Aftermath <code>broadcastPink</code> Street Line Observation</h2>
+<p>Raw swatch: <code>${broadcastPinkAssessment.rawSwatch}</code> · Rendered at <code>0.35</code> alpha on street (<code>${broadcastPinkAssessment.streetHex}</code>) → <code>${broadcastPinkAssessment.renderedStreetLineHex}</code> (line vs street luminance ratio <code>${broadcastPinkAssessment.renderedLineVsStreetContrast}</code>; luminance ratio vs mine <code>#ff778c</code>: <code>${broadcastPinkAssessment.contrastAgainstMinePink}</code>; vs gladiator ring <code>#ff7d8a</code>: <code>${broadcastPinkAssessment.contrastAgainstGladiatorRing}</code>). ${broadcastPinkAssessment.note}</p>
 
 <h2>Paired Captures</h2>
 <div class="grid">
