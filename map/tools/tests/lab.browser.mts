@@ -380,7 +380,10 @@ try {
   }, adoptionRegion.brief.id, { timeout: 30000 });
   const adoptionDrill = await snapshot();
   assert.equal(adoptionDrill.drill.difference, null, "compound ring and delegated cover rebuild equal to stored output");
-  assert.deepEqual(adoptionDrill.drill.buildings, ["compound", "compound-keep"]);
+  // Eligible compounds may also take one exterior outbuilding (#691, 20.3.4).
+  const { buildings: drillBuildings } = adoptionDrill.drill;
+  assert.deepEqual(drillBuildings.filter((label: string) => label !== "compound-outbuilding"), ["compound", "compound-keep"]);
+  assert.ok(drillBuildings.length - 2 <= 1, "at most one compound outbuilding");
   await page.screenshot({ path: `${OUT}/compound-delegation.png`, fullPage: true });
 
   // The diagnostic on a game map runs in a worker, so the page stays live and can cancel it.
