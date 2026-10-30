@@ -110,7 +110,7 @@ try {
   const compound = await page.evaluate(() => window.microLabDebug());
   assert.deepEqual(compound.promise, [], 'the compound keeps its portal promise');
   assert.ok(compound.buildings.some(b => b.label === 'compound'));
-  assert.ok(compound.buildings.every(b => ['compound', 'compound-keep'].includes(b.label)));
+  assert.ok(compound.buildings.every(b => ['compound', 'compound-keep', 'compound-outbuilding'].includes(b.label)));
   assert.equal(compound.drawn.graph.nodes, compound.buildings.reduce((sum, trace) => sum + trace.design.spaces.length, 0));
   const compoundWarnings = compound.buildings.reduce((sum, trace) => {
     const placed = new Set(trace.realization.openings.map(o => o.connectionId));
@@ -174,7 +174,7 @@ try {
   assert.ok(pilot.result.elements.some(element => element.label.includes('/delegate/')));
   assert.equal(pilot.buildings.length, pilot.result.elements.filter(e => e.template.encloses).length, 'each house has a trace; cover adds none');
   await page.screenshot({ path: 'test-results/micro-lab-hut-delegation.png' });
-  // The compound adopter keeps its traced ring/court and adds exterior cover.
+  // The compound adopter keeps its ring/court, adds a traced outbuilding and exterior cover.
   const compoundCells = Array.from({ length: 40 * 34 }, (_, i) => ({ x: i % 40, y: Math.floor(i / 40) }))
     .filter(cell => cell.y < 20 || cell.x < 20);
   const compoundYard = { id: 'compound-1', seed: 1, type: 'compound', cellSize: 40, cells: compoundCells,
@@ -188,7 +188,7 @@ try {
   assert.equal(compoundPilot.result.manifest.rooms, 15);
   assert.equal(compoundPilot.result.manifest.compoundGates, 2);
   assert.ok(compoundPilot.result.elements.some(element => element.label.includes('/delegate/')), 'exterior cover is built in the browser');
-  assert.deepEqual(compoundPilot.buildings.map(trace => trace.label), ['compound', 'compound-keep']);
+  assert.deepEqual(compoundPilot.buildings.map(trace => trace.label), ['compound', 'compound-keep', 'compound-outbuilding']);
   for (const name of ['Show allocation', 'Show spans', 'Show openings', 'Show design graph'])
     await page.getByLabel(name, { exact: true }).uncheck();
   await page.screenshot({ path: 'test-results/micro-lab-compound-delegation.png', fullPage: true });

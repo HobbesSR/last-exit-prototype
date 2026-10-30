@@ -32,7 +32,7 @@ test('inward authored military-quarter keeps its original interface and builds a
   assert.equal(node.actualBuilder, 'compound');
   assert.equal(node.retained.manifest.rooms, 22);
   assert.equal(node.retained.manifest.compoundGates, 2);
-  assert.deepEqual(traces.map(trace => trace.label), ['compound', 'compound-keep']);
+  assert.deepEqual(traces.map(trace => trace.label), ['compound', 'compound-keep', 'compound-outbuilding']);
   const [trace] = traces;
   assert.equal(trace.label, 'compound');
   assert.deepEqual(trace.realization.issues, []);
@@ -40,8 +40,12 @@ test('inward authored military-quarter keeps its original interface and builds a
 
   const shapes = result.elements.flatMap(element => elementShapes(element));
   const access = createAccessMask(inwardBrief), hunter = hunterClearance(inwardBrief.cellSize);
-  const from = portalStands(inwardBrief)[0].points[0];
-  const route = (to, label) => assert.ok(findRegionRoute(access, shapes, from, to, hunter), `hunter reaches ${label}`);
+  // Portal reach joins the starts; choose the closest to avoid repeated long searches.
+  const starts = portalStands(inwardBrief).flatMap(portal => portal.points);
+  const route = (to, label) => {
+    const from = [...starts].sort((a, b) => Math.hypot(a.x - to.x, a.y - to.y) - Math.hypot(b.x - to.x, b.y - to.y))[0];
+    assert.ok(findRegionRoute(access, shapes, from, to, hunter), `hunter reaches ${label}`);
+  };
   const rooms = node.retained.elements.filter(element => element.label.startsWith('compound-room'));
   assert.equal(rooms.length, 22);
   for (const room of rooms) route({ x: room.x + room.template.w / 2, y: room.y + room.template.h / 2 }, room.label);

@@ -20,10 +20,11 @@ import { executeDelegation, flattenDelegationResult } from '../delegation-execut
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 import { builtRegion } from '../result.ts';
 import { buildCompoundCourt } from './compound-court.ts';
+import { buildCompoundExterior } from './compound-exterior.ts';
 
 /** The catalogue's proposed shape need (54): the compound at least this many cells a side, so its court is at least 4. */
 const MIN_SIDE = 10;
-/** The compound's sides are capped, so an enormous region holds one compound in a wide yard. */
+/** Cap the primary ring, leaving exterior space for an outbuilding and usable yards. */
 const MAX_SIDE = 24;
 /** How deep the ring of rooms is, in cells: a hunter fits inside, between quarter-cell walls. */
 const DEPTH = 3;
@@ -188,7 +189,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
  * A pocket that rewards a contestant who knows its gates and traps one who doesn't. It has no
  * decomposer.
  *
- * One compound stands in a contained rectangle, capped at `MAX_SIDE`, with a connected yard
+ * One primary ring stands in a contained rectangle, capped at `MAX_SIDE`, with a connected yard
  * and accessible gates. Its outer edge is the back wall of a ring of roofed
  * rooms `DEPTH` cells deep, with a square room at each corner. Each side's rooms open
  * onto the court. Each corner room opens only into its neighbour along the north or south
@@ -206,6 +207,9 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
  * Candidate boxes lie in the reduced fill, off every portal's clear margin, and are checked
  * against the hunter's yard blocks.
  * A region with no usable box of `MIN_SIDE` takes terminal empty (20.7).
+ * One optional detached HOUSE occupies a roomy exterior lobe before cover delegation,
+ * retaining a full two-cell bypass and every previously reachable exterior standing block
+ * that remains valid around its body. The primary ring and courtyard stay unchanged.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every wall and door, in the rooms, the court or the yard. A compound sites no core elements;
@@ -234,7 +238,7 @@ export function buildCompoundGeneration(brief: RegionBrief, options: CompoundExe
 }
 
 export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  compound: { version: 'compound-yard-5', build: buildRetainedCompound },
+  compound: { version: 'compound-yard-6', build: buildRetainedCompound },
   cover: COVER_EXECUTION,
 });
 
@@ -256,16 +260,18 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
   if (!createBuilderCanvas(brief).commit({ elements })) throw new Error('Compound placement failed its canvas commit.');
   elements.push(...buildCompoundCourt(brief, site, observe));
-  const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const steps = ring.details.steps.map(step => ({ x: bx + step.x, y: by + step.y }));
-  delegateYard(brief, site, steps, elements, context, observeYard);
+  const exterior = buildCompoundExterior(brief, site, steps, observe);
+  elements.push(...exterior.elements);
+  const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
+  delegateYard(brief, [site, ...exterior.boxes], [...steps, ...exterior.steps], elements, context, observeYard);
   brief = context.brief;
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { rooms, compoundGates: passages.length });
 }
 
 /** Try a capped number of yard boxes, allowing the coordinator to move yard cords. */
-function delegateYard(brief: RegionBrief, site: Box, steps: { x: number; y: number }[], elements: RegionElement[], context: ExecutionContext, observe?: CompoundExecutionOptions['observeYard']): void {
+function delegateYard(brief: RegionBrief, sites: Box[], steps: { x: number; y: number }[], elements: RegionElement[], context: ExecutionContext, observe?: CompoundExecutionOptions['observeYard']): void {
   // Optional compound adoption is bounded separately from the SDK. The measured
   // 170-portal witness exhausted initialization without any child; avoid paying
   // for that known unsupported scale. Authored sample inputs stay below 128.
@@ -276,7 +282,7 @@ function delegateYard(brief: RegionBrief, site: Box, steps: { x: number; y: numb
     return;
   }
   delegateYardCandidates<'no-space' | 'no-site' | 'portal-capacity'>(brief, context, {
-    retainedBoxes: [site], steps: steps.map(({ x, y }) => [x, y]), elements, label: 'compound',
+    retainedBoxes: sites, steps: steps.map(({ x, y }) => [x, y]), elements, label: 'compound',
     offersFor: (reserved, diagnostics) => yardOffers(brief, reserved, diagnostics), observe,
   });
 }

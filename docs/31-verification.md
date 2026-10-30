@@ -107,8 +107,9 @@ and the original seeds run in `tests/slow/` (#543, measured in
 `micro-block-promise` runs the first of four seeds on each mask and
 `slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds and
 `slow/micro-plant-promise` all eight; `micro-compound` runs one of four seeds of its
-portal and roofed-ring checks; `micro-compound-observer` and `micro-compound-observer-shaped` split the same
-one-seed observer witness by mask;
+portal and roofed-ring checks; `micro-compound-observer`,
+`micro-compound-observer-shaped` and `micro-compound-observer-ring` split the
+same one-seed observer witness by mask;
 `slow/micro-compound-sweeps` and `slow/micro-compound-sweeps-tail` split the
 same four seeds into 1-2 and 3-4. Compound cell-order determinism
 keeps a fast seed and all eight original seeds in `slow/micro-compound-determinism`
