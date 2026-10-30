@@ -106,7 +106,10 @@ Tuning stand-in output for density or appearance alone is out of scope; builder
 changes that give other systems mechanics to exercise, such as barriers that
 deflect paths, remain in scope. Proposed levers are connected barriers within
 regions, macro boundary and portal structure, and inward perimeter growth with
-movable cords as candidate SDK support (#649); #688's baseline informs the choice.
+movable cords as candidate SDK support (#649). #688 now supplies the reusable
+measurement tool and [three-size baseline](42.23-navigation-structure.md).
+No main lever is selected by that baseline; use matched before/after reports
+to assess a subsequent named mechanics experiment.
 
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
