@@ -74,8 +74,21 @@ Gladiators' melee, skills and rail are silent, and so is a weapon without a rang
 number and takes no id, so it changes nothing else in a match. The ranges are pistol 8,000, rifle 10,000 and
 scattergun 12,000: deliberately detuned placeholders, far beyond what a tuned game would allow, so gladiators
 hear shots on today's maps (17.3 #26; measured in [42.22](42.22-tick-cost-attribution.md#heard-gunfire)).
-They live in content, one place, so retuning is a content change. Bots do not act on what they hear yet
-(#685).
+They live in content, one place, so retuning is a content change. Under `content-8` bots do not act on
+what they hear.
+
+`content-9` (#685, selectable) is `content-8` with bots acting on what they hear, by temperament
+(`hearingResponse: 'temperament'`, 17.3 #26). A cue fades long before a bot could cross the map to it, so a
+bot remembers where it last heard a shot, its *lead*: the nearest spot in that cell it could stand on. A newer
+shot replaces the lead. The bot drops it on coming within 400 units, after 10 seconds without getting closer,
+when it finds no way there, or after 60 seconds.
+- **Gladiators**, seeing no contestant, go to their lead before falling back on their station.
+- **Opportunistic contestants** (the third that may start fights) go to their lead when they know of nothing
+  they need, instead of exploring.
+- **The other contestants** explore away from gunfire: no frontier cell within 900 units of a shot they can
+  still hear is chosen, and a cell they were heading for is set aside while it is.
+
+Bots read only the cues they heard, never the shooter (15). The distances and times are placeholders.
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
