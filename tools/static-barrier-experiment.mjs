@@ -65,7 +65,6 @@ try {
     // Definitions stay identical to #688. Geometry-dependent pair samples from the
     // new report are descriptive only; all causal route comparisons use pairs above.
     const metrics = timed(`${width}/structure-after`, () => measureNavigationStructure(after));
-    for (const result of [fixedBefore, fixedAfter]) for (const role of result.roles) role.samples.forEach((sample, i) => { sample.stratum = pairs[role.body][i].stratum ?? 'focused'; });
     const roles = metrics.roles.map(role => {
       const old = oldMetrics.roles.find(r => r.body === role.body), b = fixedBefore.roles.find(r => r.body === role.body), a = fixedAfter.roles.find(r => r.body === role.body);
       assert.deepEqual(a.samples.map(p => [p.from,p.to]), b.samples.map(p => [p.from,p.to]), 'matched endpoints');
@@ -91,15 +90,16 @@ try {
 } finally { await release(); }
 
 function panel(record, changed, body) {
-  const { site, validation } = record, s = 48, pad = 4*s;
-  const x = site.element.x-pad, y = site.element.y-pad, w = site.bounds.w+2*pad, h=site.bounds.h+2*pad;
+  const { site, validation } = record;
   const map = readMap(JSON.parse(gunzipSync(readFileSync(`docs/reports/issue-688/size-${record.width}-1.json.gz`))));
   const region = map.results[site.index], origin = builtMapFrame(composeRegions(map.results)).origin;
+  const s = region.brief.cellSize, pad = 4*s;
+  const x = site.element.x-pad, y = site.element.y-pad, w = site.bounds.w+2*pad, h=site.bounds.h+2*pad;
   const shapeSvg = (shape, color) => shape.kind === 'rect' ? `<rect x="${shape.x}" y="${shape.y}" width="${shape.w}" height="${shape.h}" fill="${color}"/>` : shape.kind === 'circle' ? `<circle cx="${shape.x}" cy="${shape.y}" r="${shape.r}" fill="${color}"/>` : `<polygon points="${shape.points.map(p=>`${shape.x+p.x},${shape.y+p.y}`).join(' ')}" fill="${color}"/>`;
   const routes = (changed ? record.fixedAfter : record.fixedBefore).roles.find(r=>r.body===body).samples;
   const points = ps => ps.map(p=>`${p.x-origin.x},${p.y-origin.y}`).join(' ');
   return `<figure><figcaption>${record.width}: ${site.owner}, ${body}, ${changed?'after':'before'}</figcaption><svg viewBox="${x} ${y} ${w} ${h}">
-  ${region.brief.cells.map(c=>`<rect x="${c.x*s}" y="${c.y*s}" width="48" height="48" fill="#e1ebed" stroke="#cedadd"/>`).join('')}
+  ${region.brief.cells.map(c=>`<rect x="${c.x*s}" y="${c.y*s}" width="${s}" height="${s}" fill="#e1ebed" stroke="#cedadd"/>`).join('')}
   ${region.elements.flatMap(e=>elementShapes(e,true)).map(sh=>shapeSvg(sh,'#647078')).join('')}
   ${changed?elementShapes(site.element).map(sh=>shapeSvg(sh,'#253a50')).join(''):''}
   ${region.brief.portals.map(p=>`<line x1="${p.x*s}" y1="${p.y*s}" x2="${(p.x+(p.axis==='h'?p.length:0))*s}" y2="${(p.y+(p.axis==='v'?p.length:0))*s}" stroke="#169a60" stroke-width="9"/>`).join('')}

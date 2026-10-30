@@ -3,10 +3,13 @@
 This is separate, opt-in lab geometry, never a registered builder, saved live
 content version, library prescription or growth helper. The three original full
 maps and original measurement files in [issue-688](../issue-688/README.md) remain
-the inputs. `manifest.json` pins their exact uncompressed hashes, dependency and
-normalized LF source hashes, Node version and output hashes. The base source
-revision is the merged #693 checkpoint; the additional experiment modules are
-pinned by their hashes. Results and the decision belong to [42.24](../../42.24-static-barrier.md).
+the inputs. The root files preserve the initial capture at PR head `754ed8c`
+(based on merged #693), before review 526's classifier extraction. The current
+source-bound capture is in [review-526](review-526/README.md). Each capture's
+manifest pins exact input hashes, dependency and normalized LF source hashes,
+Node version and output hashes; uncommitted measurement edits are identified by
+those source hashes, not implied to exist at the base revision. Results and the
+decision belong to [42.24](../../42.24-static-barrier.md).
 The generated preview is retained with LF endings for its byte digest; blank
 SVG interpolation lines are part of that generated artifact.
 
@@ -14,7 +17,7 @@ Run from the repository root:
 
 ```powershell
 node tools/static-barrier-experiment.mjs --out=test-results/my-static-barrier
-node tools/static-barrier-experiment.mjs --out=docs/reports/issue-694 --verify
+node tools/static-barrier-experiment.mjs --out=docs/reports/issue-694/review-526 --verify
 ```
 
 The first command refuses to replace an existing manifest. Verification checks
@@ -23,11 +26,13 @@ structure measures and preview without rewriting retained evidence. It compares
 deterministic raw-report and preview hashes; elapsed times are observations and
 are not equality assertions. The script takes the shared benchmark lock and runs
 each map and phase sequentially. Do not run other tests/benchmarks alongside it.
-The retained capture received independent source/input/report/preview digest,
+The initial root capture received independent source/input/report/preview digest,
 exact patch-reconstruction and endpoint-identity checks (`artifact-verification.json`);
 the full second analysis under `--verify` was not rerun. `preview-qa.json` records
 the installed Chrome version, viewport, body selection and page-error check;
-all six resulting panels were visually inspected.
+all six resulting panels were visually inspected. Reproducing the initial root
+capture requires its recorded source at `754ed8c`; its pins are intentionally not
+rewritten to claim that it used the extracted classifier.
 
 Open [index.html](index.html) in a browser for before/after previews with a body
 selector, routes, original owner mask, promised portals and failed loot sites.
@@ -43,8 +48,9 @@ final proof, complete-map reports and analysis separately, with machine/runtime 
 One five-part connected bottle wall has a 14×14-cell outer box, one-cell walls,
 and a single east-facing 2.5-cell mouth. Flush pieces form one continuous front;
 there is no clearance ring between them. It is an interior seed, not necessarily
-attached to the owner boundary. Siting tries the saved maps' large park owners
-first, then plant/hall/ruins owners in saved order; each owner exposes at most the
+attached to the owner boundary. Siting considers only owners with at least 900
+original owned cells, trying park owners first, then plant/hall/ruins owners in
+saved order; each owner exposes at most the
 first 256 row-major fitting rectangles, with at most 2,048 candidates considered
 in total. Rectangle enumeration itself uses the existing mask API over these
 fixed pinned inputs. This is not a capacity claim for arbitrary masks. An
@@ -84,9 +90,13 @@ failure verdict and is not part of this retained evidence. The narrower scope
 does not imply whole-map exhaustive connectivity or pickup access.
 
 All original geometry, briefs, loot and core sites remain exact. Consequently a
-post-siting wall overlay can block original loot: those failures are intentional
-negative evidence about this experiment's integration suitability. A passed
-portal diagnostic does not certify pickup access. Do not publish these overlays
+post-siting wall overlay can block original loot. This is an experimental overlay
+limitation: production builders already filter loot after geometry composition
+(for example, `cover.ts`), which would avoid retaining these blocked candidates.
+A passed portal diagnostic does not certify pickup access, but this result does
+not establish a missing production loot-ordering or reachability capability.
+Do not publish these overlays
 as ordinary `types-55` maps or silently remove/re-roll blocked targets. Any
-production composition needs separately scoped authorship, target siting,
-content-version and expectation review under 31/53.
+production adoption needs a pocket-producing static placeable in a selected real
+builder family, with bounded siting, existing loot ordering, and separately
+reviewed content/version and expectations under 31/53.

@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rect } from '../shared/shape.ts';
+import { composeRegions } from '../map/micro/compose.ts';
+import { builtMapCollision } from '../map/micro/adapter.ts';
+import { mapFreeSpace } from '../shared/free-space.ts';
+import { navigationMap } from '../shared/map/navigation.ts';
+import { sweptClear } from '../shared/movement.ts';
+import { classifyNavigationRoute } from '../map/tools/navigation-structure.ts';
 import { measureFixedRoutes } from '../tools/experiments/barrier-routes.mjs';
 
 function syntheticMap(elements = []) {
@@ -65,4 +71,51 @@ test('disconnected valid endpoints are unreachable, with zero-distance pairs omi
   }
   assert.equal(measureFixedRoutes(syntheticMap(), pair({ x: 100, y: 100 }, { x: 100, y: 100 })).roles
     .every(role => role.samples.length === 0), true);
+});
+
+test('zero-distance pairs do not shift later stratum labels', () => {
+  const pairs = [
+    { category: 'fixed-crossing', stratum: 'first', from: { x: 48, y: 144 }, to: { x: 100, y: 144 } },
+    { category: 'fixed-crossing', stratum: 'skipped', from: { x: 100, y: 144 }, to: { x: 100, y: 144 } },
+    { category: 'fixed-crossing', stratum: 'last', from: { x: 100, y: 144 }, to: { x: 240, y: 144 } },
+    { category: 'fixed-crossing', from: { x: 48, y: 144 }, to: { x: 240, y: 144 } },
+  ];
+  const result = measureFixedRoutes(syntheticMap(), { contestant: pairs, hunter: pairs });
+  for (const role of result.roles) assert.deepEqual(role.samples.map(sample => sample.stratum), ['first', 'last', 'focused']);
+});
+
+function classifierFixture(elements = []) {
+  const nav = navigationMap(builtMapCollision(composeRegions(syntheticMap(elements).results)), true);
+  const clearance = 15, radius = 5;
+  const space = mapFreeSpace(nav, 'classifier test', [{ x: 0, y: 0, w: nav.width, h: nav.height }], clearance);
+  return { nav, space, clearance, radius };
+}
+
+test('a missing path between endpoints in one component is a search miss', () => {
+  const { nav, space, clearance, radius } = classifierFixture();
+  assert.equal(classifyNavigationRoute(nav, space, { x: 48, y: 144 }, { x: 240, y: 144 }, null, clearance, radius), 'search-miss');
+});
+
+test('the classifier rejects a witness that crosses a thin wall', () => {
+  const wall = { x: 0, y: 0, template: { w: 288, h: 288,
+    parts: [{ part: 'obstacle', kind: 'ruin-wall', shape: rect(140, 100, 4, 80) }] } };
+  const { nav, space, clearance, radius } = classifierFixture([wall]);
+  const from = { x: 48, y: 144 }, to = { x: 240, y: 144 };
+  assert.ok(sweptClear(nav, from, from, radius) && sweptClear(nav, to, to, radius));
+  const path = { points: [from, to], length: 192, leads: [false, false] };
+  assert.equal(classifyNavigationRoute(nav, space, from, to, path, clearance, radius), 'sweep-defect');
+});
+
+test('flagged endpoint leads use body radius instead of navigation clearance', () => {
+  const wall = { x: 0, y: 0, template: { w: 288, h: 288,
+    parts: [{ part: 'obstacle', kind: 'ruin-wall', shape: rect(120, 120, 40, 10) }] } };
+  const { nav, space, clearance, radius } = classifierFixture([wall]);
+  const from = { x: 90, y: 141 }, to = { x: 190, y: 141 };
+  assert.equal(sweptClear(nav, from, to, radius), true);
+  assert.equal(sweptClear(nav, from, to, clearance), false);
+  for (const leads of [[true, false], [false, true]]) {
+    assert.equal(classifyNavigationRoute(nav, space, from, to, { points: [from, to], length: 100, leads }, clearance, radius), 'complete');
+  }
+  assert.equal(classifyNavigationRoute(nav, space, from, to,
+    { points: [from, to], length: 100, leads: [false, false] }, clearance, radius), 'sweep-defect');
 });

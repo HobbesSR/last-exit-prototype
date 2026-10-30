@@ -1,11 +1,10 @@
 /** Opt-in #694 geometry only; never registered as a production builder. */
 import { rect } from '../../shared/shape.ts';
-import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../../map/micro/geometry.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../../map/micro/geometry.ts';
 import { validateFillConstraints } from '../../map/micro/margins.ts';
 import { validatePortalReach, portalStands, hunterClearance } from '../../map/micro/portals.ts';
-import { findRegionRoute } from '../../map/micro/geometry.ts';
 
-export const PATTERN = { width: 14, height: 14, thickness: 1, mouth: 2.5, maxCandidates: 2048, maxPerOwner: 256 };
+export const PATTERN = { width: 14, height: 14, thickness: 1, mouth: 2.5, minOwnerCells: 900, maxCandidates: 2048, maxPerOwner: 256 };
 
 /** One connected five-part bottle wall, east mouth; all dimensions in cells. */
 export function bottleElement(x, y, size) {
@@ -23,7 +22,7 @@ export function placeBottle(map) {
   const indices = map.results.map((_, i) => i).sort((a, b) => Number(map.results[b].brief.type === 'park') - Number(map.results[a].brief.type === 'park') || a - b);
   for (const index of indices) {
     const region = map.results[index], b = region.brief, s = b.cellSize;
-    if (!['park', 'plant', 'hall', 'ruins'].includes(b.type) || b.cells.length < 900) continue;
+    if (!['park', 'plant', 'hall', 'ruins'].includes(b.type) || b.cells.length < PATTERN.minOwnerCells) continue;
     const fill = createFillMask(b), owned = createRegionMask(b);
     const blockers = region.elements.flatMap(e => elementShapes(e, true));
     for (const box of fill.rectangles(14, 14).slice(0, PATTERN.maxPerOwner)) {

@@ -114,9 +114,12 @@ to assess a subsequent named mechanics experiment.
 The bounded connected static-barrier experiment (#694,
 [42.24](42.24-static-barrier.md)) retains one opt-in pocket/detour witness and
 exposes post-siting loot collisions. It does not promote production geometry or
-general #649 growth. Its next missing integration capability is static
-composition before target siting with target access protected; macro boundary
-control remains a separate candidate for map-scale progression. Reassess these
+general #649 growth. Production builders already filter loot after composition;
+the overlay's blocked loot does not identify a missing ordering capability.
+Adoption remains a candidate: make a pocket-producing static piece a placeable
+in a real builder family, with bounded siting and explicit content/version and
+expectation scope under 31/53. Macro boundary control remains a separate
+candidate for map-scale progression. Reassess these
 candidates under 32 rather than treating the experiment as automatic adoption.
 
 | Workstream | Functional checkpoint and next meaningful outcome |
