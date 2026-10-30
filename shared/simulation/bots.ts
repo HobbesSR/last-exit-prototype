@@ -617,9 +617,11 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   const sweep = hunting && !nearest && !lead ? sweepTarget(s, p, at => standingIn(s, p, at)) : null;
   let target: Vec2 = p.role === 'gladiator' ? nearest || lead || sweep || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
   let transitTo: StationId | undefined;
+  // What the bot is transiting toward while it heads for the station, if it is.
+  let via: Vec2 | undefined;
   if (hunting && !nearest) {
     const plan = transitPlan(s, p, target);
-    if (plan) { target = plan.from; if (p.railCd === 0 && distance(p, plan.from) < TRANSIT_REACH) transitTo = plan.to.id; }
+    if (plan) { via = target; target = plan.from; if (p.railCd === 0 && distance(p, plan.from) < TRANSIT_REACH) transitTo = plan.to.id; }
   }
   let exploring = false;
   const tiles = s.content.navigation === 'tiles';
@@ -687,8 +689,9 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     if (leg !== target && (status === 'no-known-route' || status === 'invalid-endpoint')) abandonLeg(p);
     if (status === 'no-known-route' || status === 'invalid-endpoint') {
       if (exploring) abandonExploration(p);
-      if (lead && target === lead) abandonLead(p);
-      if (sweep && target === sweep) giveUpSweep(s, p);
+      // A station it can't reach gives up what it was transiting toward, as a goal it can't reach would.
+      if (lead && (target === lead || via === lead)) abandonLead(p);
+      if (sweep && (target === sweep || via === sweep)) giveUpSweep(s, p);
       // A known dead end sets the item aside, as a stall would; it is not given up for good (22.6).
       const item = target as Partial<GroundItem>, pursuit = pursuits.get(p);
       if (pursuit && item.kind && item.id) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }

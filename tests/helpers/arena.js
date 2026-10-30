@@ -10,7 +10,8 @@ import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
  *
  * `corridor` splits it into `gaps.length + 1` regions side by side, each wall leaving one cell-high gap at
  * row `gaps[i]`, and attaches the portal graph across the gaps; `crossings` are the gaps' midpoints.
- * `scatter` puts a `size`-square crate in about `density` of the cells, chosen from `seed` alone.
+ * `scatter` puts a `size`-square crate in about `density` of the cells, chosen from `seed` alone, never in a cell
+ * beside a corridor's gap.
  * The game mutates its map, so build one per game.
  */
 export function arena({ cols, rows, cellSize = 192, seed = 0, corridor, scatter, obstacles = [], gates = [], buildings = [], items = [],
@@ -20,7 +21,10 @@ export function arena({ cols, rows, cellSize = 192, seed = 0, corridor, scatter,
   const map = { seed, width, height, playableArea, modules: [], buildings, obstacles: [...obstacles], gates, hazards: [],
     gaps: [], stations, chargers, sensors: [], items, traps: [], routes: [], nodes: [], streets: [], physicsProps,
     entry: entry ?? { x: cellSize / 2, y: height / 2 }, exit: exit ?? { x: width - cellSize / 2, y: height / 2 }, spawns, hunterSpawns };
-  if (scatter) map.obstacles.push(...crates(cols, rows, cellSize, scatter));
+  // The cells either side of each gap, which a crate could block.
+  const span = corridor ? cols / (corridor.gaps.length + 1) : 0;
+  const beside = new Set(corridor?.gaps.flatMap((gap, i) => [(i + 1) * span - 1, (i + 1) * span].map(col => gap * cols + col)));
+  if (scatter) map.obstacles.push(...crates(cols, rows, cellSize, scatter).filter(crate => !beside.has(crate.cell)).map(({ cell, ...crate }) => crate));
   const crossings = corridor ? walls(map, cols, rows, cellSize, corridor) : [];
   return { map, crossings };
 }
@@ -28,6 +32,7 @@ export function arena({ cols, rows, cellSize = 192, seed = 0, corridor, scatter,
 function walls(map, cols, rows, cellSize, { gaps, thickness = 40 }) {
   const count = gaps.length + 1, span = cols / count;
   if (!Number.isInteger(span)) throw new RangeError(`${cols} columns do not split into ${count} regions`);
+  for (const gap of gaps) if (!Number.isInteger(gap) || gap < 0 || gap >= rows) throw new RangeError(`no row ${gap} for a gap in ${rows} rows`);
   const joins = gaps.map((gap, i) => {
     const x = (i + 1) * span * cellSize - thickness / 2;
     for (let row = 0; row < rows; row++)
@@ -49,7 +54,7 @@ function crates(cols, rows, cellSize, { density, seed = 1, size = 40 }) {
   const out = [];
   for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
     const pick = next(), dx = next(), dy = next();
-    if (pick < density) out.push({ id: `crate-${col}-${row}`, kind: 'crate', w: size, h: size,
+    if (pick < density) out.push({ id: `crate-${col}-${row}`, kind: 'crate', cell: row * cols + col, w: size, h: size,
       x: Math.round(col * cellSize + dx * (cellSize - size)), y: Math.round(row * cellSize + dy * (cellSize - size)) });
   }
   return out;

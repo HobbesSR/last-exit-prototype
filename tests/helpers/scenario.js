@@ -1,6 +1,7 @@
 import { createGame, createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { hearShot } from '../../shared/simulation/hearing.ts';
+import { legacyContent } from '../../shared/simulation/content.ts';
 import { openField } from './arena.js';
 
 // The scenario layer over test arenas (31 "Test arenas", #697): put chosen actors on an arena, give them
@@ -25,8 +26,8 @@ function settle(s, actors, players) {
   return { s, players };
 }
 
-/** A legacy-mover game on `map` with exactly `actors`, each a bot unless `bot: false`. */
-export function stage(map, { seed = 4217, content, actors }) {
+/** A legacy-mover game on `map` with exactly `actors`, each a bot unless `bot: false`; legacy content unless given. */
+export function stage(map, { seed = 4217, content = legacyContent(), actors }) {
   const { content: cast_, place } = cast(map, content, actors), s = createGame(seed, map, cast_);
   return settle(s, actors, place(s));
 }
@@ -38,8 +39,9 @@ export async function stagePhysics(map, { seed = 4217, content, actors }) {
 }
 
 /**
- * Replace what `p` knows: `'everything'` surveys every discovery cell; otherwise `surveyed` (cell indices)
- * and remembered `gates` (id → `{ open, locked }`), nothing else, so by default nothing at all.
+ * Replace what `p` knows for planning: `'everything'` surveys every discovery cell; otherwise `surveyed` (cell
+ * indices) and remembered `gates` (id → `{ open, locked }`), nothing else, so by default nothing at all. Sight is
+ * not staged: no cell is `discovered` or `seen`, and no item remembered, until the game's own sampling adds them.
  */
 export function know(s, p, knows = {}) {
   const { surveyed = new Set(), gates = new Map() } = knows === 'everything' ? { surveyed: everywhere(s.map) } : knows;
@@ -53,13 +55,13 @@ export function everywhere(map) {
 }
 
 /**
- * Step `s` up to `ticks` times. Before each tick, every event whose `every` divides the ticks since `from`
- * (default 0) acts, while `s.tick < until` if given. Returns the tick on which `done(s)` first held after a
+ * Step `s` up to `ticks` times. Before each tick, every event whose `every` (default 1, every tick) divides the
+ * ticks since `from` (default 0) acts, while `s.tick < until` if given. Returns the tick on which `done(s)` first held after a
  * step, or null; `trace(s)`, when given, is called after every step.
  */
 export function run(s, { ticks, events = [], done, trace }) {
   for (let i = 0; i < ticks; i++) {
-    for (const { every, from = 0, until = Infinity, act } of events)
+    for (const { every = 1, from = 0, until = Infinity, act } of events)
       if (s.tick >= from && s.tick < until && (s.tick - from) % every === 0) act(s);
     step(s);
     trace?.(s);

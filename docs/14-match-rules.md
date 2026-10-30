@@ -103,7 +103,9 @@ and an unknown, behind-the-wall or current station is refused the same way. Unde
 sets how long a transit takes, `base + perUnit` × the distance in ticks, rounded. Unset or zero, transit is
 instant, and `content-10` sets both to 0. Above zero the gladiator has `status: 'transit'` until it lands: out of
 the world, unhittable and unable to act. It lands at the start of its arrival tick, waiting a tick at a time while
-its landing can't be placed, and the cooldown starts there (17.3 #26).
+its landing can't be placed, and the cooldown starts there (17.3 #26). The wall is checked on departure only: a
+gladiator whose destination the wall passes during the trip still lands there, inside the hazard (an
+assumption to revisit before tuning a travel time above zero).
 
 <a id="gladiator-bots"></a>
 
