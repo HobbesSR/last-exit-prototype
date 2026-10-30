@@ -79,8 +79,9 @@ region's interior, and reaching it, are its builder's business
 ([20.6](20.6-passable-margins.md)), and a one-portal region is a dead end by the
 table above.
 
-*Observation, unmeasured until #688:* paths across current maps are close to
-straight. Most builders keep a complete clear ring around every piece and space
+*Observation:* sampled long paths are close to straight in #688's three-size
+baseline ([42.23](42.23-navigation-structure.md)); it does not establish the
+cause. Most builders keep a complete clear ring around every piece and space
 pieces apart: hut's additional houses, market's stalls, depot's warehouses and
 rows, and the hint-aware box filter in `map/micro/hints.ts`. A walker can pass on
 either side of any isolated convex piece, so many pieces add little detour and no
@@ -102,7 +103,7 @@ described the early two-cell collar as pragmatic, meeting no thematic requiremen
   crossing the map stays straight while region boundaries are porous.
 
 Judge content work by its effect on detour, dead-end area and empty space, measured
-as proposed in [51.10](51.10-measurement.md), not by occupied cells or piece
+as defined in [51.10](51.10-measurement.md), not by occupied cells or piece
 counts.
 
 ## The catalogue

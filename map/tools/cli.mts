@@ -14,6 +14,7 @@ import { captureBaseline, compareSweep, positiveInteger, runSweep, sweepCases } 
 import type { SweepBaseline } from './sweep.mts';
 import { REACH_MODES, captureBriefs, replayBriefs, replayFailed, typesToReplay } from './sweep-briefs.mts';
 import type { Reach } from './sweep-briefs.mts';
+import { measureNavigationStructure } from './navigation-structure.ts';
 
 const PARAM_FLAGS = '[--mode game|playground] [--zone-width N --zone-height N] [--exits N --contestants N --hunters N] [--loot-chance X --loot-tier-step X]';
 const HELP = `last-exit-map: maps from the generation chain (51), built by the game's region types
@@ -21,6 +22,7 @@ const HELP = `last-exit-map: maps from the generation chain (51), built by the g
 Commands:
   generate --seed SEED ${PARAM_FLAGS} [--cell-size N] [--library FILE] [--layout-only true] [--out FILE] [--format json|bson]
   validate FILE [--library FILE] [--diagnose true]   (a saved map, read with the library it was made from; or a library)
+  navigation FILE [--out FILE]   (measure navigation structure in a saved map)
   batch [--count N] [--seed PREFIX] ${PARAM_FLAGS} [--library FILE] [--diagnose true] [--out FILE]
   library [--zone-width N --zone-height N] [--out FILE]   (the generation chain's library for a zone size, by default 12 x 6)
   sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-view content hashes over a pinned seed set)
@@ -99,6 +101,13 @@ try {
     const result = 'map' in read ? checkMap(read.map, { diagnose: flag(o.diagnose) }) : validateLibrary(read.library);
     output(result);
     if (!result.valid) process.exitCode = 1;
+  } else if (command === 'navigation') {
+    const [file, ...flags] = rest;
+    if (!file || file.startsWith('--')) throw new Error('navigation requires exactly one map file');
+    const o = options(flags);
+    const read = readMapOrLibrary(file, undefined);
+    if (!('map' in read)) throw new Error('navigation requires a saved map, not a library');
+    output(measureNavigationStructure(read.map), o.out);
   } else if (command === 'batch') {
     const o = options(rest);
     const report = batch(o.seed ?? 'batch', o.count ?? 20, params(o), readLibrary(o.library), { diagnose: flag(o.diagnose) });
