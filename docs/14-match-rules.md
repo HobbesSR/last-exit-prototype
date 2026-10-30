@@ -63,6 +63,20 @@ region or the next, it searches the whole way, as before. A leg that finds no wa
 gladiator then plans straight for its goal until the goal changes region. On a map without a portal graph it
 plans as `content-6` does. Its goals, numbers and roster are `content-6`'s.
 
+<a id="heard-gunfire"></a>
+
+**Heard gunfire.** `content-8` (#684, selectable, not the default) is `content-7` with gunfire heard
+(`hearing`, 17.3 #26). When a contestant fires a weapon, every other active player, of either role, within
+that weapon's hearing range of the shooter hears it: they learn the centre of the 192-unit discovery cell the
+shooter stood in (never the shooter), which fades 4 seconds (80 ticks) later. Range is plain distance;
+walls and roofs do not muffle it. Another shot from the same cell refreshes that cue rather than adding one.
+Gladiators' melee, skills and rail are silent, and so is a weapon without a range. Hearing draws no random
+number and takes no id, so it changes nothing else in a match. The ranges are pistol 8,000, rifle 10,000 and
+scattergun 12,000: deliberately detuned placeholders, far beyond what a tuned game would allow, so gladiators
+hear shots on today's maps (17.3 #26; measured in [42.22](42.22-tick-cost-attribution.md#heard-gunfire)).
+They live in content, one place, so retuning is a content change. Bots do not act on what they hear yet
+(#685).
+
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
 ## Experimental physical world profile (#445)

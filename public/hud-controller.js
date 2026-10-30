@@ -288,6 +288,7 @@ export function createHUDController(actions) {
       gladiator: style.getPropertyValue('--coral').trim() || '#ff7d8a',
       contestant: style.getPropertyValue('--lime').trim() || '#c5f16f',
       exit: style.getPropertyValue('--minimap-exit').trim() || '#deff99',
+      heard: style.getPropertyValue('--minimap-heard').trim() || '#ffba62',
     };
   };
 
@@ -369,6 +370,13 @@ export function createHUDController(actions) {
       if (p.status !== 'active' || !shown(p)) continue;
       c.fillStyle = p.id === playerId ? cols.me : p.role === 'gladiator' ? cols.gladiator : cols.contestant;
       c.beginPath(); c.arc(p.x * sx, p.y * sy, p.id === playerId ? 3.5 : 2, 0, Math.PI * 2); c.fill();
+    }
+    // Heard gunfire (#684): the player's own cues, pinged over the minimap's fog, since sound passes walls (15).
+    for (const cue of visibility?.directed ? [] : mine?.heard ?? []) {
+      const fade = Math.max(0, Math.min(1, (cue.until - state.tick) / Math.max(1, cue.until - cue.tick)));
+      c.globalAlpha = 0.3 + 0.7 * fade; c.strokeStyle = cols.heard; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(cue.x * sx, cue.y * sy, 3 + 5 * (1 - fade), 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 1; c.lineWidth = 1;
     }
     if (arenaMap.exit) {
       if (!isContestant || isFeatureDiscovered(memory, arenaMap, arenaMap.exit)) {

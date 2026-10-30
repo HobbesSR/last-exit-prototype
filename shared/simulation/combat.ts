@@ -7,6 +7,7 @@ import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
 import { hookSkill } from './hook.ts';
+import { hearShot } from './hearing.ts';
 import { actorHitRadius } from './swept.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
 import { atan2, cos, sin } from '../math.ts';
@@ -76,6 +77,7 @@ export function attack(s: Game, p: Player): void {
     item.ammo--;
     p.attackCd = weapon.cooldown;
     for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: cos(p.heading + spread) * weapon.speed, dy: sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage * qualityDamage(s.content, item) }); p.cloak = 0;
+    hearShot(s, p, item.weaponType);
   }
 }
 export function advanceProjectiles(s: Game): void {

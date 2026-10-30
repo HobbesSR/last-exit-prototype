@@ -270,6 +270,12 @@ export interface MatchContent {
    * it searches tiles all the way to its goal.
    */
   hunterPlanning?: 'portals' | undefined;
+  /**
+   * Heard gunfire (#684, 14 "Heard gunfire"): a contestant's shot is heard by every other active player
+   * within its weapon's `ranges` entry, as the centre of the discovery cell the shooter stood in, for
+   * `ticks`. A weapon without an entry is silent; unset, nothing is heard.
+   */
+  hearing?: { ticks: Tick; ranges: Partial<Record<WeaponType, World>> } | undefined;
 }
 
 /**
@@ -590,6 +596,14 @@ export interface Player extends Vec2 {
   aggressionUntil?: Tick | undefined;
   /** Authoritative discovery state, kept for contestants only. */
   discovery?: DiscoveryMemory | undefined;
+  /** Gunfire this player has heard (#684), newest last. Non-enumerable, like `discovery`, so it stays out of snapshots. */
+  heard?: HeardCue[] | undefined;
+}
+
+/** Where a hearer heard a shot: a coarse cell's centre, never the shooter (15). Live until tick `until`. */
+export interface HeardCue extends Vec2 {
+  tick: Tick;
+  until: Tick;
 }
 
 export interface DiscoveryWire {
