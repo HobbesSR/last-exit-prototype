@@ -97,6 +97,17 @@ selection and stopping policy in [32](32-delegation.md). The epic and child
 comments hold live checkpoints; older issue backgrounds are historical claims,
 not an accurate inventory of everything still missing.
 
+Corey's 2026-10-30 direction ([17.2.11](17.2.11-navigation-structure-direction.md))
+recalibrates this epic. Region content is a stand-in, and the goal is less empty
+space and paths that must detour, with emergent dead ends, not density
+([54](54-region-types.md#navigation-structure)). Measure first (#688), then judge
+each workstream below by whether it moves detour, dead-end area or empty space.
+Tuning stand-in output for density or appearance alone is out of scope; builder
+changes that give other systems mechanics to exercise, such as barriers that
+deflect paths, remain in scope. Proposed levers are connected barriers within
+regions, macro boundary and portal structure, and inward perimeter growth with
+movable cords as candidate SDK support (#649); #688's baseline informs the choice.
+
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
 | Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
@@ -299,7 +310,7 @@ This is also a shared prerequisite for #529's composition sequence above.
 | --- | --- | --- |
 | Done | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
 | Done | [#645](/corey/astra_test/issues/645) | Opt-in atomic retained-content parcels anywhere in the fill, with deformable connectivity witness; no production adoption |
-| 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation |
+| 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation; a candidate lever for detour and dead ends (17.2.11), judged by #688 |
 | Done | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing; synthetic fixtures and recovery, no production adoption |
 | Hut and compound adoption | [#647](/corey/astra_test/issues/647) | Hut approved in #654; compound follows as a separate measured milestone. Each builder may choose interior or boundary handoffs (17.2.10) |
 

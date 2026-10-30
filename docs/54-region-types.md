@@ -66,6 +66,45 @@ There is no obstacle type, and no region is exempt from the proof. Authors
 may use these rules as they stand to make a region act as an obstacle (Corey,
 2026-10-02, 17 M19).
 
+## Navigation structure
+
+Corey's direction (2026-10-30, [17.2.11](17.2.11-navigation-structure-direction.md)):
+the catalogue and its content are stand-ins until he gives authorship direction.
+Content should leave much less empty space and make movement need exploration:
+barriers that deflect a path relative to its target, and emergent dead ends in the
+walkable space that sometimes force backtracking. Density alone does not do this.
+
+The contract already allows it. The one promise joins portals to portals; a
+region's interior, and reaching it, are its builder's business
+([20.6](20.6-passable-margins.md)), and a one-portal region is a dead end by the
+table above.
+
+*Observation, unmeasured until #688:* paths across current maps are close to
+straight. Most builders keep a complete clear ring around every piece and space
+pieces apart: hut's additional houses, market's stalls, depot's warehouses and
+rows, and the hint-aware box filter in `map/micro/hints.ts`. A walker can pass on
+either side of any isolated convex piece, so many pieces add little detour and no
+dead ends. That ring is a builder choice, not an obligation of the contract; Corey
+described the early two-cell collar as pragmatic, meeting no thematic requirement
+(17.2.10).
+
+*Proposed levers, not requirements:*
+
+- **Within a region:** long, connected barriers instead of ringed islands: pieces
+  that join each other or grow inward from the not-guaranteed-passable fill
+  perimeter, forming peninsulas and pockets. Movable portal cords keep the
+  portal-to-portal routes while that growth pushes them around
+  ([20.10](20.10-portal-cords.md), growth helpers #649). That is one candidate
+  support; static authored barriers checked with the SDK's elective validation are
+  another. Pockets off the portal routes are the dead ends.
+- **Across the map:** fewer portals per region boundary, longer impassable
+  boundary runs and more one-portal regions. However winding each region is,
+  crossing the map stays straight while region boundaries are porous.
+
+Judge content work by its effect on detour, dead-end area and empty space, measured
+as proposed in [51.10](51.10-measurement.md), not by occupied cells or piece
+counts.
+
 ## The catalogue
 
 | Type | Family | Role in play | Core elements |
