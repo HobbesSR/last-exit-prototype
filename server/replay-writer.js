@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { createGzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
+import { gatesJson } from '../shared/simulation/frame-gates.ts';
 
 const DEFAULT_QUEUE_BYTES = 8 * 1024 * 1024;
 const DEFAULT_FINALIZE_TIMEOUT_MS = 5000;
@@ -10,18 +11,21 @@ export const MAX_DIAGNOSTIC_MARKS = 512;
 const asError = error => error instanceof Error ? error : new Error(String(error));
 const aborted = signal => { if (signal?.aborted) throw asError(signal.reason || 'Replay recording was aborted'); };
 
-// `JSON.stringify({ state, commands })` and its UTF-8 length, with the ground items taken from the JSON their owner keeps
-// (#655 stage 3): they are most of each frame and nearly always unchanged. Keys go in the same order and undefined
-// values are left out, as JSON.stringify does, so the bytes and the digest are unchanged (26).
-export function frameLine(state, commands, ground) {
-  if (state === null || typeof state !== 'object' || !Array.isArray(state.items) || 'toJSON' in state) {
+// `JSON.stringify({ state, commands })` and its UTF-8 length, with the ground items and gates taken from the JSON their
+// owners keep (#655): they are most of each frame and nearly always unchanged. `kept(key, list)` gives that JSON and its
+// length for a list under a key in KEPT. Keys go in the same order and undefined values are left out, as
+// JSON.stringify does, so the bytes and the digest are unchanged (26).
+const KEPT = new Set(['items', 'gates']);
+export function frameLine(state, commands, kept) {
+  if (state === null || typeof state !== 'object' || 'toJSON' in state) {
     const line = JSON.stringify({ state, commands });
     return { line, bytes: Buffer.byteLength(line) };
   }
   const parts = [];
   let bytes = 0;
   for (const key of Object.keys(state)) {
-    if (key === 'items') { const items = ground(state.items); parts.push(`"items":${items.json}`); bytes += 8 + items.bytes; continue; }
+    // Kept keys are plain ASCII words, so the key and its quotes and colon are 3 + length bytes.
+    if (KEPT.has(key) && Array.isArray(state[key])) { const list = kept(key, state[key]); parts.push(`"${key}":${list.json}`); bytes += 3 + key.length + list.bytes; continue; }
     const json = JSON.stringify(state[key]);
     if (json === undefined) continue;
     const part = `${JSON.stringify(key)}:${json}`;
@@ -66,12 +70,12 @@ export function createReplayWriter({ header, output, publish, onError = error =>
   function endWhenDrained() {
     if (ending && !failed && !writing && !queue.length && !recorder.writableEnded) recorder.end();
   }
-  // The last ground JSON and its length, which is the same string object while the ground is unchanged.
-  const ground = { json: undefined, bytes: 0 };
-  const groundText = list => {
-    const json = itemsJson(list);
-    if (json !== ground.json) { ground.json = json; ground.bytes = Buffer.byteLength(json); }
-    return ground;
+  // Each kept list's last JSON and its length: the same string object while that list is unchanged.
+  const last = { items: { json: undefined, bytes: 0 }, gates: { json: undefined, bytes: 0 } };
+  const keptText = (key, list) => {
+    const json = key === 'items' ? itemsJson(list) : gatesJson(list), text = last[key];
+    if (json !== text.json) { text.json = json; text.bytes = Buffer.byteLength(json); }
+    return text;
   };
   // Keep the old header bytes exactly, including its key order and compact JSON form.
   try { enqueue(`${JSON.stringify(header).slice(0, -1)},"frames":[`); }
@@ -91,7 +95,7 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       if (completion || ending) throw new Error('Cannot append to a finalized replay');
       if (failed) return false;
       let line, bytes;
-      try { ({ line, bytes } = frameLine(state, commands, groundText)); }
+      try { ({ line, bytes } = frameLine(state, commands, keptText)); }
       catch (error) { fail(error); return false; }
       const text = `${frames ? ',' : ''}${line}`;
       if (!enqueue(text, true, bytes + (frames ? 1 : 0))) { droppedFrames++; return false; }

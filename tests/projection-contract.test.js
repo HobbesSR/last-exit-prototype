@@ -4,7 +4,7 @@ import { createGame, snapshot, playerView } from '../shared/simulation.ts';
 
 test('unlisted internal fields stay out of own, other-player and directed frame projections', () => {
   const game = createGame(9), me = game.players[0];
-  me.serverSecret = 'private'; me.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 7, serverSecret: 'private' };
+  me.serverSecret = 'private'; game.map.gates[0].serverSecret = 'private'; me.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 7, serverSecret: 'private' };
   const frame = snapshot(game); frame.serverSecret = 'private';
   frame.players[1].x = me.x + 40; frame.players[1].y = me.y;
   frame.players[1].serverSecret = 'private';
@@ -13,7 +13,6 @@ test('unlisted internal fields stay out of own, other-player and directed frame 
   frame.projectiles = [{ id: 1, owner: me.id, x: me.x, y: me.y, dx: 1, dy: 0, life: 3, damage: 2, serverSecret: 'private' }];
   frame.effects = [{ id: 2, x: me.x, y: me.y, kind: 'loot', radius: 10, life: 2, serverSecret: 'private' }];
   frame.events = [{ id: 3, tick: 0, text: 'Visible message', serverSecret: 'private' }];
-  frame.gates[0].serverSecret = 'private';
   for (const id of [me.id, frame.players[1].id, null]) {
     const view = playerView(game, frame, id), encoded = JSON.stringify(view);
     assert.equal(encoded.includes('serverSecret'), false); assert.equal(encoded.includes('targetId'), false);

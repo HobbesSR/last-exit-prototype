@@ -41,14 +41,21 @@ const REKEY_SHARE = 1 / 32, REKEY_FLOOR = 16;
 let versions = 0;
 export function nextVersion(): number { return ++versions; }
 
-type Table = { k: number; all: Entry[]; ids: Id[]; byId: Map<Id, Entry> };
+type Table = { k: number; all: Entry[]; ids: Id[]; byId: Map<Id, Entry>; last?: { list: Entry[]; encoded: EncodedLayer } };
 export type EncodedLayer = { k: number; all: () => LayerWire; changes: LayerWire } | { plain: Entry[] };
+
+/** Lists their owner never changes once made (a frame's gates, #655). Marked, not frozen, as ground-items explains. */
+const settled = new WeakSet<readonly object[]>();
+/** Promise that `list` and its entries will never change, so a layer given it again encodes as it did last time. */
+export function settledLayer(list: readonly object[]): void { settled.add(list); }
 
 /** The server's side, one per view: what each layer is relative to, and both forms of it. */
 export function createLayerEncoder() {
   const tables = new Map<Layer, Table>();
   function encodeLayer(layer: Layer, list: Entry[]): EncodedLayer {
     let table = tables.get(layer);
+    // The same settled list again: its change set against this keyframe is the one already worked out.
+    if (table?.last?.list === list) return table.last.encoded;
     const changes = table && changesSince(table, list);
     if (!changes) {
       count(`work.rekey.${layer}`);
@@ -57,8 +64,9 @@ export function createLayerEncoder() {
       if (byId.size !== list.length || byId.has(undefined as never)) { tables.delete(layer); return { plain: list }; }
       tables.set(layer, table = { k: nextVersion(), all: list, ids: list.map(entry => entry.id), byId });
     }
-    const { k, all } = table!, current = changes ?? { k };
-    return { k, all: () => ({ ...current, all }), changes: current };
+    const { k, all } = table!, current = changes ?? { k }, encoded = { k, all: () => ({ ...current, all }), changes: current };
+    if (settled.has(list)) table!.last = { list, encoded }; else delete table!.last;
+    return encoded;
   }
   return {
     /** Each layer the frame holds, encoded; layers it does not hold are left out. */
