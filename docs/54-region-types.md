@@ -94,8 +94,9 @@ described the early two-cell collar as pragmatic, meeting no thematic requiremen
   that join each other or grow inward from the not-guaranteed-passable fill
   perimeter, forming peninsulas and pockets. Movable portal cords keep the
   portal-to-portal routes while that growth pushes them around
-  ([20.10](20.10-portal-cords.md), growth helpers #649). Pockets off the cords are
-  the dead ends.
+  ([20.10](20.10-portal-cords.md), growth helpers #649). That is one candidate
+  support; static authored barriers checked with the SDK's elective validation are
+  another. Pockets off the portal routes are the dead ends.
 - **Across the map:** fewer portals per region boundary, longer impassable
   boundary runs and more one-portal regions. However winding each region is,
   crossing the map stays straight while region boundaries are porous.
