@@ -1,5 +1,5 @@
 import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
-import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
+import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_CELL_SIZE, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import { gridRoute } from '../map/route.ts';
@@ -15,6 +15,7 @@ import { dynamicWaypoint } from './dynamic-navigation.ts';
 import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment, dropInventorySlot } from './loot.ts';
 import { reloadableRounds, reserveRoom } from './ammo.ts';
+import { heardBy } from './hearing.ts';
 import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
 import { atan2, cos, hypot, sin } from '../math.ts';
 
@@ -62,8 +63,11 @@ function stalled(s: Game, p: Player, state: Pursuit, goal: string, at: Vec2): bo
   return false;
 }
 
-function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null {
+function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory, avoid: readonly Vec2[] = []): Vec2 | null {
   const state = pursuitOf(p), seen = memory.seen ?? memory.discovered;
+  // A cautious contestant turns from a cell near fresh gunfire (#685): set aside while heard, not given up.
+  const loud = (centre: Vec2) => avoid.some(cue => distance(cue, centre) < AVOID_CUE);
+  if (state.cell >= 0 && loud(cellCenter(s.map, state.cell))) state.cell = -1;
   if (state.cell >= 0) {
     const centre = cellCenter(s.map, state.cell);
     const settled = seen.has(state.cell) || centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !ground(s, memory, state.cell, centre);
@@ -84,7 +88,7 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null
       const c = col + dc, r = row + dr, next = r * cols + c;
       if (c < 0 || r < 0 || c >= cols || r >= rows || seen.has(next) || state.abandoned.has(next)) continue;
       const centre = cellCenter(s.map, next);
-      if (centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !ground(s, memory, next, centre)) continue;
+      if (centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !ground(s, memory, next, centre) || loud(centre)) continue;
       const score = distance(p, centre) - (centre.x - p.x) * EXPLORE_RIGHTWARD;
       if (score < bestScore) { bestScore = score; best = next; }
     }
@@ -109,6 +113,69 @@ function ground(s: Game, memory: DiscoveryMemory, cell: number, centre: Vec2): b
 function abandonExploration(p: Player): void {
   const state = pursuits.get(p);
   if (state && state.cell >= 0) { state.abandoned.add(state.cell); state.cell = -1; }
+}
+
+// Heard gunfire as a lead (#685, 14 "Heard gunfire"). A cue fades in seconds, far sooner than a bot can cross the map
+// to it, so a bot remembers where it last heard a shot, as it remembers an item it has seen (15): only what it heard,
+// never the shooter. The newest shot replaces the lead. The bot drops it on arrival, when it stops getting closer,
+// when it finds no way there, or after LEAD_FOR. Bot-private, never projected or recorded.
+interface Lead extends Vec2 {
+  /** The tick the shot was heard: a later one replaces this lead, the same one never revives it. */
+  tick: Tick;
+  since: Tick;
+  closest: World;
+  progressed: Tick;
+  done: boolean;
+}
+const leads = new WeakMap<Player, Lead>();
+/** Within LEAD_ARRIVE of the cell's centre the bot has arrived; it gives up after LEAD_STALL without approaching, or LEAD_FOR. */
+const LEAD_ARRIVE: World = 400, LEAD_STALL = 10 * HZ, LEAD_FOR = 60 * HZ;
+/** A cautious contestant explores no cell within AVOID_CUE of a shot it can still hear. */
+const AVOID_CUE: World = 900;
+
+/** Where `p` is following heard gunfire to, if anywhere. Call it every tick while bots react, so the lead keeps up. */
+function leadOf(s: Game, p: Player): Lead | null {
+  const newest = heardBy(p, s.tick).at(-1);
+  let lead = leads.get(p);
+  if (newest && (!lead || newest.tick > lead.tick)) {
+    const at = standingIn(s, p, newest);
+    leads.set(p, lead = { x: at.x, y: at.y, tick: newest.tick, since: s.tick, closest: Infinity, progressed: s.tick, done: false });
+  }
+  if (!lead || lead.done) return null;
+  const d = distance(p, lead);
+  if (d < LEAD_ARRIVE || s.tick - lead.since > LEAD_FOR) { lead.done = true; return null; }
+  if (d < lead.closest - PROGRESS) { lead.closest = d; lead.progressed = s.tick; }
+  else if (s.tick - lead.progressed > LEAD_STALL) { lead.done = true; return null; }
+  return lead;
+}
+
+// A cue names a cell, and its centre may be inside a building: head for the nearest spot in the cell the bot can stand on.
+// A gladiator knows the whole map (15). A contestant judges only what it knows (15, 22.6.2): a cell it has not
+// discovered is planned as open, so it heads for the centre; in a known cell only static geometry counts, since doors
+// are the planner's to judge from what it observed, and only spots whose body lies inside that cell, so geometry in an
+// unknown neighbour cannot decide the choice.
+const CELL_OFFSETS = (() => {
+  const offsets: Vec2[] = [];
+  for (let y = -96; y <= 96; y += 32) for (let x = -96; x <= 96; x += 32) offsets.push({ x, y });
+  return offsets.sort((a, b) => a.x * a.x + a.y * a.y - (b.x * b.x + b.y * b.y));
+})();
+function standingIn(s: Game, p: Player, centre: Vec2): Vec2 {
+  const radius = navigationClearance(p.role), memory = p.role === 'contestant' ? p.discovery : undefined;
+  if (memory) {
+    const cell = cellIndexAt(s.map, centre.x, centre.y);
+    if (!contestantKnowledge(memory, p.keys).known(cell)) return centre;
+  }
+  const reach = memory ? DISCOVERY_CELL_SIZE / 2 - radius : Infinity;
+  for (const { x, y } of CELL_OFFSETS) {
+    if (Math.abs(x) > reach || Math.abs(y) > reach) continue;
+    if (canOccupy(s.map, centre.x + x, centre.y + y, radius, !!memory)) return { x: centre.x + x, y: centre.y + y };
+  }
+  return centre;
+}
+
+function abandonLead(p: Player): void {
+  const lead = leads.get(p);
+  if (lead) lead.done = true;
 }
 
 // Planning over free-space tiles (22.6, #424). A contestant plans with what it knows; a gladiator
@@ -494,6 +561,11 @@ export interface BotIntent {
 
 /** Collect equipment/utility/drop intents without applying them; private planning memory,
  * routes, sliced searches and their shared per-tick allowance may still change. */
+// Mixed temperaments create occasional betrayal, rather than every converging bot starting
+// a deathmatch simultaneously. All bots can retaliate; roughly one third initiate disputes,
+// and under `hearingResponse` follow gunfire (#685).
+export const isOpportunistic = (p: Pick<Player, 'id'>): boolean => p.id.charCodeAt(p.id.length - 1) % 3 === 0;
+
 export function collectBotIntent(s: Game, p: Player): BotIntent { return decideBot(s, p, true); }
 
 /** Legacy bot behavior, including its pre-movement side effects. */
@@ -528,15 +600,17 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   }
   if (!collecting) effectiveHp = p.hp;
   const effectiveInventory = () => p.inventory!.map((item, slot) => slot === spentUtility ? null : item);
-  // Mixed temperaments create occasional betrayal, rather than every converging bot starting
-  // a deathmatch simultaneously. All bots can retaliate; roughly one third initiate disputes.
-  const opportunistic = p.id.charCodeAt(p.id.length - 1) % 3 === 0;
+  const opportunistic = isOpportunistic(p);
   start('sim.bots.sight');
   const nearest = s.players.filter(t => t.id !== p.id && (t.role !== p.role || p.aggressor === t.id && s.tick < p.aggressionUntil!
     || p.role === 'contestant' && opportunistic && s.tick > 30 * HZ && distance(p, t) < (s.tick > 120 * HZ ? 320 : 180))
     && t.status === 'active' && visibleTo(s, p, t)).sort((a, b) => distance(p, a) - distance(p, b))[0];
   stop('sim.bots.sight');
-  let target: Vec2 = p.role === 'gladiator' ? nearest || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
+  // Under `hearingResponse` a gladiator that sees no one goes to where it heard a shot; an opportunistic
+  // contestant may follow one too (#685). The lead is kept up every tick, so arrival is noticed in passing.
+  const reacting = s.content.hearingResponse === 'temperament' && (p.role === 'gladiator' || opportunistic);
+  const lead = reacting ? leadOf(s, p) : null;
+  let target: Vec2 = p.role === 'gladiator' ? nearest || lead || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
   let exploring = false;
   const tiles = s.content.navigation === 'tiles';
   if (p.role === 'contestant') {
@@ -556,9 +630,12 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     if (memory && !objective.length && !(charged && known(s.map.exit))) {
       // Nothing it needs is known: search for it, and fall back on the exit only once nothing is left to search.
       stop('sim.bots.items'); start('sim.bots.explore');
-      const frontier = exploreTarget(s, p, memory);
+      // With nothing it needs in mind, an opportunist follows gunfire before searching; the rest search away from it.
+      const avoid = s.content.hearingResponse === 'temperament' && !opportunistic ? heardBy(p, s.tick) : [];
+      const frontier = lead ? null : exploreTarget(s, p, memory, avoid);
       stop('sim.bots.explore'); start('sim.bots.items');
-      if (frontier) { target = frontier; exploring = true; } else if (!known(s.map.exit)) target = p;
+      if (lead) target = lead;
+      else if (frontier) { target = frontier; exploring = true; } else if (!known(s.map.exit)) target = p;
     }
     if (objective.length) {
       // Over tiles, nearest first: the street graph is truth, and a chain map has none anyway.
@@ -600,6 +677,7 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     if (leg !== target && (status === 'no-known-route' || status === 'invalid-endpoint')) abandonLeg(p);
     if (status === 'no-known-route' || status === 'invalid-endpoint') {
       if (exploring) abandonExploration(p);
+      if (lead && target === lead) abandonLead(p);
       // A known dead end sets the item aside, as a stall would; it is not given up for good (22.6).
       const item = target as Partial<GroundItem>, pursuit = pursuits.get(p);
       if (pursuit && item.kind && item.id) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }

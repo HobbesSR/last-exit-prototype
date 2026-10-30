@@ -276,6 +276,12 @@ export interface MatchContent {
    * `ticks`. A weapon without an entry is silent; unset, nothing is heard.
    */
   hearing?: { ticks: Tick; ranges: Partial<Record<WeaponType, World>> } | undefined;
+  /**
+   * How bots act on what they hear (#685, 14 "Heard gunfire"); requires `hearing`. `temperament`: a gladiator
+   * that sees no contestant goes to where it last heard a shot; an opportunistic contestant with nothing
+   * it needs in mind goes there too, and the others explore away from fresh cues. Unset, bots ignore cues.
+   */
+  hearingResponse?: 'temperament' | undefined;
 }
 
 /**

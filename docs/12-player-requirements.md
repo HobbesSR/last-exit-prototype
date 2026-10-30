@@ -50,8 +50,33 @@ concealment. Sensor marks appear on the schematic minimap even when direct sight
 is blocked. Camera viewing stations are deferred.
 
 Transit currently cycles gladiators among stations ahead of the hazard and has a
-cooldown. A later implementation may offer route selection and travel time.
+cooldown. Route selection is accepted (below); travel time is still open.
 Contestants cannot use it. Physical gaps and movement speed provide escape
 opportunities between transit points.
+
+<a id="transit-route-selection"></a>
+
+### Transit route selection (accepted design, not built: #692)
+
+Corey, 2026-10-30, on #683: the destination is **"Make it selectable"**. The design:
+- **Rule.** A gladiator ready to transit (cooldown spent, within reach of a station) may go to any
+  other station ahead of the wall, not only the next one. The choice is a one-shot input naming the
+  station. A station that is unknown, behind the wall or the current one is refused, with no effect
+  and no cooldown, as a landing the physics world cannot place is today. Plain interact keeps the
+  current destination, the next station ahead, so inputs and bots that do not choose are unchanged.
+  Transit stays instant with the same cooldown. Selection arrives under a new content id; existing
+  contents keep cycling.
+- **Client.** Near a usable station, holding interact shows the reachable stations on the minimap and
+  as edge markers, with the default preselected. Clicking one, or releasing on the selection,
+  transits, and Esc cancels. On touch, the station marker is tapped. Gladiators already see the whole
+  map (15), so showing every station reveals nothing new.
+- **Bots** (#683). Each usable station links to every station ahead, so a gladiator's top-level plan
+  (22.6) can take transit to the station nearest its goal when the walk to the station plus a small
+  fixed cost beats walking. With no contestant seen and nothing heard, a gladiator sweeps regions ahead
+  of the wall, where contestants are likely to be, rather than waiting at a station (Corey, same day).
+- **Input contract.** The station choice is a player input field: sanitized and recorded like the
+  others (24, 26).
+- **Open.** Travel time: instant, a fixed delay, or scaled with distance. Whether arrival is
+  telegraphed to contestants beyond the current rail effect.
 
 The rules governing what any viewer may know are in [15](15-information-rules.md).

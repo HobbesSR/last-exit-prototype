@@ -147,6 +147,8 @@ SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlannin
 // Gunfire is heard (#684); otherwise content-7. Placeholders, deliberately detuned (17.3 #26): ranges far beyond a fair
 // game's, so gladiators hear shots on today's maps, set by `tools/navigation/hunter-report.mjs` (42.22); four seconds' fade.
 SHIPPED['content-8'] = { ...SHIPPED['content-7'], id: 'content-8', hearing: { ticks: 4 * 20, ranges: { pistol: 8000, rifle: 10000, scattergun: 12000 } } };
+// Bots act on what they hear, by temperament (#685, 17.3 #26); otherwise content-8.
+SHIPPED['content-9'] = { ...SHIPPED['content-8'], id: 'content-9', hearingResponse: 'temperament' };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {
