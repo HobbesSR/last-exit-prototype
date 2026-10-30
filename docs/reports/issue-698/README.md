@@ -74,3 +74,10 @@ historical #688/#694 capture or gameplay fixture is replaced by this report.
 unchanged sweep cases, final zero-drift comparison, fixture check and retained
 artifact hashes. `artifact-verification.json` also binds the normalized source
 digests to all 300 corresponding blobs at implementation commit `d81e222`.
+
+The `integration` section records subsequent synchronization with main
+`6339206`: three documentation conflicts resolved, current check/typecheck and
+1,366 fast tests passing, and a further 224-map zero-drift comparison. Incoming
+main changed gameplay and read-only measurement code, with no changes in the
+generation or navigation-geometry paths. These historical captures retain their
+original source pins; integration does not relabel them as a fresh capture.

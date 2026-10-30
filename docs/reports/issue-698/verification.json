@@ -79,13 +79,6 @@
   },
   "sameSweepCases": true,
   "generationErrors": 0,
-  "finalFast": {
-    "command": "npm test",
-    "tests": 1337,
-    "passed": 1337,
-    "failed": 0,
-    "ms": 176860.0906
-  },
   "beforeCaptureFast": {
     "passed": 1323,
     "expectedBaselineAndReplayCascadeFailures": 13,
@@ -160,5 +153,33 @@
     "size-36-report.json.gz": "90c34637aef27a23c5382b77a39c4632991dbc95b08bfafe3c511744b6f557d1",
     "summary.json": "9ca507272da08fb28bc32a34ffbac3970c13882666a971b4e5945378db4dbc83",
     "timing.json": "5a897a309da7e9a7755d9efdf6aede3d1263991de5e03826246e54adf795206c"
+  },
+  "preIntegrationFast": {
+    "command": "npm test",
+    "tests": 1337,
+    "passed": 1337,
+    "failed": 0,
+    "ms": 176860.0906
+  },
+  "integration": {
+    "base": "63392064568e181236a2d91d3710cf73074d29fd",
+    "mergeCommit": "6a7d1e8fd8e3b52404c778ee72b1a2260a89b7b3",
+    "conflicts": "Three adjacent documentation additions resolved, preserving experiment history and production adoption.",
+    "check": "passed",
+    "typecheck": "passed",
+    "finalFast": {
+      "tests": 1366,
+      "passed": 1366,
+      "failed": 0,
+      "ms": 194533.6169
+    },
+    "sweep": {
+      "checked": 224,
+      "seconds": 129,
+      "drift": []
+    },
+    "incomingGenerationAndGeometryPathsChanged": [],
+    "measurements": "Original captures remain bound to d81e222; merged main adds gameplay and read-only measurement changes. No new generation output or baseline recapture.",
+    "forgejo": "PR #703 mergeable; CI verify pending and PR slow skipped when observed at the merge commit."
   }
 }
