@@ -2,7 +2,7 @@ import { portalMargin } from '../map/micro/hints.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
@@ -51,9 +51,11 @@ test('depots are deterministic and independent of the order of the brief\'s cell
 test('every piece keeps an aisle from the next and from the region\'s edge, all on one axis', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) {
     const input = brief(name, seed, cells, portals, { density: 1, roomCells: 6 });
-    const result = buildRegion(input), mask = createRegionMask(input), boxes = result.elements.map(cellBox);
+    const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), boxes = result.elements.map(cellBox);
     const reserved = new Set(portalMargin(input, 1).map(c => `${c.x},${c.y}`));
     for (const [i, box] of boxes.entries()) {
+      for (let y = box.y - 2; y < box.y + box.h + 2; y++) for (let x = box.x - 2; x < box.x + box.w + 2; x++)
+        assert.ok(access.has(x, y), `${name} ${seed}: ${result.elements[i].label} has a complete local bypass`);
       for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++)
         assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: ${result.elements[i].label} footprint`);
       for (const other of boxes.slice(i + 1)) {
@@ -171,23 +173,25 @@ test('a macro-sized depot with hundreds of portals builds quickly', () => {
   assert.ok(bounds(blockers(result)[0]).w > 0);
 });
 
-test('depot can place geometry against a hinted edge while protecting portals', () => {
+test('depot leaves a bypass at a hinted edge while protecting portals', () => {
   const cells = cellsOf(40, 30);
   const portals = [{ id: 'west', axis: 'v', x: 0, y: 10, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 10, length: 3 }];
   const hints = [{ axis: 'h', x: 0, y: 0, length: 40 }];
   const input = { ...brief('hinted', 1, cells, portals, { density: 1 }), hints };
   const result = buildRegion(input);
-  assert.ok(result.elements.some(element => element.y === 0), 'a piece reaches the hinted north edge');
+  assert.ok(result.elements.length > 0, 'depot still places content');
+  assert.ok(result.elements.every(element => element.y >= 2 * SIZE), 'north boundary has a two-cell bypass');
   assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
 });
 
-test('large concave depot with many portals keeps a safe hinted attachment', () => {
+test('large concave depot with many portals leaves a safe hinted boundary', () => {
   const cells = cellsOf(80, 30, (x, y) => y < 15 || x < 45);
   const portals = Array.from({ length: 33 }, (_, i) => ({ id: `north-${i}`, axis: 'h', x: i * 2, y: 0, length: 2 }));
   portals.push({ id: 'south', axis: 'h', x: 8, y: 30, length: 2 });
   const input = { ...brief('many-concave', 4, cells, portals, { density: 1 }), hints: [{ axis: 'v', x: 0, y: 17, length: 12 }] };
   const result = buildRegion(input);
-  assert.ok(result.elements.some(element => element.x === 0), 'a piece reaches the hinted west edge');
+  assert.ok(result.elements.length > 0, 'depot still places content');
+  assert.ok(result.elements.every(element => element.x >= 2 * SIZE), 'west boundary has a two-cell bypass');
   assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
 });
 

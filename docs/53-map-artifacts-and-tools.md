@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-52` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-53` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -371,3 +371,17 @@ snapshots preserve saved geometry; omitted older compound snapshots require
 their matching implementation and are rejected by the current registry.
 Current full and omitted snapshots cover the new composition. Mechanics are
 in 20.3.4, authored evidence in 42.3, and capture provenance in 42.4.
+
+## Depot warehouse composition (#533)
+
+`types-53` intentionally increases production warehouse budgets and changes
+depot geometry, loot and subsequent generated IDs. All production pieces now
+keep a two-cell exterior bypass; warehouse doorsteps are protected canvas access.
+The fixed nearby-portal route tree remains. The tool-only #663 experiment retains
+its quarter-density quota and existing execution identities; its expensive
+coordinator is not promoted. Placeable output/versions, delegation encoding,
+wire/macro/library versions and the frozen simulation fixture are unchanged.
+Saved Layout-only maps require their matching strategy version; saved full
+results retain their own geometry under the existing compatibility rules.
+Mechanics are in 20.3.4, retained before/after evidence in 42.3 and the content
+capture record in 42.4.

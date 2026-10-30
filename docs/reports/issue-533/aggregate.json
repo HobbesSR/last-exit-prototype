@@ -1,0 +1,126 @@
+{
+  "issue330-before-12x6": {
+    "cases": 2,
+    "baseline": {
+      "warehouses": 7,
+      "warehouseEnvelopeCells": 336,
+      "roofCells": 336,
+      "occupiedCells": 370,
+      "rows": 32,
+      "crates": 29,
+      "loot": 70,
+      "errors": 0,
+      "doorsteps": 26,
+      "failedDoorsteps": 0,
+      "rooms": 17,
+      "failedRooms": 0
+    },
+    "current": {
+      "warehouses": 14,
+      "warehouseEnvelopeCells": 672,
+      "roofCells": 672,
+      "occupiedCells": 481,
+      "rows": 17,
+      "crates": 29,
+      "loot": 51,
+      "errors": 0,
+      "doorsteps": 60,
+      "failedDoorsteps": 0,
+      "rooms": 36,
+      "failedRooms": 0
+    }
+  },
+  "issue330-before-24x12": {
+    "cases": 5,
+    "baseline": {
+      "warehouses": 13,
+      "warehouseEnvelopeCells": 624,
+      "roofCells": 624,
+      "occupiedCells": 708,
+      "rows": 65,
+      "crates": 53,
+      "loot": 144,
+      "errors": 0,
+      "doorsteps": 54,
+      "failedDoorsteps": 0,
+      "rooms": 33,
+      "failedRooms": 0
+    },
+    "current": {
+      "warehouses": 24,
+      "warehouseEnvelopeCells": 1152,
+      "roofCells": 1152,
+      "occupiedCells": 843,
+      "rows": 34,
+      "crates": 53,
+      "loot": 124,
+      "errors": 0,
+      "doorsteps": 84,
+      "failedDoorsteps": 0,
+      "rooms": 57,
+      "failedRooms": 0
+    }
+  },
+  "issue330-before-36x18": {
+    "cases": 5,
+    "baseline": {
+      "warehouses": 37,
+      "warehouseEnvelopeCells": 1776,
+      "roofCells": 1776,
+      "occupiedCells": 2139,
+      "rows": 211,
+      "crates": 144,
+      "loot": 453,
+      "errors": 0,
+      "doorsteps": 130,
+      "failedDoorsteps": 0,
+      "rooms": 88,
+      "failedRooms": 0
+    },
+    "current": {
+      "warehouses": 72,
+      "warehouseEnvelopeCells": 3456,
+      "roofCells": 3456,
+      "occupiedCells": 2463,
+      "rows": 94,
+      "crates": 141,
+      "loot": 417,
+      "errors": 0,
+      "doorsteps": 260,
+      "failedDoorsteps": 0,
+      "rooms": 173,
+      "failedRooms": 0
+    }
+  },
+  "all": {
+    "cases": 12,
+    "baseline": {
+      "warehouses": 57,
+      "warehouseEnvelopeCells": 2736,
+      "roofCells": 2736,
+      "occupiedCells": 3217,
+      "rows": 308,
+      "crates": 226,
+      "loot": 667,
+      "errors": 0,
+      "doorsteps": 210,
+      "failedDoorsteps": 0,
+      "rooms": 138,
+      "failedRooms": 0
+    },
+    "current": {
+      "warehouses": 110,
+      "warehouseEnvelopeCells": 5280,
+      "roofCells": 5280,
+      "occupiedCells": 3787,
+      "rows": 145,
+      "crates": 223,
+      "loot": 592,
+      "errors": 0,
+      "doorsteps": 404,
+      "failedDoorsteps": 0,
+      "rooms": 266,
+      "failedRooms": 0
+    }
+  }
+}

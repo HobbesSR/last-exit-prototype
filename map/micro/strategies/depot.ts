@@ -16,6 +16,7 @@ import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
 import { createDepotExperimentCanvas } from '../experiments/depot-canvas.ts';
+import { portalStands } from '../portals.ts';
 
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -41,7 +42,7 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  *
  * Everything lines up on lanes `LANE` cells apart along one axis, drawn from the seed.
  * Warehouses come first: roofed boxes `roomCells` long, at seeded places on the lanes until
- * about `density` of a quarter of the ground is spoken for. Each is a building design (56),
+ * about `density` of half the fill is spoken for. Each is a building design (56),
  * in a seeded order a floor with an office and a store, or a floor with an office, and one
  * room with a door at each end where neither fits (the `warehouse` placeable, 20.8). Shelf islands run down the
  * floor. Container rows follow, two or three containers end to end, packed along each lane
@@ -49,7 +50,8 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * A final pass puts single-cell crates on still-unaddressed lane cells, with independent
  * per-cell rolls and the same piece spacing. Row sites rejected by density stay empty.
  *
- * Every piece's box keeps `AISLE` clear cells from other pieces. Candidate footprints stay
+ * Every piece's box keeps `AISLE` clear cells from other pieces and a complete exterior
+ * ring that wide in the access mask. Candidate footprints stay
  * owned and clear of portal approaches, and the builder protects a swept hunter route tree
  * between nearby portals, whatever their count (#347).
  * Hinted runs receive priority when a warehouse can fit against them. A region with no
@@ -96,24 +98,44 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
   if (experimental && !experimental.ok) throw new Error(`Depot experiment initialization refused: ${experimental.reason}`);
   const canvas = experimental?.ok ? experimental.canvas : createBuilderCanvas(brief, protectedShapes);
   if (experimental?.ok) experiment!.record(experimental.canvas);
+  // Label the empty yard once. Every admitted envelope has a complete two-cell ring and
+  // two-cell inter-piece spacing, so later pieces can reroute a yard path around themselves.
+  // This preserves local bypasses as well as portal routes, without the experimental solver.
+  const yard = new Set<string>();
+  const key = (x: number, y: number) => `${x},${y}`;
+  if (!experiment && brief.portals.length) {
+    const fits = (x: number, y: number) => canvas.access.has(x, y) && canvas.access.has(x + 1, y)
+      && canvas.access.has(x, y + 1) && canvas.access.has(x + 1, y + 1);
+    const queue: { x: number; y: number }[] = [];
+    const add = (x: number, y: number) => {
+      if (yard.has(key(x, y)) || !fits(x, y)) return;
+      yard.add(key(x, y)); queue.push({ x, y });
+    };
+    for (const { portal } of portalStands(brief)) for (let i = 0; i + 2 <= portal.length; i++)
+      if (portal.axis === 'h') add(portal.x + i, portal.y - 1);
+      else add(portal.x - 1, portal.y + i);
+    for (let head = 0; head < queue.length; head++) {
+      const { x, y } = queue[head]!;
+      add(x + 1, y); add(x - 1, y); add(x, y + 1); add(x, y - 1);
+    }
+  }
   const boxAt = (u: number, v: number, length: number, width: number) => {
     const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
     return rect(x * size, y * size, w * size, h * size);
   };
-  // A box must be owned and clear of portal approaches; only other pieces need an aisle.
+  // A box must be owned, clear of portal approaches, and surrounded by a usable aisle.
   const clear = (u: number, v: number, length: number, width: number) => {
     const box = boxAt(u, v, length, width);
-    // Experimental controls add a complete local bypass, including unported side lobes.
-    // This is stronger than production boundary siting and is disclosed in paired evidence.
+    // A full exterior bypass prevents a piece closing an unported neck or a door approach.
     return canvas.fits(box) && canvas.spaced(box, AISLE * size)
-      && (!experiment || canvas.access.contains(boxAt(u - AISLE, v - AISLE, length + 2 * AISLE, width + 2 * AISLE)));
+      && canvas.access.contains(boxAt(u - AISLE, v - AISLE, length + 2 * AISLE, width + 2 * AISLE));
   };
   const place = (label: string, u: number, v: number, placed: Placed<unknown>) => {
     const [x, y] = alongX ? [u, v] : [v, u];
     // Production siting guarantees commit. Experimental circulation/door admission
     // may refuse a candidate atomically, before publishing observer events.
-    const access = experiment ? placed.demand.clear.map(b => rect((x + b.x) * size, (y + b.y) * size, b.w * size, b.h * size)) : [];
-    const accepted = canvas.commit({ elements: placedElements(placed, label, x, y, size), ...experiment ? { access } : {} });
+    const access = placed.demand.clear.map(b => rect((x + b.x) * size, (y + b.y) * size, b.w * size, b.h * size));
+    const accepted = canvas.commit({ elements: placedElements(placed, label, x, y, size), access });
     if (!accepted && !experiment) throw new Error(`Depot placement ${label} failed its canvas commit.`);
     return accepted;
   };
@@ -126,7 +148,9 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
 
   // Warehouses, at seeded places on the lanes, in an order that doesn't depend on the brief's cell order.
   const across = Math.max(5, Math.round(room * 3 / 4));
-  const target = Math.max(1, Math.round(density * cells.length / (4 * room * across)));
+  // Production reserves half the density budget for roofed space, leaving container yards.
+  // Keep the retained tool-only comparison's quota and versioned execution unchanged.
+  const target = Math.max(1, Math.round(density * cells.length / ((experiment ? 4 : 2) * room * across)));
   let warehouses = 0, designed = 0;
   const hintedWarehouses = new Set(boxesAgainstHints(brief, alongX ? room : across, alongX ? across : room)
     .map(b => alongX ? `${b.x},${b.y}` : `${b.y},${b.x}`));
@@ -135,9 +159,10 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
     .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.v - b.v || a.u - b.u)) {
     if (warehouses === target) break;
     if (!clear(u, v, room, across)) continue;
+    const [x, y] = alongX ? [u, v] : [v, u];
+    if (!experiment && brief.portals.length && !yard.has(key(x - AISLE, y - AISLE))) continue;
     const label = `depot-warehouse-${warehouses + 1}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
-    const [x, y] = alongX ? [u, v] : [v, u];
     const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed }, size));
     const { design, allocation, realization, rejected } = built.details;
     if (experiment && !place(label, u, v, built)) continue;
