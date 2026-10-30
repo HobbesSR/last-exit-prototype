@@ -1,40 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createDiscovery } from '../shared/discovery.ts';
-import { createPhysicsGame, disposePhysics } from '../shared/simulation.ts';
+import { disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { dynamicNavigationWork, dynamicWaypoint } from '../shared/simulation/dynamic-navigation.ts';
-import { discoveryGrid } from '../shared/discovery.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { arena } from './helpers/arena.js';
+import { everywhere, know, stagePhysics } from './helpers/scenario.js';
 
-function fixture({ width = 800, height = 800, spawns = [{ x: 150, y: 400 }], gladiator = true,
-  gates = [], obstacles = [], props = [] } = {}) {
-  const map = { seed: 448, width, height,
-    playableArea: { cellSize: 100, rows: Array.from({ length: Math.ceil(height / 100) }, (_, y) => ({ y, runs: [[0, Math.ceil(width / 100)]] })) },
-    modules: [], buildings: [], obstacles, gates, hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], physicsProps: props,
-    entry: { x: 80, y: 400 }, exit: { x: width - 50, y: 400 }, spawns,
-    hunterSpawns: [{ x: 300, y: 400 }] };
-  const content = structuredClone(contentById('content-physics-8'));
-  content.roster = { contestants: spawns.map((_, i) => `C${i}`),
-    gladiators: gladiator ? [{ name: 'G', kit: 'warden' }] : [] };
-  return { map, content };
-}
-
-async function game(options) {
-  const { map, content } = fixture(options);
-  const s = await createPhysicsGame(448, map, content);
-  for (const p of s.players) p.bot = false;
-  return s;
-}
-
-function giveDiscovery(p, { surveyed = new Set(), gates = new Map() } = {}) {
-  p.discovery = { ...createDiscovery(), surveyed, gates };
-}
-
-function allSurveyed(s) {
-  const { cols, rows } = discoveryGrid(s.map);
-  return new Set(Array.from({ length: cols * rows }, (_, i) => i));
+async function game({ width = 800, height = 800, spawns = [{ x: 150, y: 400 }], gladiator = true, gates = [], obstacles = [], props = [] } = {}) {
+  const { map } = arena({ cols: width / 100, rows: height / 100, cellSize: 100, seed: 448, gates, obstacles, physicsProps: props,
+    entry: { x: 80, y: 400 }, exit: { x: width - 50, y: 400 } });
+  const actors = [...spawns.map(at => ({ role: 'contestant', bot: false, ...at })), ...gladiator ? [{ role: 'gladiator', bot: false, x: 300, y: 400 }] : []];
+  return (await stagePhysics(map, { seed: 448, content: contentById('content-physics-8'), actors })).s;
 }
 
 test('local detours honor the remembered door state and do not inspect hidden geometry', async () => {
@@ -43,7 +20,7 @@ test('local detours honor the remembered door state and do not inspect hidden ge
   try {
     for (const s of [doorA, doorB]) {
       const p = s.players[0];
-      p.discovery = { ...createDiscovery(), surveyed: allSurveyed(s), gates: new Map([['remembered', { open: false, locked: false }]]) };
+      know(s, p, { surveyed: everywhere(s.map), gates: new Map([['remembered', { open: false, locked: false }]]) });
     }
     const goal = { x: 480, y: 400 };
     assert.deepEqual(dynamicWaypoint(doorA, doorA.players[0], goal), dynamicWaypoint(doorB, doorB.players[0], goal),
@@ -53,7 +30,7 @@ test('local detours honor the remembered door state and do not inspect hidden ge
   const clear = await game();
   const altered = await game({ obstacles: [{ id: 'unseen', x: 380, y: 560, w: 80, h: 80 }] });
   try {
-    for (const s of [clear, altered]) giveDiscovery(s.players[0]);
+    for (const s of [clear, altered]) know(s, s.players[0]);
     const goal = { x: 480, y: 400 };
     const a = dynamicWaypoint(clear, clear.players[0], goal);
     const b = dynamicWaypoint(altered, altered.players[0], goal);
@@ -61,7 +38,7 @@ test('local detours honor the remembered door state and do not inspect hidden ge
     assert.equal(a.y, clear.players[0].y, 'no unseen static geometry selects a lateral detour');
     assert.deepEqual(a, b);
 
-    for (const s of [clear, altered]) s.players[0].discovery.surveyed = allSurveyed(s);
+    for (const s of [clear, altered]) s.players[0].discovery.surveyed = everywhere(s.map);
     const surveyedA = dynamicWaypoint(clear, clear.players[0], goal);
     const surveyedB = dynamicWaypoint(altered, altered.players[0], goal);
     assert.notEqual(surveyedA.y, clear.players[0].y, 'fully surveyed support permits a lateral detour');

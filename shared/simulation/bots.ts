@@ -8,7 +8,8 @@ import { closestOnSegment, type PackedTiles } from '../free-space.ts';
 import { createPortalPlanner, portalGraphOf, regionAt, type PortalGraph, type Reach } from '../navigation/portal-graph.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, sameQuality, syncWeapon } from '../equipment.ts';
-import { GATE_REACH, HZ } from './rules.ts';
+import { GATE_REACH, HZ, TRANSIT_REACH } from './rules.ts';
+import { giveUpSweep, sweepTarget, transitPlan } from './hunting.ts';
 import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { dynamicWaypoint } from './dynamic-navigation.ts';
@@ -16,7 +17,7 @@ import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment, dropInventorySlot } from './loot.ts';
 import { reloadableRounds, reserveRoom } from './ammo.ts';
 import { heardBy } from './hearing.ts';
-import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
+import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, StationId, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
 import { atan2, cos, hypot, sin } from '../math.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
@@ -610,7 +611,18 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   // contestant may follow one too (#685). The lead is kept up every tick, so arrival is noticed in passing.
   const reacting = s.content.hearingResponse === 'temperament' && (p.role === 'gladiator' || opportunistic);
   const lead = reacting ? leadOf(s, p) : null;
-  let target: Vec2 = p.role === 'gladiator' ? nearest || lead || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
+  // Under `hunting: 'sweep'` a gladiator with no one seen and nothing heard sweeps regions ahead of the wall, and takes
+  // transit toward a lead or a sweep when that is quicker (#683).
+  const hunting = p.role === 'gladiator' && s.content.hunting === 'sweep';
+  const sweep = hunting && !nearest && !lead ? sweepTarget(s, p, at => standingIn(s, p, at)) : null;
+  let target: Vec2 = p.role === 'gladiator' ? nearest || lead || sweep || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
+  let transitTo: StationId | undefined;
+  // What the bot is transiting toward while it heads for the station, if it is.
+  let via: Vec2 | undefined;
+  if (hunting && !nearest) {
+    const plan = transitPlan(s, p, target);
+    if (plan) { via = target; target = plan.from; if (p.railCd === 0 && distance(p, plan.from) < TRANSIT_REACH) transitTo = plan.to.id; }
+  }
   let exploring = false;
   const tiles = s.content.navigation === 'tiles';
   if (p.role === 'contestant') {
@@ -677,7 +689,9 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     if (leg !== target && (status === 'no-known-route' || status === 'invalid-endpoint')) abandonLeg(p);
     if (status === 'no-known-route' || status === 'invalid-endpoint') {
       if (exploring) abandonExploration(p);
-      if (lead && target === lead) abandonLead(p);
+      // A station it can't reach gives up what it was transiting toward, as a goal it can't reach would.
+      if (lead && (target === lead || via === lead)) abandonLead(p);
+      if (sweep && (target === sweep || via === sweep)) giveUpSweep(s, p);
       // A known dead end sets the item aside, as a stall would; it is not given up for good (22.6).
       const item = target as Partial<GroundItem>, pursuit = pursuits.get(p);
       if (pursuit && item.kind && item.id) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }
@@ -742,6 +756,7 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     const held = p.inventory?.[(collecting ? intent.input.slot : p.selectedSlot) ?? -1];
     if (held?.kind === 'weapon' && reloadableRounds(s, p, held) > 0 && (held.ammo === 0 || !nearest)) intent.input.reload = true;
   }
+  if (transitTo) intent.input.transit = transitTo;
   intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? atan2(nearest.y - p.y, nearest.x - p.x) : s.content.dynamicNavigation && dx === 0 && dy === 0 ? p.heading : atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
   return intent;
 }

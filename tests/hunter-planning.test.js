@@ -1,34 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { botInput } from '../shared/simulation/bots.ts';
-import { attachPortalGraph } from '../shared/navigation/portal-graph.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import * as profiler from '../shared/profiler.ts';
+import { arena } from './helpers/arena.js';
 
 // Under `hunterPlanning: 'portals'` a gladiator plans a trip across regions a leg at a time (#682, 22.6).
 
-const CELL = 192, REGIONS = 4, WIDTH = 4 * CELL, HEIGHT = 3 * CELL;
+const CELL = 192, REGIONS = 4, WIDTH = 4 * CELL;
 
 /** Four regions side by side, walled from each other except for one gap each, with the exit in the last. */
-function corridorMap() {
-  const playableArea = { cellSize: CELL, rows: Array.from({ length: 3 }, (_, y) => ({ y, runs: [[0, 4 * REGIONS]] })) };
-  // Each wall leaves a gap at y 0–192, 192–384 or 384–576 in turn, so a trip zigzags.
-  const gaps = [0, 2, 0], obstacles = [], joins = [];
-  gaps.forEach((gap, i) => {
-    const x = (i + 1) * WIDTH - 20;
-    for (let row = 0; row < 3; row++) if (row !== gap) obstacles.push({ id: `wall-${i}-${row}`, x, y: row * CELL, w: 40, h: CELL });
-    joins.push({ a: i, b: i + 1, x: x + 20, y: gap * CELL + CELL / 2 });
-  });
-  const map = { width: REGIONS * WIDTH, height: HEIGHT, playableArea, obstacles, gates: [], buildings: [], items: [], nodes: [], streets: [], hazards: [],
-    traps: [], chargers: [], stations: [], exit: { x: REGIONS * WIDTH - 96, y: HEIGHT / 2 } };
-  const cols = REGIONS * 4, owner = new Int32Array(cols * 3);
-  for (let row = 0; row < 3; row++) for (let col = 0; col < cols; col++) owner[row * cols + col] = Math.floor(col / 4);
-  const regions = Array.from({ length: REGIONS }, (_, i) => ({ id: `r${i}`, box: { x: i * WIDTH, y: 0, w: WIDTH, h: HEIGHT }, portals: [] }));
-  const portals = joins.map(({ a, b, x, y }, node) => ({ id: `p${node}`, x, y, stands: [], regions: [a, b],
-    slots: [regions[a].portals.push(node) - 1, regions[b].portals.push(node) - 1] }));
-  attachPortalGraph(map, { cellSize: CELL, cols, rows: 3, owner, regions, portals });
-  return { map, crossings: joins.map(({ x, y }) => ({ x, y })) };
-}
+// Each wall leaves a gap at y 0–192, 384–576 or 0–192 in turn, so a trip zigzags.
+const corridorMap = () => arena({ cols: 4 * REGIONS, rows: 3, cellSize: CELL, corridor: { gaps: [0, 2, 0] } });
 
 function hunterScene(contentId, planning) {
   const { map, crossings } = corridorMap();

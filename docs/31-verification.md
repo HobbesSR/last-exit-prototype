@@ -192,7 +192,7 @@ The shipped default is physics content (#523), and `tests/browser.mjs` pins the 
 written for: its fixtures swap a room's map and place actors by assigning positions on the server's game, which a
 physics world does not accept. `tests/default-physics.browser.mjs` is the default room's core client flow (lobby,
 start, walking, dropping an item); the `physics-*` scripts cover the physics client's other features. A new browser
-check of default behavior goes in one of those, not in `browser.mjs`. `tests/hearing.browser.mjs` runs a `content-8` room and draws an arranged heard-gunfire cue (#684).
+check of default behavior goes in one of those, not in `browser.mjs`. `tests/hearing.browser.mjs` runs a `content-8` room and draws an arranged heard-gunfire cue (#684). `tests/transit.browser.mjs` runs a `content-10` room, places the player's gladiator at a station and transits by clicking a minimap ring (#692).
 
 `npm run test:times` times every unit test file alone, slowest first, and marks files over
 budget (15 s fast tier, 60 s slow tier) with their slowest tests; `-- --strict` exits 1 on
@@ -362,6 +362,38 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
 
 A new `tests/slow/` file adds its row here in the same change.
+
+<a id="test-arenas"></a>
+
+## Test arenas
+
+A behaviour question is answered in the smallest scene that still shows it (#697). Choose, per test:
+
+- **A hand-made arena** when the rule is about geometry, or behaviour in isolation: open ground, a corridor of
+  regions, a scatter of crates.
+- **A generated region** (a real region type in a small frame) when the test depends on what generation produces.
+- **A whole live match** only when nothing smaller shows it. Live matches stay the integration check, for example
+  `tools/navigation/hunter-report.mjs`; arenas do not replace them.
+
+`tests/helpers/arena.js` is the one builder for hand-made arenas. `arena()` returns a valid `GameMap` from
+parameters: size and cell size; a playable area covering the whole map, because a map without one is a diamond
+and points off its midline get pushed; an optional corridor of regions with one gap per wall and its portal graph;
+crates scattered from a seed alone; and obstacles, gates, buildings, items, stations, chargers, entry and exit as
+given. Presets such as `openField` are parameter sets of it. A new arena is a parameter set of the builder unless it
+needs something the builder can't express, and its PR says what. Per-file scenes are folded into the builder rather
+than kept alongside it. A generated-region option is not built yet: no first user needed one, so it waits for a
+test that does.
+
+`tests/helpers/scenario.js` stages a game on an arena: `stage` (the legacy mover, the fast path) or `stagePhysics`
+(physics content) places exactly the actors asked for, each a bot or scripted. `know` sets what a contestant knows,
+`run` steps with events scripted per tick (a shot every N ticks, a door changing) and returns the tick a condition
+first held, and `gunfight` is the first preset scenario. Reports import the same helpers
+(`tools/navigation/gunfight-arena.mjs`).
+
+No arena is selectable from the main interface: not in the lobby, the room protocol or the `?room=` flow. A lab
+may adapt one where it helps (the Map Lab, the physics lab, micro-lab), opt-in and per lab. Arena tests keep the
+per-file limits above; a cue cell's centre may be inside an obstacle, so check `canOccupy` where a test needs an
+open point.
 
 ## Continuous integration
 

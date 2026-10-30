@@ -56,27 +56,33 @@ opportunities between transit points.
 
 <a id="transit-route-selection"></a>
 
-### Transit route selection (accepted design, not built: #692)
+### Transit route selection (#692)
 
-Corey, 2026-10-30, on #683: the destination is **"Make it selectable"**. The design:
+Corey, 2026-10-30, on #683: the destination is **"Make it selectable"**. Built under `content-10`
+([14](14-match-rules.md#transit)):
 - **Rule.** A gladiator ready to transit (cooldown spent, within reach of a station) may go to any
   other station ahead of the wall, not only the next one. The choice is a one-shot input naming the
   station. A station that is unknown, behind the wall or the current one is refused, with no effect
-  and no cooldown, as a landing the physics world cannot place is today. Plain interact keeps the
+  and no cooldown, as a landing the physics world cannot place is. Plain interact keeps the
   current destination, the next station ahead, so inputs and bots that do not choose are unchanged.
-  Transit stays instant with the same cooldown. Selection arrives under a new content id; existing
-  contents keep cycling.
-- **Client.** Near a usable station, holding interact shows the reachable stations on the minimap and
-  as edge markers, with the default preselected. Clicking one, or releasing on the selection,
-  transits, and Esc cancels. On touch, the station marker is tapped. Gladiators already see the whole
-  map (15), so showing every station reveals nothing new.
-- **Bots** (#683). Each usable station links to every station ahead, so a gladiator's top-level plan
-  (22.6) can take transit to the station nearest its goal when the walk to the station plus a small
-  fixed cost beats walking. With no contestant seen and nothing heard, a gladiator sweeps regions ahead
-  of the wall, where contestants are likely to be, rather than waiting at a station (Corey, same day).
-- **Input contract.** The station choice is a player input field: sanitized and recorded like the
+  Existing contents ignore the choice and keep cycling.
+- **Travel time** scales with distance (`base + perUnit` × distance, in content). `content-10` tunes it to
+  0, so transit behaves as instant teleportation, as Corey asked on #692. Above zero the gladiator is in
+  transit: out of the world, unhittable and unable to act, and the cooldown starts when it lands. That
+  state is what a later animation would show. The camera cuts to the destination on landing, as before.
+- **Telegraphing.** The rail effect at departure and landing stays the only tell to contestants (Corey,
+  #692: "Current effect only").
+- **Client.** While the player can transit, the minimap rings every station it may go to, the default
+  more strongly. A click or tap on a ring transits there, and E still goes to the default. Gladiators
+  already see the whole map (15), so showing every station reveals nothing new. This replaces the
+  hold-to-pick gesture first proposed (hold interact, release on the selection, Esc cancels): rings shown
+  whenever a transit is possible need no hold or cancel, and the same tap works on touch. Off-screen edge
+  markers for stations are not built.
+- **Bots** (#683, built under `content-11`, [14](14-match-rules.md#gladiator-bots)). Bots send the same
+  input. A gladiator takes transit to the station nearest its goal when the walk to a station plus a small
+  fixed cost beats walking. With no contestant seen and nothing heard, it sweeps regions ahead of the wall,
+  where contestants are likely to be, rather than waiting at a station (Corey, same day).
+- **Input contract.** The station choice is the `transit` input field: sanitized and recorded like the
   others (24, 26).
-- **Open.** Travel time: instant, a fixed delay, or scaled with distance. Whether arrival is
-  telegraphed to contestants beyond the current rail effect.
 
 The rules governing what any viewer may know are in [15](15-information-rules.md).

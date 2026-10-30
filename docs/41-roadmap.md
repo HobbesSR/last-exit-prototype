@@ -111,6 +111,12 @@ measurement tool and [three-size baseline](42.23-navigation-structure.md).
 No main lever is selected by that baseline; use matched before/after reports
 to assess a subsequent named mechanics experiment.
 
+The bounded connected static-barrier experiment (#694,
+[42.24](42.24-static-barrier.md)) retains one opt-in pocket/detour witness and
+exposes post-siting overlay loot collisions. It did not itself promote production
+geometry or general #649 growth. Production builders already filter loot after
+composition; the overlay's blocked loot did not identify a missing ordering capability.
+
 One bounded production static-barrier adoption now gives eligible parks a
 connected hedge pocket (#698, types-56). Matched local targets detour and gain
 accessible pocket area; real-map no-fit cases, filtered old loot, actual final

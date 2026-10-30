@@ -13,6 +13,7 @@ import { damage, skill, attack } from './combat.ts';
 import { solvePhysicsProjectiles } from './physics-projectiles.ts';
 import { prepareHooks, finishHooks, reconcileHooks } from './hook.ts';
 import { interact, advanceCharging } from './interactions.ts';
+import { arrive, transit } from './transit.ts';
 import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
 import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
@@ -188,7 +189,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   // Each marker reaches exactly one stepped capture: its own tick's, or the next after a between-tick change.
   r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
   for (const p of s.players) {
-    p.movedThisTick = 0; respawn(s, p);
+    p.movedThisTick = 0; respawn(s, p); arrive(s, p);
     if (p.status === 'active') advanceTimers(p);
   }
   start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
@@ -260,6 +261,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     const input = intents.get(p)?.input;
     if (p.status !== 'active' || !input) continue;
     if (input.interact) interact(s, p);
+    if (input.transit && s.content.transit === 'selectable') transit(s, p, input.transit);
     if (p.status !== 'active') continue;
     // Ignore contact recovery jitter within the reviewed resting-contact tolerance.
     advanceCharging(s, p, (p.movedThisTick ?? 0) > 0.05 ? { x: 1 } : {});

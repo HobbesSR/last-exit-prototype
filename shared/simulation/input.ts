@@ -1,6 +1,6 @@
 import { finite, integer, safeInteger } from '../numbers.ts';
 import { SLOT_COUNT, isAmmoFamily } from '../equipment.ts';
-import type { Player, PlayerInput, SlotIndex, Tick } from '../types.ts';
+import type { Player, PlayerInput, SlotIndex, StationId, Tick } from '../types.ts';
 
 /**
  * What a client may send, and the queue a tick spends it from.
@@ -25,6 +25,8 @@ const MAX_DEPTH = 4;
 const REPEAT_TICKS = 10;
 /** Bounds an ammo-drop request; the simulation then drops at most what the reserve holds. */
 const MAX_AMMO_DROP = 9999;
+/** Bounds a named id, such as a transit destination. */
+const MAX_ID = 64;
 
 /** Clamp and coerce one wire input. Everything absent or malformed becomes a neutral value. */
 function sanitize(input: PlayerInput, seq: number): PlayerInput {
@@ -42,6 +44,8 @@ function sanitize(input: PlayerInput, seq: number): PlayerInput {
     ...(input.reload === true ? { reload: true as const } : {}),
     ...(input.dropAmmo && isAmmoFamily(input.dropAmmo.family) && safeInteger(input.dropAmmo.count) && input.dropAmmo.count > 0 && input.dropAmmo.count <= MAX_AMMO_DROP
       ? { dropAmmo: { family: input.dropAmmo.family, count: input.dropAmmo.count } } : {}),
+    // A station id is checked against the map when spent; here only its size is bounded.
+    ...(typeof input.transit === 'string' && input.transit.length > 0 && input.transit.length <= MAX_ID ? { transit: input.transit as StationId } : {}),
   };
 }
 

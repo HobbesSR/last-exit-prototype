@@ -149,6 +149,11 @@ SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlannin
 SHIPPED['content-8'] = { ...SHIPPED['content-7'], id: 'content-8', hearing: { ticks: 4 * 20, ranges: { pistol: 8000, rifle: 10000, scattergun: 12000 } } };
 // Bots act on what they hear, by temperament (#685, 17.3 #26); otherwise content-8.
 SHIPPED['content-9'] = { ...SHIPPED['content-8'], id: 'content-9', hearingResponse: 'temperament' };
+// Gladiators choose their transit destination (#692, 17.3 #26); otherwise content-9. Travel time scales with distance,
+// tuned here to behave as the instant transit before it.
+SHIPPED['content-10'] = { ...SHIPPED['content-9'], id: 'content-10', transit: 'selectable', transitTime: { base: 0, perUnit: 0 } };
+// Gladiator bots sweep regions ahead of the wall and take transit when it is quicker (#683, 17.3 #26); otherwise content-10.
+SHIPPED['content-11'] = { ...SHIPPED['content-10'], id: 'content-11', hunting: 'sweep' };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {

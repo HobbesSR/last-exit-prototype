@@ -21,6 +21,8 @@ Server tick cost by stage, its scaling with map size and the classification of o
 frames (#655).
 Navigation structure's three-size detour, dead-end, empty-space and boundary
 baseline is in [42.23](42.23-navigation-structure.md) (#688).
+The matched connected static-barrier experiment and its production integration
+limit are in [42.24](42.24-static-barrier.md) (#694).
 One production park hedge pocket's matched movement, access, loot and generation
 cost evidence is in [42.25](42.25-park-pocket.md) (#698).
 

@@ -1,0 +1,1729 @@
+[
+  {
+    "width": 12,
+    "owner": "park@144,36",
+    "candidates": 23,
+    "refusals": {
+      "envelope": 22,
+      "existingGeometry": 0,
+      "target": 0
+    },
+    "retainedLocalLoot": 49,
+    "roles": [
+      {
+        "body": "contestant",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0217631480967513,
+            "p90": 1.0435689763410252,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.0294980632894961,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 4,
+            "complete": 4,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 91,
+            "complete": 91,
+            "median": 1.0161409421152219,
+            "p90": 1.0564294075942122,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 5,
+            "complete": 5,
+            "median": 1.0092201570976262,
+            "p90": 1.0392147126097,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 49,
+            "complete": 49,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0163547967904267,
+            "p90": 1.0415482790445436,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.015004823737558,
+            "p90": 1.0344641043841563,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.022722944741758,
+            "p90": 1.0435689763410252,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.0294980632894961,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 4,
+            "complete": 4,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.3121120714748857,
+            "p90": 1.6297754860794054,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 3.9345368164630163,
+            "p90": 8.59470601396877,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 91,
+            "complete": 91,
+            "median": 1.0151313178802164,
+            "p90": 1.057125828223358,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 5,
+            "complete": 5,
+            "median": 1.0114021130670843,
+            "p90": 1.1428551321924305,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.000082483214961,
+            "p90": 1.0000848260530482,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 49,
+            "complete": 44,
+            "median": 1.0019121191665203,
+            "p90": 1.2014322728518132,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 5,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0163547967904267,
+            "p90": 1.0415482790445436,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.015004823737558,
+            "p90": 1.0344641043841563,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "ownerBefore": {
+          "walkableArea": 2151036.8639373817,
+          "deadEndArea": 0,
+          "emptyShare": 0.997588424437299,
+          "emptyAreaEstimate": 2144448,
+          "impassableBoundaryShare": 0.0763888888888889
+        },
+        "ownerAfter": {
+          "walkableArea": 1967697.2906341571,
+          "deadEndArea": 306324.1674194336,
+          "emptyShare": 0.9949040767386091,
+          "emptyAreaEstimate": 1911744,
+          "impassableBoundaryShare": 0.0763888888888889
+        },
+        "mapBefore": {
+          "walkableArea": 73358122.79614258,
+          "deadEndArea": 41566.375663757324,
+          "components": 1
+        },
+        "mapAfter": {
+          "walkableArea": 73174783.22283936,
+          "deadEndArea": 347890.5430831909,
+          "components": 1
+        },
+        "changedRoutes": 61
+      },
+      {
+        "body": "hunter",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0190445519200582,
+            "p90": 1.0710564961905749,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.010126900903327,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 4,
+            "complete": 4,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 91,
+            "complete": 91,
+            "median": 1.0169002711400272,
+            "p90": 1.0638602562437631,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 5,
+            "complete": 5,
+            "median": 1.0122420544441864,
+            "p90": 1.047301788256712,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 49,
+            "complete": 49,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0121980651196765,
+            "p90": 1.0428434440208854,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.015785653118293,
+            "p90": 1.0357800268763928,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0190445519200582,
+            "p90": 1.0710564961905749,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.010126900903327,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 4,
+            "complete": 4,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.3426429257657948,
+            "p90": 1.6641226080837563,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 4.045847588443134,
+            "p90": 8.78818621728658,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 91,
+            "complete": 91,
+            "median": 1.0169002711400272,
+            "p90": 1.0718103288508187,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 5,
+            "complete": 5,
+            "median": 1.0154850812876475,
+            "p90": 1.1573580423508818,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.0020447970714252,
+            "p90": 1.0020457929782194,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 49,
+            "complete": 44,
+            "median": 1.0085705202293167,
+            "p90": 1.2367449283204521,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 5,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0121980651196765,
+            "p90": 1.0428434440208854,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.015785653118293,
+            "p90": 1.0357800268763928,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "ownerBefore": {
+          "walkableArea": 2144811.249343873,
+          "deadEndArea": 0,
+          "emptyShare": 1,
+          "emptyAreaEstimate": 2144448,
+          "impassableBoundaryShare": 0.0763888888888889
+        },
+        "ownerAfter": {
+          "walkableArea": 1907159.3276519813,
+          "deadEndArea": 283295.08165741153,
+          "emptyShare": 1,
+          "emptyAreaEstimate": 1911744,
+          "impassableBoundaryShare": 0.0763888888888889
+        },
+        "mapBefore": {
+          "walkableArea": 70760230.40937805,
+          "deadEndArea": 44746.18226623535,
+          "components": 1
+        },
+        "mapAfter": {
+          "walkableArea": 70522578.48768616,
+          "deadEndArea": 328041.263923645,
+          "components": 1
+        },
+        "changedRoutes": 64
+      }
+    ]
+  },
+  {
+    "width": 24,
+    "owner": "park@306,114",
+    "candidates": 23,
+    "refusals": {
+      "envelope": 22,
+      "existingGeometry": 0,
+      "target": 0
+    },
+    "retainedLocalLoot": 56,
+    "roles": [
+      {
+        "body": "contestant",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0188758754424403,
+            "p90": 1.063536384475961,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.0712064355321222,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0008972178986104,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.0178009950813314,
+            "p90": 1.046657370641586,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 56,
+            "complete": 56,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0172415875070926,
+            "p90": 1.0311367005466028,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0157905512278185,
+            "p90": 1.0194473298228655,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0188758754424403,
+            "p90": 1.046217407109497,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.0712064355321222,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0008972178986104,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.3121120714748857,
+            "p90": 1.6533757591168172,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 3.98173736253784,
+            "p90": 8.669904159233784,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.0157090103275745,
+            "p90": 1.046657370641586,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.000082483214961,
+            "p90": 1.0000848260530482,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 56,
+            "complete": 43,
+            "median": 1.0313208614564087,
+            "p90": 1.5961252203547782,
+            "shareAbove1_5": 0.11627906976744186,
+            "invalidEndpoints": 13,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0124302483024514,
+            "p90": 1.0311367005466028,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0157905512278185,
+            "p90": 1.0194473298228655,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "ownerBefore": {
+          "walkableArea": 2641251.933319077,
+          "deadEndArea": 0,
+          "emptyShare": 0.994325621999127,
+          "emptyAreaEstimate": 2624256,
+          "impassableBoundaryShare": 0.13541666666666666
+        },
+        "ownerAfter": {
+          "walkableArea": 2457912.360015847,
+          "deadEndArea": 306324.1674194336,
+          "emptyShare": 0.9918776875298615,
+          "emptyAreaEstimate": 2391552,
+          "impassableBoundaryShare": 0.13541666666666666
+        },
+        "mapBefore": {
+          "walkableArea": 290062318.18437195,
+          "deadEndArea": 688590.8510360718,
+          "components": 2
+        },
+        "mapAfter": {
+          "walkableArea": 289878978.6110687,
+          "deadEndArea": 994915.0184555054,
+          "components": 2
+        },
+        "changedRoutes": 74
+      },
+      {
+        "body": "hunter",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0237151980683916,
+            "p90": 1.0549015204152978,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0003863832774555,
+            "p90": 1.0959552547859936,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0099213111496288,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.0173060642342338,
+            "p90": 1.0419118886138123,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 56,
+            "complete": 56,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0188728556601745,
+            "p90": 1.0343667689454832,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.017443016381447,
+            "p90": 1.0211836188877432,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0194446718666437,
+            "p90": 1.0549015204152978,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0003863832774555,
+            "p90": 1.0959552547859936,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0099213111496288,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.3426429257657948,
+            "p90": 1.6988903857935866,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 4.115383143862795,
+            "p90": 8.878147756373886,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.0164837367715522,
+            "p90": 1.0390163824351453,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.0020447970714252,
+            "p90": 1.0020457929782194,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 56,
+            "complete": 43,
+            "median": 1.0477320356631052,
+            "p90": 1.3986690435348876,
+            "shareAbove1_5": 0.06976744186046512,
+            "invalidEndpoints": 13,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.010896855959301,
+            "p90": 1.0315009656296645,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0148397913408551,
+            "p90": 1.0187570970394926,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "ownerBefore": {
+          "walkableArea": 2625554.8244934008,
+          "deadEndArea": 0,
+          "emptyShare": 1,
+          "emptyAreaEstimate": 2624256,
+          "impassableBoundaryShare": 0.13541666666666666
+        },
+        "ownerAfter": {
+          "walkableArea": 2387902.9028015137,
+          "deadEndArea": 283295.08165740967,
+          "emptyShare": 1,
+          "emptyAreaEstimate": 2391552,
+          "impassableBoundaryShare": 0.13541666666666666
+        },
+        "mapBefore": {
+          "walkableArea": 278670705.4048767,
+          "deadEndArea": 656662.6953811646,
+          "components": 3
+        },
+        "mapAfter": {
+          "walkableArea": 278433053.4831848,
+          "deadEndArea": 939957.7770385742,
+          "components": 3
+        },
+        "changedRoutes": 107
+      }
+    ]
+  },
+  {
+    "width": 36,
+    "owner": "hall@612,102",
+    "candidates": 1328,
+    "refusals": {
+      "envelope": 244,
+      "existingGeometry": 1083,
+      "target": 0
+    },
+    "retainedLocalLoot": 51,
+    "roles": [
+      {
+        "body": "contestant",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0182468667661901,
+            "p90": 1.0364616558629092,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 10,
+            "complete": 10,
+            "median": 1,
+            "p90": 1.011568189882204,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0238331536517893,
+            "p90": 1.0446903881674885,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 51,
+            "complete": 51,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0347408231191115,
+            "p90": 1.0556862358830261,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0143645040006228,
+            "p90": 1.0149849838907137,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.0606326963663797,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0182468667661901,
+            "p90": 1.0364616558629092,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 10,
+            "complete": 10,
+            "median": 1,
+            "p90": 1.011568189882204,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.3121120714748857,
+            "p90": 1.6297754860794054,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 3.647550799450432,
+            "p90": 7.8774940284531825,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0238331536517893,
+            "p90": 1.0446903881674885,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.000082483214961,
+            "p90": 1.0000848260530482,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 51,
+            "complete": 42,
+            "median": 1.001754898651512,
+            "p90": 1.440738149300373,
+            "shareAbove1_5": 0.09523809523809523,
+            "invalidEndpoints": 9,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0347408231191115,
+            "p90": 1.0556862358830261,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0143645040006228,
+            "p90": 1.0149849838907137,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.0606326963663797,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "ownerBefore": {
+          "walkableArea": 2419507.541485116,
+          "deadEndArea": 0,
+          "emptyShare": 0.9780534351145038,
+          "emptyAreaEstimate": 2361600,
+          "impassableBoundaryShare": 0.26515151515151514
+        },
+        "ownerAfter": {
+          "walkableArea": 2236167.968181923,
+          "deadEndArea": 306324.1674194336,
+          "emptyShare": 0.9736564805057956,
+          "emptyAreaEstimate": 2128896,
+          "impassableBoundaryShare": 0.26515151515151514
+        },
+        "mapBefore": {
+          "walkableArea": 646928816.8948364,
+          "deadEndArea": 1421598.1073150635,
+          "components": 2
+        },
+        "mapAfter": {
+          "walkableArea": 646745477.3215332,
+          "deadEndArea": 1727922.274734497,
+          "components": 2
+        },
+        "changedRoutes": 53
+      },
+      {
+        "body": "hunter",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0185876787765458,
+            "p90": 1.0520651366840177,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 14,
+            "complete": 14,
+            "median": 1,
+            "p90": 1.0409498603214689,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0214958293511172,
+            "p90": 1.0434499329989544,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 51,
+            "complete": 51,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.034202235227523,
+            "p90": 1.0421902780058065,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0155122620556543,
+            "p90": 1.017193517152432,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.075718587461621,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0185876787765458,
+            "p90": 1.0520651366840177,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 14,
+            "complete": 14,
+            "median": 1,
+            "p90": 1.0409498603214689,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.3426429257657948,
+            "p90": 1.6641226080837563,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "barrier-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 3.7669750578025716,
+            "p90": 8.079820503707786,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0214958293511172,
+            "p90": 1.0434499329989544,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.0020447970714252,
+            "p90": 1.0020457929782194,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "retained-local-loot/focused": {
+            "attempted": 51,
+            "complete": 42,
+            "median": 1.0061207316895664,
+            "p90": 1.4808499211443502,
+            "shareAbove1_5": 0.09523809523809523,
+            "invalidEndpoints": 9,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.034202235227523,
+            "p90": 1.0421902780058065,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0155122620556543,
+            "p90": 1.017193517152432,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.075718587461621,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "ownerBefore": {
+          "walkableArea": 2377824.9316224456,
+          "deadEndArea": 0,
+          "emptyShare": 1,
+          "emptyAreaEstimate": 2361024,
+          "impassableBoundaryShare": 0.26515151515151514
+        },
+        "ownerAfter": {
+          "walkableArea": 2140173.009930581,
+          "deadEndArea": 283295.08165740967,
+          "emptyShare": 1,
+          "emptyAreaEstimate": 2128320,
+          "impassableBoundaryShare": 0.26515151515151514
+        },
+        "mapBefore": {
+          "walkableArea": 618771913.9463043,
+          "deadEndArea": 1409570.337524414,
+          "components": 2
+        },
+        "mapAfter": {
+          "walkableArea": 618534262.0246124,
+          "deadEndArea": 1692865.4191818237,
+          "components": 2
+        },
+        "changedRoutes": 61
+      }
+    ]
+  }
+]
