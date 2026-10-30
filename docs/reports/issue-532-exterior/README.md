@@ -164,3 +164,20 @@ failures (218 seconds), including the new odd-width and split observer cases.
 Final check/typecheck pass, and all 212 diagnostic / 177 authored-audit source
 hashes still match the generated implementation. CI remains external to these
 local results and is reported on the PR.
+
+## Later epic recalibration
+
+The newer #529 comment 7695 and #688 were read at the closing checkpoint.
+Corey's direction, recorded in 17.2.11 through PR #690, treats the catalogue
+as provisional and prioritizes detours, emergent dead ends and less empty
+space. This implementation completes the explicitly requested exterior HOUSE
+capability; its access and fill evidence does **not** establish improvement on
+those navigation goals. Obstacle-touched cell counts above are also different
+from #688's built-structure-footprint definition of empty space.
+
+The full local bypass is a conservative builder choice, not a portal-contract
+requirement. Neither adding more bypassed islands nor weakening their access
+protection is an automatic successor. #688's baseline should inform whether
+to retain, adapt or defer this and other stand-in content, and which proposed
+barrier, macro-boundary or cord-growth lever to try. No broader grammar or new
+metrics implementation was added to this bounded delivery.
