@@ -1,0 +1,97 @@
+{
+  "node": "v24.15.0",
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+    "logicalCpus": 24,
+    "memoryBytes": 68638261248
+  },
+  "timings": [
+    {
+      "label": "12/siting",
+      "ms": 5.590599999999995
+    },
+    {
+      "label": "12/final-thorough-owner",
+      "ms": 109.14480000000003
+    },
+    {
+      "label": "12/before-map-report",
+      "ms": 81.49669999999992
+    },
+    {
+      "label": "12/after-map-report",
+      "ms": 89.62799999999993
+    },
+    {
+      "label": "12/fixed-before",
+      "ms": 2118.8653999999997
+    },
+    {
+      "label": "12/fixed-after",
+      "ms": 2238.7437999999997
+    },
+    {
+      "label": "12/structure-after",
+      "ms": 2182.8251
+    },
+    {
+      "label": "24/siting",
+      "ms": 6.902299999999741
+    },
+    {
+      "label": "24/final-thorough-owner",
+      "ms": 176.4364000000005
+    },
+    {
+      "label": "24/before-map-report",
+      "ms": 358.9462999999996
+    },
+    {
+      "label": "24/after-map-report",
+      "ms": 327.46709999999985
+    },
+    {
+      "label": "24/fixed-before",
+      "ms": 14036.3735
+    },
+    {
+      "label": "24/fixed-after",
+      "ms": 14314.1282
+    },
+    {
+      "label": "24/structure-after",
+      "ms": 13004.148200000003
+    },
+    {
+      "label": "36/siting",
+      "ms": 100.9233000000022
+    },
+    {
+      "label": "36/final-thorough-owner",
+      "ms": 155.22850000000471
+    },
+    {
+      "label": "36/before-map-report",
+      "ms": 890.8637000000017
+    },
+    {
+      "label": "36/after-map-report",
+      "ms": 872.0271999999968
+    },
+    {
+      "label": "36/fixed-before",
+      "ms": 45820.4542
+    },
+    {
+      "label": "36/fixed-after",
+      "ms": 46728.94470000001
+    },
+    {
+      "label": "36/structure-after",
+      "ms": 50335.087
+    }
+  ],
+  "note": "Single sequential run under shared machine lock; observations, not latency guarantees. Includes standalone final proof, not general growth or per-piece preflight."
+}
