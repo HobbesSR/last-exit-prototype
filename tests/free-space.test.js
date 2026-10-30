@@ -5,6 +5,7 @@ import { meshReach, regionDomain } from '../shared/navigation/mesh-level.ts';
 import { gridReach } from '../shared/navigation/grid-level.ts';
 import { navigationClearance } from '../shared/map/navigation.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
+import { arena } from './helpers/arena.js';
 
 // The bottom level of navigation (22.6, #422): the shape module's free space, eroded by a body's
 // clearance and triangulated, with the 40-unit grid kept as the reference it replaces.
@@ -12,10 +13,7 @@ import { canOccupy, sweptClear } from '../shared/movement.ts';
 const CELL = 48;
 
 /** An open map of `cols` × `rows` cells with the given obstacles and gates. */
-function scene(cols, rows, obstacles = [], gates = []) {
-  const playableArea = { cellSize: CELL, rows: Array.from({ length: rows }, (_, y) => ({ y, runs: [[0, cols]] })) };
-  return { width: cols * CELL, height: rows * CELL, playableArea, obstacles, gates };
-}
+const scene = (cols, rows, obstacles = [], gates = []) => arena({ cols, rows, cellSize: CELL, obstacles, gates }).map;
 
 /** Regions side by side as columns of cells, `widths` cells wide and `height` tall. */
 function strip(widths, height) {
