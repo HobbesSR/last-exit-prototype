@@ -6,7 +6,9 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createReplayWriter, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
+import { createReplayWriter, frameLine, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
+import { createMatch } from '../server/match.js';
+import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { createFileReplayStore } from '../server/replay-store.js';
 
 test('replay writer preserves frame JSON, command ownership, integrity and idempotent publication', async () => {
@@ -162,4 +164,31 @@ test('a header descriptor is written once and leaves frame bytes and digest unto
   const frames = text => text.slice(text.indexOf('"frames":'));
   assert.equal(frames(described.text), frames(plain.text));
   assert.deepEqual(JSON.parse(described.text).presentation, presentation);
+});
+
+test('frames are written byte for byte as JSON.stringify writes them, with the ground from its kept JSON (#655)', async () => {
+  const match = createMatch(4217), chunks = [];
+  const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
+  const header = { id: 'ground', seed: 4217 };
+  const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => { throw error; } });
+  const records = [];
+  const append = (state, commands) => { records.push({ state, commands }); assert.equal(writer.append(state, commands), true); };
+  for (let tick = 0; tick < 40; tick++) append(match.advance(), tick % 7 ? [] : [{ type: 'input', input: { name: 'Zoë ✓' } }]);
+  const frame = match.advance();
+  // Shapes the writer must still match: undefined values and commands, a ground nobody published, non-ASCII text.
+  append({ ...frame, gone: undefined, name: 'Ünïcode ✓', items: frame.items.map(item => ({ ...item })) }, undefined);
+  append({ tick: 1, items: [] }, []);
+  append({ tick: 2, items: 'not a list' }, []);
+  append({}, []);
+  const meta = await writer.finish({ ticks: 44 });
+  const text = gunzipSync(Buffer.concat(chunks)).toString();
+  assert.equal(text, `${JSON.stringify(header).slice(0, -1)},"frames":[${records.map(r => JSON.stringify(r)).join(',')}]}`);
+  const digest = createHash('sha256'); for (const r of records) digest.update(`${JSON.stringify(r)}
+`);
+  assert.equal(meta.sha256, digest.digest('hex'));
+  const ground = list => { const json = itemsJson(list); return { json, bytes: Buffer.byteLength(json) }; };
+  for (const { state, commands } of records) {
+    const { line, bytes } = frameLine(state, commands, ground);
+    assert.equal(bytes, Buffer.byteLength(line));
+  }
 });

@@ -172,6 +172,8 @@ an arena from pinned tuning could disagree with what was played; an embedded map
 Each room records a map header and offers every authoritative tick to a bounded gzip JSON writer. Retained records contain a complete simulation snapshot plus accepted commands and membership changes. Frames include AI path state. The final metadata contains retained frame count and a SHA-256 digest over each retained serialized frame plus a newline. A recording is advertised only after successful publication. Disk backpressure never pauses tick advancement: incoming frames exceeding the pending-data budget are omitted whole, and subsequent frames can be accepted after the writer drains. Only archives with omissions add `recording: { complete: false, droppedFrames, endTick }` to the file and metadata; ordinary recordings retain their existing format and digest contract.
 
 Normal recordings preserve the existing header, frame JSON and SHA-256 contract.
+The writer may build a frame's JSON from parts it has kept (the ground items, 22.1 "Frames"), but the bytes
+are always those of `JSON.stringify({ state, commands })`.
 Only recordings with omissions append a top-level `recording` footer and matching
 archive metadata: `{ complete: false, droppedFrames, endTick }`. Integrity hashes
 cover exactly the retained frames as before. Missing ranges are derived from

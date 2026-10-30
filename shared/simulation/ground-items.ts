@@ -233,3 +233,24 @@ export function publishItems(s: Game): readonly GroundItem[] {
   }
   return list;
 }
+
+const listJson = new WeakMap<readonly GroundItem[], string>(), recordJson = new WeakMap<GroundItem, string>();
+
+/**
+ * `JSON.stringify(list)`, kept per published or posed list and per frozen record, since neither is edited once a
+ * frame holds it. A recording serializes the ground every tick, and an unchanged ground is then free (#655 stage 3).
+ * Any other list is serialized whole.
+ */
+export function itemsJson(list: readonly GroundItem[]): string {
+  if (!published.has(list) && !posed.has(list)) return JSON.stringify(list);
+  let json = listJson.get(list);
+  if (json === undefined) listJson.set(list, json = `[${list.map(recordText).join(',')}]`);
+  return json;
+}
+
+function recordText(item: GroundItem): string {
+  if (!Object.isFrozen(item)) return JSON.stringify(item);
+  let json = recordJson.get(item);
+  if (json === undefined) recordJson.set(item, json = JSON.stringify(item));
+  return json;
+}
