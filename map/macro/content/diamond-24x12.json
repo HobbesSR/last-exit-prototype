@@ -77,6 +77,7 @@
         "market-court",
         "barracks",
         "pillar-hall",
+        "pillar-hall-winged",
         "plant-row",
         "park-square",
         "depot-sheds",
@@ -111,6 +112,164 @@
       "coreElements": {
         "warp": 1
       }
+    }
+  ],
+  "setPieces": [
+    {
+      "id": "pillar-hall-winged",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-es-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-sw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-new-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-new-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-ne-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-new-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-nw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "fields"
+        }
+      ],
+      "primaryRegionClass": "hall"
     }
   ]
 }

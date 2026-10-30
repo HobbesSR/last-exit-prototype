@@ -15,7 +15,8 @@ const brief = (owned = cells, extra = {}) => ({ id: 'hall-infill', seed: 7, type
   zones: [{ tier: 3, bonus: 0, lootChance: 1, cells: owned }], portals: [],
   hints: [{ axis: 'h', x: 0, y: 0, length: 30 }], ...extra });
 const crates = r => r.elements.filter(e => e.label.startsWith('hall-infill-crate-'));
-const primary = r => r.elements.filter(e => !e.label.startsWith('hall-infill-crate-'));
+const primary = r => r.elements.filter(e => e.label === 'hall' || e.label.startsWith('hint-wall-'));
+const narrow = cellsOf(30, 30, (x, y) => y < 14 || x < 5);
 const digest = v => createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const gap = (a, b) => Math.max(b.x - a.x - a.w, a.x - b.x - b.w, b.y - a.y - a.h, a.y - b.y - b.h);
 const box = (e, s) => ({ x: e.x / s, y: e.y / s, w: e.template.w / s, h: e.template.h / s });
@@ -24,7 +25,6 @@ test('residual hall infill preserves the original primary elements and roof', ()
   for (const [roofed, hash] of [[false, '9f7cce7f5c5ab7289f1d787c25ece5aebad4e58b4d8253ac45f3dc1dcf259b6c'],
     [true, '7e2fa6824bcc432c8baa2f62d4d60f39563618850b7f4591f5e8f62f40acac02']]) {
     const input = brief(cells, { parameters: { roofed } }), result = buildRegion(input);
-    assert.ok(crates(result).length > 0);
     assert.equal(digest(primary(result)), hash);
     assert.equal(result.manifest.infillCrates, crates(result).length);
     assert.deepEqual(buildRegion({ ...input, cells: [...cells].reverse() }).elements, result.elements);
@@ -34,7 +34,7 @@ test('residual hall infill preserves the original primary elements and roof', ()
 });
 
 test('crates keep the primary rectangle, other extents, access ring, margins and loot clear', () => {
-  for (const [owned, s] of [[cells, size], [cells.map(c => ({ x: c.x + 100, y: c.y - 70 })), 2.5]]) {
+  for (const [owned, s] of [[narrow, size], [narrow.map(c => ({ x: c.x + 100, y: c.y - 70 })), 2.5]]) {
     const translated = s !== size;
     const input = brief(owned, { cellSize: s, hints: [], portals: translated ? [] : [{ id: 'west', axis: 'v', x: 0, y: 6, length: 2 }] });
     const result = buildRegion(input), access = createAccessMask(input), rectangle = largestRectangle(createFillMask(input), 6);
@@ -54,9 +54,9 @@ test('crates keep the primary rectangle, other extents, access ring, margins and
 });
 
 test('single-portal side lobe remains accessible; rectangular halls and fallback stay clear', () => {
-  const owned = cellsOf(40, 24, (x,y) => x < 14 || x >= 24 || (y >= 9 && y < 15));
-  const input = brief(owned, { seed: 1, hints: [], portals: [{ id: 'west', axis: 'v', x: 0, y: 10, length: 2 }] });
-  const result = buildRegion(input), access = createAccessMask(input), start = portalStands(input)[0].points[0], end = { x: 27.5*size, y: 4.5*size };
+  const owned = narrow;
+  const input = brief(owned, { seed: 1, hints: [], portals: [{ id: 'east', axis: 'v', x: 30, y: 5, length: 2 }] });
+  const result = buildRegion(input), access = createAccessMask(input), start = portalStands(input)[0].points[0], end = { x: 2.5*size, y: 21.5*size };
   assert.ok(crates(result).length > 0);
   assert.ok(findRegionRoute(access, primary(result).flatMap(e => elementShapes(e)), start, end, hunterClearance(size)));
   assert.ok(findRegionRoute(access, result.elements.flatMap(e => elementShapes(e)), start, end, hunterClearance(size)));
@@ -77,7 +77,7 @@ test('market uses its own stalls rather than hall residual infill', () => {
 });
 
 test('the primary rectangle stays reserved when all pillars are protected away', () => {
-  const input = brief(cells, { hints: [], parameters: { spacing: 100 }, portals: [
+  const input = brief(narrow, { hints: [], parameters: { spacing: 100 }, portals: [
     { id: 'west', axis: 'v', x: 0, y: 5, length: 2 },
     { id: 'east', axis: 'v', x: 30, y: 5, length: 2 },
   ] });

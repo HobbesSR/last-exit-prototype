@@ -1,4 +1,4 @@
-import { rect } from '../../../shared/shape.ts';
+import { rect, bounds } from '../../../shared/shape.ts';
 import { HALL_PILLAR, HALL_PILLAR_INSET as INSET } from '../placeables/hall-pillar.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
@@ -9,7 +9,7 @@ import { construct } from '../../../shared/shape-construction.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
-import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
+import type { BuiltRegion, RegionBrief, RegionElement, RegionMask } from '../types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
@@ -24,6 +24,8 @@ const BLOCK = 2;
  */
 const MIN_SPACING = 4;
 const DEFAULT_SPACING = 5;
+/** Leaves a sampled hunter lane even beside quarter-cell hinted perimeter walls. */
+const WING_MARGIN = 2.5;
 
 /** Per-cell draw channels, so no choice shifts another. */
 const CHANNEL = { axis: 1, loot: 2, infill: 20, infillLength: 21, infillOffset: 22 };
@@ -48,8 +50,10 @@ type Box = { x: number; y: number; w: number; h: number };
  * roof, which hides what's under it as a building's does. A region with no such rectangle
  * goes to `open` (17 M24).
  *
- * After the primary assembly, hall residual wings may receive crates outside a two-cell
- * buffer around the rectangle. Each crate requires a fully owned two-cell bypass ring
+ * Side-connected residual rectangles become secondary bays with a 2.5-cell perimeter walk.
+ * Their lattice is centred separately, keeping the primary unchanged. Each roofed bay is an
+ * enclosing element, with no internal wall across its joins. Remaining pockets may receive
+ * crates outside a two-cell buffer around every selected bay. Each crate requires a fully owned two-cell bypass ring
  * and two-cell separation from other pieces. Market uses its own dedicated builder.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear
@@ -71,49 +75,59 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   const canvas = createBuilderCanvas(brief, protectedShapes);
   const staggerRows = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
   const stride = staggerStride(spacing);
-  // Lines of blocks run along the staggered axis (u) and step across the other (v).
-  const [us, ul, vs, vl] = staggerRows ? [box.x, box.w, box.y, box.h] : [box.y, box.h, box.x, box.w];
-  // Centre the lattice across: the slack past the last whole line is split between the two ends.
-  const ou = us + Math.floor((ul - BLOCK) % spacing / 2), ov = vs + Math.floor((vl - BLOCK) % spacing / 2);
   const pillar = expectPlaced(HALL_PILLAR.build({}, size));
   const local = (pillar.elements[0]!.template.parts[0] as { shape: Shape }).shape;
   if (local.kind !== 'rect') throw new Error('A hall pillar must be a rectangle.');
   const span = local.w;
 
-  const parts: ElementTemplate['parts'] = [], pillars: Shape[] = [];
-  for (let v = ov, line = 0; v + BLOCK <= vs + vl; v += spacing, line++) {
-    // Each line starts a period early, so its first block can stand at the near end.
-    for (let u = ou + (line * stride) % spacing - spacing; u + BLOCK <= us + ul; u += spacing) {
-      if (u < us) continue;
-      const [bx, by] = staggerRows ? [u, v] : [v, u];
-      const shape = rect((bx + INSET) * size, (by + INSET) * size, span, span);
-      if (!canvas.fits(shape)) continue;
-      pillars.push(shape);
-      parts.push({ part: 'obstacle', shape: rect((bx - box.x + INSET) * size, (by - box.y + INSET) * size, span, span), kind: 'building' });
+  const boxes = hallRectangles(mask, box), pillars: Shape[] = [];
+  const hall: RegionElement[] = [];
+  for (const [index, wing] of boxes.entries()) {
+    // Secondary bays retain a 2.5-cell perimeter walk, including the open join to
+    // earlier bays. The primary lattice keeps its original phase and geometry.
+    const inset = index ? WING_MARGIN : 0;
+    const inner = { x: wing.x + inset, y: wing.y + inset, w: wing.w - 2 * inset, h: wing.h - 2 * inset };
+    const [us, ul, vs, vl] = staggerRows ? [inner.x, inner.w, inner.y, inner.h] : [inner.y, inner.h, inner.x, inner.w];
+    const ou = us + Math.floor((ul - BLOCK) % spacing / 2), ov = vs + Math.floor((vl - BLOCK) % spacing / 2);
+    const parts: ElementTemplate['parts'] = [];
+    for (let v = ov, line = 0; inner.w >= BLOCK && inner.h >= BLOCK && v + BLOCK <= vs + vl; v += spacing, line++) {
+      // Each line starts a period early, so its first block can stand at the near end.
+      for (let u = ou + (line * stride) % spacing - spacing; u + BLOCK <= us + ul; u += spacing) {
+        if (u < us) continue;
+        const [bx, by] = staggerRows ? [u, v] : [v, u];
+        const shape = rect((bx + INSET) * size, (by + INSET) * size, span, span);
+        if (!canvas.fits(shape)) continue;
+        if (index && pillars.some(p => {
+          const b = bounds(p);
+          return Math.max(b.x - shape.x - span, shape.x - b.x - b.w,
+            b.y - shape.y - span, shape.y - b.y - b.h) < CELL_SCALE.doorway * size;
+        })) continue;
+        pillars.push(shape);
+        parts.push({ part: 'obstacle', shape: rect((bx - wing.x + INSET) * size, (by - wing.y + INSET) * size, span, span), kind: 'building' });
+      }
     }
+    if (parts.length || roofed) hall.push({ label: index ? `hall-wing-${index}` : 'hall', x: wing.x * size, y: wing.y * size,
+      template: { w: wing.w * size, h: wing.h * size, ...(roofed ? { encloses: true } : {}), parts } });
   }
 
   const walls = wallHints(brief, { kind: 'building', avoid: [...protectedShapes, ...pillars] });
-  // The hall and its hint walls commit as one assembly. Its intent is its rectangle and the
+  // The hall bays and hint walls commit as one assembly. Their intent is their rectangles and the
   // walls, less the protected routes it keeps clear (29's construction). Siting has already
   // accepted the hall, so a refusal is a broken placement invariant.
-  const hall = parts.length || roofed ? [{ label: 'hall', x: box.x * size, y: box.y * size,
-    template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }] : [];
-  const rectangle = rect(box.x * size, box.y * size, box.w * size, box.h * size);
-  const areas = construct([...hall.length ? [rectangle] : [], ...walls.shapes]).subtract(protectedShapes).pieces();
+  const rectangles = hall.map(e => rect(e.x, e.y, e.template.w, e.template.h));
+  const areas = construct([...rectangles, ...walls.shapes]).subtract(protectedShapes).pieces();
   if ((hall.length || walls.elements.length) && !canvas.commit({ elements: [...hall, ...walls.elements],
-    areas, extents: [...hall.length ? [rectangle] : [], ...walls.shapes] }))
+    areas, extents: [...rectangles, ...walls.shapes] }))
     throw new Error('Hall placement failed its canvas commit.');
-  // The primary rectangle remains reserved even when no pillar or roof was placed.
+  // Every selected bay remains reserved even when no pillar or roof was placed.
   // A full owned bypass ring preserves access to side lobes with no protected route.
   const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
   const infillCrates = brief.type === 'hall' ? placeInfillCrates({ brief, canvas, chance: 0.5, channels: CHANNEL,
     label: 'hall-infill-crate',
     site: cell => {
       const shape = rect(cell.x * size, cell.y * size, size, size);
-      const gap = Math.max(box.x - cell.x - 1, cell.x - box.x - box.w,
-        box.y - cell.y - 1, cell.y - box.y - box.h);
-      return gap >= aisle && access.contains(rect((cell.x - aisle) * size, (cell.y - aisle) * size,
+      return boxes.every(b => Math.max(b.x - cell.x - 1, cell.x - b.x - b.w,
+        b.y - cell.y - 1, cell.y - b.y - b.h) >= aisle) && access.contains(rect((cell.x - aisle) * size, (cell.y - aisle) * size,
         (1 + 2 * aisle) * size, (1 + 2 * aisle) * size)) && canvas.fits(shape) && canvas.spaced(shape, aisle * size);
     },
     commitError: label => `Hall placement ${label} failed its canvas commit.`,
@@ -122,7 +136,34 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   const lootPieces = infillCrates !== undefined ? elements.flatMap(element => elementShapes(element, true)) : [...pillars, ...walls.shapes];
   const loot = cellLoot(brief, createRegionMask(brief), lootPieces, CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { pillars: pillars.length, hintWalls: walls.shapes.length,
+    ...(hall.some(e => e.label !== 'hall') ? { wings: hall.filter(e => e.label !== 'hall').length } : {}),
     ...(infillCrates === undefined ? {} : { infillCrates }) });
+}
+
+/** Partition residual fill into bays; only side-connected bays join the hall.
+ * Thin necks and detached annexes retain the existing residual-infill policy.
+ * Reserving whole rectangles (even route-only ones) prevents reclaiming an
+ * intentionally clear part of the primary lattice as a new bay.
+ */
+function hallRectangles(mask: RegionMask, primary: Box): Box[] {
+  const inside = (c: { x: number; y: number }, b: Box) => c.x >= b.x && c.x < b.x + b.w && c.y >= b.y && c.y < b.y + b.h;
+  let remaining = mask.cells.filter(c => !inside(c, primary));
+  const pending: Box[] = [];
+  while (remaining.length) {
+    const next = largestRectangle(createRegionMask({ cells: remaining, cellSize: mask.cellSize }), MIN_SIDE);
+    if (!next) break;
+    pending.push(next);
+    remaining = remaining.filter(c => !inside(c, next));
+  }
+  const connected = (a: Box, b: Box) =>
+    ((a.x + a.w === b.x || b.x + b.w === a.x) && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) >= CELL_SCALE.doorway)
+    || ((a.y + a.h === b.y || b.y + b.h === a.y) && Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) >= CELL_SCALE.doorway);
+  const boxes = [primary];
+  for (;;) {
+    const index = pending.findIndex(b => boxes.some(a => connected(a, b)));
+    if (index < 0) return boxes;
+    boxes.push(pending.splice(index, 1)[0]!);
+  }
 }
 
 /**

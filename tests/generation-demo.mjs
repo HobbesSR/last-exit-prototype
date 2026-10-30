@@ -89,7 +89,7 @@ try {
   await page.screenshot({ path: 'test-results/generation-demo.png', fullPage: true });
   // A chain map's block, opened by the Map Lab's link (20.5): its lots and alleys, the geometry
   // the map stored for it, and a walk through it with the game's collision.
-  const blockMap = generate('last-exit-005'), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
+  const blockMap = generate('last-exit-004'), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
   await page.goto(`${base}/dev/micro/generation${await briefFragment(blockBrief)}`);
   await page.waitForFunction(id => window.generationDemoDebug?.().linked && window.generationDemoDebug().shown?.id === id, blockBrief.id, { timeout: 15000 });
   const block = await page.evaluate(() => window.generationDemoDebug());

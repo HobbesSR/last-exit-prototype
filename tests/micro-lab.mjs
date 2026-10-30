@@ -149,7 +149,7 @@ try {
   // and walks at the game's own scale. Houses and block-lot buildings are traced
   // under the authored seam layout and clear margins (20.6, 52).
   const chain = generate('last-exit-001'), briefs = mapViews(chain).briefs;
-  for (const [type, map] of [['hut', chain], ['block', generate('last-exit-005')]]) {
+  for (const [type, map] of [['hut', chain], ['block', generate('last-exit-004')]]) {
     const brief = mapViews(map).briefs.find(b => b.type === type), stored = map.results.find(r => r.brief.id === brief.id);
     await page.goto(`${base}/dev/micro${await briefFragment(brief)}`);
     await page.waitForFunction(id => window.microLabDebug?.().imported === id, brief.id, { timeout: 15000 });

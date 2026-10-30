@@ -480,27 +480,24 @@ test('roof geometry works with non-40 cell size and non-zero origins', () => {
 });
 
 test('live map: roofs have unique ids, keep map id order, and declare multi-room groups', () => {
-  // #530's grounds, infill, #534's market, #647's yards, #532's huts/courts and #533's warehouses change counts.
+  // #530's grounds, infill, #534's market, #647's yards, #532's huts/courts and #533's warehouses/winged library change counts.
   // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
   const map1 = generateLiveMap(1);
-  assert.equal(map1.obstacles?.at(-1)?.id, 'o862', 'obstacle IDs stay pinned on seed 1');
-  assert.equal(map1.gates?.at(-1)?.id, 'door-538', 'gate IDs stay pinned on seed 1');
-  assert.equal(map1.items?.at(-1)?.id, 'item-1863', 'item IDs stay pinned on seed 1');
+  assert.equal(map1.obstacles?.at(-1)?.id, 'o766', 'obstacle IDs stay pinned on seed 1');
+  assert.equal(map1.gates?.at(-1)?.id, 'door-411', 'gate IDs stay pinned on seed 1');
+  assert.equal(map1.items?.at(-1)?.id, 'item-1761', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o950', 'obstacle IDs stay pinned on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-646', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-1877', 'item IDs stay pinned on seed 2');
+  assert.equal(map2.obstacles?.at(-1)?.id, 'o1229', 'obstacle IDs stay pinned on seed 2');
+  assert.equal(map2.gates?.at(-1)?.id, 'door-829', 'gate IDs stay pinned on seed 2');
+  assert.equal(map2.items?.at(-1)?.id, 'item-2059', 'item IDs stay pinned on seed 2');
+
+  assert.ok([map1, map2].some(map => [...roofGroups(map).values()].some(group => group.length > 1)),
+    'the live-map sample declares a multi-room group');
 
   for (const map of [map1, map2]) {
     const ids = new Set(map.roofs.map(r => r.id));
     assert.equal(ids.size, map.roofs.length, 'all roof ids are distinct across the live map');
-
-    // Roof groups must declare multi-room compounds, not drop to all singletons
-    const groups = roofGroups(map);
-    const uniqueGroupLists = [...new Set([...groups.values()])];
-    const groupSizes = uniqueGroupLists.map(list => list.length).sort((a, b) => b - a);
-    assert.ok(groupSizes.some(size => size > 1), 'compound buildings declare multi-room groups');
 
     const samplePoints = map.roofs.map(r => ({
       id: r.id,

@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-53` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-54` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -132,8 +132,8 @@ default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
 2 × 1 cases). These are the stored case groups, not a new zero-drift run.
 They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
-The current baseline provenance is content commit `7f1712536f77e9936f158cfef67184b167b356a1`,
-captured `2026-10-30T03:06:09.011Z` under Node v24.15.0 (#533, 42.4).
+The current baseline provenance is content commit `4cc00fa115236fcb996f4acbb86071885c7557eb`,
+captured `2026-10-30T04:32:23.161Z` under Node v24.15.0 (#533 hall wings, 42.4).
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash
@@ -385,3 +385,16 @@ Saved Layout-only maps require their matching strategy version; saved full
 results retain their own geometry under the existing compatibility rules.
 Mechanics are in 20.3.4, retained before/after evidence in 42.3 and the content
 capture record in 42.4.
+
+
+## Structural hall-wing content (#533)
+
+`types-54` adds connected secondary hall bays and optional per-bay enclosing
+roofs (20.3.3). The three top libraries also add an L-shaped variant alongside
+the rectangular hall in its existing size class (52); their content fingerprints
+change. Wire 8, macro 3, resolved-library schema 3 and the immutable shared-module
+revisions remain unchanged. Existing saved full results retain their geometry;
+rebuilding omitted results uses the existing strategy/library identity checks.
+The frozen gameplay characterization fixture is unchanged. Exact authored and
+synthetic comparison evidence is in 42.3 and the hall report; the final sweep
+capture is recorded in 42.4.

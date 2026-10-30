@@ -91,12 +91,12 @@ try {
   assert.equal(first.builtRegions, reference.results.length);
   assert.ok(first.portals > 0 && first.sites > 0, "portals and sites are drawn");
   // Each built part is drawn by its own layer: one shape per obstacle or gate, by kind, and a
-  // roof per enclosing element, counted here from the built map itself.
+  // roof per declared roof (or enclosing fallback), counted from the built map itself.
   const expectedParts = { walls: 0, ruins: 0, cover: 0, windows: 0, pipes: 0, doors: 0, roofs: 0 };
   const obstaclePart = { building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", tree: "cover", hedge: "cover", window: "windows", pipe: "pipes" } as const;
   for (const region of mapViews(reference, GAME_ENGINES.compose).built.regions)
     for (const element of region.elements) {
-      if (element.template.encloses) expectedParts.roofs++;
+      expectedParts.roofs += element.template.roofs?.length || (element.template.encloses ? 1 : 0);
       for (const part of element.template.parts)
         if (part.part === "obstacle") expectedParts[obstaclePart[part.kind]]++;
         else if (part.part === "gate") expectedParts.doors++;
@@ -380,7 +380,7 @@ try {
   }, adoptionRegion.brief.id, { timeout: 30000 });
   const adoptionDrill = await snapshot();
   assert.equal(adoptionDrill.drill.difference, null, "compound ring and delegated cover rebuild equal to stored output");
-  assert.deepEqual(adoptionDrill.drill.buildings, ["compound"]);
+  assert.deepEqual(adoptionDrill.drill.buildings, ["compound", "compound-keep"]);
   await page.screenshot({ path: `${OUT}/compound-delegation.png`, fullPage: true });
 
   // The diagnostic on a game map runs in a worker, so the page stays live and can cancel it.
@@ -2218,7 +2218,7 @@ try {
   const blockDrill = await drillInto(blockBrief);
   assert.equal(blockDrill.drill.difference, null, "the block rebuilds equal to the stored result");
   assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), planBlock(blockBrief).lots.map(lot => lot.type));
-  assert.deepEqual(blockDrill.drill.buildings, [`${blockBrief.id}/lot-2/depot-warehouse-1`, `${blockBrief.id}/lot-4/compound`],
+  assert.deepEqual(blockDrill.drill.buildings, [`${blockBrief.id}/lot-2/depot-warehouse-1`, `${blockBrief.id}/lot-4/compound`, `${blockBrief.id}/lot-4/compound-keep`],
     "the depot and compound are traced, labelled as their lot's elements");
   assert.equal(blockDrill.drill.drawn.lots.lots, 5);
   assert.ok(blockDrill.drill.drawn.graph.nodes > 0);

@@ -1,0 +1,378 @@
+[
+  {
+    "seed": "sweep-59",
+    "parameters": {},
+    "halls": 2,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "sweep-69",
+    "parameters": {},
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-0",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-1",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 2,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-2",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-3",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-4",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-5",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 0,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-6",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 3,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-7",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-8",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 0,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-9",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-10",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 0,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-11",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-12",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 0,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-13",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-14",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 2,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-15",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 2,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-16",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 0,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-17",
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "halls": 1,
+    "positive": 0,
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-0",
+    "zoneWidth": 24,
+    "zoneHeight": 12,
+    "halls": 2,
+    "positive": 0,
+    "topology": [
+      {
+        "id": "hall@366,84",
+        "cells": 2160,
+        "fillCells": 2004,
+        "fillRectangles": [
+          {
+            "x": 367,
+            "y": 85,
+            "w": 34,
+            "h": 58
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 366,
+            "y": 84,
+            "w": 36,
+            "h": 60
+          }
+        ],
+        "wings": 0
+      },
+      {
+        "id": "hall@324,162",
+        "cells": 1080,
+        "fillCells": 974,
+        "fillRectangles": [
+          {
+            "x": 325,
+            "y": 163,
+            "w": 34,
+            "h": 28
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 324,
+            "y": 162,
+            "w": 36,
+            "h": 30
+          }
+        ],
+        "wings": 0
+      }
+    ],
+    "defects": []
+  },
+  {
+    "seed": "issue533-hall-search-0",
+    "zoneWidth": 36,
+    "zoneHeight": 18,
+    "halls": 7,
+    "positive": 0,
+    "topology": [
+      {
+        "id": "hall@564,0",
+        "cells": 1080,
+        "fillCells": 1004,
+        "fillRectangles": [
+          {
+            "x": 565,
+            "y": 0,
+            "w": 34,
+            "h": 29
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 564,
+            "y": 0,
+            "w": 36,
+            "h": 30
+          }
+        ],
+        "wings": 0
+      },
+      {
+        "id": "hall@510,204",
+        "cells": 1080,
+        "fillCells": 974,
+        "fillRectangles": [
+          {
+            "x": 511,
+            "y": 205,
+            "w": 34,
+            "h": 28
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 510,
+            "y": 204,
+            "w": 36,
+            "h": 30
+          }
+        ],
+        "wings": 0
+      },
+      {
+        "id": "hall@132,228",
+        "cells": 2160,
+        "fillCells": 2004,
+        "fillRectangles": [
+          {
+            "x": 133,
+            "y": 229,
+            "w": 34,
+            "h": 58
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 132,
+            "y": 228,
+            "w": 36,
+            "h": 60
+          }
+        ],
+        "wings": 0
+      },
+      {
+        "id": "hall@18,246",
+        "cells": 1080,
+        "fillCells": 974,
+        "fillRectangles": [
+          {
+            "x": 19,
+            "y": 247,
+            "w": 34,
+            "h": 28
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 18,
+            "y": 246,
+            "w": 36,
+            "h": 30
+          }
+        ],
+        "wings": 0
+      },
+      {
+        "id": "hall@204,276",
+        "cells": 1080,
+        "fillCells": 974,
+        "fillRectangles": [
+          {
+            "x": 205,
+            "y": 277,
+            "w": 34,
+            "h": 28
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 204,
+            "y": 276,
+            "w": 36,
+            "h": 30
+          }
+        ],
+        "wings": 0
+      },
+      {
+        "id": "hall@126,294",
+        "cells": 1080,
+        "fillCells": 1002,
+        "fillRectangles": [
+          {
+            "x": 127,
+            "y": 295,
+            "w": 34,
+            "h": 29
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 126,
+            "y": 294,
+            "w": 36,
+            "h": 30
+          }
+        ],
+        "wings": 0
+      },
+      {
+        "id": "hall@582,414",
+        "cells": 3240,
+        "fillCells": 3034,
+        "fillRectangles": [
+          {
+            "x": 583,
+            "y": 415,
+            "w": 34,
+            "h": 88
+          }
+        ],
+        "accessRectangles": [
+          {
+            "x": 582,
+            "y": 414,
+            "w": 36,
+            "h": 90
+          }
+        ],
+        "wings": 0
+      }
+    ],
+    "defects": []
+  }
+]
