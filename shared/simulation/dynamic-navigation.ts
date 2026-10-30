@@ -4,7 +4,7 @@ import { discoveryGrid } from '../discovery.ts';
 import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { visiblePoint, visibleTo } from './visibility.ts';
-import type { CollisionMap, DiscoveryMemory, Game, Player, Vec2 } from '../types.ts';
+import type { CollisionMap, Game, Player, Vec2 } from '../types.ts';
 import type { BodySpec, Transform } from '../physics/types.ts';
 import { cos, hypot, sin } from '../math.ts';
 import { count, start, stop } from '../profiler.ts';
@@ -16,7 +16,7 @@ interface Detour { goal: Vec2; last: Vec2; route: Vec2[]; source: Player['route'
 interface ObservedBody { kind: 'actor' | 'prop'; shape: Shape }
 const detours = new WeakMap<Player, Detour>();
 const work = new WeakMap<Game, { tick: number; edges: number }>();
-const localMaps = new WeakMap<Player, { source: CollisionMap; doors: string; map: CollisionMap; gates: DiscoveryMemory['gates']; revision: number; size: number }>();
+const localMaps = new WeakMap<Player, { source: CollisionMap; doors: string; map: CollisionMap }>();
 const collectionObservations = new WeakMap<Game, { players: Player[]; props: Array<{ spec: BodySpec; transform: Transform }> }>();
 export function dynamicNavigationWork(s: Game): number { return work.get(s)?.tick === s.tick ? work.get(s)!.edges : 0; }
 
@@ -54,15 +54,11 @@ export function observedBlockers(s: Game, p: Player): Shape[] { return observati
 // A contestant's local static sweep must not learn a hidden door's current state.
 function localMap(s: Game, p: Player): CollisionMap {
   if (p.role === 'gladiator' || !p.discovery) return s.map;
-  const memory = p.discovery, old = localMaps.get(p);
-  // Door observations change only with the memory's revision, so an unchanged one skips the comparison.
-  const same = old?.source === s.map && old.gates === memory.gates && old.revision === (memory.revision ?? 0) && old.size === (memory.gates?.size ?? 0);
-  if (same) return old.map;
-  const doors = s.map.gates.map(g => Number(memory.gates?.get(g.id)?.open ?? true)).join('');
-  const kept = { gates: memory.gates, revision: memory.revision ?? 0, size: memory.gates?.size ?? 0 };
-  if (old?.source === s.map && old.doors === doors) { Object.assign(old, kept); return old.map; }
-  const map = { ...s.map, gates: s.map.gates.map(g => ({ ...g, open: memory.gates?.get(g.id)?.open ?? true })) };
-  localMaps.set(p, { source: s.map, doors, map, ...kept });
+  const doors = s.map.gates.map(g => Number(p.discovery!.gates?.get(g.id)?.open ?? true)).join('');
+  const old = localMaps.get(p);
+  if (old?.source === s.map && old.doors === doors) return old.map;
+  const map = { ...s.map, gates: s.map.gates.map(g => ({ ...g, open: p.discovery!.gates?.get(g.id)?.open ?? true })) };
+  localMaps.set(p, { source: s.map, doors, map });
   return map;
 }
 

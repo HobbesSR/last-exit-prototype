@@ -230,16 +230,7 @@ function fullKnowledge(s: Game, keys: number): Knowledge {
  * stand; it does not watch them, since a door only ever stops being locked, which no route through
  * other doors needs to hear about.
  */
-function doorsSeen(p: Player): string {
-  const gates = p.discovery?.gates, revision = p.discovery?.revision ?? 0, size = gates?.size ?? 0;
-  const kept = seenDoors.get(p);
-  if (kept && kept.gates === gates && kept.revision === revision && kept.size === size) return kept.value;
-  const value = [...gates ?? []].map(([id, g]) => `${id}:${+g.open}${+g.locked}`).join();
-  seenDoors.set(p, { gates, revision, size, value });
-  return value;
-}
-/** `doorsSeen` as last written, kept while the memory's revision says no door observation can have changed. */
-const seenDoors = new WeakMap<Player, { gates: DiscoveryMemory['gates']; revision: number; size: number; value: string }>();
+const doorsSeen = (p: Player): string => [...p.discovery?.gates ?? []].map(([id, g]) => `${id}:${+g.open}${+g.locked}`).join();
 
 /** Cells along a route whose tiles the knowledge does not hold. */
 function unknownAlong(planner: ReturnType<typeof createKnowledgePlanner>, knowledge: Knowledge, map: CollisionMap, points: readonly Vec2[]): number[] {
