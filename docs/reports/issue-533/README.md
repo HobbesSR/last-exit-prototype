@@ -62,3 +62,47 @@ outputs. The normalized inventory and tool hash live in
 inventories remain historical evidence. `--rebind` is a capture-time bridge and
 compares raw bytes; use `--verify` for clean checkouts with different line endings.
 Verification does not rerun the expensive room-route diagnostics.
+
+## Integration and verification
+
+- `npm run check` and `npm run typecheck` pass.
+- Final `npm test` passes all 1,292 tests. The live-map ID pins are updated for
+  intentional warehouse geometry/loot changes; uniqueness, ordering and
+  multi-room roof-group assertions remain intact. The frozen simulation
+  characterization fixture is unchanged.
+- Focused depot tests and the depot builder-contract row at `BUILDER_SEEDS=20`
+  pass. `test:times` measures the grown depot, infill and new composition files
+  at 9.5, 0.5 and 3.5 seconds, below the 15-second file budget.
+  The updated live-map roof/ID file measures 9.8 seconds in isolation.
+- `npm run test:micro` passes 523 unit tests and all four browser previews.
+- The selected slow library files pass all five tests: 25 default-size maps,
+  one whole-map portal diagnostic and five maps each at 24x12 and 36x18.
+- The full pre-capture sweep checks 224 maps in 116 seconds. All results
+  identities change, 157 built/report views change, and no upstream view changes.
+  `integration.json` retains full-map report/portal diagnostics for every one of
+  those 157 changed maps: zero defects or broken promises, 534 seconds.
+- The 224-map baseline is captured from `7f171253` at
+  `2026-10-30T03:06:09.011Z` in 111 seconds, with no generation errors.
+  An independent full check passes all 224 maps with zero drift in 149 seconds
+  (`sweep-final.json`). Capture provenance is owned by 42.4 and 53.
+- `clean-checkout-verification.json` records successful fourteen-output, source,
+  tool and artifact verification in clean LF and CRLF clones of the content
+  commit, using existing installed dependencies. The three retained PNGs were
+  inspected in headless Chrome at 1500x1400; these are collision/composition
+  previews, not art or balance acceptance.
+
+To replay the changed-map diagnostics, decompress `sweep-before.json.gz` into
+`test-results/533-sweep-before.json`, then run
+`node tools/depot-composition-integration.mjs` at the content commit. The script
+accepts both UTF-8 and the retained PowerShell UTF-16LE log encoding. Its source
+inventory must remain unchanged across the run. The independent authored access
+audit is `node tools/depot-composition-audit.mjs`; its portal and room searches
+take several minutes. `node tools/builder-fill.mjs --types=depot --seeds=3
+--width=40 --height=30 --json=1` reproduces the separate synthetic fill sample:
+three built, zero failed, free share 0.829 and largest diagnostic gap 160 cells.
+
+The whole slow tier, simulation/physics match sweeps, full main-game browser suite,
+macro suite and general benchmarks are omitted under 31's single-builder scope.
+No frozen gameplay fixture, placeable geometry, dependency, macro/library input or
+experimental execution version changes. Structural hall wings remain open under
+#533; further depot pocket filling and the costly movable-cord rollout are deferred.

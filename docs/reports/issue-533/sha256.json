@@ -1,0 +1,9 @@
+{
+  "baseline.json.gz": "4069bda5fc187e312b36416b023d3381903ba5cd7c654797a0065cef1795227f",
+  "compact.png": "d439acac18b92a8e4d72f6b43fcac0d985be710e9c17fcf63312a0af847d56bc",
+  "comparison.json.gz": "b779fe864242343f9c4ee38c7fb49833ef85a5a2f178c96edbc3e2c20bdcfbb4",
+  "index.html.gz": "a992bbda4cd39101f5c495092a48d4da8e01933ec9d31344dbee899a54e92a4d",
+  "large.png": "4e0726be976c01529c4e6907d64ce4b5176d40329d9b6ccf81fb02b75b5c8e09",
+  "sweep-before.json.gz": "3ce2b429b764753016ea5a7873a69ebb88ccbd835cd71c8bc90bdd860a3b4c2d",
+  "warehouse-heavy.png": "eb577dadfa02fd81971fa25f8171b4411962a438817836b2f7c357570317865f"
+}

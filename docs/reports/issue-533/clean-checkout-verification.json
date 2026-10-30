@@ -1,0 +1,46 @@
+{
+  "commit": "7f1712536f77e9936f158cfef67184b167b356a1",
+  "node": "v24.15.0",
+  "method": "Separate clean local Git clones, core.autocrlf false and true, checked out at the content commit; each uses a junction to the existing workspace node_modules.",
+  "initialAttempt": "Both initially lacked the sat package; after linking the existing installed dependencies, both verification commands passed.",
+  "checkouts": {
+    "lf": {
+      "head": "7f1712536f77e9936f158cfef67184b167b356a1",
+      "trackedStatus": "",
+      "samples": {
+        "tools/depot-composition-audit.mjs": {
+          "sha256": "2533385914ce747dbcfa807b944f67b44fafb52350d5b27bdf994edbf98b3f4a",
+          "crlf": 0,
+          "lf": 134
+        },
+        "map/micro/strategies/depot.ts": {
+          "sha256": "e9048b3dfdf2fe06da5f4ccea87b3e6976fc8759b2e7423a2aca03fa58f14616",
+          "crlf": 0,
+          "lf": 211
+        }
+      },
+      "command": "node tools/depot-composition-audit.mjs --verify",
+      "exitCode": 0,
+      "output": "Verified 14 production outputs, final normalized sources, audit tool, and retained artifacts"
+    },
+    "crlf": {
+      "head": "7f1712536f77e9936f158cfef67184b167b356a1",
+      "trackedStatus": "",
+      "samples": {
+        "tools/depot-composition-audit.mjs": {
+          "sha256": "7639581c39907447079318b9a0d835337baf7882fd2fccab5b5a96862d53e3b3",
+          "crlf": 134,
+          "lf": 134
+        },
+        "map/micro/strategies/depot.ts": {
+          "sha256": "f8b1c1ebf9263295d0c2413fd0cbbe344ec992d28ba54182bc9e9bbabb45c71f",
+          "crlf": 211,
+          "lf": 211
+        }
+      },
+      "command": "node tools/depot-composition-audit.mjs --verify",
+      "exitCode": 0,
+      "output": "Verified 14 production outputs, final normalized sources, audit tool, and retained artifacts"
+    }
+  }
+}
