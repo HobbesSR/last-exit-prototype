@@ -1,0 +1,1158 @@
+{
+  "commit": "7f1712536f77e9936f158cfef67184b167b356a1",
+  "trackedDirty": "",
+  "sourceHashes": {
+    "map/kernel/cell.ts": "e9c28027b21699a9aefc5321e5a0b32cca38f271ea922c2df911b576ee92e8cb",
+    "map/kernel/contract.ts": "07fa33036e2dc208504159ba4ad00fabd908ca3d9640170893eefd6800cc4824",
+    "map/kernel/margins.ts": "2666c47ee596b0f3c259988b60867d39aa0b4511baf56080f1fa0ae1d7e868db",
+    "map/kernel/run-cases.ts": "7c3eccd9eff19f7a0793c00cd8028c1baa8fc42451772c5e3c858388cd0c37a0",
+    "map/kernel/run.ts": "3df6102ff54e3185b03038456d8321a853c69ee2d7f39bfa0d5e3a8d660965d0",
+    "map/kernel/scale.ts": "cb97135c22b8c3da2c7da525f205c925b7d941705232b2b288ea5063309cdf78",
+    "map/macro/src/bson.ts": "b7e293fa3db80ee613a2bf9618e5b4910e2444fe3520d353fba386e1aef80b8d",
+    "map/macro/src/chain/briefs.ts": "863dd442d725d06ba9d4c1f6e601f403c46491f8d3fd756d195d40a2a803d390",
+    "map/macro/src/chain/declared-grid.ts": "2675f3c9c3824307b0ba74f64ca4b1430fd1e1bcb5ef75467cbf6d4d924c62f0",
+    "map/macro/src/chain/library.ts": "37d1b4c67ae9fc98b587cd4a06c53645bafe4f30dbc584af8e43c37a2aa5b03a",
+    "map/macro/src/chain/map.ts": "2b6e98f9b58a8ef5d8dde77f986b11beb30726aa0de23c1d19583aa05d5c7a4e",
+    "map/macro/src/chain/measurement.ts": "0fa1808f8a9f576e56b31692cabc6fa066226ed67d1303d718dbb6166644237f",
+    "map/macro/src/chain/open-face.ts": "0944b24752ad283aaa6f22a56de7f4f249fc5d1822224a114b622ef37cfd2f9b",
+    "map/macro/src/chain/placement.ts": "90e71c750ec46ef7efce6530b3e404c0410f5f9e88c0914d8e6bcbda6d452bb6",
+    "map/macro/src/chain/proof.ts": "81e61a49c67d8d3a32d71c2e0a589557e7d3d695a88f49c6558e37f221abe4b5",
+    "map/macro/src/chain/random.ts": "c34fb800cfb52a3a612a2a46184d7330ba4f151e115097d797f8cffe6a8ce9e6",
+    "map/macro/src/chain/regions.ts": "b514e2cdb178c46ae5fb72af97f1c3518f6ff6b6bb06a41870b00480a396d38d",
+    "map/macro/src/chain/resolution.ts": "5d34c173038932182f9aff5c2f17a9abba8f6320ac8d1cb5bba38850e35383e7",
+    "map/macro/src/chain/saving.ts": "f677d41496f3cc3ec5b70241b96e27813866235086cfc8bd39fa076ac4d6f068",
+    "map/macro/src/chain/types.ts": "5a54ee15f4b9d4dbe05fa4e0e5615394dafe1416a17664d6b8f126cee11a17c2",
+    "map/macro/src/chain/zone-plan.ts": "ebb688a89ff0ef9f74231ff08acafe301697746b6ed5ef638f1804593044fceb",
+    "map/macro/src/chain/zones.ts": "463d0c846e75756f676f1ac513f029fb91160b437235275577fb6dee0b462203",
+    "map/macro/src/coding.ts": "9b30a1b1ac56d775c7bf4023f17ca1cb710838c7a9efc8bea5daf8cb4674c357",
+    "map/macro/src/wfc.ts": "9925b9457d0fcd6f8ae30cd0943558058ab7f9eb10a3bcf60ea0d41618620a66",
+    "map/micro/adapter.ts": "9171273415b1cbad70f6fda8d6fb3aa829c35215e06a840f45f3e56507bc6afe",
+    "map/micro/addressed.ts": "7eeaddad8c27a6800e9a41c559e234e88cbef64f2e2552f5baee5a49809e869e",
+    "map/micro/brief-link.ts": "1eee0c7f965ca2c99fe4a690b90624868817e83eadfc007826177d835e6919b1",
+    "map/micro/building/allocation.ts": "53dafbd63fe7ee166ed4dc2b4e7796c4ba54ae9964a0b02d5c895535e3d2a4d5",
+    "map/micro/building/boundaries.ts": "1d7a1df7630718f72760fdf22aa620a0db6a48e5f6b4f663d31b0a5cbf597461",
+    "map/micro/building/decals.ts": "687adc01cfa030dcdbd5290bbbaf56f5a0c526c7a479312d9042a8ac0f56fa02",
+    "map/micro/building/design.ts": "9cef0c7d61ccff7de5db744ff56ac35a2de8bdfe246934ae03d27fa1154c5ff1",
+    "map/micro/building/draw.ts": "b36bcc753233cdace57dccd1c5da94392a1d2f0c7dc43975bab1a20481ea6b72",
+    "map/micro/building/groups.ts": "0278231f152c3c857a2bb2b100f4651727641d9edc9a2a40bcb350a9770e5d31",
+    "map/micro/building/openings.ts": "ed0a7caf63f575538864c69418b048c0a9dc6cdee6dd346b879af4964cb10002",
+    "map/micro/building/pieces.ts": "8cf38155b8333927dde6c0c75dadfc78af8dc2387a9d5f7fd9068d7db6c0c93b",
+    "map/micro/building/realize.ts": "e4900b2758d332936339eda3f76279248fe426ba5b33b0749bddcb85cd2a1e6d",
+    "map/micro/building/trace.ts": "304ae07486e16228a6d5c922e6018b2eb101afdd02bdffec55fa9deab5171905",
+    "map/micro/building/walls.ts": "3db64074e54dfa4f6184ab46a06fb888fc36539385b7549f77fd3ea74db8c4b1",
+    "map/micro/canvas.ts": "3bbe8b5d63887e230c3b7ebe4e4c08e98ba740d13ea9b6a7b1c67b5ab29b4614",
+    "map/micro/components.ts": "3bf2b7a3ac9896427d7ccb59d968c9a773e24c3de63956ea846966896874ee38",
+    "map/micro/compose.ts": "fbd15f94bd3787ae1ba682316bc082549c38a5f2504e64bffc71a0a2e504c3f0",
+    "map/micro/cord-witness.ts": "016446d731fb7f73a209bd1cc6868302b58fdb01912717b373652590b1085c1d",
+    "map/micro/decomposition/allocation.ts": "1d92207352bb68aedf0c75fe7cb90ef7450433dfba0d12f1fc765839d3a06e4f",
+    "map/micro/decomposition/analysis.ts": "f88e0b0f78755f1b21f0a6226c05d05e9c6a050915edd5101060690995f309a3",
+    "map/micro/decomposition/context.ts": "9c791356cb59cda50540a63ee62a481c35abab32f4a3862118fade9c55e50f01",
+    "map/micro/decomposition/example.ts": "728075e1cd6816fc2f392a789f3595394045e9daee93ab97d6cb1ab14e9e49d4",
+    "map/micro/decomposition/explore.ts": "e41fd55b5558fa99e2b4aaef6af096e7c9809af44b6d9d1c5078cc8c8125f29b",
+    "map/micro/decomposition/interfaces.ts": "044ecef551b6eda5a05bb05e341bda25c60cc71fcec7b6f6c9457fc9baf82969",
+    "map/micro/decomposition/types.ts": "505c1726da6afbd2c0638c282ce0f269cff043d2df2be7275deed57afd18999d",
+    "map/micro/decomposition/validate.ts": "05489d38bf21202fc803d3226d08c6726dfa64b55f8f45ca436ae5bd07a7db8a",
+    "map/micro/decomposition/work-budget.ts": "1252bed0bfff1e290d745eaaa7522f360f197556ba4dce50e7090237c4a31ea9",
+    "map/micro/delegation-execute.ts": "85144aa1b27c743c1c5009b9924a40bff7a1f64766bf74ef5d7df486e3665cbc",
+    "map/micro/delegation-json.ts": "d4a06d6b35cc86d80cbb4591887ce2b535a98ffcad73fd70d2d880f5c992eba2",
+    "map/micro/delegation-snapshot.ts": "5798f57087ec8433769208035e8f025f97a8692e69bf5d1b94a80405d30e8c58",
+    "map/micro/delegation.ts": "ef942c02a94d1e30fbc51315a5c587ddf5da79a65cd510e064f3e2c473ac7069",
+    "map/micro/diagnose.ts": "6237abe6cfc21d72d6e31c7360d52b77ebf2110bd93e895b459f75a64b954bff",
+    "map/micro/difference.ts": "214483261a8e5e17bef722f97654a7f0c34b3eeca5b1777bd4232c9386cf4a37",
+    "map/micro/experiments/depot-canvas.ts": "a2e8c5a17edf9e4ec5d3d379b52eb43ad4f699b4b0c6e1e085d8a299ff5baef0",
+    "map/micro/fill.ts": "9bcec96bc6c2cc6e735168feaf905fbbb187e6e877f67199fe83f53091393fac",
+    "map/micro/geometry.ts": "d742f5934c3778f3757b6fd7f01c87bbeea17dff26f420f01c044f92926acd6d",
+    "map/micro/hint-walls.ts": "15b33f3eea10dcdbc03a45a274781ad23aca5bbc971f3fae30b37ded248a091f",
+    "map/micro/hints.ts": "db6ab1a799bc2922110c9d55f15fd749296038e06052a5a2cb1af68cbec8bbb8",
+    "map/micro/limits.ts": "ca6849810e0feaf65c0f1de551ff73cdf6a4c0b4fea3fcc784c4d8dd9aa11cbf",
+    "map/micro/margins.ts": "ea9ca3154e77660a159dffe7fd57c6168dccd5f75c7e3e694a5877287cea7598",
+    "map/micro/metrics.ts": "c9e6b182ed3dad6510329cd1f4904addb362b10290aba59d12f3683b4189cb27",
+    "map/micro/parcel-area.ts": "a0af18a3c4e913301e3bacc3943634d5001b68e8538c6314d0ea87977b91202d",
+    "map/micro/placeables/checkpoint-barrier.ts": "91ca99c3c9e24398f299411983de7536116e7d7a9e440805b840dc84faa361e0",
+    "map/micro/placeables/compound-ring.ts": "f6c277f49414b4c511432cd6c7a2f782e9958c2b2ec68db28a12aa4ee8fa69d3",
+    "map/micro/placeables/container-row.ts": "c6ce749af6e21b44e816fd832e3390a6a49e4be1e9ce4727d1b913eb4a5b340a",
+    "map/micro/placeables/cover-piece.ts": "49cde3bb086ed192e03137bb5c915620422236cee8b4e4f387ed6016b9430989",
+    "map/micro/placeables/fallen-slab.ts": "e75241439b3bf38f80cebd017439d6621b04ab58f6ee92d6bab411a80c511f45",
+    "map/micro/placeables/frame.ts": "2e91d71465f286bde48ec2e702113a979d8e019b4cdfb10a9426608b86224fa9",
+    "map/micro/placeables/hall-pillar.ts": "d2c687921c73e813049abf5d6f48932d2eb7d3d7e9362c8b5c4a147ece9eb38b",
+    "map/micro/placeables/house.ts": "0ab3427ccc3d74a63736a5d4b12e8fb644377203c07662e6093dcc8eb13e1378",
+    "map/micro/placeables/index.ts": "7c190ada4a285e2c8eb6934586fbacdbb1aacea087d46800aa782cbc42dd8cc9",
+    "map/micro/placeables/market-stall.ts": "a804d6d09ae8313803e46d0a19e21dfb934ccabb48e194e9f125837d80915589",
+    "map/micro/placeables/park-hedge-run.ts": "34be4220d6ce7d7805195f4d00f3a0e609e98e889eb5da009bbe771de5947874",
+    "map/micro/placeables/park-tree.ts": "ac546bae1ef3ff19caf18d3f9b49b286cbba4c8111af88d602bc83436da86cf5",
+    "map/micro/placeables/placeable.ts": "4962aa7316d8981c297161350ca2c480434a2c98964966a6d321a4f9bfc900d1",
+    "map/micro/placeables/plant-machine.ts": "9efb5f2ae3f0033f317e5d657c658a046133f00e474a1fbd3ff02550870b4d51",
+    "map/micro/placeables/plant-pipe-run.ts": "cd69bc864836f158d44a8ec3f75044a4c055bad06661da533583d73cf8d1101c",
+    "map/micro/placeables/rubble-debris.ts": "c357506c4bfaae4371ffe0fc26e02d38c8f7fb01961c6ad16faf864a0b083bab",
+    "map/micro/placeables/ruin-room-span.ts": "6ff26adef3b00c6b8041d4c9ffe4095b6a356e63903ecf80686258edb6ac1d49",
+    "map/micro/placeables/wall-run.ts": "8568870b575bddb4f9805c5b5fcef1979a50312f3c1119095bb328a8574b7269",
+    "map/micro/placeables/warehouse.ts": "ff089cd6ec2c882ba61bc2e8c05d150f2e850554de1b346618e7d538df1e52bb",
+    "map/micro/placement.ts": "74c48c9dd7d2f32839fcdec7136f8a8afa8b895e636df1c3a0dc231764e364e2",
+    "map/micro/port-terms.ts": "f6ea8108cd7046d94ea837395e77ac8bf770e82426e421241c1731aa5d8e1e6b",
+    "map/micro/portals.ts": "02adcbc39cb8165640e83629ddd99f25ab5316c2f5def6e4f2690749051f190f",
+    "map/micro/prospective-parcels.ts": "24890c32864e857f9ff98ed3b032c884db4726ac12f3f4ea7e0ecca13431aaca",
+    "map/micro/random.ts": "63acf74f671a241210f69096939d7150f7c84d13efbb23d17f003c332924e6b2",
+    "map/micro/region-examples.ts": "9c30b8a159e7ce0f54b5de52e75469b744de78da3adaf7a36fb2159c1f8b3048",
+    "map/micro/region-types.ts": "45a33addc10732c71eb96c149458a4ce7d9a6c741c04c21e7bb1c0910d699b1e",
+    "map/micro/result.ts": "eaa7574107a4c52848ab5204c4a47f28236ed1efc90a094f27671a389e5a9e32",
+    "map/micro/sdk.ts": "c50948b068869b22b80557c0a8decd6431a827194e5b59967f5fdf47497a2bca",
+    "map/micro/strategies/arrival.ts": "01ea45c73f15b97353587f0d4d29b7ac5b5b8534d8a3af584041b261c7d227a9",
+    "map/micro/strategies/block-circulation.ts": "2ffe01f8dc1256f2e018f91819707df0ea79c0d06a12aaac7aec019a3fe06075",
+    "map/micro/strategies/block.ts": "17803b16a0ee2135d384174a77a1f28ea81c47be4dde173479f7f5f2515d58ec",
+    "map/micro/strategies/charging.ts": "2842304f47f9a3d8fea365c3e541bfa7235e2bace4419d1c9ad6a3ba879070e3",
+    "map/micro/strategies/checkpoint.ts": "9f93af0f824a62faa5f1a0214d87e44ae818afe646529acc368114897d8106fb",
+    "map/micro/strategies/compound-court.ts": "9235cf51f7237baf48bc83ede06563c7a6525e9f550d500682f6e7a42afbe862",
+    "map/micro/strategies/compound.ts": "4c2c77ad1968597bbc936453a42a384bffde6394f10567233779ac014091a851",
+    "map/micro/strategies/cover.ts": "a4162ba67eb2bfc44199054ee74b8e54b8f144a4b46fc2394b857b4ef18d69d7",
+    "map/micro/strategies/departure.ts": "740e3bc23b3456ff205c1b13d6443ee3b22b114d2f6341dc2d1c8daa1c454fb0",
+    "map/micro/strategies/depot.ts": "f8b1c1ebf9263295d0c2413fd0cbbe344ec992d28ba54182bc9e9bbabb45c71f",
+    "map/micro/strategies/hall.ts": "598a25a1ee34c60fb85f135bc4f1d61ca845fc3d6b32f67d5d8858128f9d6b30",
+    "map/micro/strategies/hut.ts": "6a043c311516a4e0c6382211060193392806c5fb83a40eb2194b5b7bdb42659f",
+    "map/micro/strategies/infill.ts": "43dabcfcfc430ec3d844ed5290df3674b9bd7308e0b83e196e7ee1ac41e30191",
+    "map/micro/strategies/lattice.ts": "e7ea144e1c4901ef4ef1aa48012c74f8171727d4e4f23458d47f8f9b90f2c4c5",
+    "map/micro/strategies/market.ts": "848539fe42c89ac075a276a4a446b17af38a60775e189e571226a485829c21f2",
+    "map/micro/strategies/open.ts": "841a7dfc80a1d5c8c6ddb0f7be60a4bd7c7c00fb5bc274d56f10e6d1fce3da8f",
+    "map/micro/strategies/park.ts": "07715d72ba4c3afa4b203364dade5a57c51890f46b856e0776466c27d0a206dc",
+    "map/micro/strategies/plant.ts": "968b89a12585d98c5ab1a34ffec2adcd9b0b007827e4b2ea7e261c68975bf0e0",
+    "map/micro/strategies/rubble.ts": "2034d0332f25e8d83f32f3168ca78a5fd91b98a23d32129cfc59949cb01306bb",
+    "map/micro/strategies/ruins.ts": "3b27b8585e9182e8a13070095e99d7ce060493764f98b1f327246c44e4ebb475",
+    "map/micro/strategies/scatter.ts": "13c6118a52bc62f1a54850733893d6814681425cd5ebfcba91fbd0e540797435",
+    "map/micro/strategies/transit.ts": "9ada521aa4195164ad0771e08ce5a4a02486950db4f2f99fcd58a43d143bd792",
+    "map/micro/types.ts": "3b5322424471c635ffa34bdb1a0d30ef48e12bc11f9ff38ac8ece35d158ef20e",
+    "map/micro/yard-handoff.ts": "e45bb222d5edcb02bceab76cf761f948c7cbf9325aa00c739fd1964b6bb6ba8e",
+    "shared/constrainautor.d.ts": "8ba67db7ddb98a15ab05a671737400e5d17c842ea2440db61cb932734f819ccd",
+    "shared/discovery.ts": "6f7975049234560960534b1d9dc6f7a4aec6c2bd4f8b1d5cb49813d45aafb441",
+    "shared/equipment.ts": "684be571ba36ccf05e9fdbb6232302f436c672f22194488d8c062f6bfdfacbd7",
+    "shared/frame-layers.ts": "05159364a270c445a5adb58a4eb405684c21434dc0ab23c4eaad4ca2d638864d",
+    "shared/free-space.ts": "49182991c47e2b51d85121cab5a72f4b3613da86862208abcc09c0679dd29121",
+    "shared/gate-query.ts": "3b3114763aa492d10c91888853d9c5b6ad53909606803ba23a11484a23521423",
+    "shared/index-heap.ts": "81ab624d220673a5eb56548c4560d55cd261b73f85bbc984abffdd3a892a3281",
+    "shared/item-instances.ts": "ed69f4f187bcbb2ec221d18c300a347132e05a2a2f378b50657e7a3949787e1f",
+    "shared/loot-tiers.ts": "7cc59eb0575f0eb85ada4818744234c7a9e135f9525314ae1a77b7b44535f535",
+    "shared/map.ts": "3dffa181bad31b39afd4420199d88c6e7ddc85181f5f52648890b6616c408e72",
+    "shared/map/context.ts": "ffde02af79fbac442f597309cdbcdc54d00c91302e5e4fd82dce6b8418251d9c",
+    "shared/map/element.ts": "cd9f363e98398ff698d7520d31f03437355addb6daa0fdcc7a61729738e04d7d",
+    "shared/map/generate.ts": "f9bf98a8309695206de6217cff7d748c2f94f166f1cec04568b4978d9be58b09",
+    "shared/map/graph.ts": "853201a034b6021a4bdb8785e0d88710f3deb42848209590985b7f19cfde9a87",
+    "shared/map/navigation.ts": "09b30fe3a843d293cdb7905c99cf38601b8f462c5fdf884ae15c08c61d40d0d0",
+    "shared/map/objectives.ts": "b36c705ba71fd1c2db3c02a951755be514ed7127e2b9b0cf101e9658214ba055",
+    "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+    "shared/map/structures.ts": "1b6dd03da6b2d68daa7564220a232894890bec9829f235b3e6374a8a566b8e03",
+    "shared/map/templates.ts": "012afc24b610639817d8b16fe0189cd1fa67f7cc0a7613fb7e6561183d8ff315",
+    "shared/map/terrain.ts": "15f32b6514666a75d0a6e51ad3a64d34340ed9e9105fc6a649af14483c587075",
+    "shared/map/topology.ts": "7b4ba8429abb68a6889c9c1cb8fedc12b606ec76e205a827164d51dd9ff03757",
+    "shared/map/world.ts": "e4a6fcbb82b3c83467db28c5cfce7046b69558508bcec95f62cefad8b95a5cac",
+    "shared/math.ts": "8e7294b0b939ddfe27ad60ca6378b45c293043fd668f4e069ead21563e9eb387",
+    "shared/movement.ts": "2bba598e2974020137c38f981a3fa5d5712f6283a60d2df6ae81c9f02d2c0644",
+    "shared/navigation/grid-level.ts": "863a99640f23440689b643e55404aebb5911d8dbd55952710361bd6523bb8390",
+    "shared/navigation/knowledge.ts": "3b074f453fd496666cc9497802f6c5ca5bafc0fbae796bc22e0d9b422fa6670d",
+    "shared/navigation/mesh-level.ts": "dfc3ac51af6510972c297f2f373aa35978438d09f93219ec530349b9e75f4756",
+    "shared/navigation/portal-graph.ts": "232b68f2c9fb2e2aac203ade72e25c2856feef7bd65811838b5d066b9c1dc7e7",
+    "shared/numbers.ts": "20b10309086bffd343f72aeab0fe1a1d896cb6b38d55d6ec3971c9c1fb793b8f",
+    "shared/physics/constraints.ts": "6260ff53a2ea274bfc23ef0f9383cf2c738f0a1bbf4dde2c433a396537650dd1",
+    "shared/physics/motion-limits.ts": "9c4de805fb8891b64a3c7b941ad84f243e663de91bbb902967397e56f8ba4583",
+    "shared/physics/presentation-geometry.ts": "eb71f61b6a59dc5a8ba5873c6527defd92c5bf3907c6dbc9340b408551dfadc4",
+    "shared/physics/types.ts": "1e6c298423e939de142a4df69d36cdf9e442ba6700a55f7a62f7ddcbaa5b899d",
+    "shared/physics/world.ts": "400b2ba810f5e6a51ec18536e073fc829eab42e52dc2b3600fb8ef626855ff0c",
+    "shared/presentation.ts": "04194b97f599ea15f5d761a0d879d758e6b82d55f94d05c0fe147102f4ceea9d",
+    "shared/profiler.ts": "34160303ebe060857143d67e11efbcbf61024158948c5b7eb19b1cf5976c6538",
+    "shared/recording.ts": "c94b5bd4210901a5d97bb6c03a23d92e9e85850375c4f111c160b6fa781ac092",
+    "shared/shape-construction.ts": "7a1a20e527ffe19a41078a41d01b1db63c88599e60e49de98cbdf3bbc6e50ab0",
+    "shared/shape.ts": "909892d034c74f8a83b0791902d27cd463366901ad571c03c0a399cf3d3e5b9d",
+    "shared/simulation.ts": "eefc1456b64dddbd5559a7dbe34d1da2a39619bfda1828416684ec0daecdcd39",
+    "shared/simulation/actor-physics.ts": "6a7f253d2c1059d7e8a1d786e23010c0c57f36fbd4285006894821eaaeaeb012",
+    "shared/simulation/ammo.ts": "e9074b82404995f6271953d74efc60c48f86b336ec759d7a987842389f23d947",
+    "shared/simulation/bots.ts": "70937ed2142f076e5d9f8b37df6cc5404c9c547bb0d70dfdd9e5e8b4fc7c8bd4",
+    "shared/simulation/combat.ts": "1cd49f98725905f94811b17d176d2fe52ebe98ef67918ddb8aea165b0aad64c6",
+    "shared/simulation/content.ts": "a260186b5a9ed39002129f07f0737d7206fd5a5c335390c43906d1abb7f44264",
+    "shared/simulation/dev.ts": "e3910bb42684485acb75dc60e3c0fffe02fa39b8b14a704f90efa92b125c24ad",
+    "shared/simulation/dynamic-navigation.ts": "d8748cd6243bfce2a402ce6680d2e02f95512bf32abcb270882c617c4a97d58c",
+    "shared/simulation/explosion-physics.ts": "89875db48f589576503d872fac851046c497340b293a6cdce90e32be349a04bb",
+    "shared/simulation/frame-gates.ts": "0f270ccf33c87ea249d6f111c180c116e72f1271c03f1eaea7a936b251d5a029",
+    "shared/simulation/geometry.ts": "b9843e2c2a72c4f694547e14f44c3fdcb196049ced574b54210a36134b7129b6",
+    "shared/simulation/ground-items.ts": "a50ef47d41a29f9f80d13f80829b634064c44d2e3308d54d3f4954055a1ba9ae",
+    "shared/simulation/hook.ts": "084c0758a33ac5305700354a1b9e29e77e1b69afcde2c88d3b4e35348ec9ea1d",
+    "shared/simulation/input.ts": "aa9d52b06834a8a63e365fb2ea80db643c8a94518c6b4e0587fd3da14e42792c",
+    "shared/simulation/interactions.ts": "dd812ecdb4e491afcf1d2605b5fd5f03526383ab37cf2ef7d1e1984aaea67a33",
+    "shared/simulation/lifecycle.ts": "18d3f2999c9f996d0829f22598f626b62640c3536f384e4245bfccbd8ea85b7b",
+    "shared/simulation/loot.ts": "93343e8e611ac5f1888209a46ce9d01a9233062e17a515739d45e953aa727363",
+    "shared/simulation/phased.ts": "aa1fe6c63752a2434139046c08399cd1a67ebeb3c1b0922c41b2f9b252c2d57c",
+    "shared/simulation/physics-geometry.ts": "e5f5fca2eaf3cd7c6d5d50a202455fb83d86aea35468869570b8eeef8f313ab4",
+    "shared/simulation/physics-presentation.ts": "e4de2dc9c2ffd0cf71f052e5aa1e856a148e3c2c0aca178e28e0ce13845690da",
+    "shared/simulation/physics-projectiles.ts": "75e2ca8aaafb4d82f6688a07e38404fa7ba70b89380ea07130cec012451f030a",
+    "shared/simulation/physics-runtime.ts": "62be467d1c0e1f0eb88c63128abe19f01af0af9940a8cccbfe4ae69dab781f77",
+    "shared/simulation/projection-contract.ts": "60fdab69e55c5181ba0945e6988bfec2b7857019c36a2a63ab28f58e97bb84b3",
+    "shared/simulation/rewind.ts": "52d3b61cd8d308ca63a8cdffcea084d1ee828f2e89aeabfcb7e58b1cec0e603d",
+    "shared/simulation/rules.ts": "121db04f71644ce9d65f0747b9377ede0832ea3a6fab2082a6f4158c32d1622d",
+    "shared/simulation/state.ts": "b1caf7bcde74dfd646da8a2b6a7f8a7017c99104a82bdc0a155588584dfa7a47",
+    "shared/simulation/swept.ts": "f102b007a1513a186be006d76214beacfcdaa14a324f9184d8e3cc8c9428cd78",
+    "shared/simulation/tick-rules.ts": "e8f2526fd9b7ccda064eff307953cd900db64b97adcd2f16b22beec76dc37556",
+    "shared/simulation/visibility.ts": "80c11dc11f098f6510637b95d6da4c6b5b1f86e1e371c3acd4d50332912340bd",
+    "shared/simulation/waiting.ts": "13a05d0271aeae48f8275a1592c45faeee451570f98a10385ec645f3b0f045d2",
+    "shared/simulation/world-physics.ts": "07d61f323a7671cca3908b20215ebf55d5378b93f4d32e67bb1bb06e10257b1b",
+    "shared/traps.ts": "92eeb4cc10af16553c90c84f0e2c7e0d2f34baca954dfc05cc36c35fceb97002",
+    "shared/types.ts": "50a920e556ff67a240c2f43ebdd752cfb84c26ed3598383bff72cd3e46366321",
+    "shared/vector.ts": "9da19e6c5219d822eaefaa1bd706376dcbf4e8c203166d5ba14fc5d592f58bf3",
+    "shared/vendor.d.ts": "2f3439dc118f11a4affde78ac37fe65fa7887a32a5663d9d6d0fdafb27fb74dd",
+    "shared/view.ts": "3f392f7c47cf1871b50c737d901a476dd05274e9cfab8c436f12bc1bd98777e0",
+    "shared/waiting-yard.ts": "78bf71c506ed15606ad6d61a19af5ac9f1bbd0873ff3f05cc41187a2938f84e7"
+  },
+  "node": "v24.15.0",
+  "regionTypesVersion": "types-53",
+  "sweepPath": "test-results/533-sweep-before.json",
+  "sweepSha256": "12dbddd7e3d8c67f932f3c8b6470d28b6ca98d31a1f6c7838eed94bc73a449cb",
+  "sweepChecked": 224,
+  "driftCounts": {
+    "results": 224,
+    "built": 157,
+    "report": 157
+  },
+  "diagnostic": "checkMap(generate(seed, params), { diagnose: true }) on every built-drift map",
+  "seconds": 533.5025676,
+  "checked": 157,
+  "failures": [],
+  "results": [
+    {
+      "key": "game/sweep-1",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-2",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-3",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-4",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-5",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-6",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-7",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-8",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-9",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-10",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-11",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-12",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-13",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-14",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-15",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-16",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-17",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-18",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-19",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-20",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-21",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-22",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-23",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-24",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-25",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-26",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-27",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-28",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-29",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-30",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-31",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-32",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-33",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-34",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-35",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-36",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-37",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-38",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-39",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-40",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-41",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-42",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-43",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-44",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-45",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-46",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-47",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-48",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-49",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-50",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-51",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-52",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-54",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-55",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-56",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-57",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-58",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-59",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-60",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-61",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-62",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-63",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-64",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-65",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-66",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-67",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-68",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-69",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-70",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-71",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-72",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-73",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-75",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-76",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-77",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-78",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-79",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-80",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-81",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-82",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-83",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-84",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-85",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-86",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-87",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-88",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-89",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-90",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-91",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-93",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-94",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-95",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-96",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-97",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-98",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-99",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-100",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-101",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-102",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-103",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-104",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-105",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-106",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-108",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-109",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-110",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-111",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-112",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-113",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-114",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-115",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-116",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-117",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-118",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-119",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/sweep-120",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-1",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-2",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-3",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-4",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-5",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-6",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-7",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-8",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-9",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-10",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-11",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-12",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-13",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-14",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-15",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-16",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-17",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-18",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-19",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-crowded/sweep-20",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-1",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-2",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-3",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-4",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-5",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-6",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-7",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-8",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-9",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-10",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-11",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-12",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-13",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-14",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-15",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-16",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-17",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-18",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-19",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game-sparse/sweep-20",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    },
+    {
+      "key": "game/quick-1",
+      "valid": true,
+      "defects": [],
+      "brokenPromises": []
+    }
+  ]
+}

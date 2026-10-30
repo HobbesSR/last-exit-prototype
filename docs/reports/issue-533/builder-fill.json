@@ -1,0 +1,17 @@
+{
+  "width": 40,
+  "height": 30,
+  "min": 3,
+  "seeds": 3,
+  "rows": [
+    {
+      "type": "depot",
+      "built": 3,
+      "failed": 0,
+      "freeShare": 0.829,
+      "gapsPerRegion": 18.33,
+      "gapCellsShare": 0.591,
+      "largestGapCells": 160
+    }
+  ]
+}
