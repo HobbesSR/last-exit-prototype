@@ -105,6 +105,10 @@ function validateBody(input: BodySpec): BodySpec {
       throw new TypeError('invalid physics collision profile');
     result.collisionProfile = input.collisionProfile;
   }
+  if (input.mapGeometry !== undefined) {
+    if (input.mapGeometry !== true || input.kind !== 'static') throw new TypeError('only static bodies can be map geometry');
+    result.mapGeometry = true;
+  }
   if (input.linearDamping !== undefined) result.linearDamping = nonnegative(input.linearDamping);
   if (input.angularDamping !== undefined) result.angularDamping = nonnegative(input.angularDamping);
   if (result.restitution! > 1) throw new RangeError('restitution must be <= 1');
@@ -155,6 +159,8 @@ export class PhysicsWorld {
   private impulses: Array<{ id: string; value: Point }> = [];
   private contacts: PhysicsContact[] = [];
   private disposed = false;
+  /** The one fixed body every map-geometry collider is attached to, made with the first. */
+  private geometry: RAPIER.RigidBody | undefined;
 
   static async create(): Promise<PhysicsWorld> {
     await initialized();
@@ -224,6 +230,8 @@ export class PhysicsWorld {
     for (const id of [spec.a, spec.b]) {
       if ((!this.bodies.has(id) || this.pendingRemove.includes(id)) && !this.pendingAdd.some(body => body.id === id))
         throw new Error(`unknown physics constraint endpoint ${id}`);
+      if ((this.bodies.get(id)?.spec ?? this.pendingAdd.find(body => body.id === id))?.mapGeometry)
+        throw new Error(`map geometry cannot be a constraint endpoint ${id}`);
     }
     this.pendingAddConstraints.push(spec);
   }
@@ -235,14 +243,20 @@ export class PhysicsWorld {
     this.pendingRemoveConstraints.push(id);
   }
   private add(spec: BodySpec): void {
-    const descriptor = spec.kind === 'static' ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic();
-    descriptor.setTranslation(spec.x / SCALE, spec.y / SCALE).setRotation(spec.angle!)
-      .setLinvel(spec.vx! / SCALE, spec.vy! / SCALE).setAngvel(spec.omega!);
-    if (spec.linearDamping !== undefined) descriptor.setLinearDamping(spec.linearDamping);
-    if (spec.angularDamping !== undefined) descriptor.setAngularDamping(spec.angularDamping);
-    if (spec.kind !== 'static') descriptor.setCcdEnabled(true);
-    if (spec.kind === 'actor') descriptor.lockRotations();
-    const body = this.native.createRigidBody(descriptor);
+    // Map geometry's colliders all hang off one fixed body, placed by their own translation: Rapier's step costs
+    // per fixed body as well as per collider, and the frames are the same (42.22 "Static colliders and the solve").
+    let body: RAPIER.RigidBody;
+    if (spec.mapGeometry) body = this.geometry ??= this.native.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+    else {
+      const descriptor = spec.kind === 'static' ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic();
+      descriptor.setTranslation(spec.x / SCALE, spec.y / SCALE).setRotation(spec.angle!)
+        .setLinvel(spec.vx! / SCALE, spec.vy! / SCALE).setAngvel(spec.omega!);
+      if (spec.linearDamping !== undefined) descriptor.setLinearDamping(spec.linearDamping);
+      if (spec.angularDamping !== undefined) descriptor.setAngularDamping(spec.angularDamping);
+      if (spec.kind !== 'static') descriptor.setCcdEnabled(true);
+      if (spec.kind === 'actor') descriptor.lockRotations();
+      body = this.native.createRigidBody(descriptor);
+    }
     let collider: RAPIER.ColliderDesc;
     const { minimum: minimumRadius, tip: tipRadius } = shapeRadii(spec.shape);
     if (spec.shape.kind === 'circle') {
@@ -252,9 +266,10 @@ export class PhysicsWorld {
     } else {
       const vertices = spec.shape.vertices.flatMap(point => [point.x / SCALE, point.y / SCALE]);
       const hull = RAPIER.ColliderDesc.convexHull(new Float32Array(vertices));
-      if (!hull) { this.native.removeRigidBody(body); throw new RangeError('invalid convex body'); }
+      if (!hull) { if (!spec.mapGeometry) this.native.removeRigidBody(body); throw new RangeError('invalid convex body'); }
       collider = hull;
     }
+    if (spec.mapGeometry) collider.setTranslation(spec.x / SCALE, spec.y / SCALE).setRotation(spec.angle!);
     collider.setMass(spec.mass!).setFriction(spec.friction!).setRestitution(spec.restitution!)
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
     if (spec.collisionProfile === 'loot') collider.setCollisionGroups(groups(LOOT_GROUP, STATIC_GROUP));
@@ -296,7 +311,8 @@ export class PhysicsWorld {
             this.constraints.delete(jointId);
           }
         }
-        this.native.removeRigidBody(this.native.getRigidBody(record.handle)!);
+        if (record.spec.mapGeometry) this.native.removeCollider(this.native.getCollider(record.collider)!, false);
+        else this.native.removeRigidBody(this.native.getRigidBody(record.handle)!);
         this.colliderIds.delete(record.collider);
         this.bodies.delete(id);
         if (record.spec.kind === 'static') this.staticCount--;
@@ -409,6 +425,10 @@ export class PhysicsWorld {
     this.ensure(); const record = this.bodies.get(validId(id));
     if (!record) return undefined;
     const body = this.native.getRigidBody(record.handle)!;
+    if (record.spec.mapGeometry) {
+      const collider = this.native.getCollider(record.collider)!, p = collider.translation();
+      return { x: p.x * SCALE, y: p.y * SCALE, angle: collider.rotation(), vx: 0, vy: 0, omega: 0, sleeping: body.isSleeping() };
+    }
     const p = body.translation(), v = body.linvel();
     return { x: p.x * SCALE, y: p.y * SCALE, angle: body.rotation(),
       vx: v.x * SCALE, vy: v.y * SCALE, omega: body.angvel(), sleeping: body.isSleeping() };
@@ -568,7 +588,7 @@ export class PhysicsWorld {
   }
   dispose(): void {
     if (this.disposed) return;
-    this.events.free(); this.native.free(); this.bodies.clear(); this.colliderIds.clear(); this.constraints.clear();
+    this.events.free(); this.native.free(); this.geometry = undefined; this.bodies.clear(); this.colliderIds.clear(); this.constraints.clear();
     this.sortedDynamic = []; this.actorCount = 0; this.dynamicCount = 0; this.staticCount = 0;
     this.nextGeneration = 0;
     this.pendingAdd = []; this.pendingRemove = []; this.pendingAddConstraints = []; this.pendingRemoveConstraints = [];

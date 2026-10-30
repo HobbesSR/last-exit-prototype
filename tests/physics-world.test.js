@@ -226,3 +226,24 @@ test('finite but backend-hostile magnitudes are rejected atomically', async () =
     assert.equal(world.getTransform('good').x, 0);
   } finally { world.dispose(); }
 });
+
+test('map geometry shares one fixed body but keeps its own pose, contacts and removal', async () => {
+  const world = await createPhysicsWorld();
+  try {
+    const wall = (id, x, angle = 0) => ({ id, kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 20, hy: 200 }, x, y: 0, angle });
+    world.queueAddBody(wall('wall:a', 100)); world.queueAddBody(wall('wall:b', -100, 0.5));
+    world.queueAddBody(circle('p', { vx: 100 }));
+    world.commitMutations();
+    assert.deepEqual(world.getTransform('wall:b'), { x: -100, y: 0, angle: 0.5, vx: 0, vy: 0, omega: 0, sleeping: world.getTransform('wall:b').sleeping });
+    assert.equal(world.counts().static, 2);
+    for (let i = 0; i < 20; i++) world.step();
+    assert.ok(world.drainContacts().some(contact => contact.a === 'p' && contact.b === 'wall:a' && contact.type === 'start'));
+    assert.ok(world.getTransform('p').x < 100 - 20, 'the wall stops the body');
+    assert.throws(() => world.queueAddConstraint({ id: 'rope', a: 'p', b: 'wall:a', maxDistance: 50 }), /map geometry/);
+    assert.throws(() => world.queueAddBody({ ...circle('q'), mapGeometry: true }), /static/);
+    world.queueRemoveBody('wall:a'); world.commitMutations();
+    assert.equal(world.getTransform('wall:a'), undefined);
+    assert.equal(world.getTransform('wall:b').x, -100);
+    assert.equal(world.counts().static, 1);
+  } finally { world.dispose(); }
+});
