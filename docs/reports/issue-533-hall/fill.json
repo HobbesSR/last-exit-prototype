@@ -1,0 +1,17 @@
+{
+  "width": 24,
+  "height": 18,
+  "min": 3,
+  "seeds": 10,
+  "rows": [
+    {
+      "type": "hall",
+      "built": 10,
+      "failed": 0,
+      "freeShare": 0.851,
+      "gapsPerRegion": 8.5,
+      "gapCellsShare": 0.627,
+      "largestGapCells": 78
+    }
+  ]
+}

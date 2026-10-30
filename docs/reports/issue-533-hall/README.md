@@ -90,4 +90,38 @@ roof-render acceptance. The synthetic L panel shows an enclosing secondary bay;
 ordinary-map panels show one and two wing pillars replacing small crates while
 retaining the primary layout and open transitions.
 
-Integration and final capture results are recorded below when complete.
+## Integration and final verification
+
+- `npm test`: 1,302/1,302 pass; `npm run check` and `npm run typecheck` pass.
+- `npm run test:mapgen`: 137/137 pass.
+- Micro gate: 530/530 units pass. All four browser preview programs pass after
+  updating the linked block seed to a current warehouse-bearing block. The
+  full Map Lab browser check also passes. Its expectations now count declared
+  awning roofs and the already implemented compound keep traces.
+- Strict isolated file budgets pass for all eight changed fast-test files:
+  0.4?12.0 seconds, below 15 seconds. Actual commands and normalized test hashes
+  are in `timings.json`. The generated-ID/roof tests still verify uniqueness and
+  ordering; seed 2 retains the multi-room grouping witness. A current squeeze
+  seed and populated market cache replace invalidated old fixture selections,
+  keeping the route/replay/tamper/refusal assertions.
+- Selected slow library checks pass all five tests: 25 default-size maps,
+  one whole-map portal diagnostic and five maps each at 24x12 and 36x18.
+- The pre-capture 224-map sweep takes 135 seconds. All layout/library and results
+  identities change; 154 maps change declared grid, resolved layout, regions,
+  proof, briefs, built and report. Zones remain unchanged; no error drift.
+  All 154 built-drift maps pass whole-map report/portal/fill diagnostics in
+  547 seconds (`integration.json`), bound to the exact source inventory.
+- The baseline is captured from content commit `4cc00fa115236fcb996f4acbb86071885c7557eb`
+  at `2026-10-30T04:32:23.161Z`, Node v24.15.0, in 111 seconds. All 224 entries
+  are successful generations. Independent post-capture verification passes all
+  224 maps with zero drift in 160 seconds (`sweep-final.json`).
+- All 23 full retained outputs and final normalized source/tool hashes verify
+  again with `--verify`. The rectangular builder-fill diagnostic builds 10/10
+  regions with no failure (`fill.json`); shaped comparisons above establish the
+  wing capability that a rectangular fill diagnostic cannot show.
+
+The frozen `behavior-nav-1.json.gz` characterization fixture is unchanged. No
+unrelated whole-match/physics seed suites, generic benchmarks or full main-game
+browser suite ran; the area-specific gates above follow 31. This completes the
+selected first structural-wing outcome. Further thin-wing coverage, new shapes,
+optimal partitioning and broad movable-cord promotion remain deferred.

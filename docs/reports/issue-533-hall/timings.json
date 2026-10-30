@@ -1,0 +1,26 @@
+{
+  "node": "v24.15.0",
+  "command": "npm.cmd run test:times -- --strict <eight named files>",
+  "strictExitCode": 0,
+  "budgetSeconds": 15,
+  "seconds": {
+    "tests/micro-hall.test.js": 2.8,
+    "tests/micro-hall-infill.test.js": 0.4,
+    "tests/micro-hall-wings.test.js": 0.6,
+    "tests/map-hall-wing-library.test.js": 1.4,
+    "tests/map-inward-authoring.test.js": 5.6,
+    "tests/map-sweep-replay.test.js": 12.0,
+    "tests/map-lab-routes.test.js": 5.7,
+    "tests/view.test.js": 6.7
+  },
+  "normalizedTestSha256": {
+    "tests/micro-hall.test.js": "fe7c117a7b412ff536c313438e309555b085c2ce0fb255930f9e4bbf6ec9b155",
+    "tests/micro-hall-infill.test.js": "144e6c95cf698bf323fadb97af4067c61eaae03adfdbcf1efe837bcc70491f6b",
+    "tests/micro-hall-wings.test.js": "a792b60de7d6f6fadb1ff7cf6792196fed18f3d783cdbe2b4117db1ff4936c6f",
+    "tests/map-hall-wing-library.test.js": "05169c1a453163e9704a1787f7ea2b47b6127495d4b57768d673521c6ff0dc2d",
+    "tests/map-inward-authoring.test.js": "6cb9a56394dbca1d97efba1aff81a976228d09f54d5ecec5de27eda9d0873251",
+    "tests/map-sweep-replay.test.js": "468e53ee01ab7540aeb15a65b6503f5600cedde2d325ca0ee9c35f77c26f0f20",
+    "tests/map-lab-routes.test.js": "7cca0a8f229f460d837afaab706166f15583dee6519912ebd6dcc2a3b19e6abe",
+    "tests/view.test.js": "0e364b6f2d42fd71b77985fcd8287e716ee6c151cec4133543730637666b0813"
+  }
+}
