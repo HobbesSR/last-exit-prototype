@@ -457,6 +457,15 @@ try {
 
     const realNow = performance.now.bind(performance);
     let fakeClock = realNow();
+    f.step = (delta = 16, now = fixedNow) => {
+      fakeClock = Math.max(fakeClock, realNow()) + delta;
+      performance.now = () => fakeClock;
+      try {
+        s.update(now, delta);
+      } finally {
+        performance.now = realNow;
+      }
+    };
     f.settle = async ({ palette, directed, fog, followId, camera, selfPos, frameAlpha = 0, now = fixedNow, roofSteps = 30 } = {}) => {
       if (palette && palette !== f.palette) {
         f.palette = palette;
@@ -476,22 +485,14 @@ try {
       s.cutTo();
       // Step a monotonic deterministic clock so `noteFrame()` advances `insideBlend` and roof fades
       // through the real renderer (`arena-scene.js`) without overriding `insideBlend` or `roof.alpha`.
-      fakeClock = Math.max(fakeClock, realNow());
-      performance.now = () => fakeClock;
-      try {
-        for (let i = 0; i < roofSteps; i++) {
-          fakeClock += 50;
-          s.update(now, 50);
-        }
-        for (let guard = 0; guard < 40; guard++) {
-          fakeClock += 16;
-          s.update(now, 16);
-          const tilesDone = [...s.tiles.values()].every(t => t.empty || t.resolution > 0);
-          const overheadDone = [...s.overheadTiles.values()].every(t => !s.overheadGroups.get(t.group)?.visible || t.empty || t.resolution > 0);
-          if (tilesDone && overheadDone) break;
-        }
-      } finally {
-        performance.now = realNow;
+      for (let i = 0; i < roofSteps; i++) {
+        f.step(50, now);
+      }
+      for (let guard = 0; guard < 40; guard++) {
+        f.step(16, now);
+        const tilesDone = [...s.tiles.values()].every(t => t.empty || t.resolution > 0);
+        const overheadDone = [...s.overheadTiles.values()].every(t => !s.overheadGroups.get(t.group)?.visible || t.empty || t.resolution > 0);
+        if (tilesDone && overheadDone) break;
       }
       // Wait one animation frame so Phaser's WebGL pipeline flushes the scene to the drawingBuffer.
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -572,7 +573,7 @@ try {
       } else {
         // Also verify privacy in the fogged frame:
         // - `occluded-actor` (behind `occluder-wall`), `cloaked-actor`, and `indoor-actor` (under `shop-room` roof) must be hidden.
-        // - `item-hidden` (x=1070, y=140) and `trap-hidden` (x=1095, y=140) behind `occluder-wall` must not be drawn.
+        // - `item-hidden` (x=1090, y=175) and `trap-hidden` (x=1110, y=175) behind `occluder-wall` must not be drawn.
         // - `self`, `ally`, `warden`, `specter`, `striker` (in open sight) must be visible.
         // - `shadedGround` (behind `occluder-wall`) is dimmed by `shade` relative to lit `ground`.
         const fogCheck = await page.evaluate(({ surfaceRefs, fixedNow }) => {
@@ -593,7 +594,7 @@ try {
             orig[m] = s.dynamic[m].bind(s.dynamic);
             s.dynamic[m] = (...args) => { dynamicCalls.push([m, args]); return orig[m](...args); };
           }
-          s.update(fixedNow, 16);
+          f.step(16, fixedNow);
           for (const [m, fn] of Object.entries(orig)) s.dynamic[m] = fn;
           const nearCoord = (args, x, y) => Math.abs(args[0] - x) <= 16 && Math.abs(args[1] - y) <= 16;
           return {
@@ -770,7 +771,7 @@ try {
         });
         const restoreDyn = wrap(s.dynamic, dynamicCalls);
         const restoreFix = wrap(s.fixtures, fixtureCalls);
-        s.update(600, 16);
+        f.step(16, 600);
         restoreDyn();
         restoreFix();
         return {
@@ -843,7 +844,7 @@ try {
         ally.x += 24; ally.y += 18;
         warden.x -= 22; warden.y += 16;
         f.frameAlpha = step * 0.35;
-        s.update(fixedNow + step * 50, 50);
+        f.step(50, fixedNow + step * 50);
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       }
       return {
