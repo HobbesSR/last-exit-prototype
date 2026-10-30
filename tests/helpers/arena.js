@@ -14,13 +14,13 @@ import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
  * beside a corridor's gap.
  * The game mutates its map, so build one per game.
  */
-export function arena({ cols, rows, cellSize = 192, seed = 0, corridor, scatter, obstacles = [], gates = [], buildings = [], roofs, decals,
+export function arena({ cols, rows, cellSize = 192, seed = 0, corridor, scatter, obstacles = [], gates = [], buildings = [], roofs, decals, appearance,
   modules = [], hazards = [], gaps = [], sensors = [], routes = [], nodes = [], streets = [], items = [], traps = [],
   stations = [], chargers = [], physicsProps, spawns = [], hunterSpawns, entry, exit } = {}) {
   const width = cols * cellSize, height = rows * cellSize;
   const playableArea = { cellSize, rows: Array.from({ length: rows }, (_, y) => ({ y, runs: [[0, cols]] })) };
   const map = { seed, width, height, playableArea, modules: [...modules], buildings: [...buildings],
-    ...(roofs ? { roofs: [...roofs] } : {}), ...(decals ? { decals: [...decals] } : {}),
+    ...(roofs ? { roofs: [...roofs] } : {}), ...(decals ? { decals: [...decals] } : {}), ...(appearance ? { appearance } : {}),
     obstacles: [...obstacles], gates: [...gates], hazards: [...hazards], gaps: [...gaps], stations: [...stations],
     chargers: [...chargers], sensors: [...sensors], items: [...items], traps: [...traps], routes: [...routes],
     nodes: [...nodes], streets: [...streets], physicsProps,

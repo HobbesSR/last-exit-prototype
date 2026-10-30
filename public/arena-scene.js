@@ -6,7 +6,8 @@ import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
-import { themeColors, css } from '/palette.js';
+import { themeColors, css } from './palette.js';
+import { APPEARANCE_RECIPE_VERSION, resolveBuildingAppearance, resolveObstacleAppearance, resolveGroundAppearance, recordAppearanceOps } from './appearance.js';
 
 // Heard gunfire's ring and edge arrow (#684).
 const HEARD = 0xffba62;
@@ -41,7 +42,8 @@ export function makeArenaScene(api) {
     constructor() { super('arena'); }
     preload() { this.load.svg('contestant', '/assets/contestant.svg', { width: 80, height: 80 }); this.load.svg('gladiator', '/assets/warden.svg', { width: 100, height: 100 }); }
     create() {
-      this.ready = true; this.colors = themeColors(api.palette?.()); this.cameras.main.setBackgroundColor(css(this.colors.background));
+      this.ready = true; this.paletteId = api.palette?.() || 'prototype'; this.lighting = true; this.wear = true; this.appearanceVersion = APPEARANCE_RECIPE_VERSION;
+      this.colors = themeColors(this.paletteId); this.cameras.main.setBackgroundColor(css(this.colors.background));
       this.world = this.add.container(0, 0);
       // Terrain, structures and fixtures are drawn everywhere and dimmed where they are out of sight,
       // so the arena stays legible instead of being cut away. Only actors, loot, shots and effects are
@@ -250,9 +252,15 @@ export function makeArenaScene(api) {
       this.recordStatic(map);
       this.updateCamera(true);
     }
-    /** Draw in another palette (11.1). Only static drawings are recorded again; sight, memory and actors are kept. */
+    /** Draw in another palette or static art mode (11.1, 29.4). Only static drawings are recorded again; sight, memory and actors are kept. */
     setPalette(id) {
+      this.paletteId = id;
       this.colors = themeColors(id); this.cameras.main.setBackgroundColor(css(this.colors.background));
+      const map = api.map(); if (map?.obstacles && this.sightMap) this.recordStatic(map, new Map(this.overheadGroups));
+    }
+    setArtOptions({ palette = this.paletteId, lighting = this.lighting, wear = this.wear } = {}) {
+      this.paletteId = palette; this.lighting = lighting !== false; this.wear = wear !== false;
+      this.colors = themeColors(palette); this.cameras.main.setBackgroundColor(css(this.colors.background));
       const map = api.map(); if (map?.obstacles && this.sightMap) this.recordStatic(map, new Map(this.overheadGroups));
     }
     /**
@@ -260,7 +268,7 @@ export function makeArenaScene(api) {
      * `priorGroups` carries roof and canopy fades over a restyle; a new map starts them afresh.
      */
     recordStatic(map, priorGroups = new Map()) {
-      const ink = this.colors; let g;
+      const ink = this.colors, artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear }; let g;
       for (const cache of [this.tiles, this.overheadTiles]) for (const tile of cache.values()) tile.texture?.destroy();
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
@@ -311,14 +319,22 @@ export function makeArenaScene(api) {
       // Floors go down before the obstacles: tiles replay drawings in the order recorded, so a floor
       // recorded after the walls painted over every interior wall and left only the doors showing.
       for (const building of map.buildings || []) {
-        const floor = this.staticAt(building.x, building.y, building.x + building.w, building.y + building.h); floor.fillStyle(ink.floor); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
+        const resolved = resolveBuildingAppearance(building, map.appearance, artOpts);
+        const floor = this.staticAt(building.x, building.y, building.x + building.w, building.y + building.h);
+        floor.fillStyle(resolved.floorFill); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
+        if (resolved.floorMarks.length) recordAppearanceOps(floor, resolved.floorMarks);
+      }
+      // Static ground-plane material, commercial markings, neglect, competition scars and static washes (29.4).
+      for (const item of resolveGroundAppearance(map.appearance, artOpts)) {
+        const b = item.bounds;
+        recordAppearanceOps(this.staticAt(b.x, b.y, b.x + b.w, b.y + b.h), item.ops);
       }
       // Door and window markings lie on the ground too, reaching past the roof's overhang (56.2).
       for (const d of map.decals || []) this.decal(this.staticAt(d.x - 2, d.y - 2, d.x + d.w + 2, d.y + d.h + 2), d);
       for (const o of map.obstacles) {
         // Wide enough for the drop shadow (+5, +8), the outline stroke and a circle's highlight.
         const box = bounds(shapeOf(o));
-        this.obstacle(this.staticAt(box.x - 6, box.y - 6, box.x + box.w + 12, box.y + box.h + 14), o);
+        this.obstacle(this.staticAt(box.x - 6, box.y - 6, box.x + box.w + 12, box.y + box.h + 14), o, map.appearance, artOpts);
       }
       const crownPad = map.obstacles.reduce((pad, o) => o.kind === 'tree' && o.r ? Math.max(pad, o.r * 1.9 + 8) : pad, 8);
       this.overheadGroup('canopy', 'canopy', { x: -crownPad, y: -crownPad, w: map.width + crownPad * 2, h: map.height + crownPad * 2 }, priorGroups.get('canopy'));
@@ -334,6 +350,7 @@ export function makeArenaScene(api) {
       const coveredBuildingIds = this.coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
       if (map.roofs?.length) {
         for (const roof of map.roofs) {
+          const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance: roof.appearance }, map.appearance, artOpts);
           const key = `roof:${roof.id}`;
           const overhang = roof.overhang ?? ROOF_OVERHANG;
           const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
@@ -355,7 +372,7 @@ export function makeArenaScene(api) {
             const swCorner = b.w.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.start <= cx0 + 1);
             const seCorner = b.e.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.end >= cx1 - 1);
 
-            g.fillStyle(ink.roofEave);
+            g.fillStyle(resolved.roofEave);
             g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
             for (const seg of b.w.exposed) g.fillRect(cx0 - overhang, seg.start, overhang, seg.end - seg.start);
             for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, overhang, seg.end - seg.start);
@@ -366,7 +383,7 @@ export function makeArenaScene(api) {
             if (swCorner) g.fillRect(cx0 - overhang, cy1, overhang, overhang);
             if (seCorner) g.fillRect(cx1, cy1, overhang, overhang);
 
-            g.fillStyle(ink.roof);
+            g.fillStyle(resolved.roofFill);
             g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
             const inExt = Math.max(0, overhang - 4);
             for (const seg of b.w.exposed) g.fillRect(cx0 - inExt, seg.start, inExt, seg.end - seg.start);
@@ -378,7 +395,7 @@ export function makeArenaScene(api) {
             if (swCorner) g.fillRect(cx0 - inExt, cy1, inExt, inExt);
             if (seCorner) g.fillRect(cx1, cy1, inExt, inExt);
 
-            g.lineStyle(4, ink.roofRim);
+            g.lineStyle(4, resolved.roofRim);
             for (const seg of b.w.exposed) {
               const y0 = seg.start - (seg.start <= cy0 + 1 && nwCorner ? overhang : 0);
               const y1 = seg.end + (seg.end >= cy1 - 1 && swCorner ? overhang : 0);
@@ -408,8 +425,9 @@ export function makeArenaScene(api) {
               if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
             }
           }
+          if (resolved.roofMarks.length) recordAppearanceOps(g, resolved.roofMarks);
 
-          g.lineStyle(2, ink.roofRidge);
+          g.lineStyle(2, resolved.roofRidge);
           for (let ry = roof.bounds.y + 12; ry < roof.bounds.y + roof.bounds.h - 10; ry += 24) {
             for (const c of roof.cells) {
               const cy0 = roof.origin.y + c.y * roof.cellSize;
@@ -423,17 +441,19 @@ export function makeArenaScene(api) {
       }
       for (const building of map.buildings || []) {
         if (coveredBuildingIds.has(building.id)) continue;
+        const resolved = resolveBuildingAppearance(building, map.appearance, artOpts);
         const key = `roof:${building.id}`, o = roofOverhang(building, this.roofMembers.get(building.id) || [building]);
         // The roof overhangs its walls, except along an edge it shares with another room of its group.
         const left = building.x - o.w, top = building.y - o.n, width = building.w + o.w + o.e, height = building.h + o.n + o.s;
         const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height }, priorGroups.get(key));
         this.roofs.set(building.id, roofState);
         const roof = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
-        roof.fillStyle(ink.roofEave); roof.fillRoundedRect(left + 2, top + 2, width - 4, height - 4, 5);
-        roof.lineStyle(4, ink.roofRim); roof.strokeRoundedRect(left + 4, top + 4, width - 8, height - 8, 4);
-        roof.fillStyle(ink.roof); roof.fillRect(left + 19, top + 14, width - 38, height - 28);
-        roof.lineStyle(2, ink.roofRidge); for (let y = top + 24; y < top + height - 14; y += 24) roof.lineBetween(left + 19, y, left + width - 19, y);
-        roof.fillStyle(ink.roofVent); roof.fillRect(building.x + 70, building.y + 70, 60, 40);
+        roof.fillStyle(resolved.roofEave); roof.fillRoundedRect(left + 2, top + 2, width - 4, height - 4, 5);
+        roof.lineStyle(4, resolved.roofRim); roof.strokeRoundedRect(left + 4, top + 4, width - 8, height - 8, 4);
+        roof.fillStyle(resolved.roofFill); roof.fillRect(left + 19, top + 14, width - 38, height - 28);
+        if (resolved.roofMarks.length) recordAppearanceOps(roof, resolved.roofMarks);
+        roof.lineStyle(2, resolved.roofRidge); for (let y = top + 24; y < top + height - 14; y += 24) roof.lineBetween(left + 19, y, left + width - 19, y);
+        roof.fillStyle(resolved.roofVent); roof.fillRect(building.x + 70, building.y + 70, 60, 40);
       }
       for (const gap of map.gaps) {
         g = this.staticAt(gap.x - 30, gap.y - 10, gap.x - 15, gap.y + 10);
@@ -466,15 +486,16 @@ export function makeArenaScene(api) {
         this.label(map.entry?.x || 340, (map.entry?.y || map.height / 2) - 70, 'CONTESTANT ENTRY', '#b4d6cf', 12);
       }
     }
-    obstacle(g, o) {
+    obstacle(g, o, mapAppearance = null, artOpts = null) {
       const ink = this.colors;
+      const resolved = mapAppearance ? resolveObstacleAppearance(o, mapAppearance, artOpts || { palette: this.paletteId, lighting: this.lighting, wear: this.wear }) : null;
       // Generated geometry is drawn from the very description the simulation collides with, so a new
       // shape needs no matching renderer branch and cannot be drawn as something other than its body.
       if (o.points?.length) {
         const points = outline(shapeOf(o));
         g.fillStyle(ink.shadow, 0.3); g.fillPoints(points.map(p => ({ x: p.x + 5, y: p.y + 8 })), true);
-        g.fillStyle(obstacleFill(o, ink)); g.fillPoints(points, true);
-        g.lineStyle(3, ink.outline); g.strokePoints(points, true);
+        g.fillStyle(resolved ? resolved.fill : obstacleFill(o, ink)); g.fillPoints(points, true);
+        g.lineStyle(3, resolved ? resolved.outline : ink.outline); g.strokePoints(points, true);
         g.lineStyle(2, 0xffffff, 0.22); g.strokePoints(points, true);
         return;
       }
@@ -495,15 +516,23 @@ export function makeArenaScene(api) {
         return;
       }
       g.fillStyle(ink.shadow, 0.3); g.fillRoundedRect(o.x + 5, o.y + 8, o.w, o.h, 6);
-      const fill = obstacleFill(o, ink);
-      g.fillStyle(ink.outline); g.fillRoundedRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4, 6);
+      const fill = resolved ? resolved.fill : obstacleFill(o, ink);
+      const outlineColor = resolved ? resolved.outline : ink.outline;
+      g.fillStyle(outlineColor); g.fillRoundedRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4, 6);
       g.fillStyle(fill); g.fillRoundedRect(o.x + 1, o.y + 1, o.w - 2, o.h - 2, 4);
       g.lineStyle(3, 0xffffff, 0.22); g.lineBetween(o.x + 7, o.y + 7, o.x + o.w - 7, o.y + 7);
       if (o.kind === 'fence') {
         for (let y = o.y + 12; y < o.y + o.h - 6; y += 23) { g.lineStyle(2, ink.fenceLine); g.lineBetween(o.x + 3, y, o.x + o.w - 3, y); }
       } else if (o.kind === 'building') {
-        g.fillStyle(ink.wallInset); g.fillRoundedRect(o.x + o.w * 0.25, o.y + o.h * 0.25, o.w * 0.5, o.h * 0.5, 4);
-        g.lineStyle(2, ink.wallLine); g.lineBetween(o.x + 10, o.y + o.h - 12, o.x + o.w - 10, o.y + o.h - 12);
+        g.fillStyle(resolved ? resolved.wallInset : ink.wallInset); g.fillRoundedRect(o.x + o.w * 0.25, o.y + o.h * 0.25, o.w * 0.5, o.h * 0.5, 4);
+        g.lineStyle(2, resolved ? resolved.wallLine : ink.wallLine); g.lineBetween(o.x + 10, o.y + o.h - 12, o.x + o.w - 10, o.y + o.h - 12);
+        if (resolved?.focalRim) {
+          g.lineStyle(3, resolved.focalRim.color, resolved.focalRim.alpha);
+          if (resolved.focalRim.side === 'N') g.lineBetween(o.x + 2, o.y + 1, o.x + o.w - 2, o.y + 1);
+          else if (resolved.focalRim.side === 'S') g.lineBetween(o.x + 2, o.y + o.h - 1, o.x + o.w - 2, o.y + o.h - 1);
+          else if (resolved.focalRim.side === 'W') g.lineBetween(o.x + 1, o.y + 2, o.x + 1, o.y + o.h - 2);
+          else if (resolved.focalRim.side === 'E') g.lineBetween(o.x + o.w - 1, o.y + 2, o.x + o.w - 1, o.y + o.h - 2);
+        }
       } else {
         g.lineStyle(2, ink.crateLine, 0.3); for (let x = o.x + 13; x < o.x + o.w - 5; x += 16) g.lineBetween(x, o.y + 11, x, o.y + o.h - 7);
       }
