@@ -440,7 +440,7 @@ function legGoal(s: Game, p: Player, target: Vec2): Vec2 {
   let corridor = corridors.get(p);
   if (!corridor || corridor.goalRegion !== to || !corridor.direct && !corridor.regions.includes(from)) {
     let planner = portalPlanners.get(graph);
-    if (!planner) portalPlanners.set(graph, planner = createPortalPlanner(graph, straightReach, 'lazy'));
+    if (!planner) portalPlanners.set(graph, planner = createPortalPlanner(graph, straightReach, 'straight'));
     count('work.route.portalPlans');
     const route = planner.route(p, target);
     const regions = [from];

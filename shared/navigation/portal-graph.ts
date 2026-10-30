@@ -81,18 +81,16 @@ export interface PortalRoute {
  * less the last.
  */
 export function regionTables(graph: PortalGraph, reach: Reach): Float64Array[] {
-  return graph.regions.map((_, index) => regionTable(graph, reach, index));
-}
-/** One region's table, as `regionTables` holds it. */
-function regionTable(graph: PortalGraph, reach: Reach, index: number): Float64Array {
-  const region = graph.regions[index]!, k = region.portals.length, table = new Float64Array(k * k).fill(Infinity);
-  const points = region.portals.map(p => graph.portals[p]!);
-  for (let i = 0; i < k; i++) table[i * k + i] = 0;
-  for (let i = 0; i < k - 1; i++) {
-    const lengths = reach(points[i]!, points.slice(i + 1), index);
-    for (let j = i + 1; j < k; j++) { const d = lengths[j - i - 1] ?? null; if (d !== null) table[i * k + j] = table[j * k + i] = d; }
-  }
-  return table;
+  return graph.regions.map((region, index) => {
+    const k = region.portals.length, table = new Float64Array(k * k).fill(Infinity);
+    const points = region.portals.map(p => graph.portals[p]!);
+    for (let i = 0; i < k; i++) table[i * k + i] = 0;
+    for (let i = 0; i < k - 1; i++) {
+      const lengths = reach(points[i]!, points.slice(i + 1), index);
+      for (let j = i + 1; j < k; j++) { const d = lengths[j - i - 1] ?? null; if (d !== null) table[i * k + j] = table[j * k + i] = d; }
+    }
+    return table;
+  });
 }
 
 /** A portal whose stands the level below does not join to its representative where 20.1 promises they do: unconfirmed, not proven divided. */
@@ -120,15 +118,14 @@ export function standJoins(graph: PortalGraph, reach: Reach): DividedPortal[] {
 
 /**
  * Plans over one graph for one body: the region tables are measured once, when the planner is
- * made, or with `'lazy'` each the first time a query reaches its region, so no single call pays for
- * the whole map; a query adds one reach from the start and one from the goal over their regions'
- * portals, then searches the graph. The caller owns invalidation: a door change makes a new
+ * made; with `'straight'` there are none, and a crossing costs the straight line between its
+ * portals, read from their positions. A query adds one reach from the start and one from the goal
+ * over their regions' portals, then searches the graph. The caller owns invalidation: a door change makes a new
  * planner, or will rebuild only the regions it touches (22.6, "Doors").
  */
-export function createPortalPlanner(graph: PortalGraph, reach: Reach, measured: Float64Array[] | 'lazy' = regionTables(graph, reach)) {
+export function createPortalPlanner(graph: PortalGraph, reach: Reach, measured: Float64Array[] | 'straight' = regionTables(graph, reach)) {
   const count = graph.portals.length;
-  const tables: Float64Array[] = measured === 'lazy' ? [] : measured;
-  const tableOf = (region: number): Float64Array => tables[region] ??= regionTable(graph, reach, region);
+  const tables: Float64Array[] = measured === 'straight' ? [] : measured;
   // Node numbers: portals are 0..count-1, the start is count and the goal count + 1.
   const START = count, GOAL = count + 1;
 
@@ -166,10 +163,11 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, measured: 
         if (last.has(node)) relax(GOAL, node, g + last.get(node)!);
         for (let side = 0; side < 2; side++) {
           if (side === 1 && portal.regions[1] === portal.regions[0]) break;
-          const region = graph.regions[portal.regions[side]!]!, table = tableOf(portal.regions[side]!);
+          const region = graph.regions[portal.regions[side]!]!, table = tables[portal.regions[side]!];
           const k = region.portals.length, row = portal.slots[side]! * k;
           for (let j = 0; j < k; j++) {
-            const next = region.portals[j]!, d = table[row + j]!;
+            const next = region.portals[j]!, other = graph.portals[next]!;
+            const d = table ? table[row + j]! : hypot(other.x - portal.x, other.y - portal.y);
             if (d !== Infinity && !closed[next]) relax(next, node, g + d);
           }
         }
