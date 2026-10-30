@@ -42,3 +42,28 @@ small-court refusal, and reversed-cell determinism. It measures 5.7 seconds
 with `npm run test:times -- tests/micro-compound-court.test.js`, below the
 15-second fast-file budget. Full and omitted snapshot recovery includes the
 keep observer event; mismatched historical compound versions are rejected.
+The edited block/observer files also remain under 15 seconds in isolated
+timing. The former delegation file took 18.2 seconds, so its three observer
+and snapshot cases now live in `micro-compound-snapshots.test.js`, preserving
+their assertions. A serial rerun measures 13.3 seconds for delegation and
+5.6 seconds for snapshots.
+
+The [integration report](court-integration.json) records the 224-map sweep:
+224 results hashes, 130 built hashes and 130 report hashes changed; all upstream
+views stayed fixed. All 130 built-drift cases pass
+`checkMap(generate(seed, params), { diagnose: true })`. Its 384-second duration
+is a verification run, not a performance comparison. To reproduce, first run
+`node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
+against the pre-change baseline and save its output as
+`test-results/532-sweep-before.log`, then run
+`node docs/reports/issue-532/court-integration.mjs`. The report pins the input
+log digest and working-source hashes. A recaptured baseline has no drift and
+cannot select these historical changed cases by comparison alone.
+
+Integration also passes all 517 micro units, the four micro browser scripts,
+typecheck and syntax checks, and 14 selected slow compound/library tests.
+The library checks cover 25 default-size maps, five each at 24 × 12 and
+36 × 18, and a full game-map portal diagnostic. The frozen simulation fixture
+is unchanged. The initial micro run found an old block observer assumption
+that included all `compound-*` pieces in the ring; its corrected check selects
+ring room/gate pieces and independently checks the keep trace.
