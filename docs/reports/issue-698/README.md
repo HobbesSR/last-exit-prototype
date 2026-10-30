@@ -6,8 +6,10 @@ previews and both-body route/structure summaries.
 
 `manifest.json` pins source bytes, Node, base revision, exact decompressed #688
 inputs/metrics and retained artifact hashes. It includes every tracked map and
-shared source plus the new modules/audit helpers. The legacy builder is read
-from base `63fb8aa` and its source hash is pinned. Only its import paths are
+shared source plus the new modules/audit helpers. The capture revision is initial
+base `63fb8aa` with implementation edits identified by the source hashes,
+subsequently committed as `d81e2226953a7ea5dbfe239d2fbd6c6e21553461`.
+The legacy builder is read from that base and its source hash is pinned. Only its import paths are
 rewritten into a gitignored temporary module so they resolve at their original
 locations; those dependency modules have unchanged behavior here.
 

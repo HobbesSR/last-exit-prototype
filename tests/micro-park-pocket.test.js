@@ -5,12 +5,13 @@ import { gunzipSync } from 'node:zlib';
 import { readMap } from '../map/tools/core.ts';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { createBuilderCanvas } from '../map/micro/canvas.ts';
-import { createAccessMask, elementShapes, findRegionRoute, travelClear } from '../map/micro/geometry.ts';
+import { createAccessMask, elementShapes, findRegionRoute, shapesShareArea, travelClear } from '../map/micro/geometry.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
 import { PARK_POCKET_LIMITS, siteParkPocket } from '../map/micro/strategies/park-pocket.ts';
 import { cellsOf } from './helpers/cells.js';
+import { rect } from '../shared/shape.ts';
 
 const saved = size => readMap(JSON.parse(gunzipSync(readFileSync(new URL(`../docs/reports/issue-688/size-${size}-1.json.gz`, import.meta.url))))).results
   .filter(r => r.brief.type === 'park').map(r => r.brief);
@@ -37,6 +38,9 @@ test('saved park pocket retains fill, portal and hunter access after scatter', (
   assert.equal(pieces.length, 1);
   assert.equal(result.manifest.pockets, 1);
   assert.equal(result.manifest.hedges, result.elements.filter(e => e.label.startsWith('park-hedge-')).length);
+  for (const element of result.elements.filter(e => e.label !== 'park-pocket'))
+    assert.ok(elementShapes(element, true).every(shape => !shapesShareArea(shape, sited.envelope)),
+      'scatter leaves the whole pocket and apron free, not only the entrance witness');
   const blockers = shapes(result), mask = createAccessMask(brief), radius = hunterClearance(brief.cellSize);
   assert.deepEqual(validateFillConstraints(brief, blockers), []);
   assert.deepEqual(validatePortalReach({ ...brief, blockers }, { search: 'thorough' }).errors, []);
@@ -68,4 +72,19 @@ test('pocket siting is bounded and leaves no partial placement on unsuitable fil
   const original = readMap(JSON.parse(gunzipSync(readFileSync(new URL('../docs/reports/issue-688/size-12-1.json.gz', import.meta.url)))))
     .results.find(r => r.brief.id === small.id);
   assert.deepEqual(buildRegion(small), original, 'the large real no-fit result remains exact');
+});
+
+test('an unreachable pocket exhausts the route budget without a partial canvas claim', () => {
+  const cells = [...cellsOf(20, 20), ...cellsOf(20, 1).map(c => ({ x: c.x + 20, y: 10 })),
+    ...cellsOf(24, 24).map(c => ({ x: c.x + 40, y: c.y }))];
+  const brief = synthetic(cells, [{ id: 'north', axis: 'h', x: 2, y: 0, length: 3 }]);
+  // The near room is authored clear intent; only the far room can hold the piece.
+  // Its connecting neck is cell-connected but too narrow for the SDK hunter.
+  const canvas = createBuilderCanvas(brief, [rect(0, 0, 20 * brief.cellSize, 20 * brief.cellSize)]);
+  const result = siteParkPocket(brief, canvas);
+  assert.equal(result.envelope, null);
+  assert.equal(result.routes, PARK_POCKET_LIMITS.routes);
+  assert.ok(result.candidates <= PARK_POCKET_LIMITS.candidates);
+  assert.deepEqual(canvas.elements, []);
+  assert.deepEqual(canvas.addressed.unaddressedComponents().flat().length, canvas.fill.cells.length);
 });
