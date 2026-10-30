@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createGzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
+import { itemsJson } from '../shared/simulation/ground-items.ts';
 
 const DEFAULT_QUEUE_BYTES = 8 * 1024 * 1024;
 const DEFAULT_FINALIZE_TIMEOUT_MS = 5000;
@@ -8,6 +9,28 @@ const DEFAULT_FINALIZE_TIMEOUT_MS = 5000;
 export const MAX_DIAGNOSTIC_MARKS = 512;
 const asError = error => error instanceof Error ? error : new Error(String(error));
 const aborted = signal => { if (signal?.aborted) throw asError(signal.reason || 'Replay recording was aborted'); };
+
+// `JSON.stringify({ state, commands })` and its UTF-8 length, with the ground items taken from the JSON their owner keeps
+// (#655 stage 3): they are most of each frame and nearly always unchanged. Keys go in the same order and undefined
+// values are left out, as JSON.stringify does, so the bytes and the digest are unchanged (26).
+export function frameLine(state, commands, ground) {
+  if (state === null || typeof state !== 'object' || !Array.isArray(state.items) || 'toJSON' in state) {
+    const line = JSON.stringify({ state, commands });
+    return { line, bytes: Buffer.byteLength(line) };
+  }
+  const parts = [];
+  let bytes = 0;
+  for (const key of Object.keys(state)) {
+    if (key === 'items') { const items = ground(state.items); parts.push(`"items":${items.json}`); bytes += 8 + items.bytes; continue; }
+    const json = JSON.stringify(state[key]);
+    if (json === undefined) continue;
+    const part = `${JSON.stringify(key)}:${json}`;
+    parts.push(part); bytes += Buffer.byteLength(part);
+  }
+  const commandsJson = JSON.stringify(commands), tail = commandsJson === undefined ? '}}' : `},"commands":${commandsJson}}`;
+  bytes += 10 + Math.max(0, parts.length - 1) + Buffer.byteLength(tail);
+  return { line: `{"state":{${parts.join(',')}${tail}`, bytes };
+}
 
 // The writer owns encoding, integrity and stream lifetime. It never receives a room.
 export function createReplayWriter({ header, output, publish, onError = error => console.error('Replay write failed:', error.message), queueBytes = DEFAULT_QUEUE_BYTES, finalizeTimeoutMs = DEFAULT_FINALIZE_TIMEOUT_MS, setTimer = setTimeout, clearTimer = clearTimeout, gzipOptions }) {
@@ -36,14 +59,20 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       endWhenDrained();
     });
   }
-  function enqueue(text, countsAgainstFrameBudget = false) {
-    const bytes = Buffer.byteLength(text);
+  function enqueue(text, countsAgainstFrameBudget = false, bytes = Buffer.byteLength(text)) {
     if (countsAgainstFrameBudget && queuedBytes + bytes > queueBytes) return false;
     queuedBytes += bytes; queue.push({ text, bytes }); pump(); return true;
   }
   function endWhenDrained() {
     if (ending && !failed && !writing && !queue.length && !recorder.writableEnded) recorder.end();
   }
+  // The last ground JSON and its length, which is the same string object while the ground is unchanged.
+  const ground = { json: undefined, bytes: 0 };
+  const groundText = list => {
+    const json = itemsJson(list);
+    if (json !== ground.json) { ground.json = json; ground.bytes = Buffer.byteLength(json); }
+    return ground;
+  };
   // Keep the old header bytes exactly, including its key order and compact JSON form.
   try { enqueue(`${JSON.stringify(header).slice(0, -1)},"frames":[`); }
   catch (error) { fail(error); }
@@ -61,11 +90,11 @@ export function createReplayWriter({ header, output, publish, onError = error =>
     append(state, commands) {
       if (completion || ending) throw new Error('Cannot append to a finalized replay');
       if (failed) return false;
-      let line;
-      try { line = JSON.stringify({ state, commands }); }
+      let line, bytes;
+      try { ({ line, bytes } = frameLine(state, commands, groundText)); }
       catch (error) { fail(error); return false; }
       const text = `${frames ? ',' : ''}${line}`;
-      if (!enqueue(text, true)) { droppedFrames++; return false; }
+      if (!enqueue(text, true, bytes + (frames ? 1 : 0))) { droppedFrames++; return false; }
       hash.update(`${line}\n`); frames++; return true;
     },
     // Never touches frames or the digest. Past the cap a marker is counted, not kept.
