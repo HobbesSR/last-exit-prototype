@@ -264,6 +264,12 @@ export interface MatchContent {
    * by a short search round them (#470 part 2).
    */
   replanning?: 'whole' | 'sliced' | 'repair' | undefined;
+  /**
+   * How a gladiator bot plans a trip that leaves its region: `portals` routes it over the portal
+   * graph and searches tiles only for the stretch to the crossing after next (#682, 22.6); unset,
+   * it searches tiles all the way to its goal.
+   */
+  hunterPlanning?: 'portals' | undefined;
 }
 
 /**

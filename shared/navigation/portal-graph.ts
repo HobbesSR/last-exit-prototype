@@ -68,6 +68,8 @@ export interface PortalRoute {
   status: PortalRouteStatus;
   /** The crossings to pass, then the goal; empty unless complete. */
   waypoints: Vec2[];
+  /** The portals crossed, by index into `portals`, one per waypoint before the goal. */
+  portals: number[];
   /** Total length over the level below; Infinity unless complete. */
   length: World;
 }
@@ -79,16 +81,18 @@ export interface PortalRoute {
  * less the last.
  */
 export function regionTables(graph: PortalGraph, reach: Reach): Float64Array[] {
-  return graph.regions.map((region, index) => {
-    const k = region.portals.length, table = new Float64Array(k * k).fill(Infinity);
-    const points = region.portals.map(p => graph.portals[p]!);
-    for (let i = 0; i < k; i++) table[i * k + i] = 0;
-    for (let i = 0; i < k - 1; i++) {
-      const lengths = reach(points[i]!, points.slice(i + 1), index);
-      for (let j = i + 1; j < k; j++) { const d = lengths[j - i - 1] ?? null; if (d !== null) table[i * k + j] = table[j * k + i] = d; }
-    }
-    return table;
-  });
+  return graph.regions.map((_, index) => regionTable(graph, reach, index));
+}
+/** One region's table, as `regionTables` holds it. */
+function regionTable(graph: PortalGraph, reach: Reach, index: number): Float64Array {
+  const region = graph.regions[index]!, k = region.portals.length, table = new Float64Array(k * k).fill(Infinity);
+  const points = region.portals.map(p => graph.portals[p]!);
+  for (let i = 0; i < k; i++) table[i * k + i] = 0;
+  for (let i = 0; i < k - 1; i++) {
+    const lengths = reach(points[i]!, points.slice(i + 1), index);
+    for (let j = i + 1; j < k; j++) { const d = lengths[j - i - 1] ?? null; if (d !== null) table[i * k + j] = table[j * k + i] = d; }
+  }
+  return table;
 }
 
 /** A portal whose stands the level below does not join to its representative where 20.1 promises they do: unconfirmed, not proven divided. */
@@ -116,12 +120,15 @@ export function standJoins(graph: PortalGraph, reach: Reach): DividedPortal[] {
 
 /**
  * Plans over one graph for one body: the region tables are measured once, when the planner is
- * made; a query adds one reach from the start and one from the goal over their regions'
+ * made, or with `'lazy'` each the first time a query reaches its region, so no single call pays for
+ * the whole map; a query adds one reach from the start and one from the goal over their regions'
  * portals, then searches the graph. The caller owns invalidation: a door change makes a new
  * planner, or will rebuild only the regions it touches (22.6, "Doors").
  */
-export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Float64Array[] = regionTables(graph, reach)) {
+export function createPortalPlanner(graph: PortalGraph, reach: Reach, measured: Float64Array[] | 'lazy' = regionTables(graph, reach)) {
   const count = graph.portals.length;
+  const tables: Float64Array[] = measured === 'lazy' ? [] : measured;
+  const tableOf = (region: number): Float64Array => tables[region] ??= regionTable(graph, reach, region);
   // Node numbers: portals are 0..count-1, the start is count and the goal count + 1.
   const START = count, GOAL = count + 1;
 
@@ -129,7 +136,7 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Fl
     tables,
     route(from: Vec2, to: Vec2): PortalRoute {
       const fromRegion = regionAt(graph, from), toRegion = regionAt(graph, to);
-      if (fromRegion < 0 || toRegion < 0) return { status: 'invalid-endpoint', waypoints: [], length: Infinity };
+      if (fromRegion < 0 || toRegion < 0) return { status: 'invalid-endpoint', waypoints: [], portals: [], length: Infinity };
       const at = (node: number): Vec2 => node === START ? from : node === GOAL ? to : graph.portals[node]!;
       const exits = graph.regions[fromRegion]!.portals, entries = graph.regions[toRegion]!.portals;
       const leave = reach(from, [...exits.map(p => graph.portals[p]!), ...fromRegion === toRegion ? [to] : []], fromRegion);
@@ -159,7 +166,7 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Fl
         if (last.has(node)) relax(GOAL, node, g + last.get(node)!);
         for (let side = 0; side < 2; side++) {
           if (side === 1 && portal.regions[1] === portal.regions[0]) break;
-          const region = graph.regions[portal.regions[side]!]!, table = tables[portal.regions[side]!]!;
+          const region = graph.regions[portal.regions[side]!]!, table = tableOf(portal.regions[side]!);
           const k = region.portals.length, row = portal.slots[side]! * k;
           for (let j = 0; j < k; j++) {
             const next = region.portals[j]!, d = table[row + j]!;
@@ -167,10 +174,13 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Fl
           }
         }
       }
-      if (!closed[GOAL]) return { status: 'no-route', waypoints: [], length: Infinity };
-      const waypoints: Vec2[] = [];
-      for (let node = GOAL; node !== START; node = parent[node]!) waypoints.push({ x: at(node).x, y: at(node).y });
-      return { status: 'complete', waypoints: waypoints.reverse(), length: best[GOAL]! };
+      if (!closed[GOAL]) return { status: 'no-route', waypoints: [], portals: [], length: Infinity };
+      const waypoints: Vec2[] = [], portals: number[] = [];
+      for (let node = GOAL; node !== START; node = parent[node]!) {
+        waypoints.push({ x: at(node).x, y: at(node).y });
+        if (node !== GOAL) portals.push(node);
+      }
+      return { status: 'complete', waypoints: waypoints.reverse(), portals: portals.reverse(), length: best[GOAL]! };
     },
   };
 }

@@ -56,6 +56,17 @@ test('the shorter of two crossings wins, and a crossing its region cannot reach 
   assert.deepEqual(createPortalPlanner(graph, straightReach([[from, near]])).route(from, to).waypoints, [far, to]);
 });
 
+test('tables measured on demand give the same routes as tables measured up front, measuring only regions reached', () => {
+  const graph = strip([4, 4, 4, 4], 4, [{ a: 0, b: 1, x: 192, y: 24 }, { a: 0, b: 1, x: 192, y: 168 }, { a: 1, b: 2, x: 384, y: 96 }, { a: 2, b: 3, x: 576, y: 96 }]);
+  const walled = [[{ x: 192, y: 24 }, { x: 384, y: 96 }]], eager = createPortalPlanner(graph, straightReach(walled));
+  const lazy = createPortalPlanner(graph, straightReach(walled), 'lazy');
+  for (const [from, to] of [[{ x: 48, y: 24 }, { x: 700, y: 96 }], [{ x: 48, y: 168 }, { x: 300, y: 96 }], [{ x: 700, y: 96 }, { x: 48, y: 24 }]])
+    assert.deepEqual(lazy.route(from, to), eager.route(from, to));
+  const shortTrip = createPortalPlanner(graph, straightReach(walled), 'lazy');
+  shortTrip.route({ x: 48, y: 24 }, { x: 300, y: 96 });
+  assert.equal(shortTrip.tables[3], undefined, 'a region the search never reached is not measured');
+});
+
 test('an unconnected pair inside a region is no route, and a point outside every region is an invalid endpoint', () => {
   const graph = strip([4, 4, 4], 4, [{ a: 0, b: 1, x: 192, y: 96 }, { a: 1, b: 2, x: 384, y: 96 }]);
   const planner = createPortalPlanner(graph, straightReach([[{ x: 192, y: 96 }, { x: 384, y: 96 }]]));

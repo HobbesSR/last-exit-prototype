@@ -5,6 +5,7 @@ import { navigationClearance } from '../map/navigation.ts';
 import { gridRoute } from '../map/route.ts';
 import { contestantKnowledge, createKnowledgePlanner, frozenKnowledge, packedTilesFor, type Knowledge, type KnownRoute, type KnownRouteStatus, type RouteSearch } from '../navigation/knowledge.ts';
 import { closestOnSegment, type PackedTiles } from '../free-space.ts';
+import { createPortalPlanner, portalGraphOf, regionAt, type PortalGraph, type Reach } from '../navigation/portal-graph.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, sameQuality, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
@@ -414,6 +415,52 @@ function adopt(s: Game, p: Player, planner: ReturnType<typeof createKnowledgePla
     doors, watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route, stale: false });
 }
 
+// A gladiator's trip across regions under `hunterPlanning: 'portals'` (#682, 22.6): the portal graph
+// gives the regions to pass through, and the tile search plans only as far as the crossing after
+// next. A region promises each of its portals is reachable from every other (20.1), so the top level
+// costs a crossing by its straight-line length; the leg's search finds the real way. Bot-private.
+interface Corridor {
+  goal: Vec2;
+  goalRegion: number;
+  /** `regions[i]` is the region the bot is in before crossing `waypoints[i]`; the last waypoint is the goal. */
+  regions: number[];
+  waypoints: Vec2[];
+  /** The leg's search found no way to a crossing: head for the goal itself until it changes region. */
+  direct: boolean;
+}
+const corridors = new WeakMap<Player, Corridor>();
+const straightReach: Reach = (from, targets) => targets.map(t => hypot(t.x - from.x, t.y - from.y));
+const portalPlanners = new WeakMap<PortalGraph, ReturnType<typeof createPortalPlanner>>();
+
+/** Where a gladiator's leg ends: the crossing after the next one, or its goal when that is in this region or the next. */
+function legGoal(s: Game, p: Player, target: Vec2): Vec2 {
+  const graph = portalGraphOf(s.map);
+  const from = graph ? regionAt(graph, p) : -1, to = graph ? regionAt(graph, target) : -1;
+  if (!graph || from < 0 || to < 0 || from === to) { corridors.delete(p); return target; }
+  let corridor = corridors.get(p);
+  if (!corridor || corridor.goalRegion !== to || !corridor.direct && !corridor.regions.includes(from)) {
+    let planner = portalPlanners.get(graph);
+    if (!planner) portalPlanners.set(graph, planner = createPortalPlanner(graph, straightReach, 'lazy'));
+    count('work.route.portalPlans');
+    const route = planner.route(p, target);
+    const regions = [from];
+    for (const portal of route.portals) {
+      const [a, b] = graph.portals[portal]!.regions, at = regions.at(-1)!;
+      regions.push(a === at ? b : a);
+    }
+    corridors.set(p, corridor = { goal: { x: target.x, y: target.y }, goalRegion: to, regions, waypoints: route.waypoints, direct: route.status !== 'complete' });
+  }
+  if (corridor.direct) return target;
+  const at = corridor.regions.lastIndexOf(from);
+  return at + 1 >= corridor.waypoints.length - 1 ? target : corridor.waypoints[at + 1]!;
+}
+
+/** A leg that cannot be planned is given up: the gladiator plans for its goal itself until the goal changes region. */
+function abandonLeg(p: Player): void {
+  const corridor = corridors.get(p);
+  if (corridor) corridor.direct = true;
+}
+
 /**
  * A route planned from where the bot was when its search started, `trail[0]`, taken up from where
  * it is now. The planner keeps a route's legs `navigationClearance` from walls, wider than the
@@ -548,7 +595,9 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   }
   start('sim.bots.plan');
   if (tiles) {
-    const status = repathTiles(s, p, target);
+    const leg = p.role === 'gladiator' && s.content.hunterPlanning === 'portals' ? legGoal(s, p, target) : target;
+    const status = repathTiles(s, p, leg);
+    if (leg !== target && (status === 'no-known-route' || status === 'invalid-endpoint')) abandonLeg(p);
     if (status === 'no-known-route' || status === 'invalid-endpoint') {
       if (exploring) abandonExploration(p);
       // A known dead end sets the item aside, as a stall would; it is not given up for good (22.6).
