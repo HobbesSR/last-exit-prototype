@@ -34,12 +34,26 @@ test('curtain authors a source-bound wall, valid portals and deterministic resul
   assert.deepEqual(layoutViolations(views.declaredGrid),[]);
   assert.deepEqual(portalViolations(views.regions),[]);
   assert.deepEqual(proofViolations(views.proof,views.regions,map.library),[]);
-  const curtain=map.results.find(r=>r.brief.type==='experiment-curtain');
-  assert.equal(curtain.loot.length,0); assert.equal(curtain.elements.length,1);
-  assert.equal(curtain.elements[0].template.parts.length,2);
-  const shapes=elementShapes(curtain.elements[0],true);
-  assert.deepEqual(validateFillConstraints(curtain.brief,shapes),[]);
-  assert.equal(validatePortalReach({...curtain.brief,blockers:shapes},{search:'thorough'}).valid,true);
+  const curtains=map.results.filter(r=>r.brief.type==='experiment-curtain');
+  assert.equal(curtains.length,2);
+  const sides=new Map(curtains.map(r=>[r.brief.parameters.side,r]));
+  for (const side of ['west','east']) {
+    const curtain=sides.get(side), element=curtain.elements[0];
+    assert.equal(curtain.loot.length,0); assert.equal(curtain.elements.length,1);
+    assert.equal(element.template.parts.length,2);
+    assert.equal(element.template.w,map.cellSize/2);
+    assert.equal(element.x,(policy.x+(side==='west'?1.5:2))*map.cellSize);
+    assert.deepEqual(element.template.parts.map(p=>[p.shape.y,p.shape.h]),[
+      [0,(policy.gateY-policy.y0)*map.cellSize],
+      [(policy.gateY+4-policy.y0)*map.cellSize,(policy.y1-policy.gateY-3)*map.cellSize],
+    ]);
+    const shapes=elementShapes(element,true);
+    assert.deepEqual(validateFillConstraints(curtain.brief,shapes),[]);
+    assert.equal(validatePortalReach({...curtain.brief,blockers:shapes},{search:'thorough'}).valid,true);
+  }
+  const shared=views.regions.portals.filter(p=>[p.a,p.b].every(id=>id.startsWith('experiment-curtain-')));
+  assert.equal(shared.length,1);
+  assert.deepEqual([shared[0].axis,shared[0].x,shared[0].y,shared[0].length],['v',policy.x+2,policy.gateY+1,2]);
   assert.equal(policy.gateHeight,4);
   assert.deepEqual(decodeChainMap(encodeChainMap(map)),map);
   assert.deepEqual(readChainMap(chainMapToBson(map)),map);

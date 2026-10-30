@@ -7,7 +7,7 @@ import { libraryFingerprint } from '../../map/macro/src/coding.ts';
 import { orientDesign, parseKey } from '../../map/macro/src/chain/declared-grid.ts';
 import { mapViews } from '../../map/macro/src/chain/map.ts';
 
-const S = 6, CLASS = 'experiment-curtain';
+const S = 6, CLASS = 'experiment-curtain', WEST = `${CLASS}-west`, EAST = `${CLASS}-east`;
 const slotOrder = (a,b) => a.row-b.row || a.col-b.col;
 const byId = (a,b) => a.id.localeCompare(b.id);
 const keyOf = (axis,x,y) => axis === 'h' ? `h:${y},${x}` : `v:${x},${y}`;
@@ -15,11 +15,11 @@ const keyOf = (axis,x,y) => axis === 'h' ? `h:${y},${x}` : `v:${x},${y}`;
 function curtainEngines(beforeBuild) {
   return { version:`experiment-macro-curtain-1+${GAME_ENGINES.version}+input-${beforeBuild}`, compose:GAME_ENGINES.compose, build(brief) {
     if (brief.type !== CLASS) return GAME_ENGINES.build(brief);
-    const p=brief.parameters, s=brief.cellSize, wallX=(p.x+1.5)*s;
+    const p=brief.parameters, s=brief.cellSize, wallX=(p.x+(p.side==='west'?1.5:2))*s, thickness=0.5*s;
     const parts=[];
-    if (p.gateY>p.y0) parts.push(rect(0,0,s,(p.gateY-p.y0)*s));
-    if (p.gateY+4<=p.y1) parts.push(rect(0,(p.gateY+4-p.y0)*s,s,(p.y1+1-p.gateY-4)*s));
-    const element={ label:CLASS, x:wallX, y:p.y0*s, template:{w:s,h:(p.y1+1-p.y0)*s,parts:parts.map(shape=>({part:'obstacle',kind:'building',shape}))} };
+    if (p.gateY>p.y0) parts.push(rect(0,0,thickness,(p.gateY-p.y0)*s));
+    if (p.gateY+4<=p.y1) parts.push(rect(0,(p.gateY+4-p.y0)*s,thickness,(p.y1+1-p.gateY-4)*s));
+    const element={ label:CLASS, x:wallX, y:p.y0*s, template:{w:thickness,h:(p.y1+1-p.y0)*s,parts:parts.map(shape=>({part:'obstacle',kind:'building',shape}))} };
     return builtRegion(brief,[element],[]);
   } };
 }
@@ -31,17 +31,19 @@ export function experimentCurtain(before) {
   for (let y=0; y<height; y++) if (Array.from({length:4},(_,i) => cells[y*width+x+i]).some(Boolean)) rows.push(y);
   const y0 = rows[0], y1 = rows.at(-1);
   const policy = { x, y0, y1, width: 4, gateY: y0 + Math.floor((y1-y0+1)/4), gateHeight: 4 };
+  policy.portalY=policy.gateY+1; policy.portalLength=2;
   const refusal = reason => ({ map: null, policy, changedIds: [], reusedIds: [], refusal: reason });
   if (x < 0 || x+4 > width || y0 === undefined || y1-y0+1 < 4 || rows.length !== y1-y0+1 || rows.some(y => Array.from({length:4},(_,i) => cells[y*width+x+i]).some(c => !c))) return refusal('nonrectangular-strip');
   if (rows.some(y => Array.from({length:4},(_,i) => before.library.cellClasses[cells[y*width+x+i]]?.coreElements).some(Boolean))) return refusal('core-class-intersection');
-  if (before.library.cellClasses[CLASS]) return refusal('class-name-collision');
+  if (before.library.cellClasses[WEST] || before.library.cellClasses[EAST]) return refusal('class-name-collision');
   const library = structuredClone(before.library), layout = structuredClone(before.layout);
   for (const name of ['tiles','tileSets','setPieces','setPieceClasses']) library[name].sort(byId);
   library.tileSets.forEach(s => s.members.sort());
   library.setPieceClasses.forEach(s => s.setPieces.sort());
   layout.slots.sort(slotOrder); layout.setPieces.sort(byId);
   layout.setPieces.forEach(s => s.slots.sort(slotOrder));
-  library.cellClasses[CLASS] = { regionType: CLASS, params: { x, y0, y1, gateY: policy.gateY } };
+  for (const [id,side] of [[WEST,'west'],[EAST,'east']])
+    library.cellClasses[id] = { regionType: CLASS, params: { x, y0, y1, gateY: policy.gateY, side } };
   const originals = new Map(library.tiles.map(t => [t.id,t]));
   const designs = new Map();
   for (const slot of layout.slots) {
@@ -51,7 +53,7 @@ export function experimentCurtain(before) {
     const classes = [];
     for (let ly=0;ly<S;ly++) for (let lx=0;lx<S;lx++) {
       const gx=slot.col*S+lx, gy=slot.row*S+ly;
-      classes.push(gx>=x && gx<x+4 && gy>=y0 && gy<=y1 ? CLASS : cells[gy*width+gx]);
+      classes.push(gx>=x && gx<x+4 && gy>=y0 && gy<=y1 ? (gx<x+2 ? WEST : EAST) : cells[gy*width+gx]);
     }
     // A slot cannot paint an empty class; occupied slots are whole tiles.
     const unique = [...new Set(classes)];
@@ -95,12 +97,12 @@ export function experimentCurtain(before) {
   }
   const provisional = { ...before, layout, library, results: [] };
   for (const {a,b,run} of mapViews(provisional).regions.boundaries) {
-    if (!(a.startsWith(`${CLASS}@`) || b.startsWith(`${CLASS}@`)) || run.length<2) continue;
+    const curtain = id => id.startsWith(`${WEST}@`) || id.startsWith(`${EAST}@`);
+    if (!(curtain(a) || curtain(b)) || (curtain(a) && curtain(b)) || run.length<2) continue;
     for (let i=0;i<run.length;i++) guarantee(run.axis,run.x+(run.axis==='h'?i:0),run.y+(run.axis==='v'?i:0));
   }
-  // A middle-row crossing guarantees the full gate footprint without requiring a
-  // portal inside the single curtain region.
-  for (let i=0;i<4;i++) guarantee('v',x+i+1,policy.gateY+1);
+  // Endpoint margins expand this two-cell portal to the four-cell physical gap.
+  for (let i=0;i<policy.portalLength;i++) guarantee('v',x+2,policy.portalY+i);
   // A cut can leave a formerly valid portal with a one-segment remainder just
   // outside the strip. Remove only newly short portals, once, in authored sides.
   const shortKeys = view => view.regions.portals.filter(p => p.length < 2).flatMap(p =>
