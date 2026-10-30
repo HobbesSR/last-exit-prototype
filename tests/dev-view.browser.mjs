@@ -196,11 +196,15 @@ try {
   assert.equal(unstyled.palette, 'prototype');
   assert.ok(await groundPixels(rgbOf(THEMES.prototype.colors.ground)) > 1000, 'the prototype ground is on screen');
   await dev.locator('#dev-palette').selectOption('signature');
-  await dev.waitForTimeout(300);
+  // Tiles redraw over a few frames; wait for the old ground to go rather than a fixed 300 ms (#699).
+  let staleGround;
+  for (const deadline = Date.now() + 3000; (staleGround = await groundPixels(rgbOf(THEMES.prototype.colors.ground))) > 0 && Date.now() < deadline;) {
+    await dev.waitForTimeout(50);
+  }
   const styled = await dev.evaluate(() => window.arenaDebug());
   assert.equal(styled.palette, 'signature');
   assert.ok(await groundPixels(rgbOf(THEMES.signature.colors.ground)) > 1000, 'the signature ground replaced it');
-  assert.equal(await groundPixels(rgbOf(THEMES.prototype.colors.ground)), 0, 'no stale tile keeps the old ground');
+  assert.equal(staleGround, 0, 'no stale tile keeps the old ground');
   assert.equal(styled.follow, unstyled.follow); assert.equal(styled.actorCount, unstyled.actorCount);
   assert.ok(Math.abs(styled.camera.zoom - unstyled.camera.zoom) < 1e-6, 'restyling leaves the camera alone');
   await dev.locator('#dev-palette').selectOption('prototype');

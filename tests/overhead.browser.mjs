@@ -232,23 +232,28 @@ try {
   assert.equal(eastStillOpaque.alpha, 1, 'room-e in another group remains opaque');
   await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
 
-  // Screenshot a multi-room compound (#349)
-  const compoundMap = generateLiveMap(1);
-  await page.evaluate(async map => {
+  // Screenshot a multi-room compound (#349). Which seeds hold one moves with layout content (#686
+  // dropped seed 1's), so take the first seed whose compound roofs share a group across rooms.
+  let compoundMap, firstCompound;
+  for (let seed = 1; seed <= 8 && !firstCompound; seed++) {
+    compoundMap = generateLiveMap(seed);
+    const rooms = new Map();
+    for (const r of compoundMap.roofs) if (r.groupId.includes('compound')) rooms.set(r.groupId, [...(rooms.get(r.groupId) ?? []), r]);
+    firstCompound = [...rooms.values()].find(group => group.length > 1)?.[0];
+  }
+  assert.ok(firstCompound, 'a live map within seeds 1-8 has a multi-room compound roof group');
+  await page.evaluate(async ({ map, roof }) => {
     const f = window.fixture, s = f.scene;
     f.map = map;
-    const firstCompound = map.roofs.find(r => r.id.startsWith('compound') || r.groupId.includes('compound') || r.groupId.includes('ring'));
-    if (firstCompound) {
-      f.player.x = firstCompound.bounds.x + firstCompound.bounds.w / 2;
-      f.player.y = firstCompound.bounds.y - 120;
-    }
+    f.player.x = roof.bounds.x + roof.bounds.w / 2;
+    f.player.y = roof.bounds.y - 120;
     s.buildMap();
     s.cutTo();
     for (let i = 0; i < 40; i++) {
       s.update(performance.now(), 16);
       await new Promise(r => setTimeout(r, 20));
     }
-  }, compoundMap);
+  }, { map: compoundMap, roof: firstCompound });
   const compoundOverheadCount = await page.evaluate(() => {
     const s = window.fixture.scene;
     let count = 0;
