@@ -1,6 +1,7 @@
 import { createGame, createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { hearShot } from '../../shared/simulation/hearing.ts';
+import { legacyContent } from '../../shared/simulation/content.ts';
 import { openField } from './arena.js';
 
 // The scenario layer over test arenas (31 "Test arenas", #697): put chosen actors on an arena, give them
@@ -25,8 +26,8 @@ function settle(s, actors, players) {
   return { s, players };
 }
 
-/** A legacy-mover game on `map` with exactly `actors`, each a bot unless `bot: false`. */
-export function stage(map, { seed = 4217, content, actors }) {
+/** A legacy-mover game on `map` with exactly `actors`, each a bot unless `bot: false`; legacy content unless given. */
+export function stage(map, { seed = 4217, content = legacyContent(), actors }) {
   const { content: cast_, place } = cast(map, content, actors), s = createGame(seed, map, cast_);
   return settle(s, actors, place(s));
 }
@@ -38,8 +39,9 @@ export async function stagePhysics(map, { seed = 4217, content, actors }) {
 }
 
 /**
- * Replace what `p` knows: `'everything'` surveys every discovery cell; otherwise `surveyed` (cell indices)
- * and remembered `gates` (id → `{ open, locked }`), nothing else, so by default nothing at all.
+ * Replace what `p` knows for planning: `'everything'` surveys every discovery cell; otherwise `surveyed` (cell
+ * indices) and remembered `gates` (id → `{ open, locked }`), nothing else, so by default nothing at all. Sight is
+ * not staged: no cell is `discovered` or `seen`, and no item remembered, until the game's own sampling adds them.
  */
 export function know(s, p, knows = {}) {
   const { surveyed = new Set(), gates = new Map() } = knows === 'everything' ? { surveyed: everywhere(s.map) } : knows;
@@ -53,13 +55,13 @@ export function everywhere(map) {
 }
 
 /**
- * Step `s` up to `ticks` times. Before each tick, every event whose `every` divides the ticks since `from`
- * (default 0) acts, while `s.tick < until` if given. Returns the tick on which `done(s)` first held after a
+ * Step `s` up to `ticks` times. Before each tick, every event whose `every` (default 1, every tick) divides the
+ * ticks since `from` (default 0) acts, while `s.tick < until` if given. Returns the tick on which `done(s)` first held after a
  * step, or null; `trace(s)`, when given, is called after every step.
  */
 export function run(s, { ticks, events = [], done, trace }) {
   for (let i = 0; i < ticks; i++) {
-    for (const { every, from = 0, until = Infinity, act } of events)
+    for (const { every = 1, from = 0, until = Infinity, act } of events)
       if (s.tick >= from && s.tick < until && (s.tick - from) % every === 0) act(s);
     step(s);
     trace?.(s);
@@ -71,11 +73,13 @@ export function run(s, { ticks, events = [], done, trace }) {
 /**
  * A gunfight at distance `distance` (#697, 42.22): on open ground, one gladiator bot and a scripted
  * contestant `distance` east of it firing `weapon` every `every` ticks until tick `until`. The exit is
- * behind the gladiator, so patrol leads away from the fight. Returns the tick the gladiator came within
- * 400 of the shooter, or null within `ticks`.
+ * behind the gladiator, so patrol leads away from the fight. Transit stations stand at `stations`, x offsets
+ * from the gladiator along its row. Returns the tick the gladiator came within 400 of the shooter, or null
+ * within `ticks`.
  */
-export async function gunfight(distance, { content, weapon = 'pistol', every = 20, until, ticks = 3000, scatter } = {}) {
-  const { map } = openField(distance + 1200, { scatter, exit: { x: 96, y: 576 } });
+export async function gunfight(distance, { content, weapon = 'pistol', every = 20, until, ticks = 3000, scatter, stations = [] } = {}) {
+  const { map } = openField(distance + 1200, { scatter, exit: { x: 96, y: 576 },
+    stations: stations.map((dx, i) => ({ id: `st${i}`, nodeId: `n${i}`, x: 600 + dx, y: 576 })) });
   const y = map.height / 2, at = { x: 600 + distance, y };
   const { s, players: [g, shooter] } = await stagePhysics(map, { content,
     actors: [{ role: 'gladiator', x: 600, y }, { role: 'contestant', bot: false, ...at }] });

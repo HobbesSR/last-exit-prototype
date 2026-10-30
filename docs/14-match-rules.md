@@ -103,7 +103,25 @@ and an unknown, behind-the-wall or current station is refused the same way. Unde
 sets how long a transit takes, `base + perUnit` × the distance in ticks, rounded. Unset or zero, transit is
 instant, and `content-10` sets both to 0. Above zero the gladiator has `status: 'transit'` until it lands: out of
 the world, unhittable and unable to act. It lands at the start of its arrival tick, waiting a tick at a time while
-its landing can't be placed, and the cooldown starts there (17.3 #26).
+its landing can't be placed, and the cooldown starts there (17.3 #26). The wall is checked on departure only: a
+gladiator whose destination the wall passes during the trip still lands there, inside the hazard (an
+assumption to revisit before tuning a travel time above zero).
+
+<a id="gladiator-bots"></a>
+
+**Gladiator bots.** `content-11` (#683, selectable) is `content-10` with gladiator bots hunting by sweeping
+(`hunting: 'sweep'`, 17.3 #26). A gladiator that sees no contestant and holds no lead sweeps regions instead of
+heading for a station. It picks the region, among those whose centre is at least 600 units ahead of the wall and
+not swept in the last 90 seconds, that is nearest once each unit ahead of the wall counts half a unit against it,
+and leaves out regions another gladiator is sweeping. It heads for a standable spot near the region's centre, and the
+region counts as swept on coming within 400 units of it, after 10 seconds without moving a tile, or when no way
+there is found. On a map without regions it heads for a station as before.
+
+Toward a lead or a sweep, never a contestant in sight, a gladiator also weighs transit. It compares walking straight
+to its goal at full speed with walking to a station ahead of the wall, transiting to the station nearest the goal,
+and walking on. A transit costs its travel time plus 3 seconds. A station counts only if the rail cooldown will be
+spent by the time the gladiator gets there. When transit is quicker the gladiator heads for that station and, in
+reach, sends the destination with the `transit` input. Distances, times and weights are placeholders.
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
