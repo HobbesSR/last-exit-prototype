@@ -102,7 +102,7 @@ not an accurate inventory of everything still missing.
 | Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
 | Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins. Compound exterior crossing limitations remain; #630/#632 diagnose and experiment without production adoption. Treat offset-search adoption as deferred refinement for next-task selection unless evidence makes it a blocker for the chosen functional outcome. |
 | Hut and compound structures (#532) | Multi-house huts and useful compound courtyard keeps/cover are delivered with authored admission and access evidence (20.3.4, 42.3). Secondary exterior structures in oversized compounds remain a functional gap. Larger hut designs need a separate authored-margin change on the sampled maps; further seed tuning does not expose them. Broader courtyard grammar and complete residual use are later refinements. |
-| Depot and hall composition (#533) | Production depot warehouse composition now targets half-density fill with protected doorsteps and two-cell local bypasses; authored comparison and limits are in 42.3. Structural hall wings remain a distinct missing capability; residual-wing crates do not establish it. |
+| Depot and hall composition (#533) | Production depot warehouse composition now targets half-density fill with protected doorsteps and two-cell local bypasses; authored comparison and limits are in 42.3. Structural hall wings now add side-connected bays with 2.5-cell perimeter walks and optional roofs; a local L-shaped variant makes the capability available in ordinary library selection (20.3.3, 52, 42.3). Thin annexes and optimal partitioning remain deferred. |
 | Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
 | District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. |
 
@@ -122,8 +122,9 @@ local aisle/side-pocket bypasses, independent geometry, determinism/recovery and
 source-bound cost evidence. Its stronger bypass policy and omitted secondary
 crate pass are experimental controls, not new requirements for every builder.
 That comparison left production unchanged. The separate #533 warehouse delivery
-now increases its budget without promoting the costly adapter; structural hall
-wings remain unimplemented. Findings and limitations of the experiment are in
+now increases its budget without promoting the costly adapter; the subsequent
+structural-wing delivery uses the existing fixed-route policy and an authored
+L-shaped library variant. Findings and limitations of the experiment are in
 [42.3](42.3-generation-and-delegation-evidence.md#depot-movable-cord-comparison-663)
 and [the retained report](reports/issue-663/README.md).
 
@@ -140,8 +141,9 @@ Disposition after the representative cord comparisons:
   blocker. Do not expand #663 into quota tuning or exhaustive pocket refinement.
 
 For the next functional selection, compare #532's secondary exterior structures
-and demonstrated larger-hut authoring prerequisite with #533's structural hall
-composition and the still-missing broader #535 capabilities. Multi-house huts and
+and demonstrated larger-hut authoring prerequisite with the still-missing broader
+#535 capabilities. #533 now has a first useful warehouse and hall-wing composition
+outcome; further hall shapes and exhaustive residual coverage are refinements. Multi-house huts and
 courtyard composition now have representative production witnesses. The remaining primary gaps
 have greater functional value than polishing this comparison. Reassess actual
 reach/readiness at pickup; this is not a mandated successor or a closure of any

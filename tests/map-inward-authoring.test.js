@@ -41,7 +41,7 @@ test('committed inward variants and blueprint references reconstruct from origin
 test('committed large-library local joins reconstruct with the included modules', () => {
   const result = invokeWithLocal([...source, localSource], ['--check']);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /81 inward variants and 3492 blueprint references/);
+  assert.match(result.stdout, /81 inward variants and 3513 blueprint references/);
 });
 
 test('a later schema 1 content revision can pin its matching primitives revision', () => withCopies(files => {
@@ -170,7 +170,7 @@ test('optional library authors local same-class joins and preserves every other 
   const output = join(dir, 'generated');
   const result = invokeWithLocal(files, ['--out-dir', output]);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /81 inward variants and 3492 blueprint references/);
+  assert.match(result.stdout, /81 inward variants and 3513 blueprint references/);
   const generated = json(join(output, localName));
   const target = (kind, slot) => slot.tileSetId === `${kind}-grounds` || slot.tileSetId.startsWith(`${kind}-ground-inward-`);
   const pieces = [...new Set(LOCAL_JOINS.map(([id]) => id))];

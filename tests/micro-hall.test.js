@@ -54,7 +54,7 @@ test('primary pillars stand on the largest contained rectangle and stay spaced a
   const fill = largestRectangle(createFillMask(brief('ell', 3, cells, portals)), 6);
   for (const spacing of [4, 6]) {
     const result = buildRegion(brief('ell', 3, cells, portals, { spacing }));
-    const shapes = result.elements.filter(e => !e.label.startsWith('hall-infill-crate-')).flatMap(element => elementShapes(element));
+    const shapes = result.elements.filter(e => e.label === 'hall').flatMap(element => elementShapes(element));
     for (const shape of shapes) {
       const box = bounds(shape);
       assert.ok(box.x >= fill.x * SIZE && box.y >= fill.y * SIZE && box.x + box.w <= (fill.x + fill.w) * SIZE

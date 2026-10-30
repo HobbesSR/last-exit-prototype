@@ -154,3 +154,15 @@ actual gate access and final owner/whole geometry, rather than counting offers.
 This is an input fixture, not a replacement characterization baseline.
 Gzip bytes use mtime 0; SHA-256
 `d4a1f8de12220f0de815047a0b0a2a69a5c327c56ba824e96b1bb227fdec0bf4`.
+
+
+## Hinted structural hall wing (#533)
+
+`hall-wing-hinted.json.gz` retains the exact `hall@306,72` input from the
+revised 12x6 `issue330-before-12x6` authored library, also retained in the hall
+comparison report. A two-cell secondary perimeter inset left a physically open
+lane beside a hinted wall that the half-cell hunter route grid could not follow.
+The regression checks the actual previously reachable stand against final
+geometry; a bay with no safe pillar fit stays reserved. This is an input fixture,
+not the frozen gameplay characterization baseline. Gzip uses mtime 0; SHA-256
+`c0aeef58a9e5866b1ee1826bd1611a7f970a2ac9f09ed7cb03d127c065d69877`.

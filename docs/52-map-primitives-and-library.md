@@ -443,7 +443,7 @@ node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-p
 
 To regenerate, replace `--check` with `--out-dir <new-directory>`. Inputs and
 existing outputs are never overwritten. The current inputs reconstruct 81
-variants and 3,492 slot references, including 1,988 local slots. Omit the optional
+variants and 3,513 slot references, including 2,009 local slots. Omit the optional
 `--local-library` to check only the included modules (1,504 references). The
 library input authors all nine ground families in its local set pieces. Other
 slot families stay as supplied. #530 adds immutable `common-primitives@5`,
@@ -543,3 +543,22 @@ openings and deferred/hinted perimeter segments; it retains the current
 three-cell tile grid, shapes and weights. The #214 follow-up adds rotated rubble
 bands and bends, a centered courtyard feature, and deliberately larger building
 fill areas within selected structure set pieces. The bounded #214 fill composition and portal diagnosis sample is in [42.3](42.3-generation-and-delegation-evidence.md#fill-composition-214-sample).
+
+
+## Winged hall authoring (#533)
+
+Each authored-size top library adds `pillar-hall-winged` alongside the retained rectangular
+`pillar-hall` in its existing class: medium at 12 by 6, small at the larger sizes. Its 6 by 5 tile
+envelope contains an L of hall grounds: the top two tile rows and the left three
+tile columns. The remaining 3 by 3 corner is open field, deliberately usable
+outside circulation. Quotas and original set pieces stay unchanged. Same-hall
+joins use the existing inward variants; mixed hall/field and exposed sides keep
+their original prescriptions. The top arm is twelve cells deep and the side arm eighteen cells wide before
+clear margins, allowing secondary structural bays under 20.3.3. The variant is
+local to the top libraries; immutable shared modules are unchanged.
+
+This is an intentional library-content change as well as `types-54` hall content.
+The previous library sampled only rectangular authored halls, so it could not
+demonstrate wing composition. Exact old-library negatives and paired new-library
+briefs are retained in the #533 hall report (42.3). Additional hall shapes and
+complete coverage of thin residuals remain deferred.

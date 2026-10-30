@@ -1,0 +1,2222 @@
+{
+  "maps": [
+    {
+      "seed": "issue330-before-12x6",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "halls": 2,
+      "defects": []
+    },
+    {
+      "seed": "issue330-before-24x12",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "halls": 0,
+      "defects": []
+    },
+    {
+      "seed": "issue330-before-36x18",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "halls": 3,
+      "defects": []
+    }
+  ],
+  "rows": [
+    {
+      "name": "issue330-before-12x6/hall@306,72",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "430d907b7db41fe274565c4a7ba68d168e333c4a229b989eb44faaf2f0e5051f",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 32,
+          "gates": 0,
+          "loot": 123,
+          "coreElements": 0,
+          "pillars": 14,
+          "hintWalls": 18,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 14736,
+            "y": 3456,
+            "w": 1632,
+            "h": 1392,
+            "encloses": false,
+            "envelopeCells": 986,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 14,
+        "crates": 0,
+        "loot": 123,
+        "occupied": 87,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "430d907b7db41fe274565c4a7ba68d168e333c4a229b989eb44faaf2f0e5051f",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 32,
+          "gates": 0,
+          "loot": 123,
+          "coreElements": 0,
+          "pillars": 14,
+          "hintWalls": 18,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 14736,
+            "y": 3456,
+            "w": 1632,
+            "h": 1392,
+            "encloses": false,
+            "envelopeCells": 986,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 14,
+        "crates": 0,
+        "loot": 123,
+        "occupied": 87,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "issue330-before-12x6/hall@60,78",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "5cbf66a3186026de81a240e0144e547b7dee8a048681329e28d5d43a4e42ecc8",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 25,
+          "gates": 0,
+          "loot": 22,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 18,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 2928,
+            "y": 3792,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 7,
+        "crates": 0,
+        "loot": 22,
+        "occupied": 50,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "5cbf66a3186026de81a240e0144e547b7dee8a048681329e28d5d43a4e42ecc8",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 25,
+          "gates": 0,
+          "loot": 22,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 18,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 2928,
+            "y": 3792,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 7,
+        "crates": 0,
+        "loot": 22,
+        "occupied": 50,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "issue330-before-36x18/hall@480,198",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "d06c5a0c053363c68f4682c8727ba3516f01148b44da05e85392c98143710f78",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 18,
+          "gates": 0,
+          "loot": 56,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 11,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 23088,
+            "y": 9552,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 7,
+        "crates": 0,
+        "loot": 56,
+        "occupied": 39,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "d06c5a0c053363c68f4682c8727ba3516f01148b44da05e85392c98143710f78",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 18,
+          "gates": 0,
+          "loot": 56,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 11,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 23088,
+            "y": 9552,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 7,
+        "crates": 0,
+        "loot": 56,
+        "occupied": 39,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "issue330-before-36x18/hall@192,228",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "b639ed822ab7c9b73732f708251a6df71db8c3416bc5c0a2a745eefaf3b8cf98",
+        "manifest": {
+          "cells": 2160,
+          "structures": 0,
+          "obstacles": 30,
+          "gates": 0,
+          "loot": 32,
+          "coreElements": 0,
+          "pillars": 8,
+          "hintWalls": 22,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 9264,
+            "y": 10992,
+            "w": 1632,
+            "h": 2784,
+            "encloses": false,
+            "envelopeCells": 1972,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 8,
+        "crates": 0,
+        "loot": 32,
+        "occupied": 54,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "b639ed822ab7c9b73732f708251a6df71db8c3416bc5c0a2a745eefaf3b8cf98",
+        "manifest": {
+          "cells": 2160,
+          "structures": 0,
+          "obstacles": 30,
+          "gates": 0,
+          "loot": 32,
+          "coreElements": 0,
+          "pillars": 8,
+          "hintWalls": 22,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 9264,
+            "y": 10992,
+            "w": 1632,
+            "h": 2784,
+            "encloses": false,
+            "envelopeCells": 1972,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 8,
+        "crates": 0,
+        "loot": 32,
+        "occupied": 54,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "issue330-before-36x18/hall@576,396",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "cd00e7c6f60f082038493ef28177e034b7e2789f54ebf4cd849f78ebd15bf0e7",
+        "manifest": {
+          "cells": 3240,
+          "structures": 0,
+          "obstacles": 37,
+          "gates": 0,
+          "loot": 193,
+          "coreElements": 0,
+          "pillars": 29,
+          "hintWalls": 8,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 27696,
+            "y": 19056,
+            "w": 1632,
+            "h": 4224,
+            "encloses": false,
+            "envelopeCells": 2992,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 29,
+        "crates": 0,
+        "loot": 193,
+        "occupied": 124,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "cd00e7c6f60f082038493ef28177e034b7e2789f54ebf4cd849f78ebd15bf0e7",
+        "manifest": {
+          "cells": 3240,
+          "structures": 0,
+          "obstacles": 37,
+          "gates": 0,
+          "loot": 193,
+          "coreElements": 0,
+          "pillars": 29,
+          "hintWalls": 8,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 27696,
+            "y": 19056,
+            "w": 1632,
+            "h": 4224,
+            "encloses": false,
+            "envelopeCells": 2992,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 29,
+        "crates": 0,
+        "loot": 193,
+        "occupied": 124,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "synthetic/L",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "56d699b03ad14404a5902a271bb87cfb98cf3687fad9b4b551ef0e201ce6444d",
+        "manifest": {
+          "cells": 380,
+          "structures": 1,
+          "obstacles": 12,
+          "gates": 0,
+          "loot": 96,
+          "coreElements": 0,
+          "pillars": 4,
+          "hintWalls": 0,
+          "infillCrates": 8
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 40,
+            "y": 0,
+            "w": 880,
+            "h": 400,
+            "encloses": true,
+            "envelopeCells": 220,
+            "roofCells": 220
+          }
+        ],
+        "pillars": 4,
+        "crates": 8,
+        "loot": 96,
+        "occupied": 24,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "08a55822af7f19726e78cbb114cb6e81a82d84613a5ab006737f943499e4f8a7",
+        "manifest": {
+          "cells": 380,
+          "structures": 2,
+          "obstacles": 6,
+          "gates": 0,
+          "loot": 103,
+          "coreElements": 0,
+          "pillars": 6,
+          "hintWalls": 0,
+          "wings": 1,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 40,
+            "y": 0,
+            "w": 880,
+            "h": 400,
+            "encloses": true,
+            "envelopeCells": 220,
+            "roofCells": 220
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 0,
+            "y": 400,
+            "w": 400,
+            "h": 560,
+            "encloses": true,
+            "envelopeCells": 140,
+            "roofCells": 140
+          }
+        ],
+        "pillars": 6,
+        "crates": 0,
+        "loot": 103,
+        "occupied": 34,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 200,
+              "y": 450
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 200,
+              "y": 910
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 50,
+              "y": 680
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 350,
+              "y": 680
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "synthetic/T",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "3b440c277ff1e3799e3ab9b735c8ed3a7de1e979a45c15f69ce5a2a74ce06a6f",
+        "manifest": {
+          "cells": 380,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 0,
+          "loot": 107,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 0,
+          "infillCrates": 4
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 280,
+            "y": 0,
+            "w": 400,
+            "h": 960,
+            "encloses": true,
+            "envelopeCells": 240,
+            "roofCells": 240
+          }
+        ],
+        "pillars": 7,
+        "crates": 4,
+        "loot": 107,
+        "occupied": 32,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "0d20c09c47eb6ad5d44e0c4ccd9af5bbfdafbb259e1dabf20f0e47718b9bfa67",
+        "manifest": {
+          "cells": 380,
+          "structures": 3,
+          "obstacles": 7,
+          "gates": 0,
+          "loot": 110,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 0,
+          "wings": 2,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 280,
+            "y": 0,
+            "w": 400,
+            "h": 960,
+            "encloses": true,
+            "envelopeCells": 240,
+            "roofCells": 240
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 40,
+            "y": 0,
+            "w": 240,
+            "h": 400,
+            "encloses": true,
+            "envelopeCells": 60,
+            "roofCells": 60
+          },
+          {
+            "label": "hall-wing-2",
+            "x": 680,
+            "y": 0,
+            "w": 240,
+            "h": 400,
+            "encloses": true,
+            "envelopeCells": 60,
+            "roofCells": 60
+          }
+        ],
+        "pillars": 7,
+        "crates": 0,
+        "loot": 110,
+        "occupied": 28,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 160,
+              "y": 50
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 160,
+              "y": 350
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 90,
+              "y": 200
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 230,
+              "y": 200
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 800,
+              "y": 50
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 800,
+              "y": 350
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 730,
+              "y": 200
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 870,
+              "y": 200
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "synthetic/stepped",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "e413c2a6f671b902c0f374f066f666e404e5cf04b1124e877f50cbc7c9e6c446",
+        "manifest": {
+          "cells": 384,
+          "structures": 1,
+          "obstacles": 10,
+          "gates": 0,
+          "loot": 99,
+          "coreElements": 0,
+          "pillars": 6,
+          "hintWalls": 0,
+          "infillCrates": 4
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 40,
+            "y": 0,
+            "w": 600,
+            "h": 640,
+            "encloses": true,
+            "envelopeCells": 240,
+            "roofCells": 240
+          }
+        ],
+        "pillars": 6,
+        "crates": 4,
+        "loot": 99,
+        "occupied": 28,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "e54fb668e82c86b7544ac90dbd7f3f2e0fd286e88f9903989ec327edb29e4274",
+        "manifest": {
+          "cells": 384,
+          "structures": 3,
+          "obstacles": 7,
+          "gates": 0,
+          "loot": 102,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 0,
+          "wings": 2,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 40,
+            "y": 0,
+            "w": 600,
+            "h": 640,
+            "encloses": true,
+            "envelopeCells": 240,
+            "roofCells": 240
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 0,
+            "y": 640,
+            "w": 320,
+            "h": 320,
+            "encloses": true,
+            "envelopeCells": 64,
+            "roofCells": 64
+          },
+          {
+            "label": "hall-wing-2",
+            "x": 640,
+            "y": 0,
+            "w": 280,
+            "h": 320,
+            "encloses": true,
+            "envelopeCells": 56,
+            "roofCells": 56
+          }
+        ],
+        "pillars": 7,
+        "crates": 0,
+        "loot": 102,
+        "occupied": 33,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 160,
+              "y": 690
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 160,
+              "y": 910
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 50,
+              "y": 800
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 270,
+              "y": 800
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 780,
+              "y": 50
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 780,
+              "y": 270
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 690,
+              "y": 160
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 870,
+              "y": 160
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "synthetic/ring",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "49a8e1b6c1d484e0e7efbf89d142ce452e57917e7ef5fc8a4d6492dbe13162d4",
+        "manifest": {
+          "cells": 512,
+          "structures": 1,
+          "obstacles": 22,
+          "gates": 0,
+          "loot": 123,
+          "coreElements": 0,
+          "pillars": 9,
+          "hintWalls": 0,
+          "infillCrates": 13
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 0,
+            "y": 640,
+            "w": 960,
+            "h": 320,
+            "encloses": true,
+            "envelopeCells": 192,
+            "roofCells": 192
+          }
+        ],
+        "pillars": 9,
+        "crates": 13,
+        "loot": 123,
+        "occupied": 49,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "a5f3f683b4a782d75aa3c2746a8a3971f63fc540d791ee8571f1d56102248b57",
+        "manifest": {
+          "cells": 512,
+          "structures": 4,
+          "obstacles": 11,
+          "gates": 0,
+          "loot": 128,
+          "coreElements": 0,
+          "pillars": 11,
+          "hintWalls": 0,
+          "wings": 3,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 0,
+            "y": 640,
+            "w": 960,
+            "h": 320,
+            "encloses": true,
+            "envelopeCells": 192,
+            "roofCells": 192
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 0,
+            "y": 320,
+            "w": 320,
+            "h": 320,
+            "encloses": true,
+            "envelopeCells": 64,
+            "roofCells": 64
+          },
+          {
+            "label": "hall-wing-2",
+            "x": 40,
+            "y": 0,
+            "w": 880,
+            "h": 320,
+            "encloses": true,
+            "envelopeCells": 176,
+            "roofCells": 176
+          },
+          {
+            "label": "hall-wing-3",
+            "x": 640,
+            "y": 320,
+            "w": 320,
+            "h": 320,
+            "encloses": true,
+            "envelopeCells": 64,
+            "roofCells": 64
+          }
+        ],
+        "pillars": 11,
+        "crates": 0,
+        "loot": 128,
+        "occupied": 54,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 160,
+              "y": 370
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 160,
+              "y": 590
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 50,
+              "y": 480
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 270,
+              "y": 480
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 480,
+              "y": 50
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 480,
+              "y": 270
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 90,
+              "y": 160
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-2",
+            "point": {
+              "x": 870,
+              "y": 160
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-3",
+            "point": {
+              "x": 800,
+              "y": 370
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-3",
+            "point": {
+              "x": 800,
+              "y": 590
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-3",
+            "point": {
+              "x": 690,
+              "y": 480
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-3",
+            "point": {
+              "x": 910,
+              "y": 480
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "synthetic/no-fit",
+      "eligible": false,
+      "noFit": true,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "3bb9808f846e98c2089b8b1e25df3f51ee5f4a3c6cbf36d84ee9d7fd761cc935",
+        "manifest": {
+          "cells": 100,
+          "structures": 0,
+          "obstacles": 0,
+          "gates": 0,
+          "loot": 15,
+          "coreElements": 0
+        },
+        "structural": [],
+        "pillars": 0,
+        "crates": 0,
+        "loot": 15,
+        "occupied": 0,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "3bb9808f846e98c2089b8b1e25df3f51ee5f4a3c6cbf36d84ee9d7fd761cc935",
+        "manifest": {
+          "cells": 100,
+          "structures": 0,
+          "obstacles": 0,
+          "gates": 0,
+          "loot": 15,
+          "coreElements": 0
+        },
+        "structural": [],
+        "pillars": 0,
+        "crates": 0,
+        "loot": 15,
+        "occupied": 0,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "synthetic/thin-neck",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "c0914ae9c7dd74a689f2688722e1343cf8a1f174c71de96e425bc7d677a2f659",
+        "manifest": {
+          "cells": 400,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 0,
+          "loot": 79,
+          "coreElements": 0,
+          "pillars": 3,
+          "hintWalls": 0,
+          "infillCrates": 8
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 40,
+            "y": 0,
+            "w": 280,
+            "h": 960,
+            "encloses": true,
+            "envelopeCells": 168,
+            "roofCells": 168
+          }
+        ],
+        "pillars": 3,
+        "crates": 8,
+        "loot": 79,
+        "occupied": 20,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "c0914ae9c7dd74a689f2688722e1343cf8a1f174c71de96e425bc7d677a2f659",
+        "manifest": {
+          "cells": 400,
+          "structures": 1,
+          "obstacles": 11,
+          "gates": 0,
+          "loot": 79,
+          "coreElements": 0,
+          "pillars": 3,
+          "hintWalls": 0,
+          "infillCrates": 8
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 40,
+            "y": 0,
+            "w": 280,
+            "h": 960,
+            "encloses": true,
+            "envelopeCells": 168,
+            "roofCells": 168
+          }
+        ],
+        "pillars": 3,
+        "crates": 8,
+        "loot": 79,
+        "occupied": 20,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "synthetic/detached",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "12253f76feb329f4bc58d143c73143a4c6e998df527512f002cf942cc1f7ff71",
+        "manifest": {
+          "cells": 384,
+          "structures": 1,
+          "obstacles": 18,
+          "gates": 0,
+          "loot": 79,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 0,
+          "infillCrates": 11
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 640,
+            "y": 0,
+            "w": 320,
+            "h": 960,
+            "encloses": true,
+            "envelopeCells": 192,
+            "roofCells": 192
+          }
+        ],
+        "pillars": 7,
+        "crates": 11,
+        "loot": 79,
+        "occupied": 39,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "12253f76feb329f4bc58d143c73143a4c6e998df527512f002cf942cc1f7ff71",
+        "manifest": {
+          "cells": 384,
+          "structures": 1,
+          "obstacles": 18,
+          "gates": 0,
+          "loot": 79,
+          "coreElements": 0,
+          "pillars": 7,
+          "hintWalls": 0,
+          "infillCrates": 11
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 640,
+            "y": 0,
+            "w": 320,
+            "h": 960,
+            "encloses": true,
+            "envelopeCells": 192,
+            "roofCells": 192
+          }
+        ],
+        "pillars": 7,
+        "crates": 11,
+        "loot": 79,
+        "occupied": 39,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/12x6/issue330-before-12x6/hall@66,72",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "bd15663ab5fa5509509bee640b975961967be3b3a33ef9f5b91fbc78f0e27aa4",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 19,
+          "gates": 0,
+          "loot": 23,
+          "coreElements": 0,
+          "pillars": 2,
+          "hintWalls": 12,
+          "infillCrates": 5
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 3216,
+            "y": 3504,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 2,
+        "crates": 5,
+        "loot": 23,
+        "occupied": 29,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "32ea79c80a7dde1f8599647fb4e7344f903c2fd669212e5c487bef74e6f89cfd",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 15,
+          "gates": 0,
+          "loot": 23,
+          "coreElements": 0,
+          "pillars": 3,
+          "hintWalls": 12,
+          "wings": 1,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 3216,
+            "y": 3504,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 3984,
+            "y": 3504,
+            "w": 864,
+            "h": 480,
+            "encloses": false,
+            "envelopeCells": 180,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 3,
+        "crates": 0,
+        "loot": 23,
+        "occupied": 33,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 4416,
+              "y": 3564
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 4416,
+              "y": 3924
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 4044,
+              "y": 3744
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 4788,
+              "y": 3744
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/12x6/issue330-before-12x6/hall@306,72",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "377f4de5cdf45c2a1510ef01d7f52324061b10d75b57a2dc9e3162c3de2da415",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 26,
+          "gates": 0,
+          "loot": 70,
+          "coreElements": 0,
+          "pillars": 5,
+          "hintWalls": 15,
+          "infillCrates": 6
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 14736,
+            "y": 3456,
+            "w": 768,
+            "h": 1392,
+            "encloses": false,
+            "envelopeCells": 464,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 5,
+        "crates": 6,
+        "loot": 70,
+        "occupied": 55,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "03131267fb180b70bd3a8eba7254f5bc84f2a8517f70ee68b4825e0fe67422db",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 20,
+          "gates": 0,
+          "loot": 74,
+          "coreElements": 0,
+          "pillars": 5,
+          "hintWalls": 15,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 14736,
+            "y": 3456,
+            "w": 768,
+            "h": 1392,
+            "encloses": false,
+            "envelopeCells": 464,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 5,
+        "crates": 0,
+        "loot": 74,
+        "occupied": 49,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/24x12/issue330-before-24x12/hall@558,174",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "01efde8cf0815c826d2efe9797e78eef3e61309b99845bdfd12073146626d6ea",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 20,
+          "gates": 0,
+          "loot": 57,
+          "coreElements": 0,
+          "pillars": 0,
+          "hintWalls": 13,
+          "infillCrates": 7
+        },
+        "structural": [],
+        "pillars": 0,
+        "crates": 7,
+        "loot": 57,
+        "occupied": 20,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "b3dbd9c1d29cbac35cc931f33b807fb6d5759ccc812c5b9af3a274343fdff526",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 13,
+          "gates": 0,
+          "loot": 57,
+          "coreElements": 0,
+          "pillars": 0,
+          "hintWalls": 13,
+          "infillCrates": 0
+        },
+        "structural": [],
+        "pillars": 0,
+        "crates": 0,
+        "loot": 57,
+        "occupied": 13,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/24x12/issue533-hall-new-2/hall@276,198",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "572f25e15d34d049c161480da1f33960c4b0e0f7926853e2a80d70f6feb57dfc",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 19,
+          "gates": 0,
+          "loot": 36,
+          "coreElements": 0,
+          "pillars": 3,
+          "hintWalls": 11,
+          "infillCrates": 5
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 13296,
+            "y": 9552,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 3,
+        "crates": 5,
+        "loot": 36,
+        "occupied": 29,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "b09be5140aaf71308cfe19566058443b1d498c17c23e71730d8f9338884ce3ce",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 15,
+          "gates": 0,
+          "loot": 35,
+          "coreElements": 0,
+          "pillars": 4,
+          "hintWalls": 11,
+          "wings": 1,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 13296,
+            "y": 9552,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 14064,
+            "y": 9552,
+            "w": 864,
+            "h": 480,
+            "encloses": false,
+            "envelopeCells": 180,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 4,
+        "crates": 0,
+        "loot": 35,
+        "occupied": 33,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 14496,
+              "y": 9612
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 14496,
+              "y": 9972
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 14124,
+              "y": 9792
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 14868,
+              "y": 9792
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/36x18/issue330-before-36x18/hall@222,114",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "74da1f5af435dcdae55c956091190f34d46618c650b4d0b138d03cbd469cdbfc",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 21,
+          "gates": 0,
+          "loot": 43,
+          "coreElements": 0,
+          "pillars": 6,
+          "hintWalls": 15,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 10704,
+            "y": 5520,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 6,
+        "crates": 0,
+        "loot": 43,
+        "occupied": 39,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "74da1f5af435dcdae55c956091190f34d46618c650b4d0b138d03cbd469cdbfc",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 21,
+          "gates": 0,
+          "loot": 43,
+          "coreElements": 0,
+          "pillars": 6,
+          "hintWalls": 15,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 10704,
+            "y": 5520,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 6,
+        "crates": 0,
+        "loot": 43,
+        "occupied": 39,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/36x18/issue330-before-36x18/hall@258,192",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "f2b241642719b1ede19f96782dd4196efca397946ed37066d78ad8d26b72f1b4",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 18,
+          "gates": 0,
+          "loot": 32,
+          "coreElements": 0,
+          "pillars": 8,
+          "hintWalls": 10,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 12432,
+            "y": 9264,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 8,
+        "crates": 0,
+        "loot": 32,
+        "occupied": 42,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "f2b241642719b1ede19f96782dd4196efca397946ed37066d78ad8d26b72f1b4",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 18,
+          "gates": 0,
+          "loot": 32,
+          "coreElements": 0,
+          "pillars": 8,
+          "hintWalls": 10,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 12432,
+            "y": 9264,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 8,
+        "crates": 0,
+        "loot": 32,
+        "occupied": 42,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/36x18/issue330-before-36x18/hall@426,192",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "64cc86cfd7000aa4e040622cc5e6dac900ff5be69e2fae3680ff797e36df748a",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 16,
+          "gates": 0,
+          "loot": 31,
+          "coreElements": 0,
+          "pillars": 1,
+          "hintWalls": 8,
+          "infillCrates": 7
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 20496,
+            "y": 9264,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 1,
+        "crates": 7,
+        "loot": 31,
+        "occupied": 19,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "3ca65ad2b1c4201050cf83f96fcb4a959872cac3b0da0d89378168ad2047386a",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 11,
+          "gates": 0,
+          "loot": 31,
+          "coreElements": 0,
+          "pillars": 3,
+          "hintWalls": 8,
+          "wings": 1,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 20496,
+            "y": 9264,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 21264,
+            "y": 9264,
+            "w": 864,
+            "h": 480,
+            "encloses": false,
+            "envelopeCells": 180,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 3,
+        "crates": 0,
+        "loot": 31,
+        "occupied": 30,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 21696,
+              "y": 9324
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 21696,
+              "y": 9684
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 21324,
+              "y": 9504
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 22068,
+              "y": 9504
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/36x18/issue330-before-36x18/hall@192,228",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "c375032bb0beb0e60639682aa479a40ba53b338cc15c96bf376a70af170d6eca",
+        "manifest": {
+          "cells": 2160,
+          "structures": 0,
+          "obstacles": 30,
+          "gates": 0,
+          "loot": 32,
+          "coreElements": 0,
+          "pillars": 8,
+          "hintWalls": 22,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 9264,
+            "y": 10992,
+            "w": 1632,
+            "h": 2784,
+            "encloses": false,
+            "envelopeCells": 1972,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 8,
+        "crates": 0,
+        "loot": 32,
+        "occupied": 54,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "c375032bb0beb0e60639682aa479a40ba53b338cc15c96bf376a70af170d6eca",
+        "manifest": {
+          "cells": 2160,
+          "structures": 0,
+          "obstacles": 30,
+          "gates": 0,
+          "loot": 32,
+          "coreElements": 0,
+          "pillars": 8,
+          "hintWalls": 22,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 9264,
+            "y": 10992,
+            "w": 1632,
+            "h": 2784,
+            "encloses": false,
+            "envelopeCells": 1972,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 8,
+        "crates": 0,
+        "loot": 32,
+        "occupied": 54,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/36x18/issue330-before-36x18/hall@672,258",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "2fa1d7e9b4a0bc7105a11b1c6682e33f3c664213d310c862b381e2f9c426c4d2",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 22,
+          "gates": 0,
+          "loot": 79,
+          "coreElements": 0,
+          "pillars": 5,
+          "hintWalls": 17,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 32304,
+            "y": 12432,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 5,
+        "crates": 0,
+        "loot": 79,
+        "occupied": 37,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "2fa1d7e9b4a0bc7105a11b1c6682e33f3c664213d310c862b381e2f9c426c4d2",
+        "manifest": {
+          "cells": 1080,
+          "structures": 0,
+          "obstacles": 22,
+          "gates": 0,
+          "loot": 79,
+          "coreElements": 0,
+          "pillars": 5,
+          "hintWalls": 17,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 32304,
+            "y": 12432,
+            "w": 1632,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 952,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 5,
+        "crates": 0,
+        "loot": 79,
+        "occupied": 37,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/36x18/issue330-before-36x18/hall@438,288",
+      "eligible": true,
+      "noFit": false,
+      "unchanged": false,
+      "baseline": {
+        "outputHash": "527e9c6214d835d9acd28c8e4332996698ab90e36334659b330176d2a526a581",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 19,
+          "gates": 0,
+          "loot": 45,
+          "coreElements": 0,
+          "pillars": 1,
+          "hintWalls": 11,
+          "infillCrates": 7
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 21072,
+            "y": 13872,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 1,
+        "crates": 7,
+        "loot": 45,
+        "occupied": 22,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "798e944421c8325368745456f185a68c05962d9d735b1ad07b73ba901997982f",
+        "manifest": {
+          "cells": 756,
+          "structures": 0,
+          "obstacles": 13,
+          "gates": 0,
+          "loot": 45,
+          "coreElements": 0,
+          "pillars": 2,
+          "hintWalls": 11,
+          "wings": 1,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 21072,
+            "y": 13872,
+            "w": 768,
+            "h": 1344,
+            "encloses": false,
+            "envelopeCells": 448,
+            "roofCells": 0
+          },
+          {
+            "label": "hall-wing-1",
+            "x": 21840,
+            "y": 13872,
+            "w": 864,
+            "h": 480,
+            "encloses": false,
+            "envelopeCells": 180,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 2,
+        "crates": 0,
+        "loot": 45,
+        "occupied": 24,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": [
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 22272,
+              "y": 13932
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 22272,
+              "y": 14292
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 21900,
+              "y": 14112
+            },
+            "reached": true
+          },
+          {
+            "label": "hall-wing-1",
+            "point": {
+              "x": 22644,
+              "y": 14112
+            },
+            "reached": true
+          }
+        ]
+      },
+      "lostWalkable": []
+    },
+    {
+      "name": "new-library/36x18/issue330-before-36x18/hall@576,396",
+      "eligible": false,
+      "noFit": false,
+      "unchanged": true,
+      "baseline": {
+        "outputHash": "7228db1ea4bd6cb544dce442eedf5ddc92fd08180e0b772c7dfec946621ac5fd",
+        "manifest": {
+          "cells": 3240,
+          "structures": 0,
+          "obstacles": 50,
+          "gates": 0,
+          "loot": 199,
+          "coreElements": 0,
+          "pillars": 27,
+          "hintWalls": 23,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 27696,
+            "y": 19056,
+            "w": 1632,
+            "h": 4224,
+            "encloses": false,
+            "envelopeCells": 2992,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 27,
+        "crates": 0,
+        "loot": 199,
+        "occupied": 131,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "current": {
+        "outputHash": "7228db1ea4bd6cb544dce442eedf5ddc92fd08180e0b772c7dfec946621ac5fd",
+        "manifest": {
+          "cells": 3240,
+          "structures": 0,
+          "obstacles": 50,
+          "gates": 0,
+          "loot": 199,
+          "coreElements": 0,
+          "pillars": 27,
+          "hintWalls": 23,
+          "infillCrates": 0
+        },
+        "structural": [
+          {
+            "label": "hall",
+            "x": 27696,
+            "y": 19056,
+            "w": 1632,
+            "h": 4224,
+            "encloses": false,
+            "envelopeCells": 2992,
+            "roofCells": 0
+          }
+        ],
+        "pillars": 27,
+        "crates": 0,
+        "loot": 199,
+        "occupied": 131,
+        "fillErrors": [],
+        "portalErrors": [],
+        "badLoot": [],
+        "samples": []
+      },
+      "lostWalkable": []
+    }
+  ]
+}
