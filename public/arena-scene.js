@@ -8,6 +8,8 @@ import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
 import { themeColors, css } from '/palette.js';
 
+// Heard gunfire's ring and edge arrow (#684).
+const HEARD = 0xffba62;
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a, ammo: 0xc5f16f };
 // Eye settling time constant, chosen to match the previous `delta / 40` at 60 Hz.
 const EYE_TAU_MS = 31;
@@ -892,6 +894,22 @@ export function makeArenaScene(api) {
       if (state.hazardX != null) {
         fixed.fillStyle(0xd65065, 0.68); fixed.fillRect(-80, -80, Math.max(0, state.hazardX + 80), map.height + 160);
         fixed.lineStyle(4, 0xffaaa1); fixed.lineBetween(state.hazardX, -80, state.hazardX, map.height + 80);
+      }
+      // Heard gunfire (#684, 15): the player's own cues, an area rather than an actor, so drawn through walls
+      // and fog. On screen a fading ring over the cell; off screen an arrow at the view's edge toward it.
+      // Read from the frame's own record: a predicted copy of the player may not carry the latest cues.
+      for (const cue of api.directed() ? [] : playersById.get(api.playerId())?.heard ?? []) {
+        const fade = Math.max(0, Math.min(1, (cue.until - state.tick) / Math.max(1, cue.until - cue.tick)));
+        const dx = cue.x - cx, dy = cue.y - cy, edge = Math.max(Math.abs(dx) / (halfWidth - 40 / zoom), Math.abs(dy) / (halfHeight - 40 / zoom));
+        if (edge <= 1) {
+          g.lineStyle(3 / zoom, HEARD, 0.85 * fade); g.strokeCircle(cue.x, cue.y, 96);
+          g.lineStyle(2 / zoom, HEARD, 0.5 * fade); g.strokeCircle(cue.x, cue.y, 96 * (1.6 - 0.6 * fade));
+          continue;
+        }
+        const angle = Math.atan2(dy, dx), size = 18 / zoom, tipX = cx + dx / edge, tipY = cy + dy / edge;
+        g.fillStyle(HEARD, 0.35 + 0.6 * fade);
+        g.fillTriangle(tipX, tipY, tipX - Math.cos(angle - 0.5) * size, tipY - Math.sin(angle - 0.5) * size,
+          tipX - Math.cos(angle + 0.5) * size, tipY - Math.sin(angle + 0.5) * size);
       }
       stop('render.world');
       start('render.actors');

@@ -7,6 +7,7 @@ import type { Game, Gate, GroundItem, Player, PlayerId, Projected, Snapshot, Vec
 import { framedItems, groundItem, groundPosition, poseItems, publishItems } from './ground-items.ts';
 import { publishGates, publishedGates } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
+import { heardBy } from './hearing.ts';
 import { physicsState } from './physics-runtime.ts';
 import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
 import { MAX_PHYSICS_SPEED } from '../physics/motion-limits.ts';
@@ -77,7 +78,9 @@ export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
 function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   const viewer = frame.players.find(p => p.id === id);
   // Discovery stays out of snapshots, so live state is its only source.
-  const discovery = s.players.find(p => p.id === id)?.discovery;
+  const live = s.players.find(p => p.id === id), discovery = live?.discovery;
+  // Heard gunfire likewise; read at the frame's tick, which a player's own view is never behind.
+  const heard = live ? heardBy(live, frame.tick) : [];
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
@@ -93,7 +96,7 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
     }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
-    players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
+    players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery, heard) : observed(p)),
     items: items.map(projectedItem), gates: frame.gates && projectedGates(frame.gates),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };

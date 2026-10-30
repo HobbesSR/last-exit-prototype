@@ -144,6 +144,9 @@ SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: {
   worldPhysics: { ...CONTENT_PHYSICS_8.worldPhysics!, dropReserve: 48 } };
 // Gladiators plan trips across regions over the portal graph, a leg at a time (#682); otherwise content-6.
 SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlanning: 'portals' };
+// Gunfire is heard (#684); otherwise content-7. Placeholders, deliberately detuned (17.3 #26): ranges far beyond a fair
+// game's, so gladiators hear shots on today's maps, set by `tools/navigation/hunter-report.mjs` (42.22); four seconds' fade.
+SHIPPED['content-8'] = { ...SHIPPED['content-7'], id: 'content-8', hearing: { ticks: 4 * 20, ranges: { pistol: 8000, rifle: 10000, scattergun: 12000 } } };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {
