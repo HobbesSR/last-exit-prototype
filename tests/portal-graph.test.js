@@ -56,6 +56,14 @@ test('the shorter of two crossings wins, and a crossing its region cannot reach 
   assert.deepEqual(createPortalPlanner(graph, straightReach([[from, near]])).route(from, to).waypoints, [far, to]);
 });
 
+test('straight-line crossings without tables give the routes straight-line tables give', () => {
+  const graph = strip([4, 4, 4, 4], 4, [{ a: 0, b: 1, x: 192, y: 24 }, { a: 0, b: 1, x: 192, y: 168 }, { a: 1, b: 2, x: 384, y: 96 }, { a: 2, b: 3, x: 576, y: 96 }]);
+  const tabled = createPortalPlanner(graph, straightReach()), straight = createPortalPlanner(graph, straightReach(), 'straight');
+  assert.deepEqual(straight.tables, [], 'nothing is measured');
+  for (const [from, to] of [[{ x: 48, y: 24 }, { x: 700, y: 96 }], [{ x: 48, y: 168 }, { x: 300, y: 96 }], [{ x: 700, y: 96 }, { x: 48, y: 24 }]])
+    assert.deepEqual(straight.route(from, to), tabled.route(from, to));
+});
+
 test('an unconnected pair inside a region is no route, and a point outside every region is an invalid endpoint', () => {
   const graph = strip([4, 4, 4], 4, [{ a: 0, b: 1, x: 192, y: 96 }, { a: 1, b: 2, x: 384, y: 96 }]);
   const planner = createPortalPlanner(graph, straightReach([[{ x: 192, y: 96 }, { x: 384, y: 96 }]]));

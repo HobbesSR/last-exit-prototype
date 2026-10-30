@@ -68,6 +68,8 @@ export interface PortalRoute {
   status: PortalRouteStatus;
   /** The crossings to pass, then the goal; empty unless complete. */
   waypoints: Vec2[];
+  /** The portals crossed, by index into `portals`, one per waypoint before the goal. */
+  portals: number[];
   /** Total length over the level below; Infinity unless complete. */
   length: World;
 }
@@ -116,12 +118,14 @@ export function standJoins(graph: PortalGraph, reach: Reach): DividedPortal[] {
 
 /**
  * Plans over one graph for one body: the region tables are measured once, when the planner is
- * made; a query adds one reach from the start and one from the goal over their regions'
- * portals, then searches the graph. The caller owns invalidation: a door change makes a new
+ * made; with `'straight'` there are none, and a crossing costs the straight line between its
+ * portals, read from their positions. A query adds one reach from the start and one from the goal
+ * over their regions' portals, then searches the graph. The caller owns invalidation: a door change makes a new
  * planner, or will rebuild only the regions it touches (22.6, "Doors").
  */
-export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Float64Array[] = regionTables(graph, reach)) {
+export function createPortalPlanner(graph: PortalGraph, reach: Reach, measured: Float64Array[] | 'straight' = regionTables(graph, reach)) {
   const count = graph.portals.length;
+  const tables: Float64Array[] = measured === 'straight' ? [] : measured;
   // Node numbers: portals are 0..count-1, the start is count and the goal count + 1.
   const START = count, GOAL = count + 1;
 
@@ -129,7 +133,7 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Fl
     tables,
     route(from: Vec2, to: Vec2): PortalRoute {
       const fromRegion = regionAt(graph, from), toRegion = regionAt(graph, to);
-      if (fromRegion < 0 || toRegion < 0) return { status: 'invalid-endpoint', waypoints: [], length: Infinity };
+      if (fromRegion < 0 || toRegion < 0) return { status: 'invalid-endpoint', waypoints: [], portals: [], length: Infinity };
       const at = (node: number): Vec2 => node === START ? from : node === GOAL ? to : graph.portals[node]!;
       const exits = graph.regions[fromRegion]!.portals, entries = graph.regions[toRegion]!.portals;
       const leave = reach(from, [...exits.map(p => graph.portals[p]!), ...fromRegion === toRegion ? [to] : []], fromRegion);
@@ -159,18 +163,22 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Fl
         if (last.has(node)) relax(GOAL, node, g + last.get(node)!);
         for (let side = 0; side < 2; side++) {
           if (side === 1 && portal.regions[1] === portal.regions[0]) break;
-          const region = graph.regions[portal.regions[side]!]!, table = tables[portal.regions[side]!]!;
+          const region = graph.regions[portal.regions[side]!]!, table = tables[portal.regions[side]!];
           const k = region.portals.length, row = portal.slots[side]! * k;
           for (let j = 0; j < k; j++) {
-            const next = region.portals[j]!, d = table[row + j]!;
+            const next = region.portals[j]!, other = graph.portals[next]!;
+            const d = table ? table[row + j]! : hypot(other.x - portal.x, other.y - portal.y);
             if (d !== Infinity && !closed[next]) relax(next, node, g + d);
           }
         }
       }
-      if (!closed[GOAL]) return { status: 'no-route', waypoints: [], length: Infinity };
-      const waypoints: Vec2[] = [];
-      for (let node = GOAL; node !== START; node = parent[node]!) waypoints.push({ x: at(node).x, y: at(node).y });
-      return { status: 'complete', waypoints: waypoints.reverse(), length: best[GOAL]! };
+      if (!closed[GOAL]) return { status: 'no-route', waypoints: [], portals: [], length: Infinity };
+      const waypoints: Vec2[] = [], portals: number[] = [];
+      for (let node = GOAL; node !== START; node = parent[node]!) {
+        waypoints.push({ x: at(node).x, y: at(node).y });
+        if (node !== GOAL) portals.push(node);
+      }
+      return { status: 'complete', waypoints: waypoints.reverse(), portals: portals.reverse(), length: best[GOAL]! };
     },
   };
 }

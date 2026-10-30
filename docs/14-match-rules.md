@@ -55,6 +55,14 @@ old recordings are unchanged ([31](31-verification.md)). Tuning is as it was in 
 profiles: the human feel review of 2026-10-28 ([42.20](42.20-physics-p9.md)) accepted it as it
 stands and deferred tuning, so nothing here was rebalanced for the switch.
 
+`content-7` (#682, selectable, not the default) is `content-6` with gladiator bots planning trips across
+regions over the portal graph (`hunterPlanning: 'portals'`, 22.6). When its goal is in another region, a
+gladiator takes the regions to cross from the portal graph, costing each crossing by its straight-line
+length, and searches tiles only as far as the crossing after the next one. Once its goal is in its own
+region or the next, it searches the whole way, as before. A leg that finds no way through is dropped: the
+gladiator then plans straight for its goal until the goal changes region. On a map without a portal graph it
+plans as `content-6` does. Its goals, numbers and roster are `content-6`'s.
+
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
 ## Experimental physical world profile (#445)

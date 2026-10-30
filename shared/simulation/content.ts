@@ -142,6 +142,8 @@ SHIPPED['content-physics-8'] = CONTENT_PHYSICS_8;
 // world's 128 dynamic bodies (11 actors and 117 items) at tick 0, so no player could drop anything.
 SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: { groundCapacity: 16384 },
   worldPhysics: { ...CONTENT_PHYSICS_8.worldPhysics!, dropReserve: 48 } };
+// Gladiators plan trips across regions over the portal graph, a leg at a time (#682); otherwise content-6.
+SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlanning: 'portals' };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {
