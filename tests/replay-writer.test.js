@@ -9,6 +9,7 @@ import path from 'node:path';
 import { createReplayWriter, frameLine, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
 import { createGame, snapshot, step } from '../shared/simulation.ts';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
+import { gatesJson } from '../shared/simulation/frame-gates.ts';
 import { createFileReplayStore } from '../server/replay-store.js';
 
 test('replay writer preserves frame JSON, command ownership, integrity and idempotent publication', async () => {
@@ -166,18 +167,23 @@ test('a header descriptor is written once and leaves frame bytes and digest unto
   assert.deepEqual(JSON.parse(described.text).presentation, presentation);
 });
 
-test('frames are written byte for byte as JSON.stringify writes them, with the ground from its kept JSON (#655)', async () => {
+test('frames are written byte for byte as JSON.stringify writes them, with the ground and gates from their kept JSON (#655)', async () => {
   const s = createGame(4217), chunks = [], advance = () => { step(s); return snapshot(s); };
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const header = { id: 'ground', seed: 4217 };
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => { throw error; } });
   const records = [];
   const append = (state, commands) => { records.push({ state, commands }); assert.equal(writer.append(state, commands), true); };
-  for (let tick = 0; tick < 40; tick++) append(advance(), tick % 7 ? [] : [{ type: 'input', input: { name: 'Zoë ✓' } }]);
+  assert.ok(s.map.gates.length, 'the game has gates to record');
+  for (let tick = 0; tick < 40; tick++) {
+    // A gate that changes mid-recording, as a door does when it is opened, must reach the recorded frame.
+    if (tick === 20) s.map.gates[0].open = !s.map.gates[0].open;
+    append(advance(), tick % 7 ? [] : [{ type: 'input', input: { name: 'Zoë ✓' } }]);
+  }
   const frame = advance();
-  // Shapes the writer must still match: undefined values and commands, a ground nobody published, non-ASCII text.
-  append({ ...frame, gone: undefined, name: 'Ünïcode ✓', items: frame.items.map(item => ({ ...item })) }, undefined);
-  append({ tick: 1, items: [] }, []);
+  // Shapes the writer must still match: undefined values and commands, lists nobody published, non-ASCII text.
+  append({ ...frame, gone: undefined, name: 'Ünïcode ✓', items: frame.items.map(item => ({ ...item })), gates: frame.gates.map(gate => ({ ...gate, name: 'Tür ✓' })) }, undefined);
+  append({ tick: 1, items: [], gates: [] }, []);
   append({ tick: 2, items: 'not a list' }, []);
   append({}, []);
   const meta = await writer.finish({ ticks: 44 });
@@ -186,9 +192,9 @@ test('frames are written byte for byte as JSON.stringify writes them, with the g
   const digest = createHash('sha256'); for (const r of records) digest.update(`${JSON.stringify(r)}
 `);
   assert.equal(meta.sha256, digest.digest('hex'));
-  const ground = list => { const json = itemsJson(list); return { json, bytes: Buffer.byteLength(json) }; };
+  const kept = (key, list) => { const json = key === 'items' ? itemsJson(list) : gatesJson(list); return { json, bytes: Buffer.byteLength(json) }; };
   for (const { state, commands } of records) {
-    const { line, bytes } = frameLine(state, commands, ground);
+    const { line, bytes } = frameLine(state, commands, kept);
     assert.equal(bytes, Buffer.byteLength(line));
   }
 });

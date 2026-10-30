@@ -3,8 +3,10 @@ import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
-import type { Game, GroundItem, Player, PlayerId, Projected, Snapshot, Vec2, World } from '../types.ts';
+import type { Game, Gate, GroundItem, Player, PlayerId, Projected, Snapshot, Vec2, World } from '../types.ts';
 import { framedItems, groundItem, groundPosition, poseItems, publishItems } from './ground-items.ts';
+import { publishGates, publishedGates } from './frame-gates.ts';
+import { settledLayer } from '../frame-layers.ts';
 import { physicsState } from './physics-runtime.ts';
 import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
 import { MAX_PHYSICS_SPEED } from '../physics/motion-limits.ts';
@@ -50,6 +52,22 @@ function projectedItem(item: GroundItem): Projected<GroundItem> {
   if (!projected) projectedItems.set(item, projected = Object.freeze(itemFields(item)));
   return projected;
 }
+// Every view carries every gate, so a frame's gate list projects once for all of them. A published list never
+// changes, and one projected list per published list lets each view's layer encoder match it by identity.
+const projectedLists = new WeakMap<readonly Gate[], Projected<Gate>[]>(), projectedGateRecords = new WeakMap<Gate, Projected<Gate>>();
+function projectedGates(gates: readonly Gate[]): Projected<Gate>[] {
+  if (!publishedGates(gates)) return gates.map(gateFields);
+  let list = projectedLists.get(gates);
+  if (!list) {
+    list = gates.map(gate => {
+      let projected = projectedGateRecords.get(gate);
+      if (!projected) projectedGateRecords.set(gate, projected = Object.freeze(gateFields(gate)));
+      return projected;
+    });
+    projectedLists.set(gates, list); settledLayer(list);
+  }
+  return list;
+}
 export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
   start('sim.playerView');
   try { return buildPlayerView(s, frame, id); } finally { stop('sim.playerView'); }
@@ -76,7 +94,7 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
     players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
-    items: items.map(projectedItem), gates: frame.gates?.map(gateFields),
+    items: items.map(projectedItem), gates: frame.gates && projectedGates(frame.gates),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }
@@ -102,9 +120,10 @@ export function snapshot(s: Game): Snapshot {
     const items = poses.size ? poseItems(ground, poses) : ground;
     stop('sim.snapshot.presentation');
     start('sim.snapshot.clone');
-    // The ground list is shared, not cloned: published records are frozen and replaced when they change.
-    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial } : {}), ...(physics ? { physics, ...presentation } : {}) }) as unknown as Snapshot;
+    // The ground and gate lists are shared, not cloned: their records are frozen and replaced when they change.
+    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial } : {}), ...(physics ? { physics, ...presentation } : {}) }) as unknown as Snapshot;
     frame.items = items as GroundItem[];
+    frame.gates = s.map.gates && publishGates(s) as Gate[];
     return frame;
   }
   finally { stop('sim.snapshot.clone'); stop('sim.snapshot'); }
