@@ -1,0 +1,820 @@
+{
+  "types": [
+    "park"
+  ],
+  "maps": 221,
+  "regions": 7047,
+  "features": {
+    "park": {
+      "trees": {
+        "total": 1036,
+        "regions": 463
+      },
+      "clumps": {
+        "total": 820,
+        "regions": 463
+      },
+      "hedges": {
+        "total": 98,
+        "regions": 66
+      },
+      "pockets": {
+        "total": 26,
+        "regions": 26
+      }
+    }
+  },
+  "drift": [
+    {
+      "map": "game/sweep-8",
+      "region": "park@282,66",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          26,
+          24
+        ],
+        "loot": [
+          182,
+          177
+        ],
+        "trees": [
+          16,
+          11
+        ],
+        "clumps": [
+          13,
+          8
+        ],
+        "hedges": [
+          5,
+          4
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-8",
+      "region": "park@228,90",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          20,
+          21
+        ],
+        "loot": [
+          110,
+          98
+        ],
+        "trees": [
+          16,
+          14
+        ],
+        "clumps": [
+          11,
+          9
+        ],
+        "hedges": [
+          2,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-11",
+      "region": "park@180,0",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          14,
+          10
+        ],
+        "loot": [
+          53,
+          54
+        ],
+        "trees": [
+          10,
+          5
+        ],
+        "clumps": [
+          7,
+          4
+        ],
+        "hedges": [
+          2,
+          0
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-23",
+      "region": "park@114,60",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          11,
+          12
+        ],
+        "loot": [
+          51,
+          45
+        ],
+        "trees": [
+          9,
+          5
+        ],
+        "clumps": [
+          7,
+          4
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-30",
+      "region": "park@126,36",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          10,
+          8
+        ],
+        "loot": [
+          52,
+          50
+        ],
+        "trees": [
+          8,
+          1
+        ],
+        "clumps": [
+          6,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-44",
+      "region": "park@240,60",
+      "type": "park",
+      "manifest": {
+        "loot": [
+          153,
+          140
+        ],
+        "trees": [
+          14,
+          13
+        ],
+        "clumps": [
+          11,
+          10
+        ],
+        "hedges": [
+          3,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-46",
+      "region": "park@144,156",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          23,
+          18
+        ],
+        "loot": [
+          29,
+          27
+        ],
+        "trees": [
+          15,
+          13
+        ],
+        "clumps": [
+          11,
+          9
+        ],
+        "hedges": [
+          4,
+          0
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-48",
+      "region": "park@252,36",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          24,
+          20
+        ],
+        "loot": [
+          67,
+          57
+        ],
+        "trees": [
+          18,
+          13
+        ],
+        "clumps": [
+          12,
+          9
+        ],
+        "hedges": [
+          3,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-48",
+      "region": "park@198,72",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          38,
+          35
+        ],
+        "loot": [
+          102,
+          97
+        ],
+        "trees": [
+          32,
+          26
+        ],
+        "clumps": [
+          20,
+          17
+        ],
+        "hedges": [
+          3,
+          2
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-57",
+      "region": "park@216,54",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          19,
+          18
+        ],
+        "loot": [
+          118,
+          108
+        ],
+        "trees": [
+          13,
+          7
+        ],
+        "clumps": [
+          10,
+          6
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-61",
+      "region": "park@234,36",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          20,
+          16
+        ],
+        "loot": [
+          60,
+          49
+        ],
+        "trees": [
+          14,
+          9
+        ],
+        "clumps": [
+          9,
+          6
+        ],
+        "hedges": [
+          3,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-64",
+      "region": "park@102,72",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          12,
+          11
+        ],
+        "loot": [
+          40,
+          37
+        ],
+        "trees": [
+          10,
+          6
+        ],
+        "clumps": [
+          7,
+          5
+        ],
+        "hedges": [
+          1,
+          0
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-83",
+      "region": "park@156,78",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          29,
+          26
+        ],
+        "loot": [
+          71,
+          69
+        ],
+        "trees": [
+          25,
+          17
+        ],
+        "clumps": [
+          15,
+          10
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-86",
+      "region": "park@180,6",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          26,
+          20
+        ],
+        "loot": [
+          78,
+          77
+        ],
+        "trees": [
+          14,
+          7
+        ],
+        "clumps": [
+          10,
+          6
+        ],
+        "hedges": [
+          6,
+          4
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-88",
+      "region": "park@264,120",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          15,
+          8
+        ],
+        "loot": [
+          46,
+          40
+        ],
+        "trees": [
+          11,
+          1
+        ],
+        "clumps": [
+          7,
+          1
+        ],
+        "hedges": [
+          2,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-104",
+      "region": "park@222,66",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          32,
+          26
+        ],
+        "loot": [
+          107,
+          93
+        ],
+        "trees": [
+          30,
+          21
+        ],
+        "clumps": [
+          23,
+          17
+        ],
+        "hedges": [
+          1,
+          0
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-105",
+      "region": "park@144,0",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          18,
+          15
+        ],
+        "loot": [
+          40,
+          33
+        ],
+        "trees": [
+          12,
+          8
+        ],
+        "clumps": [
+          8,
+          6
+        ],
+        "hedges": [
+          3,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-107",
+      "region": "park@252,36",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          18,
+          15
+        ],
+        "loot": [
+          67,
+          59
+        ],
+        "trees": [
+          12,
+          8
+        ],
+        "clumps": [
+          8,
+          5
+        ],
+        "hedges": [
+          3,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/sweep-111",
+      "region": "park@102,36",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          18,
+          16
+        ],
+        "loot": [
+          25,
+          22
+        ],
+        "trees": [
+          14,
+          9
+        ],
+        "clumps": [
+          10,
+          7
+        ],
+        "hedges": [
+          2,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game-crowded/sweep-8",
+      "region": "park@282,66",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          26,
+          24
+        ],
+        "loot": [
+          182,
+          177
+        ],
+        "trees": [
+          16,
+          11
+        ],
+        "clumps": [
+          13,
+          8
+        ],
+        "hedges": [
+          5,
+          4
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game-crowded/sweep-8",
+      "region": "park@228,90",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          20,
+          21
+        ],
+        "loot": [
+          110,
+          98
+        ],
+        "trees": [
+          16,
+          14
+        ],
+        "clumps": [
+          11,
+          9
+        ],
+        "hedges": [
+          2,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game-crowded/sweep-11",
+      "region": "park@180,0",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          14,
+          10
+        ],
+        "loot": [
+          53,
+          54
+        ],
+        "trees": [
+          10,
+          5
+        ],
+        "clumps": [
+          7,
+          4
+        ],
+        "hedges": [
+          2,
+          0
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game-sparse/sweep-8",
+      "region": "park@282,66",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          26,
+          24
+        ],
+        "loot": [
+          182,
+          177
+        ],
+        "trees": [
+          16,
+          11
+        ],
+        "clumps": [
+          13,
+          8
+        ],
+        "hedges": [
+          5,
+          4
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game-sparse/sweep-8",
+      "region": "park@228,90",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          20,
+          21
+        ],
+        "loot": [
+          110,
+          98
+        ],
+        "trees": [
+          16,
+          14
+        ],
+        "clumps": [
+          11,
+          9
+        ],
+        "hedges": [
+          2,
+          1
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game-sparse/sweep-11",
+      "region": "park@180,0",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          14,
+          10
+        ],
+        "loot": [
+          53,
+          54
+        ],
+        "trees": [
+          10,
+          5
+        ],
+        "clumps": [
+          7,
+          4
+        ],
+        "hedges": [
+          2,
+          0
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "map": "game/quick-1",
+      "region": "park@144,0",
+      "type": "park",
+      "manifest": {
+        "obstacles": [
+          15,
+          8
+        ],
+        "loot": [
+          21,
+          14
+        ],
+        "trees": [
+          11,
+          3
+        ],
+        "clumps": [
+          8,
+          3
+        ],
+        "hedges": [
+          2,
+          0
+        ],
+        "pockets": [
+          0,
+          1
+        ]
+      }
+    }
+  ],
+  "threw": [],
+  "reach": "drifted",
+  "reachChecked": 26,
+  "brokenPromises": [],
+  "seconds": 6.2
+}

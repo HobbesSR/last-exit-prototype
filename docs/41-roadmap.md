@@ -111,6 +111,15 @@ measurement tool and [three-size baseline](42.23-navigation-structure.md).
 No main lever is selected by that baseline; use matched before/after reports
 to assess a subsequent named mechanics experiment.
 
+One bounded production static-barrier adoption now gives eligible parks a
+connected hedge pocket (#698, types-56). Matched local targets detour and gain
+accessible pocket area; real-map no-fit cases, filtered old loot, actual final
+loot access and added generation cost are explicit in
+[42.25](42.25-park-pocket.md). Long crossings remain nearly straight and empty
+shares remain high. Stop at this one-family capability: general #649 growth,
+macro boundary/portal control and other builder adoptions remain separate
+candidates, with no main lever or automatic successor selected.
+
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
 | Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |

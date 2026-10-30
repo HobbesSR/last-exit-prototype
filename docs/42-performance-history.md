@@ -21,6 +21,8 @@ Server tick cost by stage, its scaling with map size and the classification of o
 frames (#655).
 Navigation structure's three-size detour, dead-end, empty-space and boundary
 baseline is in [42.23](42.23-navigation-structure.md) (#688).
+One production park hedge pocket's matched movement, access, loot and generation
+cost evidence is in [42.25](42.25-park-pocket.md) (#698).
 
 The current unresolved slowdown is recorded below. Historical runtime measurements are in [42.2](42.2-runtime-performance.md), generation and delegation measurements in [42.3](42.3-generation-and-delegation-evidence.md), and map chain captures in [42.4](42.4-chain-checkpoint-history.md). The navigation experiment remains in [42.1](42.1-navigation-experiment.md), the portal graph's first measurements are in [42.5](42.5-portal-graph.md), its free-space mesh bottom level in [42.7](42.7-navigation-mesh.md), bots' adoption of the tile planner in [42.8](42.8-bot-adoption.md), replanning spread over ticks in [42.10](42.10-sliced-replanning.md), and local repair in [42.13](42.13-local-repair.md).
 

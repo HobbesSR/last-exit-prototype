@@ -1,0 +1,159 @@
+{
+  "browser": "156.0.8078.49",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "previewSha256": "067c752afa34a27ce9ebc1733c9f63ff505d402dd071c8e590ec0011376a349e",
+  "panels": [
+    {
+      "body": "contestant",
+      "caption": "24: park@372,150, contestant, before",
+      "rectangles": 416,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "24: park@372,150, contestant, after",
+      "rectangles": 419,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@984,222, contestant, before",
+      "rectangles": 414,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@984,222, contestant, after",
+      "rectangles": 415,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@180,246, contestant, before",
+      "rectangles": 408,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@180,246, contestant, after",
+      "rectangles": 413,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@288,264, contestant, before",
+      "rectangles": 418,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@288,264, contestant, after",
+      "rectangles": 419,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@438,306, contestant, before",
+      "rectangles": 416,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@438,306, contestant, after",
+      "rectangles": 421,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@612,384, contestant, before",
+      "rectangles": 426,
+      "routes": 9
+    },
+    {
+      "body": "contestant",
+      "caption": "36: park@612,384, contestant, after",
+      "rectangles": 429,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "24: park@372,150, hunter, before",
+      "rectangles": 416,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "24: park@372,150, hunter, after",
+      "rectangles": 419,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@984,222, hunter, before",
+      "rectangles": 414,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@984,222, hunter, after",
+      "rectangles": 415,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@180,246, hunter, before",
+      "rectangles": 408,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@180,246, hunter, after",
+      "rectangles": 413,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@288,264, hunter, before",
+      "rectangles": 418,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@288,264, hunter, after",
+      "rectangles": 419,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@438,306, hunter, before",
+      "rectangles": 416,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@438,306, hunter, after",
+      "rectangles": 421,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@612,384, hunter, before",
+      "rectangles": 426,
+      "routes": 9
+    },
+    {
+      "body": "hunter",
+      "caption": "36: park@612,384, hunter, after",
+      "rectangles": 429,
+      "routes": 9
+    }
+  ],
+  "errors": [],
+  "visualInspection": [
+    "contestant after, size24 park@372,150",
+    "hunter after, size36 park@612,384"
+  ]
+}

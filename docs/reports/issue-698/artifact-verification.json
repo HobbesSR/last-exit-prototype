@@ -1,0 +1,43 @@
+{
+  "method": "Independent in-session Terra review after final capture; hashes and production reconstruction rerun, expensive route/structure/layout-only analysis not rerun.",
+  "sourceHashesMatched": 300,
+  "inputAndMetricsHashesMatched": 6,
+  "artifactHashesMatched": 9,
+  "legacyBuilderGitSourceHashMatched": true,
+  "rebuiltParksByWidth": {
+    "12": 38,
+    "24": 134,
+    "36": 305
+  },
+  "allRebuiltParksEqualRetainedAfter": true,
+  "nonParkResultsUnchanged": true,
+  "retainedOwnerProofs": {
+    "count": 6,
+    "valid": 6,
+    "fillErrors": 0,
+    "portalErrors": 0,
+    "interiorRoutes": 6
+  },
+  "fixedEndpointIdentity": {
+    "24": {
+      "contestant": 627,
+      "hunter": 627
+    },
+    "36": {
+      "contestant": 2289,
+      "hunter": 2293
+    }
+  },
+  "actualAfterLootRoutes": {
+    "24": {
+      "perBody": 387,
+      "allComplete": true
+    },
+    "36": {
+      "perBody": 1909,
+      "allComplete": true
+    }
+  },
+  "compatibility": "Matching captured script asserts complete round trips, old layout-only refusal, and current layout-only regeneration before writing outputs. These expensive assertions were executed by the capture, not rerun by this independent review.",
+  "manifestSha256": "b4efe826c43bffbc1fefcdb8b358f5a6420cce3ddd625fd724d45bce448542ff"
+}

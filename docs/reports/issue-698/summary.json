@@ -1,0 +1,2220 @@
+[
+  {
+    "width": 12,
+    "parks": 38,
+    "changed": 0,
+    "unchanged": 38,
+    "generation": [
+      {
+        "repeat": 0,
+        "beforeMs": 56.82860000000005,
+        "afterMs": 66.60649999999987
+      },
+      {
+        "repeat": 1,
+        "beforeMs": 55.600999999999885,
+        "afterMs": 66.38020000000006
+      },
+      {
+        "repeat": 2,
+        "beforeMs": 55.985800000000154,
+        "afterMs": 68.6386
+      }
+    ],
+    "sites": [],
+    "roles": [
+      {
+        "body": "contestant",
+        "before": null,
+        "after": null,
+        "actualAfter": null,
+        "owners": [],
+        "mapBefore": {
+          "components": 1,
+          "deadEndArea": 41566.375663757324,
+          "walkableArea": 73358122.79614258
+        },
+        "mapAfter": {
+          "components": 1,
+          "deadEndArea": 41566.375663757324,
+          "walkableArea": 73358122.79614258
+        }
+      },
+      {
+        "body": "hunter",
+        "before": null,
+        "after": null,
+        "actualAfter": null,
+        "owners": [],
+        "mapBefore": {
+          "components": 1,
+          "deadEndArea": 44746.18226623535,
+          "walkableArea": 70760230.40937805
+        },
+        "mapAfter": {
+          "components": 1,
+          "deadEndArea": 44746.18226623535,
+          "walkableArea": 70760230.40937805
+        }
+      }
+    ]
+  },
+  {
+    "width": 24,
+    "parks": 134,
+    "changed": 1,
+    "unchanged": 133,
+    "generation": [
+      {
+        "repeat": 0,
+        "beforeMs": 369.66769999999997,
+        "afterMs": 442.3645999999999
+      },
+      {
+        "repeat": 1,
+        "beforeMs": 369.0789999999997,
+        "afterMs": 448.0698000000002
+      },
+      {
+        "repeat": 2,
+        "beforeMs": 370.6886000000004,
+        "afterMs": 437.59889999999996
+      }
+    ],
+    "sites": [
+      {
+        "index": 383,
+        "owner": "park@372,150",
+        "element": {
+          "label": "park-pocket",
+          "x": 18000,
+          "y": 7344,
+          "template": {
+            "w": 672,
+            "h": 672,
+            "parts": [
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 0,
+                  "y": 0,
+                  "w": 48,
+                  "h": 672
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 0,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 624,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 48,
+                  "w": 48,
+                  "h": 228
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 396,
+                  "w": 48,
+                  "h": 228
+                }
+              }
+            ]
+          }
+        },
+        "admission": {
+          "envelope": {
+            "kind": "rect",
+            "x": 17904,
+            "y": 7248,
+            "w": 864,
+            "h": 864
+          },
+          "candidates": 8,
+          "routes": 1
+        },
+        "beforeLoot": 411,
+        "afterLoot": 387,
+        "removedLoot": 27,
+        "addedLoot": 3,
+        "validationValid": true
+      }
+    ],
+    "roles": [
+      {
+        "body": "contestant",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0188758754424403,
+            "p90": 1.063536384475961,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.0712064355321222,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0008972178986104,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 411,
+            "complete": 411,
+            "median": 1.0064830911714535,
+            "p90": 1.0422078077420431,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.0178009950813314,
+            "p90": 1.046657370641586,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.000038755770237,
+            "p90": 1.0286364363027911,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1.0028381278693632,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1.0000468666657962,
+            "p90": 1.1726039579122625,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0172415875070926,
+            "p90": 1.0311367005466028,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0157905512278185,
+            "p90": 1.0194473298228655,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0196253239237505,
+            "p90": 1.063536384475961,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1,
+            "p90": 1.0712064355321222,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0008972178986104,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 411,
+            "complete": 399,
+            "median": 1.0130970785813167,
+            "p90": 1.0780289682387034,
+            "shareAbove1_5": 0.002506265664160401,
+            "invalidEndpoints": 12,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.018519969225006,
+            "p90": 1.046657370641586,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.3694501192226813,
+            "p90": 1.7137352038138929,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 3.8422691349666156,
+            "p90": 8.730258898372048,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0172415875070926,
+            "p90": 1.0271701598762932,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0126371910734837,
+            "p90": 1.01626122760598,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "actualAfter": {
+          "actual-after-owner-loot/focused": {
+            "attempted": 387,
+            "complete": 387,
+            "median": 1,
+            "p90": 1.1440210758974523,
+            "shareAbove1_5": 0.06201550387596899,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "owners": [
+          {
+            "id": "park@372,150",
+            "before": {
+              "index": 479,
+              "id": "park@372,150",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4761461.162536643,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 8276,
+              "emptySamples": 8144,
+              "emptyAreaEstimate": 4690944,
+              "emptyShare": 0.9840502658289029,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 64,
+              "impassableBoundaryShare": 0.14814814814814814
+            },
+            "after": {
+              "index": 479,
+              "id": "park@372,150",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4630780.612792939,
+              "deadEndArea": 306324.1674194336,
+              "deadEndShare": 0.06614957456053654,
+              "walkableSamples": 7968,
+              "emptySamples": 7844,
+              "emptyAreaEstimate": 4518144,
+              "emptyShare": 0.9844377510040161,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 64,
+              "impassableBoundaryShare": 0.14814814814814814
+            }
+          }
+        ],
+        "mapBefore": {
+          "components": 2,
+          "deadEndArea": 688590.8510360718,
+          "walkableArea": 290062318.18437195
+        },
+        "mapAfter": {
+          "components": 2,
+          "deadEndArea": 994915.0184555054,
+          "walkableArea": 289931637.6346283
+        }
+      },
+      {
+        "body": "hunter",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0237151980683916,
+            "p90": 1.0549015204152978,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0003863832774555,
+            "p90": 1.0959552547859936,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0099213111496288,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 411,
+            "complete": 411,
+            "median": 1.0100532582042296,
+            "p90": 1.0575577772135765,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.0173060642342338,
+            "p90": 1.0419118886138123,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.0008875697149238,
+            "p90": 1.0394569226384245,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1,
+            "p90": 1.0080220822868944,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 1.001073513441451,
+            "p90": 1.2379047018042126,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0188728556601745,
+            "p90": 1.0343667689454832,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.017443016381447,
+            "p90": 1.0211836188877432,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.023153934209476,
+            "p90": 1.0549015204152978,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0003863832774555,
+            "p90": 1.0959552547859936,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/short:<6-cells": {
+            "attempted": 2,
+            "complete": 2,
+            "median": 1,
+            "p90": 1.0099213111496288,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 411,
+            "complete": 399,
+            "median": 1.0176880289387153,
+            "p90": 1.0955647745775159,
+            "shareAbove1_5": 0.002506265664160401,
+            "invalidEndpoints": 12,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 95,
+            "complete": 95,
+            "median": 1.0169811389751406,
+            "p90": 1.0430174522045883,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/medium:6-24-cells": {
+            "attempted": 1,
+            "complete": 1,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.4047200562086446,
+            "p90": 1.7519393341309022,
+            "shareAbove1_5": 0.3333333333333333,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 3,
+            "complete": 3,
+            "median": 1.000915919514979,
+            "p90": 1.0009180476099846,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 9,
+            "complete": 9,
+            "median": 3.9716597800804787,
+            "p90": 8.958535246737085,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0180037546819343,
+            "p90": 1.0297397403475208,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0139000292033296,
+            "p90": 1.017807577135907,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "actualAfter": {
+          "actual-after-owner-loot/focused": {
+            "attempted": 387,
+            "complete": 387,
+            "median": 1,
+            "p90": 1.1633013489437043,
+            "shareAbove1_5": 0.06459948320413436,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "owners": [
+          {
+            "id": "park@372,150",
+            "before": {
+              "index": 479,
+              "id": "park@372,150",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4552897.656494133,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 7956,
+              "emptySamples": 7956,
+              "emptyAreaEstimate": 4582656,
+              "emptyShare": 1,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 64,
+              "impassableBoundaryShare": 0.14814814814814814
+            },
+            "after": {
+              "index": 479,
+              "id": "park@372,150",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4395440.831115723,
+              "deadEndArea": 283295.08165742457,
+              "deadEndShare": 0.06445202939644941,
+              "walkableSamples": 7688,
+              "emptySamples": 7688,
+              "emptyAreaEstimate": 4428288,
+              "emptyShare": 1,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 64,
+              "impassableBoundaryShare": 0.14814814814814814
+            }
+          }
+        ],
+        "mapBefore": {
+          "components": 3,
+          "deadEndArea": 656662.6953811646,
+          "walkableArea": 278670705.4048767
+        },
+        "mapAfter": {
+          "components": 3,
+          "deadEndArea": 939957.7770385742,
+          "walkableArea": 278513248.5794983
+        }
+      }
+    ]
+  },
+  {
+    "width": 36,
+    "parks": 305,
+    "changed": 5,
+    "unchanged": 300,
+    "generation": [
+      {
+        "repeat": 0,
+        "beforeMs": 315.7402000000002,
+        "afterMs": 450.16079999999783
+      },
+      {
+        "repeat": 1,
+        "beforeMs": 309.15499999999884,
+        "afterMs": 446.93649999999616
+      },
+      {
+        "repeat": 2,
+        "beforeMs": 311.0384000000049,
+        "afterMs": 442.8510000000024
+      }
+    ],
+    "sites": [
+      {
+        "index": 845,
+        "owner": "park@984,222",
+        "element": {
+          "label": "park-pocket",
+          "x": 47376,
+          "y": 10800,
+          "template": {
+            "w": 672,
+            "h": 672,
+            "parts": [
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 0,
+                  "y": 0,
+                  "w": 48,
+                  "h": 672
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 0,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 624,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 48,
+                  "w": 48,
+                  "h": 228
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 396,
+                  "w": 48,
+                  "h": 228
+                }
+              }
+            ]
+          }
+        },
+        "admission": {
+          "envelope": {
+            "kind": "rect",
+            "x": 47280,
+            "y": 10704,
+            "w": 864,
+            "h": 864
+          },
+          "candidates": 8,
+          "routes": 1
+        },
+        "beforeLoot": 750,
+        "afterLoot": 706,
+        "removedLoot": 52,
+        "addedLoot": 8,
+        "validationValid": true
+      },
+      {
+        "index": 1003,
+        "owner": "park@180,246",
+        "element": {
+          "label": "park-pocket",
+          "x": 7920,
+          "y": 12240,
+          "template": {
+            "w": 672,
+            "h": 672,
+            "parts": [
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 0,
+                  "y": 0,
+                  "w": 48,
+                  "h": 672
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 0,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 624,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 48,
+                  "w": 48,
+                  "h": 228
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 396,
+                  "w": 48,
+                  "h": 228
+                }
+              }
+            ]
+          }
+        },
+        "admission": {
+          "envelope": {
+            "kind": "rect",
+            "x": 7824,
+            "y": 12144,
+            "w": 864,
+            "h": 864
+          },
+          "candidates": 28,
+          "routes": 1
+        },
+        "beforeLoot": 70,
+        "afterLoot": 62,
+        "removedLoot": 8,
+        "addedLoot": 0,
+        "validationValid": true
+      },
+      {
+        "index": 1134,
+        "owner": "park@288,264",
+        "element": {
+          "label": "park-pocket",
+          "x": 13968,
+          "y": 12816,
+          "template": {
+            "w": 672,
+            "h": 672,
+            "parts": [
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 0,
+                  "y": 0,
+                  "w": 48,
+                  "h": 672
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 0,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 624,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 48,
+                  "w": 48,
+                  "h": 228
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 396,
+                  "w": 48,
+                  "h": 228
+                }
+              }
+            ]
+          }
+        },
+        "admission": {
+          "envelope": {
+            "kind": "rect",
+            "x": 13872,
+            "y": 12720,
+            "w": 864,
+            "h": 864
+          },
+          "candidates": 8,
+          "routes": 1
+        },
+        "beforeLoot": 250,
+        "afterLoot": 233,
+        "removedLoot": 21,
+        "addedLoot": 4,
+        "validationValid": true
+      },
+      {
+        "index": 1379,
+        "owner": "park@438,306",
+        "element": {
+          "label": "park-pocket",
+          "x": 21168,
+          "y": 14832,
+          "template": {
+            "w": 672,
+            "h": 672,
+            "parts": [
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 0,
+                  "y": 0,
+                  "w": 48,
+                  "h": 672
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 0,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 624,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 48,
+                  "w": 48,
+                  "h": 228
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 396,
+                  "w": 48,
+                  "h": 228
+                }
+              }
+            ]
+          }
+        },
+        "admission": {
+          "envelope": {
+            "kind": "rect",
+            "x": 21072,
+            "y": 14736,
+            "w": 864,
+            "h": 864
+          },
+          "candidates": 8,
+          "routes": 1
+        },
+        "beforeLoot": 403,
+        "afterLoot": 375,
+        "removedLoot": 32,
+        "addedLoot": 4,
+        "validationValid": true
+      },
+      {
+        "index": 1790,
+        "owner": "park@612,384",
+        "element": {
+          "label": "park-pocket",
+          "x": 28368,
+          "y": 18864,
+          "template": {
+            "w": 672,
+            "h": 672,
+            "parts": [
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 0,
+                  "y": 0,
+                  "w": 48,
+                  "h": 672
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 0,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 48,
+                  "y": 624,
+                  "w": 624,
+                  "h": 48
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 48,
+                  "w": 48,
+                  "h": 228
+                }
+              },
+              {
+                "part": "obstacle",
+                "kind": "hedge",
+                "shape": {
+                  "kind": "rect",
+                  "x": 624,
+                  "y": 396,
+                  "w": 48,
+                  "h": 228
+                }
+              }
+            ]
+          }
+        },
+        "admission": {
+          "envelope": {
+            "kind": "rect",
+            "x": 28272,
+            "y": 18768,
+            "w": 864,
+            "h": 864
+          },
+          "candidates": 28,
+          "routes": 1
+        },
+        "beforeLoot": 556,
+        "afterLoot": 533,
+        "removedLoot": 30,
+        "addedLoot": 7,
+        "validationValid": true
+      }
+    ],
+    "roles": [
+      {
+        "body": "contestant",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0182468667661901,
+            "p90": 1.0364616558629092,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 10,
+            "complete": 10,
+            "median": 1,
+            "p90": 1.011568189882204,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 2029,
+            "complete": 2029,
+            "median": 1.007327407174749,
+            "p90": 1.048407312029581,
+            "shareAbove1_5": 0.0014785608674223755,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0238331536517893,
+            "p90": 1.0446903881674885,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 15,
+            "complete": 14,
+            "median": 1.000040139130428,
+            "p90": 1.0489822283292334,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 1,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 15,
+            "complete": 15,
+            "median": 1.0001039166401218,
+            "p90": 1.1822796657854915,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 45,
+            "complete": 44,
+            "median": 1,
+            "p90": 1.1908465063094653,
+            "shareAbove1_5": 0.022727272727272728,
+            "invalidEndpoints": 1,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0347408231191115,
+            "p90": 1.0556862358830261,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0143645040006228,
+            "p90": 1.0149849838907137,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.0606326963663797,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0185600968109347,
+            "p90": 1.0364616558629092,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 10,
+            "complete": 10,
+            "median": 1,
+            "p90": 1.0243461769057471,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 2029,
+            "complete": 1976,
+            "median": 1.0114935085080812,
+            "p90": 1.0920945755889013,
+            "shareAbove1_5": 0.009615384615384616,
+            "invalidEndpoints": 53,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0238331536517893,
+            "p90": 1.0446903881674885,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 15,
+            "complete": 15,
+            "median": 1.3694501192226813,
+            "p90": 1.7137352038138929,
+            "shareAbove1_5": 0.4,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 15,
+            "complete": 15,
+            "median": 1,
+            "p90": 1,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 45,
+            "complete": 45,
+            "median": 3.8422691349666156,
+            "p90": 8.730276286758706,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.0347408231191115,
+            "p90": 1.0671281863687505,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0144015870345275,
+            "p90": 1.0166116867051689,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.0606326963663797,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "actualAfter": {
+          "actual-after-owner-loot/focused": {
+            "attempted": 1909,
+            "complete": 1909,
+            "median": 1,
+            "p90": 1.1191491777444402,
+            "shareAbove1_5": 0.05447878470403353,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "owners": [
+          {
+            "id": "park@984,222",
+            "before": {
+              "index": 1141,
+              "id": "park@984,222",
+              "type": "park",
+              "portals": 38,
+              "perimeter": 10944,
+              "guaranteedPassableBoundary": 5472,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4801444.178222746,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 8368,
+              "emptySamples": 8216,
+              "emptyAreaEstimate": 4732416,
+              "emptyShare": 0.9818355640535373,
+              "boundarySamples": 456,
+              "blockedBoundarySamples": 32,
+              "impassableBoundaryShare": 0.07017543859649122
+            },
+            "after": {
+              "index": 1141,
+              "id": "park@984,222",
+              "type": "park",
+              "portals": 38,
+              "perimeter": 10944,
+              "guaranteedPassableBoundary": 5472,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4675378.981018037,
+              "deadEndArea": 306324.1674194336,
+              "deadEndShare": 0.06551857478572427,
+              "walkableSamples": 8076,
+              "emptySamples": 7924,
+              "emptyAreaEstimate": 4564224,
+              "emptyShare": 0.9811788013868251,
+              "boundarySamples": 456,
+              "blockedBoundarySamples": 32,
+              "impassableBoundaryShare": 0.07017543859649122
+            }
+          },
+          {
+            "id": "park@180,246",
+            "before": {
+              "index": 857,
+              "id": "park@180,246",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4775171.8304748535,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 8338,
+              "emptySamples": 8188,
+              "emptyAreaEstimate": 4716288,
+              "emptyShare": 0.9820100743583593,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 20,
+              "impassableBoundaryShare": 0.046296296296296294
+            },
+            "after": {
+              "index": 857,
+              "id": "park@180,246",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4647682.547271743,
+              "deadEndArea": 306324.1674194336,
+              "deadEndShare": 0.06590901256783346,
+              "walkableSamples": 8026,
+              "emptySamples": 7896,
+              "emptyAreaEstimate": 4548096,
+              "emptyShare": 0.9838026414154,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 20,
+              "impassableBoundaryShare": 0.046296296296296294
+            }
+          },
+          {
+            "id": "park@288,264",
+            "before": {
+              "index": 898,
+              "id": "park@288,264",
+              "type": "park",
+              "portals": 34,
+              "perimeter": 9792,
+              "guaranteedPassableBoundary": 4896,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4686958.206390396,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 8142,
+              "emptySamples": 8044,
+              "emptyAreaEstimate": 4633344,
+              "emptyShare": 0.9879636452959961,
+              "boundarySamples": 408,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.029411764705882353
+            },
+            "after": {
+              "index": 898,
+              "id": "park@288,264",
+              "type": "park",
+              "portals": 34,
+              "perimeter": 9792,
+              "guaranteedPassableBoundary": 4896,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4560792.679473877,
+              "deadEndArea": 306324.1674194336,
+              "deadEndShare": 0.06716467705231681,
+              "walkableSamples": 7850,
+              "emptySamples": 7752,
+              "emptyAreaEstimate": 4465152,
+              "emptyShare": 0.987515923566879,
+              "boundarySamples": 408,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.029411764705882353
+            }
+          },
+          {
+            "id": "park@438,306",
+            "before": {
+              "index": 941,
+              "id": "park@438,306",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4750596.053131044,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 8266,
+              "emptySamples": 8148,
+              "emptyAreaEstimate": 4693248,
+              "emptyShare": 0.9857246552141302,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.027777777777777776
+            },
+            "after": {
+              "index": 941,
+              "id": "park@438,306",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4599185.264129609,
+              "deadEndArea": 306324.1674194336,
+              "deadEndShare": 0.06660400697674551,
+              "walkableSamples": 7918,
+              "emptySamples": 7808,
+              "emptyAreaEstimate": 4497408,
+              "emptyShare": 0.9861076029300329,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.027777777777777776
+            }
+          },
+          {
+            "id": "park@612,384",
+            "before": {
+              "index": 1047,
+              "id": "park@612,384",
+              "type": "park",
+              "portals": 48,
+              "perimeter": 13824,
+              "guaranteedPassableBoundary": 6912,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 6722820.770141542,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 11688,
+              "emptySamples": 11528,
+              "emptyAreaEstimate": 6640128,
+              "emptyShare": 0.9863107460643394,
+              "boundarySamples": 576,
+              "blockedBoundarySamples": 16,
+              "impassableBoundaryShare": 0.027777777777777776
+            },
+            "after": {
+              "index": 1047,
+              "id": "park@612,384",
+              "type": "park",
+              "portals": 48,
+              "perimeter": 13824,
+              "guaranteedPassableBoundary": 6912,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 6600147.498901308,
+              "deadEndArea": 306324.1674194336,
+              "deadEndShare": 0.046411715415515455,
+              "walkableSamples": 11392,
+              "emptySamples": 11244,
+              "emptyAreaEstimate": 6476544,
+              "emptyShare": 0.9870084269662921,
+              "boundarySamples": 576,
+              "blockedBoundarySamples": 16,
+              "impassableBoundaryShare": 0.027777777777777776
+            }
+          }
+        ],
+        "mapBefore": {
+          "components": 2,
+          "deadEndArea": 1421598.1073150635,
+          "walkableArea": 646928816.8948364
+        },
+        "mapAfter": {
+          "components": 2,
+          "deadEndArea": 2953218.9444122314,
+          "walkableArea": 646275012.8272705
+        }
+      },
+      {
+        "body": "hunter",
+        "before": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0185876787765458,
+            "p90": 1.0520651366840177,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 14,
+            "complete": 14,
+            "median": 1,
+            "p90": 1.0409498603214689,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 2029,
+            "complete": 1959,
+            "median": 1.0134140485869854,
+            "p90": 1.067161090139769,
+            "shareAbove1_5": 0.002552322613578356,
+            "invalidEndpoints": 70,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0214958293511172,
+            "p90": 1.0434499329989544,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 15,
+            "complete": 11,
+            "median": 1.0183223682982878,
+            "p90": 1.0666623111353735,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 4,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 15,
+            "complete": 12,
+            "median": 1.0092632325058846,
+            "p90": 1.184529597408373,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 3,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 45,
+            "complete": 39,
+            "median": 1,
+            "p90": 1.2906360552152074,
+            "shareAbove1_5": 0.02564102564102564,
+            "invalidEndpoints": 6,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.034202235227523,
+            "p90": 1.0421902780058065,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0155122620556543,
+            "p90": 1.017193517152432,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.075718587461621,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "after": {
+          "across-map/long:>=24-cells": {
+            "attempted": 24,
+            "complete": 24,
+            "median": 1.0185876787765458,
+            "p90": 1.0421209615192686,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "across-map/medium:6-24-cells": {
+            "attempted": 14,
+            "complete": 14,
+            "median": 1,
+            "p90": 1.0532967322702993,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "before-owner-loot/focused": {
+            "attempted": 2029,
+            "complete": 1976,
+            "median": 1.0166283889606909,
+            "p90": 1.1051107031403171,
+            "shareAbove1_5": 0.011133603238866396,
+            "invalidEndpoints": 53,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "charger-loot/long:>=24-cells": {
+            "attempted": 96,
+            "complete": 96,
+            "median": 1.0218594088724007,
+            "p90": 1.0434499329989544,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "external-crossing/focused": {
+            "attempted": 15,
+            "complete": 15,
+            "median": 1.4047200562086446,
+            "p90": 1.7519393341309022,
+            "shareAbove1_5": 0.4,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "mouth-control/focused": {
+            "attempted": 15,
+            "complete": 15,
+            "median": 1.000915919514979,
+            "p90": 1.0009180476099846,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "pocket-target/focused": {
+            "attempted": 45,
+            "complete": 45,
+            "median": 3.9716597800804787,
+            "p90": 8.95855446241662,
+            "shareAbove1_5": 1,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-charger/long:>=24-cells": {
+            "attempted": 33,
+            "complete": 33,
+            "median": 1.034202235227523,
+            "p90": 1.0421902780058065,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/long:>=24-cells": {
+            "attempted": 16,
+            "complete": 16,
+            "median": 1.0134002013993713,
+            "p90": 1.0146577128145309,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          },
+          "spawn-exit/medium:6-24-cells": {
+            "attempted": 6,
+            "complete": 6,
+            "median": 1,
+            "p90": 1.075718587461621,
+            "shareAbove1_5": 0,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "actualAfter": {
+          "actual-after-owner-loot/focused": {
+            "attempted": 1909,
+            "complete": 1909,
+            "median": 1,
+            "p90": 1.137399836467508,
+            "shareAbove1_5": 0.05657412257726559,
+            "invalidEndpoints": 0,
+            "unreachable": 0,
+            "searchMisses": 0,
+            "sweepDefects": 0
+          }
+        },
+        "owners": [
+          {
+            "id": "park@984,222",
+            "before": {
+              "index": 1141,
+              "id": "park@984,222",
+              "type": "park",
+              "portals": 38,
+              "perimeter": 10944,
+              "guaranteedPassableBoundary": 5472,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4587463.292145073,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 7980,
+              "emptySamples": 7980,
+              "emptyAreaEstimate": 4596480,
+              "emptyShare": 1,
+              "boundarySamples": 456,
+              "blockedBoundarySamples": 32,
+              "impassableBoundaryShare": 0.07017543859649122
+            },
+            "after": {
+              "index": 1141,
+              "id": "park@984,222",
+              "type": "park",
+              "portals": 38,
+              "perimeter": 10944,
+              "guaranteedPassableBoundary": 5472,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4438229.918793261,
+              "deadEndArea": 283295.08165740967,
+              "deadEndShare": 0.06383064573960526,
+              "walkableSamples": 7702,
+              "emptySamples": 7702,
+              "emptyAreaEstimate": 4436352,
+              "emptyShare": 1,
+              "boundarySamples": 456,
+              "blockedBoundarySamples": 32,
+              "impassableBoundaryShare": 0.07017543859649122
+            }
+          },
+          {
+            "id": "park@180,246",
+            "before": {
+              "index": 857,
+              "id": "park@180,246",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4594345.89337156,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 7936,
+              "emptySamples": 7936,
+              "emptyAreaEstimate": 4571136,
+              "emptyShare": 1,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 20,
+              "impassableBoundaryShare": 0.046296296296296294
+            },
+            "after": {
+              "index": 857,
+              "id": "park@180,246",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4436443.316375732,
+              "deadEndArea": 283131.8575668335,
+              "deadEndShare": 0.06381955935777235,
+              "walkableSamples": 7690,
+              "emptySamples": 7690,
+              "emptyAreaEstimate": 4429440,
+              "emptyShare": 1,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 20,
+              "impassableBoundaryShare": 0.046296296296296294
+            }
+          },
+          {
+            "id": "park@288,264",
+            "before": {
+              "index": 898,
+              "id": "park@288,264",
+              "type": "park",
+              "portals": 34,
+              "perimeter": 9792,
+              "guaranteedPassableBoundary": 4896,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4491798.736129686,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 7878,
+              "emptySamples": 7878,
+              "emptyAreaEstimate": 4537728,
+              "emptyShare": 1,
+              "boundarySamples": 408,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.029411764705882353
+            },
+            "after": {
+              "index": 898,
+              "id": "park@288,264",
+              "type": "park",
+              "portals": 34,
+              "perimeter": 9792,
+              "guaranteedPassableBoundary": 4896,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4341790.09646602,
+              "deadEndArea": 283295.08165740967,
+              "deadEndShare": 0.06524845175910195,
+              "walkableSamples": 7598,
+              "emptySamples": 7598,
+              "emptyAreaEstimate": 4376448,
+              "emptyShare": 1,
+              "boundarySamples": 408,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.029411764705882353
+            }
+          },
+          {
+            "id": "park@438,306",
+            "before": {
+              "index": 941,
+              "id": "park@438,306",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4549995.946777254,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 7948,
+              "emptySamples": 7948,
+              "emptyAreaEstimate": 4578048,
+              "emptyShare": 1,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.027777777777777776
+            },
+            "after": {
+              "index": 941,
+              "id": "park@438,306",
+              "type": "park",
+              "portals": 36,
+              "perimeter": 10368,
+              "guaranteedPassableBoundary": 5184,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 4357842.94871518,
+              "deadEndArea": 283215.71743774414,
+              "deadEndShare": 0.06498988622828743,
+              "walkableSamples": 7634,
+              "emptySamples": 7634,
+              "emptyAreaEstimate": 4397184,
+              "emptyShare": 1,
+              "boundarySamples": 432,
+              "blockedBoundarySamples": 12,
+              "impassableBoundaryShare": 0.027777777777777776
+            }
+          },
+          {
+            "id": "park@612,384",
+            "before": {
+              "index": 1047,
+              "id": "park@612,384",
+              "type": "park",
+              "portals": 48,
+              "perimeter": 13824,
+              "guaranteedPassableBoundary": 6912,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 6422751.257828116,
+              "deadEndArea": 0,
+              "deadEndShare": 0,
+              "walkableSamples": 11250,
+              "emptySamples": 11250,
+              "emptyAreaEstimate": 6480000,
+              "emptyShare": 1,
+              "boundarySamples": 576,
+              "blockedBoundarySamples": 16,
+              "impassableBoundaryShare": 0.027777777777777776
+            },
+            "after": {
+              "index": 1047,
+              "id": "park@612,384",
+              "type": "park",
+              "portals": 48,
+              "perimeter": 13824,
+              "guaranteedPassableBoundary": 6912,
+              "nonGuaranteedBoundaryShare": 0.5,
+              "walkableArea": 6276542.935012996,
+              "deadEndArea": 283295.08165740967,
+              "deadEndShare": 0.04513552836181198,
+              "walkableSamples": 11004,
+              "emptySamples": 11004,
+              "emptyAreaEstimate": 6338304,
+              "emptyShare": 1,
+              "boundarySamples": 576,
+              "blockedBoundarySamples": 16,
+              "impassableBoundaryShare": 0.027777777777777776
+            }
+          }
+        ],
+        "mapBefore": {
+          "components": 2,
+          "deadEndArea": 1409570.337524414,
+          "walkableArea": 618771913.9463043
+        },
+        "mapAfter": {
+          "components": 2,
+          "deadEndArea": 2825803.1575012207,
+          "walkableArea": 617976408.0354156
+        }
+      }
+    ]
+  }
+]

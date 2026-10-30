@@ -1,0 +1,87 @@
+{
+  "node": "v24.15.0",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "timings": [
+    {
+      "label": "24/park@372,150/siting-with-route-preparation",
+      "ms": 35.16070000000036
+    },
+    {
+      "label": "24/park@372,150/final-owner-proof",
+      "ms": 1279.9096000000009
+    },
+    {
+      "label": "24/fixed-before",
+      "ms": 4494.4511999999995
+    },
+    {
+      "label": "24/fixed-after",
+      "ms": 4589.201000000001
+    },
+    {
+      "label": "24/actual-after-targets",
+      "ms": 2323.4595999999983
+    },
+    {
+      "label": "24/structure-after",
+      "ms": 12570.736200000003
+    },
+    {
+      "label": "36/park@984,222/siting-with-route-preparation",
+      "ms": 36.67229999999836
+    },
+    {
+      "label": "36/park@984,222/final-owner-proof",
+      "ms": 1345.8861000000034
+    },
+    {
+      "label": "36/park@180,246/siting-with-route-preparation",
+      "ms": 34.90129999999772
+    },
+    {
+      "label": "36/park@180,246/final-owner-proof",
+      "ms": 1349.2505999999994
+    },
+    {
+      "label": "36/park@288,264/siting-with-route-preparation",
+      "ms": 32.91580000000249
+    },
+    {
+      "label": "36/park@288,264/final-owner-proof",
+      "ms": 1096.429799999998
+    },
+    {
+      "label": "36/park@438,306/siting-with-route-preparation",
+      "ms": 38.216599999999744
+    },
+    {
+      "label": "36/park@438,306/final-owner-proof",
+      "ms": 1170.2204999999958
+    },
+    {
+      "label": "36/park@612,384/siting-with-route-preparation",
+      "ms": 47.564800000000105
+    },
+    {
+      "label": "36/park@612,384/final-owner-proof",
+      "ms": 3170.7200999999986
+    },
+    {
+      "label": "36/fixed-before",
+      "ms": 15588.812500000007
+    },
+    {
+      "label": "36/fixed-after",
+      "ms": 15414.111600000004
+    },
+    {
+      "label": "36/actual-after-targets",
+      "ms": 11204.36050000001
+    },
+    {
+      "label": "36/structure-after",
+      "ms": 46953.70429999998
+    }
+  ],
+  "note": "Sequential shared bench lock. Three warm family build pairs; diagnostic and offline analysis costs separate."
+}
