@@ -247,10 +247,9 @@ test('a nested block compound lot keeps its prefixed ring and final portal promi
   assert.deepEqual(validatePortalReach({ ...block.brief, blockers: blockers(block) }).errors, []);
 });
 
-test('observer sees only the compound ring once and snapshots preserve that event', () => {
+test('observer sees the ring and keep once and snapshots preserve both events', () => {
   const observed = [], node = buildCompoundGeneration(concave(), { observe: trace => observed.push(trace) });
-  assert.equal(observed.length, 1);
-  assert.equal(observed[0].label, 'compound');
+  assert.deepEqual(observed.map(trace => trace.label), ['compound', 'compound-keep']);
   assert.deepEqual(node.observerEvents, observed);
   assert.deepEqual(readDelegationSnapshot(roundTrip(saveDelegationSnapshot(node))).observerEvents, observed);
 });
@@ -264,6 +263,10 @@ test('full and omitted compound snapshots recover the same hierarchy and result'
   const omitted = roundTrip(saveDelegationSnapshot(node, { omitResults: true }));
   assert.deepEqual(readDelegationSnapshot(omitted, COMPOUND_EXECUTION_REGISTRY), node);
   assert.deepEqual(delegationSnapshotResult(omitted, COMPOUND_EXECUTION_REGISTRY), flat);
+  const older = roundTrip(omitted);
+  older.generation.registryVersions.compound = 'compound-yard-4';
+  older.generation.builderVersion = 'compound-yard-4';
+  assert.throws(() => readDelegationSnapshot(older, COMPOUND_EXECUTION_REGISTRY), /compound/);
 });
 
 test('omitted snapshots recover a compound whose infill receiver accepts former cluster misses', () => {

@@ -126,10 +126,10 @@ test('a block passes its lots\' buildings to an observer, labelled as their elem
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
     const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
     for (const trace of traces) {
-      assert.match(trace.label, new RegExp(`^${name}\\/lot-\\d+\\/(hut-building|compound|depot-warehouse-\\d+)$`));
+      assert.match(trace.label, new RegExp(`^${name}\\/lot-\\d+\\/(hut-building|compound(?:-keep)?|depot-warehouse-\\d+)$`));
       if (trace.label.endsWith('/compound')) {
         // A compound's ring is split into one element per space, each labelled after the trace.
-        const pieces = result.elements.filter(e => e.label.startsWith(`${trace.label}-`));
+        const pieces = result.elements.filter(e => e.label.startsWith(`${trace.label}-room-`) || e.label.startsWith(`${trace.label}-gate-`));
         assert.equal(pieces.length, trace.design.spaces.length, `${name} ${seed}: ${trace.label} has its pieces`);
         seen.compound++;
         continue;
@@ -145,7 +145,7 @@ test('a block passes its lots\' buildings to an observer, labelled as their elem
         continue;
       }
       assert.deepEqual(trace.realization.template, element.template);
-      seen.hut++;
+      if (trace.label.endsWith('/hut-building')) seen.hut++;
     }
   }
   assert.ok(seen.hut > 0 && seen.compound > 0, `some lot built a hut and some a compound: ${JSON.stringify(seen)}`);

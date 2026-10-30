@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-51` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Region strategy content | `types-52` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -360,3 +360,14 @@ policy and delegation encoding remain unchanged. Current full and omitted hut
 snapshots recover; full historical snapshots preserve their saved geometry, while
 omitted snapshots from older hut implementations are rejected rather than rebuilt
 as current content. The capture record is in 42.4 and fill evidence in 42.3.
+
+## Compound courtyard content (#532)
+
+`types-52` / `compound-yard-5` adds a keep and cover inside eligible courts,
+including compounds nested in blocks. Ring siting/design and exterior offer
+policy remain unchanged; loot excludes the added geometry. Existing placeable,
+wire, macro and library versions remain unchanged. Full historical delegation
+snapshots preserve saved geometry; omitted older compound snapshots require
+their matching implementation and are rejected by the current registry.
+Current full and omitted snapshots cover the new composition. Mechanics are
+in 20.3.4, authored evidence in 42.3, and capture provenance in 42.4.

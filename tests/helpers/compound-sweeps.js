@@ -32,7 +32,7 @@ export function assertRoofedRing(seeds) {
     const result = build(input), box = compoundBox(result);
     assert.ok(box.w >= 10 && box.h >= 10 && box.w <= 24 && box.h <= 24, `${name} ${seed}: ${box.w} × ${box.h}`);
     const court = rect((box.x + 3) * SIZE, (box.y + 3) * SIZE, (box.w - 6) * SIZE, (box.h - 6) * SIZE);
-    assert.ok(result.elements.flatMap(element => elementShapes(element, true)).every(shape => !shapesOverlap(court, shape)), `${name} ${seed}: clear court`);
+    assert.ok(ringElements(result).flatMap(element => elementShapes(element, true)).every(shape => !shapesOverlap(court, shape)), `${name} ${seed}: ring leaves its court clear`);
     const gates = ringElements(result).filter(element => element.label.startsWith('compound-gate'));
     assert.equal(gates.length, parameters?.gates ?? 2);
     assert.equal(result.manifest.compoundGates, gates.length);
@@ -48,8 +48,9 @@ export function assertObservedRing(seeds, maskNames = Object.keys(MASKS)) {
     const traces = [];
     const result = buildRegion(input, undefined, trace => traces.push(trace));
     assert.deepEqual(result, build(input), `${name} ${seed}: observing changes nothing`);
-    assert.equal(traces.length, 1);
-    const [{ label, design, allocation, realization, origin }] = traces;
+    assert.equal(traces.filter(trace => trace.label === 'compound').length, 1);
+    assert.ok(traces.every(trace => ['compound', 'compound-keep'].includes(trace.label) && !trace.realization.issues.length));
+    const { label, design, allocation, realization, origin } = traces.find(trace => trace.label === 'compound');
     assert.equal(label, 'compound');
     assert.deepEqual(realization.misses, []);
     assert.deepEqual(ringElements(result).map(e => e.label), allocation.spaces.map(s => `compound-${s.id}`));

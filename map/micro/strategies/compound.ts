@@ -19,6 +19,7 @@ import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 import { builtRegion } from '../result.ts';
+import { buildCompoundCourt } from './compound-court.ts';
 
 /** The catalogue's proposed shape need (54): the compound at least this many cells a side, so its court is at least 4. */
 const MIN_SIDE = 10;
@@ -233,7 +234,7 @@ export function buildCompoundGeneration(brief: RegionBrief, options: CompoundExe
 }
 
 export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  compound: { version: 'compound-yard-4', build: buildRetainedCompound },
+  compound: { version: 'compound-yard-5', build: buildRetainedCompound },
   cover: COVER_EXECUTION,
 });
 
@@ -254,6 +255,7 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   const elements = placedElements(ring, 'compound', bx, by, size);
   // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
   if (!createBuilderCanvas(brief).commit({ elements })) throw new Error('Compound placement failed its canvas commit.');
+  elements.push(...buildCompoundCourt(brief, site, observe));
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const steps = ring.details.steps.map(step => ({ x: bx + step.x, y: by + step.y }));
   delegateYard(brief, site, steps, elements, context, observeYard);
