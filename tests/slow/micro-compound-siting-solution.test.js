@@ -32,7 +32,7 @@ test('inward authored military-quarter keeps its original interface and builds a
   assert.equal(node.actualBuilder, 'compound');
   assert.equal(node.retained.manifest.rooms, 22);
   assert.equal(node.retained.manifest.compoundGates, 2);
-  assert.equal(traces.length, 1);
+  assert.deepEqual(traces.map(trace => trace.label), ['compound', 'compound-keep']);
   const [trace] = traces;
   assert.equal(trace.label, 'compound');
   assert.deepEqual(trace.realization.issues, []);

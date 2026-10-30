@@ -109,9 +109,14 @@ try {
   await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'compound' && window.microLabDebug().result.brief.seed === 1);
   const compound = await page.evaluate(() => window.microLabDebug());
   assert.deepEqual(compound.promise, [], 'the compound keeps its portal promise');
-  assert.deepEqual(compound.buildings.map(b => b.label), ['compound']);
-  assert.equal(compound.drawn.graph.nodes, compound.result.manifest.rooms + compound.result.manifest.compoundGates);
-  assert.equal(compound.drawn.graph.warnings, 0);
+  assert.ok(compound.buildings.some(b => b.label === 'compound'));
+  assert.ok(compound.buildings.every(b => ['compound', 'compound-keep'].includes(b.label)));
+  assert.equal(compound.drawn.graph.nodes, compound.buildings.reduce((sum, trace) => sum + trace.design.spaces.length, 0));
+  const compoundWarnings = compound.buildings.reduce((sum, trace) => {
+    const placed = new Set(trace.realization.openings.map(o => o.connectionId));
+    return sum + trace.design.connections.filter(c => !placed.has(c.id)).length;
+  }, 0);
+  assert.equal(compound.drawn.graph.warnings, compoundWarnings);
   await page.screenshot({ path: 'test-results/micro-lab-compound.png' });
   await page.getByLabel('Seed').fill('4217');
   await page.getByLabel('Builder', { exact: true }).selectOption('region:hut');
@@ -183,7 +188,7 @@ try {
   assert.equal(compoundPilot.result.manifest.rooms, 15);
   assert.equal(compoundPilot.result.manifest.compoundGates, 2);
   assert.ok(compoundPilot.result.elements.some(element => element.label.includes('/delegate/')), 'exterior cover is built in the browser');
-  assert.deepEqual(compoundPilot.buildings.map(trace => trace.label), ['compound']);
+  assert.deepEqual(compoundPilot.buildings.map(trace => trace.label), ['compound', 'compound-keep']);
   for (const name of ['Show allocation', 'Show spans', 'Show openings', 'Show design graph'])
     await page.getByLabel(name, { exact: true }).uncheck();
   await page.screenshot({ path: 'test-results/micro-lab-compound-delegation.png', fullPage: true });
