@@ -408,8 +408,8 @@ added geometry. No placeable, macro, library, wire, snapshot encoding or crossin
 policy version changes. Full historical snapshots preserve stored results;
 omitted older results require their matching compound implementation and are
 refused by the current registry. Current full and omitted snapshots cover the
-new composition. Evidence and capture are forthcoming in 42.3 and
-`reports/issue-532-exterior/README.md`.
+new composition. Evidence and costs are in 42.3 and
+[the exterior report](reports/issue-532-exterior/README.md); capture is in 42.4.
 
 The current three-size authored sample contains no compounds at 12 × 6,
 three compounds with two outbuildings at 24 × 12, and six compounds with four

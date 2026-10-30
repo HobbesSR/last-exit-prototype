@@ -31,7 +31,8 @@ for (const sample of before.samples) {
   rows.push({ seed: sample.seed, params: sample.params, compounds: compounds.length,
     outbuildings: compounds.reduce((n, r) => n + r.elements.filter(e => e.label === 'compound-outbuilding').length, 0), defects });
 }
-const report = { version: REGION_TYPES_VERSION, afterSha256: hash(readFileSync(new URL('./after.json', import.meta.url))), rows };
+const report = { version: REGION_TYPES_VERSION,
+  afterSha256: hash(readFileSync(new URL('./after.json', import.meta.url), 'utf8').replaceAll('\r\n', '\n')), rows };
 const file = new URL('./chain.json', import.meta.url);
 if (process.argv.includes('--verify')) assert.deepEqual(report, JSON.parse(readFileSync(file)));
 else writeFileSync(file, JSON.stringify(report, null, 2) + '\n');

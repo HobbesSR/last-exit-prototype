@@ -154,4 +154,13 @@ regenerate the exact three authored maps, compare their compound briefs and
 complete outputs with the paired audit, and check complete map reports. This
 is separate from replaying already-retained briefs.
 
-Final capture, post-capture fast validation and CI are pending.
+The 224-map baseline is recaptured from content commit
+`0d7b5560011cfb0dc8e41461d85c09df2ab77439` at
+`2026-10-30T14:42:36.449Z`, Node v24.15.0 (118 seconds), with no generation errors.
+Wire, macro, library/placeable and frozen gameplay fixture versions are unchanged.
+The independent [post-capture comparison](sweep-final.json) passes all 224 maps
+with zero drift in 160 seconds. Final `npm test` passes all 1,309 tests, zero
+failures (218 seconds), including the new odd-width and split observer cases.
+Final check/typecheck pass, and all 212 diagnostic / 177 authored-audit source
+hashes still match the generated implementation. CI remains external to these
+local results and is reported on the PR.
