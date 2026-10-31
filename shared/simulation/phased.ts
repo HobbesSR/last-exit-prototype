@@ -69,7 +69,8 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   if (s.players.length > 27) throw new RangeError('physics actor capacity is 27');
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
-  const runtime: PhysicsRuntime = { discontinuityCapacity: s.content.worldPhysics ? 256 : 128, world, actors: new Set(), items: new Set(), itemLaunches: new Map(), gates: new Map(), discontinuities: [], synchronize: options => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1, options?.deferItemAdmission),
+  const runtime: PhysicsRuntime = { discontinuityCapacity: s.content.worldPhysics ? 256 : 128, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
+    gateOrder: [...s.map.gates].sort((a, b) => compare(a.id, b.id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [], synchronize: options => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
   try {
@@ -146,18 +147,19 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
     if (s.content.actorPhysics) markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
     admitted.push(p);
   }
-  for (const gate of [...s.map.gates].sort((a, b) => compare(a.id, b.id))) {
-    if (r.gates.get(gate.id) === gate.open) continue;
+  for (let i = 0; i < r.gateOrder.length; i++) {
+    const gate = r.gateOrder[i]!, pushed = r.gates[i]!;
+    if (pushed === (gate.open ? 1 : 2)) continue;
     if (s.content.actorPhysics && !gate.open && r.world.overlapsDynamicBox(gateShape(gate))) {
       // Closing is refused while any active actor or solid prop occupies the footprint; nothing
       // retries it, so the gate stays open until someone closes it again.
       gate.open = true;
-      r.gates.set(gate.id, true);
+      r.gates[i] = 1;
       continue;
     }
-    if (r.gates.has(gate.id) && !r.gates.get(gate.id)) r.world.queueRemoveBody(`gate:${gate.id}`);
+    if (pushed === 2) r.world.queueRemoveBody(`gate:${gate.id}`);
     if (!gate.open) r.world.queueAddBody(physicsGate(gate));
-    r.gates.set(gate.id, gate.open);
+    r.gates[i] = gate.open ? 1 : 2;
     r.world.commitMutations();
   }
   start('sim.itemSync'); synchronizePhysicalItems(s, r, markTick, !deferItemAdmission); stop('sim.itemSync');
