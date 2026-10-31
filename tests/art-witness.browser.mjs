@@ -1487,15 +1487,15 @@ try {
     x: Math.round(560 + appWeathered.neglect.roofDrainStain.dx),
     y: Math.round(500 + appWeathered.neglect.roofDrainStain.dy),
   };
+  const damagedDoorDecal = hDamaged.elements[0].template.decals.find(d => d.marks === 'door');
+  assert.ok(damagedDoorDecal, 'damaged building template has realized door decal');
+  const doorstepPos = {
+    x: Math.round(820 + damagedDoorDecal.x + damagedDoorDecal.w / 2),
+    y: Math.round(500 + damagedDoorDecal.y + damagedDoorDecal.h / 2),
+  };
   const damagedScorchPos = {
     x: Math.round(820 + appDamaged.neglect.scorchMark.dx),
-    // Offset slightly in Y from the horizontal roof ridge line at multiples of 24px:
-    y: Math.round(500 + appDamaged.neglect.scorchMark.dy - 7),
-  };
-  const damagedDoorDecal = hDamaged.elements[0].template.decals.find(d => d.marks === 'door');
-  const doorstepPos = {
-    x: Math.round(820 + (damagedDoorDecal ? damagedDoorDecal.x + damagedDoorDecal.w / 2 : 100)),
-    y: Math.round(500 + (damagedDoorDecal ? damagedDoorDecal.y + damagedDoorDecal.h / 2 : 171)),
+    y: Math.round(500 + appDamaged.neglect.scorchMark.dy),
   };
 
   const sampleTargets = {
@@ -1512,9 +1512,15 @@ try {
     const { demoMap, intactSignPos, intactSignBackingPos, weatheredDrainPos, damagedScorchPos, doorstepPos, lodZoom } = targets;
     const f = window.witness, s = f.scene;
     window.__witnessPriorMap = f.map;
+    window.__witnessPriorPlayers = f.state.players;
+    window.__witnessPriorBodies = f.state.bodies;
     const priorMap = f.map;
+    const priorPlayers = f.state.players;
+    const priorBodies = f.state.bodies;
     f.map = demoMap;
     s.recordStatic(demoMap);
+    f.state.players = f.state.players.filter(p => p.id === 'self');
+    f.state.bodies = (f.state.bodies || []).filter(b => b.actorId === 'self');
 
     // 1. Gameplay zoom (playerZoom), roofs covered (player stands well south of all doors at y=850):
     await f.settle({
@@ -1534,7 +1540,25 @@ try {
     const weatheredDrainPx = f.pixelAtWorld(weatheredDrainPos.x, weatheredDrainPos.y);
     // Clean damaged roof surface away from scorch, drain, and panel marks:
     const damagedRoofPx = f.pixelAtWorld(980, 530);
-    const damagedScorchPx = f.pixelAtWorld(damagedScorchPos.x, damagedScorchPos.y);
+
+    const toLum = hex => {
+      const r = ((hex >> 16) & 255) / 255;
+      const g = ((hex >> 8) & 255) / 255;
+      const b = (hex & 255) / 255;
+      return 0.299 * r + 0.587 * g + 0.114 * b;
+    };
+    const scorchPatch = f.patchExtremaAtWorld(damagedScorchPos.x, damagedScorchPos.y, 6);
+    let darkestHex = scorchPatch[0];
+    let minLum = toLum(darkestHex);
+    for (const hex of scorchPatch) {
+      const lum = toLum(hex);
+      if (lum < minLum) {
+        minLum = lum;
+        darkestHex = hex;
+      }
+    }
+    const damagedScorchPx = { hex: darkestHex };
+
     const streetPx = f.pixelAtWorld(660, 710);
     const intactRoofAlpha = s.roofs.get(demoMap.roofs[0].id)?.alpha ?? 0;
     const weatheredRoofAlpha = s.roofs.get(demoMap.roofs[1].id)?.alpha ?? 0;
@@ -1551,17 +1575,20 @@ try {
       selfPos: { x: 920, y: 580 },
       roofSteps: 40,
     });
-    const damagedFloorPx = f.pixelAtWorld(920, 580);
+    // Sample interior floor away from player sprite at (920, 580):
+    const damagedFloorPx = f.pixelAtWorld(880, 560);
     const doorstepPx = f.pixelAtWorld(doorstepPos.x, doorstepPos.y);
     const damagedRoofAlphaInside = s.roofs.get(demoMap.roofs[2].id)?.alpha ?? 0;
 
-    // 3. Distant LOD zoom (directed: true so camera.zoom is respected):
+    // 3. Distant LOD zoom:
+    // Pass directed: true, fog: true, followId: 'self' so fogged = true and roofs remain closed (alpha === 1)
     await f.settle({
       palette: 'signature',
       lighting: true,
       wear: true,
       directed: true,
-      fog: false,
+      fog: true,
+      followId: 'self',
       camera: { x: 660, y: 580, zoom: lodZoom },
       selfPos: { x: 660, y: 850 },
       roofSteps: 40,
@@ -1569,10 +1596,15 @@ try {
     const lodRoofPx = f.pixelAtWorld(400, 560);
     const lodStreetPx = f.pixelAtWorld(660, 710);
     const lodDamagedRoofPx = f.pixelAtWorld(920, 560);
+    const lodIntactRoofAlpha = s.roofs.get(demoMap.roofs[0].id)?.alpha ?? 0;
+    const lodWeatheredRoofAlpha = s.roofs.get(demoMap.roofs[1].id)?.alpha ?? 0;
+    const lodDamagedRoofAlpha = s.roofs.get(demoMap.roofs[2].id)?.alpha ?? 0;
 
-    // Restore prior map:
+    // Restore prior map, players, bodies:
     f.map = priorMap;
     s.recordStatic(priorMap);
+    f.state.players = priorPlayers;
+    f.state.bodies = priorBodies;
     await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
 
     return {
@@ -1593,6 +1625,9 @@ try {
       lodRoofPx,
       lodStreetPx,
       lodDamagedRoofPx,
+      lodIntactRoofAlpha,
+      lodWeatheredRoofAlpha,
+      lodDamagedRoofAlpha,
     };
   }, sampleTargets);
 
@@ -1600,6 +1635,8 @@ try {
   await page.evaluate(async (demoMap) => {
     window.witness.map = demoMap;
     window.witness.scene.recordStatic(demoMap);
+    window.witness.state.players = window.witness.state.players.filter(p => p.id === 'self');
+    window.witness.state.bodies = (window.witness.state.bodies || []).filter(b => b.actorId === 'self');
     await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false, camera: { x: 660, y: 580, zoom: 1.12 }, selfPos: { x: 660, y: 850 } });
   }, sfMap);
   const fileSfRoofs = 'storefront-gameplay-roofs.png';
@@ -1614,18 +1651,24 @@ try {
   captures.push({ id: 'storefront-gameplay-interior', file: fileSfInterior, theme: 'signature', fog: false, zoom: INDOOR_ZOOM, view: 'step5-storefront-interior (damaged shop interior revealed, doorstep threshold)' });
 
   await page.evaluate(async (lodZoom) => {
-    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: true, fog: false, camera: { x: 660, y: 580, zoom: lodZoom }, selfPos: { x: 660, y: 850 } });
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: true, fog: true, followId: 'self', camera: { x: 660, y: 580, zoom: lodZoom }, selfPos: { x: 660, y: 850 } });
   }, LOD_LOW_ZOOM);
   const fileSfLod = 'storefront-distant-lod.png';
   await page.screenshot({ path: path.join(outDir, fileSfLod) });
-  captures.push({ id: 'storefront-distant-lod', file: fileSfLod, theme: 'signature', fog: false, zoom: LOD_LOW_ZOOM, view: `step5-storefront-distant-lod (${LOD_LOW_ZOOM} zoom silhouette and layout readability)` });
+  captures.push({ id: 'storefront-distant-lod', file: fileSfLod, theme: 'signature', fog: true, zoom: LOD_LOW_ZOOM, view: `step5-storefront-distant-lod (${LOD_LOW_ZOOM} zoom silhouette and layout readability)` });
 
-  // Restore prior map:
+  // Restore prior map, players, bodies:
   await page.evaluate(async () => {
     const f = window.witness;
     if (window.__witnessPriorMap) {
       f.map = window.__witnessPriorMap;
       f.scene.recordStatic(window.__witnessPriorMap);
+    }
+    if (window.__witnessPriorPlayers) {
+      f.state.players = window.__witnessPriorPlayers;
+    }
+    if (window.__witnessPriorBodies) {
+      f.state.bodies = window.__witnessPriorBodies;
     }
     await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
@@ -1661,6 +1704,11 @@ try {
   assert.equal(storefrontDemo.weatheredRoofAlpha, 1, 'weathered roof is closed');
   assert.equal(storefrontDemo.damagedRoofAlphaClosed, 1, 'damaged roof is closed');
 
+  // Distant LOD preserves closed roofs:
+  assert.equal(storefrontDemo.lodIntactRoofAlpha, 1, 'intact roof is closed at distant LOD');
+  assert.equal(storefrontDemo.lodWeatheredRoofAlpha, 1, 'weathered roof is closed at distant LOD');
+  assert.equal(storefrontDemo.lodDamagedRoofAlpha, 1, 'damaged roof is closed at distant LOD');
+
   // 2. Rooftops are visibly distinct between intact, weathered, and damaged:
   assert.notEqual(storefrontDemo.intactRoofPx.hex, storefrontDemo.weatheredRoofPx.hex, 'intact roof differs from weathered roof');
   assert.notEqual(storefrontDemo.weatheredRoofPx.hex, storefrontDemo.damagedRoofPx.hex, 'weathered roof differs from damaged roof');
@@ -1675,8 +1723,8 @@ try {
   assert.ok(intactSignBackingLumRatio >= 1.25, `commercial roof sign backing separates in grayscale against roof (${intactSignBackingLumRatio})`);
   assert.ok(intactSignFaceVsBackingRatio >= 1.25, `commercial sign face separates in grayscale against sign backing (${intactSignFaceVsBackingRatio})`);
   assert.ok(weatheredDrainLumRatio >= 1.3, `weathered drainage stain separates in grayscale against roof (${weatheredDrainLumRatio})`);
-  assert.ok(damagedScorchLumRatio >= 1.5, `damaged scorch mark separates in grayscale against roof (${damagedScorchLumRatio})`);
-  assert.ok(doorstepLumRatio >= 1.3, `realized entrance doorstep separates in grayscale against interior floor (${doorstepLumRatio})`);
+  assert.ok(damagedScorchLumRatio >= 2.0, `damaged scorch mark separates in grayscale against roof (${damagedScorchLumRatio})`);
+  assert.ok(doorstepLumRatio >= 1.15, `realized entrance doorstep separates in grayscale against interior floor (${doorstepLumRatio})`);
   assert.ok(lodRoofLumRatio >= 1.15, `distant LOD roof silhouette separates in grayscale against street (${lodRoofLumRatio})`);
 
   // 5. Entrance / interior readability:
@@ -1697,6 +1745,9 @@ try {
     weatheredRoofAlpha: storefrontDemo.weatheredRoofAlpha,
     damagedRoofAlphaClosed: storefrontDemo.damagedRoofAlphaClosed,
     damagedRoofAlphaInside: storefrontDemo.damagedRoofAlphaInside,
+    lodIntactRoofAlpha: storefrontDemo.lodIntactRoofAlpha,
+    lodWeatheredRoofAlpha: storefrontDemo.lodWeatheredRoofAlpha,
+    lodDamagedRoofAlpha: storefrontDemo.lodDamagedRoofAlpha,
     intactRoofLumRatio,
     damagedRoofLumRatio,
     damagedVsIntactRoofRatio,

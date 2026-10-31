@@ -135,6 +135,11 @@ export function createStorefrontAppearance(options: StorefrontAppearanceOptions 
   const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), `${bw}x${bh}:${door}`);
 
   const tier = roll < 0.33 ? 'intact' : roll < 0.67 ? 'weathered' : 'damaged';
+  const base = tier === 'intact'
+    ? RETAIL_STOREFRONT_INTACT
+    : tier === 'weathered'
+      ? RETAIL_STOREFRONT_WEATHERED
+      : RETAIL_STOREFRONT_DAMAGED;
 
   // Frontage-aware sign placement (proportional to footprint width, positioned along door frontage):
   const signW = Math.max(36, Math.min(bw - 32, Math.round(bw * (0.45 + subRng.next() * 0.2))));
@@ -155,15 +160,13 @@ export function createStorefrontAppearance(options: StorefrontAppearanceOptions 
 
   if (tier === 'intact') {
     return {
-      floorMaterial: 'concrete',
-      wallMaterial: 'warmMasonry',
-      roofPaint: 'storefrontTeal',
-      roofRim: 'weatheredCoral',
-      interiorTrim: 'storefrontTeal',
+      floorMaterial: base.floorMaterial,
+      wallMaterial: base.wallMaterial,
+      roofPaint: base.roofPaint,
+      roofRim: base.roofRim,
+      interiorTrim: base.interiorTrim,
       roofSign: {
-        color: 'weatheredCoral',
-        backing: 'structuralVoid',
-        stripe: 'dirtyCream',
+        ...base.roofSign!,
         dx: signDx,
         dy: signDy,
         w: signW,
@@ -203,15 +206,13 @@ export function createStorefrontAppearance(options: StorefrontAppearanceOptions 
     const floorStainDy = Math.round(minFloorY + subRng.next() * (maxFloorY - minFloorY));
 
     return {
-      floorMaterial: 'warmMasonry',
-      wallMaterial: 'dustyStucco',
-      roofPaint: 'weatheredCoral',
-      roofRim: 'storefrontTeal',
-      interiorTrim: 'storefrontTeal',
+      floorMaterial: base.floorMaterial,
+      wallMaterial: base.wallMaterial,
+      roofPaint: base.roofPaint,
+      roofRim: base.roofRim,
+      interiorTrim: base.interiorTrim,
       roofSign: {
-        color: 'storefrontTeal',
-        backing: 'structuralVoid',
-        stripe: 'awningsYellow',
+        ...base.roofSign!,
         dx: signDx,
         dy: signDy,
         w: signW,
@@ -263,15 +264,13 @@ export function createStorefrontAppearance(options: StorefrontAppearanceOptions 
   const floorStainDy = Math.round(minFloorY + subRng.next() * (maxFloorY - minFloorY));
 
   return {
-    floorMaterial: 'slatePaving',
-    wallMaterial: 'coolConcrete',
-    roofPaint: 'dirtyCream',
-    roofRim: 'oldSignRed',
-    interiorTrim: 'oldSignRed',
+    floorMaterial: base.floorMaterial,
+    wallMaterial: base.wallMaterial,
+    roofPaint: base.roofPaint,
+    roofRim: base.roofRim,
+    interiorTrim: base.interiorTrim,
     roofSign: {
-      color: 'oldSignRed',
-      backing: 'structuralVoid',
-      stripe: 'weatheredCoral',
+      ...base.roofSign!,
       dx: signDx,
       dy: signDy,
       w: Math.max(28, Math.round(signW * 0.75)),
