@@ -23,10 +23,12 @@ Use cost-aware delegation proactively when tools and runtime rules permit it.
 Keep architecture, ambiguous diagnosis, cross-system contracts and integration
 review with the lead. When choosing a GPT lead, prefer `gpt-6.1-sol` for deep
 reasoning and broad context, and `gpt-6-astra` for creative direction and
-imagining systems' physical behavior. Prefer `gpt-6.1-terra` with medium reasoning
-for bounded implementation/tests; use `gpt-6.1-sol` with medium reasoning for
-algorithmically dense or high-invariant tasks and `gpt-6-luna` with low/medium
-reasoning for mechanical edits and focused inventories. Check
+imagining systems' physical behavior. Prefer `gpt-6.1-sol` with medium reasoning
+for bounded implementation/tests, especially algorithmically dense or
+high-invariant ones, and `gpt-6-luna` with low/medium reasoning for mechanical
+edits, focused inventories and simple, fully specified tests. Use `gpt-6.1-terra`
+for visual work: testing tools, labs and other GUI elements through screenshots,
+and ingesting images and documents. Not for live game playing. Check
 actual available models; do not silently spawn flagship workers for routine tasks.
 
 Delegate only when the task is independently actionable and the lead has useful
