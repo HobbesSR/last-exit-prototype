@@ -12,15 +12,19 @@ const frames = new WeakMap<readonly Gate[], readonly Gate[]>();
 /** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
 const published = new WeakSet<readonly Gate[]>();
 
-/** Whether `copy` still has every field of `gate`, in the same order, with the same values. */
+/** Each copy's keys, read once: a copy is frozen. */
+const copyKeys = new WeakMap<Gate, string[]>();
+
+/** Whether `copy` still has every field of `gate`, in the same order, with the same values. Allocates nothing per gate (#727). */
 function current(copy: Gate, gate: Gate): boolean {
-  const keys = Object.keys(copy), live = Object.keys(gate);
-  if (keys.length !== live.length) return false;
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]! as keyof Gate;
-    if (key !== live[i] || !Object.is(copy[key], gate[key])) return false;
+  const keys = copyKeys.get(copy)!;
+  let i = 0;
+  // A gate is a plain record, so `for...in` visits its own keys in `Object.keys` order.
+  for (const key in gate) {
+    if (key !== keys[i] || !Object.is(copy[key as keyof Gate], gate[key as keyof Gate])) return false;
+    i++;
   }
-  return true;
+  return i === keys.length;
 }
 
 /** The frame's gate list: the last one when no gate changed, else one that shares every unchanged copy. */
@@ -30,7 +34,7 @@ export function publishGates(s: Game): readonly Gate[] {
   for (let i = 0; i < live.length; i++) {
     const gate = live[i]!;
     let copy = copies.get(gate);
-    if (!copy || !current(copy, gate)) copies.set(gate, copy = Object.freeze({ ...gate }));
+    if (!copy || !current(copy, gate)) { copies.set(gate, copy = Object.freeze({ ...gate })); copyKeys.set(copy, Object.keys(copy)); }
     list[i] = copy;
     if (!changed && last![i] !== copy) changed = true;
   }

@@ -301,7 +301,11 @@ so each tick over 50 ms is classified by stage, keyframe cut and overlapping GC.
 ticks, outside the measured time, and fails a run whose recorder drops a frame. `--rooms`,
 `--clients`, `--spectators` and `--no-record` shape the load; `--tile=CxR` repeats a real map at
 the same density for sizes the protocol does not serve. It takes the same lock. Method and the
-first results are [42.22](42.22-tick-cost-attribution.md) (#637).
+first results are [42.22](42.22-tick-cost-attribution.md) (#637). `--heap-profile=<file>` samples
+allocations over the measured ticks (`--heap-interval=<bytes>`, default 32768), including objects already
+collected, and writes a `.heapprofile` that DevTools opens. It also prints the top allocators, by function and by
+the nearest frame in the repository's own code. A profiled run's times are slower and are not comparable with an
+unprofiled run's (#727).
 
 `node tests/measure-changes.mjs` (`--size`, `--content`, `--seed`, `--ticks`, `--out`) counts how much
 of each published frame differs from the previous tick's, per collection and by entity id. It times

@@ -65,8 +65,9 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       endWhenDrained();
     });
   }
+  const fits = bytes => queuedBytes + bytes <= (queueBytes ?? Math.max(DEFAULT_QUEUE_BYTES, headerBytes + DEFAULT_QUEUE_FRAMES * bytes));
   function enqueue(text, countsAgainstFrameBudget = false, bytes = Buffer.byteLength(text)) {
-    if (countsAgainstFrameBudget && queuedBytes + bytes > (queueBytes ?? Math.max(DEFAULT_QUEUE_BYTES, headerBytes + DEFAULT_QUEUE_FRAMES * bytes))) return false;
+    if (countsAgainstFrameBudget && !fits(bytes)) return false;
     queuedBytes += bytes; queue.push({ text, bytes }); pump(); return true;
   }
   function endWhenDrained() {
@@ -100,9 +101,14 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       let line, bytes;
       try { ({ line, bytes } = frameLine(state, commands, keptText)); }
       catch (error) { fail(error); return false; }
-      const text = `${frames ? ',' : ''}${line}`;
-      if (!enqueue(text, true, bytes + (frames ? 1 : 0))) { droppedFrames++; return false; }
-      hash.update(`${line}\n`); frames++; return true;
+      // One UTF-8 encoding serves the stream and the digest, which covers the line without its separating comma (#727).
+      const comma = frames ? 1 : 0;
+      if (!fits(comma + bytes)) { droppedFrames++; return false; }
+      const encoded = Buffer.allocUnsafe(comma + bytes);
+      if (comma) encoded[0] = 0x2c;
+      if (encoded.write(line, comma) !== bytes) { fail(new Error('Replay frame length does not match its encoding')); return false; }
+      enqueue(encoded, true, encoded.length);
+      hash.update(encoded.subarray(comma)); hash.update('\n'); frames++; return true;
     },
     // Never touches frames or the digest. Past the cap a marker is counted, not kept.
     mark(marker) {

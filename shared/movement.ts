@@ -27,7 +27,6 @@ interface SightEdge extends Edge {
   gateId?: GateId | undefined;
 }
 interface Geometry {
-  source: Obstacle[];
   count: number;
   shapes: Collider[];
   /** Obstacle colliders indexed by `BUCKET`-sized cell, keyed `"<col>,<row>"`. */
@@ -44,7 +43,9 @@ export interface VisibilityPoint extends Vec2 {
 
 export const TILE = 40; // Navigation sampling only, never a movement or rendering grid.
 export const VISION = 620;
-const shapeCache = new WeakMap<CollisionMap, Geometry>();
+// Keyed by the obstacle list, not the map: maps that differ only in gates, such as a contestant's remembered doors
+// (simulation/dynamic-navigation.ts), share one geometry instead of rebuilding every collider (#727).
+const shapeCache = new WeakMap<readonly Obstacle[], Geometry>();
 const playableRows = new WeakMap<PlayableArea, Map<number, Array<[number, number]>>>();
 const BUCKET = 200;
 const vec = (x: World, y: World) => new SAT.Vector(x, y);
@@ -54,8 +55,8 @@ function collider(source: Bounded & { kind?: string | undefined }): Collider {
   return { shape, box: bounds(shape), body: body(shape), kind: source.kind };
 }
 function geometry(map: CollisionMap): Geometry {
-  let cached = shapeCache.get(map);
-  if (cached && cached.source === map.obstacles && cached.count === map.obstacles.length) return cached;
+  let cached = shapeCache.get(map.obstacles);
+  if (cached && cached.count === map.obstacles.length) return cached;
   const shapes = map.obstacles.map(o => ({ ...collider(o), source: o }));
   const buckets = new Map<string, Collider[]>();
   for (const entry of shapes) {
@@ -66,8 +67,8 @@ function geometry(map: CollisionMap): Geometry {
   }
   const segments = shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)), sight = new Map<string, Edge[]>();
   for (const edge of segments) bucketBox(sight, edgeBox(edge), edge);
-  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments, sight };
-  shapeCache.set(map, cached); return cached;
+  cached = { count: map.obstacles.length, shapes, buckets, segments, sight };
+  shapeCache.set(map.obstacles, cached); return cached;
 }
 const edgeBox = (edge: Edge): Box => {
   const x = Math.min(edge.a.x, edge.b.x), y = Math.min(edge.a.y, edge.b.y);

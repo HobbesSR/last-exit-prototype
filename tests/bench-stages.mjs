@@ -9,10 +9,16 @@
 // --size=12x6 --content=<id> --seed --ticks --rooms --clients=<player views> --spectators --no-record
 // --tile=CxR repeats the --size map on a CxR grid at the same density (tests/helpers/tile-map.js), for sizes the
 // protocol does not serve. --out=<file.json> keeps the raw per-tick series.
+// --heap-profile=<file.heapprofile> samples allocations over the measured ticks (inspector sampling heap profiler,
+// collected objects included, so it counts what was allocated, not what survived) and prints the top allocating
+// functions; --heap-interval=<bytes> sets the mean sampling interval (default 32768). Sampling slows every stage, so
+// a profiled run's times are not comparable with an unprofiled run's.
 import { writeFile } from 'node:fs/promises';
 import { Writable } from 'node:stream';
 import { PerformanceObserver } from 'node:perf_hooks';
 import v8 from 'node:v8';
+import { Session } from 'node:inspector/promises';
+import { fileURLToPath } from 'node:url';
 import { HZ, DURATION } from '../shared/simulation.ts';
 import * as profiler from '../shared/profiler.ts';
 import { acquireMachineLock } from './helpers/machine-lock.js';
@@ -73,6 +79,14 @@ for (let i = 0; i < roomCount; i++) rooms.push(await buildRoom(i));
 const gc = [];
 const observer = new PerformanceObserver(list => { for (const e of list.getEntries()) gc.push({ at: e.startTime, ms: e.duration, kind: e.detail?.kind ?? e.kind }); });
 observer.observe({ entryTypes: ['gc'] });
+// Started after the rooms are built, so map generation and setup stay out of the profile.
+const heapProfile = args.get('heap-profile');
+const inspector = heapProfile ? new Session() : undefined;
+if (inspector) {
+  inspector.connect();
+  await inspector.post('HeapProfiler.startSampling', { samplingInterval: number('heap-interval', 32768),
+    includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true });
+}
 profiler.enable(true);
 const totals = [], starts = [], frames = [], memory = [], tickNumbers = [], drains = [];
 let completed = 0;
@@ -96,6 +110,8 @@ for (let tick = 0; tick < ticks; tick++) {
   while (rooms.some(r => r.writer?.blocked)) await new Promise(resolve => setTimeout(resolve, 1));
   drains.push(performance.now() - drainStarted);
 }
+const heap = inspector ? (await inspector.post('HeapProfiler.stopSampling')).profile : undefined;
+inspector?.disconnect();
 await new Promise(resolve => setTimeout(resolve, 50));
 observer.disconnect();
 const historyBytes = rooms.map(r => v8.serialize(r.history).byteLength);
@@ -130,6 +146,32 @@ const over = totals.flatMap((t, i) => t <= budget ? [] : [{
   rekeys: Object.fromEntries(names.filter(n => n.startsWith('work.rekey.') && series[n][i]).map(n => [n.slice(11), series[n][i]])),
   gcMs: gcIn(i).reduce((sum, e) => sum + e.ms, 0),
 }]);
+// Self bytes by allocating function, and by the nearest frame in this repository's own code (built-ins, node: and
+// node_modules charged to their caller), summed over every call path. The bytes are sampled estimates.
+let heapTop;
+if (heap) {
+  await writeFile(heapProfile, JSON.stringify(heap));
+  const slashes = path => decodeURI(path.replace(/^file:\/\/\/?/, '')).replace(/\\/g, '/').toLowerCase();
+  const root = slashes(fileURLToPath(new URL('..', import.meta.url)));
+  const where = ({ functionName, url, lineNumber }) => {
+    const file = slashes(url);
+    const own = file.startsWith(root) && !file.includes('/node_modules/');
+    return { own, key: `${functionName || '(anonymous)'} ${file.split('/').pop() || '(native)'}${file ? `:${lineNumber + 1}` : ''}` };
+  };
+  const byFunction = new Map(), byOwn = new Map();
+  const add = (map, key, bytes) => map.set(key, (map.get(key) ?? 0) + bytes);
+  const visit = (node, owner) => {
+    const at = where(node.callFrame);
+    if (at.own) owner = at.key;
+    add(byFunction, at.key, node.selfSize);
+    add(byOwn, owner, node.selfSize);
+    for (const child of node.children) visit(child, owner);
+  };
+  visit(heap.head, '(outside the repository)');
+  const total = [...byFunction.values()].reduce((a, b) => a + b, 0);
+  const top = map => [...map].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([fn, bytes]) => ({ fn, MB: bytes / 2 ** 20, share: bytes / total }));
+  heapTop = { totalMB: total / 2 ** 20, perTickKB: total / 1024 / (completed || 1), self: top(byFunction), own: top(byOwn) };
+}
 const result = {
   meta: { seed, content: baseContent.id, size: label, rooms: roomCount, clients, spectators, recording, ticks: completed, node: process.version,
     items: rooms.map(r => r.items), obstacles: rooms.map(r => r.obstacles), tilesMs: rooms.map(r => r.tilesMs) },
@@ -137,6 +179,7 @@ const result = {
   recorder: { droppedFrames, drainMs: stats(drains) },
   gc: { count: gc.length, ms: gc.reduce((a, e) => a + e.ms, 0), max: Math.max(0, ...gc.map(e => e.ms)) },
   memory: { samples: memory, historyFrames: rooms.map(r => r.history.length), historyBytes, stateBytes },
+  ...(heapTop && { heap: heapTop }),
 };
 if (args.has('out')) await writeFile(args.get('out'), JSON.stringify({ ...result, raw: { totals, series, untimed, gc } }));
 
@@ -150,3 +193,10 @@ for (const [name, s] of Object.entries(stages).sort((a, b) => b[1].mean - a[1].m
 for (const o of over) console.log(`over: tick ${o.tick} ${o.ms.toFixed(1)} ms  gc ${o.gcMs.toFixed(1)}  ${o.largest.map(([n, v]) => `${n} ${v.toFixed(1)}`).join(', ')}  ${JSON.stringify(o.rekeys)}`);
 console.log(`recorder dropped ${droppedFrames.join('/')} frames; drain between ticks mean ${result.recorder.drainMs.mean.toFixed(1)} ms, max ${result.recorder.drainMs.max.toFixed(1)} ms (unmeasured)`);
 console.log(`gc ${gc.length} pauses, ${result.gc.ms.toFixed(0)} ms total, max ${result.gc.max.toFixed(1)} ms; history ${result.memory.historyFrames.join('/')} frames, ${historyBytes.map(b => (b / 2 ** 20).toFixed(1)).join('/')} MiB serialized; state ${stateBytes.map(b => (b / 1024).toFixed(0)).join('/')} KiB`);
+if (heapTop) {
+  console.log(`heap profile ${heapProfile}: ${heapTop.totalMB.toFixed(0)} MiB allocated over the run (sampled), ${heapTop.perTickKB.toFixed(0)} KiB per tick`);
+  for (const [title, list] of [['by allocating function', heapTop.self], ['by nearest repository frame', heapTop.own]]) {
+    console.log(`top ${title}:`);
+    for (const t of list) console.log(`  ${t.MB.toFixed(1).padStart(8)} MiB ${(t.share * 100).toFixed(1).padStart(5)}%  ${t.fn}`);
+  }
+}
