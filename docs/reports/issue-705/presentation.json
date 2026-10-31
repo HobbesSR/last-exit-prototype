@@ -1,0 +1,13 @@
+{
+  "historicalCaptureRevision": "95c09f7",
+  "historicalPreviewSha256": "89f1a9cbecaeba73f3e042825f11ad713473ca7fdcf8fa564098c0e681dbb34d",
+  "previewSha256": "bc21a31c91f701c514d5305489dd33d463e3730a3e3fb61198909ea8c581d9b0",
+  "bytesBefore": 36522463,
+  "bytesAfter": 4375006,
+  "geometryUnchanged": true,
+  "routeDerivativeExact": true,
+  "selectorChecks": 42,
+  "pageErrors": [],
+  "browser": "156.0.8078.49",
+  "note": "Presentation derivative only. Original manifest and QA refer to historical full preview. Measurements, saves, summary and timing remain unchanged."
+}

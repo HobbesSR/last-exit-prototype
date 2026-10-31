@@ -21,6 +21,24 @@ deterministic experiment and measurements. Timings are observations, not
 equality assertions. The script takes the shared benchmark lock; run it without
 competing tests or benchmarks.
 
+The retained measurement sources are pinned to `c8fa4f1`; current main after
+#710/#711 intentionally fails the source-pin assertion. To replay the original
+capture, create a detached worktree at `95c09f7` (which includes the artifacts
+and the same pinned measurement sources), install its locked dependencies, and
+run the verification command there. Do not update source pins to make newer
+main pass.
+
+The checked-in preview is now a smaller presentation derivative: route drawing
+coordinates round to 0.1 world unit, unused route fields are omitted, and the
+old-owner loot category shows the first 12 complete routes per body/phase plus
+every failed endpoint. Other categories retain every route. Full unrounded
+measurements and complete saves are unchanged. `manifest.json` and the original
+QA artifacts describe the historical capture, including its original preview
+hash; `presentation.json` identifies the current derivative and its validation.
+To reproduce it, copy the original preview from `95c09f7` to a temporary file,
+then run the current `tools/experiments/compact-curtain-preview.mjs PATH` against
+that file. This presentation step needs no measurements or benchmark lock.
+
 ## Candidate and controls
 
 Inputs are the complete `size-{12,24,36}-1` maps and matching metrics retained in
