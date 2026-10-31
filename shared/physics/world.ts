@@ -52,7 +52,6 @@ const mass = (n: number | undefined): number => {
   if (value < 1e-6 || value > 1e6) throw new RangeError('physics mass must be within 1e-6..1e6');
   return value;
 };
-const clone = <T>(value: T): T => structuredClone(value);
 /** What a snapshot shares between frames is frozen and replaced, never edited, so frames need not copy it (#655). */
 function frozen<T>(value: T): T {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -593,11 +592,11 @@ export class PhysicsWorld {
       addConstraints: [...this.pendingAddConstraints], removeConstraints: [...this.pendingRemoveConstraints],
       forces: [...this.forces], impulses: [...this.impulses] } };
   }
-  /** Small query view for local navigation: excludes loot, actors and pending/constraint state. */
+  /** Small query view for local navigation: excludes loot, actors and pending/constraint state. Specs are shared, frozen. */
   solidPropStates(): Array<{ spec: BodySpec; transform: Transform }> {
     this.ensure();
     return this.sortedDynamic.filter(([, record]) => record.spec.kind === 'prop' && record.spec.collisionProfile !== 'loot')
-      .map(([id, record]) => ({ spec: clone(record.spec), transform: this.getTransform(id)! }));
+      .map(([id, record]) => ({ spec: record.spec, transform: this.getTransform(id)! }));
   }
   dispose(): void {
     if (this.disposed) return;
