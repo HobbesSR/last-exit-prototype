@@ -510,14 +510,18 @@ export class PhysicsWorld {
       }
       this.applyBoundedConstraints();
       this.capSpeeds(); this.native.step(this.events); this.capSpeeds();
+      // Rapier catches and ignores a throw from this callback, so overflow is
+      // counted here and thrown once the drain returns (#660).
+      let dropped = 0;
       this.events.drainCollisionEvents((a, b, started) => {
         const first = this.colliderIds.get(a), second = this.colliderIds.get(b);
         if (first && second) {
-          if (this.contacts.length >= MAX_EVENTS) throw new RangeError('physics event capacity exceeded');
+          if (this.contacts.length >= MAX_EVENTS) { dropped++; return; }
           this.contacts.push({ a: order(first, second) <= 0 ? first : second,
             b: order(first, second) <= 0 ? second : first, substep, type: started ? 'start' : 'stop' });
         }
       });
+      if (dropped) throw new RangeError(`physics event capacity exceeded (${dropped} events over ${MAX_EVENTS})`);
       for (const id of previous.keys()) {
         const next = this.getTransform(id)!;
         const old = previous.get(id)!;
