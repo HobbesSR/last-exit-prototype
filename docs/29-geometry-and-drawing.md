@@ -105,6 +105,15 @@ edge is in a bucket the walk visits, and the answer is the one every edge of the
 keeps the cost of a query independent of the map's size (#639). `tests/visibility.test.js` holds the
 answers to a brute-force check over every edge.
 
+The other per-player gate and sight queries read the same buckets, so none walks the whole map (#735).
+`gatesNear` returns the gates whose boxes may touch a box, each once and in map order. `nearbyGate`, the bots'
+`interact` flag, `canOccupy` and `moveBody` use it, and `sweptClear` walks the gate buckets along its segment.
+Buckets hold indices into `map.gates`, which is what keeps map order. A gate list may grow but is never
+reordered in place. `visibilityPolygon` takes the edges, obstacle and closed gate, from the buckets its
+square touches, each once. A gate's edges are built once with its index. The polygon depends on that set
+of edges and not on the order they are met in: the angles are sorted by value, and each ray takes the
+least hit over its active spans.
+
 `visibilityPolygon` sweeps rays in ascending angle over an active set of segments, keeping each
 vertex's angle so `litPoint` can answer per-entity visibility with a binary search instead of a fresh
 ray. What a viewer may *know* — reveals, cloak, roof concealment — is a gameplay rule and lives in

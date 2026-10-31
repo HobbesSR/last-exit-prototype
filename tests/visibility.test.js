@@ -36,8 +36,9 @@ test('wedge-culled visibility polygons match a brute-force implementation exactl
 let compared = 0, worst = 0;
 for (const seed of [4217, 9, 11, 777, 20250908, 31337, 2, 65535]) {
   const map = generateMap(seed);
-  for (const open of [false, true]) {
-    for (const g of map.gates) g.open = open;
+  // Gates are read open or closed as the query meets them, so some open and some closed too.
+  for (const open of [false, true, 'alternate']) {
+    map.gates.forEach((g, i) => { g.open = open === 'alternate' ? i % 2 === 0 : open; });
     const origins = [];
     for (let i = 0; i < 60; i++) origins.push({ x: 200 + (i * 7919) % (map.width - 400), y: 300 + (i * 271) % (map.height - 600) });
     // Include origins placed exactly on obstacle corners and edge midpoints, where the wedge is degenerate.

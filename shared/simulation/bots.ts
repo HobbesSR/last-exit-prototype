@@ -1,4 +1,4 @@
-import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
+import { bodyRadius, canOccupy, gatesNear, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_CELL_SIZE, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { navigationClearance } from '../map/navigation.ts';
@@ -757,6 +757,6 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     if (held?.kind === 'weapon' && reloadableRounds(s, p, held) > 0 && (held.ammo === 0 || !nearest)) intent.input.reload = true;
   }
   if (transitTo) intent.input.transit = transitTo;
-  intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? atan2(nearest.y - p.y, nearest.x - p.x) : s.content.dynamicNavigation && dx === 0 && dy === 0 ? p.heading : atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
+  intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? atan2(nearest.y - p.y, nearest.x - p.x) : s.content.dynamicNavigation && dx === 0 && dy === 0 ? p.heading : atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || p.x < s.hazardX + 200 || gatesNear(s.map, p.x - GATE_REACH, p.y - GATE_REACH, p.x + GATE_REACH, p.y + GATE_REACH).some(g => !g.open && distance(p, g) < GATE_REACH) };
   return intent;
 }

@@ -33,7 +33,7 @@ test('nearest keeps map order among equal distances; map order takes the first q
   assert.equal(nearbyGate(map, at, { accepts: any, order: 'map' }).id, 'far');
   assert.deepEqual(map.gates.map(g => g.id), ['far', 'east', 'west'], 'the gate array is not sorted in place');
   assert.equal(nearbyGate(map, at, { accepts: any, order: 'nearest' }), gates[1], 'the original gate, not a copy');
-  map.gates.reverse();
+  map.gates = [...gates].reverse();
   assert.equal(nearbyGate(map, at, { accepts: any, order: 'nearest' }).id, 'west');
   assert.equal(nearbyGate(map, at, { accepts: g => g.kind === 'door' && g.id !== 'west', order: 'map' }).id, 'east');
 });
