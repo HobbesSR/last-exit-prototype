@@ -65,9 +65,10 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       endWhenDrained();
     });
   }
-  function enqueue(text, countsAgainstFrameBudget = false, bytes = Buffer.byteLength(text)) {
-    if (countsAgainstFrameBudget && queuedBytes + bytes > (queueBytes ?? Math.max(DEFAULT_QUEUE_BYTES, headerBytes + DEFAULT_QUEUE_FRAMES * bytes))) return false;
-    queuedBytes += bytes; queue.push({ text, bytes }); pump(); return true;
+  // Only frames count against the budget; `append` asks before it encodes, so a dropped frame is never encoded.
+  const fits = bytes => queuedBytes + bytes <= (queueBytes ?? Math.max(DEFAULT_QUEUE_BYTES, headerBytes + DEFAULT_QUEUE_FRAMES * bytes));
+  function enqueue(text, bytes = Buffer.byteLength(text)) {
+    queuedBytes += bytes; queue.push({ text, bytes }); pump();
   }
   function endWhenDrained() {
     if (ending && !failed && !writing && !queue.length && !recorder.writableEnded) recorder.end();
@@ -81,7 +82,7 @@ export function createReplayWriter({ header, output, publish, onError = error =>
   };
   // Keep the old header bytes exactly, including its key order and compact JSON form.
   let headerBytes = 0;
-  try { const text = `${JSON.stringify(header).slice(0, -1)},"frames":[`; headerBytes = Buffer.byteLength(text); enqueue(text, false, headerBytes); }
+  try { const text = `${JSON.stringify(header).slice(0, -1)},"frames":[`; headerBytes = Buffer.byteLength(text); enqueue(text, headerBytes); }
   catch (error) { fail(error); }
   function rejectedCompletion() {
     if (!completion) { completion = Promise.reject(failed || new Error('Replay recording failed')); completion.catch(() => {}); }
@@ -100,9 +101,14 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       let line, bytes;
       try { ({ line, bytes } = frameLine(state, commands, keptText)); }
       catch (error) { fail(error); return false; }
-      const text = `${frames ? ',' : ''}${line}`;
-      if (!enqueue(text, true, bytes + (frames ? 1 : 0))) { droppedFrames++; return false; }
-      hash.update(`${line}\n`); frames++; return true;
+      // One UTF-8 encoding serves the stream and the digest, which covers the line without its separating comma (#727).
+      const comma = frames ? 1 : 0;
+      if (!fits(comma + bytes)) { droppedFrames++; return false; }
+      const encoded = Buffer.allocUnsafe(comma + bytes);
+      if (comma) encoded[0] = 0x2c;
+      if (encoded.write(line, comma) !== bytes) { fail(new Error('Replay frame length does not match its encoding')); return false; }
+      enqueue(encoded, encoded.length);
+      hash.update(encoded.subarray(comma)); hash.update('\n'); frames++; return true;
     },
     // Never touches frames or the digest. Past the cap a marker is counted, not kept.
     mark(marker) {
