@@ -269,6 +269,7 @@ test('HOUSE placeable attaches appearance when provided and leaves undefined whe
 
 test('existing hut region strategy adopts commercial retail storefront appearance presets across decay tiers', () => {
   const tiersSeen = new Set();
+  const allHutBuildings = [];
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
     const brief = chainBrief({
       id: `hut-test-${seed}`,
@@ -287,16 +288,41 @@ test('existing hut region strategy adopts commercial retail storefront appearanc
     for (const b of buildings) {
       const app = b.template.appearance?.building;
       assert.ok(app, `${b.label} carries building appearance`);
-      const matchesPreset = RETAIL_STOREFRONT_PRESETS.some(p => JSON.stringify(p) === JSON.stringify(app));
-      assert.ok(matchesPreset, `${b.label} appearance matches one of RETAIL_STOREFRONT_PRESETS`);
+      assert.ok(app.roofSign, `${b.label} carries commercial roofSign`);
+      allHutBuildings.push(b);
 
-      if (JSON.stringify(app) === JSON.stringify(RETAIL_STOREFRONT_INTACT)) tiersSeen.add('intact');
-      else if (JSON.stringify(app) === JSON.stringify(RETAIL_STOREFRONT_WEATHERED)) tiersSeen.add('weathered');
-      else if (JSON.stringify(app) === JSON.stringify(RETAIL_STOREFRONT_DAMAGED)) tiersSeen.add('damaged');
+      if (!app.neglect) tiersSeen.add('intact');
+      else if (app.neglect.scorchMark) tiersSeen.add('damaged');
+      else tiersSeen.add('weathered');
     }
   }
 
   assert.equal(tiersSeen.size, 3, 'all 3 decay tiers (intact, weathered, damaged) appear across seed sample');
+
+  // Verify non-repeating wear and scorch placement across buildings (no identical repeated coordinates):
+  const damaged = allHutBuildings.filter(b => b.template.appearance?.building?.neglect?.scorchMark);
+  assert.ok(damaged.length > 0, 'sample contains competition-damaged buildings');
+  const scorchCoords = new Set(damaged.map(b => {
+    const sc = b.template.appearance.building.neglect.scorchMark;
+    return `${sc.dx},${sc.dy}:${sc.w}x${sc.h}`;
+  }));
+  assert.ok(scorchCoords.size > 1, 'damaged buildings do not repeat identical scorch mark coordinates/sizes');
+
+  const weathered = allHutBuildings.filter(b => b.template.appearance?.building?.neglect?.roofDrainStain && !b.template.appearance?.building?.neglect?.scorchMark);
+  assert.ok(weathered.length > 0, 'sample contains weathered buildings');
+  const drainCoords = new Set(weathered.map(b => {
+    const ds = b.template.appearance.building.neglect.roofDrainStain;
+    return `${ds.dx},${ds.dy}`;
+  }));
+  assert.ok(drainCoords.size > 1, 'weathered buildings do not repeat identical drain stain coordinates');
+
+  // Verify damaged storefront resolves scorch group on roof and soot mark on floor
+  const damagedSample = damaged[0];
+  const resolvedDamaged = resolveBuildingAppearance({ id: 'dmg-1', x: 100, y: 100, w: 200, h: 160, appearance: damagedSample.template.appearance.building }, {}, { wear: true });
+  assert.ok(resolvedDamaged.roofMarks.some(m => m.layer === 'wear-scorch-halo'), 'damaged building resolves scorch halo on roof');
+  assert.ok(resolvedDamaged.roofMarks.some(m => m.layer === 'wear-scorch-core'), 'damaged building resolves scorch core on roof');
+  assert.ok(resolvedDamaged.roofMarks.some(m => m.layer === 'wear-scorch-streak'), 'damaged building resolves scorch blast streak on roof');
+  assert.ok(resolvedDamaged.floorMarks.some(m => m.layer === 'neglect-stain'), 'damaged building resolves soot stain on floor');
 
   // Verify stamping and presentation resolution on a styled hut
   const sampleBrief = chainBrief({
@@ -368,24 +394,20 @@ test('block region strategy propagates storefront appearance to child hut lots',
   const brief = chainBrief({
     id: 'block-retail-test',
     type: 'block',
-    seed: 4,
-    cells: cellsOf(24, 20),
+    seed: 3,
+    cells: cellsOf(28, 20),
     portals: [
-      { id: 'w', axis: 'v', x: 0, y: 8, length: 3 },
-      { id: 'e', axis: 'v', x: 24, y: 8, length: 3 },
+      { id: 'w', axis: 'v', x: 0, y: 10, length: 2 },
+      { id: 'e', axis: 'v', x: 28, y: 10, length: 2 },
     ],
   });
   const region = buildBlock(brief);
   const hutBuildings = region.elements.filter(e => e.label.includes('hut-building'));
-  if (hutBuildings.length > 0) {
-    for (const b of hutBuildings) {
-      const app = b.template.appearance?.building;
-      assert.ok(app, `block hut building ${b.label} carries appearance`);
-      assert.ok(
-        RETAIL_STOREFRONT_PRESETS.some(p => JSON.stringify(p) === JSON.stringify(app)),
-        `block hut building ${b.label} matches storefront preset`
-      );
-    }
+  assert.ok(hutBuildings.length > 0, 'block region contains at least one hut building');
+  for (const b of hutBuildings) {
+    const app = b.template.appearance?.building;
+    assert.ok(app, `block hut building ${b.label} carries appearance`);
+    assert.ok(app.roofSign, `block hut building ${b.label} carries storefront roofSign`);
   }
 });
 
@@ -513,15 +535,11 @@ test('chain map export/load round-trips via JSON and BSON and legacy maps load c
     assert.deepEqual(b.appearance, DEPOT_WAREHOUSE_APPEARANCE);
   }
   const hutResult = chain.results.find(r => r.brief.type === 'hut');
-  if (hutResult) {
-    const hutBuildings = buildingsWithApp.filter(b => b.nodeId === hutResult.brief.id);
-    assert.ok(hutBuildings.length > 0, 'hut buildings have appearance');
-    for (const b of hutBuildings) {
-      assert.ok(
-        RETAIL_STOREFRONT_PRESETS.some(p => JSON.stringify(p) === JSON.stringify(b.appearance)),
-        'hut building matches storefront preset'
-      );
-    }
+  assert.ok(hutResult, 'chain map contains hut region');
+  const hutBuildings = buildingsWithApp.filter(b => b.nodeId === hutResult.brief.id);
+  assert.ok(hutBuildings.length > 0, 'hut buildings have appearance');
+  for (const b of hutBuildings) {
+    assert.ok(b.appearance.roofSign, 'hut building carries storefront appearance with roofSign');
   }
 
 

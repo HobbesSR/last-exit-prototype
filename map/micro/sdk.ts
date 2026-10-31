@@ -40,6 +40,7 @@ export {
   RETAIL_STOREFRONT_DAMAGED,
   RETAIL_STOREFRONT_PRESETS,
   selectStorefrontAppearance,
+  createStorefrontAppearance,
 } from './strategies/hut.ts';
 
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';

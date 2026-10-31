@@ -104,6 +104,7 @@ export const RETAIL_STOREFRONT_DAMAGED: BuildingAppearance = Object.freeze({
     fadedPanel: { dx: 20, dy: 34, w: 44, h: 22 },
     roofDrainStain: { dx: 72, dy: 22, w: 26, h: 18 },
     floorStain: { dx: 60, dy: 44, w: 32, h: 22 },
+    scorchMark: { dx: 42, dy: 68, w: 48, h: 32 },
   },
 });
 
@@ -113,7 +114,177 @@ export const RETAIL_STOREFRONT_PRESETS: readonly BuildingAppearance[] = Object.f
   RETAIL_STOREFRONT_DAMAGED,
 ]);
 
-export function selectStorefrontAppearance(roll: number): BuildingAppearance {
+export interface StorefrontAppearanceOptions {
+  seed?: number | undefined;
+  roll?: number | undefined;
+  w?: number | undefined;
+  h?: number | undefined;
+  door?: Side | undefined;
+}
+
+/**
+ * Procedural appearance generator for commercial retail storefronts across intact, weathered, and
+ * competition-damaged visual decay tiers (11.1 §5.5, 41.2 Step 5, #586 / #585).
+ * Generates bounded palette variants and footprint-aware, non-repeating wear and scorch placement.
+ */
+export function createStorefrontAppearance(options: StorefrontAppearanceOptions = {}): BuildingAppearance {
+  const roll = options.roll ?? (options.seed !== undefined ? rng(options.seed, 'tier').next() : 0);
+  const bw = options.w ?? 160;
+  const bh = options.h ?? 160;
+  const door = options.door ?? 'S';
+  const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), `${bw}x${bh}:${door}`);
+
+  const tier = roll < 0.33 ? 'intact' : roll < 0.67 ? 'weathered' : 'damaged';
+
+  // Frontage-aware sign placement (proportional to footprint width, positioned along door frontage):
+  const signW = Math.max(36, Math.min(bw - 32, Math.round(bw * (0.45 + subRng.next() * 0.2))));
+  const signH = 18;
+  let signDx = Math.round(16 + subRng.next() * Math.max(0, bw - signW - 32));
+  let signDy = 14;
+  if (door === 'S') {
+    signDy = Math.max(14, bh - signH - 16);
+  } else if (door === 'N') {
+    signDy = 14;
+  } else if (door === 'W') {
+    signDx = 14;
+    signDy = Math.round(16 + subRng.next() * Math.max(0, bh - signH - 32));
+  } else if (door === 'E') {
+    signDx = Math.max(14, bw - signW - 16);
+    signDy = Math.round(16 + subRng.next() * Math.max(0, bh - signH - 32));
+  }
+
+  if (tier === 'intact') {
+    const variant = subRng.next() < 0.5 ? 0 : 1;
+    if (variant === 0) {
+      return {
+        floorMaterial: 'concrete',
+        wallMaterial: 'warmMasonry',
+        roofPaint: 'storefrontTeal',
+        roofRim: 'weatheredCoral',
+        interiorTrim: 'storefrontTeal',
+        roofSign: {
+          color: 'weatheredCoral',
+          backing: 'structuralVoid',
+          stripe: 'dirtyCream',
+          dx: signDx,
+          dy: signDy,
+          w: signW,
+          h: signH,
+        },
+      };
+    } else {
+      return {
+        floorMaterial: 'coolConcrete',
+        wallMaterial: 'dustyStucco',
+        roofPaint: 'weatheredCoral',
+        roofRim: 'storefrontTeal',
+        interiorTrim: 'weatheredCoral',
+        roofSign: {
+          color: 'storefrontTeal',
+          backing: 'structuralVoid',
+          stripe: 'awningsYellow',
+          dx: signDx,
+          dy: signDy,
+          w: signW,
+          h: signH,
+        },
+      };
+    }
+  }
+
+  if (tier === 'weathered') {
+    const variant = subRng.next() < 0.5 ? 0 : 1;
+    // Varied non-repeating wear placement:
+    const panelW = Math.max(28, Math.min(bw - 32, Math.round(bw * (0.28 + subRng.next() * 0.18))));
+    const panelH = Math.max(18, Math.min(bh - 32, Math.round(bh * (0.16 + subRng.next() * 0.12))));
+    const panelDx = Math.round(16 + subRng.next() * Math.max(0, bw - panelW - 32));
+    const panelDy = door === 'S'
+      ? Math.round(16 + subRng.next() * Math.max(0, bh * 0.45))
+      : Math.round(Math.max(16, bh * 0.4 + subRng.next() * Math.max(0, bh * 0.45 - panelH)));
+
+    const drainW = Math.round(24 + subRng.next() * 10);
+    const drainH = Math.round(18 + subRng.next() * 8);
+    const drainDx = Math.round(16 + subRng.next() * Math.max(0, bw - drainW - 32));
+    const drainDy = Math.round(16 + subRng.next() * Math.max(0, bh - drainH - 32));
+
+    const floorStainW = Math.round(28 + subRng.next() * 16);
+    const floorStainH = Math.round(20 + subRng.next() * 12);
+    const floorStainDx = Math.round(24 + subRng.next() * Math.max(0, bw - floorStainW - 48));
+    const floorStainDy = Math.round(24 + subRng.next() * Math.max(0, bh - floorStainH - 48));
+
+    return {
+      floorMaterial: variant === 0 ? 'warmMasonry' : 'concrete',
+      wallMaterial: variant === 0 ? 'dustyStucco' : 'coolConcrete',
+      roofPaint: variant === 0 ? 'weatheredCoral' : 'storefrontTeal',
+      roofRim: variant === 0 ? 'storefrontTeal' : 'structuralVoid',
+      interiorTrim: variant === 0 ? 'storefrontTeal' : 'weatheredCoral',
+      roofSign: {
+        color: variant === 0 ? 'storefrontTeal' : 'weatheredCoral',
+        backing: 'structuralVoid',
+        stripe: variant === 0 ? 'awningsYellow' : 'dirtyCream',
+        dx: signDx,
+        dy: signDy,
+        w: signW,
+        h: signH,
+      },
+      neglect: {
+        fadedPanel: { dx: panelDx, dy: panelDy, w: panelW, h: panelH },
+        roofDrainStain: { dx: drainDx, dy: drainDy, w: drainW, h: drainH },
+        ...(subRng.next() < 0.6 ? { floorStain: { dx: floorStainDx, dy: floorStainDy, w: floorStainW, h: floorStainH } } : {}),
+      },
+    };
+  }
+
+  // Damaged tier: Competition scorch mark + heavy wear
+  const variant = subRng.next() < 0.5 ? 0 : 1;
+  const scorchW = Math.max(32, Math.min(bw - 28, Math.round(bw * (0.32 + subRng.next() * 0.16))));
+  const scorchH = Math.max(24, Math.min(bh - 28, Math.round(bh * (0.22 + subRng.next() * 0.12))));
+  const scorchDx = Math.round(16 + subRng.next() * Math.max(0, bw - scorchW - 32));
+  const scorchDy = Math.round(16 + subRng.next() * Math.max(0, bh - scorchH - 32));
+
+  const panelW = Math.max(26, Math.min(bw - 32, Math.round(bw * (0.25 + subRng.next() * 0.15))));
+  const panelH = Math.max(16, Math.min(bh - 32, Math.round(bh * (0.15 + subRng.next() * 0.1))));
+  const panelDx = Math.round(16 + subRng.next() * Math.max(0, bw - panelW - 32));
+  const panelDy = Math.round(16 + subRng.next() * Math.max(0, bh - panelH - 32));
+
+  const drainW = Math.round(26 + subRng.next() * 8);
+  const drainH = Math.round(18 + subRng.next() * 8);
+  const drainDx = Math.round(16 + subRng.next() * Math.max(0, bw - drainW - 32));
+  const drainDy = Math.round(16 + subRng.next() * Math.max(0, bh - drainH - 32));
+
+  const floorStainW = Math.round(36 + subRng.next() * 16);
+  const floorStainH = Math.round(24 + subRng.next() * 14);
+  const floorStainDx = Math.round(24 + subRng.next() * Math.max(0, bw - floorStainW - 48));
+  const floorStainDy = Math.round(24 + subRng.next() * Math.max(0, bh - floorStainH - 48));
+
+  return {
+    floorMaterial: 'slatePaving',
+    wallMaterial: variant === 0 ? 'coolConcrete' : 'dustyStucco',
+    roofPaint: variant === 0 ? 'dirtyCream' : 'weatheredCoral',
+    roofRim: 'oldSignRed',
+    interiorTrim: 'oldSignRed',
+    roofSign: {
+      color: variant === 0 ? 'oldSignRed' : 'structuralVoid',
+      backing: 'structuralVoid',
+      stripe: variant === 0 ? 'weatheredCoral' : 'oxidizedMetal',
+      dx: signDx,
+      dy: signDy,
+      w: Math.max(28, Math.round(signW * 0.75)),
+      h: signH,
+    },
+    neglect: {
+      fadedPanel: { dx: panelDx, dy: panelDy, w: panelW, h: panelH },
+      roofDrainStain: { dx: drainDx, dy: drainDy, w: drainW, h: drainH },
+      floorStain: { dx: floorStainDx, dy: floorStainDy, w: floorStainW, h: floorStainH },
+      scorchMark: { dx: scorchDx, dy: scorchDy, w: scorchW, h: scorchH },
+    },
+  };
+}
+
+export function selectStorefrontAppearance(roll: number, footprint?: { w?: number; h?: number; door?: Side }): BuildingAppearance {
+  if (footprint) {
+    return createStorefrontAppearance({ roll, ...footprint });
+  }
   const index = Math.floor(roll * RETAIL_STOREFRONT_PRESETS.length);
   return RETAIL_STOREFRONT_PRESETS[Math.min(index, RETAIL_STOREFRONT_PRESETS.length - 1)];
 }
@@ -189,14 +360,21 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   for (let index = 0; index < MAX_HOUSES; index++) {
     const suffix = index ? `:house-${index}` : '';
     const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design${suffix}`).next() * 2 ** 31);
-    const appearanceRoll = rng(brief.seed, `${brief.id}:hut-appearance${suffix}`).next();
-    const appearance = selectStorefrontAppearance(appearanceRoll);
+    const appearanceSeed = Math.floor(rng(brief.seed, `${brief.id}:hut-appearance${suffix}`).next() * 2 ** 31);
     let site: Site | undefined;
     for (const { spaces, boxes } of LARGER) {
       const houses = new Map<string, House | null>();
       const cached = (w: number, h: number, side: Side) => {
         const key = `${w},${h},${side}`;
-        if (!houses.has(key)) houses.set(key, houseFor(w, h, side, spaces, size, seed, appearance) ?? null);
+        if (!houses.has(key)) {
+          const app = createStorefrontAppearance({
+            seed: appearanceSeed,
+            w: w * size,
+            h: h * size,
+            door: side,
+          });
+          houses.set(key, houseFor(w, h, side, spaces, size, seed, app) ?? null);
+        }
         return houses.get(key) ?? undefined;
       };
       site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}${suffix}`, cached, sites, canvas);
@@ -204,7 +382,15 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
     }
     const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
     site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site${suffix}`,
-      (w, h, side) => houseFor(w, h, side, 1, size, seed, appearance), sites, canvas);
+      (w, h, side) => {
+        const app = createStorefrontAppearance({
+          seed: appearanceSeed,
+          w: w * size,
+          h: h * size,
+          door: side,
+        });
+        return houseFor(w, h, side, 1, size, seed, app);
+      }, sites, canvas);
     if (!site) break;
     const { design, allocation, realization } = site.house.details;
     const label = index ? `hut-building-${index + 1}` : 'hut-building';

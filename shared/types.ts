@@ -465,6 +465,7 @@ export interface BuildingNeglectAppearance {
   fadedPanel?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
   roofDrainStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
   floorStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined; x?: number | undefined; y?: number | undefined } | undefined;
+  scorchMark?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
 }
 
 export interface BuildingAppearance {

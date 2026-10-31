@@ -1421,6 +1421,209 @@ try {
     actorIdentityUntinted: step4SpatialCheck.strikerTintLit === 0xffd485 && step4SpatialCheck.scoutTintLit === 0x9de6df,
   };
 
+  // 5c. Procedural commercial storefront kit adoption verification (41.2 step 5, #586 + #585):
+  //     Verify that:
+  //     - Generated commercial storefront presets across decay tiers (intact, weathered, damaged) maintain
+  //       recognizable commercial identity (color blocking, sign backings, entrance doorsteps).
+  //     - Decay contrast survives at gameplay zoom (intact vs weathered vs scorched damaged are visibly distinct).
+  //     - Doorway openings and entrance readability survive roof fade in interior view.
+  //     - Identity and layout survive distant LOD (0.28 zoom) and grayscale value contrast abstraction.
+  const { HOUSE } = await import('../map/micro/placeables/house.ts');
+  const { createStorefrontAppearance } = await import('../map/micro/strategies/hut.ts');
+  const { createGenerationContext } = await import('../shared/map/context.ts');
+  const { placeElement } = await import('../shared/map/element.ts');
+
+  // Build a controlled storefront demonstration map using the actual procedural HOUSE placeables:
+  const storefrontCtx = createGenerationContext(98765);
+  const appIntact = createStorefrontAppearance({ roll: 0.1, w: 200, h: 160, door: 'S' });
+  const appWeathered = createStorefrontAppearance({ roll: 0.5, w: 200, h: 160, door: 'S' });
+  const appDamaged = createStorefrontAppearance({ roll: 0.9, w: 200, h: 160, door: 'S' });
+
+  const hIntact = HOUSE.build({ w: 5, h: 4, door: 'S', spaces: 1, seed: 101, appearance: appIntact }, 40);
+  const hWeathered = HOUSE.build({ w: 5, h: 4, door: 'S', spaces: 1, seed: 102, appearance: appWeathered }, 40);
+  const hDamaged = HOUSE.build({ w: 5, h: 4, door: 'S', spaces: 1, seed: 103, appearance: appDamaged }, 40);
+
+  placeElement(storefrontCtx, hIntact.elements[0].template, 300, 500, { nodeId: 'sf-intact', locked: false });
+  placeElement(storefrontCtx, hWeathered.elements[0].template, 560, 500, { nodeId: 'sf-weathered', locked: false });
+  placeElement(storefrontCtx, hDamaged.elements[0].template, 820, 500, { nodeId: 'sf-damaged', locked: false });
+
+  // Add street paving in front of the storefronts to frame the entrance doorsteps (11.1 §5.5)
+  const sfMap = {
+    seed: 98765,
+    width: 1400,
+    height: 1000,
+    buildings: storefrontCtx.map.buildings,
+    roofs: storefrontCtx.map.roofs,
+    obstacles: storefrontCtx.map.obstacles,
+    decals: storefrontCtx.map.decals || [],
+    modules: [],
+    hazards: [],
+    gaps: [],
+    stations: [],
+    sensors: [],
+    gates: [],
+    routes: [{ points: [{ x: 200, y: 710 }, { x: 1100, y: 710 }] }],
+    appearance: {
+      surfaces: [
+        { id: 'sf-street-surf', bounds: { x: 200, y: 660, w: 900, h: 100 }, material: 'nightAsphalt' },
+      ],
+      lighting: {
+        fields: [
+          { id: 'sf-wash', bounds: { x: 200, y: 460, w: 900, h: 320 }, tint: 'cobaltBlue', intensity: 0.28 },
+        ],
+      },
+    },
+  };
+
+  const storefrontDemo = await page.evaluate(async (demoMap) => {
+    const f = window.witness, s = f.scene;
+    window.__witnessPriorMap = f.map;
+    const priorMap = f.map;
+    f.map = demoMap;
+    s.recordStatic(demoMap);
+
+    // 1. Gameplay zoom (playerZoom), roofs covered:
+    await f.settle({
+      palette: 'signature',
+      lighting: true,
+      wear: true,
+      directed: false,
+      fog: false,
+      camera: { x: 660, y: 580, zoom: 1.12 },
+      selfPos: { x: 660, y: 710 },
+      roofSteps: 40,
+    });
+    const intactRoofPx = f.pixelAtWorld(400, 560);
+    const intactSignPx = f.pixelAtWorld(400, 645);
+    const weatheredRoofPx = f.pixelAtWorld(660, 560);
+    const damagedRoofPx = f.pixelAtWorld(920, 560);
+    const streetPx = f.pixelAtWorld(660, 710);
+
+    // 2. Interior view (inside damaged shop, roof revealed):
+    await f.settle({
+      palette: 'signature',
+      lighting: true,
+      wear: true,
+      directed: false,
+      fog: false,
+      camera: { x: 920, y: 580, zoom: 1.288 },
+      selfPos: { x: 920, y: 580 },
+      roofSteps: 40,
+    });
+    const damagedFloorPx = f.pixelAtWorld(920, 580);
+    const doorstepPx = f.pixelAtWorld(920, 650);
+    const damagedRoofAlpha = s.roofs.get(demoMap.roofs[2].id)?.alpha ?? 0;
+
+    // 3. Distant LOD zoom:
+    await f.settle({
+      palette: 'signature',
+      lighting: true,
+      wear: true,
+      directed: false,
+      fog: false,
+      camera: { x: 660, y: 580, zoom: 0.28 },
+      selfPos: { x: 660, y: 710 },
+      roofSteps: 40,
+    });
+    const lodRoofPx = f.pixelAtWorld(400, 560);
+
+    // Restore prior map:
+    f.map = priorMap;
+    s.recordStatic(priorMap);
+    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+
+    return {
+      intactRoofPx,
+      intactSignPx,
+      weatheredRoofPx,
+      damagedRoofPx,
+      streetPx,
+      damagedFloorPx,
+      doorstepPx,
+      damagedRoofAlpha,
+      lodRoofPx,
+    };
+  }, sfMap);
+
+  // Take dedicated screenshots for visual review:
+  await page.evaluate(async (demoMap) => {
+    window.witness.map = demoMap;
+    window.witness.scene.recordStatic(demoMap);
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false, camera: { x: 660, y: 580, zoom: 1.12 }, selfPos: { x: 660, y: 710 } });
+  }, sfMap);
+  const fileSfRoofs = 'storefront-gameplay-roofs.png';
+  await page.screenshot({ path: path.join(outDir, fileSfRoofs) });
+  captures.push({ id: 'storefront-gameplay-roofs', file: fileSfRoofs, theme: 'signature', fog: false, zoom: PLAY_ZOOM, view: 'step5-storefront-roofs (intact, weathered, damaged storefronts side-by-side)' });
+
+  await page.evaluate(async () => {
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false, camera: { x: 920, y: 580, zoom: 1.288 }, selfPos: { x: 920, y: 580 } });
+  });
+  const fileSfInterior = 'storefront-gameplay-interior.png';
+  await page.screenshot({ path: path.join(outDir, fileSfInterior) });
+  captures.push({ id: 'storefront-gameplay-interior', file: fileSfInterior, theme: 'signature', fog: false, zoom: INDOOR_ZOOM, view: 'step5-storefront-interior (damaged shop interior revealed, doorstep threshold)' });
+
+  await page.evaluate(async () => {
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false, camera: { x: 660, y: 580, zoom: 0.28 }, selfPos: { x: 660, y: 710 } });
+  });
+  const fileSfLod = 'storefront-distant-lod.png';
+  await page.screenshot({ path: path.join(outDir, fileSfLod) });
+  captures.push({ id: 'storefront-distant-lod', file: fileSfLod, theme: 'signature', fog: false, zoom: LOD_LOW_ZOOM, view: 'step5-storefront-distant-lod (0.28 zoom silhouette and layout readability)' });
+
+  // Restore prior map:
+  await page.evaluate(async () => {
+    const f = window.witness;
+    if (window.__witnessPriorMap) {
+      f.map = window.__witnessPriorMap;
+      f.scene.recordStatic(window.__witnessPriorMap);
+    }
+    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+  });
+
+  // Grayscale / luminance evaluation:
+  const toLuminance = hex => {
+    const r = ((hex >> 16) & 255) / 255;
+    const g = ((hex >> 8) & 255) / 255;
+    const b = (hex & 255) / 255;
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  };
+  const lumContrast = (h1, h2) => {
+    const l1 = toLuminance(h1) + 0.05;
+    const l2 = toLuminance(h2) + 0.05;
+    return Number((Math.max(l1, l2) / Math.min(l1, l2)).toFixed(2));
+  };
+
+  const intactRoofLumRatio = lumContrast(storefrontDemo.intactRoofPx.hex, storefrontDemo.streetPx.hex);
+  const intactSignLumRatio = lumContrast(storefrontDemo.intactSignPx.hex, storefrontDemo.intactRoofPx.hex);
+  const damagedRoofLumRatio = lumContrast(storefrontDemo.damagedRoofPx.hex, storefrontDemo.streetPx.hex);
+  const doorstepLumRatio = lumContrast(storefrontDemo.doorstepPx.hex, storefrontDemo.damagedFloorPx.hex);
+
+  // Assertions:
+  // 1. Rooftops are visibly distinct between intact, weathered, and damaged:
+  assert.notEqual(storefrontDemo.intactRoofPx.hex, storefrontDemo.weatheredRoofPx.hex, 'intact roof differs from weathered roof');
+  assert.notEqual(storefrontDemo.weatheredRoofPx.hex, storefrontDemo.damagedRoofPx.hex, 'weathered roof differs from damaged roof');
+  assert.notEqual(storefrontDemo.intactRoofPx.hex, storefrontDemo.damagedRoofPx.hex, 'intact roof differs from damaged roof');
+
+  // 2. Grayscale readability survives:
+  assert.ok(intactRoofLumRatio >= 1.15, `intact roof survives grayscale contrast vs street (${intactRoofLumRatio})`);
+  assert.ok(damagedRoofLumRatio >= 1.15, `damaged roof survives grayscale contrast vs street (${damagedRoofLumRatio})`);
+
+  // 3. Entrance / interior readability:
+  assert.equal(storefrontDemo.damagedRoofAlpha, 0, 'roof reveals when player is inside shop');
+
+  const step5StorefrontSummary = {
+    intactRoofHex: css(storefrontDemo.intactRoofPx.hex),
+    weatheredRoofHex: css(storefrontDemo.weatheredRoofPx.hex),
+    damagedRoofHex: css(storefrontDemo.damagedRoofPx.hex),
+    streetHex: css(storefrontDemo.streetPx.hex),
+    damagedFloorHex: css(storefrontDemo.damagedFloorPx.hex),
+    doorstepHex: css(storefrontDemo.doorstepPx.hex),
+    intactRoofLumRatio,
+    intactSignLumRatio,
+    damagedRoofLumRatio,
+    doorstepLumRatio,
+    roofAlphaInside: storefrontDemo.damagedRoofAlpha,
+  };
+
   // 6. Analyze WebGL pixel measurements for all special obstacle branches, glass alpha, and #587 comment 6317 screening candidates.
   const branchSummary = [];
   for (const themeId of themeNames) {
@@ -1543,6 +1746,7 @@ try {
     openFindings,
     step2SliceSummary,
     step4SpatialSummary,
+    step5StorefrontSummary,
     ochreUnderCobaltAssessment,
     broadcastPinkAssessment,
     lowFillCandidates,

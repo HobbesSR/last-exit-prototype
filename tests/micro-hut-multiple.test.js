@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHutGeneration, HUT_EXECUTION_REGISTRY, selectStorefrontAppearance } from '../map/micro/strategies/hut.ts';
+import { buildHutGeneration, HUT_EXECUTION_REGISTRY, createStorefrontAppearance } from '../map/micro/strategies/hut.ts';
 import { flattenDelegationResult } from '../map/micro/delegation-execute.ts';
 import { saveDelegationSnapshot, readDelegationSnapshot } from '../map/micro/delegation-snapshot.ts';
 import { createAccessMask, elementShapes } from '../map/micro/geometry.ts';
@@ -58,8 +58,8 @@ test('each house uses its own design seed while the primary retains the legacy c
     const spaces = trace.design.spaces.length;
     const suffix = index ? `:house-${index}` : '';
     const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design${suffix}`).next() * 2 ** 31);
-    const appearanceRoll = rng(brief.seed, `${brief.id}:hut-appearance${suffix}`).next();
-    const appearance = selectStorefrontAppearance(appearanceRoll);
+    const appearanceSeed = Math.floor(rng(brief.seed, `${brief.id}:hut-appearance${suffix}`).next() * 2 ** 31);
+    const appearance = createStorefrontAppearance({ seed: appearanceSeed, w: w * brief.cellSize, h: h * brief.cellSize, door });
     const params = { w, h, door, spaces, seed, appearance };
     const expected = HOUSE.build(params, brief.cellSize);
     assert.ok(!('refused' in expected), house.label);
