@@ -189,6 +189,25 @@ export class PhysicsWorld {
     this.events = new RAPIER.EventQueue(true);
   }
 
+  // The pipeline's step alone: `World.step` then re-syncs rapier.js's handle maps by visiting every collider and body
+  // across the wasm boundary, about 150 ns each per substep whether anything changed or not (42.22). This world adds
+  // and removes bodies and colliders only through the calls that keep those maps current, and Rapier creates none
+  // inside a step, so there is nothing to sync.
+  private stepNative(): void {
+    const w = this.native;
+    w.physicsPipeline.step(w.gravity, w.integrationParameters, w.islands, w.broadPhase, w.narrowPhase, w.bodies, w.colliders,
+      w.softBodies, w.impulseJoints, w.multibodyJoints, w.ccdSolver, this.events, undefined);
+  }
+  // `World.removeRigidBody` without its closing `unmapRemovedColliders`, which visits every collider in the world the
+  // same way. The body's own colliders and joints are unmapped first, as rapier.js does, so that visit has nothing to do.
+  private removeNativeBody(body: RAPIER.RigidBody): void {
+    const w = this.native, handle = body.handle;
+    for (let i = 0; i < body.numColliders(); i++) w.colliders.unmap(body.collider(i).handle);
+    w.impulseJoints.forEachJointHandleAttachedToRigidBody(handle, joint => w.impulseJoints.unmap(joint));
+    w.multibodyJoints.forEachJointHandleAttachedToRigidBody(handle, joint => w.multibodyJoints.unmap(joint));
+    w.bodies.raw.remove(handle, w.islands.raw, w.colliders.raw, w.softBodies.raw, w.impulseJoints.raw, w.multibodyJoints.raw);
+    w.bodies.unmapRemovedBodies();
+  }
   private ensure(): void { if (this.disposed) throw new Error('physics world disposed'); }
   private roomCount(kind: BodySpec['kind']): number {
     return (kind === 'actor' ? this.actorCount : kind === 'static' ? this.staticCount : this.dynamicCount - this.actorCount)
@@ -273,7 +292,7 @@ export class PhysicsWorld {
     } else {
       const vertices = spec.shape.vertices.flatMap(point => [point.x / SCALE, point.y / SCALE]);
       const hull = RAPIER.ColliderDesc.convexHull(new Float32Array(vertices));
-      if (!hull) { if (!spec.mapGeometry) this.native.removeRigidBody(body); throw new RangeError('invalid convex body'); }
+      if (!hull) { if (!spec.mapGeometry) this.removeNativeBody(body); throw new RangeError('invalid convex body'); }
       collider = hull;
     }
     if (spec.mapGeometry) collider.setTranslation(spec.x / SCALE, spec.y / SCALE).setRotation(spec.angle!);
@@ -319,7 +338,7 @@ export class PhysicsWorld {
           }
         }
         if (record.spec.mapGeometry) this.native.removeCollider(this.native.getCollider(record.collider)!, false);
-        else this.native.removeRigidBody(this.native.getRigidBody(record.handle)!);
+        else this.removeNativeBody(this.native.getRigidBody(record.handle)!);
         this.colliderIds.delete(record.collider);
         this.bodies.delete(id);
         if (record.spec.kind === 'static') this.staticCount--;
@@ -516,7 +535,7 @@ export class PhysicsWorld {
         if (this.hasBody(entry.id)) this.dynamic(entry.id).body.applyImpulse({ x: entry.value.x / SCALE, y: entry.value.y / SCALE }, true);
       }
       this.applyBoundedConstraints();
-      this.capSpeeds(); this.native.step(this.events); this.capSpeeds();
+      this.capSpeeds(); this.stepNative(); this.capSpeeds();
       // Rapier catches and ignores a throw from this callback, so overflow is
       // counted here and thrown once the drain returns (#660).
       let dropped = 0;
