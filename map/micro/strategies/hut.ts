@@ -43,9 +43,9 @@ type House = Placed<HouseDetails>;
 /**
  * Authored minimal appearance descriptors for commercial retail storefronts (41.2 Step 5 / #586, #585, 11.1 §5.5).
  * Three visual decay tiers:
- * - `RETAIL_STOREFRONT_INTACT`: Surviving bold paint, clean signage, warm masonry, concrete floor.
- * - `RETAIL_STOREFRONT_WEATHERED`: Dusty stucco, faded signage, drainage stain, warm masonry floor.
- * - `RETAIL_STOREFRONT_DAMAGED`: Broken old sign, cracked slate paving, dirty cream roof, water/neglect staining.
+ * - `RETAIL_STOREFRONT_INTACT`: Surviving storefront-teal paint, clean coral signage, warm masonry, concrete floor.
+ * - `RETAIL_STOREFRONT_WEATHERED`: Weathered coral roof, dusty stucco, faded teal signage, drainage stain, warm masonry floor.
+ * - `RETAIL_STOREFRONT_DAMAGED`: Dirty cream roof, old red signage, cool concrete, cracked slate paving, drainage stain, floor stain, and competition scorch mark.
  */
 export const RETAIL_STOREFRONT_INTACT: BuildingAppearance = Object.freeze({
   floorMaterial: 'concrete',
@@ -81,7 +81,7 @@ export const RETAIL_STOREFRONT_WEATHERED: BuildingAppearance = Object.freeze({
   },
   neglect: {
     fadedPanel: { dx: 16, dy: 36, w: 48, h: 24 },
-    roofDrainStain: { dx: 80, dy: 24, w: 28, h: 20 },
+    roofDrainStain: { dx: 80, dy: 30, w: 28, h: 20 },
   },
 });
 
@@ -102,9 +102,9 @@ export const RETAIL_STOREFRONT_DAMAGED: BuildingAppearance = Object.freeze({
   },
   neglect: {
     fadedPanel: { dx: 20, dy: 34, w: 44, h: 22 },
-    roofDrainStain: { dx: 72, dy: 22, w: 26, h: 18 },
-    floorStain: { dx: 60, dy: 44, w: 32, h: 22 },
-    scorchMark: { dx: 42, dy: 68, w: 48, h: 32 },
+    roofDrainStain: { dx: 100, dy: 30, w: 26, h: 18 },
+    floorStain: { dx: 80, dy: 60, w: 32, h: 22 },
+    scorchMark: { dx: 50, dy: 80, w: 48, h: 32 },
   },
 });
 
@@ -154,74 +154,64 @@ export function createStorefrontAppearance(options: StorefrontAppearanceOptions 
   }
 
   if (tier === 'intact') {
-    const variant = subRng.next() < 0.5 ? 0 : 1;
-    if (variant === 0) {
-      return {
-        floorMaterial: 'concrete',
-        wallMaterial: 'warmMasonry',
-        roofPaint: 'storefrontTeal',
-        roofRim: 'weatheredCoral',
-        interiorTrim: 'storefrontTeal',
-        roofSign: {
-          color: 'weatheredCoral',
-          backing: 'structuralVoid',
-          stripe: 'dirtyCream',
-          dx: signDx,
-          dy: signDy,
-          w: signW,
-          h: signH,
-        },
-      };
-    } else {
-      return {
-        floorMaterial: 'coolConcrete',
-        wallMaterial: 'dustyStucco',
-        roofPaint: 'weatheredCoral',
-        roofRim: 'storefrontTeal',
-        interiorTrim: 'weatheredCoral',
-        roofSign: {
-          color: 'storefrontTeal',
-          backing: 'structuralVoid',
-          stripe: 'awningsYellow',
-          dx: signDx,
-          dy: signDy,
-          w: signW,
-          h: signH,
-        },
-      };
-    }
+    return {
+      floorMaterial: 'concrete',
+      wallMaterial: 'warmMasonry',
+      roofPaint: 'storefrontTeal',
+      roofRim: 'weatheredCoral',
+      interiorTrim: 'storefrontTeal',
+      roofSign: {
+        color: 'weatheredCoral',
+        backing: 'structuralVoid',
+        stripe: 'dirtyCream',
+        dx: signDx,
+        dy: signDy,
+        w: signW,
+        h: signH,
+      },
+    };
   }
 
   if (tier === 'weathered') {
-    const variant = subRng.next() < 0.5 ? 0 : 1;
     // Varied non-repeating wear placement:
+    // fadedPanel is top-left offset bounded in [12, bw - panelW - 12]
     const panelW = Math.max(28, Math.min(bw - 32, Math.round(bw * (0.28 + subRng.next() * 0.18))));
     const panelH = Math.max(18, Math.min(bh - 32, Math.round(bh * (0.16 + subRng.next() * 0.12))));
-    const panelDx = Math.round(16 + subRng.next() * Math.max(0, bw - panelW - 32));
+    const panelDx = Math.round(12 + subRng.next() * Math.max(0, bw - panelW - 24));
     const panelDy = door === 'S'
-      ? Math.round(16 + subRng.next() * Math.max(0, bh * 0.45))
-      : Math.round(Math.max(16, bh * 0.4 + subRng.next() * Math.max(0, bh * 0.45 - panelH)));
+      ? Math.round(12 + subRng.next() * Math.max(0, bh * 0.45 - 12))
+      : Math.round(Math.max(12, bh * 0.4 + subRng.next() * Math.max(0, bh * 0.45 - panelH)));
 
+    // roofDrainStain is center offset bounded in [12 + drainW / 2, bw - 12 - drainW / 2]
     const drainW = Math.round(24 + subRng.next() * 10);
     const drainH = Math.round(18 + subRng.next() * 8);
-    const drainDx = Math.round(16 + subRng.next() * Math.max(0, bw - drainW - 32));
-    const drainDy = Math.round(16 + subRng.next() * Math.max(0, bh - drainH - 32));
+    const minDrainX = 12 + Math.ceil(drainW / 2);
+    const maxDrainX = Math.max(minDrainX, bw - 12 - Math.ceil(drainW / 2));
+    const minDrainY = 12 + Math.ceil(drainH / 2);
+    const maxDrainY = Math.max(minDrainY, bh - 12 - Math.ceil(drainH / 2));
+    const drainDx = Math.round(minDrainX + subRng.next() * (maxDrainX - minDrainX));
+    const drainDy = Math.round(minDrainY + subRng.next() * (maxDrainY - minDrainY));
 
+    // floorStain is center offset bounded in [24 + floorStainW / 2, bw - 24 - floorStainW / 2]
     const floorStainW = Math.round(28 + subRng.next() * 16);
     const floorStainH = Math.round(20 + subRng.next() * 12);
-    const floorStainDx = Math.round(24 + subRng.next() * Math.max(0, bw - floorStainW - 48));
-    const floorStainDy = Math.round(24 + subRng.next() * Math.max(0, bh - floorStainH - 48));
+    const minFloorX = 24 + Math.ceil(floorStainW / 2);
+    const maxFloorX = Math.max(minFloorX, bw - 24 - Math.ceil(floorStainW / 2));
+    const minFloorY = 24 + Math.ceil(floorStainH / 2);
+    const maxFloorY = Math.max(minFloorY, bh - 24 - Math.ceil(floorStainH / 2));
+    const floorStainDx = Math.round(minFloorX + subRng.next() * (maxFloorX - minFloorX));
+    const floorStainDy = Math.round(minFloorY + subRng.next() * (maxFloorY - minFloorY));
 
     return {
-      floorMaterial: variant === 0 ? 'warmMasonry' : 'concrete',
-      wallMaterial: variant === 0 ? 'dustyStucco' : 'coolConcrete',
-      roofPaint: variant === 0 ? 'weatheredCoral' : 'storefrontTeal',
-      roofRim: variant === 0 ? 'storefrontTeal' : 'structuralVoid',
-      interiorTrim: variant === 0 ? 'storefrontTeal' : 'weatheredCoral',
+      floorMaterial: 'warmMasonry',
+      wallMaterial: 'dustyStucco',
+      roofPaint: 'weatheredCoral',
+      roofRim: 'storefrontTeal',
+      interiorTrim: 'storefrontTeal',
       roofSign: {
-        color: variant === 0 ? 'storefrontTeal' : 'weatheredCoral',
+        color: 'storefrontTeal',
         backing: 'structuralVoid',
-        stripe: variant === 0 ? 'awningsYellow' : 'dirtyCream',
+        stripe: 'awningsYellow',
         dx: signDx,
         dy: signDy,
         w: signW,
@@ -236,37 +226,52 @@ export function createStorefrontAppearance(options: StorefrontAppearanceOptions 
   }
 
   // Damaged tier: Competition scorch mark + heavy wear
-  const variant = subRng.next() < 0.5 ? 0 : 1;
+  // scorchMark is center offset bounded in [12 + scorchW / 2, bw - 12 - scorchW / 2]
   const scorchW = Math.max(32, Math.min(bw - 28, Math.round(bw * (0.32 + subRng.next() * 0.16))));
   const scorchH = Math.max(24, Math.min(bh - 28, Math.round(bh * (0.22 + subRng.next() * 0.12))));
-  const scorchDx = Math.round(16 + subRng.next() * Math.max(0, bw - scorchW - 32));
-  const scorchDy = Math.round(16 + subRng.next() * Math.max(0, bh - scorchH - 32));
+  const minScorchX = 12 + Math.ceil(scorchW / 2);
+  const maxScorchX = Math.max(minScorchX, bw - 12 - Math.ceil(scorchW / 2));
+  const minScorchY = 12 + Math.ceil(scorchH / 2);
+  const maxScorchY = Math.max(minScorchY, bh - 12 - Math.ceil(scorchH / 2));
+  const scorchDx = Math.round(minScorchX + subRng.next() * (maxScorchX - minScorchX));
+  const scorchDy = Math.round(minScorchY + subRng.next() * (maxScorchY - minScorchY));
 
+  // fadedPanel is top-left offset bounded in [12, bw - panelW - 12]
   const panelW = Math.max(26, Math.min(bw - 32, Math.round(bw * (0.25 + subRng.next() * 0.15))));
   const panelH = Math.max(16, Math.min(bh - 32, Math.round(bh * (0.15 + subRng.next() * 0.1))));
-  const panelDx = Math.round(16 + subRng.next() * Math.max(0, bw - panelW - 32));
-  const panelDy = Math.round(16 + subRng.next() * Math.max(0, bh - panelH - 32));
+  const panelDx = Math.round(12 + subRng.next() * Math.max(0, bw - panelW - 24));
+  const panelDy = Math.round(12 + subRng.next() * Math.max(0, bh - panelH - 24));
 
+  // roofDrainStain is center offset bounded in [12 + drainW / 2, bw - 12 - drainW / 2]
   const drainW = Math.round(26 + subRng.next() * 8);
   const drainH = Math.round(18 + subRng.next() * 8);
-  const drainDx = Math.round(16 + subRng.next() * Math.max(0, bw - drainW - 32));
-  const drainDy = Math.round(16 + subRng.next() * Math.max(0, bh - drainH - 32));
+  const minDrainX = 12 + Math.ceil(drainW / 2);
+  const maxDrainX = Math.max(minDrainX, bw - 12 - Math.ceil(drainW / 2));
+  const minDrainY = 12 + Math.ceil(drainH / 2);
+  const maxDrainY = Math.max(minDrainY, bh - 12 - Math.ceil(drainH / 2));
+  const drainDx = Math.round(minDrainX + subRng.next() * (maxDrainX - minDrainX));
+  const drainDy = Math.round(minDrainY + subRng.next() * (maxDrainY - minDrainY));
 
+  // floorStain is center offset bounded in [24 + floorStainW / 2, bw - 24 - floorStainW / 2]
   const floorStainW = Math.round(36 + subRng.next() * 16);
   const floorStainH = Math.round(24 + subRng.next() * 14);
-  const floorStainDx = Math.round(24 + subRng.next() * Math.max(0, bw - floorStainW - 48));
-  const floorStainDy = Math.round(24 + subRng.next() * Math.max(0, bh - floorStainH - 48));
+  const minFloorX = 24 + Math.ceil(floorStainW / 2);
+  const maxFloorX = Math.max(minFloorX, bw - 24 - Math.ceil(floorStainW / 2));
+  const minFloorY = 24 + Math.ceil(floorStainH / 2);
+  const maxFloorY = Math.max(minFloorY, bh - 24 - Math.ceil(floorStainH / 2));
+  const floorStainDx = Math.round(minFloorX + subRng.next() * (maxFloorX - minFloorX));
+  const floorStainDy = Math.round(minFloorY + subRng.next() * (maxFloorY - minFloorY));
 
   return {
     floorMaterial: 'slatePaving',
-    wallMaterial: variant === 0 ? 'coolConcrete' : 'dustyStucco',
-    roofPaint: variant === 0 ? 'dirtyCream' : 'weatheredCoral',
+    wallMaterial: 'coolConcrete',
+    roofPaint: 'dirtyCream',
     roofRim: 'oldSignRed',
     interiorTrim: 'oldSignRed',
     roofSign: {
-      color: variant === 0 ? 'oldSignRed' : 'structuralVoid',
+      color: 'oldSignRed',
       backing: 'structuralVoid',
-      stripe: variant === 0 ? 'weatheredCoral' : 'oxidizedMetal',
+      stripe: 'weatheredCoral',
       dx: signDx,
       dy: signDy,
       w: Math.max(28, Math.round(signW * 0.75)),
@@ -282,11 +287,7 @@ export function createStorefrontAppearance(options: StorefrontAppearanceOptions 
 }
 
 export function selectStorefrontAppearance(roll: number, footprint?: { w?: number; h?: number; door?: Side }): BuildingAppearance {
-  if (footprint) {
-    return createStorefrontAppearance({ roll, ...footprint });
-  }
-  const index = Math.floor(roll * RETAIL_STOREFRONT_PRESETS.length);
-  return RETAIL_STOREFRONT_PRESETS[Math.min(index, RETAIL_STOREFRONT_PRESETS.length - 1)];
+  return createStorefrontAppearance({ roll, ...footprint });
 }
 
 const houseFor = (w: number, h: number, door: Side, spaces: number, size: number, seed: number, appearance?: BuildingAppearance): House | undefined => {

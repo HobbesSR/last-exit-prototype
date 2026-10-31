@@ -1475,14 +1475,48 @@ try {
     },
   };
 
-  const storefrontDemo = await page.evaluate(async (demoMap) => {
+  const intactSignPos = {
+    x: Math.round(300 + appIntact.roofSign.dx + appIntact.roofSign.w / 2),
+    y: Math.round(500 + appIntact.roofSign.dy + appIntact.roofSign.h / 2),
+  };
+  const intactSignBackingPos = {
+    x: Math.round(300 + appIntact.roofSign.dx + appIntact.roofSign.w / 2),
+    y: Math.round(500 + appIntact.roofSign.dy + appIntact.roofSign.h + 1),
+  };
+  const weatheredDrainPos = {
+    x: Math.round(560 + appWeathered.neglect.roofDrainStain.dx),
+    y: Math.round(500 + appWeathered.neglect.roofDrainStain.dy),
+  };
+  const damagedScorchPos = {
+    x: Math.round(820 + appDamaged.neglect.scorchMark.dx),
+    // Offset slightly in Y from the horizontal roof ridge line at multiples of 24px:
+    y: Math.round(500 + appDamaged.neglect.scorchMark.dy - 7),
+  };
+  const damagedDoorDecal = hDamaged.elements[0].template.decals.find(d => d.marks === 'door');
+  const doorstepPos = {
+    x: Math.round(820 + (damagedDoorDecal ? damagedDoorDecal.x + damagedDoorDecal.w / 2 : 100)),
+    y: Math.round(500 + (damagedDoorDecal ? damagedDoorDecal.y + damagedDoorDecal.h / 2 : 171)),
+  };
+
+  const sampleTargets = {
+    demoMap: sfMap,
+    intactSignPos,
+    intactSignBackingPos,
+    weatheredDrainPos,
+    damagedScorchPos,
+    doorstepPos,
+    lodZoom: LOD_LOW_ZOOM,
+  };
+
+  const storefrontDemo = await page.evaluate(async (targets) => {
+    const { demoMap, intactSignPos, intactSignBackingPos, weatheredDrainPos, damagedScorchPos, doorstepPos, lodZoom } = targets;
     const f = window.witness, s = f.scene;
     window.__witnessPriorMap = f.map;
     const priorMap = f.map;
     f.map = demoMap;
     s.recordStatic(demoMap);
 
-    // 1. Gameplay zoom (playerZoom), roofs covered:
+    // 1. Gameplay zoom (playerZoom), roofs covered (player stands well south of all doors at y=850):
     await f.settle({
       palette: 'signature',
       lighting: true,
@@ -1490,14 +1524,21 @@ try {
       directed: false,
       fog: false,
       camera: { x: 660, y: 580, zoom: 1.12 },
-      selfPos: { x: 660, y: 710 },
+      selfPos: { x: 660, y: 850 },
       roofSteps: 40,
     });
     const intactRoofPx = f.pixelAtWorld(400, 560);
-    const intactSignPx = f.pixelAtWorld(400, 645);
+    const intactSignPx = f.pixelAtWorld(intactSignPos.x, intactSignPos.y);
+    const intactSignBackingPx = f.pixelAtWorld(intactSignBackingPos.x, intactSignBackingPos.y);
     const weatheredRoofPx = f.pixelAtWorld(660, 560);
-    const damagedRoofPx = f.pixelAtWorld(920, 560);
+    const weatheredDrainPx = f.pixelAtWorld(weatheredDrainPos.x, weatheredDrainPos.y);
+    // Clean damaged roof surface away from scorch, drain, and panel marks:
+    const damagedRoofPx = f.pixelAtWorld(980, 530);
+    const damagedScorchPx = f.pixelAtWorld(damagedScorchPos.x, damagedScorchPos.y);
     const streetPx = f.pixelAtWorld(660, 710);
+    const intactRoofAlpha = s.roofs.get(demoMap.roofs[0].id)?.alpha ?? 0;
+    const weatheredRoofAlpha = s.roofs.get(demoMap.roofs[1].id)?.alpha ?? 0;
+    const damagedRoofAlphaClosed = s.roofs.get(demoMap.roofs[2].id)?.alpha ?? 0;
 
     // 2. Interior view (inside damaged shop, roof revealed):
     await f.settle({
@@ -1511,21 +1552,23 @@ try {
       roofSteps: 40,
     });
     const damagedFloorPx = f.pixelAtWorld(920, 580);
-    const doorstepPx = f.pixelAtWorld(920, 650);
-    const damagedRoofAlpha = s.roofs.get(demoMap.roofs[2].id)?.alpha ?? 0;
+    const doorstepPx = f.pixelAtWorld(doorstepPos.x, doorstepPos.y);
+    const damagedRoofAlphaInside = s.roofs.get(demoMap.roofs[2].id)?.alpha ?? 0;
 
-    // 3. Distant LOD zoom:
+    // 3. Distant LOD zoom (directed: true so camera.zoom is respected):
     await f.settle({
       palette: 'signature',
       lighting: true,
       wear: true,
-      directed: false,
+      directed: true,
       fog: false,
-      camera: { x: 660, y: 580, zoom: 0.28 },
-      selfPos: { x: 660, y: 710 },
+      camera: { x: 660, y: 580, zoom: lodZoom },
+      selfPos: { x: 660, y: 850 },
       roofSteps: 40,
     });
     const lodRoofPx = f.pixelAtWorld(400, 560);
+    const lodStreetPx = f.pixelAtWorld(660, 710);
+    const lodDamagedRoofPx = f.pixelAtWorld(920, 560);
 
     // Restore prior map:
     f.map = priorMap;
@@ -1535,21 +1578,29 @@ try {
     return {
       intactRoofPx,
       intactSignPx,
+      intactSignBackingPx,
       weatheredRoofPx,
+      weatheredDrainPx,
       damagedRoofPx,
+      damagedScorchPx,
       streetPx,
       damagedFloorPx,
       doorstepPx,
-      damagedRoofAlpha,
+      intactRoofAlpha,
+      weatheredRoofAlpha,
+      damagedRoofAlphaClosed,
+      damagedRoofAlphaInside,
       lodRoofPx,
+      lodStreetPx,
+      lodDamagedRoofPx,
     };
-  }, sfMap);
+  }, sampleTargets);
 
   // Take dedicated screenshots for visual review:
   await page.evaluate(async (demoMap) => {
     window.witness.map = demoMap;
     window.witness.scene.recordStatic(demoMap);
-    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false, camera: { x: 660, y: 580, zoom: 1.12 }, selfPos: { x: 660, y: 710 } });
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false, camera: { x: 660, y: 580, zoom: 1.12 }, selfPos: { x: 660, y: 850 } });
   }, sfMap);
   const fileSfRoofs = 'storefront-gameplay-roofs.png';
   await page.screenshot({ path: path.join(outDir, fileSfRoofs) });
@@ -1562,12 +1613,12 @@ try {
   await page.screenshot({ path: path.join(outDir, fileSfInterior) });
   captures.push({ id: 'storefront-gameplay-interior', file: fileSfInterior, theme: 'signature', fog: false, zoom: INDOOR_ZOOM, view: 'step5-storefront-interior (damaged shop interior revealed, doorstep threshold)' });
 
-  await page.evaluate(async () => {
-    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false, camera: { x: 660, y: 580, zoom: 0.28 }, selfPos: { x: 660, y: 710 } });
-  });
+  await page.evaluate(async (lodZoom) => {
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: true, fog: false, camera: { x: 660, y: 580, zoom: lodZoom }, selfPos: { x: 660, y: 850 } });
+  }, LOD_LOW_ZOOM);
   const fileSfLod = 'storefront-distant-lod.png';
   await page.screenshot({ path: path.join(outDir, fileSfLod) });
-  captures.push({ id: 'storefront-distant-lod', file: fileSfLod, theme: 'signature', fog: false, zoom: LOD_LOW_ZOOM, view: 'step5-storefront-distant-lod (0.28 zoom silhouette and layout readability)' });
+  captures.push({ id: 'storefront-distant-lod', file: fileSfLod, theme: 'signature', fog: false, zoom: LOD_LOW_ZOOM, view: `step5-storefront-distant-lod (${LOD_LOW_ZOOM} zoom silhouette and layout readability)` });
 
   // Restore prior map:
   await page.evaluate(async () => {
@@ -1593,35 +1644,72 @@ try {
   };
 
   const intactRoofLumRatio = lumContrast(storefrontDemo.intactRoofPx.hex, storefrontDemo.streetPx.hex);
-  const intactSignLumRatio = lumContrast(storefrontDemo.intactSignPx.hex, storefrontDemo.intactRoofPx.hex);
   const damagedRoofLumRatio = lumContrast(storefrontDemo.damagedRoofPx.hex, storefrontDemo.streetPx.hex);
+  const damagedVsIntactRoofRatio = lumContrast(storefrontDemo.damagedRoofPx.hex, storefrontDemo.intactRoofPx.hex);
+  const weatheredVsIntactRoofRatio = lumContrast(storefrontDemo.weatheredRoofPx.hex, storefrontDemo.intactRoofPx.hex);
+  const intactSignLumRatio = lumContrast(storefrontDemo.intactSignPx.hex, storefrontDemo.intactRoofPx.hex);
+  const intactSignBackingLumRatio = lumContrast(storefrontDemo.intactSignBackingPx.hex, storefrontDemo.intactRoofPx.hex);
+  const intactSignFaceVsBackingRatio = lumContrast(storefrontDemo.intactSignPx.hex, storefrontDemo.intactSignBackingPx.hex);
+  const weatheredDrainLumRatio = lumContrast(storefrontDemo.weatheredDrainPx.hex, storefrontDemo.weatheredRoofPx.hex);
+  const damagedScorchLumRatio = lumContrast(storefrontDemo.damagedScorchPx.hex, storefrontDemo.damagedRoofPx.hex);
   const doorstepLumRatio = lumContrast(storefrontDemo.doorstepPx.hex, storefrontDemo.damagedFloorPx.hex);
+  const lodRoofLumRatio = lumContrast(storefrontDemo.lodRoofPx.hex, storefrontDemo.lodStreetPx.hex);
 
   // Assertions:
-  // 1. Rooftops are visibly distinct between intact, weathered, and damaged:
+  // 1. All three roofs are fully closed in gameplay view when player is clear of doors:
+  assert.equal(storefrontDemo.intactRoofAlpha, 1, 'intact roof is closed');
+  assert.equal(storefrontDemo.weatheredRoofAlpha, 1, 'weathered roof is closed');
+  assert.equal(storefrontDemo.damagedRoofAlphaClosed, 1, 'damaged roof is closed');
+
+  // 2. Rooftops are visibly distinct between intact, weathered, and damaged:
   assert.notEqual(storefrontDemo.intactRoofPx.hex, storefrontDemo.weatheredRoofPx.hex, 'intact roof differs from weathered roof');
   assert.notEqual(storefrontDemo.weatheredRoofPx.hex, storefrontDemo.damagedRoofPx.hex, 'weathered roof differs from damaged roof');
   assert.notEqual(storefrontDemo.intactRoofPx.hex, storefrontDemo.damagedRoofPx.hex, 'intact roof differs from damaged roof');
 
-  // 2. Grayscale readability survives:
+  // 3. Grayscale readability survives across decay tiers and against ground:
   assert.ok(intactRoofLumRatio >= 1.15, `intact roof survives grayscale contrast vs street (${intactRoofLumRatio})`);
   assert.ok(damagedRoofLumRatio >= 1.15, `damaged roof survives grayscale contrast vs street (${damagedRoofLumRatio})`);
+  assert.ok(damagedVsIntactRoofRatio >= 1.25, `damaged cream roof separates in grayscale from intact teal roof (${damagedVsIntactRoofRatio})`);
 
-  // 3. Entrance / interior readability:
-  assert.equal(storefrontDemo.damagedRoofAlpha, 0, 'roof reveals when player is inside shop');
+  // 4. Wear marks and commercial features survive value contrast against their owning surfaces:
+  assert.ok(intactSignBackingLumRatio >= 1.25, `commercial roof sign backing separates in grayscale against roof (${intactSignBackingLumRatio})`);
+  assert.ok(intactSignFaceVsBackingRatio >= 1.25, `commercial sign face separates in grayscale against sign backing (${intactSignFaceVsBackingRatio})`);
+  assert.ok(weatheredDrainLumRatio >= 1.3, `weathered drainage stain separates in grayscale against roof (${weatheredDrainLumRatio})`);
+  assert.ok(damagedScorchLumRatio >= 1.5, `damaged scorch mark separates in grayscale against roof (${damagedScorchLumRatio})`);
+  assert.ok(doorstepLumRatio >= 1.3, `realized entrance doorstep separates in grayscale against interior floor (${doorstepLumRatio})`);
+  assert.ok(lodRoofLumRatio >= 1.15, `distant LOD roof silhouette separates in grayscale against street (${lodRoofLumRatio})`);
+
+  // 5. Entrance / interior readability:
+  assert.equal(storefrontDemo.damagedRoofAlphaInside, 0, 'roof reveals when player is inside shop');
 
   const step5StorefrontSummary = {
     intactRoofHex: css(storefrontDemo.intactRoofPx.hex),
     weatheredRoofHex: css(storefrontDemo.weatheredRoofPx.hex),
     damagedRoofHex: css(storefrontDemo.damagedRoofPx.hex),
     streetHex: css(storefrontDemo.streetPx.hex),
+    intactSignHex: css(storefrontDemo.intactSignPx.hex),
+    intactSignBackingHex: css(storefrontDemo.intactSignBackingPx.hex),
+    weatheredDrainHex: css(storefrontDemo.weatheredDrainPx.hex),
+    damagedScorchHex: css(storefrontDemo.damagedScorchPx.hex),
     damagedFloorHex: css(storefrontDemo.damagedFloorPx.hex),
     doorstepHex: css(storefrontDemo.doorstepPx.hex),
+    intactRoofAlpha: storefrontDemo.intactRoofAlpha,
+    weatheredRoofAlpha: storefrontDemo.weatheredRoofAlpha,
+    damagedRoofAlphaClosed: storefrontDemo.damagedRoofAlphaClosed,
+    damagedRoofAlphaInside: storefrontDemo.damagedRoofAlphaInside,
     intactRoofLumRatio,
-    intactSignLumRatio,
     damagedRoofLumRatio,
+    damagedVsIntactRoofRatio,
+    weatheredVsIntactRoofRatio,
+    intactSignLumRatio,
+    intactSignBackingLumRatio,
+    intactSignFaceVsBackingRatio,
+    weatheredDrainLumRatio,
+    damagedScorchLumRatio,
     doorstepLumRatio,
-    roofAlphaInside: storefrontDemo.damagedRoofAlpha,
+    lodRoofLumRatio,
+    lodRoofHex: css(storefrontDemo.lodRoofPx.hex),
+    lodStreetHex: css(storefrontDemo.lodStreetPx.hex),
   };
 
   // 6. Analyze WebGL pixel measurements for all special obstacle branches, glass alpha, and #587 comment 6317 screening candidates.
