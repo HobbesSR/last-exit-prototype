@@ -119,10 +119,11 @@ test('resolveBuildingAppearance and resolveObstacleAppearance compose in fixed o
   assert.ok(styledNoWear.roofMarks.some(m => m.layer === 'commercial-sign'), 'wear=false keeps commercial roof sign');
 
   // North wall has focalRim authored per obstacle; south wall does not:
-  const obsNorthFull = resolveObstacleAppearance(wallNorth, mapAppearance, { building, palette: 'signature', lighting: true, wear: true });
-  const obsNorthNoLight = resolveObstacleAppearance(wallNorth, mapAppearance, { building, palette: 'signature', lighting: false, wear: true });
-  const obsNorthNoWear = resolveObstacleAppearance(wallNorth, mapAppearance, { building, palette: 'signature', lighting: true, wear: false });
-  const obsSouthFull = resolveObstacleAppearance(wallSouth, mapAppearance, { building, palette: 'signature', lighting: true, wear: true });
+  const buildingsById = new Map([[building.id, building]]);
+  const obsNorthFull = resolveObstacleAppearance(wallNorth, mapAppearance, { buildingsById, palette: 'signature', lighting: true, wear: true });
+  const obsNorthNoLight = resolveObstacleAppearance(wallNorth, mapAppearance, { buildingsById, palette: 'signature', lighting: false, wear: true });
+  const obsNorthNoWear = resolveObstacleAppearance(wallNorth, mapAppearance, { buildingsById, palette: 'signature', lighting: true, wear: false });
+  const obsSouthFull = resolveObstacleAppearance(wallSouth, mapAppearance, { buildingsById, palette: 'signature', lighting: true, wear: true });
 
   assert.ok(obsNorthFull.focalRim, 'exposed north wall receives amber focal rim');
   assert.equal(obsNorthFull.focalRim.side, 'N', 'focal rim side matches authored descriptor');

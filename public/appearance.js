@@ -312,7 +312,8 @@ export function resolveObstacleAppearance(obstacle, mapAppearance, options = {})
   const art = resolveArtOptions(options);
   const ink = art.ink;
   const desc = obstacle?.appearance || null;
-  const buildingDesc = options.building?.appearance || options.buildings?.find(b => b.id === obstacle.buildingId)?.appearance || null;
+  const building = obstacle.buildingId ? (options.buildingsById?.get(obstacle.buildingId) || options.buildings?.find(b => b.id === obstacle.buildingId)) : null;
+  const buildingDesc = building?.appearance || obstacle.buildingAppearance || null;
   const fields = mapAppearance?.lighting?.fields || [];
 
   const cx = obstacle.r ? obstacle.x : obstacle.x + (obstacle.w || 0) / 2;

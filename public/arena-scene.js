@@ -266,7 +266,7 @@ export function makeArenaScene(api) {
      * `priorGroups` carries roof and canopy fades over a restyle; a new map starts them afresh.
      */
     recordStatic(map, priorGroups = new Map()) {
-      const ink = this.colors, artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildings: map.buildings }; let g;
+      const ink = this.colors, buildingsById = new Map((map.buildings || []).map(b => [b.id, b])), artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById }; let g;
       for (const cache of [this.tiles, this.overheadTiles]) for (const tile of cache.values()) tile.texture?.destroy();
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
@@ -346,9 +346,17 @@ export function makeArenaScene(api) {
       this.roofMembers = roofGroups(map);
       // Buildings a declared roof covers; the update's fade loop skips them as well.
       const coveredBuildingIds = this.coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
+      const markedBuildingIds = new Set();
       if (map.roofs?.length) {
         for (const roof of map.roofs) {
-          const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance: roof.appearance }, map.appearance, artOpts);
+          const building = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
+          const buildingAppearance = building?.appearance || roof.appearance;
+          const isPrimaryRoof = building ? (!markedBuildingIds.has(building.id) && (
+            (roof.bounds.x <= building.x && roof.bounds.y <= building.y) ||
+            !map.roofs.some(r => r.buildingId === building.id && r !== roof && r.bounds.x <= building.x && r.bounds.y <= building.y)
+          )) : true;
+          if (building && isPrimaryRoof) markedBuildingIds.add(building.id);
+          const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance: buildingAppearance }, map.appearance, artOpts);
           const key = `roof:${roof.id}`;
           const overhang = roof.overhang ?? ROOF_OVERHANG;
           const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
@@ -423,7 +431,7 @@ export function makeArenaScene(api) {
               if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
             }
           }
-          if (resolved.roofMarks.length) recordAppearanceOps(g, resolved.roofMarks);
+          if (resolved.roofMarks.length && isPrimaryRoof) recordAppearanceOps(g, resolved.roofMarks);
 
           g.lineStyle(2, resolved.roofRidge);
           for (let ry = roof.bounds.y + 12; ry < roof.bounds.y + roof.bounds.h - 10; ry += 24) {

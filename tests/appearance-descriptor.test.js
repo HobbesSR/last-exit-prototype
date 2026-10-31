@@ -198,6 +198,26 @@ test('existing depot region strategy adopts DEPOT_WAREHOUSE_APPEARANCE on all pl
     assert.ok(resolved.roofMarks.length > 0, 'commercial roof sign resolves on warehouse');
   }
 
+  // Declared roofs emitted by stamped depot warehouses resolve building appearance
+  assert.ok(ctx.map.roofs && ctx.map.roofs.length > 0, 'stamped warehouse emits declared roofs');
+  const buildingsById = new Map(ctx.map.buildings.map(b => [b.id, b]));
+  for (const roof of ctx.map.roofs) {
+    const b = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
+    assert.ok(b, 'declared roof has owning building');
+    const resolvedRoof = resolveBuildingAppearance(
+      { id: roof.buildingId || roof.id, ...roof.bounds, appearance: b?.appearance },
+      ctx.map.appearance,
+      { palette: 'signature', wear: true }
+    );
+    const neutralRoof = resolveBuildingAppearance(
+      { id: roof.buildingId || roof.id, ...roof.bounds, appearance: null },
+      null,
+      { palette: 'signature', wear: true }
+    );
+    assert.notEqual(resolvedRoof.roofFill, neutralRoof.roofFill, 'declared roof resolves non-neutral authored roofFill');
+    assert.ok(resolvedRoof.roofMarks.length > 0, 'declared roof resolves non-empty roofMarks');
+  }
+
   // Shelf container obstacles inside warehouse carry obstacle appearance
   const shelfObstacles = ctx.map.obstacles.filter(o => o.kind === 'container' && o.appearance);
   assert.ok(shelfObstacles.length > 0, 'shelf obstacles have appearance');
