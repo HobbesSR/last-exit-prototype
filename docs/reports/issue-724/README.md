@@ -2,6 +2,9 @@
 
 Status: implementation and controlled comparison complete; integration gate
 results are recorded in `verification.json`. No #716 content is adopted.
+There is no production caller on main: the 26.68% measured gain belongs only
+to the pinned prototype modified by `prepare.mjs`. Exporting the SDK API does
+not change production generation cost or content.
 
 ## What is reused
 
@@ -116,8 +119,30 @@ Two correct generic capsule caches were slower and were rejected:
 `indexed-cache-comparison.json` gives 15.763 versus 18.230 s.
 Each completed three locked pairs with exact outputs. Their implementations
 are preserved as `first-cache.ts.txt` and `indexed-cache.ts.txt`, with their
-repeat/reordered reports. `identity.json` and `first-cache-identity.json`
-are duplicate historical captures of the first correct representation.
+repeat/reordered reports. `identity.json` records the first correct
+representation; `indexed-cache-identity.json` records the indexed variant.
+The redundant `first-cache-identity.json` copy was removed after verifying
+that its SHA-256 matched `identity.json`; no distinct capture was discarded.
+
+## Adoption and deferred review notes
+
+The prototype has a spatial-query argument before the clearance callback;
+main currently has only the callback. Before adoption, reconcile these through
+an options object rather than shifting positional arguments. The current
+production signature remains unchanged in this review follow-up.
+
+The review also identified avoidable accepted-view allocation, string bucket
+keys and cloned geometry as possible market overhead. They are hypotheses,
+not attributed causes or measured improvements. Address them separately with
+source-pinned frozen-output checks and quiet paired timings; the measurements
+above remain bound to the reviewed implementation.
+The optional follow-up is tracked on [#743](/corey/astra_test/issues/743),
+behind the missing functional outcomes in #716 and #717.
+
+Computed trial results are deliberately discarded on refusal. Publishing even
+unaffected results into accepted state would change the strict trial-isolation
+policy. Such reuse needs an explicit accepted-prefix proof and rollback tests;
+it is not part of this approved implementation or a required next task.
 
 One later timing attempt could not acquire the machine lock and produced no
 measurements. It was retried with a longer lock wait; no test or diagnostic
