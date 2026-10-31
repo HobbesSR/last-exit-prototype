@@ -1,0 +1,145 @@
+{
+  "passed": true,
+  "sourceRevision": "c8fa4f1d839e391948f4d99cc3731ff34368a83f",
+  "normalizedSourcePins": 266,
+  "inputPins": 3,
+  "reportAndMapPins": 3,
+  "summaryTimingPreviewPins": true,
+  "exactFixedEndpointIdentity": true,
+  "productionDiffPaths": [],
+  "rows": [
+    {
+      "width": 12,
+      "stageErrors": {
+        "library": [],
+        "layout": [],
+        "portals": [],
+        "proof": []
+      },
+      "changedOwnerProofs": 61,
+      "failedOwnerProofs": 0,
+      "actualAfter": [
+        {
+          "body": "contestant",
+          "total": 1281,
+          "complete": 1281,
+          "noPortal": 0
+        },
+        {
+          "body": "hunter",
+          "total": 1281,
+          "complete": 1281,
+          "noPortal": 0
+        }
+      ],
+      "fixedAfter": [
+        {
+          "body": "contestant",
+          "statuses": {
+            "complete": 1574,
+            "invalid-endpoint": 60
+          }
+        },
+        {
+          "body": "hunter",
+          "statuses": {
+            "complete": 1567,
+            "invalid-endpoint": 67
+          }
+        }
+      ]
+    },
+    {
+      "width": 24,
+      "stageErrors": {
+        "library": [],
+        "layout": [],
+        "portals": [],
+        "proof": []
+      },
+      "changedOwnerProofs": 100,
+      "failedOwnerProofs": 0,
+      "actualAfter": [
+        {
+          "body": "contestant",
+          "total": 3265,
+          "complete": 3265,
+          "noPortal": 0
+        },
+        {
+          "body": "hunter",
+          "total": 3265,
+          "complete": 3265,
+          "noPortal": 0
+        }
+      ],
+      "fixedAfter": [
+        {
+          "body": "contestant",
+          "statuses": {
+            "complete": 3592,
+            "invalid-endpoint": 139
+          }
+        },
+        {
+          "body": "hunter",
+          "statuses": {
+            "complete": 3565,
+            "invalid-endpoint": 166
+          }
+        }
+      ]
+    },
+    {
+      "width": 36,
+      "stageErrors": {
+        "library": [],
+        "layout": [],
+        "portals": [],
+        "proof": []
+      },
+      "changedOwnerProofs": 239,
+      "failedOwnerProofs": 0,
+      "actualAfter": [
+        {
+          "body": "contestant",
+          "total": 7081,
+          "complete": 7081,
+          "noPortal": 0
+        },
+        {
+          "body": "hunter",
+          "total": 7081,
+          "complete": 7081,
+          "noPortal": 0
+        }
+      ],
+      "fixedAfter": [
+        {
+          "body": "contestant",
+          "statuses": {
+            "invalid-endpoint": 187,
+            "complete": 7640
+          }
+        },
+        {
+          "body": "hunter",
+          "statuses": {
+            "invalid-endpoint": 261,
+            "complete": 7570
+          }
+        }
+      ]
+    }
+  ],
+  "independentReview": {
+    "agent": "GPT-6.1 Terra medium",
+    "completeSaveDecodeReencode": "all three byte-exact",
+    "derivedLibraryLayoutPortalProof": "zero errors",
+    "masksOutsideClasses": "exact",
+    "wallHalvesAndSoleSharedTwoCellPortal": "exact",
+    "coreSites": "all 22 kinds/coordinates unchanged each size",
+    "scope": "Lightweight rederivation and artifact/source integrity. Expensive builders, navigation and physical proofs were not independently rerun."
+  },
+  "fullVerify": "Not rerun; full capture already repeated reordered inputs, and independent artifact checks cover pins and rederivation. --verify remains available for a complete expensive replay."
+}
