@@ -1,0 +1,75 @@
+{
+  "scope": "Three locked pairs on the unchanged 200x150 depot witness; only local witness repair differs. Hard-capped attempts have no completion duration. Original >10 warehouses/>100 rows and 3s assertion remain.",
+  "node": "v24.15.0",
+  "pins": {
+    "control": {
+      "map/micro/strategies/content-access.ts": "2aeba78fb4109a9335bb123d3aaebe586130cd5d1158d060262f94b484f56d21",
+      "map/micro/geometry.ts": "d8014c461eb44021e01e4a714c653164e7f7ea55dd659d7b84a2a27584715008",
+      "map/micro/strategies/depot.ts": "4fecbf29a050d85a13867303992e22f49450ac496495a667aca40bc970c848be",
+      "tests/micro-depot.test.js": "73ca7402da0d0b792979cb3c0ff13e6b881582904b7505ec323bdf0a2c61a870"
+    },
+    "candidate": {
+      "map/micro/strategies/content-access.ts": "67c6a0733bfafff945caea621c17aa0226a7b9b53858b1cae9d12bda42d69782",
+      "map/micro/geometry.ts": "d8014c461eb44021e01e4a714c653164e7f7ea55dd659d7b84a2a27584715008",
+      "map/micro/strategies/depot.ts": "4fecbf29a050d85a13867303992e22f49450ac496495a667aca40bc970c848be",
+      "tests/micro-depot.test.js": "73ca7402da0d0b792979cb3c0ff13e6b881582904b7505ec323bdf0a2c61a870"
+    }
+  },
+  "attempts": [
+    {
+      "repetition": 1,
+      "name": "control",
+      "status": "time-cap",
+      "exitCode": null,
+      "error": "ETIMEDOUT",
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 1,
+      "name": "candidate",
+      "status": "time-cap",
+      "exitCode": null,
+      "error": "ETIMEDOUT",
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 2,
+      "name": "candidate",
+      "status": "time-cap",
+      "exitCode": null,
+      "error": "ETIMEDOUT",
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 2,
+      "name": "control",
+      "status": "time-cap",
+      "exitCode": null,
+      "error": "ETIMEDOUT",
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 3,
+      "name": "control",
+      "status": "time-cap",
+      "exitCode": null,
+      "error": "ETIMEDOUT",
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 3,
+      "name": "candidate",
+      "status": "time-cap",
+      "exitCode": null,
+      "error": "ETIMEDOUT",
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "complete": true
+}

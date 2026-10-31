@@ -1,0 +1,7 @@
+*.gz binary
+*.png binary
+.gitattributes text eol=lf
+*.mjs text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.md text eol=lf

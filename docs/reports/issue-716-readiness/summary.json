@@ -1,0 +1,5810 @@
+{
+  "version": "issue-716-readiness-summary-1",
+  "effectSummarySha256": "669a76ac62b77c804d01cacbd82093b9b620229202cc134f4d878481cc8af6cb",
+  "cases": [
+    {
+      "seed": "size-12-1",
+      "buildMs": 470.5129999999999,
+      "selectedJoinedLength": 0,
+      "eligibleSeamCells": 63,
+      "eligibleSpans": {
+        "count": 63,
+        "maxCells": 1,
+        "oneCell": 63
+      },
+      "groups": {
+        "block / depot": {
+          "seams": 54,
+          "nonGuaranteed": 27,
+          "eligible": 9,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 259.1999999999998,
+          "eligibleContactLength": 259.1999999999998,
+          "contactLengthByType": {
+            "block": 0,
+            "depot": 259.1999999999998
+          },
+          "eligibleContactLengthByType": {
+            "block": 0,
+            "depot": 259.1999999999998
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 24
+        },
+        "charging / depot": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 86.40000000000146,
+          "eligibleContactLength": 86.40000000000146,
+          "contactLengthByType": {
+            "charging": 0,
+            "depot": 86.40000000000146
+          },
+          "eligibleContactLengthByType": {
+            "charging": 0,
+            "depot": 86.40000000000146
+          },
+          "contestantBlockedSamples": 5,
+          "hunterBlockedSamples": 9
+        },
+        "checkpoint / depot": {
+          "seams": 42,
+          "nonGuaranteed": 21,
+          "eligible": 7,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 259.1999999999989,
+          "eligibleContactLength": 259.1999999999989,
+          "contactLengthByType": {
+            "depot": 259.1999999999989,
+            "checkpoint": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 259.1999999999989,
+            "checkpoint": 0
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 24
+        },
+        "cover / depot": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 86.40000000000146,
+          "eligibleContactLength": 86.40000000000146,
+          "contactLengthByType": {
+            "depot": 86.40000000000146,
+            "cover": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 86.40000000000146,
+            "cover": 0
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "cover / market": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 0,
+          "eligibleContactLength": 0,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 0
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 0
+          },
+          "contestantBlockedSamples": 0,
+          "hunterBlockedSamples": 0
+        },
+        "depot / open": {
+          "seams": 57,
+          "nonGuaranteed": 33,
+          "eligible": 11,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 259.20000000000164,
+          "eligibleContactLength": 259.20000000000164,
+          "contactLengthByType": {
+            "depot": 259.20000000000164,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 259.20000000000164,
+            "open": 0
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 24
+        },
+        "depot / plant": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.20000000000073,
+          "eligibleContactLength": 43.20000000000073,
+          "contactLengthByType": {
+            "depot": 43.20000000000073,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 43.20000000000073,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 3,
+          "hunterBlockedSamples": 5
+        },
+        "depot / rubble": {
+          "seams": 21,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 0,
+          "eligibleContactLength": 0,
+          "contactLengthByType": {
+            "depot": 0,
+            "rubble": 0
+          },
+          "eligibleContactLengthByType": {
+            "rubble": 0,
+            "depot": 0
+          },
+          "contestantBlockedSamples": 0,
+          "hunterBlockedSamples": 0
+        },
+        "market / open": {
+          "seams": 69,
+          "nonGuaranteed": 36,
+          "eligible": 12,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 230.39999999999782,
+          "eligibleContactLength": 230.39999999999782,
+          "contactLengthByType": {
+            "market": 230.39999999999782,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 230.39999999999782,
+            "open": 0
+          },
+          "contestantBlockedSamples": 13,
+          "hunterBlockedSamples": 25
+        },
+        "market / park": {
+          "seams": 30,
+          "nonGuaranteed": 15,
+          "eligible": 5,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 76.79999999999927,
+          "eligibleContactLength": 76.79999999999927,
+          "contactLengthByType": {
+            "market": 76.79999999999927,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 76.79999999999927,
+            "park": 0
+          },
+          "contestantBlockedSamples": 5,
+          "hunterBlockedSamples": 9
+        },
+        "market / rubble": {
+          "seams": 21,
+          "nonGuaranteed": 9,
+          "eligible": 3,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 38.399999999999636,
+          "eligibleContactLength": 38.399999999999636,
+          "contactLengthByType": {
+            "market": 38.399999999999636,
+            "rubble": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 38.399999999999636,
+            "rubble": 0
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "market / transit": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 0,
+          "eligibleContactLength": 0,
+          "contactLengthByType": {
+            "transit": 0,
+            "market": 0
+          },
+          "eligibleContactLengthByType": {
+            "transit": 0,
+            "market": 0
+          },
+          "contestantBlockedSamples": 0,
+          "hunterBlockedSamples": 0
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 145,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 145,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 0,
+            "zeroEffect": 22
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 0,
+            "zeroEffect": 33
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 0,
+            "zeroEffect": 96
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 0,
+            "zeroEffect": 22
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 0,
+            "zeroEffect": 33
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 0,
+            "zeroEffect": 96
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 4,
+      "manifests": [
+        {
+          "id": "block@114,78",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 0,
+            "obstacles": 44,
+            "gates": 0,
+            "loot": 127,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "depot@126,102",
+          "type": "depot",
+          "manifest": {
+            "cells": 648,
+            "structures": 2,
+            "obstacles": 73,
+            "gates": 8,
+            "loot": 28,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 1,
+            "infillCrates": 5,
+            "boundaryRows": 16
+          }
+        },
+        {
+          "id": "depot@246,108",
+          "type": "depot",
+          "manifest": {
+            "cells": 756,
+            "structures": 3,
+            "obstacles": 87,
+            "gates": 13,
+            "loot": 76,
+            "coreElements": 0,
+            "warehouses": 3,
+            "designed": 3,
+            "rows": 5,
+            "infillCrates": 7,
+            "boundaryRows": 10
+          }
+        },
+        {
+          "id": "market@174,126",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 48,
+            "gates": 0,
+            "loot": 223,
+            "coreElements": 0,
+            "stalls": 48,
+            "frontageStalls": 16,
+            "awnings": 48
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-12-2",
+      "buildMs": 538.3460999999998,
+      "selectedJoinedLength": 170.60000000000127,
+      "eligibleSeamCells": 70,
+      "eligibleSpans": {
+        "count": 70,
+        "maxCells": 1,
+        "oneCell": 70
+      },
+      "groups": {
+        "cover / depot": {
+          "seams": 30,
+          "nonGuaranteed": 15,
+          "eligible": 5,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 129.60000000000036,
+          "eligibleContactLength": 129.60000000000036,
+          "contactLengthByType": {
+            "cover": 0,
+            "depot": 129.60000000000036
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "depot": 129.60000000000036
+          },
+          "contestantBlockedSamples": 6,
+          "hunterBlockedSamples": 12
+        },
+        "depot / hall": {
+          "seams": 30,
+          "nonGuaranteed": 15,
+          "eligible": 5,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 207.60000000000218,
+          "eligibleContactLength": 207.60000000000218,
+          "contactLengthByType": {
+            "depot": 159.60000000000218,
+            "hall": 48
+          },
+          "eligibleContactLengthByType": {
+            "depot": 159.60000000000218,
+            "hall": 48
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 19
+        },
+        "depot / open": {
+          "seams": 225,
+          "nonGuaranteed": 114,
+          "eligible": 38,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1243.600000000004,
+          "eligibleContactLength": 1243.600000000004,
+          "contactLengthByType": {
+            "depot": 1243.600000000004,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 1243.600000000004,
+            "open": 0
+          },
+          "contestantBlockedSamples": 59,
+          "hunterBlockedSamples": 117
+        },
+        "depot / park": {
+          "seams": 60,
+          "nonGuaranteed": 30,
+          "eligible": 10,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 216.00000000000273,
+          "eligibleContactLength": 216.00000000000273,
+          "contactLengthByType": {
+            "depot": 216.00000000000273,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 216.00000000000273,
+            "park": 0
+          },
+          "contestantBlockedSamples": 11,
+          "hunterBlockedSamples": 21
+        },
+        "depot / rubble": {
+          "seams": 69,
+          "nonGuaranteed": 33,
+          "eligible": 11,
+          "joinedLength": 170.60000000000127,
+          "eligibleJoinedLength": 170.60000000000127,
+          "contactLength": 660.4000000000005,
+          "eligibleContactLength": 660.4000000000005,
+          "contactLengthByType": {
+            "depot": 372.40000000000055,
+            "rubble": 288
+          },
+          "eligibleContactLengthByType": {
+            "depot": 372.40000000000055,
+            "rubble": 288
+          },
+          "contestantBlockedSamples": 34,
+          "hunterBlockedSamples": 43
+        },
+        "depot / transit": {
+          "seams": 6,
+          "nonGuaranteed": 3,
+          "eligible": 1,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.19999999999982,
+          "eligibleContactLength": 43.19999999999982,
+          "contactLengthByType": {
+            "depot": 43.19999999999982,
+            "transit": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 43.19999999999982,
+            "transit": 0
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 0,
+            "zeroEffect": 22
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 0,
+            "zeroEffect": 33
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 0,
+            "zeroEffect": 96
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 0,
+            "zeroEffect": 22
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 0,
+            "zeroEffect": 33
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 0,
+            "zeroEffect": 96
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 4,
+      "manifests": [
+        {
+          "id": "depot@138,48",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 6,
+            "obstacles": 201,
+            "gates": 26,
+            "loot": 162,
+            "coreElements": 0,
+            "warehouses": 6,
+            "designed": 6,
+            "rows": 11,
+            "infillCrates": 30,
+            "boundaryRows": 18
+          }
+        },
+        {
+          "id": "depot@258,90",
+          "type": "depot",
+          "manifest": {
+            "cells": 756,
+            "structures": 2,
+            "obstacles": 83,
+            "gates": 10,
+            "loot": 87,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 5,
+            "infillCrates": 9,
+            "boundaryRows": 12
+          }
+        },
+        {
+          "id": "block@162,120",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 19,
+            "obstacles": 162,
+            "gates": 26,
+            "loot": 86,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "depot@150,150",
+          "type": "depot",
+          "manifest": {
+            "cells": 648,
+            "structures": 0,
+            "obstacles": 55,
+            "gates": 0,
+            "loot": 56,
+            "coreElements": 0,
+            "warehouses": 0,
+            "designed": 0,
+            "rows": 1,
+            "infillCrates": 11,
+            "boundaryRows": 19
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-12-3",
+      "buildMs": 404.03240000000005,
+      "selectedJoinedLength": 193.39999999999964,
+      "eligibleSeamCells": 99,
+      "eligibleSpans": {
+        "count": 97,
+        "maxCells": 2,
+        "oneCell": 95
+      },
+      "groups": {
+        "compound / market": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 76.79999999999927,
+          "eligibleContactLength": 76.79999999999927,
+          "contactLengthByType": {
+            "compound": 0,
+            "market": 76.79999999999927
+          },
+          "eligibleContactLengthByType": {
+            "compound": 0,
+            "market": 76.79999999999927
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "cover / depot": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.20000000000073,
+          "eligibleContactLength": 43.20000000000073,
+          "contactLengthByType": {
+            "cover": 0,
+            "depot": 43.20000000000073
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "depot": 43.20000000000073
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "cover / market": {
+          "seams": 72,
+          "nonGuaranteed": 36,
+          "eligible": 12,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 268.79999999999836,
+          "eligibleContactLength": 268.79999999999836,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 268.79999999999836
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 268.79999999999836
+          },
+          "contestantBlockedSamples": 14,
+          "hunterBlockedSamples": 28
+        },
+        "departure / depot": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.20000000000073,
+          "eligibleContactLength": 43.20000000000073,
+          "contactLengthByType": {
+            "depot": 43.20000000000073,
+            "departure": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 43.20000000000073,
+            "departure": 0
+          },
+          "contestantBlockedSamples": 3,
+          "hunterBlockedSamples": 5
+        },
+        "depot / open": {
+          "seams": 117,
+          "nonGuaranteed": 60,
+          "eligible": 21,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 518.4000000000015,
+          "eligibleContactLength": 518.4000000000015,
+          "contactLengthByType": {
+            "depot": 518.4000000000015,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 518.4000000000015,
+            "open": 0
+          },
+          "contestantBlockedSamples": 25,
+          "hunterBlockedSamples": 49
+        },
+        "depot / park": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 172.80000000000018,
+          "eligibleContactLength": 172.80000000000018,
+          "contactLengthByType": {
+            "depot": 172.80000000000018,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 172.80000000000018,
+            "park": 0
+          },
+          "contestantBlockedSamples": 8,
+          "hunterBlockedSamples": 16
+        },
+        "depot / plant": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.20000000000073,
+          "eligibleContactLength": 43.20000000000073,
+          "contactLengthByType": {
+            "depot": 43.20000000000073,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 43.20000000000073,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "depot / rubble": {
+          "seams": 57,
+          "nonGuaranteed": 27,
+          "eligible": 9,
+          "joinedLength": 78.20000000000073,
+          "eligibleJoinedLength": 78.20000000000073,
+          "contactLength": 260.60000000000036,
+          "eligibleContactLength": 260.60000000000036,
+          "contactLengthByType": {
+            "depot": 164.60000000000036,
+            "rubble": 96
+          },
+          "eligibleContactLengthByType": {
+            "depot": 164.60000000000036,
+            "rubble": 96
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 16
+        },
+        "market / open": {
+          "seams": 156,
+          "nonGuaranteed": 72,
+          "eligible": 25,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 460.79999999999563,
+          "eligibleContactLength": 460.79999999999563,
+          "contactLengthByType": {
+            "market": 460.79999999999563,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 460.79999999999563,
+            "open": 0
+          },
+          "contestantBlockedSamples": 26,
+          "hunterBlockedSamples": 50
+        },
+        "market / park": {
+          "seams": 18,
+          "nonGuaranteed": 9,
+          "eligible": 3,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 76.79999999999927,
+          "eligibleContactLength": 76.79999999999927,
+          "contactLengthByType": {
+            "market": 76.79999999999927,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 76.79999999999927,
+            "park": 0
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "market / plant": {
+          "seams": 18,
+          "nonGuaranteed": 9,
+          "eligible": 3,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 38.40000000000009,
+          "eligibleContactLength": 38.40000000000009,
+          "contactLengthByType": {
+            "plant": 0,
+            "market": 38.40000000000009
+          },
+          "eligibleContactLengthByType": {
+            "plant": 0,
+            "market": 38.40000000000009
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "market / rubble": {
+          "seams": 60,
+          "nonGuaranteed": 36,
+          "eligible": 12,
+          "joinedLength": 115.19999999999891,
+          "eligibleJoinedLength": 115.19999999999891,
+          "contactLength": 662.3999999999983,
+          "eligibleContactLength": 662.3999999999983,
+          "contactLengthByType": {
+            "market": 230.39999999999827,
+            "rubble": 432
+          },
+          "eligibleContactLengthByType": {
+            "market": 230.39999999999827,
+            "rubble": 432
+          },
+          "contestantBlockedSamples": 42,
+          "hunterBlockedSamples": 48
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 145,
+          "commonActualTargets": 130,
+          "affectedActualTargets": 5,
+          "affected": 6,
+          "zeroEffect": 145
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 142,
+          "commonActualTargets": 130,
+          "affectedActualTargets": 2,
+          "affected": 3,
+          "zeroEffect": 148
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 0,
+            "zeroEffect": 22
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 0,
+            "zeroEffect": 33
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 6,
+            "zeroEffect": 90
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 0,
+            "zeroEffect": 22
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 0,
+            "zeroEffect": 33
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 3,
+            "zeroEffect": 93
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 145,
+          "invalid-endpoint": 6,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 142,
+          "invalid-endpoint": 9,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 4,
+      "manifests": [
+        {
+          "id": "market@186,36",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 51,
+            "gates": 0,
+            "loot": 240,
+            "coreElements": 0,
+            "stalls": 51,
+            "frontageStalls": 16,
+            "awnings": 51
+          }
+        },
+        {
+          "id": "depot@306,72",
+          "type": "depot",
+          "manifest": {
+            "cells": 648,
+            "structures": 0,
+            "obstacles": 59,
+            "gates": 0,
+            "loot": 87,
+            "coreElements": 0,
+            "warehouses": 0,
+            "designed": 0,
+            "rows": 1,
+            "infillCrates": 7,
+            "boundaryRows": 18
+          }
+        },
+        {
+          "id": "market@192,90",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 47,
+            "gates": 0,
+            "loot": 283,
+            "coreElements": 0,
+            "stalls": 47,
+            "frontageStalls": 17,
+            "awnings": 47
+          }
+        },
+        {
+          "id": "depot@150,138",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 7,
+            "obstacles": 220,
+            "gates": 29,
+            "loot": 156,
+            "coreElements": 0,
+            "warehouses": 7,
+            "designed": 7,
+            "rows": 17,
+            "infillCrates": 28,
+            "boundaryRows": 17
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-24-1",
+      "buildMs": 1657.9129999999986,
+      "selectedJoinedLength": 1057.2000000000098,
+      "eligibleSeamCells": 431,
+      "eligibleSpans": {
+        "count": 428,
+        "maxCells": 2,
+        "oneCell": 425
+      },
+      "groups": {
+        "arrival / depot": {
+          "seams": 18,
+          "nonGuaranteed": 9,
+          "eligible": 3,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 86.40000000000146,
+          "eligibleContactLength": 86.40000000000146,
+          "contactLengthByType": {
+            "arrival": 0,
+            "depot": 86.40000000000146
+          },
+          "eligibleContactLengthByType": {
+            "arrival": 0,
+            "depot": 86.40000000000146
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "cover / depot": {
+          "seams": 48,
+          "nonGuaranteed": 24,
+          "eligible": 8,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 208.6000000000015,
+          "eligibleContactLength": 208.6000000000015,
+          "contactLengthByType": {
+            "cover": 0,
+            "depot": 208.6000000000015
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "depot": 208.6000000000015
+          },
+          "contestantBlockedSamples": 11,
+          "hunterBlockedSamples": 20
+        },
+        "cover / market": {
+          "seams": 90,
+          "nonGuaranteed": 45,
+          "eligible": 15,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 230.4000000000069,
+          "eligibleContactLength": 230.4000000000069,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 230.4000000000069
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 230.4000000000069
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 24
+        },
+        "depot / market": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 76.80000000000291,
+          "eligibleJoinedLength": 76.80000000000291,
+          "contactLength": 326.40000000000873,
+          "eligibleContactLength": 326.40000000000873,
+          "contactLengthByType": {
+            "market": 153.60000000000582,
+            "depot": 172.8000000000029
+          },
+          "eligibleContactLengthByType": {
+            "market": 153.60000000000582,
+            "depot": 172.8000000000029
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 24
+        },
+        "depot / open": {
+          "seams": 288,
+          "nonGuaranteed": 132,
+          "eligible": 46,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1360.000000000009,
+          "eligibleContactLength": 1360.000000000009,
+          "contactLengthByType": {
+            "depot": 1360.000000000009,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 1360.000000000009,
+            "open": 0
+          },
+          "contestantBlockedSamples": 66,
+          "hunterBlockedSamples": 128
+        },
+        "depot / park": {
+          "seams": 30,
+          "nonGuaranteed": 15,
+          "eligible": 5,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 169.60000000000218,
+          "eligibleContactLength": 169.60000000000218,
+          "contactLengthByType": {
+            "depot": 169.60000000000218,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 169.60000000000218,
+            "park": 0
+          },
+          "contestantBlockedSamples": 9,
+          "hunterBlockedSamples": 16
+        },
+        "depot / rubble": {
+          "seams": 72,
+          "nonGuaranteed": 48,
+          "eligible": 16,
+          "joinedLength": 289.2000000000007,
+          "eligibleJoinedLength": 289.2000000000007,
+          "contactLength": 985.2000000000037,
+          "eligibleContactLength": 985.2000000000037,
+          "contactLengthByType": {
+            "depot": 505.2000000000037,
+            "rubble": 480
+          },
+          "eligibleContactLengthByType": {
+            "depot": 505.2000000000037,
+            "rubble": 480
+          },
+          "contestantBlockedSamples": 50,
+          "hunterBlockedSamples": 60
+        },
+        "depot / transit": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.20000000000073,
+          "eligibleContactLength": 43.20000000000073,
+          "contactLengthByType": {
+            "transit": 0,
+            "depot": 43.20000000000073
+          },
+          "eligibleContactLengthByType": {
+            "transit": 0,
+            "depot": 43.20000000000073
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "market / open": {
+          "seams": 1113,
+          "nonGuaranteed": 561,
+          "eligible": 187,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 4108.800000000032,
+          "eligibleContactLength": 4108.800000000032,
+          "contactLengthByType": {
+            "market": 4108.800000000032,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 4108.800000000032,
+            "open": 0
+          },
+          "contestantBlockedSamples": 215,
+          "hunterBlockedSamples": 429
+        },
+        "market / park": {
+          "seams": 300,
+          "nonGuaranteed": 150,
+          "eligible": 50,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1228.8000000000102,
+          "eligibleContactLength": 1228.8000000000102,
+          "contactLengthByType": {
+            "market": 1228.8000000000102,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 1228.8000000000102,
+            "park": 0
+          },
+          "contestantBlockedSamples": 64,
+          "hunterBlockedSamples": 128
+        },
+        "market / plant": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 115.20000000000437,
+          "eligibleContactLength": 115.20000000000437,
+          "contactLengthByType": {
+            "market": 115.20000000000437,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 115.20000000000437,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 6,
+          "hunterBlockedSamples": 12
+        },
+        "market / rubble": {
+          "seams": 435,
+          "nonGuaranteed": 213,
+          "eligible": 71,
+          "joinedLength": 537.6000000000076,
+          "eligibleJoinedLength": 537.6000000000076,
+          "contactLength": 3225.600000000015,
+          "eligibleContactLength": 3225.600000000015,
+          "contactLengthByType": {
+            "market": 1497.600000000015,
+            "rubble": 1728
+          },
+          "eligibleContactLengthByType": {
+            "market": 1497.600000000015,
+            "rubble": 1728
+          },
+          "contestantBlockedSamples": 194,
+          "hunterBlockedSamples": 244
+        },
+        "market / ruins": {
+          "seams": 60,
+          "nonGuaranteed": 30,
+          "eligible": 11,
+          "joinedLength": 153.59999999999854,
+          "eligibleJoinedLength": 153.59999999999854,
+          "contactLength": 566.3999999999978,
+          "eligibleContactLength": 566.3999999999978,
+          "contactLengthByType": {
+            "market": 230.39999999999782,
+            "ruins": 336
+          },
+          "eligibleContactLengthByType": {
+            "market": 230.39999999999782,
+            "ruins": 336
+          },
+          "contestantBlockedSamples": 29,
+          "hunterBlockedSamples": 33
+        },
+        "market / transit": {
+          "seams": 30,
+          "nonGuaranteed": 15,
+          "eligible": 5,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 115.20000000000255,
+          "eligibleContactLength": 115.20000000000255,
+          "contactLengthByType": {
+            "market": 115.20000000000255,
+            "transit": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 115.20000000000255,
+            "transit": 0
+          },
+          "contestantBlockedSamples": 6,
+          "hunterBlockedSamples": 12
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 50,
+          "affected": 50,
+          "zeroEffect": 101
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 51,
+          "affected": 51,
+          "zeroEffect": 100
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 16,
+            "zeroEffect": 6
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 19,
+            "zeroEffect": 14
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 15,
+            "zeroEffect": 81
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 16,
+            "zeroEffect": 6
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 20,
+            "zeroEffect": 13
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 15,
+            "zeroEffect": 81
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 15,
+      "manifests": [
+        {
+          "id": "block@204,72",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 17,
+            "obstacles": 223,
+            "gates": 20,
+            "loot": 76,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@294,78",
+          "type": "market",
+          "manifest": {
+            "cells": 2592,
+            "structures": 0,
+            "obstacles": 69,
+            "gates": 0,
+            "loot": 336,
+            "coreElements": 0,
+            "stalls": 69,
+            "frontageStalls": 24,
+            "awnings": 69
+          }
+        },
+        {
+          "id": "market@456,90",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 46,
+            "gates": 0,
+            "loot": 325,
+            "coreElements": 0,
+            "stalls": 46,
+            "frontageStalls": 17,
+            "awnings": 46
+          }
+        },
+        {
+          "id": "depot@144,96",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 189,
+            "gates": 19,
+            "loot": 111,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 13,
+            "infillCrates": 19,
+            "boundaryRows": 22
+          }
+        },
+        {
+          "id": "market@468,126",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 48,
+            "gates": 0,
+            "loot": 299,
+            "coreElements": 0,
+            "stalls": 48,
+            "frontageStalls": 20,
+            "awnings": 48
+          }
+        },
+        {
+          "id": "market@228,144",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 48,
+            "gates": 0,
+            "loot": 146,
+            "coreElements": 0,
+            "stalls": 48,
+            "frontageStalls": 16,
+            "awnings": 48
+          }
+        },
+        {
+          "id": "market@102,156",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 47,
+            "gates": 0,
+            "loot": 60,
+            "coreElements": 0,
+            "stalls": 47,
+            "frontageStalls": 13,
+            "awnings": 47
+          }
+        },
+        {
+          "id": "depot@12,162",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 8,
+            "obstacles": 227,
+            "gates": 36,
+            "loot": 24,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 11,
+            "infillCrates": 32,
+            "boundaryRows": 14
+          }
+        },
+        {
+          "id": "market@576,162",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 49,
+            "gates": 0,
+            "loot": 406,
+            "coreElements": 0,
+            "stalls": 49,
+            "frontageStalls": 23,
+            "awnings": 49
+          }
+        },
+        {
+          "id": "market@444,186",
+          "type": "market",
+          "manifest": {
+            "cells": 3060,
+            "structures": 0,
+            "obstacles": 75,
+            "gates": 0,
+            "loot": 591,
+            "coreElements": 0,
+            "stalls": 75,
+            "frontageStalls": 22,
+            "awnings": 75
+          }
+        },
+        {
+          "id": "market@498,186",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 35,
+            "gates": 0,
+            "loot": 219,
+            "coreElements": 0,
+            "stalls": 35,
+            "frontageStalls": 15,
+            "awnings": 35
+          }
+        },
+        {
+          "id": "depot@504,216",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 7,
+            "obstacles": 221,
+            "gates": 29,
+            "loot": 242,
+            "coreElements": 0,
+            "warehouses": 7,
+            "designed": 7,
+            "rows": 13,
+            "infillCrates": 32,
+            "boundaryRows": 19
+          }
+        },
+        {
+          "id": "market@324,234",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 36,
+            "gates": 0,
+            "loot": 157,
+            "coreElements": 0,
+            "stalls": 36,
+            "frontageStalls": 15,
+            "awnings": 36
+          }
+        },
+        {
+          "id": "market@150,240",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 32,
+            "gates": 0,
+            "loot": 93,
+            "coreElements": 0,
+            "stalls": 32,
+            "frontageStalls": 11,
+            "awnings": 32
+          }
+        },
+        {
+          "id": "market@288,276",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 159,
+            "gates": 0,
+            "loot": 581,
+            "coreElements": 0,
+            "stalls": 159,
+            "frontageStalls": 38,
+            "awnings": 159
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-24-2",
+      "buildMs": 1687.5057000000015,
+      "selectedJoinedLength": 1085.4000000000087,
+      "eligibleSeamCells": 428,
+      "eligibleSpans": {
+        "count": 423,
+        "maxCells": 2,
+        "oneCell": 418
+      },
+      "groups": {
+        "arrival / market": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 3,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 0,
+          "eligibleContactLength": 0,
+          "contactLengthByType": {
+            "market": 0,
+            "arrival": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 0,
+            "arrival": 0
+          },
+          "contestantBlockedSamples": 1,
+          "hunterBlockedSamples": 1
+        },
+        "block / market": {
+          "seams": 78,
+          "nonGuaranteed": 39,
+          "eligible": 13,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 192.00000000000546,
+          "eligibleContactLength": 192.00000000000546,
+          "contactLengthByType": {
+            "block": 0,
+            "market": 192.00000000000546
+          },
+          "eligibleContactLengthByType": {
+            "block": 0,
+            "market": 192.00000000000546
+          },
+          "contestantBlockedSamples": 10,
+          "hunterBlockedSamples": 20
+        },
+        "compound / market": {
+          "seams": 24,
+          "nonGuaranteed": 12,
+          "eligible": 4,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 153.59999999999854,
+          "eligibleContactLength": 153.59999999999854,
+          "contactLengthByType": {
+            "compound": 0,
+            "market": 153.59999999999854
+          },
+          "eligibleContactLengthByType": {
+            "compound": 0,
+            "market": 153.59999999999854
+          },
+          "contestantBlockedSamples": 8,
+          "hunterBlockedSamples": 16
+        },
+        "cover / depot": {
+          "seams": 42,
+          "nonGuaranteed": 21,
+          "eligible": 7,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 129.60000000000218,
+          "eligibleContactLength": 129.60000000000218,
+          "contactLengthByType": {
+            "cover": 0,
+            "depot": 129.60000000000218
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "depot": 129.60000000000218
+          },
+          "contestantBlockedSamples": 6,
+          "hunterBlockedSamples": 12
+        },
+        "cover / market": {
+          "seams": 174,
+          "nonGuaranteed": 87,
+          "eligible": 29,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 537.599999999999,
+          "eligibleContactLength": 537.599999999999,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 537.599999999999
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 537.599999999999
+          },
+          "contestantBlockedSamples": 28,
+          "hunterBlockedSamples": 56
+        },
+        "depot / open": {
+          "seams": 306,
+          "nonGuaranteed": 153,
+          "eligible": 51,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1238.2000000000116,
+          "eligibleContactLength": 1238.2000000000116,
+          "contactLengthByType": {
+            "depot": 1238.2000000000116,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 1238.2000000000116,
+            "open": 0
+          },
+          "contestantBlockedSamples": 58,
+          "hunterBlockedSamples": 116
+        },
+        "depot / park": {
+          "seams": 48,
+          "nonGuaranteed": 24,
+          "eligible": 8,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 216,
+          "eligibleContactLength": 216,
+          "contactLengthByType": {
+            "depot": 216,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 216,
+            "park": 0
+          },
+          "contestantBlockedSamples": 10,
+          "hunterBlockedSamples": 20
+        },
+        "depot / plant": {
+          "seams": 78,
+          "nonGuaranteed": 39,
+          "eligible": 13,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 345.6000000000058,
+          "eligibleContactLength": 345.6000000000058,
+          "contactLengthByType": {
+            "depot": 345.6000000000058,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 345.6000000000058,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 16,
+          "hunterBlockedSamples": 32
+        },
+        "depot / rubble": {
+          "seams": 138,
+          "nonGuaranteed": 69,
+          "eligible": 23,
+          "joinedLength": 471,
+          "eligibleJoinedLength": 471,
+          "contactLength": 1381.2000000000007,
+          "eligibleContactLength": 1381.2000000000007,
+          "contactLengthByType": {
+            "depot": 805.2000000000007,
+            "rubble": 576
+          },
+          "eligibleContactLengthByType": {
+            "depot": 805.2000000000007,
+            "rubble": 576
+          },
+          "contestantBlockedSamples": 64,
+          "hunterBlockedSamples": 80
+        },
+        "market / open": {
+          "seams": 963,
+          "nonGuaranteed": 492,
+          "eligible": 167,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 3379.2000000000176,
+          "eligibleContactLength": 3379.2000000000176,
+          "contactLengthByType": {
+            "market": 3379.2000000000176,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 3379.2000000000176,
+            "open": 0
+          },
+          "contestantBlockedSamples": 183,
+          "hunterBlockedSamples": 359
+        },
+        "market / park": {
+          "seams": 240,
+          "nonGuaranteed": 120,
+          "eligible": 41,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 729.6000000000053,
+          "eligibleContactLength": 729.6000000000053,
+          "contactLengthByType": {
+            "market": 729.6000000000053,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 729.6000000000053,
+            "park": 0
+          },
+          "contestantBlockedSamples": 40,
+          "hunterBlockedSamples": 78
+        },
+        "market / rubble": {
+          "seams": 423,
+          "nonGuaranteed": 201,
+          "eligible": 67,
+          "joinedLength": 614.4000000000087,
+          "eligibleJoinedLength": 614.4000000000087,
+          "contactLength": 3024.0000000000105,
+          "eligibleContactLength": 3024.0000000000105,
+          "contactLengthByType": {
+            "market": 1536.0000000000105,
+            "rubble": 1488
+          },
+          "eligibleContactLengthByType": {
+            "market": 1536.0000000000105,
+            "rubble": 1488
+          },
+          "contestantBlockedSamples": 172,
+          "hunterBlockedSamples": 220
+        },
+        "market / transit": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 38.399999999999636,
+          "eligibleContactLength": 38.399999999999636,
+          "contactLengthByType": {
+            "transit": 0,
+            "market": 38.399999999999636
+          },
+          "eligibleContactLengthByType": {
+            "transit": 0,
+            "market": 38.399999999999636
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 136,
+          "affectedActualTargets": 14,
+          "affected": 14,
+          "zeroEffect": 137
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 136,
+          "affectedActualTargets": 17,
+          "affected": 18,
+          "zeroEffect": 133
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 8,
+            "zeroEffect": 14
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 4,
+            "zeroEffect": 29
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 2,
+            "zeroEffect": 94
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 8,
+            "zeroEffect": 14
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 6,
+            "zeroEffect": 27
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 4,
+            "zeroEffect": 92
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 18,
+      "manifests": [
+        {
+          "id": "market@312,72",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 31,
+            "gates": 0,
+            "loot": 165,
+            "coreElements": 0,
+            "stalls": 31,
+            "frontageStalls": 13,
+            "awnings": 31
+          }
+        },
+        {
+          "id": "market@390,72",
+          "type": "market",
+          "manifest": {
+            "cells": 6840,
+            "structures": 0,
+            "obstacles": 191,
+            "gates": 0,
+            "loot": 1101,
+            "coreElements": 0,
+            "stalls": 191,
+            "frontageStalls": 36,
+            "awnings": 191
+          }
+        },
+        {
+          "id": "market@534,84",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 42,
+            "gates": 0,
+            "loot": 362,
+            "coreElements": 0,
+            "stalls": 42,
+            "frontageStalls": 19,
+            "awnings": 42
+          }
+        },
+        {
+          "id": "market@180,108",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 45,
+            "gates": 0,
+            "loot": 132,
+            "coreElements": 0,
+            "stalls": 45,
+            "frontageStalls": 20,
+            "awnings": 45
+          }
+        },
+        {
+          "id": "block@228,114",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 15,
+            "obstacles": 111,
+            "gates": 18,
+            "loot": 77,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "block@486,138",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 17,
+            "obstacles": 104,
+            "gates": 19,
+            "loot": 149,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@0,144",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 55,
+            "gates": 0,
+            "loot": 45,
+            "coreElements": 0,
+            "stalls": 55,
+            "frontageStalls": 30,
+            "awnings": 55
+          }
+        },
+        {
+          "id": "market@114,144",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 56,
+            "gates": 0,
+            "loot": 58,
+            "coreElements": 0,
+            "stalls": 56,
+            "frontageStalls": 23,
+            "awnings": 56
+          }
+        },
+        {
+          "id": "market@564,150",
+          "type": "market",
+          "manifest": {
+            "cells": 3096,
+            "structures": 0,
+            "obstacles": 81,
+            "gates": 0,
+            "loot": 623,
+            "coreElements": 0,
+            "stalls": 81,
+            "frontageStalls": 26,
+            "awnings": 81
+          }
+        },
+        {
+          "id": "depot@366,168",
+          "type": "depot",
+          "manifest": {
+            "cells": 2880,
+            "structures": 12,
+            "obstacles": 339,
+            "gates": 52,
+            "loot": 250,
+            "coreElements": 0,
+            "warehouses": 12,
+            "designed": 12,
+            "rows": 23,
+            "infillCrates": 45,
+            "boundaryRows": 18
+          }
+        },
+        {
+          "id": "market@456,180",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 34,
+            "gates": 0,
+            "loot": 215,
+            "coreElements": 0,
+            "stalls": 34,
+            "frontageStalls": 14,
+            "awnings": 34
+          }
+        },
+        {
+          "id": "block@42,186",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 16,
+            "obstacles": 137,
+            "gates": 22,
+            "loot": 13,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@174,186",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 42,
+            "gates": 0,
+            "loot": 138,
+            "coreElements": 0,
+            "stalls": 42,
+            "frontageStalls": 15,
+            "awnings": 42
+          }
+        },
+        {
+          "id": "depot@240,192",
+          "type": "depot",
+          "manifest": {
+            "cells": 648,
+            "structures": 2,
+            "obstacles": 70,
+            "gates": 8,
+            "loot": 33,
+            "coreElements": 0,
+            "warehouses": 2,
+            "designed": 2,
+            "rows": 4,
+            "infillCrates": 11,
+            "boundaryRows": 8
+          }
+        },
+        {
+          "id": "depot@660,198",
+          "type": "depot",
+          "manifest": {
+            "cells": 648,
+            "structures": 0,
+            "obstacles": 56,
+            "gates": 0,
+            "loot": 90,
+            "coreElements": 0,
+            "warehouses": 0,
+            "designed": 0,
+            "rows": 5,
+            "infillCrates": 10,
+            "boundaryRows": 14
+          }
+        },
+        {
+          "id": "market@192,228",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 47,
+            "gates": 0,
+            "loot": 130,
+            "coreElements": 0,
+            "stalls": 47,
+            "frontageStalls": 16,
+            "awnings": 47
+          }
+        },
+        {
+          "id": "market@468,258",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 53,
+            "gates": 0,
+            "loot": 294,
+            "coreElements": 0,
+            "stalls": 53,
+            "frontageStalls": 24,
+            "awnings": 53
+          }
+        },
+        {
+          "id": "depot@180,270",
+          "type": "depot",
+          "manifest": {
+            "cells": 648,
+            "structures": 0,
+            "obstacles": 56,
+            "gates": 0,
+            "loot": 34,
+            "coreElements": 0,
+            "warehouses": 0,
+            "designed": 0,
+            "rows": 4,
+            "infillCrates": 14,
+            "boundaryRows": 14
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-24-3",
+      "buildMs": 1423.3431999999993,
+      "selectedJoinedLength": 753.0000000000091,
+      "eligibleSeamCells": 303,
+      "eligibleSpans": {
+        "count": 299,
+        "maxCells": 2,
+        "oneCell": 295
+      },
+      "groups": {
+        "block / depot": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 167.60000000000218,
+          "eligibleContactLength": 167.60000000000218,
+          "contactLengthByType": {
+            "block": 0,
+            "depot": 167.60000000000218
+          },
+          "eligibleContactLengthByType": {
+            "block": 0,
+            "depot": 167.60000000000218
+          },
+          "contestantBlockedSamples": 8,
+          "hunterBlockedSamples": 16
+        },
+        "block / market": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 76.79999999999927,
+          "eligibleContactLength": 76.79999999999927,
+          "contactLengthByType": {
+            "block": 0,
+            "market": 76.79999999999927
+          },
+          "eligibleContactLengthByType": {
+            "block": 0,
+            "market": 76.79999999999927
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "charging / market": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 76.80000000000291,
+          "eligibleContactLength": 76.80000000000291,
+          "contactLengthByType": {
+            "charging": 0,
+            "market": 76.80000000000291
+          },
+          "eligibleContactLengthByType": {
+            "charging": 0,
+            "market": 76.80000000000291
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "cover / depot": {
+          "seams": 6,
+          "nonGuaranteed": 3,
+          "eligible": 1,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 0,
+          "eligibleContactLength": 0,
+          "contactLengthByType": {
+            "depot": 0,
+            "cover": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 0,
+            "cover": 0
+          },
+          "contestantBlockedSamples": 0,
+          "hunterBlockedSamples": 0
+        },
+        "cover / market": {
+          "seams": 168,
+          "nonGuaranteed": 84,
+          "eligible": 29,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 729.600000000004,
+          "eligibleContactLength": 729.600000000004,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 729.600000000004
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 729.600000000004
+          },
+          "contestantBlockedSamples": 39,
+          "hunterBlockedSamples": 77
+        },
+        "depot / open": {
+          "seams": 105,
+          "nonGuaranteed": 54,
+          "eligible": 19,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 555.5999999999985,
+          "eligibleContactLength": 555.5999999999985,
+          "contactLengthByType": {
+            "depot": 555.5999999999985,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 555.5999999999985,
+            "open": 0
+          },
+          "contestantBlockedSamples": 26,
+          "hunterBlockedSamples": 49
+        },
+        "depot / park": {
+          "seams": 78,
+          "nonGuaranteed": 39,
+          "eligible": 13,
+          "joinedLength": 19.200000000000728,
+          "eligibleJoinedLength": 19.200000000000728,
+          "contactLength": 321.60000000000036,
+          "eligibleContactLength": 321.60000000000036,
+          "contactLengthByType": {
+            "depot": 302.39999999999964,
+            "park": 19.200000000000728
+          },
+          "eligibleContactLengthByType": {
+            "depot": 302.39999999999964,
+            "park": 19.200000000000728
+          },
+          "contestantBlockedSamples": 14,
+          "hunterBlockedSamples": 28
+        },
+        "depot / plant": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 7,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 172.800000000002,
+          "eligibleContactLength": 172.800000000002,
+          "contactLengthByType": {
+            "depot": 172.800000000002,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 172.800000000002,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 9,
+          "hunterBlockedSamples": 17
+        },
+        "depot / rubble": {
+          "seams": 45,
+          "nonGuaranteed": 21,
+          "eligible": 7,
+          "joinedLength": 119.40000000000146,
+          "eligibleJoinedLength": 119.40000000000146,
+          "contactLength": 441,
+          "eligibleContactLength": 441,
+          "contactLengthByType": {
+            "depot": 249,
+            "rubble": 192
+          },
+          "eligibleContactLengthByType": {
+            "depot": 249,
+            "rubble": 192
+          },
+          "contestantBlockedSamples": 22,
+          "hunterBlockedSamples": 28
+        },
+        "hall / market": {
+          "seams": 30,
+          "nonGuaranteed": 15,
+          "eligible": 5,
+          "joinedLength": 115.19999999999891,
+          "eligibleJoinedLength": 115.19999999999891,
+          "contactLength": 355.1999999999989,
+          "eligibleContactLength": 355.1999999999989,
+          "contactLengthByType": {
+            "market": 115.19999999999891,
+            "hall": 240
+          },
+          "eligibleContactLengthByType": {
+            "market": 115.19999999999891,
+            "hall": 240
+          },
+          "contestantBlockedSamples": 20,
+          "hunterBlockedSamples": 20
+        },
+        "market / open": {
+          "seams": 681,
+          "nonGuaranteed": 339,
+          "eligible": 113,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 2227.200000000028,
+          "eligibleContactLength": 2227.200000000028,
+          "contactLengthByType": {
+            "market": 2227.200000000028,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 2227.200000000028,
+            "open": 0
+          },
+          "contestantBlockedSamples": 119,
+          "hunterBlockedSamples": 235
+        },
+        "market / park": {
+          "seams": 180,
+          "nonGuaranteed": 90,
+          "eligible": 31,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 729.5999999999967,
+          "eligibleContactLength": 729.5999999999967,
+          "contactLengthByType": {
+            "market": 729.5999999999967,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 729.5999999999967,
+            "park": 0
+          },
+          "contestantBlockedSamples": 39,
+          "hunterBlockedSamples": 77
+        },
+        "market / plant": {
+          "seams": 78,
+          "nonGuaranteed": 39,
+          "eligible": 13,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 268.8000000000102,
+          "eligibleContactLength": 268.8000000000102,
+          "contactLengthByType": {
+            "market": 268.8000000000102,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 268.8000000000102,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 14,
+          "hunterBlockedSamples": 28
+        },
+        "market / rubble": {
+          "seams": 303,
+          "nonGuaranteed": 153,
+          "eligible": 51,
+          "joinedLength": 499.200000000008,
+          "eligibleJoinedLength": 499.200000000008,
+          "contactLength": 2332.800000000012,
+          "eligibleContactLength": 2332.800000000012,
+          "contactLengthByType": {
+            "market": 1228.800000000012,
+            "rubble": 1104
+          },
+          "eligibleContactLengthByType": {
+            "market": 1228.800000000012,
+            "rubble": 1104
+          },
+          "contestantBlockedSamples": 131,
+          "hunterBlockedSamples": 169
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 139,
+          "affectedActualTargets": 26,
+          "affected": 29,
+          "zeroEffect": 122
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 145,
+          "commonActualTargets": 139,
+          "affectedActualTargets": 23,
+          "affected": 26,
+          "zeroEffect": 125
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 16,
+            "zeroEffect": 6
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 3,
+            "zeroEffect": 30
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 10,
+            "zeroEffect": 86
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 12,
+            "zeroEffect": 10
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 3,
+            "zeroEffect": 30
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 11,
+            "zeroEffect": 85
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 148,
+          "invalid-endpoint": 3,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 145,
+          "invalid-endpoint": 6,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 13,
+      "manifests": [
+        {
+          "id": "depot@456,72",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 4,
+            "obstacles": 198,
+            "gates": 18,
+            "loot": 242,
+            "coreElements": 0,
+            "warehouses": 4,
+            "designed": 4,
+            "rows": 17,
+            "infillCrates": 18,
+            "boundaryRows": 28
+          }
+        },
+        {
+          "id": "market@366,108",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 144,
+            "gates": 0,
+            "loot": 703,
+            "coreElements": 0,
+            "stalls": 144,
+            "frontageStalls": 27,
+            "awnings": 144
+          }
+        },
+        {
+          "id": "market@132,144",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 51,
+            "gates": 0,
+            "loot": 86,
+            "coreElements": 0,
+            "stalls": 51,
+            "frontageStalls": 19,
+            "awnings": 51
+          }
+        },
+        {
+          "id": "block@606,144",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 1,
+            "obstacles": 81,
+            "gates": 3,
+            "loot": 260,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "depot@642,168",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 7,
+            "obstacles": 209,
+            "gates": 27,
+            "loot": 340,
+            "coreElements": 0,
+            "warehouses": 7,
+            "designed": 7,
+            "rows": 13,
+            "infillCrates": 32,
+            "boundaryRows": 16
+          }
+        },
+        {
+          "id": "market@564,174",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 57,
+            "gates": 0,
+            "loot": 343,
+            "coreElements": 0,
+            "stalls": 57,
+            "frontageStalls": 27,
+            "awnings": 57
+          }
+        },
+        {
+          "id": "block@54,180",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 0,
+            "obstacles": 42,
+            "gates": 0,
+            "loot": 23,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "block@222,198",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 1,
+            "obstacles": 92,
+            "gates": 5,
+            "loot": 71,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@216,222",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 50,
+            "gates": 0,
+            "loot": 122,
+            "coreElements": 0,
+            "stalls": 50,
+            "frontageStalls": 12,
+            "awnings": 50
+          }
+        },
+        {
+          "id": "market@294,222",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 38,
+            "gates": 0,
+            "loot": 156,
+            "coreElements": 0,
+            "stalls": 38,
+            "frontageStalls": 16,
+            "awnings": 38
+          }
+        },
+        {
+          "id": "market@426,222",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 48,
+            "gates": 0,
+            "loot": 306,
+            "coreElements": 0,
+            "stalls": 48,
+            "frontageStalls": 17,
+            "awnings": 48
+          }
+        },
+        {
+          "id": "market@492,222",
+          "type": "market",
+          "manifest": {
+            "cells": 3024,
+            "structures": 0,
+            "obstacles": 87,
+            "gates": 0,
+            "loot": 489,
+            "coreElements": 0,
+            "stalls": 87,
+            "frontageStalls": 38,
+            "awnings": 87
+          }
+        },
+        {
+          "id": "market@378,264",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 32,
+            "gates": 0,
+            "loot": 163,
+            "coreElements": 0,
+            "stalls": 32,
+            "frontageStalls": 11,
+            "awnings": 32
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-36-1",
+      "buildMs": 5318.289300000004,
+      "selectedJoinedLength": 1923.6000000000186,
+      "eligibleSeamCells": 873,
+      "eligibleSpans": {
+        "count": 872,
+        "maxCells": 2,
+        "oneCell": 871
+      },
+      "groups": {
+        "block / market": {
+          "seams": 240,
+          "nonGuaranteed": 120,
+          "eligible": 40,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 806.4000000000251,
+          "eligibleContactLength": 806.4000000000251,
+          "contactLengthByType": {
+            "block": 0,
+            "market": 806.4000000000251
+          },
+          "eligibleContactLengthByType": {
+            "block": 0,
+            "market": 806.4000000000251
+          },
+          "contestantBlockedSamples": 42,
+          "hunterBlockedSamples": 84
+        },
+        "checkpoint / market": {
+          "seams": 132,
+          "nonGuaranteed": 66,
+          "eligible": 22,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 600.0000000000152,
+          "eligibleContactLength": 600.0000000000152,
+          "contactLengthByType": {
+            "checkpoint": 24,
+            "market": 576.0000000000152
+          },
+          "eligibleContactLengthByType": {
+            "checkpoint": 24,
+            "market": 576.0000000000152
+          },
+          "contestantBlockedSamples": 32,
+          "hunterBlockedSamples": 64
+        },
+        "compound / depot": {
+          "seams": 6,
+          "nonGuaranteed": 3,
+          "eligible": 1,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.19999999999709,
+          "eligibleContactLength": 43.19999999999709,
+          "contactLengthByType": {
+            "compound": 0,
+            "depot": 43.19999999999709
+          },
+          "eligibleContactLengthByType": {
+            "compound": 0,
+            "depot": 43.19999999999709
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "compound / market": {
+          "seams": 72,
+          "nonGuaranteed": 36,
+          "eligible": 12,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 191.9999999999991,
+          "eligibleContactLength": 191.9999999999991,
+          "contactLengthByType": {
+            "market": 191.9999999999991,
+            "compound": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 191.9999999999991,
+            "compound": 0
+          },
+          "contestantBlockedSamples": 10,
+          "hunterBlockedSamples": 20
+        },
+        "cover / depot": {
+          "seams": 102,
+          "nonGuaranteed": 51,
+          "eligible": 17,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 388.7999999999993,
+          "eligibleContactLength": 388.7999999999993,
+          "contactLengthByType": {
+            "cover": 0,
+            "depot": 388.7999999999993
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "depot": 388.7999999999993
+          },
+          "contestantBlockedSamples": 18,
+          "hunterBlockedSamples": 36
+        },
+        "cover / market": {
+          "seams": 228,
+          "nonGuaranteed": 114,
+          "eligible": 38,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 921.600000000014,
+          "eligibleContactLength": 921.600000000014,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 921.600000000014
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 921.600000000014
+          },
+          "contestantBlockedSamples": 48,
+          "hunterBlockedSamples": 96
+        },
+        "depot / open": {
+          "seams": 771,
+          "nonGuaranteed": 390,
+          "eligible": 130,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 3380.599999999973,
+          "eligibleContactLength": 3380.599999999973,
+          "contactLengthByType": {
+            "depot": 3380.599999999973,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 3380.599999999973,
+            "open": 0
+          },
+          "contestantBlockedSamples": 161,
+          "hunterBlockedSamples": 315
+        },
+        "depot / park": {
+          "seams": 108,
+          "nonGuaranteed": 54,
+          "eligible": 18,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 461.79999999999563,
+          "eligibleContactLength": 461.79999999999563,
+          "contactLengthByType": {
+            "depot": 461.79999999999563,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 461.79999999999563,
+            "park": 0
+          },
+          "contestantBlockedSamples": 22,
+          "hunterBlockedSamples": 44
+        },
+        "depot / plant": {
+          "seams": 240,
+          "nonGuaranteed": 120,
+          "eligible": 40,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 728.1999999999971,
+          "eligibleContactLength": 728.1999999999971,
+          "contactLengthByType": {
+            "plant": 0,
+            "depot": 728.1999999999971
+          },
+          "eligibleContactLengthByType": {
+            "plant": 0,
+            "depot": 728.1999999999971
+          },
+          "contestantBlockedSamples": 34,
+          "hunterBlockedSamples": 68
+        },
+        "depot / rubble": {
+          "seams": 249,
+          "nonGuaranteed": 120,
+          "eligible": 40,
+          "joinedLength": 541.2000000000007,
+          "eligibleJoinedLength": 541.2000000000007,
+          "contactLength": 2088.399999999987,
+          "eligibleContactLength": 2088.399999999987,
+          "contactLengthByType": {
+            "depot": 1080.399999999987,
+            "rubble": 1008
+          },
+          "eligibleContactLengthByType": {
+            "depot": 1080.399999999987,
+            "rubble": 1008
+          },
+          "contestantBlockedSamples": 110,
+          "hunterBlockedSamples": 135
+        },
+        "hall / market": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 38.399999999999636,
+          "eligibleJoinedLength": 38.399999999999636,
+          "contactLength": 239.99999999999818,
+          "eligibleContactLength": 239.99999999999818,
+          "contactLengthByType": {
+            "market": 191.99999999999818,
+            "hall": 48
+          },
+          "eligibleContactLengthByType": {
+            "market": 191.99999999999818,
+            "hall": 48
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 20
+        },
+        "market / open": {
+          "seams": 1809,
+          "nonGuaranteed": 930,
+          "eligible": 310,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 6105.600000000104,
+          "eligibleContactLength": 6105.600000000104,
+          "contactLengthByType": {
+            "market": 6105.600000000104,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 6105.600000000104,
+            "open": 0
+          },
+          "contestantBlockedSamples": 322,
+          "hunterBlockedSamples": 640
+        },
+        "market / park": {
+          "seams": 528,
+          "nonGuaranteed": 264,
+          "eligible": 89,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 2035.2000000000198,
+          "eligibleContactLength": 2035.2000000000198,
+          "contactLengthByType": {
+            "market": 2035.2000000000198,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 2035.2000000000198,
+            "park": 0
+          },
+          "contestantBlockedSamples": 107,
+          "hunterBlockedSamples": 212
+        },
+        "market / rubble": {
+          "seams": 669,
+          "nonGuaranteed": 309,
+          "eligible": 103,
+          "joinedLength": 1305.6000000000165,
+          "eligibleJoinedLength": 1305.6000000000165,
+          "contactLength": 4838.400000000031,
+          "eligibleContactLength": 4838.400000000031,
+          "contactLengthByType": {
+            "market": 2150.4000000000315,
+            "rubble": 2688
+          },
+          "eligibleContactLengthByType": {
+            "market": 2150.4000000000315,
+            "rubble": 2688
+          },
+          "contestantBlockedSamples": 269,
+          "hunterBlockedSamples": 313
+        },
+        "market / ruins": {
+          "seams": 18,
+          "nonGuaranteed": 9,
+          "eligible": 3,
+          "joinedLength": 38.400000000001455,
+          "eligibleJoinedLength": 38.400000000001455,
+          "contactLength": 182.40000000000146,
+          "eligibleContactLength": 182.40000000000146,
+          "contactLengthByType": {
+            "market": 38.400000000001455,
+            "ruins": 144
+          },
+          "eligibleContactLengthByType": {
+            "market": 38.400000000001455,
+            "ruins": 144
+          },
+          "contestantBlockedSamples": 12,
+          "hunterBlockedSamples": 12
+        },
+        "market / transit": {
+          "seams": 24,
+          "nonGuaranteed": 12,
+          "eligible": 4,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 76.80000000000291,
+          "eligibleContactLength": 76.80000000000291,
+          "contactLengthByType": {
+            "market": 76.80000000000291,
+            "transit": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 76.80000000000291,
+            "transit": 0
+          },
+          "contestantBlockedSamples": 5,
+          "hunterBlockedSamples": 9
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 145,
+          "affectedActualTargets": 26,
+          "affected": 26,
+          "zeroEffect": 125
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 145,
+          "affectedActualTargets": 32,
+          "affected": 32,
+          "zeroEffect": 119
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 0,
+            "zeroEffect": 22
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 15,
+            "zeroEffect": 18
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 11,
+            "zeroEffect": 85
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 12,
+            "zeroEffect": 10
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 14,
+            "zeroEffect": 19
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 6,
+            "zeroEffect": 90
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 151,
+          "invalid-endpoint": 0,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 148,
+          "invalid-endpoint": 3,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 28,
+      "manifests": [
+        {
+          "id": "market@546,6",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 38,
+            "gates": 0,
+            "loot": 163,
+            "coreElements": 0,
+            "stalls": 38,
+            "frontageStalls": 16,
+            "awnings": 38
+          }
+        },
+        {
+          "id": "market@444,30",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 36,
+            "gates": 0,
+            "loot": 141,
+            "coreElements": 0,
+            "stalls": 36,
+            "frontageStalls": 14,
+            "awnings": 36
+          }
+        },
+        {
+          "id": "market@588,54",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 41,
+            "gates": 0,
+            "loot": 217,
+            "coreElements": 0,
+            "stalls": 41,
+            "frontageStalls": 12,
+            "awnings": 41
+          }
+        },
+        {
+          "id": "block@648,120",
+          "type": "block",
+          "manifest": {
+            "cells": 4320,
+            "structures": 18,
+            "obstacles": 270,
+            "gates": 25,
+            "loot": 357,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@822,138",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 31,
+            "gates": 0,
+            "loot": 229,
+            "coreElements": 0,
+            "stalls": 31,
+            "frontageStalls": 18,
+            "awnings": 31
+          }
+        },
+        {
+          "id": "market@258,144",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 51,
+            "gates": 0,
+            "loot": 122,
+            "coreElements": 0,
+            "stalls": 51,
+            "frontageStalls": 16,
+            "awnings": 51
+          }
+        },
+        {
+          "id": "market@648,156",
+          "type": "market",
+          "manifest": {
+            "cells": 3456,
+            "structures": 0,
+            "obstacles": 85,
+            "gates": 0,
+            "loot": 700,
+            "coreElements": 0,
+            "stalls": 85,
+            "frontageStalls": 36,
+            "awnings": 85
+          }
+        },
+        {
+          "id": "market@306,168",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 49,
+            "gates": 0,
+            "loot": 103,
+            "coreElements": 0,
+            "stalls": 49,
+            "frontageStalls": 14,
+            "awnings": 49
+          }
+        },
+        {
+          "id": "depot@222,198",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 8,
+            "obstacles": 218,
+            "gates": 32,
+            "loot": 92,
+            "coreElements": 0,
+            "warehouses": 8,
+            "designed": 8,
+            "rows": 9,
+            "infillCrates": 31,
+            "boundaryRows": 17
+          }
+        },
+        {
+          "id": "market@534,198",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 49,
+            "gates": 0,
+            "loot": 248,
+            "coreElements": 0,
+            "stalls": 49,
+            "frontageStalls": 22,
+            "awnings": 49
+          }
+        },
+        {
+          "id": "depot@804,204",
+          "type": "depot",
+          "manifest": {
+            "cells": 2880,
+            "structures": 15,
+            "obstacles": 327,
+            "gates": 53,
+            "loot": 354,
+            "coreElements": 0,
+            "warehouses": 15,
+            "designed": 15,
+            "rows": 13,
+            "infillCrates": 42,
+            "boundaryRows": 16
+          }
+        },
+        {
+          "id": "market@900,222",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 148,
+            "gates": 0,
+            "loot": 1169,
+            "coreElements": 0,
+            "stalls": 148,
+            "frontageStalls": 32,
+            "awnings": 148
+          }
+        },
+        {
+          "id": "market@114,228",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 34,
+            "gates": 0,
+            "loot": 34,
+            "coreElements": 0,
+            "stalls": 34,
+            "frontageStalls": 15,
+            "awnings": 34
+          }
+        },
+        {
+          "id": "market@276,234",
+          "type": "market",
+          "manifest": {
+            "cells": 6840,
+            "structures": 0,
+            "obstacles": 185,
+            "gates": 0,
+            "loot": 479,
+            "coreElements": 0,
+            "stalls": 185,
+            "frontageStalls": 37,
+            "awnings": 185
+          }
+        },
+        {
+          "id": "market@504,240",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 50,
+            "gates": 0,
+            "loot": 215,
+            "coreElements": 0,
+            "stalls": 50,
+            "frontageStalls": 18,
+            "awnings": 50
+          }
+        },
+        {
+          "id": "market@12,252",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 43,
+            "gates": 0,
+            "loot": 46,
+            "coreElements": 0,
+            "stalls": 43,
+            "frontageStalls": 12,
+            "awnings": 43
+          }
+        },
+        {
+          "id": "depot@402,258",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 194,
+            "gates": 21,
+            "loot": 131,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 17,
+            "infillCrates": 26,
+            "boundaryRows": 19
+          }
+        },
+        {
+          "id": "market@1038,258",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 45,
+            "gates": 0,
+            "loot": 400,
+            "coreElements": 0,
+            "stalls": 45,
+            "frontageStalls": 21,
+            "awnings": 45
+          }
+        },
+        {
+          "id": "depot@702,264",
+          "type": "depot",
+          "manifest": {
+            "cells": 6480,
+            "structures": 32,
+            "obstacles": 736,
+            "gates": 126,
+            "loot": 825,
+            "coreElements": 0,
+            "warehouses": 32,
+            "designed": 32,
+            "rows": 43,
+            "infillCrates": 73,
+            "boundaryRows": 32
+          }
+        },
+        {
+          "id": "depot@816,276",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 9,
+            "obstacles": 228,
+            "gates": 37,
+            "loot": 235,
+            "coreElements": 0,
+            "warehouses": 9,
+            "designed": 9,
+            "rows": 13,
+            "infillCrates": 28,
+            "boundaryRows": 12
+          }
+        },
+        {
+          "id": "market@354,306",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 147,
+            "gates": 0,
+            "loot": 395,
+            "coreElements": 0,
+            "stalls": 147,
+            "frontageStalls": 30,
+            "awnings": 147
+          }
+        },
+        {
+          "id": "market@798,354",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 43,
+            "gates": 0,
+            "loot": 323,
+            "coreElements": 0,
+            "stalls": 43,
+            "frontageStalls": 14,
+            "awnings": 43
+          }
+        },
+        {
+          "id": "market@546,360",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 44,
+            "gates": 0,
+            "loot": 256,
+            "coreElements": 0,
+            "stalls": 44,
+            "frontageStalls": 12,
+            "awnings": 44
+          }
+        },
+        {
+          "id": "depot@738,360",
+          "type": "depot",
+          "manifest": {
+            "cells": 2880,
+            "structures": 13,
+            "obstacles": 323,
+            "gates": 55,
+            "loot": 366,
+            "coreElements": 0,
+            "warehouses": 13,
+            "designed": 13,
+            "rows": 18,
+            "infillCrates": 35,
+            "boundaryRows": 16
+          }
+        },
+        {
+          "id": "depot@222,366",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 186,
+            "gates": 19,
+            "loot": 115,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 20,
+            "infillCrates": 23,
+            "boundaryRows": 16
+          }
+        },
+        {
+          "id": "block@300,378",
+          "type": "block",
+          "manifest": {
+            "cells": 4320,
+            "structures": 14,
+            "obstacles": 279,
+            "gates": 18,
+            "loot": 122,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@300,414",
+          "type": "market",
+          "manifest": {
+            "cells": 2160,
+            "structures": 0,
+            "obstacles": 64,
+            "gates": 0,
+            "loot": 161,
+            "coreElements": 0,
+            "stalls": 64,
+            "frontageStalls": 43,
+            "awnings": 64
+          }
+        },
+        {
+          "id": "market@462,480",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 43,
+            "gates": 0,
+            "loot": 224,
+            "coreElements": 0,
+            "stalls": 43,
+            "frontageStalls": 12,
+            "awnings": 43
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-36-2",
+      "buildMs": 4405.603000000003,
+      "selectedJoinedLength": 2404.8000000000366,
+      "eligibleSeamCells": 865,
+      "eligibleSpans": {
+        "count": 859,
+        "maxCells": 2,
+        "oneCell": 853
+      },
+      "groups": {
+        "block / market": {
+          "seams": 342,
+          "nonGuaranteed": 171,
+          "eligible": 57,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1267.2000000000244,
+          "eligibleContactLength": 1267.2000000000244,
+          "contactLengthByType": {
+            "block": 0,
+            "market": 1267.2000000000244
+          },
+          "eligibleContactLengthByType": {
+            "block": 0,
+            "market": 1267.2000000000244
+          },
+          "contestantBlockedSamples": 66,
+          "hunterBlockedSamples": 132
+        },
+        "charging / market": {
+          "seams": 18,
+          "nonGuaranteed": 9,
+          "eligible": 3,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 38.400000000001455,
+          "eligibleContactLength": 38.400000000001455,
+          "contactLengthByType": {
+            "charging": 0,
+            "market": 38.400000000001455
+          },
+          "eligibleContactLengthByType": {
+            "charging": 0,
+            "market": 38.400000000001455
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "cover / depot": {
+          "seams": 78,
+          "nonGuaranteed": 39,
+          "eligible": 13,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 431.9999999999927,
+          "eligibleContactLength": 431.9999999999927,
+          "contactLengthByType": {
+            "cover": 0,
+            "depot": 431.9999999999927
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "depot": 431.9999999999927
+          },
+          "contestantBlockedSamples": 21,
+          "hunterBlockedSamples": 41
+        },
+        "cover / market": {
+          "seams": 228,
+          "nonGuaranteed": 114,
+          "eligible": 38,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 883.2000000000244,
+          "eligibleContactLength": 883.2000000000244,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 883.2000000000244
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 883.2000000000244
+          },
+          "contestantBlockedSamples": 46,
+          "hunterBlockedSamples": 92
+        },
+        "depot / hall": {
+          "seams": 24,
+          "nonGuaranteed": 12,
+          "eligible": 4,
+          "joinedLength": 43.20000000000073,
+          "eligibleJoinedLength": 43.20000000000073,
+          "contactLength": 220.8000000000029,
+          "eligibleContactLength": 220.8000000000029,
+          "contactLengthByType": {
+            "depot": 172.8000000000029,
+            "hall": 48
+          },
+          "eligibleContactLengthByType": {
+            "depot": 172.8000000000029,
+            "hall": 48
+          },
+          "contestantBlockedSamples": 10,
+          "hunterBlockedSamples": 16
+        },
+        "depot / market": {
+          "seams": 84,
+          "nonGuaranteed": 42,
+          "eligible": 14,
+          "joinedLength": 268.80000000000746,
+          "eligibleJoinedLength": 268.80000000000746,
+          "contactLength": 730.2000000000119,
+          "eligibleContactLength": 730.2000000000119,
+          "contactLengthByType": {
+            "market": 345.6000000000074,
+            "depot": 384.60000000000446
+          },
+          "eligibleContactLengthByType": {
+            "market": 345.6000000000074,
+            "depot": 384.60000000000446
+          },
+          "contestantBlockedSamples": 22,
+          "hunterBlockedSamples": 44
+        },
+        "depot / open": {
+          "seams": 435,
+          "nonGuaranteed": 219,
+          "eligible": 74,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1952.4000000000121,
+          "eligibleContactLength": 1952.4000000000121,
+          "contactLengthByType": {
+            "depot": 1952.4000000000121,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 1952.4000000000121,
+            "open": 0
+          },
+          "contestantBlockedSamples": 94,
+          "hunterBlockedSamples": 183
+        },
+        "depot / park": {
+          "seams": 84,
+          "nonGuaranteed": 42,
+          "eligible": 15,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 382.6000000000013,
+          "eligibleContactLength": 382.6000000000013,
+          "contactLengthByType": {
+            "depot": 382.6000000000013,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 382.6000000000013,
+            "park": 0
+          },
+          "contestantBlockedSamples": 20,
+          "hunterBlockedSamples": 37
+        },
+        "depot / plant": {
+          "seams": 90,
+          "nonGuaranteed": 45,
+          "eligible": 15,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 345.6000000000058,
+          "eligibleContactLength": 345.6000000000058,
+          "contactLengthByType": {
+            "plant": 0,
+            "depot": 345.6000000000058
+          },
+          "eligibleContactLengthByType": {
+            "plant": 0,
+            "depot": 345.6000000000058
+          },
+          "contestantBlockedSamples": 17,
+          "hunterBlockedSamples": 33
+        },
+        "depot / rubble": {
+          "seams": 153,
+          "nonGuaranteed": 75,
+          "eligible": 25,
+          "joinedLength": 302.39999999999327,
+          "eligibleJoinedLength": 302.39999999999327,
+          "contactLength": 1185.599999999994,
+          "eligibleContactLength": 1185.599999999994,
+          "contactLengthByType": {
+            "depot": 561.599999999994,
+            "rubble": 624
+          },
+          "eligibleContactLengthByType": {
+            "depot": 561.599999999994,
+            "rubble": 624
+          },
+          "contestantBlockedSamples": 64,
+          "hunterBlockedSamples": 76
+        },
+        "depot / ruins": {
+          "seams": 48,
+          "nonGuaranteed": 24,
+          "eligible": 8,
+          "joinedLength": 216.00000000000364,
+          "eligibleJoinedLength": 216.00000000000364,
+          "contactLength": 547.2000000000044,
+          "eligibleContactLength": 547.2000000000044,
+          "contactLengthByType": {
+            "depot": 259.20000000000437,
+            "ruins": 288
+          },
+          "eligibleContactLengthByType": {
+            "depot": 259.20000000000437,
+            "ruins": 288
+          },
+          "contestantBlockedSamples": 26,
+          "hunterBlockedSamples": 28
+        },
+        "depot / transit": {
+          "seams": 12,
+          "nonGuaranteed": 6,
+          "eligible": 2,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 86.39999999999418,
+          "eligibleContactLength": 86.39999999999418,
+          "contactLengthByType": {
+            "transit": 0,
+            "depot": 86.39999999999418
+          },
+          "eligibleContactLengthByType": {
+            "transit": 0,
+            "depot": 86.39999999999418
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "hall / market": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 115.20000000000437,
+          "eligibleJoinedLength": 115.20000000000437,
+          "contactLength": 403.20000000000437,
+          "eligibleContactLength": 403.20000000000437,
+          "contactLengthByType": {
+            "hall": 288,
+            "market": 115.20000000000437
+          },
+          "eligibleContactLengthByType": {
+            "hall": 288,
+            "market": 115.20000000000437
+          },
+          "contestantBlockedSamples": 24,
+          "hunterBlockedSamples": 24
+        },
+        "market / open": {
+          "seams": 2061,
+          "nonGuaranteed": 1014,
+          "eligible": 342,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 6542.400000000143,
+          "eligibleContactLength": 6542.400000000143,
+          "contactLengthByType": {
+            "market": 6542.400000000143,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 6542.400000000143,
+            "open": 0
+          },
+          "contestantBlockedSamples": 347,
+          "hunterBlockedSamples": 684
+        },
+        "market / park": {
+          "seams": 594,
+          "nonGuaranteed": 297,
+          "eligible": 99,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1728.0000000000218,
+          "eligibleContactLength": 1728.0000000000218,
+          "contactLengthByType": {
+            "market": 1728.0000000000218,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 1728.0000000000218,
+            "park": 0
+          },
+          "contestantBlockedSamples": 91,
+          "hunterBlockedSamples": 181
+        },
+        "market / plant": {
+          "seams": 114,
+          "nonGuaranteed": 57,
+          "eligible": 19,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 499.20000000001346,
+          "eligibleContactLength": 499.20000000001346,
+          "contactLengthByType": {
+            "market": 499.20000000001346,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 499.20000000001346,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 26,
+          "hunterBlockedSamples": 52
+        },
+        "market / rubble": {
+          "seams": 753,
+          "nonGuaranteed": 393,
+          "eligible": 131,
+          "joinedLength": 1459.200000000027,
+          "eligibleJoinedLength": 1459.200000000027,
+          "contactLength": 6019.200000000054,
+          "eligibleContactLength": 6019.200000000054,
+          "contactLengthByType": {
+            "market": 2803.2000000000544,
+            "rubble": 3216
+          },
+          "eligibleContactLengthByType": {
+            "market": 2803.2000000000544,
+            "rubble": 3216
+          },
+          "contestantBlockedSamples": 339,
+          "hunterBlockedSamples": 409
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 136,
+          "affectedActualTargets": 45,
+          "affected": 47,
+          "zeroEffect": 104
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 136,
+          "affectedActualTargets": 43,
+          "affected": 44,
+          "zeroEffect": 107
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 16,
+            "zeroEffect": 6
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 16,
+            "zeroEffect": 17
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 15,
+            "zeroEffect": 81
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 16,
+            "zeroEffect": 6
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 17,
+            "zeroEffect": 16
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 11,
+            "zeroEffect": 85
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 148,
+          "invalid-endpoint": 3,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 148,
+          "invalid-endpoint": 3,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 31,
+      "manifests": [
+        {
+          "id": "market@462,12",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 49,
+            "gates": 0,
+            "loot": 233,
+            "coreElements": 0,
+            "stalls": 49,
+            "frontageStalls": 18,
+            "awnings": 49
+          }
+        },
+        {
+          "id": "depot@522,12",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 7,
+            "obstacles": 189,
+            "gates": 27,
+            "loot": 182,
+            "coreElements": 0,
+            "warehouses": 7,
+            "designed": 7,
+            "rows": 11,
+            "infillCrates": 23,
+            "boundaryRows": 15
+          }
+        },
+        {
+          "id": "market@588,18",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 49,
+            "gates": 0,
+            "loot": 219,
+            "coreElements": 0,
+            "stalls": 49,
+            "frontageStalls": 21,
+            "awnings": 49
+          }
+        },
+        {
+          "id": "market@348,108",
+          "type": "market",
+          "manifest": {
+            "cells": 11016,
+            "structures": 0,
+            "obstacles": 325,
+            "gates": 0,
+            "loot": 1000,
+            "coreElements": 0,
+            "stalls": 325,
+            "frontageStalls": 53,
+            "awnings": 325
+          }
+        },
+        {
+          "id": "depot@798,120",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 5,
+            "obstacles": 202,
+            "gates": 19,
+            "loot": 241,
+            "coreElements": 0,
+            "warehouses": 5,
+            "designed": 5,
+            "rows": 20,
+            "infillCrates": 29,
+            "boundaryRows": 19
+          }
+        },
+        {
+          "id": "market@534,138",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 36,
+            "gates": 0,
+            "loot": 162,
+            "coreElements": 0,
+            "stalls": 36,
+            "frontageStalls": 17,
+            "awnings": 36
+          }
+        },
+        {
+          "id": "market@804,162",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 48,
+            "gates": 0,
+            "loot": 310,
+            "coreElements": 0,
+            "stalls": 48,
+            "frontageStalls": 16,
+            "awnings": 48
+          }
+        },
+        {
+          "id": "block@576,186",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 0,
+            "obstacles": 17,
+            "gates": 0,
+            "loot": 165,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@732,198",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 138,
+            "gates": 0,
+            "loot": 867,
+            "coreElements": 0,
+            "stalls": 138,
+            "frontageStalls": 20,
+            "awnings": 138
+          }
+        },
+        {
+          "id": "market@396,210",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 48,
+            "gates": 0,
+            "loot": 155,
+            "coreElements": 0,
+            "stalls": 48,
+            "frontageStalls": 14,
+            "awnings": 48
+          }
+        },
+        {
+          "id": "market@102,216",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 40,
+            "gates": 0,
+            "loot": 18,
+            "coreElements": 0,
+            "stalls": 40,
+            "frontageStalls": 16,
+            "awnings": 40
+          }
+        },
+        {
+          "id": "block@234,222",
+          "type": "block",
+          "manifest": {
+            "cells": 4320,
+            "structures": 3,
+            "obstacles": 238,
+            "gates": 6,
+            "loot": 171,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@894,234",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 46,
+            "gates": 0,
+            "loot": 397,
+            "coreElements": 0,
+            "stalls": 46,
+            "frontageStalls": 13,
+            "awnings": 46
+          }
+        },
+        {
+          "id": "market@618,246",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 35,
+            "gates": 0,
+            "loot": 193,
+            "coreElements": 0,
+            "stalls": 35,
+            "frontageStalls": 15,
+            "awnings": 35
+          }
+        },
+        {
+          "id": "block@936,246",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 0,
+            "obstacles": 127,
+            "gates": 0,
+            "loot": 191,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@234,258",
+          "type": "market",
+          "manifest": {
+            "cells": 2160,
+            "structures": 0,
+            "obstacles": 52,
+            "gates": 0,
+            "loot": 161,
+            "coreElements": 0,
+            "stalls": 52,
+            "frontageStalls": 30,
+            "awnings": 52
+          }
+        },
+        {
+          "id": "market@1020,258",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 54,
+            "gates": 0,
+            "loot": 371,
+            "coreElements": 0,
+            "stalls": 54,
+            "frontageStalls": 19,
+            "awnings": 54
+          }
+        },
+        {
+          "id": "market@426,264",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 48,
+            "gates": 0,
+            "loot": 202,
+            "coreElements": 0,
+            "stalls": 48,
+            "frontageStalls": 18,
+            "awnings": 48
+          }
+        },
+        {
+          "id": "market@726,276",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 148,
+            "gates": 0,
+            "loot": 877,
+            "coreElements": 0,
+            "stalls": 148,
+            "frontageStalls": 26,
+            "awnings": 148
+          }
+        },
+        {
+          "id": "market@924,282",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 46,
+            "gates": 0,
+            "loot": 410,
+            "coreElements": 0,
+            "stalls": 46,
+            "frontageStalls": 14,
+            "awnings": 46
+          }
+        },
+        {
+          "id": "depot@186,288",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 7,
+            "obstacles": 227,
+            "gates": 29,
+            "loot": 49,
+            "coreElements": 0,
+            "warehouses": 7,
+            "designed": 7,
+            "rows": 15,
+            "infillCrates": 20,
+            "boundaryRows": 23
+          }
+        },
+        {
+          "id": "block@570,288",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 0,
+            "obstacles": 112,
+            "gates": 0,
+            "loot": 122,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@576,312",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 49,
+            "gates": 0,
+            "loot": 222,
+            "coreElements": 0,
+            "stalls": 49,
+            "frontageStalls": 16,
+            "awnings": 49
+          }
+        },
+        {
+          "id": "market@666,312",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 30,
+            "gates": 0,
+            "loot": 230,
+            "coreElements": 0,
+            "stalls": 30,
+            "frontageStalls": 9,
+            "awnings": 30
+          }
+        },
+        {
+          "id": "market@384,318",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 35,
+            "gates": 0,
+            "loot": 110,
+            "coreElements": 0,
+            "stalls": 35,
+            "frontageStalls": 14,
+            "awnings": 35
+          }
+        },
+        {
+          "id": "depot@426,342",
+          "type": "depot",
+          "manifest": {
+            "cells": 6480,
+            "structures": 31,
+            "obstacles": 702,
+            "gates": 115,
+            "loot": 590,
+            "coreElements": 0,
+            "warehouses": 31,
+            "designed": 31,
+            "rows": 39,
+            "infillCrates": 73,
+            "boundaryRows": 31
+          }
+        },
+        {
+          "id": "depot@594,342",
+          "type": "depot",
+          "manifest": {
+            "cells": 1944,
+            "structures": 7,
+            "obstacles": 216,
+            "gates": 27,
+            "loot": 167,
+            "coreElements": 0,
+            "warehouses": 7,
+            "designed": 7,
+            "rows": 13,
+            "infillCrates": 25,
+            "boundaryRows": 19
+          }
+        },
+        {
+          "id": "market@534,348",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 36,
+            "gates": 0,
+            "loot": 171,
+            "coreElements": 0,
+            "stalls": 36,
+            "frontageStalls": 14,
+            "awnings": 36
+          }
+        },
+        {
+          "id": "block@690,372",
+          "type": "block",
+          "manifest": {
+            "cells": 4320,
+            "structures": 4,
+            "obstacles": 221,
+            "gates": 11,
+            "loot": 334,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@810,390",
+          "type": "market",
+          "manifest": {
+            "cells": 3456,
+            "structures": 0,
+            "obstacles": 102,
+            "gates": 0,
+            "loot": 576,
+            "coreElements": 0,
+            "stalls": 102,
+            "frontageStalls": 42,
+            "awnings": 102
+          }
+        },
+        {
+          "id": "market@528,396",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 35,
+            "gates": 0,
+            "loot": 160,
+            "coreElements": 0,
+            "stalls": 35,
+            "frontageStalls": 16,
+            "awnings": 35
+          }
+        }
+      ]
+    },
+    {
+      "seed": "size-36-3",
+      "buildMs": 4909.59169999999,
+      "selectedJoinedLength": 1813.0000000000332,
+      "eligibleSeamCells": 775,
+      "eligibleSpans": {
+        "count": 772,
+        "maxCells": 2,
+        "oneCell": 769
+      },
+      "groups": {
+        "block / market": {
+          "seams": 384,
+          "nonGuaranteed": 192,
+          "eligible": 64,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 1420.800000000032,
+          "eligibleContactLength": 1420.800000000032,
+          "contactLengthByType": {
+            "block": 0,
+            "market": 1420.800000000032
+          },
+          "eligibleContactLengthByType": {
+            "block": 0,
+            "market": 1420.800000000032
+          },
+          "contestantBlockedSamples": 74,
+          "hunterBlockedSamples": 148
+        },
+        "checkpoint / market": {
+          "seams": 150,
+          "nonGuaranteed": 75,
+          "eligible": 25,
+          "joinedLength": 24,
+          "eligibleJoinedLength": 24,
+          "contactLength": 523.2000000000189,
+          "eligibleContactLength": 523.2000000000189,
+          "contactLengthByType": {
+            "checkpoint": 24,
+            "market": 499.2000000000189
+          },
+          "eligibleContactLengthByType": {
+            "checkpoint": 24,
+            "market": 499.2000000000189
+          },
+          "contestantBlockedSamples": 26,
+          "hunterBlockedSamples": 52
+        },
+        "compound / market": {
+          "seams": 102,
+          "nonGuaranteed": 51,
+          "eligible": 18,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 312.00000000000364,
+          "eligibleContactLength": 312.00000000000364,
+          "contactLengthByType": {
+            "compound": 0,
+            "market": 312.00000000000364
+          },
+          "eligibleContactLengthByType": {
+            "compound": 0,
+            "market": 312.00000000000364
+          },
+          "contestantBlockedSamples": 16,
+          "hunterBlockedSamples": 31
+        },
+        "cover / depot": {
+          "seams": 18,
+          "nonGuaranteed": 9,
+          "eligible": 3,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 43.20000000000073,
+          "eligibleContactLength": 43.20000000000073,
+          "contactLengthByType": {
+            "cover": 0,
+            "depot": 43.20000000000073
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "depot": 43.20000000000073
+          },
+          "contestantBlockedSamples": 2,
+          "hunterBlockedSamples": 4
+        },
+        "cover / market": {
+          "seams": 240,
+          "nonGuaranteed": 120,
+          "eligible": 40,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 883.200000000028,
+          "eligibleContactLength": 883.200000000028,
+          "contactLengthByType": {
+            "cover": 0,
+            "market": 883.200000000028
+          },
+          "eligibleContactLengthByType": {
+            "cover": 0,
+            "market": 883.200000000028
+          },
+          "contestantBlockedSamples": 46,
+          "hunterBlockedSamples": 92
+        },
+        "depot / market": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 76.80000000000291,
+          "eligibleJoinedLength": 76.80000000000291,
+          "contactLength": 292.80000000000655,
+          "eligibleContactLength": 292.80000000000655,
+          "contactLengthByType": {
+            "depot": 216.00000000000364,
+            "market": 76.80000000000291
+          },
+          "eligibleContactLengthByType": {
+            "depot": 216.00000000000364,
+            "market": 76.80000000000291
+          },
+          "contestantBlockedSamples": 10,
+          "hunterBlockedSamples": 20
+        },
+        "depot / open": {
+          "seams": 114,
+          "nonGuaranteed": 54,
+          "eligible": 18,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 432.0000000000073,
+          "eligibleContactLength": 432.0000000000073,
+          "contactLengthByType": {
+            "depot": 432.0000000000073,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 432.0000000000073,
+            "open": 0
+          },
+          "contestantBlockedSamples": 20,
+          "hunterBlockedSamples": 40
+        },
+        "depot / park": {
+          "seams": 24,
+          "nonGuaranteed": 12,
+          "eligible": 4,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 86.40000000000146,
+          "eligibleContactLength": 86.40000000000146,
+          "contactLengthByType": {
+            "depot": 86.40000000000146,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "depot": 86.40000000000146,
+            "park": 0
+          },
+          "contestantBlockedSamples": 4,
+          "hunterBlockedSamples": 8
+        },
+        "depot / plant": {
+          "seams": 90,
+          "nonGuaranteed": 45,
+          "eligible": 15,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 475.200000000008,
+          "eligibleContactLength": 475.200000000008,
+          "contactLengthByType": {
+            "plant": 0,
+            "depot": 475.200000000008
+          },
+          "eligibleContactLengthByType": {
+            "plant": 0,
+            "depot": 475.200000000008
+          },
+          "contestantBlockedSamples": 22,
+          "hunterBlockedSamples": 44
+        },
+        "depot / rubble": {
+          "seams": 42,
+          "nonGuaranteed": 24,
+          "eligible": 8,
+          "joinedLength": 61,
+          "eligibleJoinedLength": 61,
+          "contactLength": 387.40000000000146,
+          "eligibleContactLength": 387.40000000000146,
+          "contactLengthByType": {
+            "depot": 147.40000000000146,
+            "rubble": 240
+          },
+          "eligibleContactLengthByType": {
+            "depot": 147.40000000000146,
+            "rubble": 240
+          },
+          "contestantBlockedSamples": 24,
+          "hunterBlockedSamples": 28
+        },
+        "hall / market": {
+          "seams": 36,
+          "nonGuaranteed": 18,
+          "eligible": 6,
+          "joinedLength": 115.20000000000437,
+          "eligibleJoinedLength": 115.20000000000437,
+          "contactLength": 393.6000000000058,
+          "eligibleContactLength": 393.6000000000058,
+          "contactLengthByType": {
+            "market": 153.60000000000582,
+            "hall": 240
+          },
+          "eligibleContactLengthByType": {
+            "market": 153.60000000000582,
+            "hall": 240
+          },
+          "contestantBlockedSamples": 22,
+          "hunterBlockedSamples": 24
+        },
+        "market / open": {
+          "seams": 2022,
+          "nonGuaranteed": 1029,
+          "eligible": 343,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 7104.000000000131,
+          "eligibleContactLength": 7104.000000000131,
+          "contactLengthByType": {
+            "market": 7104.000000000131,
+            "open": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 7104.000000000131,
+            "open": 0
+          },
+          "contestantBlockedSamples": 370,
+          "hunterBlockedSamples": 740
+        },
+        "market / park": {
+          "seams": 576,
+          "nonGuaranteed": 288,
+          "eligible": 97,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 2188.800000000043,
+          "eligibleContactLength": 2188.800000000043,
+          "contactLengthByType": {
+            "market": 2188.800000000043,
+            "park": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 2188.800000000043,
+            "park": 0
+          },
+          "contestantBlockedSamples": 116,
+          "hunterBlockedSamples": 230
+        },
+        "market / plant": {
+          "seams": 42,
+          "nonGuaranteed": 21,
+          "eligible": 7,
+          "joinedLength": 0,
+          "eligibleJoinedLength": 0,
+          "contactLength": 153.60000000000582,
+          "eligibleContactLength": 153.60000000000582,
+          "contactLengthByType": {
+            "market": 153.60000000000582,
+            "plant": 0
+          },
+          "eligibleContactLengthByType": {
+            "market": 153.60000000000582,
+            "plant": 0
+          },
+          "contestantBlockedSamples": 8,
+          "hunterBlockedSamples": 16
+        },
+        "market / rubble": {
+          "seams": 756,
+          "nonGuaranteed": 360,
+          "eligible": 121,
+          "joinedLength": 1536.000000000026,
+          "eligibleJoinedLength": 1536.000000000026,
+          "contactLength": 5625.600000000053,
+          "eligibleContactLength": 5625.600000000053,
+          "contactLengthByType": {
+            "market": 2457.6000000000536,
+            "rubble": 3168
+          },
+          "eligibleContactLengthByType": {
+            "market": 2457.6000000000536,
+            "rubble": 3168
+          },
+          "contestantBlockedSamples": 311,
+          "hunterBlockedSamples": 359
+        }
+      },
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 36,
+          "affected": 36,
+          "zeroEffect": 115
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 46,
+          "affected": 47,
+          "zeroEffect": 104
+        }
+      },
+      "categories": {
+        "contestant": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 16,
+            "zeroEffect": 6
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 8,
+            "zeroEffect": 25
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 12,
+            "zeroEffect": 84
+          }
+        },
+        "hunter": {
+          "spawn-exit": {
+            "attempted": 22,
+            "affected": 16,
+            "zeroEffect": 6
+          },
+          "spawn-charger": {
+            "attempted": 33,
+            "affected": 16,
+            "zeroEffect": 17
+          },
+          "charger-loot": {
+            "attempted": 96,
+            "affected": 15,
+            "zeroEffect": 81
+          }
+        }
+      },
+      "finalRouteStatuses": {
+        "contestant": {
+          "complete": 148,
+          "invalid-endpoint": 3,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        },
+        "hunter": {
+          "complete": 148,
+          "invalid-endpoint": 3,
+          "unreachable": 0,
+          "search-miss": 0,
+          "sweep-defect": 0
+        }
+      },
+      "rebuiltOwners": 25,
+      "manifests": [
+        {
+          "id": "market@438,48",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 29,
+            "gates": 0,
+            "loot": 182,
+            "coreElements": 0,
+            "stalls": 29,
+            "frontageStalls": 14,
+            "awnings": 29
+          }
+        },
+        {
+          "id": "market@522,90",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 36,
+            "gates": 0,
+            "loot": 148,
+            "coreElements": 0,
+            "stalls": 36,
+            "frontageStalls": 12,
+            "awnings": 36
+          }
+        },
+        {
+          "id": "market@438,132",
+          "type": "market",
+          "manifest": {
+            "cells": 3600,
+            "structures": 0,
+            "obstacles": 97,
+            "gates": 0,
+            "loot": 423,
+            "coreElements": 0,
+            "stalls": 97,
+            "frontageStalls": 28,
+            "awnings": 97
+          }
+        },
+        {
+          "id": "market@606,132",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 143,
+            "gates": 0,
+            "loot": 672,
+            "coreElements": 0,
+            "stalls": 143,
+            "frontageStalls": 23,
+            "awnings": 143
+          }
+        },
+        {
+          "id": "market@504,180",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 50,
+            "gates": 0,
+            "loot": 206,
+            "coreElements": 0,
+            "stalls": 50,
+            "frontageStalls": 18,
+            "awnings": 50
+          }
+        },
+        {
+          "id": "market@294,192",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 143,
+            "gates": 0,
+            "loot": 400,
+            "coreElements": 0,
+            "stalls": 143,
+            "frontageStalls": 25,
+            "awnings": 143
+          }
+        },
+        {
+          "id": "market@726,210",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 34,
+            "gates": 0,
+            "loot": 239,
+            "coreElements": 0,
+            "stalls": 34,
+            "frontageStalls": 13,
+            "awnings": 34
+          }
+        },
+        {
+          "id": "market@660,222",
+          "type": "market",
+          "manifest": {
+            "cells": 3096,
+            "structures": 0,
+            "obstacles": 82,
+            "gates": 0,
+            "loot": 552,
+            "coreElements": 0,
+            "stalls": 82,
+            "frontageStalls": 27,
+            "awnings": 82
+          }
+        },
+        {
+          "id": "market@780,228",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 29,
+            "gates": 0,
+            "loot": 240,
+            "coreElements": 0,
+            "stalls": 29,
+            "frontageStalls": 13,
+            "awnings": 29
+          }
+        },
+        {
+          "id": "block@126,240",
+          "type": "block",
+          "manifest": {
+            "cells": 4320,
+            "structures": 3,
+            "obstacles": 259,
+            "gates": 11,
+            "loot": 57,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@492,240",
+          "type": "market",
+          "manifest": {
+            "cells": 1800,
+            "structures": 0,
+            "obstacles": 45,
+            "gates": 0,
+            "loot": 224,
+            "coreElements": 0,
+            "stalls": 45,
+            "frontageStalls": 12,
+            "awnings": 45
+          }
+        },
+        {
+          "id": "block@906,246",
+          "type": "block",
+          "manifest": {
+            "cells": 4320,
+            "structures": 14,
+            "obstacles": 218,
+            "gates": 16,
+            "loot": 485,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@84,252",
+          "type": "market",
+          "manifest": {
+            "cells": 3924,
+            "structures": 0,
+            "obstacles": 94,
+            "gates": 0,
+            "loot": 119,
+            "coreElements": 0,
+            "stalls": 94,
+            "frontageStalls": 41,
+            "awnings": 94
+          }
+        },
+        {
+          "id": "market@414,252",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 50,
+            "gates": 0,
+            "loot": 176,
+            "coreElements": 0,
+            "stalls": 50,
+            "frontageStalls": 16,
+            "awnings": 50
+          }
+        },
+        {
+          "id": "block@756,264",
+          "type": "block",
+          "manifest": {
+            "cells": 4320,
+            "structures": 1,
+            "obstacles": 157,
+            "gates": 3,
+            "loot": 335,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@906,282",
+          "type": "market",
+          "manifest": {
+            "cells": 2160,
+            "structures": 0,
+            "obstacles": 49,
+            "gates": 0,
+            "loot": 505,
+            "coreElements": 0,
+            "stalls": 49,
+            "frontageStalls": 22,
+            "awnings": 49
+          }
+        },
+        {
+          "id": "depot@396,300",
+          "type": "depot",
+          "manifest": {
+            "cells": 6480,
+            "structures": 36,
+            "obstacles": 803,
+            "gates": 146,
+            "loot": 424,
+            "coreElements": 0,
+            "warehouses": 36,
+            "designed": 36,
+            "rows": 45,
+            "infillCrates": 69,
+            "boundaryRows": 31
+          }
+        },
+        {
+          "id": "market@756,300",
+          "type": "market",
+          "manifest": {
+            "cells": 2160,
+            "structures": 0,
+            "obstacles": 52,
+            "gates": 0,
+            "loot": 419,
+            "coreElements": 0,
+            "stalls": 52,
+            "frontageStalls": 27,
+            "awnings": 52
+          }
+        },
+        {
+          "id": "market@630,318",
+          "type": "market",
+          "manifest": {
+            "cells": 5040,
+            "structures": 0,
+            "obstacles": 149,
+            "gates": 0,
+            "loot": 812,
+            "coreElements": 0,
+            "stalls": 149,
+            "frontageStalls": 31,
+            "awnings": 149
+          }
+        },
+        {
+          "id": "market@486,324",
+          "type": "market",
+          "manifest": {
+            "cells": 1296,
+            "structures": 0,
+            "obstacles": 34,
+            "gates": 0,
+            "loot": 175,
+            "coreElements": 0,
+            "stalls": 34,
+            "frontageStalls": 14,
+            "awnings": 34
+          }
+        },
+        {
+          "id": "market@822,336",
+          "type": "market",
+          "manifest": {
+            "cells": 1260,
+            "structures": 0,
+            "obstacles": 39,
+            "gates": 0,
+            "loot": 172,
+            "coreElements": 0,
+            "stalls": 39,
+            "frontageStalls": 19,
+            "awnings": 39
+          }
+        },
+        {
+          "id": "market@216,360",
+          "type": "market",
+          "manifest": {
+            "cells": 1764,
+            "structures": 0,
+            "obstacles": 47,
+            "gates": 0,
+            "loot": 138,
+            "coreElements": 0,
+            "stalls": 47,
+            "frontageStalls": 21,
+            "awnings": 47
+          }
+        },
+        {
+          "id": "block@540,360",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 1,
+            "obstacles": 116,
+            "gates": 3,
+            "loot": 129,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "block@726,384",
+          "type": "block",
+          "manifest": {
+            "cells": 1728,
+            "structures": 0,
+            "obstacles": 53,
+            "gates": 0,
+            "loot": 237,
+            "coreElements": 0
+          }
+        },
+        {
+          "id": "market@432,390",
+          "type": "market",
+          "manifest": {
+            "cells": 11484,
+            "structures": 0,
+            "obstacles": 350,
+            "gates": 0,
+            "loot": 1394,
+            "coreElements": 0,
+            "stalls": 350,
+            "frontageStalls": 52,
+            "awnings": 350
+          }
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "contestant": {
+      "attempted": 1359,
+      "commonComplete": 1344,
+      "commonActualTargets": 1263,
+      "affectedActualTargets": 202,
+      "affected": 208,
+      "zeroEffect": 1151
+    },
+    "hunter": {
+      "attempted": 1359,
+      "commonComplete": 1335,
+      "commonActualTargets": 1263,
+      "affectedActualTargets": 214,
+      "affected": 221,
+      "zeroEffect": 1138
+    }
+  },
+  "categories": {
+    "contestant": {
+      "spawn-exit": {
+        "attempted": 198,
+        "affected": 72,
+        "zeroEffect": 126
+      },
+      "spawn-charger": {
+        "attempted": 297,
+        "affected": 65,
+        "zeroEffect": 232
+      },
+      "charger-loot": {
+        "attempted": 864,
+        "affected": 71,
+        "zeroEffect": 793
+      }
+    },
+    "hunter": {
+      "spawn-exit": {
+        "attempted": 198,
+        "affected": 80,
+        "zeroEffect": 118
+      },
+      "spawn-charger": {
+        "attempted": 297,
+        "affected": 76,
+        "zeroEffect": 221
+      },
+      "charger-loot": {
+        "attempted": 864,
+        "affected": 65,
+        "zeroEffect": 799
+      }
+    }
+  },
+  "typePairs": {
+    "block / depot": {
+      "eligibleLength": 720,
+      "contactLengthByType": {
+        "block": 0,
+        "depot": 426.800000000002
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 30,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 20,
+          "contiguousBlockedSpans": 10,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 20,
+          "contiguousBlockedSpans": 10,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "charging / depot": {
+      "eligibleLength": 96,
+      "contactLengthByType": {
+        "charging": 0,
+        "depot": 86.40000000000146
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 4,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 4,
+          "contiguousBlockedSpans": 2,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 4,
+          "contiguousBlockedSpans": 2,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "cover / market": {
+      "eligibleLength": 9744,
+      "contactLengthByType": {
+        "cover": 0,
+        "market": 4454.400000000074
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 406,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 233,
+          "contiguousBlockedSpans": 117,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 234,
+          "contiguousBlockedSpans": 116,
+          "maxBlockedSpanCells": 2
+        }
+      }
+    },
+    "depot / open": {
+      "eligibleLength": 19584,
+      "contactLengthByType": {
+        "depot": 10940.000000000025,
+        "open": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 816,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 515,
+          "contiguousBlockedSpans": 258,
+          "maxBlockedSpanCells": 2
+        },
+        "hunter": {
+          "blockedSamples": 517,
+          "contiguousBlockedSpans": 257,
+          "maxBlockedSpanCells": 2
+        }
+      }
+    },
+    "checkpoint / depot": {
+      "eligibleLength": 336,
+      "contactLengthByType": {
+        "depot": 259.1999999999989,
+        "checkpoint": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 14,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 12,
+          "contiguousBlockedSpans": 6,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 12,
+          "contiguousBlockedSpans": 6,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "cover / depot": {
+      "eligibleLength": 2784,
+      "contactLengthByType": {
+        "depot": 1461.399999999999,
+        "cover": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 116,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 68,
+          "contiguousBlockedSpans": 34,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 68,
+          "contiguousBlockedSpans": 34,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "depot / plant": {
+      "eligibleLength": 4704,
+      "contactLengthByType": {
+        "depot": 2153.80000000002,
+        "plant": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 196,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 101,
+          "contiguousBlockedSpans": 51,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 101,
+          "contiguousBlockedSpans": 51,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "market / open": {
+      "eligibleLength": 71952,
+      "contactLengthByType": {
+        "market": 30158.400000000685,
+        "open": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 2998,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 1577,
+          "contiguousBlockedSpans": 791,
+          "maxBlockedSpanCells": 2
+        },
+        "hunter": {
+          "blockedSamples": 1577,
+          "contiguousBlockedSpans": 791,
+          "maxBlockedSpanCells": 2
+        }
+      }
+    },
+    "market / park": {
+      "eligibleLength": 19920,
+      "contactLengthByType": {
+        "market": 8793.600000000095,
+        "park": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 830,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 461,
+          "contiguousBlockedSpans": 232,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 462,
+          "contiguousBlockedSpans": 232,
+          "maxBlockedSpanCells": 1.5
+        }
+      }
+    },
+    "market / rubble": {
+      "eligibleLength": 26832,
+      "contactLengthByType": {
+        "market": 11942.40000000017,
+        "rubble": 13824
+      },
+      "joinedLength": 6067.2000000000935,
+      "sampledCrossingsPerBody": 1118,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 882,
+          "contiguousBlockedSpans": 440,
+          "maxBlockedSpanCells": 2
+        },
+        "hunter": {
+          "blockedSamples": 882,
+          "contiguousBlockedSpans": 440,
+          "maxBlockedSpanCells": 2
+        }
+      }
+    },
+    "depot / rubble": {
+      "eligibleLength": 6768,
+      "contactLengthByType": {
+        "rubble": 3504,
+        "depot": 3885.7999999999874
+      },
+      "joinedLength": 2032.9999999999982,
+      "sampledCrossingsPerBody": 282,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 234,
+          "contiguousBlockedSpans": 117,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 234,
+          "contiguousBlockedSpans": 117,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "market / transit": {
+      "eligibleLength": 624,
+      "contactLengthByType": {
+        "transit": 0,
+        "market": 230.4000000000051
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 26,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 12,
+          "contiguousBlockedSpans": 6,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 12,
+          "contiguousBlockedSpans": 6,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "depot / park": {
+      "eligibleLength": 3792,
+      "contactLengthByType": {
+        "depot": 2007.600000000003,
+        "park": 19.200000000000728
+      },
+      "joinedLength": 19.200000000000728,
+      "sampledCrossingsPerBody": 158,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 96,
+          "contiguousBlockedSpans": 47,
+          "maxBlockedSpanCells": 2
+        },
+        "hunter": {
+          "blockedSamples": 96,
+          "contiguousBlockedSpans": 47,
+          "maxBlockedSpanCells": 2
+        }
+      }
+    },
+    "depot / transit": {
+      "eligibleLength": 240,
+      "contactLengthByType": {
+        "depot": 172.79999999999472,
+        "transit": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 10,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 8,
+          "contiguousBlockedSpans": 4,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 8,
+          "contiguousBlockedSpans": 4,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "depot / hall": {
+      "eligibleLength": 432,
+      "contactLengthByType": {
+        "depot": 332.4000000000051,
+        "hall": 96
+      },
+      "joinedLength": 43.20000000000073,
+      "sampledCrossingsPerBody": 18,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 18,
+          "contiguousBlockedSpans": 9,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 18,
+          "contiguousBlockedSpans": 9,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "compound / market": {
+      "eligibleLength": 1728,
+      "contactLengthByType": {
+        "compound": 0,
+        "market": 734.4000000000005
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 72,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 38,
+          "contiguousBlockedSpans": 19,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 39,
+          "contiguousBlockedSpans": 19,
+          "maxBlockedSpanCells": 1.5
+        }
+      }
+    },
+    "departure / depot": {
+      "eligibleLength": 96,
+      "contactLengthByType": {
+        "depot": 43.20000000000073,
+        "departure": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 4,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 2,
+          "contiguousBlockedSpans": 1,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 2,
+          "contiguousBlockedSpans": 1,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "market / plant": {
+      "eligibleLength": 2304,
+      "contactLengthByType": {
+        "plant": 0,
+        "market": 1075.200000000034
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 96,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 56,
+          "contiguousBlockedSpans": 28,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 56,
+          "contiguousBlockedSpans": 28,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "arrival / depot": {
+      "eligibleLength": 144,
+      "contactLengthByType": {
+        "arrival": 0,
+        "depot": 86.40000000000146
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 6,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 4,
+          "contiguousBlockedSpans": 2,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 4,
+          "contiguousBlockedSpans": 2,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "market / ruins": {
+      "eligibleLength": 672,
+      "contactLengthByType": {
+        "market": 268.7999999999993,
+        "ruins": 480
+      },
+      "joinedLength": 192,
+      "sampledCrossingsPerBody": 28,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 24,
+          "contiguousBlockedSpans": 11,
+          "maxBlockedSpanCells": 2
+        },
+        "hunter": {
+          "blockedSamples": 24,
+          "contiguousBlockedSpans": 11,
+          "maxBlockedSpanCells": 2
+        }
+      }
+    },
+    "depot / market": {
+      "eligibleLength": 1248,
+      "contactLengthByType": {
+        "market": 576.0000000000161,
+        "depot": 773.400000000011
+      },
+      "joinedLength": 422.4000000000133,
+      "sampledCrossingsPerBody": 52,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 44,
+          "contiguousBlockedSpans": 22,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 44,
+          "contiguousBlockedSpans": 22,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "block / market": {
+      "eligibleLength": 8640,
+      "contactLengthByType": {
+        "block": 0,
+        "market": 3763.200000000086
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 360,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 196,
+          "contiguousBlockedSpans": 98,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 196,
+          "contiguousBlockedSpans": 98,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "arrival / market": {
+      "eligibleLength": 144,
+      "contactLengthByType": {
+        "market": 0,
+        "arrival": 0
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 6,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 1,
+          "contiguousBlockedSpans": 1,
+          "maxBlockedSpanCells": 0.5
+        },
+        "hunter": {
+          "blockedSamples": 1,
+          "contiguousBlockedSpans": 1,
+          "maxBlockedSpanCells": 0.5
+        }
+      }
+    },
+    "charging / market": {
+      "eligibleLength": 240,
+      "contactLengthByType": {
+        "charging": 0,
+        "market": 115.20000000000437
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 10,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 6,
+          "contiguousBlockedSpans": 3,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 6,
+          "contiguousBlockedSpans": 3,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "hall / market": {
+      "eligibleLength": 1104,
+      "contactLengthByType": {
+        "market": 576.0000000000073,
+        "hall": 816
+      },
+      "joinedLength": 384.0000000000073,
+      "sampledCrossingsPerBody": 46,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 44,
+          "contiguousBlockedSpans": 22,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 44,
+          "contiguousBlockedSpans": 22,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "checkpoint / market": {
+      "eligibleLength": 2256,
+      "contactLengthByType": {
+        "checkpoint": 48,
+        "market": 1075.2000000000342
+      },
+      "joinedLength": 24,
+      "sampledCrossingsPerBody": 94,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 58,
+          "contiguousBlockedSpans": 29,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 58,
+          "contiguousBlockedSpans": 29,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "compound / depot": {
+      "eligibleLength": 48,
+      "contactLengthByType": {
+        "compound": 0,
+        "depot": 43.19999999999709
+      },
+      "joinedLength": 0,
+      "sampledCrossingsPerBody": 2,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 2,
+          "contiguousBlockedSpans": 1,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 2,
+          "contiguousBlockedSpans": 1,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    },
+    "depot / ruins": {
+      "eligibleLength": 384,
+      "contactLengthByType": {
+        "depot": 259.20000000000437,
+        "ruins": 288
+      },
+      "joinedLength": 216.00000000000364,
+      "sampledCrossingsPerBody": 16,
+      "bodies": {
+        "contestant": {
+          "blockedSamples": 14,
+          "contiguousBlockedSpans": 7,
+          "maxBlockedSpanCells": 1
+        },
+        "hunter": {
+          "blockedSamples": 14,
+          "contiguousBlockedSpans": 7,
+          "maxBlockedSpanCells": 1
+        }
+      }
+    }
+  }
+}
