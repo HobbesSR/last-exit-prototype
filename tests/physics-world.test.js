@@ -262,6 +262,16 @@ test('map geometry shares one fixed body but keeps its own pose, contacts and re
 // The world steps Rapier's pipeline directly and removes bodies without rapier.js's whole-world re-sync (42.22), so
 // it must keep the wrapper's handle maps current itself: every body, collider and joint the engine holds is mapped,
 // and nothing it removed stays mapped.
+test('stepping refuses a world holding a rapier soft body, whose handles only the skipped sync maps', async () => {
+  const RAPIER = (await import('@dimforge/rapier2d-compat')).default;
+  const world = await createPhysicsWorld();
+  try {
+    world.queueAddBody(circle('a')); world.commitMutations(); world.step();
+    world.native.createSoftBody(RAPIER.SoftBodyDesc.rope({ x: 0, y: 0 }, { x: 40, y: 0 }, 4));
+    assert.throws(() => world.step(), /soft body/);
+  } finally { world.dispose(); }
+});
+
 test('rapier.js handle maps match the engine through steps, removals and ropes', async () => {
   const world = await createPhysicsWorld();
   try {

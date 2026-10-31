@@ -192,9 +192,11 @@ export class PhysicsWorld {
   // The pipeline's step alone: `World.step` then re-syncs rapier.js's handle maps by visiting every collider and body
   // across the wasm boundary, about 150 ns each per substep whether anything changed or not (42.22). This world adds
   // and removes bodies and colliders only through the calls that keep those maps current, and Rapier creates none
-  // inside a step, so there is nothing to sync.
+  // inside a step, so there is nothing to sync. Soft bodies are what that sync exists for (rapier.js maps them and
+  // their handles there), so the step refuses to run with one rather than leave the maps stale (29.1).
   private stepNative(): void {
     const w = this.native;
+    if (w.softBodies.len() !== 0) throw new Error('physics world has a soft body; stepNative skips the handle sync it needs');
     w.physicsPipeline.step(w.gravity, w.integrationParameters, w.islands, w.broadPhase, w.narrowPhase, w.bodies, w.colliders,
       w.softBodies, w.impulseJoints, w.multibodyJoints, w.ccdSolver, this.events, undefined);
   }
