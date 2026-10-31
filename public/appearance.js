@@ -173,6 +173,35 @@ export function applyLightSample(baseColor, sample, roleScale = 1) {
 }
 
 /**
+ * Resolve bounded virtual lighting tint for moving actors (29.4 "Virtual lighting", 41.2 step 4).
+ * Blends base actor kit/contestant tint with regional spatial light sample.
+ * Bounded with `actorScale` (default 0.25) so identity colors are never overwhelmed or darkened.
+ * Returns `baseTint` when lighting is disabled or light influence is zero.
+ */
+export function resolveActorTint(baseTint, lightSample, options = {}) {
+  if (options.lighting === false || !lightSample || lightSample.weight <= 0) return baseTint;
+  const scale = typeof options.actorScale === 'number' ? options.actorScale : 0.25;
+  return applyLightSample(baseTint, lightSample, scale);
+}
+
+/**
+ * Resolve bounded virtual lighting fill and stroke for physics props (29.4, 41.2 step 4).
+ * Blends base prop material fill/stroke with regional spatial light sample.
+ * Returns base colors when lighting is disabled or light influence is zero.
+ */
+export function resolvePropAppearance(baseFill, baseStroke, lightSample, options = {}) {
+  if (options.lighting === false || !lightSample || lightSample.weight <= 0) {
+    return { fill: baseFill, stroke: baseStroke };
+  }
+  const fillScale = typeof options.propFillScale === 'number' ? options.propFillScale : 0.35;
+  const strokeScale = typeof options.propStrokeScale === 'number' ? options.propStrokeScale : 0.25;
+  return {
+    fill: applyLightSample(baseFill, lightSample, fillScale),
+    stroke: applyLightSample(baseStroke, lightSample, strokeScale),
+  };
+}
+
+/**
  * Resolve a building's floor, roof, and ground/roof decorative marks from optional `map.appearance`
  * (or neutral theme fallback when omitted).
  * Composition order (29.4):
@@ -388,18 +417,44 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
   for (const surf of mapAppearance.surfaces || []) {
     const b = surf.bounds;
     if (!b) continue;
-    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-    const light = sampleSpatialLight(fields, cx, cy, art);
     const base = resolveSwatch(surf.material, art.ink.ground);
     const weathered = art.wear && surf.weathered ? mix(base, U.slateShadow, 0.14) : base;
-    const fill = applyLightSample(weathered, light, 0.38);
-    const seamColor = mix(fill, U.structuralVoid, 0.35);
+
+    // Long surfaces crossing fields must be split or sampled spatially rather than tinted solely from their center (29.4).
+    const span = typeof surf.segmentSpan === 'number' && surf.segmentSpan > 0
+      ? surf.segmentSpan
+      : (surf.split ? 256 : (b.w > 256 || b.h > 256 ? 256 : 512));
+    const cols = Math.max(1, Math.ceil(b.w / span));
+    const rows = Math.max(1, Math.ceil(b.h / span));
+
+    const fillOps = [];
+    for (let c = 0; c < cols; c++) {
+      const sx = b.x + Math.round((c * b.w) / cols);
+      const ex = b.x + Math.round(((c + 1) * b.w) / cols);
+      const sw = ex - sx;
+      for (let r = 0; r < rows; r++) {
+        const sy = b.y + Math.round((r * b.h) / rows);
+        const ey = b.y + Math.round(((r + 1) * b.h) / rows);
+        const sh = ey - sy;
+        const scx = sx + sw / 2;
+        const scy = sy + sh / 2;
+        const segLight = sampleSpatialLight(fields, scx, scy, art);
+        const segFill = applyLightSample(weathered, segLight, 0.38);
+        fillOps.push({ op: 'fillRect', x: sx, y: sy, w: sw, h: sh, color: segFill, alpha: surf.alpha ?? 1 });
+      }
+    }
+
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const centerLight = sampleSpatialLight(fields, cx, cy, art);
+    const centerFill = applyLightSample(weathered, centerLight, 0.38);
+    const seamColor = mix(centerFill, U.structuralVoid, 0.35);
+
     items.push({
       layer: 'paving',
       id: surf.id || 'surface',
       bounds: { x: b.x - 2, y: b.y - 2, w: b.w + 4, h: b.h + 4 },
       ops: [
-        { op: 'fillRect', x: b.x, y: b.y, w: b.w, h: b.h, color: fill, alpha: surf.alpha ?? 1 },
+        ...fillOps,
         ...(surf.curb ? [{ op: 'strokeRect', x: b.x, y: b.y, w: b.w, h: b.h, width: 2, color: seamColor, alpha: 0.65 }] : []),
       ],
     });

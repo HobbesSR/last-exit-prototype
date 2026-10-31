@@ -7,7 +7,26 @@ import { observe, start, stop, count, frame as endProfileFrame } from '/shared/p
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
 import { themeColors, css } from './palette.js';
-import { APPEARANCE_RECIPE_VERSION, resolveBuildingAppearance, resolveObstacleAppearance, resolveGroundAppearance, recordAppearanceOps } from './appearance.js';
+import {
+  APPEARANCE_RECIPE_VERSION,
+  resolveBuildingAppearance,
+  resolveObstacleAppearance,
+  resolveGroundAppearance,
+  sampleSpatialLight,
+  resolveActorTint,
+  resolvePropAppearance,
+  recordAppearanceOps,
+} from './appearance.js';
+
+function actorBaseTint(p, ownId) {
+  if (p.role === 'gladiator') {
+    if (p.kit === 'specter') return 0xc5b0ff;
+    if (p.kit === 'striker') return 0xffd485;
+    return 0xffffff;
+  }
+  if (p.id === ownId) return 0xffffff;
+  return [0xffffff, 0x9de6df, 0xfbdba2, 0xb9bdff][p.name.length % 4];
+}
 
 // Heard gunfire's ring and edge arrow (#684).
 const HEARD = 0xffba62;
@@ -593,13 +612,12 @@ export function makeArenaScene(api) {
     }
     makeActor(p) {
       const sprite = this.add.image(0, 0, p.role).setDisplaySize(p.role === 'gladiator' ? 65 : 43, p.role === 'gladiator' ? 65 : 43);
-      if (p.role === 'gladiator' && p.kit === 'specter') sprite.setTint(0xc5b0ff);
-      if (p.role === 'gladiator' && p.kit === 'striker') sprite.setTint(0xffd485);
-      if (p.role === 'contestant' && p.id !== api.playerId()) sprite.setTint([0xffffff, 0x9de6df, 0xfbdba2, 0xb9bdff][p.name.length % 4]);
+      const baseTint = actorBaseTint(p, api.playerId());
+      sprite.setTint(baseTint);
       const ring = this.add.graphics(), bar = this.add.graphics(), geometry = this.add.graphics().setVisible(false);
       const name = this.add.text(0, -35, p.id === api.playerId() && !api.replay() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: LABEL_FONT_PX, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 8 }).setOrigin(0.5).setScale(this.nameScale);
       const container = this.add.container(p.x, p.y, [ring, sprite, bar, name, geometry]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
-      const actor = { sprite, ring, bar, name, geometry, container }; this.actors.set(p.id, actor); return actor;
+      const actor = { sprite, ring, bar, name, geometry, container, baseTint }; this.actors.set(p.id, actor); return actor;
     }
     /** The active player nearest a pointer, within a fixed screen distance of it, or null. */
     playerAt(pointer) {
@@ -762,6 +780,8 @@ export function makeArenaScene(api) {
       const lit = (x, y) => !fogged || seesPoint(this.sight, map, x, y);
       const g = this.dynamic; g.clear();
       const fixed = this.fixtures; fixed.clear();
+      const fields = map.appearance?.lighting?.fields || [];
+      const artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById: this.buildingsById };
       start('render.world');
       // Level of detail thresholds for distant / spectator views:
       // zoom < LOD_LOW_ZOOM: simplified rects / outlines, skip sub-pixel inner details and rounded arc tessellations.
@@ -800,7 +820,9 @@ export function makeArenaScene(api) {
         if (body.kind !== 'prop' || body.itemId != null && drawnItems.has(body.itemId)) continue;
         const shape = body.shape;
         if (!nearView(body.x, body.y, bodyRadius(shape))) continue;
-        g.fillStyle(0x8fa9a0, 0.9); g.lineStyle(2, 0xdce8d7, 0.95);
+        const propLight = sampleSpatialLight(fields, body.x, body.y, artOpts);
+        const { fill: propFill, stroke: propStroke } = resolvePropAppearance(0x8fa9a0, 0xdce8d7, propLight, artOpts);
+        g.fillStyle(propFill, 0.9); g.lineStyle(2, propStroke, 0.95);
         if (shape.kind === 'circle') {
           g.fillCircle(body.x, body.y, shape.radius); g.strokeCircle(body.x, body.y, shape.radius);
         } else {
@@ -981,6 +1003,10 @@ export function makeArenaScene(api) {
         if (controlled && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
         else { actor.container.x = p.x; actor.container.y = p.y; }
         actor.sprite.setRotation(controlled ? api.aim() : p.heading); actor.sprite.setAlpha(p.cloak ? 0.45 : 1);
+        actor.baseTint = actorBaseTint(p, api.playerId());
+        const lightSample = sampleSpatialLight(fields, actor.container.x, actor.container.y, artOpts);
+        const actorTint = resolveActorTint(actor.baseTint, lightSample, artOpts);
+        actor.sprite.setTint(actorTint);
         // Markers hold their apparent size as the camera pulls back; names hold a fixed pixel height
         // rather than riding that scale, which would leave them unreadable at whole arena zoom.
         actor.container.setScale(this.marker); actor.name.setScale(this.nameScale);

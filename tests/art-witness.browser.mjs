@@ -216,7 +216,7 @@ function createWitnessScene() {
   // - Two explicit spatial lighting fields: broad cobalt intersection field + warm amber focal edge
   const appearance = {
     surfaces: [
-      { id: 'service-lane-apron', bounds: { x: 845, y: 495, w: 320, h: 60 }, material: 'slatePaving', weathered: true, curb: true },
+      { id: 'service-lane-apron', bounds: { x: 845, y: 495, w: 460, h: 60 }, material: 'slatePaving', weathered: true, curb: true, segmentSpan: 115 },
     ],
     commercial: [
       { id: 'ochre-parking-stripes', kind: 'parking-stripes', bounds: { x: 855, y: 498, w: 150, h: 36 }, color: 'awningsYellow', count: 3 },
@@ -236,7 +236,7 @@ function createWitnessScene() {
           bounds: { x: 850, y: 365, w: 320, h: 185 },
           tint: 'cobaltBlue',
           intensity: 0.42,
-          falloff: 0,
+          falloff: 70,
         },
         {
           id: 'amber-focal-edge',
@@ -253,6 +253,13 @@ function createWitnessScene() {
             alpha: 0.34,
             rimLine: { x1: 812, y1: 553, x2: 1048, y2: 553, width: 3, alpha: 0.84 },
           },
+        },
+        {
+          id: 'magenta-transit-wash',
+          bounds: { x: 1170, y: 365, w: 330, h: 185 },
+          tint: 'showtimeMagenta',
+          intensity: 0.40,
+          falloff: 70,
         },
       ],
     },
@@ -389,6 +396,17 @@ function createWitnessScene() {
       maxHp: 140,
     },
     {
+      id: 'scout',
+      name: 'Scout',
+      role: 'contestant',
+      x: 1260,
+      y: 380,
+      heading: -0.5,
+      status: 'active',
+      hp: 95,
+      maxHp: 100,
+    },
+    {
       id: 'cloaked-actor',
       name: 'Ghost',
       role: 'contestant',
@@ -427,8 +445,11 @@ function createWitnessScene() {
   // Physics prop bodies, tether, and hookFlight:
   const bodies = [
     { id: 'body-self', kind: 'actor', actorId: 'self', x: 600, y: 380, angle: 0, generation: 1, shape: { kind: 'circle', radius: 12 } },
+    { id: 'body-scout', kind: 'actor', actorId: 'scout', x: 1260, y: 380, angle: 0, generation: 1, shape: { kind: 'circle', radius: 12 } },
     { id: 'prop-circle', kind: 'prop', x: 640, y: 325, angle: 0, generation: 1, shape: { kind: 'circle', radius: 14 } },
     { id: 'prop-box', kind: 'prop', x: 695, y: 325, angle: 0.35, generation: 1, shape: { kind: 'box', hx: 16, hy: 11 } },
+    { id: 'prop-area1', kind: 'prop', x: 960, y: 525, angle: 0, generation: 1, shape: { kind: 'box', hx: 14, hy: 12 } },
+    { id: 'prop-area2', kind: 'prop', x: 1240, y: 525, angle: 0, generation: 1, shape: { kind: 'box', hx: 14, hy: 12 } },
   ];
   const tethers = [{ id: 'tether-1', a: 'prop-circle', b: 'prop-box' }];
   const hookFlights = [{ id: 'hook-1', a: 'body-self', x: 625, y: 340 }];
@@ -1246,6 +1267,143 @@ try {
     'stamped shelf differs from unstyled crate fill'
   );
 
+  // 5. Spatial composition across two neighboring areas & moving-object virtual lighting (41.2 step 4, #583):
+  await page.evaluate(async () => {
+    const f = window.witness;
+    await f.settle({
+      palette: 'signature',
+      lighting: true,
+      wear: true,
+      directed: true,
+      fog: false,
+      camera: { x: 1120, y: 400, zoom: 1 },
+      selfPos: { x: 960, y: 380 },
+    });
+  });
+
+  const fileStep4Lit = 'step4-two-areas-full.png';
+  await page.screenshot({ path: path.join(outDir, fileStep4Lit) });
+  captures.push({
+    id: 'step4-two-areas-full',
+    file: fileStep4Lit,
+    theme: 'signature',
+    fog: false,
+    zoom: 1,
+    view: 'step4-two-areas-full (Area 1 cobalt + Area 2 magenta spatial lighting)',
+  });
+
+  const step4SpatialCheck = await page.evaluate(async () => {
+    const f = window.witness, s = f.scene;
+    const strikerArea1 = s.actors.get('striker');
+    const scoutArea2 = s.actors.get('scout');
+    const strikerTintLit = strikerArea1.sprite.tintTopLeft;
+    const scoutTintLit = scoutArea2.sprite.tintTopLeft;
+
+    const propArea1Lit = f.pixelAtWorld(960, 525).hex;
+    const propArea2Lit = f.pixelAtWorld(1240, 525).hex;
+
+    const apronArea1Lit = f.pixelAtWorld(920, 525).hex;
+    const apronBoundaryLit = f.pixelAtWorld(1170, 525).hex;
+    const apronArea2Lit = f.pixelAtWorld(1205, 525).hex;
+
+    await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 960, y: 400 } });
+    const selfArea1Tint = s.actors.get('self').sprite.tintTopLeft;
+    await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 1170, y: 400 } });
+    const selfBoundaryTint = s.actors.get('self').sprite.tintTopLeft;
+    await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 1260, y: 400 } });
+    const selfArea2Tint = s.actors.get('self').sprite.tintTopLeft;
+
+    await f.settle({
+      palette: 'signature',
+      lighting: false,
+      wear: true,
+      camera: { x: 1120, y: 400, zoom: 1 },
+      selfPos: { x: 960, y: 380 },
+    });
+    const strikerTintUnlit = strikerArea1.sprite.tintTopLeft;
+    const scoutTintUnlit = scoutArea2.sprite.tintTopLeft;
+    const propArea1Unlit = f.pixelAtWorld(960, 525).hex;
+    const propArea2Unlit = f.pixelAtWorld(1240, 525).hex;
+    const apronArea1Unlit = f.pixelAtWorld(920, 525).hex;
+    const apronArea2Unlit = f.pixelAtWorld(1205, 525).hex;
+
+    return {
+      strikerTintLit,
+      strikerTintUnlit,
+      scoutTintLit,
+      scoutTintUnlit,
+      selfArea1Tint,
+      selfBoundaryTint,
+      selfArea2Tint,
+      propArea1Lit,
+      propArea1Unlit,
+      propArea2Lit,
+      propArea2Unlit,
+      apronArea1Lit,
+      apronBoundaryLit,
+      apronArea2Lit,
+      apronArea1Unlit,
+      apronArea2Unlit,
+    };
+  });
+
+  const fileStep4Unlit = 'step4-two-areas-no-lighting.png';
+  await page.screenshot({ path: path.join(outDir, fileStep4Unlit) });
+  captures.push({
+    id: 'step4-two-areas-no-lighting',
+    file: fileStep4Unlit,
+    theme: 'signature',
+    fog: false,
+    zoom: 1,
+    view: 'step4-two-areas-no-lighting (unlit mode, base materials restored)',
+  });
+
+  // Restore defaults after step 4 captures:
+  await page.evaluate(async () => {
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+  });
+
+  // Moving actors on both sides of boundary:
+  assert.notEqual(step4SpatialCheck.strikerTintLit, step4SpatialCheck.strikerTintUnlit, 'striker in Area 1 takes regional cobalt tint when lit');
+  assert.equal(step4SpatialCheck.strikerTintUnlit, 0xffd485, 'striker unlit retains exact base kit tint 0xffd485');
+  assert.notEqual(step4SpatialCheck.scoutTintLit, step4SpatialCheck.scoutTintUnlit, 'scout in Area 2 takes regional magenta tint when lit');
+  assert.notEqual(step4SpatialCheck.selfArea1Tint, step4SpatialCheck.selfArea2Tint, 'moving actor takes distinct tints in Area 1 vs Area 2');
+  assert.notEqual(step4SpatialCheck.selfBoundaryTint, step4SpatialCheck.selfArea1Tint, 'moving actor at boundary blends smoothly without pop');
+  assert.notEqual(step4SpatialCheck.selfBoundaryTint, step4SpatialCheck.selfArea2Tint, 'boundary blend differs from pure Area 2');
+
+  // Physics props on both sides of boundary:
+  assert.notEqual(step4SpatialCheck.propArea1Lit, step4SpatialCheck.propArea2Lit, 'prop in Area 1 takes distinct lighting tint from prop in Area 2');
+  assert.notEqual(step4SpatialCheck.propArea1Lit, step4SpatialCheck.propArea1Unlit, 'prop in Area 1 is tinted when lit');
+  assert.notEqual(step4SpatialCheck.propArea2Lit, step4SpatialCheck.propArea2Unlit, 'prop in Area 2 is tinted when lit');
+  assert.equal(step4SpatialCheck.propArea1Unlit, step4SpatialCheck.propArea2Unlit, 'unlit props have identical base material fill');
+
+  // Ground paving across boundary:
+  assert.notEqual(step4SpatialCheck.apronArea1Lit, step4SpatialCheck.apronArea2Lit, 'ground segment in Area 1 differs in tint from segment in Area 2');
+  assert.notEqual(step4SpatialCheck.apronBoundaryLit, step4SpatialCheck.apronArea1Lit, 'boundary transition segment blends smoothly across boundary');
+  assert.equal(step4SpatialCheck.apronArea1Unlit, step4SpatialCheck.apronArea2Unlit, 'unlit ground segments revert to identical base paving color');
+
+  const step4SpatialSummary = {
+    strikerArea1Lit: css(step4SpatialCheck.strikerTintLit),
+    strikerArea1Unlit: css(step4SpatialCheck.strikerTintUnlit),
+    scoutArea2Lit: css(step4SpatialCheck.scoutTintLit),
+    scoutArea2Unlit: css(step4SpatialCheck.scoutTintUnlit),
+    selfArea1Lit: css(step4SpatialCheck.selfArea1Tint),
+    selfBoundaryLit: css(step4SpatialCheck.selfBoundaryTint),
+    selfArea2Lit: css(step4SpatialCheck.selfArea2Tint),
+    propArea1Lit: css(step4SpatialCheck.propArea1Lit),
+    propArea1Unlit: css(step4SpatialCheck.propArea1Unlit),
+    propArea2Lit: css(step4SpatialCheck.propArea2Lit),
+    propArea2Unlit: css(step4SpatialCheck.propArea2Unlit),
+    apronArea1Lit: css(step4SpatialCheck.apronArea1Lit),
+    apronBoundaryLit: css(step4SpatialCheck.apronBoundaryLit),
+    apronArea2Lit: css(step4SpatialCheck.apronArea2Lit),
+    apronArea1Unlit: css(step4SpatialCheck.apronArea1Unlit),
+    apronArea2Unlit: css(step4SpatialCheck.apronArea2Unlit),
+    boundaryBlendSmooth: step4SpatialCheck.selfBoundaryTint !== step4SpatialCheck.selfArea1Tint && step4SpatialCheck.selfBoundaryTint !== step4SpatialCheck.selfArea2Tint,
+    unlitPropsIdentical: step4SpatialCheck.propArea1Unlit === step4SpatialCheck.propArea2Unlit,
+    unlitGroundIdentical: step4SpatialCheck.apronArea1Unlit === step4SpatialCheck.apronArea2Unlit,
+  };
+
   // 6. Analyze WebGL pixel measurements for all special obstacle branches, glass alpha, and #587 comment 6317 screening candidates.
   const branchSummary = [];
   for (const themeId of themeNames) {
@@ -1367,6 +1525,7 @@ try {
     comment6317Candidates,
     openFindings,
     step2SliceSummary,
+    step4SpatialSummary,
     ochreUnderCobaltAssessment,
     broadcastPinkAssessment,
     lowFillCandidates,
@@ -1431,6 +1590,45 @@ try {
   </tbody>
 </table>
 
+<h2>Step 4 Spatial Composition & Dynamic Object Tinting (#583)</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Sampled Subject</th><th>Area 1 (Cobalt) Lit</th><th>Boundary Blend (x=1170)</th><th>Area 2 (Magenta) Lit</th><th>Unlit Base Mode</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Contestant (<code>self</code>)</td>
+      <td><code>${step4SpatialSummary.selfArea1Lit}</code></td>
+      <td><code>${step4SpatialSummary.selfBoundaryLit}</code></td>
+      <td><code>${step4SpatialSummary.selfArea2Lit}</code></td>
+      <td><code>#ffffff</code></td>
+    </tr>
+    <tr>
+      <td>Gladiator (<code>striker</code> / <code>scout</code>)</td>
+      <td><code>${step4SpatialSummary.strikerArea1Lit}</code> (striker)</td>
+      <td>—</td>
+      <td><code>${step4SpatialSummary.scoutArea2Lit}</code> (scout)</td>
+      <td><code>${step4SpatialSummary.strikerArea1Unlit}</code> (#ffd485)</td>
+    </tr>
+    <tr>
+      <td>Physics Prop (<code>prop</code>)</td>
+      <td><code>${step4SpatialSummary.propArea1Lit}</code></td>
+      <td>—</td>
+      <td><code>${step4SpatialSummary.propArea2Lit}</code></td>
+      <td><code>${step4SpatialSummary.propArea1Unlit}</code></td>
+    </tr>
+    <tr>
+      <td>Ground Apron (Segmented)</td>
+      <td><code>${step4SpatialSummary.apronArea1Lit}</code></td>
+      <td><code>${step4SpatialSummary.apronBoundaryLit}</code></td>
+      <td><code>${step4SpatialSummary.apronArea2Lit}</code></td>
+      <td><code>${step4SpatialSummary.apronArea1Unlit}</code></td>
+    </tr>
+  </tbody>
+</table>
+
 <h2>Neon Aftermath <code>broadcastPink</code> Street Line Observation</h2>
 <p>Raw swatch: <code>${broadcastPinkAssessment.rawSwatch}</code> · Rendered at <code>0.35</code> alpha on street (<code>${broadcastPinkAssessment.streetHex}</code>) → <code>${broadcastPinkAssessment.renderedStreetLineHex}</code> (line vs street luminance ratio <code>${broadcastPinkAssessment.renderedLineVsStreetContrast}</code>; luminance ratio vs mine <code>#ff778c</code>: <code>${broadcastPinkAssessment.contrastAgainstMinePink}</code>; vs gladiator ring <code>#ff7d8a</code>: <code>${broadcastPinkAssessment.contrastAgainstGladiatorRing}</code>). ${broadcastPinkAssessment.note}</p>
 
@@ -1453,6 +1651,7 @@ try {
     contactSheet: path.relative(process.cwd(), path.join(outDir, 'index.html')),
     comment6317Candidates,
     broadcastPinkAssessment,
+    step4SpatialSummary,
     lowFillCount: lowFillCandidates.length,
   }, null, 2));
 } finally {
