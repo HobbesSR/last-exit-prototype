@@ -1,0 +1,275 @@
+{
+  "version": "incidental-seam-effects-1",
+  "definition": "An old complete route is physically blocked at actual body radius by an obstacle part participating in a positive-length cross-region join involving depot/market, and the same fixed endpoints have a complete final route. Counts actual old-route obstruction, not merely chord interception. Full length change is not attributed solely to that part.",
+  "sourceSha256": "76bad2cf8c1daf255a0bc629aaa1a64e73c5825a68bf0a9990a05f853d5372c1",
+  "cases": [
+    {
+      "seed": "size-12-1",
+      "inputHashes": {
+        "baseline-routes/size-12-1-routes.json": "25eb6822a4832647dedb4096d2afa7c28bd54396c9424c5a3e2521d587864f72",
+        "candidate-routes/size-12-1-routes.json": "c111dccddcbf72ae53159315f8c5c486354fb55b20d7803a93d8abd7f872d78b",
+        "candidate/size-12-1-seams.json.gz": "2294ce2c3d82aa5a2bb1cfe63c0b9cab0fbccab3eedf03dbfc40ab9df6eb2372"
+      },
+      "outputSha256": "bda2ca869644d8a7c89eacab8143195ba75ac21a6dfa73bbf1356f47c81924dc",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        }
+      }
+    },
+    {
+      "seed": "size-12-2",
+      "inputHashes": {
+        "baseline-routes/size-12-2-routes.json": "9db97a7ac23d902a294401005f39be52026b5506c8553c5925ffecde542423d1",
+        "candidate-routes/size-12-2-routes.json": "59810df8012e974a3b22c584c82249d6d97c44062800373f88f19b7e407c1541",
+        "candidate/size-12-2-seams.json.gz": "b01ff7c832bd61adb07312e8b928d5e2330990bda602e8436cec9eb053151d03"
+      },
+      "outputSha256": "cc8d39b97bbd485821882654684a77102cf93989c6ffd427700c4ac263424189",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 0,
+          "affected": 0,
+          "zeroEffect": 151
+        }
+      }
+    },
+    {
+      "seed": "size-12-3",
+      "inputHashes": {
+        "baseline-routes/size-12-3-routes.json": "d1168e2f258718ba099babfeef4d3081b05b53f76cd76bf1ebc78f2219aff2eb",
+        "candidate-routes/size-12-3-routes.json": "b793f09861dd90edd3b12bc597abc9c21ce8ef02b62edb08058a9f7f21048320",
+        "candidate/size-12-3-seams.json.gz": "a25e95961c19cba86c5e7e8702475e32c707f03343219ae3d50d6da93896bb87"
+      },
+      "outputSha256": "ab4c873f4377585e46e8ea75e2d89108d326aaa86c3965de0d8f7fabaa5e219d",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 130,
+          "affectedActualTargets": 0,
+          "affected": 2,
+          "zeroEffect": 149
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 145,
+          "commonActualTargets": 130,
+          "affectedActualTargets": 0,
+          "affected": 2,
+          "zeroEffect": 149
+        }
+      }
+    },
+    {
+      "seed": "size-24-1",
+      "inputHashes": {
+        "baseline-routes/size-24-1-routes.json": "7a661d5349bde5f06a6bc8cd887af5ea2d123ef0cb65d9f2683407fa7b03e6a5",
+        "candidate-routes/size-24-1-routes.json": "99cce59b9ab2509d67a2f7d706d71bd21af47d19731a9845fb2fb2aabe593c5b",
+        "candidate/size-24-1-seams.json.gz": "33a8646055417cfde6fb7dc6f75af8f407dd57bad430227eb365ce86fb7b051f"
+      },
+      "outputSha256": "ff542318ad275c3c9e25985a62f58d23d52788d703783983b8881cef48039a16",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 41,
+          "affected": 41,
+          "zeroEffect": 110
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 148,
+          "affectedActualTargets": 38,
+          "affected": 38,
+          "zeroEffect": 113
+        }
+      }
+    },
+    {
+      "seed": "size-24-2",
+      "inputHashes": {
+        "baseline-routes/size-24-2-routes.json": "d075ca251f8b0ca5b530f3036eed8409cf3faec20e0dd9e9055114f68d7f9e2f",
+        "candidate-routes/size-24-2-routes.json": "b2e5c27b5d742e6e8ee7fe83c8a4ab282e42d8129e96b6137a3e3979425082eb",
+        "candidate/size-24-2-seams.json.gz": "f739eb2945af338722700cee50b029b9e3ea1f220a1ddf3da14e4ea9131746f2"
+      },
+      "outputSha256": "1cc034e0a562839c06999fef5c2403bb213a84e21ae3a3339a96316b05a5c6c9",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 136,
+          "affectedActualTargets": 16,
+          "affected": 17,
+          "zeroEffect": 134
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 136,
+          "affectedActualTargets": 28,
+          "affected": 30,
+          "zeroEffect": 121
+        }
+      }
+    },
+    {
+      "seed": "size-24-3",
+      "inputHashes": {
+        "baseline-routes/size-24-3-routes.json": "4181aee27910dda28ba694c579f1d50d4a4b2c05d9f38e6136b16d7b6608bcd4",
+        "candidate-routes/size-24-3-routes.json": "db9335f9d8575dfe5b1e7fb72448bd56c53d47ec415d914a6306f6f946becef2",
+        "candidate/size-24-3-seams.json.gz": "2d25440680145bf0e245f09ae203e23371dce49665358883aaa6570e905feacf"
+      },
+      "outputSha256": "0d40f290792d1cd1e265c9c838fd7fdddbeb58e87695a75eb155256b5eaec805",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 139,
+          "affectedActualTargets": 19,
+          "affected": 21,
+          "zeroEffect": 130
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 145,
+          "commonActualTargets": 139,
+          "affectedActualTargets": 16,
+          "affected": 17,
+          "zeroEffect": 134
+        }
+      }
+    },
+    {
+      "seed": "size-36-1",
+      "inputHashes": {
+        "baseline-routes/size-36-1-routes.json": "b5605b7fb77805942912015180e34b85cb6189f213e5bf462ed13050f445b422",
+        "candidate-routes/size-36-1-routes.json": "4eb452e5c953595d5e66c4bfa2f99a6fc5405e74aa48e9c21e0f61725635e8b2",
+        "candidate/size-36-1-seams.json.gz": "ba164164d0f1dc79604db5ae1db402e9171a11686035e36bbf1c826275157722"
+      },
+      "outputSha256": "0bf8733cf0096c87e985da031351c623d0718dfbcc7308882cfb53be04124994",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 151,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 7,
+          "affected": 7,
+          "zeroEffect": 144
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 5,
+          "affected": 5,
+          "zeroEffect": 146
+        }
+      }
+    },
+    {
+      "seed": "size-36-2",
+      "inputHashes": {
+        "baseline-routes/size-36-2-routes.json": "fada61fcb2b3f74c3222765eae57d43c9167dd4a61a9de38316e17ff885de8fe",
+        "candidate-routes/size-36-2-routes.json": "7f5ad734fcdcf7cf3353ac876fdb93c9abfd28246f4d2b9853e775a6ac280c41",
+        "candidate/size-36-2-seams.json.gz": "f179c4786bb1e10246b3134dd863aa88950dfe41d03b6435e41799bfd713e13d"
+      },
+      "outputSha256": "393d9d6c5abc344e0ccc15a06dc72bef1b49845c12fa0ac34479c88d658c16c5",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 139,
+          "affectedActualTargets": 20,
+          "affected": 21,
+          "zeroEffect": 130
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 148,
+          "commonActualTargets": 139,
+          "affectedActualTargets": 30,
+          "affected": 31,
+          "zeroEffect": 120
+        }
+      }
+    },
+    {
+      "seed": "size-36-3",
+      "inputHashes": {
+        "baseline-routes/size-36-3-routes.json": "382c1cc25b74e15c3bb66225ba464ae925ae0fd80819d7a95f72f821f49f7a0b",
+        "candidate-routes/size-36-3-routes.json": "aa9b7d51b04bd75ecab42097365196874a623a09b173c4d32ebd992e9b257d15",
+        "candidate/size-36-3-seams.json.gz": "71d19a897926b13b4d3aa59df9c7a98e12c3898afbe36bee1fb9d6975cb5a7c6"
+      },
+      "outputSha256": "2f91d4017739063bde197860c75cbd1f884c750f5faa270e2c5d59c877cf34bd",
+      "bodies": {
+        "contestant": {
+          "attempted": 151,
+          "commonComplete": 145,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 28,
+          "affected": 28,
+          "zeroEffect": 123
+        },
+        "hunter": {
+          "attempted": 151,
+          "commonComplete": 145,
+          "commonActualTargets": 142,
+          "affectedActualTargets": 29,
+          "affected": 29,
+          "zeroEffect": 122
+        }
+      }
+    }
+  ],
+  "archiveSha256": "92010a77b7e1e2a6606704438180858d4a9e2931ec63476fa48446a1169230dc",
+  "replayedAllNineOutputsExactly": true,
+  "totals": {
+    "contestant": {
+      "attempted": 1359,
+      "commonComplete": 1344,
+      "commonActualTargets": 1272,
+      "affectedActualTargets": 131,
+      "affected": 137,
+      "zeroEffect": 1222
+    },
+    "hunter": {
+      "attempted": 1359,
+      "commonComplete": 1335,
+      "commonActualTargets": 1272,
+      "affectedActualTargets": 146,
+      "affected": 152,
+      "zeroEffect": 1207
+    }
+  },
+  "zeroEffectMaps": [
+    "size-12-1",
+    "size-12-2"
+  ],
+  "conclusion": "The declared fixed panel has route effects on 10.08%/11.18% of contestant/hunter attempts. This does not establish an encounter on a typical traversal; no endpoint selection, content tuning or player-traffic inference is part of this replay."
+}

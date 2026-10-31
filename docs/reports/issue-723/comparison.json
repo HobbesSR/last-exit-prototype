@@ -1,0 +1,215 @@
+{
+  "scope": "121 frozen direct builders; same prototype source except shared-origin search implementation and guard adapter. Excludes macro/composition.",
+  "node": "v24.15.0",
+  "corpusSha256": "b90b15079f1396798217462c7782a08a6d15f527838f5e8dd4f52f2d970ce9bb",
+  "sourcePins": {
+    "control": {
+      "map/micro/geometry.ts": "36f5a82ce922c6cd034d0f99a4d7e188a16f4b919b435057bc8afca91ddf2136",
+      "map/micro/strategies/content-access.ts": "fcc13a0dbfe8793973ab0c806909d73c66b2b0e2224410aa306bcc4f2345ad61"
+    },
+    "batch": {
+      "map/micro/geometry.ts": "b7e2b7b2d65d1d87ba74915d6edff14a6c0f4b7d583ee6548dd969e25b0c01a7",
+      "map/micro/strategies/content-access.ts": "252336ef28bbaa8675a8de6c14580a87995bd04c754f9988e99fd88722c86d3b"
+    }
+  },
+  "repeats": [
+    {
+      "control": {
+        "ms": 16754.6488,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 751.8760000000002
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 104.25450000000001
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1157.1216000000022
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2192.0253000000002
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2848.3410999999987
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 9671.374200000002
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      },
+      "batch": {
+        "ms": 14680.860400000001,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 860.8902999999955
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 118.91579999999885
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1266.4834000000155
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 1938.8497000000025
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2875.111900000007
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 7590.815600000005
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      }
+    },
+    {
+      "batch": {
+        "ms": 14438.6492,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 608.6676000000007
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 99.55719999999928
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1234.3035000000054
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 1979.4289000000026
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2775.9263999999894
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 7712.589099999997
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      },
+      "control": {
+        "ms": 16390.226300000002,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 638.3552000000054
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 94.43840000000637
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1148.834600000002
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2119.5938000000024
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2810.7161000000124
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 9549.046599999994
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      }
+    },
+    {
+      "control": {
+        "ms": 15841.119099999996,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 629.2622999999949
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 91.37519999999495
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1135.2526000000216
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2137.695300000014
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2597.3919000000606
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 9222.676800000001
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      },
+      "batch": {
+        "ms": 13545.561499999996,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 609.6918000000151
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 94.98180000000866
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1186.0718999999663
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 1808.1633999999904
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2653.945599999992
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 7165.493300000002
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      }
+    }
+  ],
+  "medians": {
+    "control": 16390.226300000002,
+    "batch": 14438.6492
+  },
+  "speedup": 1.1351634126549734,
+  "status": "complete"
+}

@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+const [directory,output]=process.argv.slice(2);
+const hash=b=>createHash('sha256').update(b).digest('hex');
+const walk=(root,prefix='')=>fs.readdirSync(path.join(root,prefix),{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(root,path.join(prefix,e.name)):[path.join(prefix,e.name)]);
+const control=path.resolve(directory,'control'),batch=path.resolve(directory,'batch');
+const pins=Object.fromEntries(['map','shared'].flatMap(d=>walk(control,d)).sort().map(f=>[f.replaceAll('\\','/'),{control:hash(fs.readFileSync(path.join(control,f))),batch:hash(fs.readFileSync(path.join(batch,f)))}]));
+const changed=Object.keys(pins).filter(f=>pins[f].control!==pins[f].batch);
+if(JSON.stringify(changed)!==JSON.stringify(['map/micro/geometry.ts','map/micro/strategies/content-access.ts']))throw Error(`Unexpected source changes: ${changed}`);
+fs.writeFileSync(output,JSON.stringify({revision:'1cb30ff13103ac46532fa855de71ab9ca6266155',archiveSha256:hash(fs.readFileSync(path.join(directory,'source.tar'))),changed,pins},null,2)+'\n',{flag:'wx'});
+console.log(`Audited ${Object.keys(pins).length} source files; only search implementation and guard adapter differ.`);

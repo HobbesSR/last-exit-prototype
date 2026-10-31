@@ -1,0 +1,172 @@
+{
+  "scope": "Contextual original types-56 content versus optimized #716 prototype; NOT the isolated #723 comparison.",
+  "originalRevision": "54d9077a5fd881765b123d4d877d3bca67694409",
+  "originalArchiveSha256": "1ab050566cb058916384ca4244d80d40146e86161e934477a9472d86b121c956",
+  "corpusSha256": "b90b15079f1396798217462c7782a08a6d15f527838f5e8dd4f52f2d970ce9bb",
+  "inputHashes": {
+    "size-12-1": "5877ffa6dfd9c96a8205cd03ae35f10695da9ad995460d04b51ad9f24b28333c",
+    "size-12-2": "488b835486b85ea1654f623d6085c768db9296c168126605e730531930f20659",
+    "size-12-3": "ab6f870e4fe26e53f17171be759102ebd4b81707c7760e13a3352ca972ab84f5",
+    "size-24-1": "01b7a8ac9da248d7683304f50967be7eacb99fba74b96ad0affb4a9471ccbc91",
+    "size-24-2": "1292fc3a2e0ecd97dd903c2e59c0bfe507f2f5475bea89febc6cf23f2970114e",
+    "size-24-3": "90dc99e38e558ff8146f2884226ae131b2e67f662f972dd74d675090107ae8a4",
+    "size-36-1": "2ce3c7bf6b274124ed0e6882ff44510a4ae137733d4219cccc506c015a911d73",
+    "size-36-2": "7f4fdb83201e2a7805138177e9864f84b60f9089d1306f416d7bbaa138d2f3e0",
+    "size-36-3": "ca45b42d69ea1a650e52ae6c1a523e79dfa31aa3455e37c96dff1ecdc70905d1"
+  },
+  "repeats": [
+    {
+      "original": {
+        "ms": 5708.783599999999,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 2206.5308999999907
+          },
+          "market": {
+            "count": 92,
+            "ms": 3321.6847000000043
+          }
+        },
+        "outputSha256": "fb8861d9ff10edda2f9cd25cceed793efc941cc165e0cd8ff5fa6303fd46b492"
+      },
+      "batch": {
+        "ms": 13381.8074,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 9461.7752
+          },
+          "market": {
+            "count": 92,
+            "ms": 3765.9120999999923
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15"
+      }
+    },
+    {
+      "batch": {
+        "ms": 13307.859,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 9306.90180000001
+          },
+          "market": {
+            "count": 92,
+            "ms": 3849.8222000000314
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15"
+      },
+      "original": {
+        "ms": 5296.761200000001,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 1995.5290999999997
+          },
+          "market": {
+            "count": 92,
+            "ms": 3128.7954999999856
+          }
+        },
+        "outputSha256": "fb8861d9ff10edda2f9cd25cceed793efc941cc165e0cd8ff5fa6303fd46b492"
+      }
+    },
+    {
+      "original": {
+        "ms": 5385.309200000003,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 1965.5481000000145
+          },
+          "market": {
+            "count": 92,
+            "ms": 3247.55669999995
+          }
+        },
+        "outputSha256": "fb8861d9ff10edda2f9cd25cceed793efc941cc165e0cd8ff5fa6303fd46b492"
+      },
+      "batch": {
+        "ms": 13383.757299999997,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 9446.548699999992
+          },
+          "market": {
+            "count": 92,
+            "ms": 3784.3235000000204
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15"
+      }
+    }
+  ],
+  "scale": [
+    {
+      "repetition": 1,
+      "name": "original",
+      "ms": 3251.2123999999967,
+      "capMs": 10000,
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "✔ a macro-sized depot with hundreds of portals builds quickly (2549.2075ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3186.9209\n",
+      "stderr": ""
+    },
+    {
+      "repetition": 1,
+      "name": "batch",
+      "ms": 10019.188599999994,
+      "capMs": 10000,
+      "status": "time-cap",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 2,
+      "name": "original",
+      "ms": 2833.7834000000003,
+      "capMs": 10000,
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "✔ a macro-sized depot with hundreds of portals builds quickly (2496.1645ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 2771.3877\n",
+      "stderr": ""
+    },
+    {
+      "repetition": 2,
+      "name": "batch",
+      "ms": 10017.218099999998,
+      "capMs": 10000,
+      "status": "time-cap",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 3,
+      "name": "original",
+      "ms": 2882.44660000001,
+      "capMs": 10000,
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "✔ a macro-sized depot with hundreds of portals builds quickly (2534.9843ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 2817.3993\n",
+      "stderr": ""
+    },
+    {
+      "repetition": 3,
+      "name": "batch",
+      "ms": 10019.558600000004,
+      "capMs": 10000,
+      "status": "time-cap",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "status": "complete"
+}

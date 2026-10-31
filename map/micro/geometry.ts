@@ -111,7 +111,21 @@ export function routeStarts(step: number, box: Box, width: number, height: numbe
  * centred on a sample line, and a 2-cell doorway reads as passable to a hunter (52).
  */
 export function findRegionRoute(mask: RegionMask, blockers: readonly Shape[], a: Vec2, b: Vec2, radius: number): Vec2[] | null {
-  if (travelClear(mask, blockers, a, b, radius)) return [a, b];
+  return createRegionRouteSearch(mask, blockers, a, radius)(b);
+}
+
+/** Ordered targets with the exact paths of independent single-target searches. */
+export function findRegionRoutes(mask: RegionMask, blockers: readonly Shape[], a: Vec2, targets: readonly Vec2[], radius: number): (Vec2[] | null)[] {
+  const route = createRegionRouteSearch(mask, blockers, a, radius);
+  return targets.map(route);
+}
+
+/**
+ * Reuse one origin's grid expansion and walkability across targets. The mask, blockers, origin
+ * and radius must remain unchanged while this search is used. Each target still checks its own
+ * direct path and earliest BFS connector, so target order cannot alter a returned route.
+ */
+export function createRegionRouteSearch(mask: RegionMask, blockers: readonly Shape[], a: Vec2, radius: number): (b: Vec2) => Vec2[] | null {
   const step = mask.cellSize / 2, box = mask.bounds;
   const width = Math.round(box.w / step) + 1, height = Math.round(box.h / step) + 1;
   const point = (i: number): Vec2 => ({ x: box.x + i % width * step, y: box.y + Math.floor(i / width) * step });
@@ -120,25 +134,35 @@ export function findRegionRoute(mask: RegionMask, blockers: readonly Shape[], a:
     if (!walkable.has(i)) { const p = point(i); walkable.set(i, travelClear(mask, blockers, p, p, radius)); }
     return walkable.get(i)!;
   };
-  const nearby = routeStarts(step, box, width, height, a);
   const queue: number[] = [], previous = new Map<number, number>();
-  for (const i of nearby) if (free(i) && travelClear(mask, blockers, a, point(i), radius)) { queue.push(i); previous.set(i, -1); }
-  for (let head = 0; head < queue.length; head++) {
-    const i = queue[head], p = point(i);
-    if (Math.hypot(p.x - b.x, p.y - b.y) <= step * 3 && travelClear(mask, blockers, p, b, radius)) {
-      const path = [b]; let cursor = i;
-      while (cursor !== -1) { path.push(point(cursor)); cursor = previous.get(cursor)!; }
-      path.push(a); path.reverse();
-      // Collapse only straight runs. Corners retain their swept clearance.
-      return path.filter((p, j) => !j || j === path.length - 1 || Math.abs((p.x - path[j - 1].x) * (path[j + 1].y - p.y) - (p.y - path[j - 1].y) * (path[j + 1].x - p.x)) > EPS);
+  let initialized = false, expanded = 0;
+  return (b: Vec2): Vec2[] | null => {
+    if (travelClear(mask, blockers, a, b, radius)) return [a, b];
+    if (!initialized) {
+      for (const i of routeStarts(step, box, width, height, a)) if (free(i) && travelClear(mask, blockers, a, point(i), radius)) { queue.push(i); previous.set(i, -1); }
+      initialized = true;
     }
-    const x = i % width, y = Math.floor(i / width);
-    for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
-      if (x + dx < 0 || y + dy < 0 || x + dx >= width || y + dy >= height) continue;
-      const next = i + dx + dy * width;
-      if (previous.has(next) || !free(next) || !travelClear(mask, blockers, p, point(next), radius)) continue;
-      previous.set(next, i); queue.push(next);
+    for (let head = 0; head < queue.length; head++) {
+      const i = queue[head], p = point(i);
+      if (Math.hypot(p.x - b.x, p.y - b.y) <= step * 3 && travelClear(mask, blockers, p, b, radius)) {
+        const path = [b]; let cursor = i;
+        while (cursor !== -1) { path.push(point(cursor)); cursor = previous.get(cursor)!; }
+        path.push(a); path.reverse();
+        // Collapse only straight runs. Corners retain their swept clearance.
+        return path.filter((p, j) => !j || j === path.length - 1 || Math.abs((p.x - path[j - 1].x) * (path[j + 1].y - p.y) - (p.y - path[j - 1].y) * (path[j + 1].x - p.x)) > EPS);
+      }
+      // A previous target may have returned at this node before expanding it. Keep that node
+      // pending, and inspect the entire earlier prefix for every target before resuming expansion.
+      if (head < expanded) continue;
+      const x = i % width, y = Math.floor(i / width);
+      for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        if (x + dx < 0 || y + dy < 0 || x + dx >= width || y + dy >= height) continue;
+        const next = i + dx + dy * width;
+        if (previous.has(next) || !free(next) || !travelClear(mask, blockers, p, point(next), radius)) continue;
+        previous.set(next, i); queue.push(next);
+      }
+      expanded++;
     }
-  }
-  return null;
+    return null;
+  };
 }
