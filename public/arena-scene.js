@@ -266,7 +266,8 @@ export function makeArenaScene(api) {
      * `priorGroups` carries roof and canopy fades over a restyle; a new map starts them afresh.
      */
     recordStatic(map, priorGroups = new Map()) {
-      const ink = this.colors, artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear }; let g;
+      const ink = this.colors, buildingsById = new Map((map.buildings || []).map(b => [b.id, b])), artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById }; let g;
+      this.buildingsById = buildingsById;
       for (const cache of [this.tiles, this.overheadTiles]) for (const tile of cache.values()) tile.texture?.destroy();
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
@@ -346,9 +347,26 @@ export function makeArenaScene(api) {
       this.roofMembers = roofGroups(map);
       // Buildings a declared roof covers; the update's fade loop skips them as well.
       const coveredBuildingIds = this.coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
+      // Pre-select the primary roof per building (covering or closest to building origin) in linear time
+      const primaryRoofByBuildingId = new Map();
       if (map.roofs?.length) {
         for (const roof of map.roofs) {
-          const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance: roof.appearance }, map.appearance, artOpts);
+          if (!roof.buildingId) continue;
+          const b = buildingsById.get(roof.buildingId);
+          if (!b) continue;
+          const dx = Math.max(0, roof.bounds.x - b.x, b.x - (roof.bounds.x + roof.bounds.w));
+          const dy = Math.max(0, roof.bounds.y - b.y, b.y - (roof.bounds.y + roof.bounds.h));
+          const dSq = dx * dx + dy * dy;
+          const cur = primaryRoofByBuildingId.get(roof.buildingId);
+          if (!cur || dSq < cur.distSq) {
+            primaryRoofByBuildingId.set(roof.buildingId, { roof, distSq: dSq });
+          }
+        }
+        for (const roof of map.roofs) {
+          const building = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
+          const buildingAppearance = building?.appearance || roof.appearance;
+          const isPrimaryRoof = !roof.buildingId || primaryRoofByBuildingId.get(roof.buildingId)?.roof === roof;
+          const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance: buildingAppearance }, map.appearance, artOpts);
           const key = `roof:${roof.id}`;
           const overhang = roof.overhang ?? ROOF_OVERHANG;
           const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
@@ -423,7 +441,7 @@ export function makeArenaScene(api) {
               if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
             }
           }
-          if (resolved.roofMarks.length) recordAppearanceOps(g, resolved.roofMarks);
+          if (resolved.roofMarks.length && isPrimaryRoof) recordAppearanceOps(g, resolved.roofMarks);
 
           g.lineStyle(2, resolved.roofRidge);
           for (let ry = roof.bounds.y + 12; ry < roof.bounds.y + roof.bounds.h - 10; ry += 24) {
@@ -486,7 +504,10 @@ export function makeArenaScene(api) {
     }
     obstacle(g, o, mapAppearance = null, artOpts = null) {
       const ink = this.colors;
-      const resolved = mapAppearance ? resolveObstacleAppearance(o, mapAppearance, artOpts || { palette: this.paletteId, lighting: this.lighting, wear: this.wear }) : null;
+      const buildingsById = artOpts?.buildingsById || this.buildingsById;
+      const styled = Boolean(mapAppearance || o?.appearance || (o?.buildingId && buildingsById?.get(o.buildingId)?.appearance));
+      const opts = artOpts || { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById };
+      const resolved = styled ? resolveObstacleAppearance(o, mapAppearance, opts) : null;
       // Generated geometry is drawn from the very description the simulation collides with, so a new
       // shape needs no matching renderer branch and cannot be drawn as something other than its body.
       if (o.points?.length) {
