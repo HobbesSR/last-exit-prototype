@@ -267,6 +267,7 @@ export function makeArenaScene(api) {
      */
     recordStatic(map, priorGroups = new Map()) {
       const ink = this.colors, buildingsById = new Map((map.buildings || []).map(b => [b.id, b])), artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById }; let g;
+      this.buildingsById = buildingsById;
       for (const cache of [this.tiles, this.overheadTiles]) for (const tile of cache.values()) tile.texture?.destroy();
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
@@ -503,7 +504,10 @@ export function makeArenaScene(api) {
     }
     obstacle(g, o, mapAppearance = null, artOpts = null) {
       const ink = this.colors;
-      const resolved = mapAppearance ? resolveObstacleAppearance(o, mapAppearance, artOpts || { palette: this.paletteId, lighting: this.lighting, wear: this.wear }) : null;
+      const buildingsById = artOpts?.buildingsById || this.buildingsById;
+      const styled = Boolean(mapAppearance || o?.appearance || (o?.buildingId && buildingsById?.get(o.buildingId)?.appearance));
+      const opts = artOpts || { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById };
+      const resolved = styled ? resolveObstacleAppearance(o, mapAppearance, opts) : null;
       // Generated geometry is drawn from the very description the simulation collides with, so a new
       // shape needs no matching renderer branch and cannot be drawn as something other than its body.
       if (o.points?.length) {

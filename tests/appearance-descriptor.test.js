@@ -221,10 +221,14 @@ test('existing depot region strategy adopts DEPOT_WAREHOUSE_APPEARANCE on all pl
   // Shelf container obstacles inside warehouse carry obstacle appearance
   const shelfObstacles = ctx.map.obstacles.filter(o => o.kind === 'container' && o.appearance);
   assert.ok(shelfObstacles.length > 0, 'shelf obstacles have appearance');
+  assert.equal(ctx.map.appearance, undefined, 'generated depot map carries no map-wide appearance');
   for (const shelf of shelfObstacles) {
     assert.equal(shelf.appearance.material, 'oxidizedMetal');
     const resolved = resolveObstacleAppearance(shelf, ctx.map.appearance, { palette: 'signature' });
     assert.ok(resolved.fill > 0);
+    const unstyledCrate = { id: 'c-unstyled', kind: 'container', color: 0, x: shelf.x, y: shelf.y, w: shelf.w, h: shelf.h };
+    const resolvedUnstyled = resolveObstacleAppearance(unstyledCrate, null, { palette: 'signature' });
+    assert.notEqual(resolved.fill, resolvedUnstyled.fill, 'shelf oxidizedMetal fill differs from unstyled crate fill');
   }
 });
 

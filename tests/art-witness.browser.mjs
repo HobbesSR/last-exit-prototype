@@ -1185,6 +1185,38 @@ try {
     sightPreservedInterior: sliceFullInt.visionDigest === sliceNoWearInt.visionDigest,
   };
 
+  // 4. Stamped obstacle appearance on an unstyled map without map.appearance (e.g. depot warehouse shelf, #584):
+  const depotShelfCheck = await page.evaluate(async () => {
+    const f = window.witness, s = f.scene;
+    const priorMap = f.map;
+    const depotMap = {
+      seed: 99,
+      width: 2000,
+      height: 2000,
+      buildings: [{ id: 'depot-wh', x: 800, y: 600, w: 200, h: 200, appearance: { wallMaterial: 'coldMetal' } }],
+      obstacles: [
+        { id: 'wh-shelf', kind: 'container', x: 840, y: 640, w: 40, h: 20, appearance: { material: 'oxidizedMetal' }, buildingId: 'depot-wh' },
+        { id: 'wh-crate', kind: 'container', x: 840, y: 700, w: 40, h: 20 },
+      ],
+      modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [], streets: [],
+    };
+    f.map = depotMap;
+    s.recordStatic(depotMap);
+    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 860, y: 650 } });
+    const shelfPx = f.pixelAtWorld(860, 650).hex;
+    const cratePx = f.pixelAtWorld(860, 710).hex;
+    f.map = priorMap;
+    s.recordStatic(priorMap);
+    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+    return { shelfPx, cratePx };
+  });
+
+  assert.notEqual(
+    depotShelfCheck.shelfPx,
+    depotShelfCheck.cratePx,
+    'stamped shelf on map without map.appearance resolves its distinct material fill from plain unstyled container'
+  );
+
   // 6. Analyze WebGL pixel measurements for all special obstacle branches, glass alpha, and #587 comment 6317 screening candidates.
   const branchSummary = [];
   for (const themeId of themeNames) {
