@@ -47,8 +47,8 @@ analysis was repeated for these bounded checks.
 
 `identity.json`, `micro.json` and `start-equivalence.json` retain raw results;
 [`tests/fixtures/route-start-cases.json`](../../../tests/fixtures/route-start-cases.json)
-holds the current test and microbenchmark inputs. The identical `cases.json`
-copy remains here for historical evidence. `bounded-runner.mjs` is the
+holds the test and microbenchmark inputs, including the original measurement
+cases; the duplicate report copy has been removed. `bounded-runner.mjs` is the
 original bounded runner, intended to run with the pinned #716 prototype and
 its frozen corpus. Its source extraction requires that pinned prototype; it
 does not run against the current exported helper. It is historical evidence,
