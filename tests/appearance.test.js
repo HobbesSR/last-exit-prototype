@@ -13,6 +13,8 @@ import {
   resolveBuildingAppearance,
   resolveObstacleAppearance,
   resolveGroundAppearance,
+  getCanonicalFields,
+  resolvePropAppearance,
 } from '../public/appearance.js';
 import { SWATCHES, U, L, T, G } from '../public/palette.js';
 import { shapeOf } from '../shared/shape.ts';
@@ -182,6 +184,111 @@ test('resolveGroundAppearance emits layers in fixed order and gates wear/scars a
   const lightingOff = resolveGroundAppearance(mapAppearance, { palette: 'signature', lighting: false, wear: true });
   assert.ok(!lightingOff.some(item => item.layer === 'lighting'), 'lighting=false omits theatrical washes and focal edge');
   assert.ok(lightingOff.some(item => item.layer === 'wear') && lightingOff.some(item => item.layer === 'scars'), 'lighting=false retains wear and scars');
+});
+
+test('resolvePropAppearance provides bounded virtual lighting on physics props and getCanonicalFields memoizes', () => {
+  const cobaltLight = {
+    tint: resolveSwatch('cobaltBlue', 0x1b3b6f),
+    weight: 0.42,
+    neutral: 0.58,
+    contributions: [{ id: 'cobalt-intersection', tint: 0x1b3b6f, weight: 0.42 }],
+  };
+
+  const basePropFill = 0x8fa9a0;
+  const basePropStroke = 0xdce8d7;
+  const propLit = resolvePropAppearance(basePropFill, basePropStroke, cobaltLight, { lighting: true });
+  const propNoLight = resolvePropAppearance(basePropFill, basePropStroke, cobaltLight, { lighting: false });
+
+  assert.notEqual(propLit.fill, basePropFill, 'prop fill in lit field blends with regional spatial light');
+  assert.notEqual(propLit.stroke, basePropStroke, 'prop stroke in lit field blends with regional spatial light');
+  assert.equal(propNoLight.fill, basePropFill, 'lighting:false returns base prop fill');
+  assert.equal(propNoLight.stroke, basePropStroke, 'lighting:false returns base prop stroke');
+
+  // getCanonicalFields memoization:
+  const rawFields = [
+    { id: 'field-b', bounds: { x: 0, y: 0, w: 10, h: 10 } },
+    { id: 'field-a', bounds: { x: 0, y: 0, w: 10, h: 10 } },
+  ];
+  const c1 = getCanonicalFields(rawFields);
+  const c2 = getCanonicalFields(rawFields);
+  assert.equal(c1[0].id, 'field-a');
+  assert.equal(c1[1].id, 'field-b');
+  assert.equal(c1, c2, 'getCanonicalFields returns cached sorted array for identical array reference');
+});
+
+test('spatial composition across two neighboring areas: normalized blending, boundary transition, and long surface splitting (41.2 step 4)', () => {
+  const field1 = {
+    id: 'cobalt-intersection',
+    bounds: { x: 850, y: 365, w: 320, h: 185 },
+    tint: 'cobaltBlue',
+    intensity: 0.42,
+    falloff: 70,
+  };
+  const field2 = {
+    id: 'magenta-transit-wash',
+    bounds: { x: 1170, y: 365, w: 330, h: 185 },
+    tint: 'showtimeMagenta',
+    intensity: 0.40,
+    falloff: 70,
+  };
+  const fields = [field1, field2];
+
+  // 1. Solidly in Field 1 (x: 960, y: 420)
+  const sample1 = sampleSpatialLight(fields, 960, 420, { lighting: true });
+  assert.equal(sample1.contributions.length, 1);
+  assert.equal(sample1.contributions[0].id, 'cobalt-intersection');
+
+  // 2. Solidly in Field 2 (x: 1350, y: 420)
+  const sample2 = sampleSpatialLight(fields, 1350, 420, { lighting: true });
+  assert.equal(sample2.contributions.length, 1);
+  assert.equal(sample2.contributions[0].id, 'magenta-transit-wash');
+
+  // 3. Right at boundary (x: 1170, y: 420)
+  const sampleBoundary = sampleSpatialLight(fields, 1170, 420, { lighting: true });
+  assert.equal(sampleBoundary.contributions.length, 2, 'boundary sample blends both neighboring fields');
+  assert.ok(sampleBoundary.weight > 0 && sampleBoundary.weight <= 0.65, 'boundary weight stays capped');
+  assert.equal(Number((sampleBoundary.weight + sampleBoundary.neutral).toFixed(4)), 1, 'neutral remainder maintained');
+
+  // Tie-handling & order independence:
+  const sampleBoundaryReversed = sampleSpatialLight([field2, field1], 1170, 420, { lighting: true });
+  assert.deepEqual(sampleBoundary, sampleBoundaryReversed, 'field evaluation is order-independent and tie-stable');
+
+  // 4. Long surface crossing fields is split into segments and spatially sampled
+  const mapAppearance = {
+    surfaces: [
+      { id: 'crossing-apron', bounds: { x: 1050, y: 440, w: 300, h: 50 }, material: 'coolConcrete', weathered: true, curb: true, segmentSpan: 100 },
+      { id: 'short-pad', bounds: { x: 900, y: 440, w: 100, h: 50 }, material: 'coolConcrete' },
+    ],
+    lighting: { fields },
+  };
+
+  const groundItems = resolveGroundAppearance(mapAppearance, { palette: 'signature', lighting: true, wear: true });
+  const crossingItem = groundItems.find(i => i.id === 'crossing-apron');
+  assert.ok(crossingItem, 'crossing-apron item found');
+  const fillOps = crossingItem.ops.filter(op => op.op === 'fillRect');
+  assert.equal(fillOps.length, 3, 'long surface with w:300 and segmentSpan:100 splits into 3 fillRect segments');
+  assert.notEqual(fillOps[0].color, fillOps[2].color, 'segment 1 (Field 1 side) differs in color from segment 3 (Field 2 side)');
+  assert.notEqual(fillOps[0].color, fillOps[1].color, 'segment 1 differs from transition segment 2');
+
+  const shortItem = groundItems.find(i => i.id === 'short-pad');
+  const shortFills = shortItem.ops.filter(op => op.op === 'fillRect');
+  assert.equal(shortFills.length, 1, 'surface within span threshold emits exactly 1 fillRect');
+
+  // Conditional splitting: surfaces only split when lighting:true and field influence overlaps
+  const unlitGround = resolveGroundAppearance(mapAppearance, { palette: 'signature', lighting: false, wear: true });
+  const unlitCrossing = unlitGround.find(i => i.id === 'crossing-apron');
+  const unlitFills = unlitCrossing.ops.filter(op => op.op === 'fillRect');
+  assert.equal(unlitFills.length, 1, 'when lighting is false, long surface emits exactly 1 fillRect without splitting');
+
+  const remoteAppearance = {
+    surfaces: [
+      { id: 'remote-apron', bounds: { x: 3000, y: 3000, w: 400, h: 50 }, material: 'coolConcrete' },
+    ],
+    lighting: { fields },
+  };
+  const remoteGround = resolveGroundAppearance(remoteAppearance, { palette: 'signature', lighting: true, wear: true });
+  const remoteFills = remoteGround.find(i => i.id === 'remote-apron').ops.filter(op => op.op === 'fillRect');
+  assert.equal(remoteFills.length, 1, 'surface outside all lighting fields emits exactly 1 fillRect without splitting');
 });
 
 test('appearance resolver stays presentation-only: no simulation, server or map code imports it', () => {

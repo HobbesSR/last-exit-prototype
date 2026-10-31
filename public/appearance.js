@@ -117,13 +117,30 @@ function pointToBoxDistance(x, y, box) {
  * Evaluates authored fields at `(x, y)` in canonical `id` order, blending normalized influences
  * with a neutral remainder so overlapping fields never exceed unit weight or depend on array order.
  */
+const CANONICAL_FIELDS_CACHE = new WeakMap();
+
+/**
+ * Filter and sort spatial lighting fields in canonical id order, memoized per array instance.
+ * Avoids per-frame allocations and sorting when evaluating dynamic objects.
+ */
+export function getCanonicalFields(fields) {
+  if (!Array.isArray(fields) || !fields.length) return [];
+  let cached = CANONICAL_FIELDS_CACHE.get(fields);
+  if (!cached) {
+    cached = fields
+      .filter(f => f && f.bounds && typeof f.id === 'string')
+      .slice()
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    CANONICAL_FIELDS_CACHE.set(fields, cached);
+  }
+  return cached;
+}
+
 export function sampleSpatialLight(fields, x, y, options = {}) {
   if (options.lighting === false || !Array.isArray(fields) || !fields.length) {
     return { tint: 0x000000, weight: 0, neutral: 1, contributions: [] };
   }
-  const ordered = [...fields]
-    .filter(f => f && f.bounds && typeof f.id === 'string')
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const ordered = getCanonicalFields(fields);
 
   const active = [];
   let rawSum = 0;
@@ -170,6 +187,23 @@ export function sampleSpatialLight(fields, x, y, options = {}) {
 export function applyLightSample(baseColor, sample, roleScale = 1) {
   if (!sample || sample.weight <= 0 || roleScale <= 0) return baseColor;
   return mix(baseColor, sample.tint, Math.min(0.75, sample.weight * roleScale));
+}
+
+/**
+ * Resolve bounded virtual lighting fill and stroke for physics props (29.4, 41.2 step 4).
+ * Blends base prop material fill/stroke with regional spatial light sample.
+ * Returns base colors when lighting is disabled or light influence is zero.
+ */
+export function resolvePropAppearance(baseFill, baseStroke, lightSample, options = {}) {
+  if (options.lighting === false || !lightSample || lightSample.weight <= 0) {
+    return { fill: baseFill, stroke: baseStroke };
+  }
+  const fillScale = typeof options.propFillScale === 'number' ? options.propFillScale : 0.35;
+  const strokeScale = typeof options.propStrokeScale === 'number' ? options.propStrokeScale : 0.25;
+  return {
+    fill: applyLightSample(baseFill, lightSample, fillScale),
+    stroke: applyLightSample(baseStroke, lightSample, strokeScale),
+  };
 }
 
 /**
@@ -388,18 +422,62 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
   for (const surf of mapAppearance.surfaces || []) {
     const b = surf.bounds;
     if (!b) continue;
-    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-    const light = sampleSpatialLight(fields, cx, cy, art);
     const base = resolveSwatch(surf.material, art.ink.ground);
     const weathered = art.wear && surf.weathered ? mix(base, U.slateShadow, 0.14) : base;
-    const fill = applyLightSample(weathered, light, 0.38);
-    const seamColor = mix(fill, U.structuralVoid, 0.35);
+
+    // Long surfaces crossing lighting fields must be split or sampled spatially rather than tinted solely from their center (29.4).
+    // Split only when lighting is enabled and at least one spatial field's influence box (bounds + falloff) overlaps this surface.
+    const span = typeof surf.segmentSpan === 'number' && surf.segmentSpan > 0 ? surf.segmentSpan : 256;
+    const isLarge = b.w > span || b.h > span;
+    const hasOverlappingField = Boolean(art.lighting) && fields.some(f => {
+      if (!f || !f.bounds) return false;
+      const falloff = typeof f.falloff === 'number' && f.falloff > 0 ? f.falloff : 0;
+      const fx = f.bounds.x - falloff, fy = f.bounds.y - falloff;
+      const fw = f.bounds.w + 2 * falloff, fh = f.bounds.h + 2 * falloff;
+      return b.x < fx + fw && b.x + b.w > fx && b.y < fy + fh && b.y + b.h > fy;
+    });
+
+    const shouldSplit = hasOverlappingField && (surf.segmentSpan || surf.split || isLarge);
+    const cols = shouldSplit ? Math.max(1, Math.ceil(b.w / span)) : 1;
+    const rows = shouldSplit ? Math.max(1, Math.ceil(b.h / span)) : 1;
+
+    let fillOps = [];
+    if (cols === 1 && rows === 1) {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const light = sampleSpatialLight(fields, cx, cy, art);
+      const fill = applyLightSample(weathered, light, 0.38);
+      fillOps.push({ op: 'fillRect', x: b.x, y: b.y, w: b.w, h: b.h, color: fill, alpha: surf.alpha ?? 1 });
+    } else {
+      for (let c = 0; c < cols; c++) {
+        const sx = b.x + Math.round((c * b.w) / cols);
+        const ex = b.x + Math.round(((c + 1) * b.w) / cols);
+        const sw = ex - sx;
+        for (let r = 0; r < rows; r++) {
+          const sy = b.y + Math.round((r * b.h) / rows);
+          const ey = b.y + Math.round(((r + 1) * b.h) / rows);
+          const sh = ey - sy;
+          const scx = sx + sw / 2;
+          const scy = sy + sh / 2;
+          const segLight = sampleSpatialLight(fields, scx, scy, art);
+          const segFill = applyLightSample(weathered, segLight, 0.38);
+          fillOps.push({ op: 'fillRect', x: sx, y: sy, w: sw, h: sh, color: segFill, alpha: surf.alpha ?? 1 });
+        }
+      }
+      // If all segments produced identical colors, collapse back into a single fillRect to avoid redundant tile ops:
+      const firstColor = fillOps[0].color;
+      if (fillOps.every(op => op.color === firstColor)) {
+        fillOps = [{ op: 'fillRect', x: b.x, y: b.y, w: b.w, h: b.h, color: firstColor, alpha: surf.alpha ?? 1 }];
+      }
+    }
+
+    const seamColor = mix(fillOps[0].color, U.structuralVoid, 0.35);
+
     items.push({
       layer: 'paving',
       id: surf.id || 'surface',
       bounds: { x: b.x - 2, y: b.y - 2, w: b.w + 4, h: b.h + 4 },
       ops: [
-        { op: 'fillRect', x: b.x, y: b.y, w: b.w, h: b.h, color: fill, alpha: surf.alpha ?? 1 },
+        ...fillOps,
         ...(surf.curb ? [{ op: 'strokeRect', x: b.x, y: b.y, w: b.w, h: b.h, width: 2, color: seamColor, alpha: 0.65 }] : []),
       ],
     });
