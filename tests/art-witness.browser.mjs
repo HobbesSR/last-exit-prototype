@@ -1508,11 +1508,20 @@ try {
   const stainPt = { x: 820 + appDamaged.neglect.floorStain.dx, y: 500 + appDamaged.neglect.floorStain.dy };
   const scorchPt = { x: 820 + appDamaged.neglect.scorchMark.dx, y: 500 + appDamaged.neglect.scorchMark.dy };
   const selfPt = { x: 920, y: 580 };
-  const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+  const normEllipseDist = (p, center, w, h) =>
+    Math.hypot((p.x - center.x) / (w / 2), (p.y - center.y) / (h / 2));
+  const stainNorm = p => normEllipseDist(p, stainPt, appDamaged.neglect.floorStain.w, appDamaged.neglect.floorStain.h);
+  const scorchNorm = p => normEllipseDist(p, scorchPt, appDamaged.neglect.scorchMark.w, appDamaged.neglect.scorchMark.h);
+  const selfNorm = p => Math.hypot(p.x - selfPt.x, p.y - selfPt.y) / 15;
+
   const damagedFloorPos = candidateFloorPoints.reduce((best, p) => {
-    const clearance = Math.min(dist(p, stainPt), dist(p, scorchPt), dist(p, selfPt));
+    const clearance = Math.min(stainNorm(p), scorchNorm(p), selfNorm(p));
     return clearance > best.clearance ? { p, clearance } : best;
   }, { p: candidateFloorPoints[0], clearance: -1 }).p;
+
+  assert.ok(stainNorm(damagedFloorPos) > 1.0, 'damaged floor sample point is outside floor stain ellipse');
+  assert.ok(scorchNorm(damagedFloorPos) > 1.0, 'damaged floor sample point is outside scorch mark ellipse');
+  assert.ok(selfNorm(damagedFloorPos) > 1.0, 'damaged floor sample point is outside player sprite radius');
 
   const sampleTargets = {
     demoMap: sfMap,
