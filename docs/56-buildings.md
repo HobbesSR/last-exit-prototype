@@ -406,3 +406,15 @@ The second milestone, #185 §37, takes components and grammar, candidate sites,
 constraint scoring, residual use inside a footprint,
 and hallways. Its stages are filed once L5 lands. Kits wait for art direction,
 and the third milestone, §38, waits for multiple floors (16).
+
+## Kits and appearance descriptors
+
+Under [41.2](41.2-art-direction-plan.md) step 5 (#586, #585), procedural buildings take
+authored presentation descriptors (`BuildingAppearance`, [29.4](29.4-drawing.md), [52](52-map-primitives-and-library.md))
+without changing authoritative geometry, navigation, or simulation RNG:
+- **Commercial retail storefront kit (`hut` and `HOUSE`):** three visual decay tiers
+  (`RETAIL_STOREFRONT_INTACT`, `RETAIL_STOREFRONT_WEATHERED`, `RETAIL_STOREFRONT_DAMAGED`)
+  supply dominant masonry/concrete/stucco wall materials, storefront teal / weathered coral / dirty cream
+  painted rooftops, commercial roof signs, and drainage/neglect stains.
+- **Warehouse kit (`depot` and `WAREHOUSE`):** industrial cool concrete floor, oxidized metal
+  walls, legacy storefront teal roof, weathered coral signage, and floor/roof drainage neglect.

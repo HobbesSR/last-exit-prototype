@@ -11,6 +11,7 @@ import { placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { delegateYardCandidates, yardDiagnostics, yardExtentBoxes } from '../yard-handoff.ts';
@@ -39,8 +40,86 @@ const LARGER: ReadonlyArray<{ spaces: number; boxes: ReadonlyArray<readonly [num
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
 /** A box's house with its door on one side, as `HOUSE` builds it, or nothing where it refuses. */
 type House = Placed<HouseDetails>;
-const houseFor = (w: number, h: number, door: Side, spaces: number, size: number, seed: number): House | undefined => {
-  const result = HOUSE.build({ w, h, door, spaces, seed }, size);
+/**
+ * Authored minimal appearance descriptors for commercial retail storefronts (41.2 Step 5 / #586, #585, 11.1 §5.5).
+ * Three visual decay tiers:
+ * - `RETAIL_STOREFRONT_INTACT`: Surviving bold paint, clean signage, warm masonry, concrete floor.
+ * - `RETAIL_STOREFRONT_WEATHERED`: Dusty stucco, faded signage, drainage stain, warm masonry floor.
+ * - `RETAIL_STOREFRONT_DAMAGED`: Broken old sign, cracked slate paving, dirty cream roof, water/neglect staining.
+ */
+export const RETAIL_STOREFRONT_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'concrete',
+  wallMaterial: 'warmMasonry',
+  roofPaint: 'storefrontTeal',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'weatheredCoral',
+    backing: 'structuralVoid',
+    stripe: 'dirtyCream',
+    dx: 18,
+    dy: 14,
+    w: 72,
+    h: 18,
+  },
+});
+
+export const RETAIL_STOREFRONT_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'warmMasonry',
+  wallMaterial: 'dustyStucco',
+  roofPaint: 'weatheredCoral',
+  roofRim: 'storefrontTeal',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'storefrontTeal',
+    backing: 'structuralVoid',
+    stripe: 'awningsYellow',
+    dx: 16,
+    dy: 14,
+    w: 68,
+    h: 18,
+  },
+  neglect: {
+    fadedPanel: { dx: 16, dy: 36, w: 48, h: 24 },
+    roofDrainStain: { dx: 80, dy: 24, w: 28, h: 20 },
+  },
+});
+
+export const RETAIL_STOREFRONT_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'dirtyCream',
+  roofRim: 'oldSignRed',
+  interiorTrim: 'oldSignRed',
+  roofSign: {
+    color: 'oldSignRed',
+    backing: 'structuralVoid',
+    stripe: 'weatheredCoral',
+    dx: 20,
+    dy: 14,
+    w: 64,
+    h: 18,
+  },
+  neglect: {
+    fadedPanel: { dx: 20, dy: 34, w: 44, h: 22 },
+    roofDrainStain: { dx: 72, dy: 22, w: 26, h: 18 },
+    floorStain: { dx: 60, dy: 44, w: 32, h: 22 },
+  },
+});
+
+export const RETAIL_STOREFRONT_PRESETS: readonly BuildingAppearance[] = Object.freeze([
+  RETAIL_STOREFRONT_INTACT,
+  RETAIL_STOREFRONT_WEATHERED,
+  RETAIL_STOREFRONT_DAMAGED,
+]);
+
+export function selectStorefrontAppearance(roll: number): BuildingAppearance {
+  const index = Math.floor(roll * RETAIL_STOREFRONT_PRESETS.length);
+  return RETAIL_STOREFRONT_PRESETS[Math.min(index, RETAIL_STOREFRONT_PRESETS.length - 1)];
+}
+
+const houseFor = (w: number, h: number, door: Side, spaces: number, size: number, seed: number, appearance?: BuildingAppearance): House | undefined => {
+  const result = HOUSE.build({ w, h, door, spaces, seed, ...(appearance ? { appearance } : {}) }, size);
   return 'refused' in result ? undefined : result;
 };
 
@@ -110,12 +189,14 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   for (let index = 0; index < MAX_HOUSES; index++) {
     const suffix = index ? `:house-${index}` : '';
     const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design${suffix}`).next() * 2 ** 31);
+    const appearanceRoll = rng(brief.seed, `${brief.id}:hut-appearance${suffix}`).next();
+    const appearance = selectStorefrontAppearance(appearanceRoll);
     let site: Site | undefined;
     for (const { spaces, boxes } of LARGER) {
       const houses = new Map<string, House | null>();
       const cached = (w: number, h: number, side: Side) => {
         const key = `${w},${h},${side}`;
-        if (!houses.has(key)) houses.set(key, houseFor(w, h, side, spaces, size, seed) ?? null);
+        if (!houses.has(key)) houses.set(key, houseFor(w, h, side, spaces, size, seed, appearance) ?? null);
         return houses.get(key) ?? undefined;
       };
       site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}${suffix}`, cached, sites, canvas);
@@ -123,7 +204,7 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
     }
     const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
     site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site${suffix}`,
-      (w, h, side) => houseFor(w, h, side, 1, size, seed), sites, canvas);
+      (w, h, side) => houseFor(w, h, side, 1, size, seed, appearance), sites, canvas);
     if (!site) break;
     const { design, allocation, realization } = site.house.details;
     const label = index ? `hut-building-${index + 1}` : 'hut-building';
