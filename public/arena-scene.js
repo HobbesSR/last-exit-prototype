@@ -346,16 +346,25 @@ export function makeArenaScene(api) {
       this.roofMembers = roofGroups(map);
       // Buildings a declared roof covers; the update's fade loop skips them as well.
       const coveredBuildingIds = this.coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
-      const markedBuildingIds = new Set();
+      // Pre-select the primary roof per building (covering or closest to building origin) in linear time
+      const primaryRoofByBuildingId = new Map();
       if (map.roofs?.length) {
+        for (const roof of map.roofs) {
+          if (!roof.buildingId) continue;
+          const b = buildingsById.get(roof.buildingId);
+          if (!b) continue;
+          const dx = Math.max(0, roof.bounds.x - b.x, b.x - (roof.bounds.x + roof.bounds.w));
+          const dy = Math.max(0, roof.bounds.y - b.y, b.y - (roof.bounds.y + roof.bounds.h));
+          const dSq = dx * dx + dy * dy;
+          const cur = primaryRoofByBuildingId.get(roof.buildingId);
+          if (!cur || dSq < cur.distSq) {
+            primaryRoofByBuildingId.set(roof.buildingId, { roof, distSq: dSq });
+          }
+        }
         for (const roof of map.roofs) {
           const building = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
           const buildingAppearance = building?.appearance || roof.appearance;
-          const isPrimaryRoof = building ? (!markedBuildingIds.has(building.id) && (
-            (roof.bounds.x <= building.x && roof.bounds.y <= building.y) ||
-            !map.roofs.some(r => r.buildingId === building.id && r !== roof && r.bounds.x <= building.x && r.bounds.y <= building.y)
-          )) : true;
-          if (building && isPrimaryRoof) markedBuildingIds.add(building.id);
+          const isPrimaryRoof = !roof.buildingId || primaryRoofByBuildingId.get(roof.buildingId)?.roof === roof;
           const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance: buildingAppearance }, map.appearance, artOpts);
           const key = `roof:${roof.id}`;
           const overhang = roof.overhang ?? ROOF_OVERHANG;
