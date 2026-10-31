@@ -89,6 +89,22 @@ export function elementShapes(element: RegionElement, doors = false): Shape[] {
   });
 }
 
+export function routeStarts(step: number, box: Box, width: number, height: number, a: Vec2): number[] {
+  const point = (i: number): Vec2 => ({ x: box.x + i % width * step, y: box.y + Math.floor(i / width) * step });
+  const nearby: number[] = [];
+  // Only this collar can be within three steps. Preserve the original row-major
+  // candidate order and exact distance filter, including off-grid endpoints.
+  const column = (a.x - box.x) / step, row = (a.y - box.y) / step;
+  const x0 = Math.max(0, Math.floor(column) - 4), x1 = Math.min(width - 1, Math.ceil(column) + 4);
+  const y0 = Math.max(0, Math.floor(row) - 4), y1 = Math.min(height - 1, Math.ceil(row) + 4);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = y * width + x;
+    if (Math.hypot(point(i).x - a.x, point(i).y - a.y) <= step * 3) nearby.push(i);
+  }
+  nearby.sort((i, j) => Math.hypot(point(i).x - a.x, point(i).y - a.y) - Math.hypot(point(j).x - a.x, point(j).y - a.y));
+  return nearby;
+}
+
 /**
  * Conservative half-cell search, every edge checked as a swept body, not just endpoints. Samples
  * lie on whole and half cells from the bounds' corner, so a gap whose edges lie on whole cells is
@@ -104,9 +120,7 @@ export function findRegionRoute(mask: RegionMask, blockers: readonly Shape[], a:
     if (!walkable.has(i)) { const p = point(i); walkable.set(i, travelClear(mask, blockers, p, p, radius)); }
     return walkable.get(i)!;
   };
-  const nearby: number[] = [];
-  for (let i = 0; i < width * height; i++) if (Math.hypot(point(i).x - a.x, point(i).y - a.y) <= step * 3) nearby.push(i);
-  nearby.sort((i, j) => Math.hypot(point(i).x - a.x, point(i).y - a.y) - Math.hypot(point(j).x - a.x, point(j).y - a.y));
+  const nearby = routeStarts(step, box, width, height, a);
   const queue: number[] = [], previous = new Map<number, number>();
   for (const i of nearby) if (free(i) && travelClear(mask, blockers, a, point(i), radius)) { queue.push(i); previous.set(i, -1); }
   for (let head = 0; head < queue.length; head++) {

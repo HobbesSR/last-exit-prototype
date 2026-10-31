@@ -156,6 +156,21 @@ Gzip bytes use mtime 0; SHA-256
 `d4a1f8de12220f0de815047a0b0a2a69a5c327c56ba824e96b1bb227fdec0bf4`.
 
 
+## Route-start enumeration inputs (#722)
+
+`route-start-cases.json` contains 129 inputs captured at the #716 prototype
+checkpoint `b051565`: the first portal stand from each of 121 frozen direct
+depot/market briefs, plus eight off-grid variants (offsets -0.33 and +0.27
+cell sizes on both axes for the first four inputs). The frozen corpus SHA-256
+is `b90b15079f1396798217462c7782a08a6d15f527838f5e8dd4f52f2d970ce9bb`.
+The fixture was moved byte-identically from the #722 report; file SHA-256 is
+`0b984291f9eb3ab9e543b7076f370d1c43f6569c2ec7c90b6bce1e5894171d46`.
+The direct helper test and enumeration-only benchmark share these inputs;
+the test compares against an independent whole-grid reference. This is an
+input fixture, not the frozen gameplay characterization baseline. Measurement
+scope and the pinned historical runner are documented in
+[the report](../../docs/reports/issue-722/README.md).
+
 ## Hinted structural hall wing (#533)
 
 `hall-wing-hinted.json.gz` retains the exact `hall@306,72` input from the

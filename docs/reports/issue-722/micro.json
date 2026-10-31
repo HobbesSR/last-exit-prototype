@@ -1,0 +1,41 @@
+{
+  "scope": "Source-extracted start enumeration only; not whole-generation timing.",
+  "sourceSha256": "36f5a82ce922c6cd034d0f99a4d7e188a16f4b919b435057bc8afca91ddf2136",
+  "controlSha256": "7fd92eda75d7b69f117cc0cbc7b29936376c4d89cd32ce6aaf061700a3af5f68",
+  "variantSha256": "c259489014a8bfd9290929ddc8a223da8cdab5288060c0ecc10284a27c9c4f47",
+  "microCases": 129,
+  "corpusSha256": "b90b15079f1396798217462c7782a08a6d15f527838f5e8dd4f52f2d970ce9bb",
+  "repetitions": [
+    {
+      "wholeGrid": {
+        "ms": 35.254999999999995,
+        "outputSha256": "a08babb8948e04ed8e01aa9665f5cf4f0fc43a2e0be2805197eff47a9f38422f"
+      },
+      "local": {
+        "ms": 1.1088999999999487,
+        "outputSha256": "a08babb8948e04ed8e01aa9665f5cf4f0fc43a2e0be2805197eff47a9f38422f"
+      }
+    },
+    {
+      "wholeGrid": {
+        "ms": 33.04789999999991,
+        "outputSha256": "a08babb8948e04ed8e01aa9665f5cf4f0fc43a2e0be2805197eff47a9f38422f"
+      },
+      "local": {
+        "ms": 1.084100000000035,
+        "outputSha256": "a08babb8948e04ed8e01aa9665f5cf4f0fc43a2e0be2805197eff47a9f38422f"
+      }
+    },
+    {
+      "wholeGrid": {
+        "ms": 33.00879999999995,
+        "outputSha256": "a08babb8948e04ed8e01aa9665f5cf4f0fc43a2e0be2805197eff47a9f38422f"
+      },
+      "local": {
+        "ms": 1.092999999999961,
+        "outputSha256": "a08babb8948e04ed8e01aa9665f5cf4f0fc43a2e0be2805197eff47a9f38422f"
+      }
+    }
+  ],
+  "microStatus": "complete"
+}
