@@ -9,8 +9,7 @@ const grid = (width = 16, height = 12, omit = () => false) => createRegionMask({
   cells: Array.from({ length: width * height }, (_, i) => ({ x: i % width, y: Math.floor(i / width) }))
     .filter(c => !omit(c.x, c.y)) });
 
-function compareRoutes(mask, blockers, start, targets, radius) {
-  const cached = createRouteClearance(mask, blockers, radius).accepted();
+function compareRoutes(mask, blockers, start, targets, radius, cached = createRouteClearance(mask, blockers, radius).accepted()) {
   const route = createRegionRouteSearch(mask, blockers, start, radius, cached);
   const ordinary = createRegionRouteSearch(mask, blockers, start, radius);
   for (const target of targets) assert.deepEqual(route(target), ordinary(target), `route to ${target.x},${target.y}`);
@@ -35,7 +34,9 @@ test('clearance revisions match travelClear and preserve exact routes as swept b
     blockers.push(...structuredClone(added));
     const accepted = clearance.accepted();
     for (const [a, b] of pairs) assert.equal(accepted(a, b), travelClear(mask, blockers, a, b, 2));
-    compareRoutes(mask, blockers, start, targets, 2);
+    // Compare routes through a fresh search backed by the same growing cache. This
+    // exercises retained clear prefixes when each blocker revision is committed.
+    compareRoutes(mask, blockers, start, targets, 2, accepted);
   }
 });
 
@@ -52,11 +53,26 @@ test('direct and near/distant checks use swept clearance, and cache instances ke
   }
 });
 
+test('door-policy and mask identities keep clearance instances independent', () => {
+  const cells = Array.from({ length: 16 * 12 }, (_, i) => ({ x: i % 16, y: Math.floor(i / 16) }));
+  const accessMask = createRegionMask({ cellSize: 10, cells });
+  const fillMask = createRegionMask({ cellSize: 10, cells: structuredClone(cells) });
+  const a = p(15, 55), b = p(125, 55), door = rect(68, 48, 2, 14);
+  // These separate factories model the same geometry under different door policies.
+  const withDoors = createRouteClearance(accessMask, [door], 2);
+  const withoutDoors = createRouteClearance(accessMask, [], 2);
+  const otherMask = createRouteClearance(fillMask, [], 2);
+  assert.equal(withDoors.accepted()(a, b), false);
+  assert.equal(withoutDoors.accepted()(a, b), true);
+  assert.equal(otherMask.accepted()(a, b), true);
+  assert.equal(withoutDoors.accepted()(a, b), travelClear(fillMask, [], a, b, 2));
+});
+
 test('uncommitted rejected and stale trials cannot publish; commits are single-use and views are revision-bound', () => {
-  const mask = grid(), a = p(15, 55), b = p(125, 55), initial = [rect(500, 500, 1, 1)];
+  const mask = grid(), a = p(55, 55), b = p(60, 55), initial = [rect(500, 500, 1, 1)];
   const cache = createRouteClearance(mask, initial, 2), before = cache.accepted();
   assert.equal(before(a, b), true);
-  const rejected = cache.prepare([rect(68, 48, 2, 14)]);
+  const rejected = cache.prepare([rect(58, 48, 2, 14)]);
   assert.equal(rejected.clear(a, b), false);
   assert.equal(cache.accepted()(a, b), true, 'uncommitted trial did not affect accepted state');
   const first = cache.prepare([circle(300, 300, 5)]), competing = cache.prepare([rect(200, 200, 5, 5)]);
@@ -68,7 +84,7 @@ test('uncommitted rejected and stale trials cannot publish; commits are single-u
   assert.throws(() => competing.commit(), /stale route clearance trial/i);
   const current = cache.accepted();
   assert.equal(current(a, b), true);
-  const blocked = cache.prepare([rect(68, 48, 2, 14)]);
+  const blocked = cache.prepare([rect(58, 48, 2, 14)]);
   blocked.commit();
   assert.equal(cache.accepted()(a, b), false);
 });
@@ -85,28 +101,120 @@ test('initial and prepared collider geometry is copied at factory and prepare bo
   assert.equal(cache.accepted()(a, b), true);
 });
 
-test('accepted repeated checks reuse mask containment and new blockers invalidate only affected clear results', () => {
+test('polygon point aliases are copied at factory and prepare boundaries', () => {
+  const mask = grid(), a = p(15, 55), b = p(125, 55);
+  const initial = polygon(0, 0, [p(300, 300), p(310, 300), p(310, 310), p(300, 310)]);
+  const cache = createRouteClearance(mask, [initial], 2);
+  initial.points[0].x = 68; initial.points[0].y = 48;
+  initial.points[1].x = 70; initial.points[1].y = 48;
+  initial.points[2].x = 70; initial.points[2].y = 62;
+  initial.points[3].x = 68; initial.points[3].y = 62;
+  assert.equal(cache.accepted()(a, b), true, 'mutating initial polygon points cannot change cached geometry');
+
+  const added = polygon(0, 0, [p(300, 300), p(310, 300), p(310, 310), p(300, 310)]);
+  const prepared = cache.prepare([added]);
+  added.points.forEach((point, i) => Object.assign(point, [p(68, 48), p(70, 48), p(70, 62), p(68, 62)][i]));
+  assert.equal(prepared.clear(a, b), true, 'mutating prepared polygon points cannot alter trial geometry');
+  prepared.commit();
+  assert.equal(cache.accepted()(a, b), true);
+});
+
+test('grid-node and cardinal-edge cache reuses clearances and locally rechecks added blockers', () => {
   const base = grid(), calls = new Map();
   const mask = { ...base, contains(shape) {
     const key = JSON.stringify(shape); calls.set(key, (calls.get(key) ?? 0) + 1);
     return base.contains(shape);
   } };
-  const cache = createRouteClearance(mask, [], 2), a = p(15, 55), affected = p(55, 55), remote = p(15, 25);
+  const cache = createRouteClearance(mask, [], 2), center = p(55, 55);
+  const edges = [[center, p(60, 55)], [center, p(55, 60)], [center, p(50, 55)], [center, p(55, 50)]];
+  const remote = p(15, 25);
+  const totalCalls = () => [...calls.values()].reduce((sum, count) => sum + count, 0);
   const accepted = cache.accepted();
-  assert.equal(accepted(a, affected), true);
-  const afterFirst = calls.size;
+  assert.equal(accepted(center, center), true, 'grid node is clear');
+  for (const [a, b] of edges) assert.equal(accepted(a, b), true, 'each cardinal direction is clear');
+  const afterFirst = totalCalls();
   assert.ok(afterFirst > 0);
-  assert.equal(accepted(a, affected), true);
-  assert.equal(calls.size, afterFirst, 'accepted result is reused');
-  assert.equal(accepted(a, remote), true);
-  const afterRemoteFirst = calls.size;
-  const added = [rect(34, 50, 2, 10)];
+  assert.equal(accepted(center, center), true);
+  for (const [a, b] of edges) assert.equal(accepted(a, b), true);
+  assert.equal(totalCalls(), afterFirst, 'cached nodes and all directed cardinal edges skip mask work');
+  assert.equal(accepted(remote, remote), true);
+
+  // This blocker lies inside each cardinal sweep near the shared node.
+  const added = [rect(54, 54, 2, 2)];
   const prepared = cache.prepare(added);
-  assert.equal(prepared.clear(a, affected), false, 'added geometry overlaps the formerly clear swept route');
+  for (const [a, b] of edges) {
+    assert.equal(prepared.clear(a, b), travelClear(mask, added, a, b, 2), 'prepared cardinal check matches exact clearance');
+    assert.equal(prepared.clear(a, b), travelClear(mask, added, a, b, 2), 'pending result is reused in the trial');
+  }
+  const afterPrepared = totalCalls();
+  assert.ok(afterPrepared > afterFirst, 'locally affected cached edges are recomputed against the mask');
   prepared.commit();
-  const afterCommit = calls.size;
-  assert.equal(cache.accepted()(a, affected), false);
-  assert.equal(calls.size, afterCommit, 'affected prior clearance is retested against geometry without rescanning the immutable mask');
-  assert.equal(cache.accepted()(a, remote), true);
-  assert.equal(calls.size, afterRemoteFirst, 'remote addition preserves the prior mask work');
+  const afterCommit = totalCalls();
+  const current = cache.accepted();
+  for (const [a, b] of edges) assert.equal(current(a, b), false, 'committed local blocker blocks each direction');
+  assert.equal(totalCalls(), afterCommit, 'committed blocked results are already exact');
+  assert.equal(current(remote, remote), true);
+  assert.equal(totalCalls(), afterCommit, 'remote cached node remains reused');
+});
+
+test('edge cache avoids row wrapping and off-grid connectors match exact clearance', () => {
+  const base = grid(), calls = new Map();
+  const mask = { ...base, contains(shape) {
+    const key = JSON.stringify(shape); calls.set(key, (calls.get(key) ?? 0) + 1);
+    return base.contains(shape);
+  } };
+  const cache = createRouteClearance(mask, [], 1), accepted = cache.accepted();
+  const totalCalls = () => [...calls.values()].reduce((sum, count) => sum + count, 0);
+
+  // Adjacent linear node indices at a row boundary are far apart in space and
+  // must not alias either of the nearby real horizontal edges.
+  const lastEdge = [p(155, 0), p(160, 0)];
+  const nextRowEdge = [p(0, 5), p(5, 5)];
+  for (const [a, b] of [lastEdge, nextRowEdge]) {
+    assert.equal(accepted(a, b), travelClear(mask, [], a, b, 1));
+  }
+  const afterEdges = totalCalls();
+  assert.equal(accepted(p(160, 0), p(0, 5)), travelClear(mask, [], p(160, 0), p(0, 5), 1));
+  const afterConnector = totalCalls();
+  assert.ok(afterConnector > afterEdges, 'non-cardinal row-boundary connector uses exact fallback');
+  assert.equal(accepted(p(160, 0), p(0, 5)), travelClear(mask, [], p(160, 0), p(0, 5), 1));
+  assert.ok(totalCalls() > afterConnector, 'arbitrary connectors are not memoized');
+
+  const offGrid = [p(12, 13), p(83, 47)];
+  assert.equal(accepted(...offGrid), travelClear(mask, [], ...offGrid, 1));
+});
+
+test('a new thin barrier invalidates a cached edge whose cached endpoint bodies stay clear', () => {
+  const mask = grid(), a = p(55, 55), b = p(60, 55), cache = createRouteClearance(mask, [], 1);
+  const clear = cache.accepted();
+  assert.equal(clear(a, a), true);
+  assert.equal(clear(b, b), true);
+  assert.equal(clear(a, b), true);
+  assert.equal(clear(b, a), true);
+  const trial = cache.prepare([rect(57.4, 54, 0.2, 2)]);
+  assert.equal(trial.clear(a, a), true);
+  assert.equal(trial.clear(b, b), true);
+  assert.equal(trial.clear(a, b), false);
+  assert.equal(trial.clear(b, a), false);
+  trial.commit();
+  assert.equal(cache.accepted()(a, b), false);
+});
+
+test('translated and negative-origin masks invalidate warmed edges even when a trial never queries them', () => {
+  for (const [dx, dy] of [[-40, -25], [200, -300]]) {
+    const mask = createRegionMask({ cellSize: 10, cells: grid().cells.map(c => ({ x: c.x + dx, y: c.y + dy })) });
+    const shift = (x, y) => p(dx * 10 + x, dy * 10 + y);
+    const a = shift(55, 55), b = shift(60, 55), remote = shift(15, 25);
+    const cache = createRouteClearance(mask, [], 1), clear = cache.accepted();
+    assert.equal(clear(a, b), true);
+    assert.equal(clear(b, a), true);
+    assert.equal(clear(remote, remote), true);
+    const added = [rect(dx * 10 + 57.4, dy * 10 + 54, 0.2, 2)];
+    cache.prepare(added).commit();
+    const current = cache.accepted();
+    for (const [from, to] of [[a, b], [b, a], [a, a], [b, b], [remote, remote]]) {
+      assert.equal(current(from, to), travelClear(mask, added, from, to, 1));
+    }
+    assert.equal(current(a, b), false);
+  }
 });

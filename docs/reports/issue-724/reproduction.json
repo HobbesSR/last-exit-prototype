@@ -1,0 +1,17 @@
+{
+  "status": "complete",
+  "scope": "Fresh full-archive setup matches all control/candidate source pins from the controlled grid comparison",
+  "prototypeArchiveSha256": "3d71ef54e3b648997e9f29b0f20cc410e0ed1ef3fe05a6e2d01785eb2f9b5b70",
+  "sourcePins": {
+    "control": {
+      "map/micro/geometry.ts": "b7e2b7b2d65d1d87ba74915d6edff14a6c0f4b7d583ee6548dd969e25b0c01a7",
+      "map/micro/strategies/content-access.ts": "252336ef28bbaa8675a8de6c14580a87995bd04c754f9988e99fd88722c86d3b",
+      "map/micro/route-clearance.ts": null
+    },
+    "batch": {
+      "map/micro/geometry.ts": "d8014c461eb44021e01e4a714c653164e7f7ea55dd659d7b84a2a27584715008",
+      "map/micro/strategies/content-access.ts": "2aeba78fb4109a9335bb123d3aaebe586130cd5d1158d060262f94b484f56d21",
+      "map/micro/route-clearance.ts": "17eb7056d58f6783ccf83c5d70588533571a296efee8546d184ee107ca22be46"
+    }
+  }
+}

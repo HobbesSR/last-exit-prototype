@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+const [directory,output]=process.argv.slice(2);
+const hash=b=>createHash('sha256').update(b).digest('hex');
+const walk=(root,prefix='')=>fs.readdirSync(path.join(root,prefix),{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(root,path.join(prefix,e.name)):[path.join(prefix,e.name)]);
+const control=path.resolve(directory,'control'),batch=path.resolve(directory,'batch');
+const files=[...new Set([control,batch].flatMap(root=>['map','shared'].flatMap(d=>walk(root,d))))].sort();
+const pins=Object.fromEntries(files.map(f=>[f.replaceAll('\\','/'),Object.fromEntries([['control',control],['batch',batch]].map(([name,root])=>[name,fs.existsSync(path.join(root,f))?hash(fs.readFileSync(path.join(root,f))):null]))]));
+const changed=Object.keys(pins).filter(f=>pins[f].control!==pins[f].batch);
+const allowed=['map/micro/geometry.ts','map/micro/route-clearance.ts','map/micro/strategies/content-access.ts'];
+if(JSON.stringify(changed)!==JSON.stringify(allowed))throw Error(`Unexpected source changes: ${changed}`);
+fs.writeFileSync(output,JSON.stringify({prototypeRevision:'1cb30ff13103ac46532fa855de71ab9ca6266155',batchDriverRevision:'2b72f1fb3519df2653ea7768848d1f92764a8cf4',archiveSha256:hash(fs.readFileSync(path.join(directory,'prototype.tar'))),changed,pins},null,2)+'\n',{flag:'wx'});
+console.log(`Audited ${Object.keys(pins).length} source files; only clearance cache/callback and guard adapter differ.`);

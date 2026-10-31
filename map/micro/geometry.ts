@@ -124,6 +124,8 @@ export function findRegionRoutes(mask: RegionMask, blockers: readonly Shape[], a
  * Reuse one origin's grid expansion and walkability across targets. The mask, blockers, origin
  * and radius must remain unchanged while this search is used. Each target still checks its own
  * direct path and earliest BFS connector, so target order cannot alter a returned route.
+ * A supplied clearance callback must prove the same mask, blockers, radius and door policy;
+ * it substitutes only the swept test, never the search's ordering or predecessor state.
  */
 export function createRegionRouteSearch(mask: RegionMask, blockers: readonly Shape[], a: Vec2, radius: number,
   clear: (a: Vec2, b: Vec2) => boolean = (from, to) => travelClear(mask, blockers, from, to, radius)): (b: Vec2) => Vec2[] | null {

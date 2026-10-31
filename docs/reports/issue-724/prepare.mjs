@@ -21,12 +21,13 @@ const replace = (from, to) => {
 replace("import { hunterClearance", "import { createRouteClearance } from '../route-clearance.ts';\nimport { hunterClearance");
 replace('  const index =', '  const clearance = createRouteClearance(mask, blockers, radius);\n  const index =');
 replace('findRegionRoute(mask, blockers, a, b, radius) ??', 'createRegionRouteSearch(mask, blockers, a, radius, undefined, clearance.accepted())(b) ??');
+replace('createRegionRouteSearch, findRegionRoute,', 'createRegionRouteSearch,');
 replace('const sharedRoutes = (shapes: readonly Shape[], query?: ShapeQuery)',
-  'const sharedRoutes = (shapes: readonly Shape[], query?: ShapeQuery, clear = clearance.accepted())');
-replace('createRegionRouteSearch(mask, shapes, a, radius, query)', 'createRegionRouteSearch(mask, shapes, a, radius, query, clear)');
+  'const sharedRoutes = (shapes: readonly Shape[], query?: ShapeQuery, cachedClear = clearance.accepted())');
+replace('createRegionRouteSearch(mask, shapes, a, radius, query)', 'createRegionRouteSearch(mask, shapes, a, radius, query, cachedClear)');
 replace('const targetPaths = (points: readonly Vec2[], shapes: readonly Shape[], query?: ShapeQuery)',
-  'const targetPaths = (points: readonly Vec2[], shapes: readonly Shape[], query?: ShapeQuery, clear = clearance.accepted())');
-replace('const routeTo = sharedRoutes(shapes, query)', 'const routeTo = sharedRoutes(shapes, query, clear)');
+  'const targetPaths = (points: readonly Vec2[], shapes: readonly Shape[], query?: ShapeQuery, cachedClear = clearance.accepted())');
+replace('const routeTo = sharedRoutes(shapes, query)', 'const routeTo = sharedRoutes(shapes, query, cachedClear)');
 replace('      const nextProof: Evidence[] = [];', '      const trial = clearance.prepare(added);\n      const nextProof: Evidence[] = [];');
 replace('sharedRoutes(nextBlockers, query)', 'sharedRoutes(nextBlockers, query, trial.clear)');
 replace('targetPaths(newTargets, nextBlockers, query)', 'targetPaths(newTargets, nextBlockers, query, trial.clear)');

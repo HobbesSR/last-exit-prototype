@@ -1,5 +1,6 @@
 /** Reusable preparation/geometry/placement tools. No catalogue, live game state or runtime ID allocator. */
 export { createRegionMask, createFillMask, createAccessMask, capsule, elementShapes, createRegionRouteSearch, findRegionRoute, findRegionRoutes, shapesOverlap, shapesShareArea, travelClear, validShape } from './geometry.ts';
+export { createRouteClearance } from './route-clearance.ts';
 export { spreadPoints } from './placement.ts';
 export { microMetrics } from './metrics.ts';
 export { portalStands, validatePortalReach } from './portals.ts';

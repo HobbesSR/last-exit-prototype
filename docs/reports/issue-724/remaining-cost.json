@@ -1,0 +1,177 @@
+{
+  "scope": "Contextual original types-56 content versus #724 grid-cached #716 prototype; NOT the isolated #724 comparison.",
+  "sourcePins": {
+    "map/micro/geometry.ts": "d8014c461eb44021e01e4a714c653164e7f7ea55dd659d7b84a2a27584715008",
+    "map/micro/strategies/content-access.ts": "2aeba78fb4109a9335bb123d3aaebe586130cd5d1158d060262f94b484f56d21",
+    "map/micro/route-clearance.ts": "17eb7056d58f6783ccf83c5d70588533571a296efee8546d184ee107ca22be46"
+  },
+  "originalRevision": "54d9077a5fd881765b123d4d877d3bca67694409",
+  "originalArchiveSha256": "1ab050566cb058916384ca4244d80d40146e86161e934477a9472d86b121c956",
+  "corpusSha256": "b90b15079f1396798217462c7782a08a6d15f527838f5e8dd4f52f2d970ce9bb",
+  "inputHashes": {
+    "size-12-1": "5877ffa6dfd9c96a8205cd03ae35f10695da9ad995460d04b51ad9f24b28333c",
+    "size-12-2": "488b835486b85ea1654f623d6085c768db9296c168126605e730531930f20659",
+    "size-12-3": "ab6f870e4fe26e53f17171be759102ebd4b81707c7760e13a3352ca972ab84f5",
+    "size-24-1": "01b7a8ac9da248d7683304f50967be7eacb99fba74b96ad0affb4a9471ccbc91",
+    "size-24-2": "1292fc3a2e0ecd97dd903c2e59c0bfe507f2f5475bea89febc6cf23f2970114e",
+    "size-24-3": "90dc99e38e558ff8146f2884226ae131b2e67f662f972dd74d675090107ae8a4",
+    "size-36-1": "2ce3c7bf6b274124ed0e6882ff44510a4ae137733d4219cccc506c015a911d73",
+    "size-36-2": "7f4fdb83201e2a7805138177e9864f84b60f9089d1306f416d7bbaa138d2f3e0",
+    "size-36-3": "ca45b42d69ea1a650e52ae6c1a523e79dfa31aa3455e37c96dff1ecdc70905d1"
+  },
+  "repeats": [
+    {
+      "original": {
+        "ms": 7712.603099999999,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 3233.9687000000104
+          },
+          "market": {
+            "count": 92,
+            "ms": 4250.687899999997
+          }
+        },
+        "outputSha256": "fb8861d9ff10edda2f9cd25cceed793efc941cc165e0cd8ff5fa6303fd46b492"
+      },
+      "batch": {
+        "ms": 11555.596200000002,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 6744.8475999999955
+          },
+          "market": {
+            "count": 92,
+            "ms": 4636.3978000000225
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15"
+      }
+    },
+    {
+      "batch": {
+        "ms": 11194.730499999998,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 6252.923899999991
+          },
+          "market": {
+            "count": 92,
+            "ms": 4774.566800000015
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15"
+      },
+      "original": {
+        "ms": 5971.039700000001,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 2323.044999999991
+          },
+          "market": {
+            "count": 92,
+            "ms": 3462.202000000005
+          }
+        },
+        "outputSha256": "fb8861d9ff10edda2f9cd25cceed793efc941cc165e0cd8ff5fa6303fd46b492"
+      }
+    },
+    {
+      "original": {
+        "ms": 5988.774299999997,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 2296.6168000000253
+          },
+          "market": {
+            "count": 92,
+            "ms": 3506.321999999971
+          }
+        },
+        "outputSha256": "fb8861d9ff10edda2f9cd25cceed793efc941cc165e0cd8ff5fa6303fd46b492"
+      },
+      "batch": {
+        "ms": 11034.9372,
+        "groups": {
+          "depot": {
+            "count": 29,
+            "ms": 6261.958300000006
+          },
+          "market": {
+            "count": 92,
+            "ms": 4604.925599999995
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15"
+      }
+    }
+  ],
+  "scale": [
+    {
+      "repetition": 1,
+      "name": "original",
+      "ms": 3094.3810999999987,
+      "capMs": 10000,
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "✔ a macro-sized depot with hundreds of portals builds quickly (2551.3563ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3029.3218\n",
+      "stderr": ""
+    },
+    {
+      "repetition": 1,
+      "name": "batch",
+      "ms": 10011.077800000006,
+      "capMs": 10000,
+      "status": "time-cap",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 2,
+      "name": "original",
+      "ms": 2830.446100000001,
+      "capMs": 10000,
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "✔ a macro-sized depot with hundreds of portals builds quickly (2495.4537ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 2766.041\n",
+      "stderr": ""
+    },
+    {
+      "repetition": 2,
+      "name": "batch",
+      "ms": 10019.650999999998,
+      "capMs": 10000,
+      "status": "time-cap",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "repetition": 3,
+      "name": "original",
+      "ms": 2827.5622000000003,
+      "capMs": 10000,
+      "status": "passed",
+      "exitCode": 0,
+      "stdout": "✔ a macro-sized depot with hundreds of portals builds quickly (2490.4182ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 2761.564\n",
+      "stderr": ""
+    },
+    {
+      "repetition": 3,
+      "name": "batch",
+      "ms": 10010.936000000002,
+      "capMs": 10000,
+      "status": "time-cap",
+      "exitCode": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "status": "complete"
+}
