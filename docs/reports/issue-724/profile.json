@@ -1,0 +1,7 @@
+{
+  "scope": "Post-723 121 briefs, diagnostic instrumentation; unique checks per actual mask/endpoints/radius across geometry prefixes",
+  "calls": 6051367,
+  "unique": 1700889,
+  "ms": 11107.33609999723,
+  "totalMs": 20173.4222
+}

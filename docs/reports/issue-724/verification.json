@@ -1,0 +1,27 @@
+{
+  "scope": "Guard-local clearance API and frozen prototype adapter; no content adoption",
+  "checks": {
+    "npm run check": "passed",
+    "npm run typecheck": "passed",
+    "npm test": {"passed": 1407, "failed": 0, "skipped": 0},
+    "npm run test:micro": {"unitPassed": 557, "failed": 0, "browserScripts": "passed", "exitCode": 0},
+    "chain sweep --check map/tools/fixtures/chain-baseline.json": {"checked": 224, "drift": []},
+    "prototype typecheck": "passed",
+    "prototype access guard tests": {"passed": 9, "failed": 0},
+    "new clearance test timing": {"secondsReported": 0.2, "budgetSeconds": 15},
+    "frozen repeated/reordered builds": {"directRows": 121, "parentRows": 21, "builds": 284, "drift": []},
+    "failed-row differential diagnostic": {"clearanceAnswersChecked": 20486, "mismatches": 0, "fullOutputMatches": true},
+    "controlled timing": {"pairs": 3, "checkedOutputsPerCondition": 121, "allHashesMatch": true, "machineLock": true},
+    "source audit": {"files": 302, "changed": ["map/micro/geometry.ts", "map/micro/route-clearance.ts", "map/micro/strategies/content-access.ts"]},
+    "fresh archive setup": "matched measured control and candidate source pins",
+    "independent spatial and transaction review": "no defects found under the documented contracts; translated/negative-origin regression added",
+    "git diff --check": "passed"
+  },
+  "limits": {
+    "market groups": "all three size-group medians regress; raw measurements retained",
+    "feature versus original content": "1.869 times original median total in separate contextual comparison",
+    "macro depot scale": {"originalPassed": 3, "cachedTimeCaps": 3, "capMs": 10000, "cachedCompleteDuration": null},
+    "content adoption": "not included; #716 encounter-frequency shortfall remains unresolved"
+  },
+  "notes": "Timing comparisons ran separately from task tests and diagnostics. Historical failed attempts and slower cache representations remain preserved. No expected output, baseline or behavior-nav fixture was regenerated."
+}

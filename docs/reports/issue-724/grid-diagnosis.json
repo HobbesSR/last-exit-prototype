@@ -1,0 +1,9 @@
+{
+  "status": "complete",
+  "seed": "size-12-1",
+  "id": "depot@126,102",
+  "checkedClearances": 20486,
+  "actual": "6f0a24f86caae3a4fd3e594fbc94cfaf5559bfd61278c9eb877cfde4704a83dc",
+  "expected": "6f0a24f86caae3a4fd3e594fbc94cfaf5559bfd61278c9eb877cfde4704a83dc",
+  "corpusSha256": "b90b15079f1396798217462c7782a08a6d15f527838f5e8dd4f52f2d970ce9bb"
+}

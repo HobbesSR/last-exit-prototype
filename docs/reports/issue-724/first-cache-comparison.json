@@ -1,0 +1,220 @@
+{
+  "scope": "Isolated #724: 121 frozen direct builders; identical post-723 prototype except clearance cache/callback and guard adapter. Excludes macro/composition.",
+  "prototypeRevision": "1cb30ff13103ac46532fa855de71ab9ca6266155",
+  "prototypeArchiveSha256": "3d71ef54e3b648997e9f29b0f20cc410e0ed1ef3fe05a6e2d01785eb2f9b5b70",
+  "batchDriverRevision": "2b72f1f",
+  "node": "v24.15.0",
+  "corpusSha256": "b90b15079f1396798217462c7782a08a6d15f527838f5e8dd4f52f2d970ce9bb",
+  "sourcePins": {
+    "control": {
+      "map/micro/geometry.ts": "b7e2b7b2d65d1d87ba74915d6edff14a6c0f4b7d583ee6548dd969e25b0c01a7",
+      "map/micro/strategies/content-access.ts": "252336ef28bbaa8675a8de6c14580a87995bd04c754f9988e99fd88722c86d3b",
+      "map/micro/route-clearance.ts": null
+    },
+    "batch": {
+      "map/micro/geometry.ts": "d8014c461eb44021e01e4a714c653164e7f7ea55dd659d7b84a2a27584715008",
+      "map/micro/strategies/content-access.ts": "b34adab9b3eb170a3000b0e9cae6f479508d5305b26e5cceeeee9bbc146b85a4",
+      "map/micro/route-clearance.ts": "a383a7e5322644003e3f5564f72124150f03e99b68a0894019c52fc038a0dbc6"
+    }
+  },
+  "repeats": [
+    {
+      "control": {
+        "ms": 13510.4538,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 721.8409000000001
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 112.49459999999999
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1170.0353000000007
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 1809.2915999999996
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2617.8652
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 7053.032799999997
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      },
+      "batch": {
+        "ms": 16689.3856,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 799.268100000003
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 129.96410000000105
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1485.5326999999925
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2441.9635999999973
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 3229.808800000017
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 8575.507299999997
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      }
+    },
+    {
+      "batch": {
+        "ms": 20290.003299999997,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 758.6279000000031
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 117.73760000000038
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1749.1903999999995
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2813.0717999999906
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 4165.543799999963
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 10654.153800000007
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      },
+      "control": {
+        "ms": 15251.165800000002,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 730.7375999999931
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 107.37910000000556
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1323.6423999999824
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2109.0526000000173
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 2973.3699000000342
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 7978.189099999981
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      }
+    },
+    {
+      "control": {
+        "ms": 15152.510800000004,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 678.3494999999966
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 104.23259999998845
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1301.514100000044
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2084.8549999999814
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 3020.8704000000434
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 7933.920099999988
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      },
+      "batch": {
+        "ms": 18785.227799999993,
+        "groups": {
+          "depot/12": {
+            "count": 7,
+            "ms": 1111.847699999984
+          },
+          "market/12": {
+            "count": 3,
+            "ms": 183.06750000000466
+          },
+          "market/24": {
+            "count": 30,
+            "ms": 1582.6786000000284
+          },
+          "depot/24": {
+            "count": 9,
+            "ms": 2695.6788000000233
+          },
+          "market/36": {
+            "count": 59,
+            "ms": 3605.9507000000885
+          },
+          "depot/36": {
+            "count": 13,
+            "ms": 9577.621599999984
+          }
+        },
+        "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+        "checked": 121
+      }
+    }
+  ],
+  "medians": {
+    "control": 15152.510800000004,
+    "batch": 18785.227799999993
+  },
+  "speedup": 0.8066184217366802,
+  "status": "complete"
+}
