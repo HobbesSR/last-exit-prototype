@@ -13,11 +13,41 @@ import { CONTAINER_ROW } from '../placeables/container-row.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
-import type { BuildingAppearance, MapAppearance } from '../../../shared/types.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
 import { createDepotExperimentCanvas } from '../experiments/depot-canvas.ts';
 import { portalStands } from '../portals.ts';
+
+/**
+ * Authored minimal appearance descriptor for industrial depot warehouses (41.2 Step 3 / #584).
+ * Uses documented swatches from 11.1 / 29.4:
+ * - cool concrete floor (`concrete`) and oxidized metal walls (`metal`)
+ * - legacy storefront teal roof (`storefrontTeal`) with weathered coral rim (`weatheredCoral`)
+ * - commercial roof signage (`weatheredCoral` on `structuralVoid` with `dirtyCream` stripe)
+ * - long-term neglect (`fadedPanel`, `roofDrainStain`, `floorStain`)
+ */
+export const DEPOT_WAREHOUSE_APPEARANCE: BuildingAppearance = Object.freeze({
+  floorMaterial: 'concrete',
+  wallMaterial: 'metal',
+  roofPaint: 'storefrontTeal',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'weatheredCoral',
+    backing: 'structuralVoid',
+    stripe: 'dirtyCream',
+    dx: 28,
+    dy: 16,
+    w: 120,
+    h: 24,
+  },
+  neglect: {
+    fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
+    roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
+    floorStain: { dx: 155, dy: 70, w: 46, h: 28 },
+  },
+});
 
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -76,7 +106,7 @@ export function buildDepotExperiment(brief: RegionBrief, mode: 'fixed' | 'movabl
   return { result, diagnostics: experimentalCanvas?.diagnostics ?? null };
 }
 
-function buildDepotWithPolicy(brief: RegionBrief & { appearance?: BuildingAppearance | MapAppearance | undefined }, observe?: BuildingObserver, experiment?: {
+function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, experiment?: {
   mode: 'fixed' | 'movable'; record: (canvas: NonNullable<ReturnType<typeof createDepotExperimentCanvas>['canvas']>) => void;
 }): BuiltRegion {
   const density = fraction(brief, 'Depot', 'density', DEFAULT_DENSITY);
@@ -164,9 +194,7 @@ function buildDepotWithPolicy(brief: RegionBrief & { appearance?: BuildingAppear
     if (!experiment && brief.portals.length && !yard.has(key(x - AISLE, y - AISLE))) continue;
     const label = `depot-warehouse-${warehouses + 1}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
-    const bApp = brief.appearance && 'buildings' in brief.appearance
-      ? (brief.appearance.buildings?.main ?? brief.appearance.buildings?.[label] ?? Object.values(brief.appearance.buildings ?? {})[0])
-      : (brief.appearance as BuildingAppearance | undefined);
+    const bApp = DEPOT_WAREHOUSE_APPEARANCE;
     const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed, ...(bApp ? { appearance: bApp } : {}) }, size));
     const { design, allocation, realization, rejected } = built.details;
     if (experiment && !place(label, u, v, built)) continue;

@@ -464,7 +464,7 @@ export interface BuildingRoofSignAppearance {
 export interface BuildingNeglectAppearance {
   fadedPanel?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
   roofDrainStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
-  floorStain?: { x?: number | undefined; y?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
+  floorStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined; x?: number | undefined; y?: number | undefined } | undefined;
 }
 
 export interface BuildingAppearance {
@@ -558,10 +558,17 @@ export interface LightingAppearance {
   fields?: LightingFieldAppearance[] | undefined;
 }
 
+export interface ElementAppearance {
+  building?: BuildingAppearance | undefined;
+  surfaces?: SurfaceAppearance[] | undefined;
+  commercial?: CommercialMarkAppearance[] | undefined;
+  wear?: WearMarkAppearance[] | undefined;
+  scars?: ScarMarkAppearance[] | undefined;
+  lighting?: LightingAppearance | undefined;
+}
+
 export interface MapAppearance {
   surfaces?: SurfaceAppearance[] | undefined;
-  buildings?: Record<string, BuildingAppearance> | undefined;
-  obstacles?: Record<string, ObstacleAppearance> | undefined;
   commercial?: CommercialMarkAppearance[] | undefined;
   wear?: WearMarkAppearance[] | undefined;
   scars?: ScarMarkAppearance[] | undefined;

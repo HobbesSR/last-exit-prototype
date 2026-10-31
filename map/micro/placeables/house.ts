@@ -4,7 +4,7 @@ import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingRealization } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
-import type { Box, BuildingAppearance } from '../../../shared/types.ts';
+import type { Box } from '../../../shared/types.ts';
 import type { Placeable } from './placeable.ts';
 
 /*
@@ -32,14 +32,14 @@ function doorsteps(realization: BuildingRealization): number[] | undefined {
   return [...new Set([Math.floor(start), Math.ceil(start)])];
 }
 
-const realized = (cellSize: number, appearance?: BuildingAppearance) => ({ cellSize, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' as const, decalTheme: 'hut', ...(appearance ? { appearance } : {}) });
+const realized = (cellSize: number) => ({ cellSize, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' as const, decalTheme: 'hut' });
 
 /**
  * The one-space house in its box's local world units: four walls, a door on `door`, and a
  * window on the opposite wall, each a doorway wide (52's worked case) and centred. It
  * encloses, so it has a roof.
  */
-function house(size: number, door: Side, width: number, height: number, appearance?: BuildingAppearance): HouseDetails {
+function house(size: number, door: Side, width: number, height: number): HouseDetails {
   const cells = Array.from({ length: width * height }, (_, i) => ({ x: i % width, y: Math.floor(i / width) }));
   const design: BuildingDesign = {
     spaces: [{ id: 'room', area: { min: width * height, max: width * height }, outside: 'prefer', tags: ['house'] }],
@@ -49,7 +49,7 @@ function house(size: number, door: Side, width: number, height: number, appearan
     ],
   };
   const allocation = { footprint: cells, spaces: [{ id: 'room', cells }] };
-  const realization = realizeBuilding(design, allocation, realized(size, appearance));
+  const realization = realizeBuilding(design, allocation, realized(size));
   // This fixed design always fits. A miss here is an implementation defect, not a new fallback.
   if (!realization.template || realization.issues.length || realization.misses.length) throw new Error('The fixed hut design could not be realized.');
   return { design, allocation, realization, steps: doorsteps(realization)! };
@@ -63,7 +63,7 @@ function house(size: number, door: Side, width: number, height: number, appearan
  * used: each space is reached through the one door. Missed windows and asked doors are
  * guidance, and stay as misses (M29).
  */
-function larger(spaces: number, w: number, h: number, side: Side, size: number, seed: number, appearance?: BuildingAppearance): HouseDetails | undefined {
+function larger(spaces: number, w: number, h: number, side: Side, size: number, seed: number): HouseDetails | undefined {
   const cells = Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
   const ids = Array.from({ length: spaces }, (_, i) => i ? `back-${i}` : 'front');
   const asked: BuildingDesign = {
@@ -79,7 +79,7 @@ function larger(spaces: number, w: number, h: number, side: Side, size: number, 
   };
   const allocated = allocateBuilding(asked, cells, { seed });
   if (!allocated.ok) return undefined;
-  const { design, allocation } = allocated, realization = realizeBuilding(design, allocation, realized(size, appearance));
+  const { design, allocation } = allocated, realization = realizeBuilding(design, allocation, realized(size));
   const steps = doorsteps(realization);
   if (!realization.template || realization.issues.length || !steps) return undefined;
   const reached = new Set(['front']);
@@ -110,8 +110,6 @@ export interface HouseParams {
   spaces: number;
   /** Seeds the allocation of a house with several spaces. One space ignores it. */
   seed: number;
-  /** Optional presentation appearance descriptor (29.4, 41.2, 52). */
-  appearance?: BuildingAppearance | undefined;
 }
 
 export const HOUSE = Object.freeze<Placeable<HouseParams, HouseDetails>>({
@@ -133,8 +131,8 @@ export const HOUSE = Object.freeze<Placeable<HouseParams, HouseDetails>>({
     { w: 6, h: 4, door: 'N', spaces: 2, seed: 5 },
     { w: 8, h: 6, door: 'W', spaces: 3, seed: 11 },
   ],
-  build({ w, h, door, spaces, seed, appearance }: HouseParams, cellSize: number) {
-    const details = spaces === 1 ? house(cellSize, door, w, h, appearance) : larger(spaces, w, h, door, cellSize, seed, appearance);
+  build({ w, h, door, spaces, seed }: HouseParams, cellSize: number) {
+    const details = spaces === 1 ? house(cellSize, door, w, h) : larger(spaces, w, h, door, cellSize, seed);
     if (!details) return { refused: `no ${spaces}-space house fits ${w} × ${h} with its door on ${door}` };
     return { elements: [{ x: 0, y: 0, template: details.realization.template! }],
       demand: { body: { w, h }, clear: [doorstep(door, details.steps, w, h)] }, details };

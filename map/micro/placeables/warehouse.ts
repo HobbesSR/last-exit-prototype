@@ -24,11 +24,11 @@ const SHELF_INSET = 0.2;
  * every aisle is open to a contestant and the doors open onto clear ends. A floor shorter than
  * 5 cells has none.
  */
-function shelves(size: number, alongX: boolean, u0: number, length: number, v0: number, v1: number): ElementTemplate['parts'] {
+function shelves(size: number, alongX: boolean, u0: number, length: number, v0: number, v1: number, styled = false): ElementTemplate['parts'] {
   const box = oriented(size, alongX), parts: ElementTemplate['parts'] = [];
   if (length < 5) return parts;
   for (let k = v0 + 2; k + 3 <= v1; k += 3)
-    parts.push({ part: 'obstacle', shape: box(u0 + 2, k + SHELF_INSET, length - 4, 1 - 2 * SHELF_INSET), kind: 'container' });
+    parts.push({ part: 'obstacle', shape: box(u0 + 2, k + SHELF_INSET, length - 4, 1 - 2 * SHELF_INSET), kind: 'container', ...(styled ? { appearance: { material: 'oxidizedMetal' } } : {}) });
   return parts;
 }
 
@@ -96,7 +96,7 @@ function warehouse(size: number, w: number, h: number, alongX: boolean, seed: nu
     const floor = allocation.spaces.find(space => space.id === 'floor')!.cells;
     const us = floor.map(c => alongX ? c.x : c.y), vs = floor.map(c => alongX ? c.y : c.x), u0 = Math.min(...us);
     const template = { ...realization.template, parts: [...realization.template.parts,
-      ...shelves(size, alongX, u0, Math.max(...us) + 1 - u0, Math.min(...vs), Math.max(...vs) + 1)] };
+      ...shelves(size, alongX, u0, Math.max(...us) + 1 - u0, Math.min(...vs), Math.max(...vs) + 1, appearance !== undefined)] };
     return { design, allocation, realization, template, rejected };
   }
   // One room with a door on each end always fits a box at least 5 cells a side. A miss here is a defect, not a new fallback.

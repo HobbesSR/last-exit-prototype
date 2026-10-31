@@ -148,7 +148,7 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
     encloses: encloses && isRectangular,
     parts,
     ...(roofs.length ? { roofs } : {}),
-    ...(options.appearance ? { appearance: structuredClone(options.appearance) } : {}),
+    ...(options.appearance ? { appearance: { building: structuredClone(options.appearance) } } : {}),
   };
   const marked = options.decalTheme === false ? [] : result.openings.filter(marksOpening);
   if (marked.length) {

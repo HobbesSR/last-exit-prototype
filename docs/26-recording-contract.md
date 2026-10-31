@@ -26,7 +26,7 @@ pickup as an unknown item, so the floor stays.
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
 default content is `content-5`, and recordings use schema 15 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
-minimum schema 0.
+minimum schema 0. Optional appearance descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Schema 10 adds required engine-free physics presentation for experimental physics
 matches; those matches require reader 10. Ordinary match reader floors stay unchanged.
 Storage-only changes must preserve frozen gameplay fixtures.

@@ -31,6 +31,13 @@ strategy versions to match the available engines. These domains are distinct
 from replay and simulation versions ([26](26-recording-contract.md)) and from
 builder delegation ([20.7](20.7-builder-delegation.md)).
 
+Optional presentation descriptors (`BuildingAppearance`, `ObstacleAppearance`,
+`ElementAppearance`, and `MapAppearance` under #584) are purely additive
+fields on element templates, buildings and obstacles; older readers ignore them
+without error, requiring no wire version bump (`CHAIN_WIRE_VERSION` stays 8).
+Tile rasterisation cache identity is governed separately by client-only
+`APPEARANCE_RECIPE_VERSION` ([29.4](29.4-drawing.md), [52](52-map-primitives-and-library.md)).
+
 ## One seed decides the whole map
 
 With the same engines and library, the seed and params determine every object

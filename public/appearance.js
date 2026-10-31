@@ -233,8 +233,8 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
 
   if (art.wear && desc?.neglect?.floorStain) {
     const st = desc.neglect.floorStain;
-    const stainX = Math.max(building.x + 24, Math.min(building.x + building.w - 24, st.x ?? (building.x + building.w * 0.72)));
-    const stainY = Math.max(building.y + 24, Math.min(building.y + building.h - 24, st.y ?? (building.y + building.h * 0.36)));
+    const stainX = Math.max(building.x + 24, Math.min(building.x + building.w - 24, st.dx !== undefined ? building.x + st.dx : (st.x ?? (building.x + building.w * 0.72))));
+    const stainY = Math.max(building.y + 24, Math.min(building.y + building.h - 24, st.dy !== undefined ? building.y + st.dy : (st.y ?? (building.y + building.h * 0.36))));
     floorMarks.push({
       kind: 'ellipse',
       layer: 'neglect-stain',
