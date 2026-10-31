@@ -243,8 +243,10 @@ reports from several players at one tick each stay individually selectable. The 
 ## Bounded recording
 
 The room scheduler never waits for replay storage. The writer accepts immutable
-serialized frames into a bounded queue (default 8 MiB of uncompressed pending
-data, including bytes handed to gzip but not consumed). Gzip/output stream buffers
+serialized frames into a bounded queue of uncompressed pending data, including
+bytes handed to gzip but not consumed. By default the bound is the larger of 8 MiB and
+the header plus four frames of the size being appended, so it grows with the map: a
+72x36 frame is about 3.3 MiB ([42.22](42.22-tick-cost-attribution.md)). Gzip/output stream buffers
 have their own bounded high-water marks. An incoming frame that exceeds available
 queue capacity is omitted in its entirety; no command/frame fragments are written.
 The writer resumes accepting frames when capacity returns. It never retains

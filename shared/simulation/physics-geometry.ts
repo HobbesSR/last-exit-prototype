@@ -4,10 +4,16 @@ import type { Shape } from '../shape.ts';
 import type { CollisionMap, Gate, Vec2 } from '../types.ts';
 import type { BodyDefinition } from '../physics/types.ts';
 
-const MAX_WIDTH = 51840;
-const MAX_HEIGHT = 25920;
+/**
+ * The largest map side physics accepts, in world units: a precision bound, not a content one. Rapier keeps f32
+ * positions, whose spacing grows with distance from the origin; at this extent the jelly still settles within its
+ * gates (tests/physics-jelly.test.js), and its settled error doubles with each further doubling (42.22). A larger
+ * map would need the world recentred, not a larger number here.
+ */
+export const MAX_PHYSICS_EXTENT = 2 ** 18;
 const MAX_BODIES = 100000;
-const MAX_GRID_CELLS = 2000000;
+// The mask build walks rows and each row's runs, never columns, so rows are what it bounds.
+const MAX_MASK_ROWS = 2 ** 16;
 const MAX_VERTICES = 64;
 const WALL = 40;
 
@@ -59,7 +65,7 @@ export function physicsGate(gate: Gate): BodyDefinition {
 /** Build immutable-in-practice, engine-free static footprints for one map revision. Gates are separate. */
 export function buildPhysicsGeometry(map: CollisionMap): BodyDefinition[] {
   const { width, height } = map;
-  if (!positive(width) || !positive(height) || width > MAX_WIDTH || height > MAX_HEIGHT) {
+  if (!positive(width) || !positive(height) || width > MAX_PHYSICS_EXTENT || height > MAX_PHYSICS_EXTENT) {
     throw new RangeError('Invalid physics map extent');
   }
   const result: BodyDefinition[] = [];
@@ -89,7 +95,7 @@ export function buildPhysicsGeometry(map: CollisionMap): BodyDefinition[] {
     const size = area.cellSize;
     if (!positive(size)) throw new RangeError('Invalid physics mask cell size');
     const cols = Math.ceil(width / size), rows = Math.ceil(height / size);
-    if (cols * rows > MAX_GRID_CELLS) throw new RangeError('Physics mask grid capacity exceeded');
+    if (rows > MAX_MASK_ROWS) throw new RangeError('Physics mask grid capacity exceeded');
     // Merge equal void intervals in adjacent rows. This bounds a long straight void
     // edge to one collider and never builds a collider for every empty cell.
     type Gap = { left: number; right: number; first: number; last: number };

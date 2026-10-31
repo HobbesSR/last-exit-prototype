@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPhysicsGeometry, physicsGate } from '../shared/simulation/physics-geometry.ts';
+import { buildPhysicsGeometry, physicsGate, MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
 import { insideMap } from '../shared/movement.ts';
 
 const empty = (more = {}) => ({ width: 250, height: 250, obstacles: [], gates: [], ...more });
@@ -78,11 +78,12 @@ test('legacy diamond has diagonal contact faces at the same boundary as insideMa
 
 test('malformed static geometry is refused before the engine sees it', () => {
   assert.throws(() => buildPhysicsGeometry(empty({ width: Infinity })), /extent/);
-  assert.throws(() => buildPhysicsGeometry(empty({ width: 51841 })), /extent/);
+  assert.throws(() => buildPhysicsGeometry(empty({ width: MAX_PHYSICS_EXTENT + 1 })), /extent/);
+  assert.throws(() => buildPhysicsGeometry(empty({ height: MAX_PHYSICS_EXTENT + 1 })), /extent/);
   assert.throws(() => buildPhysicsGeometry(empty({ obstacles: [{ id: 'bad', x: 0, y: 0, w: 0, h: 1 }] })), /box/);
   assert.throws(() => buildPhysicsGeometry(empty({ obstacles: [{ id: 'bad', x: 0, y: 0, w: 1, h: 1, r: NaN }] })), /obstacle/);
   assert.throws(() => buildPhysicsGeometry(empty({ obstacles: [{ id: 'bad', x: 0, y: 0, w: 1, h: 1,
     points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 5, y: 5 }, { x: 10, y: 10 }, { x: 0, y: 10 }] }] })), /polygon/);
-  assert.throws(() => buildPhysicsGeometry(empty({ playableArea: { cellSize: 0.01, rows: [] } })), /capacity/);
+  assert.throws(() => buildPhysicsGeometry(empty({ playableArea: { cellSize: 0.001, rows: [] } })), /capacity/);
   assert.throws(() => buildPhysicsGeometry(empty({ playableArea: { cellSize: 50, rows: [{ y: 0, runs: [[0, 3], [2, 5]] }] } })), /run/);
 });

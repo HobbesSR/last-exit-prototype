@@ -21,9 +21,10 @@ for tile in 1x1 2x1 2x2 3x2 3x3; do
   run "ladder-$tile-legacy" --size=12x6 --tile=$tile --ticks=1200 --content=content-5
   run "ladder-$tile-physics" --size=12x6 --tile=$tile --ticks=1200 --content=content-6
 done
-# 48x24 is the largest point: at 72x36 a recorded frame nearly fills the writer's 8 MiB queue and the process
-# heap reaches about 2.5 GiB, which this machine could not hold beside the rest of the set (42.22).
+# Legacy stops at 48x24: at 72x36 its heap reached about 2.5 GiB beside the rest of the set (42.22, before #655).
 run "ladder-4x4-legacy" --size=12x6 --tile=4x4 --ticks=1200 --content=content-5
+# Physics past 36x18 (42.22 "Physics past 36x18"); 96x48's heap peaks near 5 GiB between collections.
+for tile in 4x4 6x6 8x8; do NODE_OPTIONS=--max-old-space-size=8192 run "ladder-$tile-physics" --size=12x6 --tile=$tile --ticks=1200 --content=content-6; done
 # Real sizes over the same first 1200 ticks, to set against the ladder.
 for size in 24x12 36x18; do
   run "early-$size-legacy" --size=$size --ticks=1200 --content=content-5
