@@ -18,7 +18,7 @@ P9 staged integration and playtest qualification is [42.20](42.20-physics-p9.md)
 The lab-only jelly/compression experiment and its limits are [42.21](42.21-jelly-squish.md).
 Server tick cost by stage, its scaling with map size and the classification of over-budget ticks are
 [42.22](42.22-tick-cost-attribution.md) (#637), with the per-tick change fraction for structurally shared
-frames (#655).
+frames and their closing measurement (#655).
 Navigation structure's three-size detour, dead-end, empty-space and boundary
 baseline is in [42.23](42.23-navigation-structure.md) (#688).
 The matched connected static-barrier experiment and its production integration
