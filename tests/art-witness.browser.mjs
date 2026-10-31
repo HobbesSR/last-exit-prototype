@@ -6,7 +6,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { serveWithBrowser } from './helpers/browser.js';
 import { arena } from './helpers/arena.js';
-import { SWATCHES, THEMES, contrast, mix, css } from '../public/palette.js';
+import { SWATCHES, THEMES, contrast, mix, css, G } from '../public/palette.js';
+import { MATERIAL_SWATCH } from '../public/appearance.js';
 import { INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM, playerZoom } from '../shared/view.ts';
 
 const outDir = path.resolve('test-results/art-witness');
@@ -1095,18 +1096,25 @@ try {
   );
 
   const SW = {
-    coral: parseInt(THEMES.signature.colors.wall.toString(), 16), // fallback ref
     weatheredCoral: parseInt(SWATCHES.legacy.weatheredCoral.slice(1), 16),
     storefrontTeal: parseInt(SWATCHES.legacy.storefrontTeal.slice(1), 16),
     awningsYellow: parseInt(SWATCHES.legacy.awningsYellow.slice(1), 16),
-    warmMasonry: 0x8f645a,
+    sodiumAmber: G.sodiumAmber,
+    warmMasonry: MATERIAL_SWATCH.warmMasonry,
   };
 
   // Step 2 done-when assertions:
   // 1. Lighting toggle removes cobalt wash and amber focal edge while keeping material identity intact:
   assert.notEqual(sliceFullExt.pixels.cobaltStreet, sliceNoLightExt.pixels.cobaltStreet, 'switching off lighting removes cobalt intersection wash on street');
   assert.notEqual(sliceFullExt.pixels.amberRim, sliceNoLightExt.pixels.amberRim, 'switching off lighting removes warm amber focal edge rim');
-  assert.notEqual(sliceFullInt.pixels.southWallInside, sliceFullExt.pixels.amberRim, 'interior south wall face does not receive north amber rim');
+  assert.ok(
+    rgbDist(sliceFullInt.pixels.southWallInside, SW.sodiumAmber) >= 150,
+    'interior south wall face does not receive amber rim (remains unrimmed dark interior wall)'
+  );
+  assert.ok(
+    rgbDist(sliceFullInt.pixels.southWallInside, sliceFullInt.pixels.wallAmberRim) >= 60,
+    'interior south wall face is distinct from north wall focal rim in interior view'
+  );
 
   // Material identity survives with lighting off (verified by proximity to authored swatches vs clean slate apron):
   assert.ok(
