@@ -13,6 +13,7 @@ import {
   resolveObstacleAppearance,
   resolveGroundAppearance,
   sampleSpatialLight,
+  getCanonicalFields,
   resolveActorTint,
   resolvePropAppearance,
   recordAppearanceOps,
@@ -781,6 +782,7 @@ export function makeArenaScene(api) {
       const g = this.dynamic; g.clear();
       const fixed = this.fixtures; fixed.clear();
       const fields = map.appearance?.lighting?.fields || [];
+      const canonicalFields = getCanonicalFields(fields);
       const artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById: this.buildingsById };
       start('render.world');
       // Level of detail thresholds for distant / spectator views:
@@ -820,7 +822,7 @@ export function makeArenaScene(api) {
         if (body.kind !== 'prop' || body.itemId != null && drawnItems.has(body.itemId)) continue;
         const shape = body.shape;
         if (!nearView(body.x, body.y, bodyRadius(shape))) continue;
-        const propLight = sampleSpatialLight(fields, body.x, body.y, artOpts);
+        const propLight = sampleSpatialLight(canonicalFields, body.x, body.y, artOpts);
         const { fill: propFill, stroke: propStroke } = resolvePropAppearance(0x8fa9a0, 0xdce8d7, propLight, artOpts);
         g.fillStyle(propFill, 0.9); g.lineStyle(2, propStroke, 0.95);
         if (shape.kind === 'circle') {
@@ -1004,9 +1006,13 @@ export function makeArenaScene(api) {
         else { actor.container.x = p.x; actor.container.y = p.y; }
         actor.sprite.setRotation(controlled ? api.aim() : p.heading); actor.sprite.setAlpha(p.cloak ? 0.45 : 1);
         actor.baseTint = actorBaseTint(p, api.playerId());
-        const lightSample = sampleSpatialLight(fields, actor.container.x, actor.container.y, artOpts);
-        const actorTint = resolveActorTint(actor.baseTint, lightSample, artOpts);
-        actor.sprite.setTint(actorTint);
+        // 29.4: "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted."
+        if (artOpts.hasSeparatedMaterial) {
+          const lightSample = sampleSpatialLight(canonicalFields, actor.container.x, actor.container.y, artOpts);
+          actor.sprite.setTint(resolveActorTint(actor.baseTint, lightSample, artOpts));
+        } else {
+          actor.sprite.setTint(actor.baseTint);
+        }
         // Markers hold their apparent size as the camera pulls back; names hold a fixed pixel height
         // rather than riding that scale, which would leave them unreadable at whole arena zoom.
         actor.container.setScale(this.marker); actor.name.setScale(this.nameScale);

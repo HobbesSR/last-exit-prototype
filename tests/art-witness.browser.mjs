@@ -1363,19 +1363,29 @@ try {
     await window.witness.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
 
-  // Moving actors on both sides of boundary:
-  assert.notEqual(step4SpatialCheck.strikerTintLit, step4SpatialCheck.strikerTintUnlit, 'striker in Area 1 takes regional cobalt tint when lit');
-  assert.equal(step4SpatialCheck.strikerTintUnlit, 0xffd485, 'striker unlit retains exact base kit tint 0xffd485');
-  assert.notEqual(step4SpatialCheck.scoutTintLit, step4SpatialCheck.scoutTintUnlit, 'scout in Area 2 takes regional magenta tint when lit');
-  assert.notEqual(step4SpatialCheck.selfArea1Tint, step4SpatialCheck.selfArea2Tint, 'moving actor takes distinct tints in Area 1 vs Area 2');
-  assert.notEqual(step4SpatialCheck.selfBoundaryTint, step4SpatialCheck.selfArea1Tint, 'moving actor at boundary blends smoothly without pop');
-  assert.notEqual(step4SpatialCheck.selfBoundaryTint, step4SpatialCheck.selfArea2Tint, 'boundary blend differs from pure Area 2');
+  // Moving actors: 29.4 "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted."
+  // Kit and contestant tints ARE identity colors, so sprites remain untinted and never darkened or hue-shifted by theatrical washes:
+  assert.equal(step4SpatialCheck.strikerTintLit, 0xffd485, 'striker lit sprite retains exact identity kit tint 0xffd485');
+  assert.equal(step4SpatialCheck.strikerTintUnlit, 0xffd485, 'striker unlit sprite retains exact identity kit tint 0xffd485');
+  assert.equal(step4SpatialCheck.scoutTintLit, 0x9de6df, 'scout lit sprite retains exact identity kit tint 0x9de6df');
+  assert.equal(step4SpatialCheck.scoutTintUnlit, 0x9de6df, 'scout unlit sprite retains exact identity kit tint 0x9de6df');
+  assert.equal(step4SpatialCheck.selfArea1Tint, 0xffffff, 'contestant retains base white tint across Area 1');
+  assert.equal(step4SpatialCheck.selfArea2Tint, 0xffffff, 'contestant retains base white tint across Area 2');
+  assert.equal(step4SpatialCheck.selfBoundaryTint, 0xffffff, 'contestant retains base white tint at boundary without darkening or pop');
 
   // Physics props on both sides of boundary:
   assert.notEqual(step4SpatialCheck.propArea1Lit, step4SpatialCheck.propArea2Lit, 'prop in Area 1 takes distinct lighting tint from prop in Area 2');
   assert.notEqual(step4SpatialCheck.propArea1Lit, step4SpatialCheck.propArea1Unlit, 'prop in Area 1 is tinted when lit');
   assert.notEqual(step4SpatialCheck.propArea2Lit, step4SpatialCheck.propArea2Unlit, 'prop in Area 2 is tinted when lit');
   assert.equal(step4SpatialCheck.propArea1Unlit, step4SpatialCheck.propArea2Unlit, 'unlit props have identical base material fill');
+
+  // Value separation bound: physics props maintain contrast separation floor (>= 1.50) from underlying ground
+  const propArea1Contrast = Number(contrast(step4SpatialCheck.propArea1Lit, step4SpatialCheck.apronArea1Lit).toFixed(2));
+  const propArea2Contrast = Number(contrast(step4SpatialCheck.propArea2Lit, step4SpatialCheck.apronArea2Lit).toFixed(2));
+  const propUnlitContrast = Number(contrast(step4SpatialCheck.propArea1Unlit, step4SpatialCheck.apronArea1Unlit).toFixed(2));
+  assert.ok(propArea1Contrast >= 1.50, `Area 1 lit prop maintains value separation from ground (contrast ${propArea1Contrast} >= 1.50)`);
+  assert.ok(propArea2Contrast >= 1.50, `Area 2 lit prop maintains value separation from ground (contrast ${propArea2Contrast} >= 1.50)`);
+  assert.ok(propUnlitContrast >= 1.50, `Unlit prop maintains value separation from ground (contrast ${propUnlitContrast} >= 1.50)`);
 
   // Ground paving across boundary:
   assert.notEqual(step4SpatialCheck.apronArea1Lit, step4SpatialCheck.apronArea2Lit, 'ground segment in Area 1 differs in tint from segment in Area 2');
@@ -1390,18 +1400,22 @@ try {
     selfArea1Lit: css(step4SpatialCheck.selfArea1Tint),
     selfBoundaryLit: css(step4SpatialCheck.selfBoundaryTint),
     selfArea2Lit: css(step4SpatialCheck.selfArea2Tint),
+    selfUnlit: css(step4SpatialCheck.selfArea1Tint),
     propArea1Lit: css(step4SpatialCheck.propArea1Lit),
     propArea1Unlit: css(step4SpatialCheck.propArea1Unlit),
     propArea2Lit: css(step4SpatialCheck.propArea2Lit),
     propArea2Unlit: css(step4SpatialCheck.propArea2Unlit),
+    propArea1Contrast,
+    propArea2Contrast,
+    propUnlitContrast,
     apronArea1Lit: css(step4SpatialCheck.apronArea1Lit),
     apronBoundaryLit: css(step4SpatialCheck.apronBoundaryLit),
     apronArea2Lit: css(step4SpatialCheck.apronArea2Lit),
     apronArea1Unlit: css(step4SpatialCheck.apronArea1Unlit),
     apronArea2Unlit: css(step4SpatialCheck.apronArea2Unlit),
-    boundaryBlendSmooth: step4SpatialCheck.selfBoundaryTint !== step4SpatialCheck.selfArea1Tint && step4SpatialCheck.selfBoundaryTint !== step4SpatialCheck.selfArea2Tint,
     unlitPropsIdentical: step4SpatialCheck.propArea1Unlit === step4SpatialCheck.propArea2Unlit,
     unlitGroundIdentical: step4SpatialCheck.apronArea1Unlit === step4SpatialCheck.apronArea2Unlit,
+    actorIdentityUntinted: step4SpatialCheck.strikerTintLit === 0xffd485 && step4SpatialCheck.scoutTintLit === 0x9de6df,
   };
 
   // 6. Analyze WebGL pixel measurements for all special obstacle branches, glass alpha, and #587 comment 6317 screening candidates.
@@ -1591,10 +1605,11 @@ try {
 </table>
 
 <h2>Step 4 Spatial Composition & Dynamic Object Tinting (#583)</h2>
+<p>29.4 policy: "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted." Actor sprites maintain exact kit identity tints without darkening or hue corruption; physics props receive bounded virtual lighting and maintain contrast floor &ge; 1.50 against the underlying ground.</p>
 <table>
   <thead>
     <tr>
-      <th>Sampled Subject</th><th>Area 1 (Cobalt) Lit</th><th>Boundary Blend (x=1170)</th><th>Area 2 (Magenta) Lit</th><th>Unlit Base Mode</th>
+      <th>Sampled Subject</th><th>Area 1 (Cobalt) Lit</th><th>Boundary Blend (x=1170)</th><th>Area 2 (Magenta) Lit</th><th>Unlit Base Mode</th><th>Contrast vs Underlying Ground</th>
     </tr>
   </thead>
   <tbody>
@@ -1603,14 +1618,16 @@ try {
       <td><code>${step4SpatialSummary.selfArea1Lit}</code></td>
       <td><code>${step4SpatialSummary.selfBoundaryLit}</code></td>
       <td><code>${step4SpatialSummary.selfArea2Lit}</code></td>
-      <td><code>#ffffff</code></td>
+      <td><code>${step4SpatialSummary.selfUnlit}</code></td>
+      <td>Identity preserved (untinted per 29.4)</td>
     </tr>
     <tr>
       <td>Gladiator (<code>striker</code> / <code>scout</code>)</td>
       <td><code>${step4SpatialSummary.strikerArea1Lit}</code> (striker)</td>
       <td>—</td>
       <td><code>${step4SpatialSummary.scoutArea2Lit}</code> (scout)</td>
-      <td><code>${step4SpatialSummary.strikerArea1Unlit}</code> (#ffd485)</td>
+      <td><code>${step4SpatialSummary.strikerArea1Unlit}</code> / <code>${step4SpatialSummary.scoutArea2Unlit}</code></td>
+      <td>Identity preserved (untinted per 29.4)</td>
     </tr>
     <tr>
       <td>Physics Prop (<code>prop</code>)</td>
@@ -1618,6 +1635,7 @@ try {
       <td>—</td>
       <td><code>${step4SpatialSummary.propArea2Lit}</code></td>
       <td><code>${step4SpatialSummary.propArea1Unlit}</code></td>
+      <td>Lit Area 1: <strong>${step4SpatialSummary.propArea1Contrast}</strong> &middot; Lit Area 2: <strong>${step4SpatialSummary.propArea2Contrast}</strong> &middot; Unlit: <strong>${step4SpatialSummary.propUnlitContrast}</strong> (all &ge; 1.50)</td>
     </tr>
     <tr>
       <td>Ground Apron (Segmented)</td>
@@ -1625,6 +1643,7 @@ try {
       <td><code>${step4SpatialSummary.apronBoundaryLit}</code></td>
       <td><code>${step4SpatialSummary.apronArea2Lit}</code></td>
       <td><code>${step4SpatialSummary.apronArea1Unlit}</code></td>
+      <td>Paving substrate for props</td>
     </tr>
   </tbody>
 </table>

@@ -13,6 +13,7 @@ import {
   resolveBuildingAppearance,
   resolveObstacleAppearance,
   resolveGroundAppearance,
+  getCanonicalFields,
   resolveActorTint,
   resolvePropAppearance,
 } from '../public/appearance.js';
@@ -196,11 +197,15 @@ test('resolveActorTint and resolvePropAppearance provide bounded virtual lightin
   const unlitSample = { tint: 0x000000, weight: 0, neutral: 1, contributions: [] };
 
   const specterBase = 0xc5b0ff;
-  const specterLit = resolveActorTint(specterBase, cobaltLight, { lighting: true });
-  const specterNoLight = resolveActorTint(specterBase, cobaltLight, { lighting: false });
-  const specterUnlit = resolveActorTint(specterBase, unlitSample, { lighting: true });
+  // Per 29.4: "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted."
+  const specterDefault = resolveActorTint(specterBase, cobaltLight, { lighting: true });
+  assert.equal(specterDefault, specterBase, 'actor sprite without separated material stays untinted per 29.4');
 
-  assert.notEqual(specterLit, specterBase, 'actor tint in lit field blends with regional spatial light');
+  const specterSeparatedLit = resolveActorTint(specterBase, cobaltLight, { lighting: true, hasSeparatedMaterial: true });
+  const specterNoLight = resolveActorTint(specterBase, cobaltLight, { lighting: false, hasSeparatedMaterial: true });
+  const specterUnlit = resolveActorTint(specterBase, unlitSample, { lighting: true, hasSeparatedMaterial: true });
+
+  assert.notEqual(specterSeparatedLit, specterBase, 'separated material actor tint in lit field blends with regional spatial light');
   assert.equal(specterNoLight, specterBase, 'lighting:false returns base actor kit tint');
   assert.equal(specterUnlit, specterBase, 'zero light weight returns base actor kit tint');
 
@@ -213,6 +218,17 @@ test('resolveActorTint and resolvePropAppearance provide bounded virtual lightin
   assert.notEqual(propLit.stroke, basePropStroke, 'prop stroke in lit field blends with regional spatial light');
   assert.equal(propNoLight.fill, basePropFill, 'lighting:false returns base prop fill');
   assert.equal(propNoLight.stroke, basePropStroke, 'lighting:false returns base prop stroke');
+
+  // getCanonicalFields memoization:
+  const rawFields = [
+    { id: 'field-b', bounds: { x: 0, y: 0, w: 10, h: 10 } },
+    { id: 'field-a', bounds: { x: 0, y: 0, w: 10, h: 10 } },
+  ];
+  const c1 = getCanonicalFields(rawFields);
+  const c2 = getCanonicalFields(rawFields);
+  assert.equal(c1[0].id, 'field-a');
+  assert.equal(c1[1].id, 'field-b');
+  assert.equal(c1, c2, 'getCanonicalFields returns cached sorted array for identical array reference');
 });
 
 test('spatial composition across two neighboring areas: normalized blending, boundary transition, and long surface splitting (41.2 step 4)', () => {
@@ -272,6 +288,22 @@ test('spatial composition across two neighboring areas: normalized blending, bou
   const shortItem = groundItems.find(i => i.id === 'short-pad');
   const shortFills = shortItem.ops.filter(op => op.op === 'fillRect');
   assert.equal(shortFills.length, 1, 'surface within span threshold emits exactly 1 fillRect');
+
+  // Conditional splitting: surfaces only split when lighting:true and field influence overlaps
+  const unlitGround = resolveGroundAppearance(mapAppearance, { palette: 'signature', lighting: false, wear: true });
+  const unlitCrossing = unlitGround.find(i => i.id === 'crossing-apron');
+  const unlitFills = unlitCrossing.ops.filter(op => op.op === 'fillRect');
+  assert.equal(unlitFills.length, 1, 'when lighting is false, long surface emits exactly 1 fillRect without splitting');
+
+  const remoteAppearance = {
+    surfaces: [
+      { id: 'remote-apron', bounds: { x: 3000, y: 3000, w: 400, h: 50 }, material: 'coolConcrete' },
+    ],
+    lighting: { fields },
+  };
+  const remoteGround = resolveGroundAppearance(remoteAppearance, { palette: 'signature', lighting: true, wear: true });
+  const remoteFills = remoteGround.find(i => i.id === 'remote-apron').ops.filter(op => op.op === 'fillRect');
+  assert.equal(remoteFills.length, 1, 'surface outside all lighting fields emits exactly 1 fillRect without splitting');
 });
 
 test('appearance resolver stays presentation-only: no simulation, server or map code imports it', () => {
