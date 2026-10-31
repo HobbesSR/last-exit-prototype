@@ -138,9 +138,10 @@ const CONTENT_PHYSICS_8: MatchContent = { ...CONTENT_PHYSICS_6, id: 'content-phy
 SHIPPED['content-physics-8'] = CONTENT_PHYSICS_8;
 // The shipped physics default (#523): content-physics-8 with two changes the lab's small scenes never needed.
 // Ground capacity for every live zone size: the lab's 4096 holds a 24x12 map at 94% and refuses 36x18 (8,608 items on seed
-// 4217), so a room of the largest size could not start. And a drop reserve: a real 12x6 map has 974 items, which fill the
+// 4217), so a room of the largest size could not start. 65,536 holds a 72x36 map (about 31,000 items) twice over for
+// measurement; no map that could start under the earlier 16,384 comes near either, so its matches are unchanged. And a drop reserve: a real 12x6 map has 974 items, which fill the
 // world's 128 dynamic bodies (11 actors and 117 items) at tick 0, so no player could drop anything.
-SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: { groundCapacity: 16384 },
+SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: { groundCapacity: 65536 },
   worldPhysics: { ...CONTENT_PHYSICS_8.worldPhysics!, dropReserve: 48 } };
 // Gladiators plan trips across regions over the portal graph, a leg at a time (#682); otherwise content-6.
 SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlanning: 'portals' };

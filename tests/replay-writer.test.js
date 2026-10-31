@@ -75,6 +75,19 @@ test('replay writer exposes real stream backpressure and drains before publicati
   await writer.finish({ ticks: 0, escaped: 0 }); assert.equal(published, true);
 });
 
+test("the replay writer's default budget holds four frames of any size", async () => {
+  const chunks = [], callbacks = [];
+  const output = new Writable({ highWaterMark: 1, write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); callbacks.push(next); } });
+  const writer = createReplayWriter({ header: { id: 'large' }, output, publish: async () => {}, onError: () => {},
+    gzipOptions: { writableHighWaterMark: 1, readableHighWaterMark: 1 } });
+  // Over 8 MiB together but four frames of their own size: a larger map's frames, held while the output waits.
+  const payload = 'x'.repeat(3 * 1024 * 1024);
+  for (let tick = 0; tick < 4; tick++) assert.equal(writer.append({ tick, payload }, []), true, `frame ${tick}`);
+  assert.equal(writer.append({ tick: 4, payload }, []), false);
+  assert.equal(writer.droppedFrames, 1);
+  writer.abort();
+});
+
 test('replay writer bounds immutable serialized frames, drops whole frames, then resumes after draining', async () => {
   const chunks = [], callbacks = [];
   const output = new Writable({ highWaterMark: 1, write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); callbacks.push(next); } });

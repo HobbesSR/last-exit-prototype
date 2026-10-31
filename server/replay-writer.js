@@ -4,7 +4,9 @@ import { pipeline } from 'node:stream/promises';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
 
-const DEFAULT_QUEUE_BYTES = 8 * 1024 * 1024;
+// Without an explicit budget the queue holds the larger of 8 MiB and the header (which carries the map) plus four frames
+// of the size being appended, so a larger map's frames are not all dropped (a 72x36 frame is about 3.3 MiB, 42.22); see 26.
+const DEFAULT_QUEUE_BYTES = 8 * 1024 * 1024, DEFAULT_QUEUE_FRAMES = 4;
 const DEFAULT_FINALIZE_TIMEOUT_MS = 5000;
 // Diagnostic markers ride in a trailer, bounded like the frame queue; see docs/26.
 export const MAX_DIAGNOSTIC_MARKS = 512;
@@ -37,8 +39,8 @@ export function frameLine(state, commands, kept) {
 }
 
 // The writer owns encoding, integrity and stream lifetime. It never receives a room.
-export function createReplayWriter({ header, output, publish, onError = error => console.error('Replay write failed:', error.message), queueBytes = DEFAULT_QUEUE_BYTES, finalizeTimeoutMs = DEFAULT_FINALIZE_TIMEOUT_MS, setTimer = setTimeout, clearTimer = clearTimeout, gzipOptions }) {
-  if (!Number.isSafeInteger(queueBytes) || queueBytes < 1) throw new RangeError('queueBytes must be a positive integer');
+export function createReplayWriter({ header, output, publish, onError = error => console.error('Replay write failed:', error.message), queueBytes, finalizeTimeoutMs = DEFAULT_FINALIZE_TIMEOUT_MS, setTimer = setTimeout, clearTimer = clearTimeout, gzipOptions }) {
+  if (queueBytes !== undefined && (!Number.isSafeInteger(queueBytes) || queueBytes < 1)) throw new RangeError('queueBytes must be a positive integer');
   if (!Number.isFinite(finalizeTimeoutMs) || finalizeTimeoutMs < 0) throw new RangeError('finalizeTimeoutMs must be non-negative');
   const hash = createHash('sha256'), recorder = createGzip(gzipOptions), controller = new AbortController();
   const recording = pipeline(recorder, output), queue = [];
@@ -64,7 +66,7 @@ export function createReplayWriter({ header, output, publish, onError = error =>
     });
   }
   function enqueue(text, countsAgainstFrameBudget = false, bytes = Buffer.byteLength(text)) {
-    if (countsAgainstFrameBudget && queuedBytes + bytes > queueBytes) return false;
+    if (countsAgainstFrameBudget && queuedBytes + bytes > (queueBytes ?? Math.max(DEFAULT_QUEUE_BYTES, headerBytes + DEFAULT_QUEUE_FRAMES * bytes))) return false;
     queuedBytes += bytes; queue.push({ text, bytes }); pump(); return true;
   }
   function endWhenDrained() {
@@ -78,7 +80,8 @@ export function createReplayWriter({ header, output, publish, onError = error =>
     return text;
   };
   // Keep the old header bytes exactly, including its key order and compact JSON form.
-  try { enqueue(`${JSON.stringify(header).slice(0, -1)},"frames":[`); }
+  let headerBytes = 0;
+  try { const text = `${JSON.stringify(header).slice(0, -1)},"frames":[`; headerBytes = Buffer.byteLength(text); enqueue(text, false, headerBytes); }
   catch (error) { fail(error); }
   function rejectedCompletion() {
     if (!completion) { completion = Promise.reject(failed || new Error('Replay recording failed')); completion.catch(() => {}); }

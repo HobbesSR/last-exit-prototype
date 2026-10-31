@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createPhysicsGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
 
 function arena({ width = 800, height = 800, cellSize = 100, rows, obstacles = [], props = [], items = [] } = {}) {
   return { seed: 37, width, height, playableArea: { cellSize, rows: rows ?? Array.from(
@@ -74,7 +75,7 @@ test('rotating fast prop and actor crowd cannot drive a full box footprint throu
 });
 
 test('far corner at maximum geometry extent retains physical loot inside outer boundary', async () => {
-  const width = 51840, height = 25920, cellSize = 864;
+  const width = MAX_PHYSICS_EXTENT, height = MAX_PHYSICS_EXTENT / 2, cellSize = 1024;
   const map = arena({ width, height, cellSize, items: [cell('corner', width - 70, height - 70)] });
   map.spawns[0] = { x: 150, y: 150 };
   const { s, world } = await game(map);

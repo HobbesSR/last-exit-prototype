@@ -3,6 +3,7 @@ import test from 'node:test';
 import { captureJellyWitnesses, stepCompression, emptyCompression, JELLY_PROFILE,
   jellySetups, runJellyWitness } from '../tools/physics/jelly.mjs';
 import { retainedJellyFrame } from '../tools/physics/jelly-playback.mjs';
+import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
 
 const captured = captureJellyWitnesses();
 
@@ -95,6 +96,22 @@ test('authored containment planes work with walls on the left and below, and rep
     setup.ticks = 1;
     setup.containmentPlanes[0].offset = -1000;
     assert.ok((await runJellyWitness(setup)).metrics.wallCrossings > 0);
+  }
+});
+
+// MAX_PHYSICS_EXTENT is a precision bound: f32 positions are coarser far from the origin. At the far corner of the
+// largest map the springs still settle and hold the wall within the gates they meet at the origin.
+test('jelly settles within its gates at the far corner of the largest physics map', async () => {
+  const dx = MAX_PHYSICS_EXTENT, dy = MAX_PHYSICS_EXTENT / 2;
+  for (const setup of jellySetups().slice(0, 2)) {
+    for (const b of setup.scene.bodies) { b.x += dx; b.y += dy; }
+    for (const plane of setup.containmentPlanes) plane.offset += plane.nx * dx + plane.ny * dy;
+    const { metrics } = await runJellyWitness(setup);
+    assert.ok(metrics.peakRadialError <= 15, JSON.stringify(metrics));
+    assert.ok(metrics.tailRadialError <= 0.5, JSON.stringify(metrics));
+    assert.equal(metrics.speedAdmissionFailures, 0);
+    assert.equal(metrics.wallCrossings, 0);
+    assert.ok(metrics.peakStaticPenetration <= 0.05, JSON.stringify(metrics));
   }
 });
 
