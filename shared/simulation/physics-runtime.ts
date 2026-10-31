@@ -43,10 +43,13 @@ export function disposePhysics(s: Game): void {
 }
 export function physicsState(s: Game): PhysicsGameplayState | undefined {
   const r = rooms.get(s);
-  return r && structuredClone({ profile: s.version, settings: r.world.settings, world: r.world.snapshot({ includeStatic: false }),
-    ...(s.content.hook ? { hooks: r.hooks } : {}),
+  // The world's snapshot is already the caller's own apart from its frozen, shared records; only the runtime's
+  // own queues, which it edits in place, are copied (#655).
+  return r && { profile: s.version, settings: r.world.settings, world: r.world.snapshot({ includeStatic: false }),
+    ...(s.content.hook ? { hooks: structuredClone(r.hooks) } : {}),
     ...(s.content.actorPhysics ? { discontinuities: r.discontinuities.map(({ id, generation, kind }) => ({ id, generation, kind })) } : {}),
-    pendingSpawns: r.pendingSpawns, pendingImpulses: r.pendingImpulses, pendingAttachments: r.pendingAttachments });
+    pendingSpawns: structuredClone(r.pendingSpawns), pendingImpulses: structuredClone(r.pendingImpulses),
+    pendingAttachments: structuredClone(r.pendingAttachments) };
 }
 /** Post-solve effects enter the next tick, never a partially completed solve. */
 export function enqueuePhysicsImpulse(s: Game, id: string, value: Vec2): void {
