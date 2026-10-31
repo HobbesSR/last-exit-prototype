@@ -22,18 +22,14 @@ interface Collider {
   body: Circle | Polygon;
   kind?: string | undefined;
 }
-/** A sight-blocking edge, tagged when it came from a gate so that gate can be excluded. */
-interface SightEdge extends Edge {
-  gateId?: GateId | undefined;
-}
 interface Geometry {
   count: number;
   shapes: Collider[];
   /** Obstacle colliders indexed by `BUCKET`-sized cell, keyed `"<col>,<row>"`. */
   buckets: Map<string, Collider[]>;
   segments: Edge[];
-  /** `segments` indexed like `buckets`, each under every cell its bounds touch. */
-  sight: Map<string, Edge[]>;
+  /** Indices into `segments`, bucketed like `buckets`, each under every cell its bounds touch. */
+  sight: Map<string, number[]>;
 }
 /** A visibility polygon vertex, which keeps the ray angle that produced it. */
 export interface VisibilityPoint extends Vec2 {
@@ -65,8 +61,8 @@ function geometry(map: CollisionMap): Geometry {
       const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key)!.push(entry);
     }
   }
-  const segments = shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)), sight = new Map<string, Edge[]>();
-  for (const edge of segments) bucketBox(sight, edgeBox(edge), edge);
+  const segments = shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)), sight = new Map<string, number[]>();
+  segments.forEach((edge, i) => bucketBox(sight, edgeBox(edge), i));
   cached = { count: map.obstacles.length, shapes, buckets, segments, sight };
   shapeCache.set(map.obstacles, cached); return cached;
 }
@@ -80,16 +76,55 @@ function bucketBox<T>(buckets: Map<string, T[]>, box: Box, entry: T): void {
     if (list) list.push(entry); else buckets.set(key, [entry]);
   }
 }
-// Gates indexed by their boxes, which never move; whether one is open is read when it is met.
-const gateCache = new WeakMap<Gate[], { count: number; buckets: Map<string, Gate[]> }>();
-function gateBuckets(map: CollisionMap): Map<string, Gate[]> {
+// Gates indexed by their boxes, which never move, with each box's sight edges; whether one is open is read
+// when it is met. Buckets hold indices into `map.gates`, so a query can return its gates in map order. A gate
+// list may grow, but is never reordered in place: a different order is a different array. Edges are built
+// on first use, since a contestant's local map (dynamic-navigation.ts) copies the gate list when a door changes.
+interface GateIndex { count: number; buckets: Map<string, number[]>; edges: (Edge[] | undefined)[] }
+const gateCache = new WeakMap<Gate[], GateIndex>();
+function gateIndex(map: CollisionMap): GateIndex {
   let cached = gateCache.get(map.gates);
   if (cached?.count !== map.gates.length) {
-    const buckets = new Map<string, Gate[]>();
-    for (const g of map.gates) bucketBox(buckets, gateShape(g), g);
-    gateCache.set(map.gates, cached = { count: map.gates.length, buckets });
+    const buckets = new Map<string, number[]>();
+    map.gates.forEach((g, i) => bucketBox(buckets, gateShape(g), i));
+    gateCache.set(map.gates, cached = { count: map.gates.length, buckets, edges: [] });
   }
-  return cached.buckets;
+  return cached;
+}
+const gateEdges = (map: CollisionMap, gates: GateIndex, i: number): Edge[] => gates.edges[i] ??= edgesOf(shapeOf(gateShape(map.gates[i])));
+/**
+ * Which indices a query has already met, for entries listed in several cells. `begin` starts a query in
+ * constant time by moving to a fresh mark, so nothing is allocated per query once the array has grown.
+ */
+class Visited {
+  private marks = new Uint32Array(0);
+  private mark = 0;
+  begin(size: number): void {
+    if (this.marks.length < size) this.marks = new Uint32Array(Math.max(size, this.marks.length * 2));
+    if (++this.mark === 0xffffffff) { this.marks.fill(0); this.mark = 1; }
+  }
+  first(i: number): boolean {
+    if (this.marks[i] === this.mark) return false;
+    this.marks[i] = this.mark; return true;
+  }
+}
+const visitedGates = new Visited(), visitedEdges = new Visited();
+/** Each bucket list of the cells a box touches; the cell of every point in the box is visited. */
+function eachCellIn<T>(buckets: Map<string, T[]>, left: World, top: World, right: World, bottom: World, visit: (entries: T[]) => void): void {
+  for (let x = Math.floor(left / BUCKET); x <= Math.floor(right / BUCKET); x++) for (let y = Math.floor(top / BUCKET); y <= Math.floor(bottom / BUCKET); y++) {
+    const list = buckets.get(`${x},${y}`);
+    if (list) visit(list);
+  }
+}
+/**
+ * The gates, open or closed, whose boxes may touch the closed box from `left`,`top` to `right`,`bottom`,
+ * in map order and each once. It may also return gates near the box; the caller makes its exact test.
+ */
+export function gatesNear(map: CollisionMap, left: World, top: World, right: World, bottom: World): Gate[] {
+  const found: number[] = [];
+  visitedGates.begin(map.gates.length);
+  eachCellIn(gateIndex(map).buckets, left, top, right, bottom, list => { for (const i of list) if (visitedGates.first(i)) found.push(i); });
+  return found.sort((a, b) => a - b).map(i => map.gates[i]);
 }
 /**
  * Visit, until `visit` returns true, what the buckets hold in every cell within SIGHT_PAD of segment `ab`.
@@ -193,7 +228,7 @@ export function canOccupy(map: CollisionMap, x: World, y: World, radius: World =
     response.clear();
     if (separate(circle, o.shape, o.body, response) && response.overlap > 0.01) return false;
   }
-  if (!ignoreGates) for (const g of map.gates) if (!g.open) {
+  if (!ignoreGates) for (const g of gatesNear(map, x - radius, y - radius, x + radius, y + radius)) if (!g.open) {
     const box = gateShape(g);
     if (!nearBounds(box, x, y, radius)) continue;
     const o = collider(box);
@@ -225,12 +260,21 @@ export function sweptClear(map: CollisionMap, a: Vec2, b: Vec2, radius: World): 
     }
   });
   if (blocked) return false;
-  for (const g of map.gates) if (!g.open) {
-    // Bounds first, before any allocation: a planner sweeps every move against every gate.
-    const w = g.w || 26, h = g.h || 54;
-    if (g.x - w / 2 > right || g.y - h / 2 > bottom || g.x + w / 2 < left || g.y + h / 2 < top) continue;
-    if (segmentShapeDistance(a, b, shapeOf(gateShape(g))) < radius) return false;
-  }
+  // Only the gates in cells within `radius` of the segment: a gate it passes closer than that to has a
+  // point there. The answer is whether any blocks, so the order and repeats do not change it.
+  const gates = gateIndex(map);
+  cellsAlong(a, b, radius, BUCKET, (col, row) => {
+    if (blocked) return;
+    for (const i of gates.buckets.get(`${col},${row}`) ?? []) {
+      const g = map.gates[i];
+      if (g.open) continue;
+      // Bounds first, before any allocation: a planner sweeps every move against the gates near it.
+      const w = g.w || 26, h = g.h || 54;
+      if (g.x - w / 2 > right || g.y - h / 2 > bottom || g.x + w / 2 < left || g.y + h / 2 < top) continue;
+      if (segmentShapeDistance(a, b, shapeOf(gateShape(g))) < radius) { blocked = true; return; }
+    }
+  });
+  if (blocked) return false;
   // The playable area is convex only without a mask; a mask's holes are tested as filled cells.
   const area = map.playableArea;
   if (area) {
@@ -271,9 +315,10 @@ export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: n
   const circle = new SAT.Circle(vec(p.x + x / norm * speed, p.y + y / norm * speed), radius);
   const response = new SAT.Response();
   const colliders: Collider[] = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearBounds(o.box, circle.pos.x, circle.pos.y, radius + speed));
-  for (const g of map.gates) if (!g.open) {
+  const reach = radius + speed;
+  for (const g of gatesNear(map, circle.pos.x - reach, circle.pos.y - reach, circle.pos.x + reach, circle.pos.y + reach)) if (!g.open) {
     const box = gateShape(g);
-    if (nearBounds(box, circle.pos.x, circle.pos.y, radius + speed)) colliders.push(collider(box));
+    if (nearBounds(box, circle.pos.x, circle.pos.y, reach)) colliders.push(collider(box));
   }
   if (map.playableArea) for (const box of voidCellsNear(map, circle.pos.x, circle.pos.y, radius + speed))
     colliders.push(collider(box));
@@ -298,19 +343,6 @@ export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: n
   return p;
 }
 const TAU = Math.PI * 2;
-const sightCache = new WeakMap<CollisionMap, { key: string; source: Obstacle[]; count: number; edges: SightEdge[] }>();
-// Obstacle edges never change and gate edges only change when a gate opens, so the combined list is
-// rebuilt on that event rather than on every sight query. It was being rebuilt a dozen-plus times a
-// frame, once per lineClear call.
-function sightEdges(map: CollisionMap): SightEdge[] {
-  const key = map.gates.map(g => `${g.id}:${g.open ? 1 : 0}`).join('|');
-  const cached = sightCache.get(map);
-  if (cached && cached.key === key && cached.source === map.obstacles && cached.count === map.obstacles.length) return cached.edges;
-  count('alloc.sightEdges');
-  const list: SightEdge[] = [...geometry(map).segments, ...map.gates.filter(g => !g.open).flatMap(g => edgesOf(shapeOf(gateShape(g))).map(edge => ({ ...edge, gateId: g.id })))];
-  sightCache.set(map, { key, source: map.obstacles, count: map.obstacles.length, edges: list });
-  return list;
-}
 function hitRay(origin: Vec2, dx: number, dy: number, edge: Edge): number {
   const sx = edge.b.x - edge.a.x, sy = edge.b.y - edge.a.y;
   const cross = dx * sy - dy * sx;
@@ -330,11 +362,13 @@ export function lineClear(map: CollisionMap, a: Vec2, b: Vec2, ignoreGateId: Gat
     && Math.max(edge.a.y, edge.b.y) >= top && Math.min(edge.a.y, edge.b.y) <= bottom
     && hitRay(a, dx, dy, edge) < length - 0.1);
   // Only edges near the segment, found through the buckets: the answer is whether any edge blocks, so it
-  // is the same as testing every edge (`sightEdges`), whatever order they are met in.
-  const blocked = someAlong(geometry(map).sight, a, b, blocks) || someAlong(gateBuckets(map), a, b, g => {
+  // is the same as testing every obstacle edge and closed gate's edge, whatever order they are met in.
+  const { segments, sight } = geometry(map), gates = gateIndex(map);
+  const blocked = someAlong(sight, a, b, i => blocks(segments[i])) || someAlong(gates.buckets, a, b, i => {
+    const g = map.gates[i];
     if (g.open || g.id === ignoreGateId) return false;
     const box = gateShape(g);
-    return box.x + box.w >= left && box.x <= right && box.y + box.h >= top && box.y <= bottom && edgesOf(shapeOf(box)).some(blocks);
+    return box.x + box.w >= left && box.x <= right && box.y + box.h >= top && box.y <= bottom && gateEdges(map, gates, i).some(blocks);
   });
   count('work.rayEdgeTests', tests);
   return !blocked;
@@ -353,11 +387,11 @@ export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World
   // in ascending angle, so sweeping the wedges in the same order keeps an active set of just the few
   // segments any one ray can reach, instead of testing every segment against every ray.
   const angles = Array.from({ length: 100 }, (_, i) => i * Math.PI / 50 - Math.PI);
-  const spans: { edge: SightEdge; lo: number; hi: number }[] = [], always: SightEdge[] = [];
+  const spans: { edge: Edge; lo: number; hi: number }[] = [], always: Edge[] = [];
   const SEAM = Math.PI + 1e-4; // Sample angles straddle +-pi by the corner offset below; keep them covered.
-  for (const edge of sightEdges(map)) {
+  const consider = (edge: Edge) => {
     if (Math.min(edge.a.x, edge.b.x) >= origin.x + radius || Math.max(edge.a.x, edge.b.x) <= origin.x - radius
-      || Math.min(edge.a.y, edge.b.y) >= origin.y + radius || Math.max(edge.a.y, edge.b.y) <= origin.y - radius) continue;
+      || Math.min(edge.a.y, edge.b.y) >= origin.y + radius || Math.max(edge.a.y, edge.b.y) <= origin.y - radius) return;
     const ea = atan2(edge.a.y - origin.y, edge.a.x - origin.x), eb = atan2(edge.b.y - origin.y, edge.b.x - origin.x);
     angles.push(ea - 0.00001, ea, ea + 0.00001, eb - 0.00001, eb, eb + 0.00001);
     // The wedge argument assumes the origin lies strictly off the segment. An origin on it — along an
@@ -366,20 +400,30 @@ export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World
     const sx = edge.b.x - edge.a.x, sy = edge.b.y - edge.a.y;
     const ox = origin.x - edge.a.x, oy = origin.y - edge.a.y;
     const cross = sx * oy - sy * ox, lengthSq = sx * sx + sy * sy, along = sx * ox + sy * oy;
-    if (cross * cross <= 1e-12 * lengthSq && along >= -1e-9 && along <= lengthSq + 1e-9) { always.push(edge); continue; }
+    if (cross * cross <= 1e-12 * lengthSq && along >= -1e-9 && along <= lengthSq + 1e-9) { always.push(edge); return; }
     const lo = Math.min(ea, eb), hi = Math.max(ea, eb);
     // A straight segment never subtends more than pi from outside itself, so a wider naive span means
     // the wedge crosses the -pi/pi seam. Split it there so every span is a plain ascending interval.
-    if (hi - lo > Math.PI) { spans.push({ edge, lo: hi, hi: SEAM }, { edge, lo: -SEAM, hi: lo }); continue; }
+    if (hi - lo > Math.PI) { spans.push({ edge, lo: hi, hi: SEAM }, { edge, lo: -SEAM, hi: lo }); return; }
     spans.push({ edge, lo, hi });
     // A direction is the same one turn either way, so a wedge touching a seam also has to catch the
     // sample angles sitting just past the opposite one. Ray -pi and ray +pi point the same way.
     if (hi >= Math.PI - 1e-4) spans.push({ edge, lo: lo - TAU, hi: hi - TAU });
     if (lo <= 1e-4 - Math.PI) spans.push({ edge, lo: lo + TAU, hi: hi + TAU });
-  }
+  };
+  // The edges the box test above passes, each once: obstacle edges and closed gates' edges from the cells the
+  // box touches. That set is all the polygon depends on, not the order it is met in: `angles` is sorted by
+  // value, and a ray's length is the least hit over the spans active at its angle, whichever order they enter.
+  const { segments, sight } = geometry(map), gates = gateIndex(map);
+  const left = origin.x - radius, top = origin.y - radius, right = origin.x + radius, bottom = origin.y + radius;
+  visitedEdges.begin(segments.length); visitedGates.begin(map.gates.length);
+  eachCellIn(sight, left, top, right, bottom, list => { for (const i of list) if (visitedEdges.first(i)) consider(segments[i]); });
+  eachCellIn(gates.buckets, left, top, right, bottom, list => {
+    for (const i of list) if (!map.gates[i].open && visitedGates.first(i)) for (const edge of gateEdges(map, gates, i)) consider(edge);
+  });
   angles.sort((a, b) => a - b);
   spans.sort((a, b) => a.lo - b.lo);
-  const active: { edge: SightEdge; lo: number; hi: number }[] = [];
+  const active: { edge: Edge; lo: number; hi: number }[] = [];
   let entering = 0, tests = 0;
   const points = angles.map(angle => {
     while (entering < spans.length && spans[entering].lo <= angle) active.push(spans[entering++]);
