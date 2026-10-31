@@ -125,26 +125,27 @@ export function findRegionRoutes(mask: RegionMask, blockers: readonly Shape[], a
  * and radius must remain unchanged while this search is used. Each target still checks its own
  * direct path and earliest BFS connector, so target order cannot alter a returned route.
  */
-export function createRegionRouteSearch(mask: RegionMask, blockers: readonly Shape[], a: Vec2, radius: number): (b: Vec2) => Vec2[] | null {
+export function createRegionRouteSearch(mask: RegionMask, blockers: readonly Shape[], a: Vec2, radius: number,
+  clear: (a: Vec2, b: Vec2) => boolean = (from, to) => travelClear(mask, blockers, from, to, radius)): (b: Vec2) => Vec2[] | null {
   const step = mask.cellSize / 2, box = mask.bounds;
   const width = Math.round(box.w / step) + 1, height = Math.round(box.h / step) + 1;
   const point = (i: number): Vec2 => ({ x: box.x + i % width * step, y: box.y + Math.floor(i / width) * step });
   const walkable = new Map<number, boolean>();
   const free = (i: number): boolean => {
-    if (!walkable.has(i)) { const p = point(i); walkable.set(i, travelClear(mask, blockers, p, p, radius)); }
+    if (!walkable.has(i)) { const p = point(i); walkable.set(i, clear(p, p)); }
     return walkable.get(i)!;
   };
   const queue: number[] = [], previous = new Map<number, number>();
   let initialized = false, expanded = 0;
   return (b: Vec2): Vec2[] | null => {
-    if (travelClear(mask, blockers, a, b, radius)) return [a, b];
+    if (clear(a, b)) return [a, b];
     if (!initialized) {
-      for (const i of routeStarts(step, box, width, height, a)) if (free(i) && travelClear(mask, blockers, a, point(i), radius)) { queue.push(i); previous.set(i, -1); }
+      for (const i of routeStarts(step, box, width, height, a)) if (free(i) && clear(a, point(i))) { queue.push(i); previous.set(i, -1); }
       initialized = true;
     }
     for (let head = 0; head < queue.length; head++) {
       const i = queue[head], p = point(i);
-      if (Math.hypot(p.x - b.x, p.y - b.y) <= step * 3 && travelClear(mask, blockers, p, b, radius)) {
+      if (Math.hypot(p.x - b.x, p.y - b.y) <= step * 3 && clear(p, b)) {
         const path = [b]; let cursor = i;
         while (cursor !== -1) { path.push(point(cursor)); cursor = previous.get(cursor)!; }
         path.push(a); path.reverse();
@@ -158,7 +159,7 @@ export function createRegionRouteSearch(mask: RegionMask, blockers: readonly Sha
       for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
         if (x + dx < 0 || y + dy < 0 || x + dx >= width || y + dy >= height) continue;
         const next = i + dx + dy * width;
-        if (previous.has(next) || !free(next) || !travelClear(mask, blockers, p, point(next), radius)) continue;
+        if (previous.has(next) || !free(next) || !clear(p, point(next))) continue;
         previous.set(next, i); queue.push(next);
       }
       expanded++;

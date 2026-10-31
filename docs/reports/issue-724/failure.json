@@ -1,0 +1,61 @@
+{
+  "status": "stopped-on-output-drift",
+  "prototype": "1cb30ff13103ac46532fa855de71ab9ca6266155",
+  "driver": "2b72f1fb3519df2653ea7768848d1f92764a8cf4",
+  "node": "v24.15.0",
+  "failedRow": {
+    "seed": "size-12-1",
+    "id": "depot@126,102"
+  },
+  "error": "Frozen output drift: batch size-12-1/depot@126,102",
+  "completedPairs": 0,
+  "control": {
+    "ms": 13762.474,
+    "checked": 121,
+    "outputSha256": "e02733543dbcb9de3d6c200dd3496479ab4d250fd525ec1988d03d100e185b15",
+    "groups": {
+      "depot/12": {
+        "count": 7,
+        "ms": 719.5398
+      },
+      "market/12": {
+        "count": 3,
+        "ms": 108.12930000000017
+      },
+      "market/24": {
+        "count": 30,
+        "ms": 1141.3209999999995
+      },
+      "depot/24": {
+        "count": 9,
+        "ms": 1816.278200000001
+      },
+      "market/36": {
+        "count": 59,
+        "ms": 2635.797700000002
+      },
+      "depot/36": {
+        "count": 13,
+        "ms": 7313.8162999999995
+      }
+    }
+  },
+  "sourcePins": {
+    "control": {
+      "map/micro/geometry.ts": "b7e2b7b2d65d1d87ba74915d6edff14a6c0f4b7d583ee6548dd969e25b0c01a7",
+      "map/micro/strategies/content-access.ts": "252336ef28bbaa8675a8de6c14580a87995bd04c754f9988e99fd88722c86d3b",
+      "map/micro/route-clearance.ts": null
+    },
+    "batch": {
+      "map/micro/geometry.ts": "d8014c461eb44021e01e4a714c653164e7f7ea55dd659d7b84a2a27584715008",
+      "map/micro/strategies/content-access.ts": "311064ea684082510cdf43b5136ec5aa5664f92057636658cd73088f1ad0137f",
+      "map/micro/route-clearance.ts": "a383a7e5322644003e3f5564f72124150f03e99b68a0894019c52fc038a0dbc6"
+    }
+  },
+  "validation": {
+    "focusedTests": "not run; stopped",
+    "repeatReordered": "not run; stopped",
+    "remainingPairs": "not run; stopped",
+    "diffCheck": "passed"
+  }
+}
