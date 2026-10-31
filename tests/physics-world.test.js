@@ -258,3 +258,32 @@ test('map geometry shares one fixed body but keeps its own pose, contacts and re
     assert.equal(world.counts().static, 1);
   } finally { world.dispose(); }
 });
+
+// The world steps Rapier's pipeline directly and removes bodies without rapier.js's whole-world re-sync (42.22), so
+// it must keep the wrapper's handle maps current itself: every body, collider and joint the engine holds is mapped,
+// and nothing it removed stays mapped.
+test('rapier.js handle maps match the engine through steps, removals and ropes', async () => {
+  const world = await createPhysicsWorld();
+  try {
+    const native = world.native;
+    const check = () => {
+      assert.equal(native.colliders.getAll().length, native.colliders.raw.len());
+      assert.equal(native.bodies.getAll().length, native.bodies.raw.len());
+      assert.equal(native.impulseJoints.getAll().length, native.impulseJoints.raw.len());
+      for (const collider of native.colliders.getAll()) assert.ok(native.colliders.raw.contains(collider.handle));
+    };
+    const wall = (id, x) => ({ id, kind: 'static', mapGeometry: true, shape: { kind: 'box', hx: 20, hy: 200 }, x, y: 0 });
+    for (let i = 0; i < 5; i++) world.queueAddBody(wall(`wall:${i}`, 200 + 50 * i));
+    world.queueAddBody(circle('a', { x: -10, vx: 80 })); world.queueAddBody(circle('b', { x: 10, vx: 80 }));
+    world.queueAddConstraint({ id: 'rope', a: 'a', b: 'b', maxDistance: 30 });
+    world.commitMutations(); check();
+    for (let i = 0; i < 10; i++) world.step();
+    check();
+    world.queueRemoveBody('a'); world.queueRemoveBody('wall:2'); world.commitMutations(); check();
+    assert.equal(world.counts().constraints, 0);
+    world.queueAddBody(circle('a', { x: -40 })); world.commitMutations();
+    for (let i = 0; i < 10; i++) world.step();
+    check();
+    world.queueRemoveBody('b'); world.queueRemoveBody('a'); world.commitMutations(); check();
+  } finally { world.dispose(); }
+});
