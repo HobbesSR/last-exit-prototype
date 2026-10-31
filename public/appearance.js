@@ -3,31 +3,32 @@
 // viewer's art mode into material fills, structural edges, and a bounded list of decorative marks.
 // Never allocates game IDs, consumes simulation RNG, modifies `shapeOf`, or reads dynamic state.
 
-import { SWATCHES, themeColors, mix } from './palette.js';
+import { SWATCHES, themeColors, mix, U, L, T, G } from './palette.js';
 
 export const APPEARANCE_RECIPE_VERSION = 1;
 
-const { urban: U, legacy: L, theatrical: T, gameplay: G } = Object.fromEntries(
-  Object.entries(SWATCHES)
-    .filter(([, v]) => typeof v === 'object')
-    .map(([group, colors]) => [
-      group,
-      Object.fromEntries(Object.entries(colors).map(([key, hex]) => [key, parseInt(hex.slice(1), 16)])),
-    ]),
-);
-
-export const PALETTE_HEX = Object.freeze({ urban: U, legacy: L, theatrical: T, gameplay: G });
-
-const MATERIAL_SWATCH = Object.freeze({
+export const MATERIAL_SWATCH = Object.freeze({
+  // Urban foundations
   asphalt: U.nightAsphalt,
+  nightAsphalt: U.nightAsphalt,
   slatePaving: mix(U.nightAsphalt, U.slateShadow, 0.45),
+  slateShadow: U.slateShadow,
   concrete: U.coolConcrete,
+  coolConcrete: U.coolConcrete,
   sidewalk: U.dirtySidewalk,
+  dirtySidewalk: U.dirtySidewalk,
   warmMasonry: mix(U.weatheredBrick, L.weatheredCoral, 0.35),
   brick: U.weatheredBrick,
+  weatheredBrick: U.weatheredBrick,
   stucco: U.dustyStucco,
+  dustyStucco: U.dustyStucco,
   metal: U.oxidizedMetal,
+  oxidizedMetal: U.oxidizedMetal,
   vegetation: U.urbanVegetation,
+  urbanVegetation: U.urbanVegetation,
+  structuralVoid: U.structuralVoid,
+
+  // Legacy commercial colors
   storefrontTeal: L.storefrontTeal,
   weatheredCoral: L.weatheredCoral,
   awningsYellow: L.awningsYellow,
@@ -39,7 +40,7 @@ const MATERIAL_SWATCH = Object.freeze({
   fadedMint: L.fadedMint,
 });
 
-const TINT_SWATCH = Object.freeze({
+export const TINT_SWATCH = Object.freeze({
   cobaltBlue: T.cobaltBlue,
   deepStageBlue: T.deepStageBlue,
   hotOrange: T.hotOrange,
@@ -51,11 +52,14 @@ const TINT_SWATCH = Object.freeze({
   hotPink: T.hotPink,
   toxicLime: T.toxicLime,
   signalCyan: G.signalCyan,
+  hazardRed: G.hazardRed,
+  sodiumAmber: G.sodiumAmber,
   prizeGold: G.prizeGold,
+  extractionMint: G.extractionMint,
   broadcastPink: G.broadcastPink,
 });
 
-/**Resolve a named swatch or raw 24-bit integer color, falling back to `fallback`. */
+/** Resolve a named swatch or raw 24-bit integer color, falling back to `fallback`. */
 export function resolveSwatch(nameOrHex, fallback) {
   if (typeof nameOrHex === 'number' && Number.isInteger(nameOrHex) && nameOrHex >= 0 && nameOrHex <= 0xffffff) {
     return nameOrHex;
@@ -210,7 +214,6 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
   const roofRidge = applyLightSample(baseRoofRidge, centerLight, 0.25);
 
   // Decorative marks on the ground and roof planes, strictly bounded inside their owning surfaces
-  // (or explicitly ground-owned marks in `resolveGroundAppearance`).
   const floorMarks = [];
   const roofMarks = [];
 
@@ -260,7 +263,7 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
     );
   }
 
-  // Roof wear: faded panel & roof drain stain (11.1 §5.6, 41.2 "A faded panel, a drain stain and a single scorch group must read as different layers")
+  // Roof wear: faded panel & roof drain stain (11.1 §5.6, 41.2)
   if (art.wear && desc?.neglect?.fadedPanel) {
     const fp = desc.neglect.fadedPanel;
     const px = building.x + (fp.dx ?? 28);
@@ -339,16 +342,14 @@ export function resolveObstacleAppearance(obstacle, mapAppearance, options = {})
   const wallInset = mix(fill, outline, 0.22);
   const wallLine = mix(fill, outline, 0.55);
 
-  // Focal directional rim on an exposed building wall when lit by a warm focal field (11.1 §5.5:
-  // "A colored rim belongs to an exposed, deliberately lit edge; the full structural perimeter must remain readable without it.")
+  // Directional focal rim:
+  // "A colored rim belongs to an exposed, deliberately lit edge; the full structural perimeter must remain readable without it" (11.1 §5.5).
+  // Authored strictly per obstacle via desc.focalRim so interior wall faces never inherit it.
   let focalRim = null;
-  if (art.lighting && (desc?.focalRim || buildingDesc?.focalRim)) {
-    const rimSpec = desc?.focalRim || buildingDesc?.focalRim;
-    const rimSide = rimSpec.side || 'N';
-    if (!rimSpec.buildingSideOnly || obstacle.buildingId) {
-      const rimColor = resolveSwatch(rimSpec.color, G.sodiumAmber);
-      focalRim = { side: rimSide, color: rimColor, alpha: 0.78 };
-    }
+  if (art.lighting && desc?.focalRim) {
+    const rimSide = desc.focalRim.side || 'N';
+    const rimColor = resolveSwatch(desc.focalRim.color, G.sodiumAmber);
+    focalRim = { side: rimSide, color: rimColor, alpha: 0.84 };
   }
 
   return {
@@ -443,7 +444,6 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
       for (let sx = b.x + 6; sx < b.x + b.w - 6; sx += stripeStep) {
         ops.push({ op: 'fillRect', x: sx, y: b.y + 2, w: 5, h: b.h - 4, color: creamFill, alpha: 0.78 });
       }
-      // Weathering interruption patch on awning when wear is enabled (11.1 §4.2: "a weathered storefront may expose darkened metal while retaining patches of original paint")
       if (art.wear && mark.weatheredPatch !== false) {
         ops.push({
           op: 'fillRect',
@@ -463,7 +463,6 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
         ops,
       });
     } else if (mark.kind === 'sign-panel') {
-      // Intact commercial sign panel base; faded/peeling patch is added in step 3 when `art.wear` is on.
       const baseColor = resolveSwatch(mark.color, L.storefrontTeal);
       const fill = applyLightSample(baseColor, light, 0.28);
       const border = mix(fill, U.structuralVoid, 0.45);
@@ -488,7 +487,7 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
     }
   }
 
-  // 3. Long-term neglect / wear marks on ground (drain stain, faded panel, water streak)
+  // 3. Long-term neglect / wear marks on ground (drain stain, faded panel)
   if (art.wear) {
     for (const w of mapAppearance.wear || []) {
       const b = w.bounds;

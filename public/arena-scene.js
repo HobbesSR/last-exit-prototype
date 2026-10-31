@@ -42,7 +42,7 @@ export function makeArenaScene(api) {
     constructor() { super('arena'); }
     preload() { this.load.svg('contestant', '/assets/contestant.svg', { width: 80, height: 80 }); this.load.svg('gladiator', '/assets/warden.svg', { width: 100, height: 100 }); }
     create() {
-      this.ready = true; this.paletteId = api.palette?.() || 'prototype'; this.lighting = true; this.wear = true; this.appearanceVersion = APPEARANCE_RECIPE_VERSION;
+      this.ready = true; this.paletteId = api.palette?.() || 'prototype'; this.lighting = true; this.wear = true;
       this.colors = themeColors(this.paletteId); this.cameras.main.setBackgroundColor(css(this.colors.background));
       this.world = this.add.container(0, 0);
       // Terrain, structures and fixtures are drawn everywhere and dimmed where they are out of sight,
@@ -254,9 +254,7 @@ export function makeArenaScene(api) {
     }
     /** Draw in another palette or static art mode (11.1, 29.4). Only static drawings are recorded again; sight, memory and actors are kept. */
     setPalette(id) {
-      this.paletteId = id;
-      this.colors = themeColors(id); this.cameras.main.setBackgroundColor(css(this.colors.background));
-      const map = api.map(); if (map?.obstacles && this.sightMap) this.recordStatic(map, new Map(this.overheadGroups));
+      this.setArtOptions({ palette: id });
     }
     setArtOptions({ palette = this.paletteId, lighting = this.lighting, wear = this.wear } = {}) {
       this.paletteId = palette; this.lighting = lighting !== false; this.wear = wear !== false;

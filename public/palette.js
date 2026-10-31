@@ -10,7 +10,7 @@ export const SWATCHES = Object.freeze({
   gameplay: { signalCyan: '#36D6E7', hazardRed: '#E04545', sodiumAmber: '#F0B43A', prizeGold: '#FFE06B', extractionMint: '#55F0B1', broadcastPink: '#D94BC6' },
 });
 
-const { urban: U, legacy: L, theatrical: T, gameplay: G } = Object.fromEntries(Object.entries(SWATCHES).filter(([, v]) => typeof v === 'object')
+export const { urban: U, legacy: L, theatrical: T, gameplay: G } = Object.fromEntries(Object.entries(SWATCHES).filter(([, v]) => typeof v === 'object')
   .map(([group, colors]) => [group, Object.fromEntries(Object.entries(colors).map(([key, hex]) => [key, parseInt(hex.slice(1), 16)]))]));
 
 const channels = c => [c >> 16 & 255, c >> 8 & 255, c & 255];

@@ -4,6 +4,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   APPEARANCE_RECIPE_VERSION,
+  MATERIAL_SWATCH,
+  TINT_SWATCH,
+  resolveSwatch,
   appearanceHash,
   appearanceUnit,
   sampleSpatialLight,
@@ -11,7 +14,38 @@ import {
   resolveObstacleAppearance,
   resolveGroundAppearance,
 } from '../public/appearance.js';
+import { SWATCHES, U, L, T, G } from '../public/palette.js';
 import { shapeOf } from '../shared/shape.ts';
+
+test('resolveSwatch resolves all authored palette swatches and uses fallback only for unknown names', () => {
+  // All urban swatches resolve
+  for (const [key, hex] of Object.entries(SWATCHES.urban)) {
+    const expected = parseInt(hex.slice(1), 16);
+    assert.equal(resolveSwatch(key, -1), expected, `urban swatch '${key}' resolves`);
+  }
+  // All legacy swatches resolve
+  for (const [key, hex] of Object.entries(SWATCHES.legacy)) {
+    const expected = parseInt(hex.slice(1), 16);
+    assert.equal(resolveSwatch(key, -1), expected, `legacy swatch '${key}' resolves`);
+  }
+  // All theatrical swatches resolve
+  for (const [key, hex] of Object.entries(SWATCHES.theatrical)) {
+    const expected = parseInt(hex.slice(1), 16);
+    assert.equal(resolveSwatch(key, -1), expected, `theatrical swatch '${key}' resolves`);
+  }
+  // All gameplay swatches resolve
+  for (const [key, hex] of Object.entries(SWATCHES.gameplay)) {
+    const expected = parseInt(hex.slice(1), 16);
+    assert.equal(resolveSwatch(key, -1), expected, `gameplay swatch '${key}' resolves`);
+  }
+  // Aliased material swatches resolve
+  assert.equal(resolveSwatch('warmMasonry', -1), MATERIAL_SWATCH.warmMasonry);
+  assert.equal(resolveSwatch('slatePaving', -1), MATERIAL_SWATCH.slatePaving);
+  // Numeric hex values pass through
+  assert.equal(resolveSwatch(0x123456, -1), 0x123456);
+  // Unknown names return the specified fallback
+  assert.equal(resolveSwatch('unknownNeonGradient', 0x999999), 0x999999);
+});
 
 test('appearanceHash is deterministic, versioned, and independent of ambient state', () => {
   const h1 = appearanceHash('shop-room', 'wear');
@@ -44,7 +78,8 @@ test('sampleSpatialLight blends normalized influences with a neutral remainder a
 
 test('resolveBuildingAppearance and resolveObstacleAppearance compose in fixed order and preserve collision shapes', () => {
   const building = { id: 'shop-room', x: 810, y: 580, w: 240, h: 170 };
-  const wallNorth = { id: 'shop-wall-n-w', kind: 'building', buildingId: 'shop-room', x: 810, y: 574, w: 20, h: 16 };
+  const wallNorth = { id: 'shop-wall-n-east', kind: 'building', buildingId: 'shop-room', x: 950, y: 574, w: 100, h: 16 };
+  const wallSouth = { id: 'shop-wall-s', kind: 'building', buildingId: 'shop-room', x: 810, y: 736, w: 240, h: 16 };
   const shapeBefore = structuredClone(shapeOf(wallNorth));
 
   const mapAppearance = {
@@ -61,8 +96,10 @@ test('resolveBuildingAppearance and resolveObstacleAppearance compose in fixed o
           roofDrainStain: { dx: 168, dy: 42, w: 44, h: 28 },
           floorStain: { x: 960, y: 650, w: 46, h: 28 },
         },
-        focalRim: { side: 'N', color: 'sodiumAmber' },
       },
+    },
+    obstacles: {
+      'shop-wall-n-east': { focalRim: { side: 'N', color: 'sodiumAmber' } },
     },
     lighting: {
       fields: [
@@ -86,12 +123,17 @@ test('resolveBuildingAppearance and resolveObstacleAppearance compose in fixed o
   assert.ok(!styledNoWear.roofMarks.some(m => m.layer.startsWith('wear-')), 'wear=false omits neglect marks while keeping commercial roof sign');
   assert.ok(styledNoWear.roofMarks.some(m => m.layer === 'commercial-sign'), 'wear=false keeps commercial roof sign');
 
-  const obsFull = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: true, wear: true });
-  const obsNoLight = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: false, wear: true });
-  const obsNoWear = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: true, wear: false });
-  assert.ok(obsFull.focalRim, 'lit storefront wall receives amber focal rim');
-  assert.equal(obsNoLight.focalRim, null, 'switching off lighting removes theatrical focal rim');
-  assert.notEqual(obsFull.fill, obsNoWear.fill, 'switching off wear removes weathering shift from wall fill');
+  // North wall has focalRim authored per obstacle; south wall does not:
+  const obsNorthFull = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: true, wear: true });
+  const obsNorthNoLight = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: false, wear: true });
+  const obsNorthNoWear = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: true, wear: false });
+  const obsSouthFull = resolveObstacleAppearance(wallSouth, mapAppearance, { palette: 'signature', lighting: true, wear: true });
+
+  assert.ok(obsNorthFull.focalRim, 'exposed north wall receives amber focal rim');
+  assert.equal(obsNorthFull.focalRim.side, 'N', 'focal rim side matches authored descriptor');
+  assert.equal(obsNorthNoLight.focalRim, null, 'switching off lighting removes theatrical focal rim');
+  assert.equal(obsSouthFull.focalRim, null, 'interior south wall never receives north focal rim');
+  assert.notEqual(obsNorthFull.fill, obsNorthNoWear.fill, 'switching off wear removes weathering shift from wall fill');
   assert.deepEqual(shapeOf(wallNorth), shapeBefore, 'appearance resolution never mutates obstacle collision shape');
 });
 
@@ -102,14 +144,14 @@ test('resolveGroundAppearance emits layers in fixed order and gates wear/scars a
     ],
     commercial: [
       { id: 'ochre-parking-stripes', kind: 'parking-stripes', bounds: { x: 800, y: 465, w: 180, h: 42 }, color: 'awningsYellow', count: 3 },
-      { id: 'coral-awning', kind: 'awning', bounds: { x: 822, y: 554, w: 146, h: 22 }, color: 'weatheredCoral', stripeColor: 'dirtyCream' },
-      { id: 'faded-panel', kind: 'sign-panel', bounds: { x: 982, y: 556, w: 58, h: 18 }, color: 'storefrontTeal' },
+      { id: 'coral-awning', kind: 'awning', bounds: { x: 822, y: 536, w: 146, h: 18 }, color: 'weatheredCoral', stripeColor: 'dirtyCream' },
+      { id: 'faded-panel', kind: 'sign-panel', bounds: { x: 982, y: 536, w: 58, h: 18 }, color: 'storefrontTeal' },
     ],
     wear: [
-      { id: 'lane-drain-stain', kind: 'drain-stain', bounds: { x: 1015, y: 522, w: 46, h: 28 } },
+      { id: 'lane-drain-stain', kind: 'drain-stain', bounds: { x: 1015, y: 504, w: 46, h: 28 } },
     ],
     scars: [
-      { id: 'service-scorch', kind: 'scorch-group', bounds: { x: 885, y: 488, w: 68, h: 42 } },
+      { id: 'service-scorch', kind: 'scorch-group', bounds: { x: 885, y: 502, w: 68, h: 30 } },
     ],
     lighting: {
       fields: [

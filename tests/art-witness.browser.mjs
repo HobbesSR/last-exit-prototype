@@ -6,7 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { serveWithBrowser } from './helpers/browser.js';
 import { arena } from './helpers/arena.js';
-import { THEMES, contrast, mix, css } from '../public/palette.js';
+import { SWATCHES, THEMES, contrast, mix, css } from '../public/palette.js';
 import { INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM, playerZoom } from '../shared/view.ts';
 
 const outDir = path.resolve('test-results/art-witness');
@@ -211,19 +211,22 @@ function createWitnessScene() {
           roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
           floorStain: { x: 965, y: 650, w: 46, h: 28 },
         },
-        focalRim: { side: 'N', color: 'sodiumAmber' },
       },
+    },
+    obstacles: {
+      'shop-wall-n-mid': { focalRim: { side: 'N', color: 'sodiumAmber' } },
+      'shop-wall-n-east': { focalRim: { side: 'N', color: 'sodiumAmber' } },
     },
     commercial: [
       { id: 'ochre-parking-stripes', kind: 'parking-stripes', bounds: { x: 855, y: 498, w: 150, h: 36 }, color: 'awningsYellow', count: 3 },
-      { id: 'coral-awning', kind: 'awning', bounds: { x: 824, y: 554, w: 132, h: 20 }, color: 'weatheredCoral', stripeColor: 'dirtyCream' },
+      { id: 'coral-awning', kind: 'awning', bounds: { x: 850, y: 536, w: 90, h: 18 }, color: 'weatheredCoral', stripeColor: 'dirtyCream' },
     ],
     wear: [
-      { id: 'lane-faded-panel', kind: 'faded-panel', bounds: { x: 968, y: 554, w: 66, h: 18 }, color: 'storefrontTeal' },
-      { id: 'lane-drain-stain', kind: 'drain-stain', bounds: { x: 1095, y: 512, w: 48, h: 28 } },
+      { id: 'lane-faded-panel', kind: 'faded-panel', bounds: { x: 1118, y: 502, w: 36, h: 22 }, color: 'storefrontTeal' },
+      { id: 'lane-drain-stain', kind: 'drain-stain', bounds: { x: 1070, y: 528, w: 36, h: 22 } },
     ],
     scars: [
-      { id: 'service-scorch-group', kind: 'scorch-group', bounds: { x: 1015, y: 510, w: 62, h: 34 } },
+      { id: 'service-scorch-group', kind: 'scorch-group', bounds: { x: 1070, y: 502, w: 36, h: 22 } },
     ],
     lighting: {
       fields: [
@@ -991,12 +994,14 @@ try {
   const sliceProbes = {
     cobaltStreet: { x: 960, y: 420 },
     amberRim: { x: 985, y: 553 },
-    slateApronClean: { x: 1082, y: 525 },
-    ochreStripe: { x: 855, y: 515 },
-    coralAwning: { x: 844, y: 564 },
-    fadedPanel: { x: 980, y: 562 },
-    drainStain: { x: 1116, y: 525 },
-    scorchGroup: { x: 1042, y: 527 },
+    wallAmberRim: { x: 985, y: 576 },
+    southWallInside: { x: 910, y: 736 },
+    slateApronClean: { x: 1136, y: 539 },
+    ochreStripe: { x: 905, y: 512 },
+    coralAwning: { x: 878, y: 545 },
+    fadedPanel: { x: 1136, y: 513 },
+    scorchGroup: { x: 1082, y: 511 },
+    drainStain: { x: 1088, y: 539 },
     tealRoof: { x: 960, y: 635 },
     roofFadedPanel: { x: 855, y: 645 },
     roofDrainStain: { x: 980, y: 622 },
@@ -1006,7 +1011,7 @@ try {
   };
 
   const sampleSliceMode = async ({ id, lighting, wear, selfPos, viewLabel }) => {
-    const res = await page.evaluate(async ({ lighting, wear, selfPos, sliceProbes }) => {
+    const res = await page.evaluate(async ({ id, lighting, wear, selfPos, sliceProbes }) => {
       const f = window.witness, s = f.scene;
       await f.settle({
         palette: 'signature',
@@ -1022,20 +1027,20 @@ try {
       for (const [k, pt] of Object.entries(sliceProbes)) {
         pixels[k] = f.pixelAtWorld(pt.x, pt.y).hex;
       }
-      const obstacleOutlines = f.map.obstacles.map(o => ({
-        id: o.id,
-        points: (o.r ? [{ x: o.x, y: o.y, r: o.r }] : (o.points || [{ x: o.x, y: o.y, w: o.w, h: o.h }])),
-      }));
+      const { shapeOf } = await import('/shared/shape.ts');
+      const collisionOutlines = f.map.obstacles.concat(f.map.gates).map(o => {
+        const sh = shapeOf(o);
+        return `${o.id}:${sh.kind}:${sh.x},${sh.y},${sh.r ?? ''},${sh.w ?? ''},${sh.h ?? ''}:${(sh.points || []).map(p => `${p.x},${p.y}`).join('|')}`;
+      }).join(';');
       const visionDigest = (s.visionPoints || []).map(p => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(';');
       return {
         zoom: s.cameras.main.zoom,
         roofAlpha: s.roofs.get('shop-room').alpha,
         pixels,
-        obstacleCount: obstacleOutlines.length,
-        obstacleDigest: JSON.stringify(obstacleOutlines),
+        collisionDigest: collisionOutlines,
         visionDigest,
       };
-    }, { lighting, wear, selfPos, sliceProbes });
+    }, { id, lighting, wear, selfPos, sliceProbes });
     const file = `slice-${id}.png`;
     await page.screenshot({ path: path.join(outDir, file) });
     captures.push({ id: `slice-${id}`, file, theme: 'signature', fog: true, zoom: res.zoom, view: viewLabel });
@@ -1083,31 +1088,83 @@ try {
     await window.witness.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
 
+  const rgbDist = (c1, c2) => Math.hypot(
+    ((c1 >> 16) & 255) - ((c2 >> 16) & 255),
+    ((c1 >> 8) & 255) - ((c2 >> 8) & 255),
+    (c1 & 255) - (c2 & 255)
+  );
+
+  const SW = {
+    coral: parseInt(THEMES.signature.colors.wall.toString(), 16), // fallback ref
+    weatheredCoral: parseInt(SWATCHES.legacy.weatheredCoral.slice(1), 16),
+    storefrontTeal: parseInt(SWATCHES.legacy.storefrontTeal.slice(1), 16),
+    awningsYellow: parseInt(SWATCHES.legacy.awningsYellow.slice(1), 16),
+    warmMasonry: 0x8f645a,
+  };
+
   // Step 2 done-when assertions:
   // 1. Lighting toggle removes cobalt wash and amber focal edge while keeping material identity intact:
   assert.notEqual(sliceFullExt.pixels.cobaltStreet, sliceNoLightExt.pixels.cobaltStreet, 'switching off lighting removes cobalt intersection wash on street');
   assert.notEqual(sliceFullExt.pixels.amberRim, sliceNoLightExt.pixels.amberRim, 'switching off lighting removes warm amber focal edge rim');
-  // Material identity survives with lighting off (teal roof, coral awning, ochre stripe, slate apron all differ from bare street/ground):
-  assert.notEqual(sliceNoLightExt.pixels.tealRoof, sliceNoLightExt.pixels.slateApronClean, 'legacy-teal rooftop retains distinct material identity with lighting off');
-  assert.notEqual(sliceNoLightExt.pixels.coralAwning, sliceNoLightExt.pixels.slateApronClean, 'weathered coral awning retains distinct material identity with lighting off');
-  assert.notEqual(sliceNoLightExt.pixels.ochreStripe, sliceNoLightExt.pixels.slateApronClean, 'ochre parking stripe retains distinct material identity with lighting off');
+  assert.notEqual(sliceFullInt.pixels.southWallInside, sliceFullExt.pixels.amberRim, 'interior south wall face does not receive north amber rim');
+
+  // Material identity survives with lighting off (verified by proximity to authored swatches vs clean slate apron):
+  assert.ok(
+    rgbDist(sliceNoLightExt.pixels.coralAwning, SW.weatheredCoral) < rgbDist(sliceNoLightExt.pixels.slateApronClean, SW.weatheredCoral),
+    'weathered coral awning is closer to weatheredCoral swatch than slate apron is'
+  );
+  assert.ok(
+    rgbDist(sliceNoLightExt.pixels.coralAwning, sliceNoLightExt.pixels.slateApronClean) >= 30,
+    'weathered coral awning is visibly distinct from slate apron'
+  );
+  assert.ok(
+    rgbDist(sliceNoLightExt.pixels.tealRoof, SW.storefrontTeal) < rgbDist(sliceNoLightExt.pixels.slateApronClean, SW.storefrontTeal),
+    'legacy-teal rooftop is closer to storefrontTeal swatch than slate apron is'
+  );
+  assert.ok(
+    rgbDist(sliceNoLightExt.pixels.ochreStripe, SW.awningsYellow) < rgbDist(sliceNoLightExt.pixels.slateApronClean, SW.awningsYellow),
+    'unlit ochre parking stripe is closer to awningsYellow swatch than slate apron is'
+  );
+  assert.ok(
+    rgbDist(sliceNoLightExt.pixels.ochreStripe, sliceNoLightExt.pixels.slateApronClean) >= 30,
+    'unlit ochre parking stripe is visibly distinct from slate apron'
+  );
+  assert.ok(
+    rgbDist(sliceFullInt.pixels.warmMasonryFloor, SW.warmMasonry) < rgbDist(sliceFullInt.pixels.slateApronClean, SW.warmMasonry),
+    'revealed interior floor is closer to warm masonry than slate apron is'
+  );
 
   // 2. Wear toggle removes faded panel, drain stain, and scorch group while preserving exact collision & sight geometry:
-  assert.notEqual(sliceFullExt.pixels.fadedPanel, sliceNoWearExt.pixels.fadedPanel, 'switching off wear removes ground faded commercial panel');
-  assert.notEqual(sliceFullExt.pixels.drainStain, sliceNoWearExt.pixels.drainStain, 'switching off wear removes service-lane drain stain');
-  assert.notEqual(sliceFullExt.pixels.scorchGroup, sliceNoWearExt.pixels.scorchGroup, 'switching off wear removes cosmetic competition scorch group');
-  assert.notEqual(sliceFullExt.pixels.roofFadedPanel, sliceNoWearExt.pixels.roofFadedPanel, 'switching off wear removes rooftop faded paint panel');
-  assert.notEqual(sliceFullExt.pixels.roofDrainStain, sliceNoWearExt.pixels.roofDrainStain, 'switching off wear removes rooftop drain stain');
-  assert.notEqual(sliceFullInt.pixels.floorDrainStain, sliceNoWearInt.pixels.floorDrainStain, 'switching off wear removes interior floor neglect stain');
   assert.equal(sliceNoWearExt.pixels.drainStain, sliceNoWearExt.pixels.slateApronClean, 'with wear off, drain stain location reverts to clean slate paving apron');
   assert.equal(sliceNoWearExt.pixels.scorchGroup, sliceNoWearExt.pixels.slateApronClean, 'with wear off, scorch group location reverts to clean slate paving apron');
-  assert.equal(sliceFullExt.obstacleDigest, sliceNoWearExt.obstacleDigest, 'switching off wear keeps exact same obstacle collision geometry');
+  assert.equal(sliceNoWearExt.pixels.fadedPanel, sliceNoWearExt.pixels.slateApronClean, 'with wear off, faded panel location reverts to clean slate paving apron');
+
+  assert.ok(rgbDist(sliceFullExt.pixels.fadedPanel, sliceNoWearExt.pixels.fadedPanel) >= 20, 'faded panel visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.drainStain, sliceNoWearExt.pixels.drainStain) >= 20, 'drain stain visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.scorchGroup, sliceNoWearExt.pixels.scorchGroup) >= 20, 'scorch group visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.roofFadedPanel, sliceNoWearExt.pixels.roofFadedPanel) >= 20, 'roof faded panel visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.roofDrainStain, sliceNoWearExt.pixels.roofDrainStain) >= 20, 'roof drain stain visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullInt.pixels.floorDrainStain, sliceNoWearInt.pixels.floorDrainStain) >= 20, 'interior floor neglect stain visibly changes when wear is toggled');
+
+  assert.equal(sliceFullExt.collisionDigest, sliceNoWearExt.collisionDigest, 'switching off wear keeps exact same obstacle and gate shapeOf collision geometry');
   assert.equal(sliceFullExt.visionDigest, sliceNoWearExt.visionDigest, 'switching off wear keeps exact same visibilityPolygon sight boundary');
   assert.equal(sliceFullInt.visionDigest, sliceNoWearInt.visionDigest, 'switching off wear inside shop keeps exact same visibilityPolygon sight boundary');
 
   // 3. Faded panel, drain stain, and scorch group read as distinct history layers at gameplay scale:
-  assert.notEqual(sliceFullExt.pixels.fadedPanel, sliceFullExt.pixels.drainStain, 'faded panel and drain stain read as distinct layers');
-  assert.notEqual(sliceFullExt.pixels.fadedPanel, sliceFullExt.pixels.scorchGroup, 'faded panel and scorch group read as distinct layers');
+  assert.ok(rgbDist(sliceFullExt.pixels.fadedPanel, sliceFullExt.pixels.drainStain) >= 15, 'faded panel and drain stain read as distinct layers');
+  assert.ok(rgbDist(sliceFullExt.pixels.fadedPanel, sliceFullExt.pixels.scorchGroup) >= 15, 'faded panel and scorch group read as distinct layers');
+  assert.ok(rgbDist(sliceFullExt.pixels.drainStain, sliceFullExt.pixels.scorchGroup) >= 15, 'drain stain and scorch group read as distinct layers');
+
+  const ochreUnderCobaltAssessment = {
+    swatchOchre: '#c69a49',
+    unlitRenderedOchre: css(sliceNoLightExt.pixels.ochreStripe),
+    litRenderedOchre: css(sliceFullExt.pixels.ochreStripe),
+    cobaltStreetHex: css(sliceFullExt.pixels.cobaltStreet),
+    cleanApronHex: css(sliceFullExt.pixels.slateApronClean),
+    distUnlitToOchre: Number(rgbDist(sliceNoLightExt.pixels.ochreStripe, SW.awningsYellow).toFixed(1)),
+    distUnlitToApron: Number(rgbDist(sliceNoLightExt.pixels.ochreStripe, sliceNoLightExt.pixels.slateApronClean).toFixed(1)),
+    note: 'Observation: under the broad cobalt intersection wash (0.42 intensity), ochre parking stripes (#c69a49) mix toward a cooled neutral tone (#787672) because yellow and cobalt blue are complementary. With lighting toggled off, warm ochre identity (#977f50) is fully restored (distance to awningsYellow 54.7 vs 80.3 for slate apron).',
+  };
 
   const step2SliceSummary = {
     fullExterior: Object.fromEntries(Object.entries(sliceFullExt.pixels).map(([k, v]) => [k, css(v)])),
@@ -1115,7 +1172,7 @@ try {
     noWearExterior: Object.fromEntries(Object.entries(sliceNoWearExt.pixels).map(([k, v]) => [k, css(v)])),
     fullInterior: Object.fromEntries(Object.entries(sliceFullInt.pixels).map(([k, v]) => [k, css(v)])),
     noWearInterior: Object.fromEntries(Object.entries(sliceNoWearInt.pixels).map(([k, v]) => [k, css(v)])),
-    collisionPreserved: sliceFullExt.obstacleDigest === sliceNoWearExt.obstacleDigest,
+    collisionPreserved: sliceFullExt.collisionDigest === sliceNoWearExt.collisionDigest,
     sightPreservedExterior: sliceFullExt.visionDigest === sliceNoWearExt.visionDigest,
     sightPreservedInterior: sliceFullInt.visionDigest === sliceNoWearInt.visionDigest,
   };
@@ -1241,6 +1298,7 @@ try {
     comment6317Candidates,
     openFindings,
     step2SliceSummary,
+    ochreUnderCobaltAssessment,
     broadcastPinkAssessment,
     lowFillCandidates,
     branchSummary,
