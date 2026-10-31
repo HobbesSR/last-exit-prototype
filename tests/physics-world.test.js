@@ -105,6 +105,17 @@ test('body and constraint capacity reject without changing admitted state', asyn
   } finally { world.dispose(); }
 });
 
+test('a step whose collision events exceed capacity throws instead of dropping them', async () => {
+  // 128 coincident props give 8,128 pairs; the overlapping statics push one step past 8,192.
+  const world = await createPhysicsWorld();
+  try {
+    for (let i = 0; i < 128; i++) world.queueAddBody(circle(`p${i}`, { x: (i % 4) * 0.25 }));
+    for (let i = 0; i < 4; i++) world.queueAddBody({ id: `s${i}`, kind: 'static', shape: { kind: 'box', hx: 40, hy: 40 }, x: 0, y: 0 });
+    world.commitMutations();
+    assert.throws(() => world.step(), /physics event capacity exceeded/);
+  } finally { world.dispose(); }
+});
+
 test('same insertion-independent mutation set continues deterministically', async () => {
   const a = await createPhysicsWorld(), b = await createPhysicsWorld();
   try {
