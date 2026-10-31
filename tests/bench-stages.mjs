@@ -44,6 +44,8 @@ if (!size) { console.error(`--size must be one of ${LIVE_ZONE_SIZES.map(zoneSize
 const [columns, rows] = (args.get('tile') ?? '1x1').split('x').map(Number);
 const label = columns * rows > 1 ? `${zoneWidth * columns}x${zoneHeight * rows} (${zoneSizeName(size)} tiled ${columns}x${rows})` : zoneSizeName(size);
 const baseContent = contentById(args.get('content') ?? CONTENT_ID);
+// A bare flag parses as '1', which would write a file of that name.
+if (args.get('heap-profile') === '1') { console.error('--heap-profile needs a file: --heap-profile=<file.heapprofile>'); process.exit(2); }
 
 await acquireMachineLock('bench');
 const discard = () => new Writable({ write(_chunk, _encoding, done) { done(); } });
