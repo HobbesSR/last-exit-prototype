@@ -53,6 +53,14 @@ const mass = (n: number | undefined): number => {
   return value;
 };
 const clone = <T>(value: T): T => structuredClone(value);
+/** What a snapshot shares between frames is frozen and replaced, never edited, so frames need not copy it (#655). */
+function frozen<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const inner of Object.values(value)) frozen(inner);
+  }
+  return value;
+}
 const vector = (value: Point): Point => ({ x: finite(value.x), y: finite(value.y) });
 const validId = (id: string): string => {
   if (typeof id !== 'string' || !id.length) throw new TypeError('physics ID must be a nonempty string');
@@ -204,7 +212,7 @@ export class PhysicsWorld {
   }
   queueAddBody(input: BodySpec): void {
     this.ensure(); this.checkQueue();
-    const spec = validateBody(input);
+    const spec = frozen(validateBody(input));
     if (this.bodies.has(spec.id) && !this.pendingRemove.includes(spec.id) || this.pendingAdd.some(body => body.id === spec.id))
       throw new Error(`duplicate physics body ${spec.id}`);
     const dynamic = this.roomCount('actor') + this.roomCount('prop');
@@ -222,7 +230,7 @@ export class PhysicsWorld {
   }
   queueAddConstraint(input: ConstraintSpec): void {
     this.ensure(); this.checkQueue();
-    const spec = validateConstraint(input);
+    const spec = frozen(validateConstraint(input));
     if (this.constraints.has(spec.id) && !this.pendingRemoveConstraints.includes(spec.id) ||
         this.pendingAddConstraints.some(item => item.id === spec.id)) throw new Error(`duplicate physics constraint ${spec.id}`);
     if (this.constraints.size - this.pendingRemoveConstraints.length + this.pendingAddConstraints.length >= 8)
@@ -376,7 +384,7 @@ export class PhysicsWorld {
   }
   setMotor(id: string, input: MotorIntent): void {
     this.ensure(); const { record, body } = this.dynamic(id);
-    record.motor = { ...vector(input), accel: nonnegative(input.accel) };
+    record.motor = frozen({ ...vector(input), accel: nonnegative(input.accel) });
     body.wakeUp();
   }
   setDamping(id: string, linear: number, angular: number): void {
@@ -385,11 +393,11 @@ export class PhysicsWorld {
     const { record, body } = this.dynamic(id);
     if ((record.spec.linearDamping ?? 0) !== nextLinear) {
       body.setLinearDamping(nextLinear);
-      record.spec.linearDamping = nextLinear;
+      record.spec = Object.freeze({ ...record.spec, linearDamping: nextLinear });
     }
     if ((record.spec.angularDamping ?? 0) !== nextAngular) {
       body.setAngularDamping(nextAngular);
-      record.spec.angularDamping = nextAngular;
+      record.spec = Object.freeze({ ...record.spec, angularDamping: nextAngular });
     }
   }
   setTransform(id: string, value: Pick<Transform, 'x' | 'y' | 'angle'>): void {
@@ -415,11 +423,11 @@ export class PhysicsWorld {
   }
   queueForce(id: string, input: Point): void {
     this.ensure(); this.checkQueue(); this.dynamic(id);
-    this.forces.push({ id, value: vector(input) });
+    this.forces.push(frozen({ id, value: vector(input) }));
   }
   queueImpulse(id: string, input: Point): void {
     this.ensure(); this.checkQueue(); this.dynamic(id);
-    this.impulses.push({ id, value: vector(input) });
+    this.impulses.push(frozen({ id, value: vector(input) }));
   }
   getTransform(id: string): Transform | undefined {
     this.ensure(); const record = this.bodies.get(validId(id));
@@ -573,16 +581,17 @@ export class PhysicsWorld {
     this.ensure();
     return { actors: this.actorCount, dynamic: this.dynamicCount, static: this.staticCount, constraints: this.constraints.size };
   }
+  /** Lists and transforms are the caller's own; specs, motors and queued entries are frozen and shared with the world. */
   snapshot(options: { includeStatic?: boolean } = {}): PhysicsSnapshot {
     this.ensure();
-    return clone({ bodies: [...this.bodies].filter(([, record]) => options.includeStatic !== false || record.spec.kind !== 'static')
-      .sort(([a], [b]) => order(a, b)).map(([id, record]) => ({
+    const bodies = options.includeStatic === false ? this.sortedDynamic : [...this.bodies].sort(([a], [b]) => order(a, b));
+    return { bodies: bodies.map(([id, record]) => ({
         spec: record.spec, transform: this.getTransform(id)!, generation: record.generation,
         ...(record.motor ? { motor: record.motor } : {}) })),
     constraints: [...this.constraints].sort(([a], [b]) => order(a, b)).map(([, record]) => record.spec),
-    pending: { add: this.pendingAdd, remove: this.pendingRemove,
-      addConstraints: this.pendingAddConstraints, removeConstraints: this.pendingRemoveConstraints,
-      forces: this.forces, impulses: this.impulses } });
+    pending: { add: [...this.pendingAdd], remove: [...this.pendingRemove],
+      addConstraints: [...this.pendingAddConstraints], removeConstraints: [...this.pendingRemoveConstraints],
+      forces: [...this.forces], impulses: [...this.impulses] } };
   }
   /** Small query view for local navigation: excludes loot, actors and pending/constraint state. */
   solidPropStates(): Array<{ spec: BodySpec; transform: Transform }> {

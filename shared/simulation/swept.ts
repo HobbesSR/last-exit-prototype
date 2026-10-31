@@ -53,7 +53,7 @@ export function solidBlockers(game: Game): Shape[] {
   return [
     ...staticShapes(game.map, false),
     ...closedGateShapes(game.map.gates),
-    // snapshot() already detaches specs, including an unrotated convex body's vertices.
+    // Specs, including an unrotated convex body's vertices, are frozen: shared with the world, never edited.
     ...props.map(({ spec, transform }) => bodyShape({ ...transform, shape: spec.shape })),
   ];
 }
