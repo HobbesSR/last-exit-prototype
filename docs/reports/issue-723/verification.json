@@ -1,0 +1,15 @@
+{
+  "scope": "Shared-origin route API and source-bound prototype evidence; no content adoption",
+  "checks": {
+    "npm run check": "passed",
+    "npm run typecheck": "passed",
+    "npm test": {"passed": 1394, "failed": 0, "skipped": 0},
+    "npm run test:micro": {"unitPassed": 547, "failed": 0, "browserScripts": "passed", "exitCode": 0},
+    "chain sweep --check map/tools/fixtures/chain-baseline.json": {"checked": 224, "drift": []},
+    "new batch test timing": "0.3 seconds",
+    "prototype access guard": {"passed": 9},
+    "diagnostic main integration": {"appearancePassed": 1, "focusedPassed": 18},
+    "git diff --check": "passed"
+  },
+  "notes": "General gates were not benchmark measurements. Controlled timing runs held the machine benchmark lock separately. Frozen expectations and behavior-nav-1.json.gz were not regenerated."
+}

@@ -1,0 +1,12 @@
+{
+  "parents": 21,
+  "fillErrors": 0,
+  "portalFailures": 0,
+  "contestant": {
+    "complete": 3679
+  },
+  "hunter": {
+    "complete": 3236,
+    "invalid-target": 443
+  }
+}
