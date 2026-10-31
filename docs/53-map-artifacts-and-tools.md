@@ -31,6 +31,13 @@ strategy versions to match the available engines. These domains are distinct
 from replay and simulation versions ([26](26-recording-contract.md)) and from
 builder delegation ([20.7](20.7-builder-delegation.md)).
 
+The separate #705 comparison uses an unregistered experimental type and a build
+identity naming both its current builders and preserved historical input
+results. Its complete saves can be inspected by the structural low-level
+reader; the production tool reader and ordinary layout-only regeneration refuse
+them. It changes none of the active domains above. Reproduction and the mixed
+result limitation are recorded in [42.26](42.26-macro-boundary.md) and its report.
+
 ## One seed decides the whole map
 
 With the same engines and library, the seed and params determine every object

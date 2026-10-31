@@ -1,0 +1,62 @@
+{
+  "sourceRevision": "c8fa4f1",
+  "checks": [
+    {
+      "command": "npm test",
+      "passed": true,
+      "tests": 1369,
+      "failed": 0,
+      "durationMs": 165732.681
+    },
+    {
+      "command": "npm run check",
+      "passed": true
+    },
+    {
+      "command": "npm run typecheck",
+      "passed": true
+    },
+    {
+      "command": "npm run test:times -- tests/macro-curtain.test.js",
+      "passed": true,
+      "seconds": 1,
+      "budgetSeconds": 15
+    },
+    {
+      "command": "node tools/macro-boundary-experiment.mjs --out=docs/reports/issue-705",
+      "passed": true,
+      "sizes": [
+        12,
+        24,
+        36
+      ],
+      "changedOwnerProofs": 400,
+      "actualTargetRoutes": 23254
+    },
+    {
+      "command": "Independent retained artifact/source/geometry audit",
+      "passed": true,
+      "details": "artifact-verification.json"
+    },
+    {
+      "command": "Standalone Chrome preview QA",
+      "passed": true,
+      "browser": "156.0.8078.49",
+      "selectorStates": 42,
+      "visuallyReviewedPanels": 12,
+      "details": "preview-qa.json"
+    }
+  ],
+  "notRun": [
+    {
+      "checks": "Full --verify replay",
+      "reason": "Independent source/input/output hash and complete-save/stage/geometry checks passed; full capture already exercised exact reordered-input reconstruction. Expensive physical searches were not repeated."
+    },
+    {
+      "checks": "Production macro suite, full chain sweep, micro suite, slow tier and gameplay browser suite",
+      "reason": "All map/shared/production library/fixtures/defaults are byte-unchanged from fresh base; this isolated tools experiment adds no production builder or UI. Focused physical/compatibility tests, full fast/static/type gates and dedicated three-size/preview acceptance cover the changed surface."
+    }
+  ],
+  "sourceScope": "Only isolated tools/experiments and focused tests plus documentation/evidence. Production defaults, content/macro/wire versions, library fingerprints, chain baseline and frozen gameplay fixture unchanged.",
+  "status": "Local gates pass; human review/merge and Forgejo CI are external."
+}

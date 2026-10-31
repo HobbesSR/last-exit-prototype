@@ -1,0 +1,113 @@
+{
+  "browser": "156.0.8078.49",
+  "viewport": {
+    "width": 1800,
+    "height": 1000
+  },
+  "states": [
+    {
+      "width": 12,
+      "body": "contestant",
+      "panels": [
+        {
+          "painted": 19207,
+          "canvasSha256": "a789bb655607745ee67e929c58d342626bcef70cfadb8719bb075c2f00c7d880"
+        },
+        {
+          "painted": 28542,
+          "canvasSha256": "26ffedc680d4abf2d7beed14a3d0826e2e2b80e9f23c90f549b24830d39d18dd"
+        }
+      ],
+      "screenshot": "preview-12-contestant.png",
+      "sha256": "3f328b99c61e34ce1feddc343190673cc5f6937429a2d959f12a67753ffce1a2"
+    },
+    {
+      "width": 12,
+      "body": "hunter",
+      "panels": [
+        {
+          "painted": 19210,
+          "canvasSha256": "a331ba066d286c8ad52b41f400dfda3adc8a9f95c37adfd0cc1081ba27a83ae1"
+        },
+        {
+          "painted": 28519,
+          "canvasSha256": "4b74214349c405c9d5b73459ffba702dd5a3bf2125512028a6be611af7a0baad"
+        }
+      ],
+      "screenshot": "preview-12-hunter.png",
+      "sha256": "0cb12fde2b0962648b63b89df0c485401c1482c45bc575a14618349be2acc85a"
+    },
+    {
+      "width": 24,
+      "body": "contestant",
+      "panels": [
+        {
+          "painted": 34447,
+          "canvasSha256": "960e42e9992b9b087b24a7c3a0f4ffd4839da89229e242269de548daf8e5cbd9"
+        },
+        {
+          "painted": 42851,
+          "canvasSha256": "42bdc810dbdf024bcf132d8b367d54a18c102f7493ec61a4a599835c5219940c"
+        }
+      ],
+      "screenshot": "preview-24-contestant.png",
+      "sha256": "23273acab96a5fa8588f97adad2971d28229924abbcaa1ff458489e785a61550"
+    },
+    {
+      "width": 24,
+      "body": "hunter",
+      "panels": [
+        {
+          "painted": 34447,
+          "canvasSha256": "960e42e9992b9b087b24a7c3a0f4ffd4839da89229e242269de548daf8e5cbd9"
+        },
+        {
+          "painted": 42805,
+          "canvasSha256": "908cc7b9b1bf0b627dca7168ef7802e928a687553b1add6e137a5c22098d95a1"
+        }
+      ],
+      "screenshot": "preview-24-hunter.png",
+      "sha256": "d93960a93e0a7317d3c081145e75ceb4659d7c885a96a2a7dca597d74c6153b1"
+    },
+    {
+      "width": 36,
+      "body": "contestant",
+      "panels": [
+        {
+          "painted": 51881,
+          "canvasSha256": "ebb492154769895b638fe229aae37bc4d2252697fbf43cfab571bf3a6e38f19d"
+        },
+        {
+          "painted": 58575,
+          "canvasSha256": "74449797fc376e2a851901fa5514d0c1fcbeb0ae34bdf0f13514ea4b606ca044"
+        }
+      ],
+      "screenshot": "preview-36-contestant.png",
+      "sha256": "6013d47e521c36fc739b5310e6a838d3f43dac6895a5da8f0deb3c31c53117af"
+    },
+    {
+      "width": 36,
+      "body": "hunter",
+      "panels": [
+        {
+          "painted": 51882,
+          "canvasSha256": "47bd23ceafd765659f8748fe78c7ed1d9a6b8c11f27aa1f403da0d661d38aa9c"
+        },
+        {
+          "painted": 58490,
+          "canvasSha256": "5c5861ac27770de2e0883543c0eb3c129f16ab50df37165408d5c0072b7dcd38"
+        }
+      ],
+      "screenshot": "preview-36-hunter.png",
+      "sha256": "741c404fb639151e345251973c39d3cb8a398a666398c630e5661ab438240cf7"
+    }
+  ],
+  "selectorChecks": 42,
+  "pageErrors": [],
+  "note": "Canvas before/after differ and contain painted pixels in all six size/body states; all seven route selectors exercised. Screenshots require visual review separately.",
+  "visualReview": {
+    "reviewed": true,
+    "panels": 12,
+    "notes": "All six retained size/body screenshots inspected: before/after geometry aligned, full-height curtain and upper-quarter opening visible, fixed route/status failures visible and selectors legible. Full-map scale intentionally shows small geometry; browser zoom is available."
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "node": "v24.15.0",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "timings": [
+    {
+      "label": "12/plan-and-changed-brief-build",
+      "ms": 1027.3892999999998
+    },
+    {
+      "label": "12/reordered-plan-and-build",
+      "ms": 1220.1699999999996
+    },
+    {
+      "label": "12/final-changed-owner-proofs",
+      "ms": 2636.2832000000008
+    },
+    {
+      "label": "12/fixed-before",
+      "ms": 1392.1098000000002
+    },
+    {
+      "label": "12/fixed-after",
+      "ms": 1083.1166000000012
+    },
+    {
+      "label": "12/actual-after-targets",
+      "ms": 447.88980000000083
+    },
+    {
+      "label": "12/structure-after",
+      "ms": 2506.6546
+    },
+    {
+      "label": "24/plan-and-changed-brief-build",
+      "ms": 6873.0193
+    },
+    {
+      "label": "24/reordered-plan-and-build",
+      "ms": 6756.584900000002
+    },
+    {
+      "label": "24/final-changed-owner-proofs",
+      "ms": 11663.563599999994
+    },
+    {
+      "label": "24/fixed-before",
+      "ms": 6779.275399999999
+    },
+    {
+      "label": "24/fixed-after",
+      "ms": 7635.718199999996
+    },
+    {
+      "label": "24/actual-after-targets",
+      "ms": 3026.913900000007
+    },
+    {
+      "label": "24/structure-after",
+      "ms": 14321.313899999994
+    },
+    {
+      "label": "36/plan-and-changed-brief-build",
+      "ms": 17977.571800000005
+    },
+    {
+      "label": "36/reordered-plan-and-build",
+      "ms": 18564.880999999994
+    },
+    {
+      "label": "36/final-changed-owner-proofs",
+      "ms": 109388.13679999998
+    },
+    {
+      "label": "36/fixed-before",
+      "ms": 21650.84269999998
+    },
+    {
+      "label": "36/fixed-after",
+      "ms": 25649.24940000003
+    },
+    {
+      "label": "36/actual-after-targets",
+      "ms": 11833.326700000034
+    },
+    {
+      "label": "36/structure-after",
+      "ms": 53360.28510000004
+    }
+  ],
+  "note": "Sequential under shared bench lock. Single observations; changed-brief builds and reordered repeat include planning. Offline routes/structure and final proofs reported separately."
+}
