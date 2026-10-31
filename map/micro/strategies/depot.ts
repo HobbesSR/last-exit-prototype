@@ -194,8 +194,7 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
     if (!experiment && brief.portals.length && !yard.has(key(x - AISLE, y - AISLE))) continue;
     const label = `depot-warehouse-${warehouses + 1}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
-    const bApp = DEPOT_WAREHOUSE_APPEARANCE;
-    const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed, ...(bApp ? { appearance: bApp } : {}) }, size));
+    const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed, appearance: DEPOT_WAREHOUSE_APPEARANCE, shelfAppearance: { material: 'oxidizedMetal' } }, size));
     const { design, allocation, realization, rejected } = built.details;
     if (experiment && !place(label, u, v, built)) continue;
     warehouses++;

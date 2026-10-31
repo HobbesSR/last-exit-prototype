@@ -45,9 +45,9 @@ and `MapAppearance`).
 - **Optional and additive:** Appearance metadata is optional on `Building.appearance`,
   `Obstacle.appearance`, `GameMap.appearance`, and `ElementTemplate.appearance`.
   Older readers, decoders, and tools safely ignore these fields.
-- **No wire or recording schema bump:** Wire version stays at 8 (`CHAIN_WIRE_VERSION`
-  in `map/macro/src/chain/saving.ts`) and recording schema stays at 15 (`SCHEMA` in
-  `shared/recording.ts`). Stored wire maps store elements in `elements[]`; appearance fields
+- **No wire or recording schema bump:** Wire format (`CHAIN_WIRE_VERSION`
+  in `map/macro/src/chain/saving.ts`) and recording schema (`SCHEMA` in
+  `shared/recording.ts`) require no version bump. Stored wire maps store elements in `elements[]`; appearance fields
   inside `ElementTemplate` round-trip through JSON/BSON without altering wire schema or
   requiring migration.
 - **What bumps `APPEARANCE_RECIPE_VERSION`:** Presentation-only recipe version

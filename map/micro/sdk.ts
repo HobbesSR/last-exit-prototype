@@ -35,7 +35,6 @@ export type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 export { allocateBuilding } from './building/allocation.ts';
 export { DEPOT_WAREHOUSE_APPEARANCE } from './strategies/depot.ts';
 
-
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
 
 export { inheritBriefMargins, validateFillConstraints } from './margins.ts';

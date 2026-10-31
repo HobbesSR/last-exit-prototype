@@ -266,7 +266,7 @@ export function makeArenaScene(api) {
      * `priorGroups` carries roof and canopy fades over a restyle; a new map starts them afresh.
      */
     recordStatic(map, priorGroups = new Map()) {
-      const ink = this.colors, artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear }; let g;
+      const ink = this.colors, artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildings: map.buildings }; let g;
       for (const cache of [this.tiles, this.overheadTiles]) for (const tile of cache.values()) tile.texture?.destroy();
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();

@@ -114,7 +114,26 @@ function createWitnessScene() {
   //    and a declared cell-grid roof `annex-roof` (x: 1080..1160, y: 580..700) to exercise both roof branches.
   const buildings = [
     { id: 'floor-pad', x: 190, y: 575, w: 600, h: 175 },
-    { id: 'shop-room', x: 810, y: 580, w: 240, h: 170 },
+    {
+      id: 'shop-room',
+      x: 810,
+      y: 580,
+      w: 240,
+      h: 170,
+      appearance: {
+        floorMaterial: 'warmMasonry',
+        wallMaterial: 'warmMasonry',
+        roofPaint: 'storefrontTeal',
+        roofRim: 'weatheredCoral',
+        interiorTrim: 'storefrontTeal',
+        roofSign: { color: 'weatheredCoral', backing: 'structuralVoid', stripe: 'dirtyCream', dx: 28, dy: 16, w: 120, h: 24 },
+        neglect: {
+          fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
+          roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
+          floorStain: { dx: 155, dy: 70, w: 46, h: 28 },
+        },
+      },
+    },
     { id: 'annex-room', x: 1060, y: 580, w: 120, h: 120 },
   ];
   // `floor-pad` has a declared roof with 0 cells so `coveredBuildingIds` skips generating a plain roof over the open floor sample strip,
@@ -148,8 +167,8 @@ function createWitnessScene() {
 
   // Storefront wall segments and window obstacle on `shop-room` (41.2 step 2 retail frontage slice, #585/#583):
   obstacles.push({ id: 'shop-window', kind: 'window', x: 830, y: 576, w: 44, h: 12, buildingId: 'shop-room' });
-  obstacles.push({ id: 'shop-wall-n-mid', kind: 'building', x: 874, y: 575, w: 36, h: 14, buildingId: 'shop-room' });
-  obstacles.push({ id: 'shop-wall-n-east', kind: 'building', x: 950, y: 575, w: 100, h: 14, buildingId: 'shop-room' });
+  obstacles.push({ id: 'shop-wall-n-mid', kind: 'building', x: 874, y: 575, w: 36, h: 14, buildingId: 'shop-room', appearance: { focalRim: { side: 'N', color: 'sodiumAmber' } } });
+  obstacles.push({ id: 'shop-wall-n-east', kind: 'building', x: 950, y: 575, w: 100, h: 14, buildingId: 'shop-room', appearance: { focalRim: { side: 'N', color: 'sodiumAmber' } } });
   obstacles.push({ id: 'shop-wall-e', kind: 'building', x: 1036, y: 589, w: 14, h: 161, buildingId: 'shop-room' });
   obstacles.push({ id: 'shop-wall-s', kind: 'building', x: 810, y: 736, w: 226, h: 14, buildingId: 'shop-room' });
 
@@ -199,25 +218,6 @@ function createWitnessScene() {
     surfaces: [
       { id: 'service-lane-apron', bounds: { x: 845, y: 495, w: 320, h: 60 }, material: 'slatePaving', weathered: true, curb: true },
     ],
-    buildings: {
-      'shop-room': {
-        floorMaterial: 'warmMasonry',
-        wallMaterial: 'warmMasonry',
-        roofPaint: 'storefrontTeal',
-        roofRim: 'weatheredCoral',
-        interiorTrim: 'storefrontTeal',
-        roofSign: { color: 'weatheredCoral', backing: 'structuralVoid', stripe: 'dirtyCream', dx: 28, dy: 16, w: 120, h: 24 },
-        neglect: {
-          fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
-          roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
-          floorStain: { x: 965, y: 650, w: 46, h: 28 },
-        },
-      },
-    },
-    obstacles: {
-      'shop-wall-n-mid': { focalRim: { side: 'N', color: 'sodiumAmber' } },
-      'shop-wall-n-east': { focalRim: { side: 'N', color: 'sodiumAmber' } },
-    },
     commercial: [
       { id: 'ochre-parking-stripes', kind: 'parking-stripes', bounds: { x: 855, y: 498, w: 150, h: 36 }, color: 'awningsYellow', count: 3 },
       { id: 'coral-awning', kind: 'awning', bounds: { x: 850, y: 536, w: 90, h: 18 }, color: 'weatheredCoral', stripeColor: 'dirtyCream' },
