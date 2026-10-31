@@ -184,7 +184,7 @@ export function applyLightSample(baseColor, sample, roleScale = 1) {
 export function resolveBuildingAppearance(building, mapAppearance, options = {}) {
   const art = resolveArtOptions(options);
   const ink = art.ink;
-  const desc = mapAppearance?.buildings?.[building.id] || building.appearance || null;
+  const desc = building?.appearance || null;
   const fields = mapAppearance?.lighting?.fields || [];
   const cx = building.x + building.w / 2;
   const cy = building.y + building.h / 2;
@@ -233,8 +233,8 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
 
   if (art.wear && desc?.neglect?.floorStain) {
     const st = desc.neglect.floorStain;
-    const stainX = Math.max(building.x + 24, Math.min(building.x + building.w - 24, st.x ?? (building.x + building.w * 0.72)));
-    const stainY = Math.max(building.y + 24, Math.min(building.y + building.h - 24, st.y ?? (building.y + building.h * 0.36)));
+    const stainX = Math.max(building.x + 24, Math.min(building.x + building.w - 24, st.dx !== undefined ? building.x + st.dx : (st.x ?? (building.x + building.w * 0.72))));
+    const stainY = Math.max(building.y + 24, Math.min(building.y + building.h - 24, st.dy !== undefined ? building.y + st.dy : (st.y ?? (building.y + building.h * 0.36))));
     floorMarks.push({
       kind: 'ellipse',
       layer: 'neglect-stain',
@@ -252,10 +252,10 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
     const rs = desc.roofSign;
     const signColor = applyLightSample(resolveSwatch(rs.color, L.weatheredCoral), centerLight, 0.25);
     const backingColor = applyLightSample(resolveSwatch(rs.backing, U.structuralVoid), centerLight, 0.2);
-    const sx = building.x + (rs.dx ?? 26);
-    const sy = building.y + (rs.dy ?? 18);
-    const sw = rs.w ?? Math.min(130, building.w - 52);
-    const sh = rs.h ?? 28;
+    const sw = Math.min(rs.w ?? 120, Math.max(20, building.w - 32));
+    const sh = Math.min(rs.h ?? 24, Math.max(12, building.h - 32));
+    const sx = Math.max(building.x + 12, Math.min(building.x + building.w - sw - 12, building.x + (rs.dx ?? 26)));
+    const sy = Math.max(building.y + 12, Math.min(building.y + building.h - sh - 12, building.y + (rs.dy ?? 18)));
     roofMarks.push(
       { kind: 'rect', layer: 'commercial-backing', x: sx - 3, y: sy - 3, w: sw + 6, h: sh + 6, color: backingColor, alpha: 0.9 },
       { kind: 'rect', layer: 'commercial-sign', x: sx, y: sy, w: sw, h: sh, color: signColor, alpha: 0.92 },
@@ -266,10 +266,10 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
   // Roof wear: faded panel & roof drain stain (11.1 §5.6, 41.2)
   if (art.wear && desc?.neglect?.fadedPanel) {
     const fp = desc.neglect.fadedPanel;
-    const px = building.x + (fp.dx ?? 28);
-    const py = building.y + (fp.dy ?? 56);
-    const pw = fp.w ?? 92;
-    const ph = fp.h ?? 48;
+    const pw = Math.min(fp.w ?? 88, Math.max(16, building.w - 32));
+    const ph = Math.min(fp.h ?? 42, Math.max(12, building.h - 32));
+    const px = Math.max(building.x + 12, Math.min(building.x + building.w - pw - 12, building.x + (fp.dx ?? 28)));
+    const py = Math.max(building.y + 12, Math.min(building.y + building.h - ph - 12, building.y + (fp.dy ?? 56)));
     const fadedColor = applyLightSample(mix(baseRoof, U.coolConcrete, 0.48), centerLight, 0.25);
     const exposedUnderlay = applyLightSample(mix(U.slateShadow, U.oxidizedMetal, 0.38), centerLight, 0.2);
     roofMarks.push(
@@ -280,10 +280,12 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
 
   if (art.wear && desc?.neglect?.roofDrainStain) {
     const ds = desc.neglect.roofDrainStain;
-    const dx = building.x + (ds.dx ?? 155);
-    const dy = building.y + (ds.dy ?? 38);
+    const dw = Math.min(ds.w ?? 44, Math.max(16, building.w - 32));
+    const dh = Math.min(ds.h ?? 28, Math.max(12, building.h - 32));
+    const dx = Math.max(building.x + dw / 2 + 12, Math.min(building.x + building.w - dw / 2 - 12, building.x + (ds.dx ?? 155)));
+    const dy = Math.max(building.y + dh / 2 + 12, Math.min(building.y + building.h - dh / 2 - 12, building.y + (ds.dy ?? 38)));
     roofMarks.push(
-      { kind: 'ellipse', layer: 'wear-drain-pool', x: dx, y: dy, w: ds.w ?? 48, h: ds.h ?? 30, color: U.structuralVoid, alpha: 0.48 },
+      { kind: 'ellipse', layer: 'wear-drain-pool', x: dx, y: dy, w: dw, h: dh, color: U.structuralVoid, alpha: 0.48 },
       { kind: 'rect', layer: 'wear-drain-streak', x: dx - 6, y: dy - 20, w: 12, h: 34, color: mix(U.structuralVoid, U.oxidizedMetal, 0.35), alpha: 0.44 },
     );
   }
@@ -309,8 +311,9 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
 export function resolveObstacleAppearance(obstacle, mapAppearance, options = {}) {
   const art = resolveArtOptions(options);
   const ink = art.ink;
-  const desc = mapAppearance?.obstacles?.[obstacle.id] || obstacle.appearance || null;
-  const buildingDesc = obstacle.buildingId ? mapAppearance?.buildings?.[obstacle.buildingId] : null;
+  const desc = obstacle?.appearance || null;
+  const building = obstacle.buildingId ? options.buildingsById?.get(obstacle.buildingId) : null;
+  const buildingDesc = building?.appearance || null;
   const fields = mapAppearance?.lighting?.fields || [];
 
   const cx = obstacle.r ? obstacle.x : obstacle.x + (obstacle.w || 0) / 2;

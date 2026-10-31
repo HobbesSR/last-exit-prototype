@@ -126,6 +126,17 @@ shares remain high. Stop at this one-family capability: general #649 growth,
 macro boundary/portal control and other builder adoptions remain separate
 candidates, with no main lever or automatic successor selected.
 
+The bounded opt-in macro boundary experiment (#705,
+[42.26](42.26-macro-boundary.md)) now supplies the contrasting map-scale witness:
+one physical curtain and controlled crossing derived from a separate authored
+plan. Some long-route tails increase, while median progression stays fairly
+direct and empty-space shares barely move. All stated portal/core and final
+target checks pass; old-target failures, disconnected mesh pieces, ownership/
+regeneration confounders and material construction/proof costs are retained.
+Keep it experimental. Broader purposeful topology, exploration/backtracking and
+much-less-empty space remain open under #529; production promotion, extra
+curtain variants and general #649 growth are not automatic successors.
+
 After the bounded macro curtain experiment (#705 / PR #713), Corey's follow-up
 selects a different missing capability: independently authored content from
 different regions incidentally joining across unguaranteed seams, commonly

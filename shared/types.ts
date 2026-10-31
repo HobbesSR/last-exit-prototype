@@ -394,6 +394,7 @@ export interface Obstacle extends Box {
   points?: Vec2[] | undefined;
   buildingId?: BuildingId | undefined;
   color?: number | undefined;
+  appearance?: ObstacleAppearance | undefined;
 }
 
 export interface Gate {
@@ -411,6 +412,7 @@ export interface Gate {
 export interface Building extends Box {
   id: BuildingId;
   nodeId: NodeId;
+  appearance?: BuildingAppearance | undefined;
 }
 
 export interface Roof {
@@ -433,6 +435,146 @@ export interface Decal extends Box {
   /** The direction it extends from its wall, away from the building. */
   side: 'N' | 'E' | 'S' | 'W';
 }
+// ---------------------------------------------------------------------------
+// Appearance (29.4, 41.2, 52)
+// Minimal optional appearance descriptor for static material, wear/scars, and
+// spatial lighting. Presentation only: never collision, sight, navigation, or
+// simulation state.
+// ---------------------------------------------------------------------------
+
+export interface SurfaceAppearance {
+  id?: string | undefined;
+  bounds: Box;
+  material?: string | number | undefined;
+  weathered?: boolean | undefined;
+  curb?: boolean | undefined;
+  alpha?: number | undefined;
+}
+
+export interface BuildingRoofSignAppearance {
+  color?: string | number | undefined;
+  backing?: string | number | undefined;
+  stripe?: string | number | undefined;
+  dx?: number | undefined;
+  dy?: number | undefined;
+  w?: number | undefined;
+  h?: number | undefined;
+}
+
+export interface BuildingNeglectAppearance {
+  fadedPanel?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
+  roofDrainStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
+  floorStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined; x?: number | undefined; y?: number | undefined } | undefined;
+}
+
+export interface BuildingAppearance {
+  floorMaterial?: string | number | undefined;
+  wallMaterial?: string | number | undefined;
+  roofPaint?: string | number | undefined;
+  roofRim?: string | number | undefined;
+  interiorTrim?: string | number | undefined;
+  roofSign?: BuildingRoofSignAppearance | undefined;
+  neglect?: BuildingNeglectAppearance | undefined;
+}
+
+export interface ObstacleAppearance {
+  material?: string | number | undefined;
+  weathered?: boolean | undefined;
+  focalRim?: {
+    side: 'N' | 'E' | 'S' | 'W';
+    color?: string | number | undefined;
+  } | undefined;
+}
+
+export type CommercialMarkAppearance =
+  | {
+      id?: string | undefined;
+      kind: 'parking-stripes';
+      bounds: Box;
+      color?: string | number | undefined;
+      count?: number | undefined;
+    }
+  | {
+      id?: string | undefined;
+      kind: 'awning';
+      bounds: Box;
+      color?: string | number | undefined;
+      stripeColor?: string | number | undefined;
+      weatheredPatch?: boolean | undefined;
+    }
+  | {
+      id?: string | undefined;
+      kind: 'sign-panel';
+      bounds: Box;
+      color?: string | number | undefined;
+    };
+
+export type WearMarkAppearance =
+  | {
+      id?: string | undefined;
+      kind: 'drain-stain';
+      bounds: Box;
+    }
+  | {
+      id?: string | undefined;
+      kind: 'faded-panel';
+      bounds: Box;
+      color?: string | number | undefined;
+    };
+
+export interface ScarMarkAppearance {
+  id?: string | undefined;
+  kind: 'scorch-group';
+  bounds: Box;
+}
+
+export interface LightingFocalEdgeAppearance {
+  color?: string | number | undefined;
+  x?: number | undefined;
+  y?: number | undefined;
+  w?: number | undefined;
+  h?: number | undefined;
+  alpha?: number | undefined;
+  rimLine?: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    width?: number | undefined;
+    alpha?: number | undefined;
+  } | undefined;
+}
+
+export interface LightingFieldAppearance {
+  id: string;
+  bounds: Box;
+  tint?: string | number | undefined;
+  intensity?: number | undefined;
+  falloff?: number | undefined;
+  focalEdge?: LightingFocalEdgeAppearance | undefined;
+}
+
+export interface LightingAppearance {
+  fields?: LightingFieldAppearance[] | undefined;
+}
+
+export interface ElementAppearance {
+  building?: BuildingAppearance | undefined;
+  surfaces?: SurfaceAppearance[] | undefined;
+  commercial?: CommercialMarkAppearance[] | undefined;
+  wear?: WearMarkAppearance[] | undefined;
+  scars?: ScarMarkAppearance[] | undefined;
+  lighting?: LightingAppearance | undefined;
+}
+
+export interface MapAppearance {
+  surfaces?: SurfaceAppearance[] | undefined;
+  commercial?: CommercialMarkAppearance[] | undefined;
+  wear?: WearMarkAppearance[] | undefined;
+  scars?: ScarMarkAppearance[] | undefined;
+  lighting?: LightingAppearance | undefined;
+}
+
 
 export interface MapModule extends Vec2 {
   /** Module ids are the node's array index, not a minted string id. */
@@ -501,6 +643,7 @@ export interface GameMap {
   buildings: Building[];
   roofs?: Roof[] | undefined;
   decals?: Decal[] | undefined;
+  appearance?: MapAppearance | undefined;
   obstacles: Obstacle[];
   gates: Gate[];
   hazards: Box[];

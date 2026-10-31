@@ -26,7 +26,7 @@ never carried by cell class. Primitive sets are deferred (16).
 
 The art direction ([11.1](11.1-world-and-art-direction.md) §4) proposes that
 appearance carry five independent dimensions rather than one generic damage
-style (#584, not designed yet). They are what primitive sets would grow into:
+style (#584):
 - **District identity:** the neighborhood archetype and its palette.
 - **Architectural identity:** a building's original function and era, which
   choose its components, materials, colors and signage ([56](56-buildings.md)).
@@ -36,6 +36,41 @@ style (#584, not designed yet). They are what primitive sets would grow into:
   bouts, uneven across the map.
 - **Lighting identity:** a region's or block's color treatment, chosen apart
   from its materials ([29.4](29.4-drawing.md)).
+
+Step 3 (#584) defines the minimal optional appearance descriptor for these dimensions
+in `shared/types.ts` (`BuildingAppearance`, `ObstacleAppearance`, `ElementAppearance`,
+and `MapAppearance`).
+
+**Storage and versioning policy (52, 53, 26):**
+- **Optional and additive:** Appearance metadata is optional on `Building.appearance`,
+  `Obstacle.appearance`, `GameMap.appearance`, and `ElementTemplate.appearance`.
+  Older readers, decoders, and tools safely ignore these fields.
+- **No wire or recording schema bump:** Wire format (`CHAIN_WIRE_VERSION`
+  in `map/macro/src/chain/saving.ts`) and recording schema (`SCHEMA` in
+  `shared/recording.ts`) require no version bump. Stored wire maps store elements in `elements[]`; appearance fields
+  inside `ElementTemplate` round-trip through JSON/BSON without altering wire schema or
+  requiring migration.
+- **What bumps `APPEARANCE_RECIPE_VERSION`:** Presentation-only recipe version
+  (`APPEARANCE_RECIPE_VERSION = 1` in `public/appearance.js`) governs client cache
+  identity for static tile rasterisation. It bumps ONLY when the presentation hash
+  algorithm or visual resolution recipe in `public/appearance.js` changes in a way that
+  invalidates cached static tiles. It never bumps wire or simulation schemas.
+- **Single source of truth:** Appearance descriptors live directly on their authoritative
+  domain records: `building.appearance` on `Building`, and `obstacle.appearance` on
+  `Obstacle`. `GameMap.appearance` is reserved for map-level elements only (surfaces,
+  commercial marks, wear, scars, and lighting).
+- **Documented neutral fallbacks:** When appearance is omitted or fields are undefined:
+  - Building: `floorFill` falls back to `ink.floor`, `roofFill` to `ink.roof`, `roofRim`
+    to `ink.roofRim`, `roofEave` to `ink.roofEave`, `roofRidge` to `ink.roofRidge`, and
+    `roofVent` to `ink.roofVent`, with empty floor and roof marks (`[]`).
+  - Obstacle: base fill falls back to its kind-based palette ink (`fence`, `wall`, `glass`,
+    `pipe`, `hedge`, `ruin`, `trunk`, `rock`, `crates`), with `focalRim: null`.
+  - Ground / lighting / marks: no ground surface or decorative marks are added, and lighting
+    defaults to ambient; ground falls back to `ink.ground`.
+  - Unknown swatch names: safely fall back to the neutral role color for that element
+    (unknown wall swatch -> `ink.wall`, unknown ground swatch -> `ink.ground`).
+- **Zero gameplay impact:** Appearance-only metadata never alters collision shapes (`shapeOf`),
+  sight, portals, navigation clearance, or simulation RNG/IDs.
 
 Like cell class, none of these may change passability. Decoration never alters
 collision, sight or navigation ([56.2](56.2-ground-decals.md)). Destruction

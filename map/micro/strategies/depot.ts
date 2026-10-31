@@ -13,10 +13,41 @@ import { CONTAINER_ROW } from '../placeables/container-row.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
 import { createDepotExperimentCanvas } from '../experiments/depot-canvas.ts';
 import { portalStands } from '../portals.ts';
+
+/**
+ * Authored minimal appearance descriptor for industrial depot warehouses (41.2 Step 3 / #584).
+ * Uses documented swatches from 11.1 / 29.4:
+ * - cool concrete floor (`concrete`) and oxidized metal walls (`metal`)
+ * - legacy storefront teal roof (`storefrontTeal`) with weathered coral rim (`weatheredCoral`)
+ * - commercial roof signage (`weatheredCoral` on `structuralVoid` with `dirtyCream` stripe)
+ * - long-term neglect (`fadedPanel`, `roofDrainStain`, `floorStain`)
+ */
+export const DEPOT_WAREHOUSE_APPEARANCE: BuildingAppearance = Object.freeze({
+  floorMaterial: 'concrete',
+  wallMaterial: 'metal',
+  roofPaint: 'storefrontTeal',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'weatheredCoral',
+    backing: 'structuralVoid',
+    stripe: 'dirtyCream',
+    dx: 28,
+    dy: 16,
+    w: 120,
+    h: 24,
+  },
+  neglect: {
+    fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
+    roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
+    floorStain: { dx: 155, dy: 70, w: 46, h: 28 },
+  },
+});
 
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -163,7 +194,7 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
     if (!experiment && brief.portals.length && !yard.has(key(x - AISLE, y - AISLE))) continue;
     const label = `depot-warehouse-${warehouses + 1}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
-    const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed }, size));
+    const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed, appearance: DEPOT_WAREHOUSE_APPEARANCE, shelfAppearance: { material: 'oxidizedMetal' } }, size));
     const { design, allocation, realization, rejected } = built.details;
     if (experiment && !place(label, u, v, built)) continue;
     warehouses++;

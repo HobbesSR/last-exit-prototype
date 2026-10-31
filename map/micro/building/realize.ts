@@ -1,6 +1,7 @@
 import { compareCells } from '../../kernel/cell.ts';
 import { isCellSize } from '../../kernel/scale.ts';
 import type { ElementRoof, ElementTemplate } from '../../../shared/map/element.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
 import { ROOF_OVERHANG } from '../../../shared/view.ts';
 import { deriveBuildingBoundaries } from './boundaries.ts';
 import type { BuildingBoundary } from './boundaries.ts';
@@ -41,6 +42,8 @@ export interface BuildingRealizationOptions {
   widths?: Record<string, number>;
   /** Theme of the ground decals at outside doors and windows (56.2); `false` emits none. Defaults to `plain`. */
   decalTheme?: string | false;
+  /** Optional presentation appearance descriptor (29.4, 41.2, 52). */
+  appearance?: BuildingAppearance | undefined;
 }
 export interface BuildingRealization extends BuildingOpeningResult {
   boundaries: BuildingBoundary[];
@@ -145,6 +148,7 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
     encloses: encloses && isRectangular,
     parts,
     ...(roofs.length ? { roofs } : {}),
+    ...(options.appearance ? { appearance: { building: structuredClone(options.appearance) } } : {}),
   };
   const marked = options.decalTheme === false ? [] : result.openings.filter(marksOpening);
   if (marked.length) {

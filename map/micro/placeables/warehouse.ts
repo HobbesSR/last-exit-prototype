@@ -4,7 +4,7 @@ import type { BuildingRealization } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign, BuildingSide } from '../building/design.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
-import type { Box } from '../../../shared/types.ts';
+import type { Box, BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
 import { oriented } from './frame.ts';
 import type { Placeable } from './placeable.ts';
 
@@ -24,11 +24,11 @@ const SHELF_INSET = 0.2;
  * every aisle is open to a contestant and the doors open onto clear ends. A floor shorter than
  * 5 cells has none.
  */
-function shelves(size: number, alongX: boolean, u0: number, length: number, v0: number, v1: number): ElementTemplate['parts'] {
+function shelves(size: number, alongX: boolean, u0: number, length: number, v0: number, v1: number, shelfAppearance?: ObstacleAppearance): ElementTemplate['parts'] {
   const box = oriented(size, alongX), parts: ElementTemplate['parts'] = [];
   if (length < 5) return parts;
   for (let k = v0 + 2; k + 3 <= v1; k += 3)
-    parts.push({ part: 'obstacle', shape: box(u0 + 2, k + SHELF_INSET, length - 4, 1 - 2 * SHELF_INSET), kind: 'container' });
+    parts.push({ part: 'obstacle', shape: box(u0 + 2, k + SHELF_INSET, length - 4, 1 - 2 * SHELF_INSET), kind: 'container', ...(shelfAppearance ? { appearance: shelfAppearance } : {}) });
   return parts;
 }
 
@@ -57,7 +57,7 @@ export type Warehouse = { design: BuildingDesign; allocation: BuildingAllocation
  * door from outside. Each design passed over is named in `rejected` with why. Missed openings
  * are guidance and stay as misses (M29). Shelves stand on the floor.
  */
-function warehouse(size: number, w: number, h: number, alongX: boolean, seed: number): Warehouse {
+function warehouse(size: number, w: number, h: number, alongX: boolean, seed: number, appearance?: BuildingAppearance, shelfAppearance?: ObstacleAppearance): Warehouse {
   const area = w * h, cells = Array.from({ length: area }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
   const ends: readonly BuildingSide[] = alongX ? ['W', 'E'] : ['N', 'S'];
   const rejected: Warehouse['rejected'] = [];
@@ -79,7 +79,7 @@ function warehouse(size: number, w: number, h: number, alongX: boolean, seed: nu
     const allocated = allocateBuilding(asked, cells, { seed });
     if (!allocated.ok) { reject(allocated.reason); continue; }
     const { design, allocation } = allocated;
-    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, corners: 'horizontal', decalTheme: 'depot' });
+    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, corners: 'horizontal', decalTheme: 'depot', ...(appearance ? { appearance } : {}) });
     if (!realization.template || realization.issues.length) { reject(realization.issues.join(' ') || 'it could not be realized'); continue; }
     const exits = realization.openings.filter(({ kind, a, b }) => kind === 'door' && (a === OUTSIDE || b === OUTSIDE));
     if (exits.length < 2) { reject(`${exits.length} door${exits.length === 1 ? '' : 's'} out, fewer than two`); continue; }
@@ -96,7 +96,7 @@ function warehouse(size: number, w: number, h: number, alongX: boolean, seed: nu
     const floor = allocation.spaces.find(space => space.id === 'floor')!.cells;
     const us = floor.map(c => alongX ? c.x : c.y), vs = floor.map(c => alongX ? c.y : c.x), u0 = Math.min(...us);
     const template = { ...realization.template, parts: [...realization.template.parts,
-      ...shelves(size, alongX, u0, Math.max(...us) + 1 - u0, Math.min(...vs), Math.max(...vs) + 1)] };
+      ...shelves(size, alongX, u0, Math.max(...us) + 1 - u0, Math.min(...vs), Math.max(...vs) + 1, shelfAppearance)] };
     return { design, allocation, realization, template, rejected };
   }
   // One room with a door on each end always fits a box at least 5 cells a side. A miss here is a defect, not a new fallback.
@@ -111,6 +111,10 @@ export interface WarehouseParams {
   alongX: boolean;
   /** Orders the designs and seeds their allocation. */
   seed: number;
+  /** Optional presentation appearance descriptor (29.4, 41.2, 52). */
+  appearance?: BuildingAppearance | undefined;
+  /** Optional presentation appearance descriptor for shelf obstacles (29.4, 41.2, 52). */
+  shelfAppearance?: ObstacleAppearance | undefined;
 }
 
 /** What a warehouse's build reports beyond its geometry, for tools: its design and the designs passed over. */
@@ -159,8 +163,8 @@ export const WAREHOUSE = Object.freeze<Placeable<WarehouseParams, WarehouseDetai
     { w: 10, h: 8, alongX: true, seed: 7 },
     { w: 5, h: 5, alongX: false, seed: 0 },
   ],
-  build({ w, h, alongX, seed }: WarehouseParams, cellSize: number) {
-    const { template, ...details } = warehouse(cellSize, w, h, alongX, seed);
+  build({ w, h, alongX, seed, appearance, shelfAppearance }: WarehouseParams, cellSize: number) {
+    const { template, ...details } = warehouse(cellSize, w, h, alongX, seed, appearance, shelfAppearance);
     return { elements: [{ x: 0, y: 0, template }], demand: { body: { w, h }, clear: doorsteps(details.realization, w, h) }, details };
   },
 });

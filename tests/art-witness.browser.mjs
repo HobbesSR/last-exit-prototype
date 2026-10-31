@@ -114,7 +114,26 @@ function createWitnessScene() {
   //    and a declared cell-grid roof `annex-roof` (x: 1080..1160, y: 580..700) to exercise both roof branches.
   const buildings = [
     { id: 'floor-pad', x: 190, y: 575, w: 600, h: 175 },
-    { id: 'shop-room', x: 810, y: 580, w: 240, h: 170 },
+    {
+      id: 'shop-room',
+      x: 810,
+      y: 580,
+      w: 240,
+      h: 170,
+      appearance: {
+        floorMaterial: 'warmMasonry',
+        wallMaterial: 'warmMasonry',
+        roofPaint: 'storefrontTeal',
+        roofRim: 'weatheredCoral',
+        interiorTrim: 'storefrontTeal',
+        roofSign: { color: 'weatheredCoral', backing: 'structuralVoid', stripe: 'dirtyCream', dx: 28, dy: 16, w: 120, h: 24 },
+        neglect: {
+          fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
+          roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
+          floorStain: { dx: 155, dy: 70, w: 46, h: 28 },
+        },
+      },
+    },
     { id: 'annex-room', x: 1060, y: 580, w: 120, h: 120 },
   ];
   // `floor-pad` has a declared roof with 0 cells so `coveredBuildingIds` skips generating a plain roof over the open floor sample strip,
@@ -148,8 +167,8 @@ function createWitnessScene() {
 
   // Storefront wall segments and window obstacle on `shop-room` (41.2 step 2 retail frontage slice, #585/#583):
   obstacles.push({ id: 'shop-window', kind: 'window', x: 830, y: 576, w: 44, h: 12, buildingId: 'shop-room' });
-  obstacles.push({ id: 'shop-wall-n-mid', kind: 'building', x: 874, y: 575, w: 36, h: 14, buildingId: 'shop-room' });
-  obstacles.push({ id: 'shop-wall-n-east', kind: 'building', x: 950, y: 575, w: 100, h: 14, buildingId: 'shop-room' });
+  obstacles.push({ id: 'shop-wall-n-mid', kind: 'building', x: 874, y: 575, w: 36, h: 14, buildingId: 'shop-room', appearance: { focalRim: { side: 'N', color: 'sodiumAmber' } } });
+  obstacles.push({ id: 'shop-wall-n-east', kind: 'building', x: 950, y: 575, w: 100, h: 14, buildingId: 'shop-room', appearance: { focalRim: { side: 'N', color: 'sodiumAmber' } } });
   obstacles.push({ id: 'shop-wall-e', kind: 'building', x: 1036, y: 589, w: 14, h: 161, buildingId: 'shop-room' });
   obstacles.push({ id: 'shop-wall-s', kind: 'building', x: 810, y: 736, w: 226, h: 14, buildingId: 'shop-room' });
 
@@ -199,25 +218,6 @@ function createWitnessScene() {
     surfaces: [
       { id: 'service-lane-apron', bounds: { x: 845, y: 495, w: 320, h: 60 }, material: 'slatePaving', weathered: true, curb: true },
     ],
-    buildings: {
-      'shop-room': {
-        floorMaterial: 'warmMasonry',
-        wallMaterial: 'warmMasonry',
-        roofPaint: 'storefrontTeal',
-        roofRim: 'weatheredCoral',
-        interiorTrim: 'storefrontTeal',
-        roofSign: { color: 'weatheredCoral', backing: 'structuralVoid', stripe: 'dirtyCream', dx: 28, dy: 16, w: 120, h: 24 },
-        neglect: {
-          fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
-          roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
-          floorStain: { x: 965, y: 650, w: 46, h: 28 },
-        },
-      },
-    },
-    obstacles: {
-      'shop-wall-n-mid': { focalRim: { side: 'N', color: 'sodiumAmber' } },
-      'shop-wall-n-east': { focalRim: { side: 'N', color: 'sodiumAmber' } },
-    },
     commercial: [
       { id: 'ochre-parking-stripes', kind: 'parking-stripes', bounds: { x: 855, y: 498, w: 150, h: 36 }, color: 'awningsYellow', count: 3 },
       { id: 'coral-awning', kind: 'awning', bounds: { x: 850, y: 536, w: 90, h: 18 }, color: 'weatheredCoral', stripeColor: 'dirtyCream' },
@@ -1184,6 +1184,67 @@ try {
     sightPreservedExterior: sliceFullExt.visionDigest === sliceNoWearExt.visionDigest,
     sightPreservedInterior: sliceFullInt.visionDigest === sliceNoWearInt.visionDigest,
   };
+
+  // 4. Stamped obstacle appearance on an unstyled map without map.appearance (e.g. depot warehouse shelf, #584):
+  const depotShelfCheck = await page.evaluate(async () => {
+    const f = window.witness, s = f.scene;
+    const priorMap = f.map;
+    // Unstyled map with NO map.appearance and NO buildings: containers sit on open ground in view.
+    const depotMap = {
+      seed: 99,
+      width: 2000,
+      height: 2000,
+      buildings: [],
+      roofs: [],
+      obstacles: [
+        { id: 'wh-shelf', kind: 'container', x: 400, y: 300, w: 40, h: 20, appearance: { material: 'oxidizedMetal' } },
+        { id: 'wh-crate', kind: 'container', color: 0, x: 400, y: 340, w: 40, h: 20 },
+      ],
+      modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [], streets: [],
+    };
+    f.map = depotMap;
+    s.recordStatic(depotMap);
+    await f.settle({
+      palette: 'signature',
+      lighting: true,
+      wear: true,
+      directed: true,
+      fog: false,
+      camera: { x: 420, y: 330, zoom: 1 },
+      selfPos: { x: 600, y: 380 },
+    });
+    // Sample container interior fill (x = x + 20, y = y + 14, clear of top highlight stroke at y + 7):
+    const shelfPx = f.pixelAtWorld(420, 314);
+    const cratePx = f.pixelAtWorld(420, 354);
+    f.map = priorMap;
+    s.recordStatic(priorMap);
+    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+    return { shelfPx, cratePx };
+  });
+
+  const { resolveObstacleAppearance } = await import('../public/appearance.js');
+  const expectedShelfFill = resolveObstacleAppearance(
+    { id: 'wh-shelf', kind: 'container', x: 400, y: 300, w: 40, h: 20, appearance: { material: 'oxidizedMetal' } },
+    null,
+    { palette: 'signature', lighting: true, wear: true }
+  ).fill;
+  const expectedCrateFill = THEMES.signature.colors.crates[0];
+
+  assert.equal(
+    depotShelfCheck.shelfPx.hex,
+    expectedShelfFill,
+    'stamped shelf on map without map.appearance resolves its authored oxidizedMetal fill in the arena scene'
+  );
+  assert.equal(
+    depotShelfCheck.cratePx.hex,
+    expectedCrateFill,
+    'unstyled crate on map without map.appearance resolves to standard palette crateFill'
+  );
+  assert.notEqual(
+    depotShelfCheck.shelfPx.hex,
+    depotShelfCheck.cratePx.hex,
+    'stamped shelf differs from unstyled crate fill'
+  );
 
   // 6. Analyze WebGL pixel measurements for all special obstacle branches, glass alpha, and #587 comment 6317 screening candidates.
   const branchSummary = [];

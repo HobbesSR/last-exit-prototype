@@ -77,30 +77,25 @@ test('sampleSpatialLight blends normalized influences with a neutral remainder a
 });
 
 test('resolveBuildingAppearance and resolveObstacleAppearance compose in fixed order and preserve collision shapes', () => {
-  const building = { id: 'shop-room', x: 810, y: 580, w: 240, h: 170 };
-  const wallNorth = { id: 'shop-wall-n-east', kind: 'building', buildingId: 'shop-room', x: 950, y: 574, w: 100, h: 16 };
+  const buildingAppearance = {
+    floorMaterial: 'warmMasonry',
+    wallMaterial: 'warmMasonry',
+    roofPaint: 'storefrontTeal',
+    roofRim: 'weatheredCoral',
+    interiorTrim: 'storefrontTeal',
+    roofSign: { color: 'weatheredCoral', backing: 'structuralVoid', stripe: 'dirtyCream', dx: 28, dy: 16, w: 120, h: 24 },
+    neglect: {
+      fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
+      roofDrainStain: { dx: 168, dy: 42, w: 44, h: 28 },
+      floorStain: { dx: 150, dy: 70, w: 46, h: 28 },
+    },
+  };
+  const building = { id: 'shop-room', x: 810, y: 580, w: 240, h: 170, appearance: buildingAppearance };
+  const wallNorth = { id: 'shop-wall-n-east', kind: 'building', buildingId: 'shop-room', x: 950, y: 574, w: 100, h: 16, appearance: { focalRim: { side: 'N', color: 'sodiumAmber' } } };
   const wallSouth = { id: 'shop-wall-s', kind: 'building', buildingId: 'shop-room', x: 810, y: 736, w: 240, h: 16 };
   const shapeBefore = structuredClone(shapeOf(wallNorth));
 
   const mapAppearance = {
-    buildings: {
-      'shop-room': {
-        floorMaterial: 'warmMasonry',
-        wallMaterial: 'warmMasonry',
-        roofPaint: 'storefrontTeal',
-        roofRim: 'weatheredCoral',
-        interiorTrim: 'storefrontTeal',
-        roofSign: { color: 'weatheredCoral', backing: 'structuralVoid', stripe: 'dirtyCream', dx: 28, dy: 16, w: 120, h: 24 },
-        neglect: {
-          fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
-          roofDrainStain: { dx: 168, dy: 42, w: 44, h: 28 },
-          floorStain: { x: 960, y: 650, w: 46, h: 28 },
-        },
-      },
-    },
-    obstacles: {
-      'shop-wall-n-east': { focalRim: { side: 'N', color: 'sodiumAmber' } },
-    },
     lighting: {
       fields: [
         { id: 'cobalt-intersection', bounds: { x: 720, y: 360, w: 440, h: 195 }, tint: 'cobaltBlue', intensity: 0.42, falloff: 70 },
@@ -110,7 +105,7 @@ test('resolveBuildingAppearance and resolveObstacleAppearance compose in fixed o
   };
 
   // Neutral fallback when appearance metadata is omitted:
-  const neutral = resolveBuildingAppearance(building, null, { palette: 'signature', lighting: true, wear: true });
+  const neutral = resolveBuildingAppearance({ id: 'shop-room', x: 810, y: 580, w: 240, h: 170 }, null, { palette: 'signature', lighting: true, wear: true });
   const styledFull = resolveBuildingAppearance(building, mapAppearance, { palette: 'signature', lighting: true, wear: true });
   const styledNoLight = resolveBuildingAppearance(building, mapAppearance, { palette: 'signature', lighting: false, wear: true });
   const styledNoWear = resolveBuildingAppearance(building, mapAppearance, { palette: 'signature', lighting: true, wear: false });
@@ -124,10 +119,11 @@ test('resolveBuildingAppearance and resolveObstacleAppearance compose in fixed o
   assert.ok(styledNoWear.roofMarks.some(m => m.layer === 'commercial-sign'), 'wear=false keeps commercial roof sign');
 
   // North wall has focalRim authored per obstacle; south wall does not:
-  const obsNorthFull = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: true, wear: true });
-  const obsNorthNoLight = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: false, wear: true });
-  const obsNorthNoWear = resolveObstacleAppearance(wallNorth, mapAppearance, { palette: 'signature', lighting: true, wear: false });
-  const obsSouthFull = resolveObstacleAppearance(wallSouth, mapAppearance, { palette: 'signature', lighting: true, wear: true });
+  const buildingsById = new Map([[building.id, building]]);
+  const obsNorthFull = resolveObstacleAppearance(wallNorth, mapAppearance, { buildingsById, palette: 'signature', lighting: true, wear: true });
+  const obsNorthNoLight = resolveObstacleAppearance(wallNorth, mapAppearance, { buildingsById, palette: 'signature', lighting: false, wear: true });
+  const obsNorthNoWear = resolveObstacleAppearance(wallNorth, mapAppearance, { buildingsById, palette: 'signature', lighting: true, wear: false });
+  const obsSouthFull = resolveObstacleAppearance(wallSouth, mapAppearance, { buildingsById, palette: 'signature', lighting: true, wear: true });
 
   assert.ok(obsNorthFull.focalRim, 'exposed north wall receives amber focal rim');
   assert.equal(obsNorthFull.focalRim.side, 'N', 'focal rim side matches authored descriptor');
