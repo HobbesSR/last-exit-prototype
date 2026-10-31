@@ -1189,32 +1189,61 @@ try {
   const depotShelfCheck = await page.evaluate(async () => {
     const f = window.witness, s = f.scene;
     const priorMap = f.map;
+    // Unstyled map with NO map.appearance and NO buildings: containers sit on open ground in view.
     const depotMap = {
       seed: 99,
       width: 2000,
       height: 2000,
-      buildings: [{ id: 'depot-wh', x: 800, y: 600, w: 200, h: 200, appearance: { wallMaterial: 'coldMetal' } }],
+      buildings: [],
+      roofs: [],
       obstacles: [
-        { id: 'wh-shelf', kind: 'container', x: 840, y: 640, w: 40, h: 20, appearance: { material: 'oxidizedMetal' }, buildingId: 'depot-wh' },
-        { id: 'wh-crate', kind: 'container', x: 840, y: 700, w: 40, h: 20 },
+        { id: 'wh-shelf', kind: 'container', x: 400, y: 300, w: 40, h: 20, appearance: { material: 'oxidizedMetal' } },
+        { id: 'wh-crate', kind: 'container', color: 0, x: 400, y: 340, w: 40, h: 20 },
       ],
       modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [], streets: [],
     };
     f.map = depotMap;
     s.recordStatic(depotMap);
-    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 860, y: 650 } });
-    const shelfPx = f.pixelAtWorld(860, 650).hex;
-    const cratePx = f.pixelAtWorld(860, 710).hex;
+    await f.settle({
+      palette: 'signature',
+      lighting: true,
+      wear: true,
+      directed: true,
+      fog: false,
+      camera: { x: 420, y: 330, zoom: 1 },
+      selfPos: { x: 600, y: 380 },
+    });
+    // Sample container interior fill (x = x + 20, y = y + 14, clear of top highlight stroke at y + 7):
+    const shelfPx = f.pixelAtWorld(420, 314);
+    const cratePx = f.pixelAtWorld(420, 354);
     f.map = priorMap;
     s.recordStatic(priorMap);
     await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
     return { shelfPx, cratePx };
   });
 
+  const { resolveObstacleAppearance } = await import('../public/appearance.js');
+  const expectedShelfFill = resolveObstacleAppearance(
+    { id: 'wh-shelf', kind: 'container', x: 400, y: 300, w: 40, h: 20, appearance: { material: 'oxidizedMetal' } },
+    null,
+    { palette: 'signature', lighting: true, wear: true }
+  ).fill;
+  const expectedCrateFill = THEMES.signature.colors.crates[0];
+
+  assert.equal(
+    depotShelfCheck.shelfPx.hex,
+    expectedShelfFill,
+    'stamped shelf on map without map.appearance resolves its authored oxidizedMetal fill in the arena scene'
+  );
+  assert.equal(
+    depotShelfCheck.cratePx.hex,
+    expectedCrateFill,
+    'unstyled crate on map without map.appearance resolves to standard palette crateFill'
+  );
   assert.notEqual(
-    depotShelfCheck.shelfPx,
-    depotShelfCheck.cratePx,
-    'stamped shelf on map without map.appearance resolves its distinct material fill from plain unstyled container'
+    depotShelfCheck.shelfPx.hex,
+    depotShelfCheck.cratePx.hex,
+    'stamped shelf differs from unstyled crate fill'
   );
 
   // 6. Analyze WebGL pixel measurements for all special obstacle branches, glass alpha, and #587 comment 6317 screening candidates.
