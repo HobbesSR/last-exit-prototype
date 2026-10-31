@@ -105,7 +105,15 @@ export function findRegionRoute(mask: RegionMask, blockers: readonly Shape[], a:
     return walkable.get(i)!;
   };
   const nearby: number[] = [];
-  for (let i = 0; i < width * height; i++) if (Math.hypot(point(i).x - a.x, point(i).y - a.y) <= step * 3) nearby.push(i);
+  // Only this collar can be within three steps. Preserve the original row-major
+  // candidate order and exact distance filter, including off-grid endpoints.
+  const column = (a.x - box.x) / step, row = (a.y - box.y) / step;
+  const x0 = Math.max(0, Math.floor(column) - 4), x1 = Math.min(width - 1, Math.ceil(column) + 4);
+  const y0 = Math.max(0, Math.floor(row) - 4), y1 = Math.min(height - 1, Math.ceil(row) + 4);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = y * width + x;
+    if (Math.hypot(point(i).x - a.x, point(i).y - a.y) <= step * 3) nearby.push(i);
+  }
   nearby.sort((i, j) => Math.hypot(point(i).x - a.x, point(i).y - a.y) - Math.hypot(point(j).x - a.x, point(j).y - a.y));
   const queue: number[] = [], previous = new Map<number, number>();
   for (const i of nearby) if (free(i) && travelClear(mask, blockers, a, point(i), radius)) { queue.push(i); previous.set(i, -1); }
