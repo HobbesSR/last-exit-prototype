@@ -33,6 +33,9 @@ export { reachableRoofGroups } from './building/groups.ts';
 export type { BuildingRoofGroups } from './building/groups.ts';
 export type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 export { allocateBuilding } from './building/allocation.ts';
+export { buildServiceFrontage, RETAIL_FRONTAGE_APPEARANCE, SERVICE_FRONTAGE_SLICE_APPEARANCE } from './building/service-frontage.ts';
+export type { ServiceFrontageOptions, ServiceFrontageResult } from './building/service-frontage.ts';
+
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
 
 export { inheritBriefMargins, validateFillConstraints } from './margins.ts';

@@ -1,7 +1,7 @@
 import { transform } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { BaseGenerationContext } from './context.ts';
-import type { Box, Cell, BuildingId, Decal, GateId, NodeId, ObstacleKind, Vec2, World } from '../types.ts';
+import type { Box, Cell, BuildingAppearance, BuildingId, Decal, GateId, MapAppearance, NodeId, ObstacleAppearance, ObstacleKind, Vec2, World } from '../types.ts';
 
 /**
  * A placeable element: one named assembly of geometry — a building, a cover cluster, a checkpoint —
@@ -17,7 +17,7 @@ import type { Box, Cell, BuildingId, Decal, GateId, NodeId, ObstacleKind, Vec2, 
  * treats the stage order.
  */
 export type ElementPart =
-  | { part: 'obstacle'; shape: Shape; kind: ObstacleKind }
+  | { part: 'obstacle'; shape: Shape; kind: ObstacleKind; appearance?: ObstacleAppearance | undefined }
   | { part: 'gate'; x: World; y: World; w: World; h: World }
   /** A candidate loot position, offered to the objectives stage rather than filled here. */
   | { part: 'spot'; x: World; y: World }
@@ -57,6 +57,8 @@ export interface ElementTemplate {
   roofs?: ElementRoof[] | undefined;
   /** Ground markings at its doors and windows, local to the anchor. They take no id (56.2). */
   decals?: Decal[] | undefined;
+  /** Optional presentation descriptor: building/obstacle appearance, ground marks, or lighting. */
+  appearance?: BuildingAppearance | MapAppearance | undefined;
 }
 
 export interface Placement {
@@ -66,13 +68,108 @@ export interface Placement {
 }
 
 /** Stamp a template with its anchor at `x`,`y`, emitting every part into the map being generated. */
+
+function isMapAppearance(app: BuildingAppearance | MapAppearance): app is MapAppearance {
+  return 'surfaces' in app || 'commercial' in app || 'wear' in app || 'scars' in app || 'lighting' in app || 'buildings' in app || 'obstacles' in app;
+}
+
 export function placeElement(context: BaseGenerationContext, template: ElementTemplate, x: World, y: World, placement: Placement): void {
   const { map, nextId, shape, spots, reservations } = context;
   let owner: { buildingId: BuildingId } | undefined;
+  const buildingDesc: BuildingAppearance | undefined = template.appearance
+    ? (isMapAppearance(template.appearance)
+        ? (template.appearance.buildings?.main ?? template.appearance.buildings?.building ?? Object.values(template.appearance.buildings ?? {})[0])
+        : template.appearance)
+    : undefined;
   if (template.encloses) {
-    const building = { id: nextId('building-') as BuildingId, x, y, w: template.w, h: template.h, nodeId: placement.nodeId };
+    const building = {
+      id: nextId('building-') as BuildingId,
+      x,
+      y,
+      w: template.w,
+      h: template.h,
+      nodeId: placement.nodeId,
+      ...(buildingDesc ? { appearance: buildingDesc } : {}),
+    };
     map.buildings.push(building);
     owner = { buildingId: building.id };
+  }
+  if (template.appearance) {
+    if (isMapAppearance(template.appearance)) {
+      const app = template.appearance;
+      const target = (map.appearance ??= {});
+      if (app.surfaces?.length) {
+        (target.surfaces ??= []).push(...app.surfaces.map(s => ({
+          ...s,
+          bounds: { x: s.bounds.x + x, y: s.bounds.y + y, w: s.bounds.w, h: s.bounds.h },
+        })));
+      }
+      if (app.commercial?.length) {
+        (target.commercial ??= []).push(...app.commercial.map(c => ({
+          ...c,
+          bounds: { x: c.bounds.x + x, y: c.bounds.y + y, w: c.bounds.w, h: c.bounds.h },
+        })));
+      }
+      if (app.wear?.length) {
+        (target.wear ??= []).push(...app.wear.map(w => ({
+          ...w,
+          bounds: { x: w.bounds.x + x, y: w.bounds.y + y, w: w.bounds.w, h: w.bounds.h },
+        })));
+      }
+      if (app.scars?.length) {
+        (target.scars ??= []).push(...app.scars.map(s => ({
+          ...s,
+          bounds: { x: s.bounds.x + x, y: s.bounds.y + y, w: s.bounds.w, h: s.bounds.h },
+        })));
+      }
+      if (app.lighting?.fields?.length) {
+        const lighting = (target.lighting ??= {});
+        (lighting.fields ??= []).push(...app.lighting.fields.map(f => ({
+          ...f,
+          bounds: { x: f.bounds.x + x, y: f.bounds.y + y, w: f.bounds.w, h: f.bounds.h },
+          ...(f.focalEdge
+            ? {
+                focalEdge: {
+                  ...f.focalEdge,
+                  ...(f.focalEdge.x !== undefined ? { x: f.focalEdge.x + x } : {}),
+                  ...(f.focalEdge.y !== undefined ? { y: f.focalEdge.y + y } : {}),
+                  ...(f.focalEdge.rimLine
+                    ? {
+                        rimLine: {
+                          ...f.focalEdge.rimLine,
+                          x1: f.focalEdge.rimLine.x1 + x,
+                          y1: f.focalEdge.rimLine.y1 + y,
+                          x2: f.focalEdge.rimLine.x2 + x,
+                          y2: f.focalEdge.rimLine.y2 + y,
+                        },
+                      }
+                    : {}),
+                },
+              }
+            : {}),
+        })));
+      }
+      if (app.buildings) {
+        const bMap = (target.buildings ??= {});
+        const single = Object.keys(app.buildings).length === 1;
+        for (const [key, desc] of Object.entries(app.buildings)) {
+          if (owner && (key === 'main' || key === 'building' || key === owner.buildingId || single)) {
+            bMap[owner.buildingId] = desc;
+          } else {
+            bMap[key] = desc;
+          }
+        }
+      }
+      if (app.obstacles) {
+        const oMap = (target.obstacles ??= {});
+        for (const [key, desc] of Object.entries(app.obstacles)) {
+          oMap[key] = desc;
+        }
+      }
+    } else if (owner && buildingDesc) {
+      const target = (map.appearance ??= {});
+      (target.buildings ??= {})[owner.buildingId] = buildingDesc;
+    }
   }
   if (template.roofs?.length) {
     if (!map.roofs) map.roofs = [];
@@ -103,7 +200,13 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
   }
   if (template.decals?.length) (map.decals ??= []).push(...template.decals.map(d => ({ ...d, x: x + d.x, y: y + d.y })));
   for (const part of template.parts) {
-    if (part.part === 'obstacle') shape(transform(part.shape, x, y), part.kind, { ...owner });
+    if (part.part === 'obstacle') {
+      const o = shape(transform(part.shape, x, y), part.kind, { ...owner, ...(part.appearance ? { appearance: part.appearance } : {}) });
+      if (part.appearance) {
+        const target = (map.appearance ??= {});
+        (target.obstacles ??= {})[o.id] = part.appearance;
+      }
+    }
     else if (part.part === 'gate') map.gates.push({ id: nextId('door-') as GateId, x: x + part.x, y: y + part.y, w: part.w, h: part.h, open: false, locked: !!placement.locked, kind: 'door', ...owner });
     else if (part.part === 'spot') spots.push({ x: x + part.x, y: y + part.y, nodeId: placement.nodeId, ...owner });
     else reservations.push({ x: x + part.x, y: y + part.y, w: part.w, h: part.h });

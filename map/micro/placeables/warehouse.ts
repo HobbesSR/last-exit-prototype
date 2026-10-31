@@ -4,7 +4,7 @@ import type { BuildingRealization } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign, BuildingSide } from '../building/design.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
-import type { Box } from '../../../shared/types.ts';
+import type { Box, BuildingAppearance } from '../../../shared/types.ts';
 import { oriented } from './frame.ts';
 import type { Placeable } from './placeable.ts';
 
@@ -57,7 +57,7 @@ export type Warehouse = { design: BuildingDesign; allocation: BuildingAllocation
  * door from outside. Each design passed over is named in `rejected` with why. Missed openings
  * are guidance and stay as misses (M29). Shelves stand on the floor.
  */
-function warehouse(size: number, w: number, h: number, alongX: boolean, seed: number): Warehouse {
+function warehouse(size: number, w: number, h: number, alongX: boolean, seed: number, appearance?: BuildingAppearance): Warehouse {
   const area = w * h, cells = Array.from({ length: area }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
   const ends: readonly BuildingSide[] = alongX ? ['W', 'E'] : ['N', 'S'];
   const rejected: Warehouse['rejected'] = [];
@@ -79,7 +79,7 @@ function warehouse(size: number, w: number, h: number, alongX: boolean, seed: nu
     const allocated = allocateBuilding(asked, cells, { seed });
     if (!allocated.ok) { reject(allocated.reason); continue; }
     const { design, allocation } = allocated;
-    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, corners: 'horizontal', decalTheme: 'depot' });
+    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, corners: 'horizontal', decalTheme: 'depot', ...(appearance ? { appearance } : {}) });
     if (!realization.template || realization.issues.length) { reject(realization.issues.join(' ') || 'it could not be realized'); continue; }
     const exits = realization.openings.filter(({ kind, a, b }) => kind === 'door' && (a === OUTSIDE || b === OUTSIDE));
     if (exits.length < 2) { reject(`${exits.length} door${exits.length === 1 ? '' : 's'} out, fewer than two`); continue; }
@@ -111,6 +111,8 @@ export interface WarehouseParams {
   alongX: boolean;
   /** Orders the designs and seeds their allocation. */
   seed: number;
+  /** Optional presentation appearance descriptor (29.4, 41.2, 52). */
+  appearance?: BuildingAppearance | undefined;
 }
 
 /** What a warehouse's build reports beyond its geometry, for tools: its design and the designs passed over. */
@@ -159,8 +161,8 @@ export const WAREHOUSE = Object.freeze<Placeable<WarehouseParams, WarehouseDetai
     { w: 10, h: 8, alongX: true, seed: 7 },
     { w: 5, h: 5, alongX: false, seed: 0 },
   ],
-  build({ w, h, alongX, seed }: WarehouseParams, cellSize: number) {
-    const { template, ...details } = warehouse(cellSize, w, h, alongX, seed);
+  build({ w, h, alongX, seed, appearance }: WarehouseParams, cellSize: number) {
+    const { template, ...details } = warehouse(cellSize, w, h, alongX, seed, appearance);
     return { elements: [{ x: 0, y: 0, template }], demand: { body: { w, h }, clear: doorsteps(details.realization, w, h) }, details };
   },
 });

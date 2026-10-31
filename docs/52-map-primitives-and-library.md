@@ -26,7 +26,7 @@ never carried by cell class. Primitive sets are deferred (16).
 
 The art direction ([11.1](11.1-world-and-art-direction.md) §4) proposes that
 appearance carry five independent dimensions rather than one generic damage
-style (#584, not designed yet). They are what primitive sets would grow into:
+style (#584, defined in `shared/types.ts` for the step-2/3 slice). They are what primitive sets would grow into:
 - **District identity:** the neighborhood archetype and its palette.
 - **Architectural identity:** a building's original function and era, which
   choose its components, materials, colors and signage ([56](56-buildings.md)).
