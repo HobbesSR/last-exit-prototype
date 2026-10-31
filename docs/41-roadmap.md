@@ -88,7 +88,7 @@ strategy built on the micro SDK ([50](50-map-generation.md)). What has shipped:
 
 #### Region population epic #529
 
-Checkpoint as of 2026-10-28; defer to newer direction and status on Forgejo
+Checkpoint as of 2026-10-30; defer to newer direction and status on Forgejo
 epic #529 and its children.
 
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers
@@ -125,6 +125,42 @@ loot access and added generation cost are explicit in
 shares remain high. Stop at this one-family capability: general #649 growth,
 macro boundary/portal control and other builder adoptions remain separate
 candidates, with no main lever or automatic successor selected.
+
+After the bounded macro curtain experiment (#705 / PR #713), Corey's follow-up
+selects a different missing capability: independently authored content from
+different regions incidentally joining across unguaranteed seams, commonly
+enough to encounter during traversal. The source direction and the perimeter-moat
+hypothesis are recorded in [17.2.11](17.2.11-navigation-structure-direction.md).
+Two open tasks now own the concrete gaps:
+
+- **#716:** audit all registered builders' edge policies, then deliver and measure
+  one two-family incidental cross-region obstacle capability. Start here; local
+  bypass rings may suppress behavior already permitted by 20.6. Preserve actual
+  access obligations rather than a walk around every piece or perimeter.
+- **#717:** attribute geometry-empty outcomes, then deliver bounded useful
+  fallback for two representative non-open families before viable themed fill
+  becomes empty. Explicit open/zero-content intent and genuine no-fit cases stay
+  valid. This differs from residual infill after successful primary composition.
+
+All registered types have their own strategies, including market; the original
+epic's placeholder claims are historical. There is no universal canvas moat,
+but several strategies impose additional rings, bay setbacks or boundary
+filters. Measure their effects instead of assuming they are all redundant.
+Prioritize #716; #717's reason inventory can accompany it, with overlapping
+builder edits sequenced explicitly. Acceptance needs fixed-panel ordinary
+traversal encounter denominators and visible misses, not only touching fixtures,
+piece counts or an invented detour-p90 target. No implementation is claimed here.
+
+Existing owners are recalibrated rather than duplicated: #531 retains residual
+composition after primary success; #535 retains genuinely missing decomposition
+and Building SDK authorship. Their delivered installments remain delivered.
+#649 growth is optional, not a prerequisite for edge contact. #707's contrasting
+static family is deferred unless it adds a distinct capability beyond #716.
+#581/#586 keep staged world/art and landmark scope; final art direction is not a
+prerequisite for these functional stand-ins. Park variation #706 remains deferred
+refinement. Reassess inward-ground changes only if current guarantees prevent
+the selected outcome. Stop at each new task's measured boundary before expanding
+to more families or frameworks.
 
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
