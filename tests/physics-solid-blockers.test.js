@@ -80,7 +80,8 @@ test('queries preserve cached statics and real world snapshots isolate zero-angl
     assert.strictEqual(before[0], cached[0], 'static descriptors remain borrowed from the cache');
     firstContact({ x: 10, y: 30 }, { x: 50, y: 30 }, before, 0);
     assert.deepEqual(staticShapes(game.map, false), original);
-    before.at(-1).points[0].x = -999;
+    // A body's spec is frozen and shared, so a query result cannot edit the world through it (#655).
+    assert.throws(() => { before.at(-1).points[0].x = -999; }, TypeError);
     assert.notEqual(solidBlockers(game).at(-1).points[0].x, -999);
     assert.deepEqual(world.snapshot().bodies[0].spec.shape.vertices[0], { x: -4, y: -4 });
     assert.deepEqual(vertices[0], { x: -4, y: -4 });

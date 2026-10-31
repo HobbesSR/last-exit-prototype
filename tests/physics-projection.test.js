@@ -80,7 +80,7 @@ test('projection gates actors, prop bounds, item associations and both tether en
     const orphan = body('item:orphan', 120, 200, undefined, { itemId: 'orphan' });
     frame.bodies = [ownBody, nearBody, farBody, edge, hidden, loot, hiddenLoot, orphan];
     frame.tethers = [{ id: 'shown', a: ownBody.id, b: nearBody.id, anchor: 'private' }, { id: 'hidden', a: ownBody.id, b: farBody.id }, { id: 'orphan', a: ownBody.id, b: orphan.id }];
-    frame.physics.settings.secret = 'settings-secret';
+    frame.physics.settings = { ...frame.physics.settings, secret: 'settings-secret' };
     frame.physics.world.pending.forces.push({ id: 'actor:far', value: { x: 123, y: 0 } });
     const view = playerView(game, frame, own.id);
     assert.deepEqual(view.bodies.map(b => b.id), [ownBody.id, nearBody.id, edge.id, loot.id]);

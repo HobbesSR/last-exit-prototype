@@ -65,8 +65,9 @@ Reusable epic kickoff (replace `#N` with the epic number):
 | Physics ownership, replay/content compatibility, conflicting requirements, uncertain performance causes | Lead; GPT-6.1 Sol (`gpt-6.1-sol`) preferred for deep reasoning and broad context |
 | Creative direction and imagining the end result and physical behavior of systems | Lead; GPT-6 Astra (`gpt-6-astra`) preferred when choosing a GPT lead |
 | Algorithmic/spatial logic, non-trivial state machines, complex refactors within defined contracts | GPT-6.1 Sol, medium (`gpt-6.1-sol`) |
-| Implement an agreed inventory gesture, extract a specified adapter, add meaningful tests for a defined contract | GPT-6.1 Terra, medium (`gpt-6.1-terra`) |
+| Implement an agreed inventory gesture, extract a specified adapter, add meaningful tests for a defined contract | GPT-6.1 Sol, medium (`gpt-6.1-sol`); GPT-6 Luna, medium (`gpt-6-luna`) when fully specified and mechanical |
 | Bounded call-site inventory, mechanical edits, documentation updates with settled facts | GPT-6 Luna, low/medium (`gpt-6-luna`) |
+| Computer and browser use: driving and testing tools, labs, HUD and other GUI elements through screenshots; reading images, art references and documents | GPT-6.1 Terra (`gpt-6.1-terra`); it reports findings, and fixes route by the rows above. Not for live game playing |
 | Integration review and decisions affecting multiple tasks | Lead |
 
 These are routing preferences, not guaranteed price or availability claims. Use
