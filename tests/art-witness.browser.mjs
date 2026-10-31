@@ -1322,6 +1322,7 @@ try {
     });
     const strikerTintUnlit = strikerArea1.sprite.tintTopLeft;
     const scoutTintUnlit = scoutArea2.sprite.tintTopLeft;
+    const selfTintUnlit = s.actors.get('self').sprite.tintTopLeft;
     const propArea1Unlit = f.pixelAtWorld(960, 525).hex;
     const propArea2Unlit = f.pixelAtWorld(1240, 525).hex;
     const apronArea1Unlit = f.pixelAtWorld(920, 525).hex;
@@ -1335,6 +1336,7 @@ try {
       selfArea1Tint,
       selfBoundaryTint,
       selfArea2Tint,
+      selfTintUnlit,
       propArea1Lit,
       propArea1Unlit,
       propArea2Lit,
@@ -1372,6 +1374,7 @@ try {
   assert.equal(step4SpatialCheck.selfArea1Tint, 0xffffff, 'contestant retains base white tint across Area 1');
   assert.equal(step4SpatialCheck.selfArea2Tint, 0xffffff, 'contestant retains base white tint across Area 2');
   assert.equal(step4SpatialCheck.selfBoundaryTint, 0xffffff, 'contestant retains base white tint at boundary without darkening or pop');
+  assert.equal(step4SpatialCheck.selfTintUnlit, 0xffffff, 'contestant unlit sprite retains exact base white tint');
 
   // Physics props on both sides of boundary:
   assert.notEqual(step4SpatialCheck.propArea1Lit, step4SpatialCheck.propArea2Lit, 'prop in Area 1 takes distinct lighting tint from prop in Area 2');
@@ -1400,7 +1403,7 @@ try {
     selfArea1Lit: css(step4SpatialCheck.selfArea1Tint),
     selfBoundaryLit: css(step4SpatialCheck.selfBoundaryTint),
     selfArea2Lit: css(step4SpatialCheck.selfArea2Tint),
-    selfUnlit: css(step4SpatialCheck.selfArea1Tint),
+    selfUnlit: css(step4SpatialCheck.selfTintUnlit),
     propArea1Lit: css(step4SpatialCheck.propArea1Lit),
     propArea1Unlit: css(step4SpatialCheck.propArea1Unlit),
     propArea2Lit: css(step4SpatialCheck.propArea2Lit),

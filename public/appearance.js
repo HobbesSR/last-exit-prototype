@@ -190,23 +190,6 @@ export function applyLightSample(baseColor, sample, roleScale = 1) {
 }
 
 /**
- * Resolve bounded virtual lighting tint for moving actors (29.4 "Virtual lighting", 41.2 step 4).
- * Blends base actor kit/contestant tint with regional spatial light sample.
- * Bounded with `actorScale` (default 0.25) so identity colors are never overwhelmed or darkened.
- * Returns `baseTint` when lighting is disabled or light influence is zero.
- */
-export function resolveActorTint(baseTint, lightSample, options = {}) {
-  // 29.4: "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted."
-  // When an actor sprite does not have a separated neutral material layer (hasSeparatedMaterial !== true),
-  // returns baseTint untouched so identity colors are never darkened or shifted by theatrical washes.
-  if (!options.hasSeparatedMaterial || options.lighting === false || !lightSample || lightSample.weight <= 0) {
-    return baseTint;
-  }
-  const scale = typeof options.actorScale === 'number' ? options.actorScale : 0.25;
-  return applyLightSample(baseTint, lightSample, scale);
-}
-
-/**
  * Resolve bounded virtual lighting fill and stroke for physics props (29.4, 41.2 step 4).
  * Blends base prop material fill/stroke with regional spatial light sample.
  * Returns base colors when lighting is disabled or light influence is zero.

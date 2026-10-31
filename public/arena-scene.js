@@ -14,7 +14,6 @@ import {
   resolveGroundAppearance,
   sampleSpatialLight,
   getCanonicalFields,
-  resolveActorTint,
   resolvePropAppearance,
   recordAppearanceOps,
 } from './appearance.js';
@@ -1005,14 +1004,6 @@ export function makeArenaScene(api) {
         if (controlled && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
         else { actor.container.x = p.x; actor.container.y = p.y; }
         actor.sprite.setRotation(controlled ? api.aim() : p.heading); actor.sprite.setAlpha(p.cloak ? 0.45 : 1);
-        actor.baseTint = actorBaseTint(p, api.playerId());
-        // 29.4: "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted."
-        if (artOpts.hasSeparatedMaterial) {
-          const lightSample = sampleSpatialLight(canonicalFields, actor.container.x, actor.container.y, artOpts);
-          actor.sprite.setTint(resolveActorTint(actor.baseTint, lightSample, artOpts));
-        } else {
-          actor.sprite.setTint(actor.baseTint);
-        }
         // Markers hold their apparent size as the camera pulls back; names hold a fixed pixel height
         // rather than riding that scale, which would leave them unreadable at whole arena zoom.
         actor.container.setScale(this.marker); actor.name.setScale(this.nameScale);

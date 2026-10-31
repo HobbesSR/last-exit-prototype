@@ -14,7 +14,6 @@ import {
   resolveObstacleAppearance,
   resolveGroundAppearance,
   getCanonicalFields,
-  resolveActorTint,
   resolvePropAppearance,
 } from '../public/appearance.js';
 import { SWATCHES, U, L, T, G } from '../public/palette.js';
@@ -187,27 +186,13 @@ test('resolveGroundAppearance emits layers in fixed order and gates wear/scars a
   assert.ok(lightingOff.some(item => item.layer === 'wear') && lightingOff.some(item => item.layer === 'scars'), 'lighting=false retains wear and scars');
 });
 
-test('resolveActorTint and resolvePropAppearance provide bounded virtual lighting on dynamic objects', () => {
+test('resolvePropAppearance provides bounded virtual lighting on physics props and getCanonicalFields memoizes', () => {
   const cobaltLight = {
     tint: resolveSwatch('cobaltBlue', 0x1b3b6f),
     weight: 0.42,
     neutral: 0.58,
     contributions: [{ id: 'cobalt-intersection', tint: 0x1b3b6f, weight: 0.42 }],
   };
-  const unlitSample = { tint: 0x000000, weight: 0, neutral: 1, contributions: [] };
-
-  const specterBase = 0xc5b0ff;
-  // Per 29.4: "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted."
-  const specterDefault = resolveActorTint(specterBase, cobaltLight, { lighting: true });
-  assert.equal(specterDefault, specterBase, 'actor sprite without separated material stays untinted per 29.4');
-
-  const specterSeparatedLit = resolveActorTint(specterBase, cobaltLight, { lighting: true, hasSeparatedMaterial: true });
-  const specterNoLight = resolveActorTint(specterBase, cobaltLight, { lighting: false, hasSeparatedMaterial: true });
-  const specterUnlit = resolveActorTint(specterBase, unlitSample, { lighting: true, hasSeparatedMaterial: true });
-
-  assert.notEqual(specterSeparatedLit, specterBase, 'separated material actor tint in lit field blends with regional spatial light');
-  assert.equal(specterNoLight, specterBase, 'lighting:false returns base actor kit tint');
-  assert.equal(specterUnlit, specterBase, 'zero light weight returns base actor kit tint');
 
   const basePropFill = 0x8fa9a0;
   const basePropStroke = 0xdce8d7;
