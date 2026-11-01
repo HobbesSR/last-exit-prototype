@@ -107,6 +107,44 @@ export function createBuilderCanvas(brief: RegionBrief, protectedShapes: readonl
   };
 }
 
+/**
+ * Several assemblies as one, in order. Defaults are made explicit, so the result addresses,
+ * spaces and protects exactly what the parts would one by one.
+ */
+export function mergeAssemblies(assemblies: readonly CanvasAssembly[]): CanvasAssembly {
+  const boxes = (a: CanvasAssembly) => a.elements.map(e => rect(e.x, e.y, e.template.w, e.template.h));
+  return {
+    elements: assemblies.flatMap(a => a.elements),
+    areas: assemblies.flatMap(a => a.areas ?? boxes(a)),
+    access: assemblies.flatMap(a => a.access ?? []),
+    extents: assemblies.flatMap(a => a.extents ?? boxes(a)),
+  };
+}
+
+/**
+ * Commit assemblies in order with as few commits as stand together: the whole batch is tried as
+ * one assembly, and a refused batch is split in half, down to single assemblies, which are passed
+ * over when refused. On a prospective-parcels coordinator (20.10) each commit is one cord search,
+ * so a batch that stands costs one search rather than one per piece. Cord existence only shrinks
+ * as blockers are added, so this keeps what committing one at a time would, up to the search's
+ * own non-monotonicity. Returns whether each assembly was committed.
+ */
+export function commitEach(canvas: Pick<SitingCanvas, 'commit'>, assemblies: readonly CanvasAssembly[]): boolean[] {
+  const kept = assemblies.map(() => false);
+  // `refused`: this run is known to fail as a whole, because its accepted left half
+  // leaves exactly the state in which the whole was refused.
+  const run = (lo: number, hi: number, refused = false): void => {
+    if (hi <= lo) return;
+    if (!refused && canvas.commit(mergeAssemblies(assemblies.slice(lo, hi)))) { kept.fill(true, lo, hi); return; }
+    if (hi - lo === 1) return;
+    const mid = (lo + hi) >> 1;
+    run(lo, mid);
+    run(mid, hi, kept.slice(lo, mid).every(Boolean));
+  };
+  run(0, assemblies.length);
+  return kept;
+}
+
 export type BuilderCanvas = ReturnType<typeof createBuilderCanvas>;
 /**
  * What siting asks of a canvas. A prospective-parcels coordinator (20.10) offers the same,

@@ -17,10 +17,12 @@ const DEFAULT_SQUEEZE_SHARE = 0.8;
 /**
  * Rubble has no children (54). Two-cell-spaced debris leaves selected 1.5-cell
  * gaps. Portal approaches stay clear. Nothing else is reserved between portals:
- * each piece commits only if a hunter cord still joins every portal stand, so
- * debris bends the way through rather than leaving a fixed route bare (20.10,
- * #759). Plain walls then stand along every hinted run where no debris or
- * approach is (`wallHints`), each wall passed over if the cord refuses it.
+ * debris is sited on a draft, then committed only as far as a hunter cord still
+ * joins every portal stand, so it bends the way through rather than leaving a
+ * fixed route bare (20.10, #759). The cord is proved once for as much debris as
+ * stands together (`commitEach`, #787). Plain walls then stand along every hinted
+ * run where no debris or approach is (`wallHints`), each wall passed over if the
+ * cord refuses it.
  */
 export function buildRubble(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Rubble', 'density', DEFAULT_DENSITY);
@@ -37,8 +39,9 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   const parcels = createProspectiveParcels(brief, { fixedAccess: approaches, budget: SCATTER_CORD_BUDGET });
   if (!parcels.ok) throw new Error(`Rubble region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
   const canvas = parcels.coordinator;
-  const debris: Shape[] = [];
-  let squeezeDebris = 0;
+  // Debris is sited on a draft and the cord proved once for as much as stands together (#787).
+  const staged = canvas.stage();
+  const sited: { shape: Shape; squeeze: boolean }[] = [];
   // A half-cell square at every other cell leaves exactly 1.5 cells between
   // neighbors. The narrow variant leaves 1.9 cells, above hunter clearance.
   for (const cell of mask.cells) {
@@ -50,16 +53,18 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
     // Preserve the centre-first arithmetic of the legacy absolute-shape record.
     const shape = rect((cell.x + .5) * brief.cellSize - local.w / 2,
       (cell.y + .5) * brief.cellSize - local.h / 2, local.w, local.h);
-    if (!canvas.fits(shape)) continue;
+    if (!staged.canvas.fits(shape)) continue;
     const label = `rubble-${cell.x}-${cell.y}`;
     // A legacy world-absolute record: its template box is not its intent, so the debris is.
-    // Siting has accepted it, so a refusal means it would leave a portal without a cord: it is
-    // passed over, and per-cell draws keep the rest unchanged.
-    if (!canvas.commit({ elements: [{ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
+    if (!staged.canvas.commit({ elements: [{ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
       parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } }], areas: [shape], extents: [shape] })) continue;
-    debris.push(shape);
-    if (squeeze) squeezeDebris++;
+    sited.push({ shape, squeeze });
   }
+  // A piece the cord refuses would leave a portal without a cord: it is passed over, and
+  // per-cell draws keep the rest unchanged.
+  const kept = staged.flush();
+  const debris = sited.filter((_, i) => kept[i]).map(s => s.shape);
+  const squeezeDebris = sited.filter((s, i) => kept[i] && s.squeeze).length;
 
   const walls = commitHintWalls(canvas, wallHints(brief, { kind: 'ruin-wall', avoid: [...approaches, ...debris] }), { passOver: true });
   const elements = [...canvas.elements];

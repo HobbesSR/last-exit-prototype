@@ -3,7 +3,7 @@ import { bounds, rect, type Shape } from '../../shared/shape.ts';
 import { construct } from '../../shared/shape-construction.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import { createAddressedArea } from './addressed.ts';
-import { assemblyBlockers, assemblyFootprints, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
+import { assemblyBlockers, assemblyFootprints, commitEach, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
 import { discoverCordWitness, type CordWitness } from './cord-witness.ts';
 import { capsule, createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
 import { hunterClearance } from './portals.ts';
@@ -335,6 +335,31 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if (!canvas.markEmpty(area)) return false;
       publish(parcels, [...operations, { kind: 'empty', area }], canvas, witness);
       return true;
+    },
+    /**
+     * A detached draft of the current canvas for siting a batch without cord work: its commits
+     * only record, and `flush` proves the cord for them through `commitEach`, once for as many
+     * as stand together (#787). Removing a piece frees space, so pieces sited against a draft
+     * that kept one the cord then refuses still fit. Flush once; it returns what was committed.
+     */
+    stage() {
+      const draft = replay(parcels)!;
+      const staged: CanvasAssembly[] = [];
+      const open = parcels.filter(p => !p.assembly && !p.settled);
+      return {
+        canvas: {
+          fill: draft.fill, access: draft.access, addressed: draft.addressed,
+          get elements() { return draft.elements; },
+          fits: (shape: Shape) => draft.fits(shape) && !open.some(p => p.area.some(a => shapesOverlap(shape, a))),
+          spaced: (shape: Shape, clearance = 0) => draft.spaced(shape, clearance),
+          commit(assembly: CanvasAssembly) {
+            if (!draft.commit(assembly)) return false;
+            staged.push(structuredClone(assembly));
+            return true;
+          },
+        },
+        flush: () => commitEach(coordinator, staged),
+      };
     },
   };
   return { ok: true as const, coordinator, counters: initial.counters };
