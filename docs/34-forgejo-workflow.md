@@ -69,7 +69,10 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
 3. Commit only to that branch. Never check out, commit to, merge or rebase onto
    `main` or another agent's branch.
 4. Run the gates in [31](31-verification.md) for what you touched, then
-   `git push -u forgejo HEAD`.
+   `git push -u forgejo HEAD`. A change that moves generated maps follows 31's
+   [content-change rule](31-verification.md#content-changes-one-bump-per-batch):
+   it lands switched off, or joins the open batch, rather than bumping the
+   content version on its own.
 5. Open the PR with `create_pull_request`, linking the issue ("Fixes #N").
    Re-running it returns the existing PR. Say in the body what testing you did,
    including which gates ran and which were skipped.

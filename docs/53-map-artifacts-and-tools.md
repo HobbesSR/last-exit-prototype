@@ -161,7 +161,9 @@ cord, #760 park hedge fronts, 42.31).
 - **A deliberate content change** says so in its PR, and recaptures the
   baseline last (`--out`), after the report shows no defects and maps play
   acceptably. The capture refuses uncommitted changes to the chain's inputs
-  and records the last commit that touched them.
+  and records the last commit that touched them. Content changes land switched
+  off and are adopted in batches, one version bump and one recapture per batch
+  ([31](31-verification.md#content-changes-one-bump-per-batch)).
 
 ### Replaying one region type
 

@@ -533,11 +533,9 @@ or state added to a player and so to snapshots and projections) move the traces.
 
 **Batching baseline-moving work.** The sweep is a drift diagnostic for any change that
 touches the chain (two to three minutes; a builder change iterates on the replay
-first), but a deliberate content change recaptures it once, last. When several such changes belong together, collect them on one
-integration branch, check each with focused tests and the diagnostic, and
-recapture once with a single `REGION_TYPES_VERSION` decision, so the first one to
-merge does not leave the sweep check failing on `main`. A change that is meant to
-be behaviour-preserving never recaptures. The 2026-10 batch is tracked in #295.
+first). A deliberate content change recaptures it once, last, and content changes land in
+batches with one version bump each: see [Content changes](#content-changes-one-bump-per-batch)
+below. A change that is meant to be behaviour-preserving never recaptures.
 
 Never regenerate a fixture to make a refactor pass: a behaviour-preserving change
 must reproduce it exactly. Regenerating is correct only for a deliberate content or
@@ -551,6 +549,51 @@ to regenerate and how to audit.
 the verification tiers above: JavaScript is parsed as Node would load it, and
 TypeScript is verified to erase cleanly, which is what Node does instead of parsing
 it. `npm run typecheck` is the separate, stronger pass.
+
+## Content changes: one bump per batch
+
+Corey's rule (2026-11-01, #760), replacing the earlier integration-branch practice (#295). A
+**content change** is one that changes what the map chain generates: it moves the chain sweep
+(`map/tools/fixtures/chain-baseline.json`, 53) and needs a `REGION_TYPES_VERSION` bump. Each bump
+and recapture makes saved maps and pinned ids stale, so content changes collect into batches that
+bump once. Content work happens on `main`, not on a standing branch.
+
+**1. An experiment lands switched off.** New content goes behind a brief parameter (or a
+strategy option) whose default leaves the output exactly as it is.
+- The PR says "content experiment, off by default" and names the switch, as #649 did with park's
+  `hedgeFronts`.
+- `sweep --check` must show no drift. There is no version bump and no recapture.
+- Measure it with the switch on (an audit tool and a 42.x record), and document the parameter
+  as experimental in the type's 54.x entry.
+- Add it to the open batch issue (step 4).
+
+**2. One adoption PR per batch.** When Corey decides which experiments to adopt, one PR:
+- turns each chosen switch on by default and deletes the path it replaces;
+- updates the pins and tests that move with the new output;
+- bumps `REGION_TYPES_VERSION` once, recaptures the sweep last (53, "Proving a change") and
+  updates 53's version row and baseline provenance;
+- records the result in the experiments' 42.x documents.
+An experiment Corey doesn't adopt stays switched off, or is removed in its own PR, which needs
+no bump.
+
+**3. A change that can't be switched off joins a batch.** Some changes move output by their
+nature: shared machinery, a builder's guarantee or a bug fix whose output change is
+unavoidable (#759 moved rubble and plant off frozen routes this way). Don't merge one on its own.
+- Prefer to fold it into the next adoption PR, as #765 did with #759.
+- If it needs its own review first, stack it: open it as a PR on a short-lived branch, and base
+  the adoption PR on that branch. Bring newer `main` into a stacked branch by merging it in,
+  not by rebasing, since the remote refuses force pushes. Corey merges the stack together.
+  Only the last PR in the stack bumps and recaptures, so `main` never has a failing sweep.
+- A bug fix that can't wait goes in alone with its own bump; say why in the PR.
+
+**4. A batch is one issue.** It lists each experiment or unavoidable change, its switch, its
+measurement document and its status (measured, awaiting decision, adopted). The first agent
+with something for a batch opens it if none is open; later ones add to it. Agents propose what
+to adopt; Corey decides and says when to cut the batch.
+
+**Checking which kind of change you have:** run `sweep --check` (or the per-type replay, 53)
+before opening the PR. No drift means it is not a content change, whatever it touched. Drift in
+a change meant to preserve behaviour is a stop-and-escalate (53).
 
 ## Coverage
 
