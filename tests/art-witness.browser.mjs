@@ -1357,10 +1357,16 @@ try {
     const f = window.witness, s = f.scene;
     const strikerArea1 = s.actors.get('striker');
     const scoutArea2 = s.actors.get('scout');
+    const wardenArea1 = s.actors.get('warden');
+    const specterArea1 = s.actors.get('specter');
     const strikerBodyTintLit = strikerArea1.sprite.tintTopLeft;
     const strikerIdentityTintLit = strikerArea1.identity.tintTopLeft;
     const scoutBodyTintLit = scoutArea2.sprite.tintTopLeft;
     const scoutIdentityTintLit = scoutArea2.identity.tintTopLeft;
+    const wardenBodyTintLit = wardenArea1.sprite.tintTopLeft;
+    const wardenIdentityTintLit = wardenArea1.identity.tintTopLeft;
+    const specterBodyTintLit = specterArea1.sprite.tintTopLeft;
+    const specterIdentityTintLit = specterArea1.identity.tintTopLeft;
 
     const propArea1Lit = f.pixelAtWorld(960, 525).hex;
     const propArea2Lit = f.pixelAtWorld(1240, 525).hex;
@@ -1390,6 +1396,10 @@ try {
     const strikerIdentityTintUnlit = strikerArea1.identity.tintTopLeft;
     const scoutBodyTintUnlit = scoutArea2.sprite.tintTopLeft;
     const scoutIdentityTintUnlit = scoutArea2.identity.tintTopLeft;
+    const wardenBodyTintUnlit = wardenArea1.sprite.tintTopLeft;
+    const wardenIdentityTintUnlit = wardenArea1.identity.tintTopLeft;
+    const specterBodyTintUnlit = specterArea1.sprite.tintTopLeft;
+    const specterIdentityTintUnlit = specterArea1.identity.tintTopLeft;
     const selfBodyTintUnlit = s.actors.get('self').sprite.tintTopLeft;
     const selfIdentityTintUnlit = s.actors.get('self').identity.tintTopLeft;
     const propArea1Unlit = f.pixelAtWorld(960, 525).hex;
@@ -1398,6 +1408,14 @@ try {
     const apronArea2Unlit = f.pixelAtWorld(1205, 525).hex;
 
     return {
+      wardenBodyTintLit,
+      wardenIdentityTintLit,
+      wardenBodyTintUnlit,
+      wardenIdentityTintUnlit,
+      specterBodyTintLit,
+      specterIdentityTintLit,
+      specterBodyTintUnlit,
+      specterIdentityTintUnlit,
       strikerBodyTintLit,
       strikerIdentityTintLit,
       strikerBodyTintUnlit,
@@ -1448,14 +1466,32 @@ try {
   assert.notEqual(step4SpatialCheck.selfBodyArea1Tint, 0xffffff, 'actor body in Area 1 takes cobalt virtual lighting');
   assert.notEqual(step4SpatialCheck.selfBodyArea2Tint, 0xffffff, 'actor body in Area 2 takes magenta virtual lighting');
   assert.equal(step4SpatialCheck.selfBodyTintUnlit, 0xffffff, 'actor body unlit sprite retains exact unlit base white 0xffffff');
-  assert.equal(step4SpatialCheck.strikerIdentityTintLit, 0xffd485, 'striker identity retains exact kit tint 0xffd485 in lit field');
-  assert.equal(step4SpatialCheck.strikerIdentityTintUnlit, 0xffd485, 'striker identity retains exact kit tint 0xffd485 in unlit mode');
-  assert.equal(step4SpatialCheck.scoutIdentityTintLit, 0x9de6df, 'scout identity retains exact kit tint 0x9de6df in lit field');
-  assert.equal(step4SpatialCheck.scoutIdentityTintUnlit, 0x9de6df, 'scout identity retains exact kit tint 0x9de6df in unlit mode');
+
+  // Exact saturated kit identity hues preserved in lit and unlit modes (#736 review 605):
+  assert.equal(step4SpatialCheck.wardenIdentityTintLit, 0xff6b70, 'warden identity retains exact coral red kit tint 0xff6b70 in lit field');
+  assert.equal(step4SpatialCheck.wardenIdentityTintUnlit, 0xff6b70, 'warden identity retains exact coral red kit tint 0xff6b70 in unlit mode');
+  assert.equal(step4SpatialCheck.specterIdentityTintLit, 0x9a7ae0, 'specter identity retains exact royal violet kit tint 0x9a7ae0 in lit field');
+  assert.equal(step4SpatialCheck.specterIdentityTintUnlit, 0x9a7ae0, 'specter identity retains exact royal violet kit tint 0x9a7ae0 in unlit mode');
+  assert.equal(step4SpatialCheck.strikerIdentityTintLit, 0xffaa22, 'striker identity retains exact golden amber kit tint 0xffaa22 in lit field');
+  assert.equal(step4SpatialCheck.strikerIdentityTintUnlit, 0xffaa22, 'striker identity retains exact golden amber kit tint 0xffaa22 in unlit mode');
+  assert.equal(step4SpatialCheck.scoutIdentityTintLit, 0x2ec4b6, 'scout identity retains exact teal kit tint 0x2ec4b6 in lit field');
+  assert.equal(step4SpatialCheck.scoutIdentityTintUnlit, 0x2ec4b6, 'scout identity retains exact kit tint 0x2ec4b6 in unlit mode');
   assert.equal(step4SpatialCheck.selfIdentityArea1Tint, 0xffffff, 'contestant identity retains base white across Area 1');
   assert.equal(step4SpatialCheck.selfIdentityArea2Tint, 0xffffff, 'contestant identity retains base white across Area 2');
   assert.equal(step4SpatialCheck.selfIdentityBoundaryTint, 0xffffff, 'contestant identity retains base white across boundary');
   assert.equal(step4SpatialCheck.selfIdentityTintUnlit, 0xffffff, 'contestant identity retains base white when unlit');
+
+  // Pairwise distinctness check between all 3 gladiator kits (Euclidean RGB distance >= 80):
+  assert.ok(rgbDist(step4SpatialCheck.wardenIdentityTintLit, step4SpatialCheck.strikerIdentityTintLit) >= 80, 'warden vs striker pairwise color distance >= 80');
+  assert.ok(rgbDist(step4SpatialCheck.strikerIdentityTintLit, step4SpatialCheck.specterIdentityTintLit) >= 80, 'striker vs specter pairwise color distance >= 80');
+  assert.ok(rgbDist(step4SpatialCheck.wardenIdentityTintLit, step4SpatialCheck.specterIdentityTintLit) >= 80, 'warden vs specter pairwise color distance >= 80');
+
+  // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against underlying ground:
+  assert.ok(contrast(step4SpatialCheck.wardenIdentityTintLit, step4SpatialCheck.apronArea1Lit) >= 1.80, 'warden identity meets Tier 1 ground contrast >= 1.80');
+  assert.ok(contrast(step4SpatialCheck.specterIdentityTintLit, step4SpatialCheck.apronArea1Lit) >= 1.80, 'specter identity meets Tier 1 ground contrast >= 1.80');
+  assert.ok(contrast(step4SpatialCheck.strikerIdentityTintLit, step4SpatialCheck.apronArea1Lit) >= 1.80, 'striker identity meets Tier 1 ground contrast >= 1.80');
+  assert.ok(contrast(step4SpatialCheck.scoutIdentityTintLit, step4SpatialCheck.apronArea2Lit) >= 1.80, 'scout identity meets Tier 1 ground contrast >= 1.80');
+  assert.ok(contrast(step4SpatialCheck.selfIdentityArea1Tint, step4SpatialCheck.apronArea1Lit) >= 1.80, 'self identity meets Tier 1 ground contrast >= 1.80');
 
   // Physics props on both sides of boundary:
   assert.notEqual(step4SpatialCheck.propArea1Lit, step4SpatialCheck.propArea2Lit, 'prop in Area 1 takes distinct lighting tint from prop in Area 2');
@@ -1619,6 +1655,10 @@ try {
   }
 
   const step4SpatialSummary = {
+    wardenIdentityLit: css(step4SpatialCheck.wardenIdentityTintLit),
+    wardenIdentityUnlit: css(step4SpatialCheck.wardenIdentityTintUnlit),
+    specterIdentityLit: css(step4SpatialCheck.specterIdentityTintLit),
+    specterIdentityUnlit: css(step4SpatialCheck.specterIdentityTintUnlit),
     strikerIdentityLit: css(step4SpatialCheck.strikerIdentityTintLit),
     strikerIdentityUnlit: css(step4SpatialCheck.strikerIdentityTintUnlit),
     scoutIdentityLit: css(step4SpatialCheck.scoutIdentityTintLit),
@@ -1645,7 +1685,7 @@ try {
     apronArea2Unlit: css(step4SpatialCheck.apronArea2Unlit),
     unlitPropsIdentical: step4SpatialCheck.propArea1Unlit === step4SpatialCheck.propArea2Unlit,
     unlitGroundIdentical: step4SpatialCheck.apronArea1Unlit === step4SpatialCheck.apronArea2Unlit,
-    actorIdentityUntinted: step4SpatialCheck.strikerIdentityTintLit === 0xffd485 && step4SpatialCheck.scoutIdentityTintLit === 0x9de6df,
+    actorIdentityUntinted: step4SpatialCheck.strikerIdentityTintLit === 0xffaa22 && step4SpatialCheck.specterIdentityTintLit === 0x9a7ae0 && step4SpatialCheck.wardenIdentityTintLit === 0xff6b70 && step4SpatialCheck.scoutIdentityTintLit === 0x2ec4b6,
     actorBodyTinted: step4SpatialCheck.selfBodyArea1Tint !== 0xffffff && step4SpatialCheck.selfBodyArea1Tint !== step4SpatialCheck.selfBodyArea2Tint,
   };
 
@@ -2417,12 +2457,20 @@ try {
       <td>Modulated by virtual lighting (actorScale = 0.25, #736)</td>
     </tr>
     <tr>
-      <td>Actor Identity Layer (<code>self</code> / <code>striker</code> / <code>scout</code>)</td>
-      <td><code>${step4SpatialSummary.strikerIdentityLit}</code> (striker)</td>
-      <td><code>${step4SpatialSummary.selfIdentityLit}</code> (self)</td>
-      <td><code>${step4SpatialSummary.scoutIdentityLit}</code> (scout)</td>
-      <td><code>${step4SpatialSummary.strikerIdentityUnlit}</code> / <code>${step4SpatialSummary.scoutIdentityUnlit}</code></td>
-      <td>Identity preserved (untinted per 29.4 &amp; #736)</td>
+      <td>Contestant Identity Layer (<code>self</code> / <code>scout</code>)</td>
+      <td><code>${step4SpatialSummary.selfIdentityLit}</code> (self white)</td>
+      <td><code>${step4SpatialSummary.selfIdentityLit}</code></td>
+      <td><code>${step4SpatialSummary.scoutIdentityLit}</code> (scout teal)</td>
+      <td><code>${step4SpatialSummary.selfIdentityUnlit}</code> / <code>${step4SpatialSummary.scoutIdentityUnlit}</code></td>
+      <td>Saturated identity preserved (untinted per 29.4 &amp; #736, Tier 1 contrast &ge; 1.80)</td>
+    </tr>
+    <tr>
+      <td>Gladiator Identity Layer (<code>warden</code> / <code>specter</code> / <code>striker</code>)</td>
+      <td><code>${step4SpatialSummary.wardenIdentityLit}</code> (warden) &middot; <code>${step4SpatialSummary.strikerIdentityLit}</code> (striker)</td>
+      <td>—</td>
+      <td><code>${step4SpatialSummary.specterIdentityLit}</code> (specter violet)</td>
+      <td><code>${step4SpatialSummary.wardenIdentityUnlit}</code> / <code>${step4SpatialSummary.specterIdentityUnlit}</code> / <code>${step4SpatialSummary.strikerIdentityUnlit}</code></td>
+      <td>Distinct kit hues preserved (untinted per 29.4 &amp; #736; pairwise distance &ge; 80, Tier 1 contrast &ge; 1.80)</td>
     </tr>
     <tr>
       <td>Physics Prop (<code>prop</code>)</td>

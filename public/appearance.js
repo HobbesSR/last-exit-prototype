@@ -190,10 +190,27 @@ export function applyLightSample(baseColor, sample, roleScale = 1) {
 }
 
 /**
+ * Authoritative kit and contestant identity colors (11.1, 14, 29.4, 41.2 #736).
+ * Defines saturated, unmistakable Tier 1 identity hues for the actor identity layer
+ * (`actor.identity`), ensuring immediate peripheral recognition across all themes and zoom tiers.
+ * Strictly untinted by theatrical lighting washes.
+ */
+export function actorBaseTint(p, ownId) {
+  if (p.role === 'gladiator') {
+    if (p.kit === 'specter') return 0x9a7ae0; // Royal violet
+    if (p.kit === 'striker') return 0xffaa22; // Golden amber
+    return 0xff6b70; // Warden coral red (MatchContent kits.warden.color)
+  }
+  if (p.id === ownId) return 0xffffff; // Self neutral white
+  return [0xffffff, 0x2ec4b6, 0xf5a623, 0xa37cf0][p.name.length % 4];
+}
+
+/**
  * Resolve bounded virtual lighting tint for moving actor body material (29.4 "Virtual lighting", 41.2 step 4, #736).
  * Blends base actor neutral body material tint with regional spatial light sample.
  * Bounded with `actorScale` (default 0.25) so base material reads with district ambience
- * without darkening or hue-shifting. Identity markings remain untinted.
+ * with bounded luminance modulation (~10-14% under regional fields), avoiding value collapse
+ * or destructive darkening. Identity markings remain untinted.
  * Returns `baseTint` when lighting is disabled or light influence is zero.
  */
 export function resolveActorTint(baseTint, lightSample, options = {}) {

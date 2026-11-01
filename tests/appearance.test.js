@@ -14,6 +14,7 @@ import {
   resolveObstacleAppearance,
   resolveGroundAppearance,
   getCanonicalFields,
+  actorBaseTint,
   resolveActorTint,
   resolvePropAppearance,
   applyLightSample,
@@ -206,8 +207,59 @@ test('resolveActorTint provides bounded virtual lighting on actor body material 
   assert.equal(bodyNoLight, baseBody, 'lighting:false returns base body tint');
   assert.equal(bodyUnlit, baseBody, 'zero light weight returns base body tint');
 
+  // Bounded channel shift assertion (#736 review 605): shift <= ceil(weight * actorScale * |tint - base|) + 1
+  const actorScale = 0.25;
+  const rLit = (bodyLit >> 16) & 0xff, gLit = (bodyLit >> 8) & 0xff, bLit = bodyLit & 0xff;
+  const rBase = (baseBody >> 16) & 0xff, gBase = (baseBody >> 8) & 0xff, bBase = baseBody & 0xff;
+  const rCobalt = (cobaltLight.tint >> 16) & 0xff, gCobalt = (cobaltLight.tint >> 8) & 0xff, bCobalt = cobaltLight.tint & 0xff;
+  const maxShiftR = Math.ceil(cobaltLight.weight * actorScale * Math.abs(rCobalt - rBase)) + 1;
+  const maxShiftG = Math.ceil(cobaltLight.weight * actorScale * Math.abs(gCobalt - gBase)) + 1;
+  const maxShiftB = Math.ceil(cobaltLight.weight * actorScale * Math.abs(bCobalt - bBase)) + 1;
+  assert.ok(Math.abs(rLit - rBase) <= maxShiftR, 'red channel shift is mathematically bounded by actorScale * weight');
+  assert.ok(Math.abs(gLit - gBase) <= maxShiftG, 'green channel shift is mathematically bounded by actorScale * weight');
+  assert.ok(Math.abs(bLit - bBase) <= maxShiftB, 'blue channel shift is mathematically bounded by actorScale * weight');
+
+  // Proportional scaling: actorScale = 0.50 strictly increases channel shift over actorScale = 0.25
   const scaled = resolveActorTint(baseBody, cobaltLight, { lighting: true, actorScale: 0.5 });
-  assert.notEqual(scaled, bodyLit, 'actorScale option modulates tint intensity');
+  const rScaled = (scaled >> 16) & 0xff;
+  assert.ok(Math.abs(rScaled - rBase) > Math.abs(rLit - rBase), 'actorScale proportionally scales channel shift');
+});
+
+test('actorBaseTint defines saturated kit and contestant identity colors meeting Tier 1 contrast and pairwise distinctness (#736)', () => {
+  const wardenTint = actorBaseTint({ role: 'gladiator', kit: 'warden' }, 'me');
+  const specterTint = actorBaseTint({ role: 'gladiator', kit: 'specter' }, 'me');
+  const strikerTint = actorBaseTint({ role: 'gladiator', kit: 'striker' }, 'me');
+
+  const selfTint = actorBaseTint({ role: 'contestant', id: 'me', name: 'Player' }, 'me');
+  const contestantTints = [0, 1, 2, 3].map(len =>
+    actorBaseTint({ role: 'contestant', id: `other-${len}`, name: 'A'.repeat(len) }, 'me')
+  );
+
+  assert.equal(wardenTint, 0xff6b70, 'warden gladiator has saturated coral red identity (#ff6b70)');
+  assert.equal(specterTint, 0x9a7ae0, 'specter gladiator has saturated royal violet identity (#9a7ae0)');
+  assert.equal(strikerTint, 0xffaa22, 'striker gladiator has saturated golden amber identity (#ffaa22)');
+  assert.equal(selfTint, 0xffffff, 'self contestant has signature white identity (#ffffff)');
+
+  // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against street and ground across all themes
+  const allHues = [wardenTint, specterTint, strikerTint, selfTint, ...contestantTints];
+  for (const [themeId, theme] of Object.entries(THEMES)) {
+    for (const hue of allHues) {
+      const streetContrast = contrast(hue, theme.street);
+      const groundContrast = contrast(hue, theme.ground);
+      assert.ok(streetContrast >= 1.80, `[${themeId}] hue 0x${hue.toString(16)} meets Tier 1 street contrast (${streetContrast.toFixed(2)} >= 1.80)`);
+      assert.ok(groundContrast >= 1.80, `[${themeId}] hue 0x${hue.toString(16)} meets Tier 1 ground contrast (${groundContrast.toFixed(2)} >= 1.80)`);
+    }
+  }
+
+  // Pairwise distinctness check between gladiator kits (Euclidean RGB distance >= 80):
+  const rgbDist = (c1, c2) => {
+    const r1 = (c1 >> 16) & 0xff, g1 = (c1 >> 8) & 0xff, b1 = c1 & 0xff;
+    const r2 = (c2 >> 16) & 0xff, g2 = (c2 >> 8) & 0xff, b2 = c2 & 0xff;
+    return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+  };
+  assert.ok(rgbDist(wardenTint, strikerTint) >= 80, 'warden vs striker pairwise color distance >= 80');
+  assert.ok(rgbDist(strikerTint, specterTint) >= 80, 'striker vs specter pairwise color distance >= 80');
+  assert.ok(rgbDist(wardenTint, specterTint) >= 80, 'warden vs specter pairwise color distance >= 80');
 });
 
 test('resolvePropAppearance provides bounded virtual lighting on physics props and getCanonicalFields memoizes', () => {

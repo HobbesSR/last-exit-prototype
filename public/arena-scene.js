@@ -14,20 +14,12 @@ import {
   resolveGroundAppearance,
   sampleSpatialLight,
   getCanonicalFields,
+  actorBaseTint,
   resolveActorTint,
   resolvePropAppearance,
   recordAppearanceOps,
 } from './appearance.js';
 
-function actorBaseTint(p, ownId) {
-  if (p.role === 'gladiator') {
-    if (p.kit === 'specter') return 0xc5b0ff;
-    if (p.kit === 'striker') return 0xffd485;
-    return 0xffffff;
-  }
-  if (p.id === ownId) return 0xffffff;
-  return [0xffffff, 0x9de6df, 0xfbdba2, 0xb9bdff][p.name.length % 4];
-}
 
 // Heard gunfire's ring and edge arrow (#684).
 const HEARD = 0xffba62;
