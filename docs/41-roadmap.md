@@ -111,6 +111,15 @@ through macro boundaries and portals) and #762 (whether any set piece still need
 inward grounds; investigate first). Compound exterior offset search (#629–#632) is
 dropped unless a selected outcome hits it.
 
+**Prerequisites landed (2026-11-01).** PR #765 (`types-62`, 42.31) moved rubble and plant
+onto a live cord and adopted park's hedge fronts; PR #766 recorded the batching rule
+([31](31-verification.md#content-changes-one-bump-per-batch)). Closing summaries are on
+#529 and #531, awaiting Corey. 42.31's finding: freeing routes about doubles content but
+barely moves detour or dead-end area, and 36-wide generation went from 31 s to 51 s.
+Next, by Corey's choice: #767 (cut live-cord generation cost, exactly, profiled first),
+then #762 as the detour candidate. Cover, ruins, depot, hall and market keep frozen routes
+until #767 and a reassessment (42.31). #535 is parked until Corey gives authorship direction.
+
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers
 of function and detail, without exhausting incidental minutiae. Apply the
 selection and stopping policy in [32](32-delegation.md). The epic and child
@@ -198,11 +207,11 @@ to more families or frameworks.
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
 | Inward grounds (#529, workstream 1) | #530 gave inward variants to all six named families (42.4). Whether any set piece still needs them is #762, to investigate before authoring anything. |
-| Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins; #717 fallback and #750's live cord followed. Compound exterior offset search (#630/#632) is dropped unless a selected outcome hits it. Closing waits on #759 and #760 (closing pass above). |
+| Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins; #717 fallback and #750's live cord followed. Compound exterior offset search (#630/#632) is dropped unless a selected outcome hits it. #759 moved rubble and plant onto a live cord (42.31); closing summary posted, awaiting Corey. |
 | Hut and compound structures (#532) | Multi-house huts, courtyard keeps/cover and one optional exterior HOUSE outbuilding have representative production admission and access evidence (20.3.4, 42.3), delivering the three original composition capabilities. Their effect on the newer detour/dead-end/empty-space goals remains unmeasured (#688; direction recorded in 17.2.11 via PR #690). Reassess retain/adapt/defer against those measures before more stand-in grammar or larger-hut margin authoring. Multiple rings and maximum residual use are not automatic successors. |
 | Depot and hall composition (#533) | Production depot warehouse composition now targets half-density fill with protected doorsteps and two-cell local bypasses; authored comparison and limits are in 42.3. Structural hall wings now add side-connected bays with 2.5-cell perimeter walks and optional roofs; a local L-shaped variant makes the capability available in ordinary library selection (20.3.3, 52, 42.3). Thin annexes and optimal partitioning remain deferred. |
 | Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
-| District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. |
+| District decomposition (#535) | Production block fallback, budget and circulation work exists; broad SDK/default multi-lot adoption and Building SDK authorship are not established by those deliveries. Reopen deeper planning only to enable a selected representative functional outcome. Parked (Corey, 2026-11-01) until authorship direction; the narrowed candidate, non-rectangular buildings that leave courtyards and bays, is on #535. |
 
 The opt-in shared capability now includes prospective parcels and movable cords
 (#645), following independent optional thorough validation (#644). Depot, hall, market,
