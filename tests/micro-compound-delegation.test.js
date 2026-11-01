@@ -153,8 +153,9 @@ test('individual cover fits the narrow exterior witness that rejected clusters',
   { blockers: placed(node.retained), receiving: COMPOUND_EXECUTION_REGISTRY.cover.receiving });
   assert.equal(prepared.children.length, 1);
   const child = prepared.children[0].brief;
-  assert.equal(buildCover(child).elements.length, 0, 'the ordinary cluster pass still misses this patch');
+  // The cluster pass misses this patch; individual pieces are buildCover's own fallback since #717.
   const infill = COVER_EXECUTION.build(child);
+  assert.deepEqual(buildCover(child), infill);
   assert.ok(infill.elements.length);
   assert.deepEqual(validateFillConstraints(child, placed(infill)), []);
   assert.deepEqual(validateBriefPartition(original, [prepared.retained, child]), []);

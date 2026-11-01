@@ -105,9 +105,29 @@ test('clumps and hedge runs keep an aisle from each other and respect portal mar
   assert.ok(runs > 10, `${runs} runs`);
 });
 
-test('a region too small for a piece stays clear', () => {
-  const result = buildRegion(brief('speck', 1, cellsOf(3, 3), [], DENSE));
+test('a region too small for a tree stays clear', () => {
+  const result = buildRegion(brief('speck', 1, cellsOf(3, 1), [], DENSE));
   assert.equal(result.elements.length, 0);
+});
+
+test('a one-tile park the lattice misses gets single trees cell by cell, clear of its portal routes (#717)', () => {
+  const [cells, portals] = MASKS.tile;
+  let filled = 0;
+  for (const seed of SEEDS) {
+    const result = buildRegion(brief('tile', seed, cells, portals));
+    assert.equal(result.manifest.clumps + result.manifest.hedges, 0, `seed ${seed}: the lattice places nothing here`);
+    assert.equal(result.manifest.trees, result.elements.length);
+    if (result.elements.length) filled++;
+    assert.ok(result.elements.every(kind('tree')));
+    for (const [i, a] of result.elements.map(boxOf).entries()) for (const b of result.elements.map(boxOf).slice(i + 1))
+      assert.ok(gapBetween(a, b) >= 2, `seed ${seed}: single trees keep a doorway apart`);
+    assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }, { search: 'thorough' }).errors, []);
+    const reversed = structuredClone(result.brief);
+    reversed.cells.reverse(); reversed.zones[0].cells.reverse();
+    assert.deepEqual(buildRegion(reversed).elements, result.elements);
+  }
+  assert.ok(filled >= SEEDS.length / 2, `${filled} of ${SEEDS.length} seeds`);
+  assert.equal(buildRegion(brief('tile', 1, cells, portals, { density: 0, hedges: 0 })).elements.length, 0, 'zero density stays clear');
 });
 
 test('parameters outside 0 to 1 are refused', () => {

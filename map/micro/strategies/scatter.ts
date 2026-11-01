@@ -3,10 +3,43 @@ import { capsule, createAccessMask, createFillMask, findRegionRoute, shapesOverl
 import { hunterClearance, portalStands } from '../portals.ts';
 import { microMetrics } from '../metrics.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { BuiltRegion, LootSite, RegionBrief, RegionMask } from '../types.ts';
+import type { BuiltRegion, LootSite, RegionBrief, RegionMask, RegionRandom } from '../types.ts';
+import type { BuilderCanvas } from '../canvas.ts';
+import { placedElements } from '../placeables/placeable.ts';
+import type { Placed } from '../placeables/placeable.ts';
+import { compareCells } from '../../kernel/cell.ts';
 import { buildOpen } from './open.ts';
 import { draw } from '../random.ts';
 export { draw } from '../random.ts';
+
+/** A piece `sitePiecesPerCell` may try at a cell: its name for the label, and how to place it at the origin. */
+export interface FallbackPiece { name: string; place(): Placed<unknown> }
+
+/**
+ * The bounded fallback a themed strategy tries before leaving viable fill empty (17.2.11, #717):
+ * single pieces of its own kind, sited cell by cell rather than on its primary layout. Each fill
+ * cell is visited once, in a seeded order, and is taken with chance `density`. A taken cell tries
+ * `pieces`' candidates in order and commits the first whose body fits the canvas and keeps `aisle`
+ * cells from every committed piece. `pieces` draws the same numbers at every cell, taken or not,
+ * so one cell's fate never shifts another's. The canvas carries the strategy's protections, so
+ * the portal promise holds as it does for the primary content. Returns the pieces committed.
+ */
+export function sitePiecesPerCell(canvas: BuilderCanvas, random: RegionRandom, density: number, aisle: number, prefix: string,
+  pieces: (random: RegionRandom) => FallbackPiece[]): number {
+  const size = canvas.fill.cellSize, before = canvas.elements.length;
+  for (const cell of random.shuffle([...canvas.fill.cells].sort(compareCells))) {
+    const taken = random.next() < density, candidates = pieces(random);
+    if (!taken) continue;
+    for (const { name, place } of candidates) {
+      const placed = place();
+      const { w, h } = placed.demand.body;
+      const box = rect(cell.x * size, cell.y * size, w * size, h * size);
+      if (!canvas.fits(box) || !canvas.spaced(box, aisle * size)) continue;
+      if (canvas.commit({ elements: placedElements(placed, `${prefix}-${name}-${canvas.elements.length + 1}`, cell.x, cell.y, size) })) break;
+    }
+  }
+  return canvas.elements.length - before;
+}
 
 /** A themed fill too fragmented for structures can still offer zone loot in its usable patches. */
 export function unfilledRegion(brief: RegionBrief, channel: number): BuiltRegion {
