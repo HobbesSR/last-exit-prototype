@@ -36,6 +36,7 @@ const PINNED = {
   'park-tree': ['park-tree-1', '92d74038005d8c5a'],
   'park-hedge-run': ['park-hedge-run-1', '53e26ff94e80e196'],
   'park-hedge-pocket': ['park-hedge-pocket-1', '5c0b909aa757d1ce'],
+  'park-hedge-block': ['park-hedge-block-1', '666797ec06bbb491'],
   'plant-machine': ['plant-machine-1', '8975ce930b7a04e3'],
   'plant-pipe-run': ['plant-pipe-run-1', '3c4eed0ac5a59880'],
 };

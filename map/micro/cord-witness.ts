@@ -17,7 +17,7 @@ export interface CordWitness {
 }
 /** Counts actual mesh constructions, travelClear calls and attempted root-to-terminal routes. */
 export interface CordCounters { meshBuilds: number; sweeps: number; paths: number }
-export interface CordBudget { maxMeshBuilds?: number; maxSweeps?: number; maxPaths?: number }
+export interface CordBudget { maxMeshBuilds?: number; maxSweeps?: number; maxPaths?: number; maxSegments?: number }
 export type CordWitnessResult = { ok: true; witness: CordWitness; counters: CordCounters }
   | { ok: false; reason: 'budget' | 'external' | 'interior'; counters: CordCounters };
 
@@ -40,7 +40,8 @@ const pointValid = (p: Vec2): boolean => !!p && Number.isFinite(p.x) && Number.i
 export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape[], terminals: readonly Vec2[] = [],
   previous?: CordWitness, budget: CordBudget = {}, added?: readonly Shape[]): CordWitnessResult {
   const counters: CordCounters = { meshBuilds: 0, sweeps: 0, paths: 0 };
-  const limits = { maxMeshBuilds: budget.maxMeshBuilds ?? 1, maxSweeps: budget.maxSweeps ?? 65_536, maxPaths: budget.maxPaths ?? 8_192 };
+  const limits = { maxMeshBuilds: budget.maxMeshBuilds ?? 1, maxSweeps: budget.maxSweeps ?? 65_536, maxPaths: budget.maxPaths ?? 8_192,
+    maxSegments: budget.maxSegments ?? MAX_SEGMENTS };
   if (Object.values(limits).some(n => !Number.isSafeInteger(n) || n < 0)) throw new Error('Cord budgets must be nonnegative safe integers.');
   if (!Array.isArray(blockers) || blockers.some(s => !validShape(s))) throw new Error('Cord blockers must be valid convex collision shapes.');
   if (!Array.isArray(terminals) || terminals.some(p => !pointValid(p))) throw new Error('Cord terminals must be finite points.');
@@ -133,14 +134,15 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
       if (candidate) {
         const world = candidate.points.map((p, i, all) => i === 0 ? root! : i === all.length - 1 ? target
           : { x: p.x + mask.bounds.x, y: p.y + mask.bounds.y });
-        if (world.length > MAX_SEGMENTS + 1) return fail('budget');
+        if (world.length > limits.maxSegments + 1) return fail('budget');
         if (proved(world)) points = world;
       }
     }
     if (exhausted) return fail('budget');
     if (!points) return fail(node.reason);
     segments += points.length - 1;
-    if (segments > MAX_SEGMENTS) return fail('budget');
+    // Past `MAX_INPUTS` points the witness could not be passed back as `previous`.
+    if (segments > limits.maxSegments || segments + paths.length + 1 > MAX_INPUTS) return fail('budget');
     paths.push(points.map(copy));
   }
   // One optional terminal still has a clearance obligation and an explicit witness point.

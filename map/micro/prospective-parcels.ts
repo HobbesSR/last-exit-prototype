@@ -242,7 +242,11 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       const ps = prior ? parcels.map(p => p === prior ? candidate : p) : [...parcels, candidate];
       const trial = replay(ps);
       if (!trial) return fail('canvas');
-      const found = discoverCordWitness(routingBrief, blockers(ps), terminals, witness, budget);
+      // The live witness was proved against every blocker but this area, as for `commit`: an
+      // area clear of its capsules keeps it, and otherwise only the segments it touches are re-proved.
+      const found = witnessStandsClear(prior ? construct(area).subtract(prior.area).pieces() : area)
+        ? { ok: true as const, witness, counters: { meshBuilds: 0, sweeps: 0, paths: 0 } }
+        : discoverCordWitness(routingBrief, blockers(ps), terminals, witness, budget, area);
       if (!found.ok) return { ...fail(found.reason), counters: found.counters };
       const proposal: ParcelProposal = { revision, area: structuredClone(area), witness: structuredClone(found.witness) };
       proposals.set(proposal, { revision, area, witness: found.witness, extend });

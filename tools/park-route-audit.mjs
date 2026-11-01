@@ -10,7 +10,10 @@
  * fill-constraint and thorough portal-reach proof and one reordered rebuild; each map gets
  * `checkMap` with diagnosis. Cost is builder calls only, three sequential paired passes under the
  * machine lock, with output equality checked outside the timer.
- * Usage: node tools/park-route-audit.mjs [outDir] [--base REV]
+ *
+ * `--fronts X` (#649) compares instead today's park with today's park given `hedgeFronts: X`, the
+ * growth-helper experiment (42.30); `--base` is then unused.
+ * Usage: node tools/park-route-audit.mjs [outDir] [--base REV] [--fronts X]
  */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -34,20 +37,27 @@ import { coveredSamples } from './lib/covered-samples.mjs';
 
 const args = process.argv.slice(2), at = args.indexOf('--base');
 const base = at >= 0 ? args.splice(at, 2)[1] : '8eb3c58';
-const dir = args[0] ?? 'docs/reports/issue-750';
+const frontsAt = args.indexOf('--fronts'), fronts = frontsAt >= 0 ? Number(args.splice(frontsAt, 2)[1]) : undefined;
+if (fronts !== undefined && !(fronts > 0 && fronts <= 1)) throw new Error('--fronts takes a chance above 0, at most 1.');
+const issue = fronts === undefined ? 750 : 649;
+const dir = args[0] ?? `docs/reports/issue-${issue}`;
 mkdirSync(dir, { recursive: true }); mkdirSync('test-results', { recursive: true });
 // Pinned first, so uncommitted sources fail before the long run rather than after it.
 const provenance = await captureSourceProvenance(['map/micro/strategies/park.ts', 'map/micro/strategies/park-pocket.ts',
   'map/micro/strategies/scatter.ts', 'map/micro/prospective-parcels.ts', 'map/micro/cord-witness.ts', 'map/micro/diagnose.ts',
-  'map/micro/region-types.ts', 'tools/park-route-audit.mjs', 'tools/experiments/park-pocket-routes.mjs', 'tools/lib/covered-samples.mjs']);
+  'map/micro/region-types.ts', 'map/micro/growth.ts', 'map/micro/placeables/park-hedge-block.ts', 'tools/park-route-audit.mjs', 'tools/experiments/park-pocket-routes.mjs', 'tools/lib/covered-samples.mjs']);
 
-// The base strategy, with its imports resolved to today's modules. Only park.ts changes its
+// #750: the base strategy, with its imports resolved to today's modules. Only park.ts changes its
 // placement path; scatter still exports `protectedRoutes`, and the pocket's commit never
 // fails on a frozen-route canvas, so the base build is the base commit's.
-const source = execFileSync('git', ['show', `${base}:map/micro/strategies/park.ts`], { encoding: 'utf8' })
-  .replace(/from '([^']+)'/g, (_, spec) => `from '${pathToFileURL(resolve('map/micro/strategies', spec)).href}'`);
-writeFileSync('test-results/issue-750-before-park.mts', source);
-const before = (await import(pathToFileURL(resolve('test-results/issue-750-before-park.mts')).href)).buildPark;
+// #649: today's park on both sides, the after side with hedge fronts.
+let before = buildRegion, build = buildRegion;
+if (fronts === undefined) {
+  const source = execFileSync('git', ['show', `${base}:map/micro/strategies/park.ts`], { encoding: 'utf8' })
+    .replace(/from '([^']+)'/g, (_, spec) => `from '${pathToFileURL(resolve('map/micro/strategies', spec)).href}'`);
+  writeFileSync('test-results/issue-750-before-park.mts', source);
+  before = (await import(pathToFileURL(resolve('test-results/issue-750-before-park.mts')).href)).buildPark;
+} else build = brief => buildRegion({ ...brief, parameters: { ...brief.parameters, hedgeFronts: fronts } });
 
 const solid = region => region.elements.some(e => elementShapes(e, true).length);
 const obstacles = region => region.elements.flatMap(e => elementShapes(e, true));
@@ -71,19 +81,20 @@ try {
   for (const width of [12, 24, 36]) {
     const seed = `size-${width}-1`;
     const params = { zoneWidth: width, zoneHeight: width / 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: .04, lootTierStep: .09 };
-    console.error(`#750 audit: ${seed}`);
+    console.error(`#${issue} audit: ${seed}`);
     const after = generate(seed, params, undefined, 48), old = structuredClone(after);
     const indices = after.results.flatMap((r, i) => r.brief.type === 'park' ? [i] : []);
     for (const i of indices) old.results[i] = before(after.results[i].brief);
+    if (fronts !== undefined) for (const i of indices) after.results[i] = build(after.results[i].brief);
 
-    for (const i of indices) assert.deepEqual(buildRegion(after.results[i].brief), after.results[i]);
+    for (const i of indices) assert.deepEqual(build(after.results[i].brief), after.results[i]);
     const passes = [];
     for (let repeat = 0; repeat < 3; repeat++) {
       let start = performance.now();
       for (const i of indices) before(after.results[i].brief);
       const beforeMs = performance.now() - start;
       start = performance.now();
-      for (const i of indices) buildRegion(after.results[i].brief);
+      for (const i of indices) build(after.results[i].brief);
       passes.push({ beforeMs, afterMs: performance.now() - start });
     }
     timings.push({ seed, briefs: indices.length, passes });
@@ -96,7 +107,7 @@ try {
       assert.ok(reach.valid, `${b.id} reach ${reach.errors}`);
       const reordered = { ...b, cells: [...b.cells].reverse(), fillCells: [...b.fillCells].reverse(), clearCells: [...b.clearCells].reverse(),
         zones: b.zones.map(z => ({ ...z, cells: [...z.cells].reverse() })) };
-      const again = buildRegion(reordered);
+      const again = build(reordered);
       assert.deepEqual(again.elements, region.elements, `${b.id} reordered`); assert.deepEqual(again.loot, region.loot);
     }
     const checks = { before: checkMap(old, { diagnose: true }), after: checkMap(after, { diagnose: true }) };
@@ -154,7 +165,7 @@ try {
   }
 } finally { release(); }
 
-const summary = { issue: 750, base, build: REGION_TYPES_VERSION, node: process.version, provenance,
+const summary = { issue, ...(fronts === undefined ? { base } : { hedgeFronts: fronts }), build: REGION_TYPES_VERSION, node: process.version, provenance,
   panel: 'size-{12,24,36}-1, generate(seed, params, undefined, 48)', maps, timings };
 writeFileSync(`${dir}/summary.json`, JSON.stringify(summary, null, 1) + '\n');
 writeFileSync(`${dir}/examples.json.gz`, gzipSync(JSON.stringify(examples) + '\n'));
