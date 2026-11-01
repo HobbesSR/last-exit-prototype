@@ -33,22 +33,25 @@ const crashLines = text => (text ?? '').split('\n').map(line => line.trimEnd())
 
 export default async function* briefReporter(source) {
   const start = performance.now();
-  const totals = { ok: 0, fail: 0, skip: 0 };
+  const totals = { ok: 0, fail: 0, skip: 0, todo: 0 };
   const stderr = new Map(); // file -> its recent stderr, shown only when the file crashes
+  // Skips and TODOs are not failures, whether or not a TODO's body fails (node exits 0 for both).
+  const outcomeOf = (data, passed) => data.todo !== undefined ? 'todo' : data.skip !== undefined ? 'skip' : passed ? 'ok' : 'fail';
+  const tally = counts => `${counts.ok} ok${counts.fail ? `, ${counts.fail} failed` : ''}${counts.skip ? `, ${counts.skip} skipped` : ''}${counts.todo ? `, ${counts.todo} todo` : ''}`;
   // The runner reports each file's results together; a file's line is written when the next
   // file's results begin, or at the end.
   let current = null;
   const fileLine = () => {
     if (!current) return '';
-    const { file, ok, fail, skip } = current;
+    const line = `${current.fail ? 'FAIL' : 'ok  '} ${fileName(current.file)}  ${tally(current)}\n`;
     current = null;
-    return `${fail ? 'FAIL' : 'ok  '} ${fileName(file)}  ${ok} ok${fail ? `, ${fail} failed` : ''}${skip ? `, ${skip} skipped` : ''}\n`;
+    return line;
   };
   const count = (data, outcome) => {
     if (data.nesting !== 0) return '';
     const key = data.file ? fileKey(data.file) : '';
     const flushed = current && current.key !== key ? fileLine() : '';
-    current ??= { key, file: data.file ?? '(no file)', ok: 0, fail: 0, skip: 0 };
+    current ??= { key, file: data.file ?? '(no file)', ok: 0, fail: 0, skip: 0, todo: 0 };
     current[outcome]++;
     totals[outcome]++;
     return flushed;
@@ -58,14 +61,19 @@ export default async function* briefReporter(source) {
     if (event.type === 'test:stderr' && data.file) {
       const key = fileKey(data.file), text = (stderr.get(key) ?? '') + data.message;
       stderr.set(key, text.slice(-MAX_STDERR_CHARS));
+    } else if (event.type === 'test:diagnostic' && data.file) {
+      // A diagnostic scoped to a file reports trouble outside any test's result, such as
+      // asynchronous activity (often a late error) after a test ended. Run-wide counts have no file.
+      yield `  ! ${fileName(data.file)}\n${indent(String(data.message).trim().split('\n').slice(0, MAX_DETAIL_LINES))}\n`;
     } else if (event.type === 'test:pass') {
-      const flushed = count(data, data.skip !== undefined || data.todo !== undefined ? 'skip' : 'ok');
+      const flushed = count(data, outcomeOf(data, true));
       if (flushed) yield flushed;
     } else if (event.type === 'test:fail') {
-      const flushed = count(data, 'fail');
+      const outcome = outcomeOf(data, false);
+      const flushed = count(data, outcome);
       if (flushed) yield flushed;
       // Only the leaves carry the real error; a parent fails with "N subtests failed".
-      if (data.details?.error?.failureType === 'subtestsFailed') continue;
+      if (outcome !== 'fail' || data.details?.error?.failureType === 'subtestsFailed') continue;
       const where = data.file ? ` (${path.relative(process.cwd(), data.file)}${data.line ? `:${data.line}` : ''})` : '';
       const crash = isFileLevel(data) ? crashLines(stderr.get(fileKey(data.file))) : [];
       yield `  ✖ ${label(data)}${where}\n${indent(crash.length ? crash : errorLines(data.details?.error))}\n`;
@@ -74,5 +82,5 @@ export default async function* briefReporter(source) {
   const last = fileLine();
   if (last) yield last;
   const seconds = ((performance.now() - start) / 1000).toFixed(1);
-  yield `${totals.fail ? 'FAILED' : 'passed'}: ${totals.ok} ok, ${totals.fail} failed, ${totals.skip} skipped, ${seconds}s\n`;
+  yield `${totals.fail ? 'FAILED' : 'passed'}: ${totals.ok} ok, ${totals.fail} failed, ${totals.skip} skipped${totals.todo ? `, ${totals.todo} todo` : ''}, ${seconds}s\n`;
 }

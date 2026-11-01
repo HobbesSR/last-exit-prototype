@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
+import { withoutReporterOptions } from './brief.mjs';
 
 // Times each unit test file alone, one at a time, and flags the ones over budget so a slow test is
 // noticed when it is added rather than when someone waits on it. Files run serially on purpose:
@@ -25,7 +26,9 @@ const files = named.length ? named : [
 const rows = [];
 for (const file of files) {
   const start = performance.now();
-  const result = spawnSync(process.execPath, ['--test', '--test-reporter=spec', file], { encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' } });
+  // This parses spec output, so a reporter inherited through NODE_OPTIONS (npm run brief) is dropped.
+  const env = { ...process.env, NODE_OPTIONS: withoutReporterOptions(process.env.NODE_OPTIONS), FORCE_COLOR: '0', NO_COLOR: '1' };
+  const result = spawnSync(process.execPath, ['--test', '--test-reporter=spec', file], { encoding: 'utf8', maxBuffer: 1 << 28, env });
   const seconds = (performance.now() - start) / 1000;
   const budget = file.includes('/slow/') ? SLOW_BUDGET_S : FAST_BUDGET_S;
   const tests = [...(result.stdout ?? '').matchAll(/^\s*✔ (.+) \(([\d.]+)ms\)$/gm)].map(m => ({ name: m[1], seconds: +m[2] / 1000 }));
