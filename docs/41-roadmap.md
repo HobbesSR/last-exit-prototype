@@ -319,6 +319,14 @@ contract. Reachability remains the chain of per-layer promises in 51, rather tha
 whole-map enforcement stage. See [19](19-decomposition-design.md),
 [20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
 
+### Development tools (#772)
+
+Tools that agents can use by text, by GUI, or both: one core per domain with lab,
+CLI and MCP faces, state links, an in-page handle and pictures for text agents
+([22.8](22.8-development-tools.md)). The appearance system gets its first tools:
+a readability owner, `art_*` CLI/MCP screening, headless capture and `/dev/art`.
+Order and acceptance are in [41.3](41.3-tools-plan.md).
+
 ### Gameplay backlog
 
 The physics and equipment program now has a scoped delivery plan in
