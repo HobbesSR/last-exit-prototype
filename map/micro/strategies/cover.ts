@@ -4,7 +4,7 @@ import type { Shape } from '../../../shared/shape.ts';
 import { elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../random.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
-import { protectedRoutes } from './scatter.ts';
+import { protectedRoutes, sitePiecesPerCell } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { COVER_PIECE, COVER_PIECES } from '../placeables/cover-piece.ts';
@@ -45,37 +45,30 @@ function coverExecution(build: (brief: RegionBrief) => BuiltRegion): ExecutionBu
     receiving: brief => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill' };
 }
 
-/** A child keeps the ordinary cover result whenever its clustered siting succeeds. */
+/** A child's cover is `buildCover`'s, small-region fallback included. */
 function receiverCover(brief: RegionBrief): BuiltRegion {
-  const normal = buildCover(brief);
-  const density = densityOf(brief);
-  // Above this limit the ordinary builder's boundary policy bounds route work.
-  // Residual siting is for small child interfaces, where routes can be protected explicitly.
-  if (normal.elements.length || density === 0 || brief.portals.length > 32) return normal;
+  return buildCover(brief);
+}
 
+/**
+ * Single pieces sited cell by cell (`sitePiecesPerCell`), when the lattice placed none. A failed
+ * large piece can give way to a crate at the same site. Every demand is checked in full; a
+ * fractional remnant of a barrier or container is never placed. Loot keeps its standing room.
+ */
+function fallbackCover(brief: RegionBrief, lattice: BuiltRegion, density: number): BuiltRegion {
+  // Above this limit the lattice's boundary policy bounds route work, so there is no fallback.
+  if (lattice.elements.length || density === 0 || brief.portals.length > 32) return lattice;
   const size = brief.cellSize;
   const canvas = createBuilderCanvas(brief, protectedRoutes(brief, 'Cover'));
-  const random = rng(brief.seed, `${brief.id}:cover-receiver-infill`);
-  const candidates = random.shuffle([...canvas.fill.cells].sort(compareCells));
-  // A failed large piece can give way to a crate at the same site. Every demand is
-  // checked in full; a fractional remnant of a barrier or container is never placed.
-  for (const cell of candidates) {
-    const taken = random.next() < density;
+  sitePiecesPerCell(canvas, rng(brief.seed, `${brief.id}:cover-receiver-infill`), density, AISLE, 'cover', random => {
     const pick = random.next(), turned = random.next() < 0.5, length = random.next(), offset = random.next();
-    if (!taken) continue;
     let first = PIECES[0]!;
     for (let sum = 0, i = 0; i < PIECES.length; i++) if (pick < (sum += PIECES[i]!.weight)) { first = PIECES[i]!; break; }
-    for (const piece of [first, ...PIECES.filter(other => other !== first)]) {
-      const placed = expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size));
-      const { w, h } = placed.demand.body;
-      const box = rect(cell.x * size, cell.y * size, w * size, h * size);
-      if (!canvas.fits(box) || !canvas.spaced(box, AISLE * size)) continue;
-      const assembly = placedElements(placed, `cover-${piece.name}-${canvas.elements.length + 1}`, cell.x, cell.y, size);
-      if (canvas.commit({ elements: assembly })) break;
-    }
-  }
-  if (!canvas.elements.length) return normal;
-  const loot = normal.loot.filter(site => {
+    return [first, ...PIECES.filter(other => other !== first)].map(piece => ({ name: piece.name,
+      place: () => expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)) }));
+  });
+  if (!canvas.elements.length) return lattice;
+  const loot = lattice.loot.filter(site => {
     const x = Math.floor(site.x / size), y = Math.floor(site.y / size);
     const stand = rect((x - 1) * size, (y - 1) * size, 3 * size, 3 * size);
     return canvas.elements.every(element => !shapesOverlap(stand, rect(element.x, element.y, element.template.w, element.template.h)));
@@ -110,14 +103,15 @@ function densityOf(brief: RegionBrief): number {
  * cluster of up to `CLUSTER` crates, barriers and the odd container, at jittered spots in it.
  * Neighbouring slots keep an aisle between clusters. Candidate boxes stay owned and clear
  * of portal approaches; concave masks also protect one hunter corridor. Hinted runs guide
- * the first piece in each eligible slot. A region too small for a piece stays clear.
+ * the first piece in each eligible slot. When the lattice places nothing, as in a one-tile
+ * region, single pieces are sited cell by cell instead (#717). A region too small for a piece stays clear.
  *
  * Loot rolls each cell's chance and takes the cell's tier (52, "Tier zones"). It lands at a
  * cell whose neighbours are all owned and free of cover, so it has standing room. Cover sites
  * no core elements; any the brief lists are left for the report to name (51 stage 8).
  */
 export function buildCover(brief: RegionBrief): BuiltRegion {
-  return sitedCover(brief).region;
+  return fallbackCover(brief, sitedCover(brief).region, densityOf(brief));
 }
 
 /** `buildCover`'s region with the protections its canvas held, so the post-filters commit against the same ones. */

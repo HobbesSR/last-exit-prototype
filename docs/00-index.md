@@ -124,6 +124,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.24-static-barrier.md](42.24-static-barrier.md) | Opt-in connected static barrier: matched detour/pocket witnesses, retained target failures and adoption limits (#694) |
 | [42.25-park-pocket.md](42.25-park-pocket.md) | One production park hedge pocket: paired detour, access, loot, structure, cost and compatibility evidence (#698) |
 | [42.26-macro-boundary.md](42.26-macro-boundary.md) | Opt-in macro curtain boundary/crossing experiment: fixed targets, physical versus guaranteed boundaries and adoption limits (#705) |
+| [42.27-empty-region-fallback.md](42.27-empty-region-fallback.md) | Geometry-empty regions by reason on the nine-map panel, and cover/park's single-piece fallback: uptake, navigation effect, cost and remaining gaps (#717) |
 
 ### 5x — Map generation
 

@@ -153,13 +153,16 @@ Two open tasks now own the concrete gaps:
   fallback for two representative non-open families before viable themed fill
   becomes empty. Explicit open/zero-content intent and genuine no-fit cases stay
   valid. This differs from residual infill after successful primary composition.
+  Delivered under `types-59` ([42.27](42.27-empty-region-fallback.md)): no large themed
+  family was empty on the panel. Cover and park now try single pieces when their
+  lattice places nothing. Empty cover fell from 977 to 106 regions and park from
+  1,387 to 978. Navigation barely moved, so this does not advance detours.
 
 All registered types have their own strategies, including market; the original
 epic's placeholder claims are historical. There is no universal canvas moat,
 but several strategies impose additional rings, bay setbacks or boundary
 filters. Measure their effects instead of assuming they are all redundant.
-With #716's demonstration met, #717 is the remaining task here. No
-implementation is claimed here.
+With #716's demonstration met and #717 delivered, neither task remains open here.
 
 Existing owners are recalibrated rather than duplicated: #531 retains residual
 composition after primary success; #535 retains genuinely missing decomposition

@@ -15,8 +15,9 @@ const footprint = element => ({ x: element.x / 40, y: element.y / 40,
 test('a missed inherited pocket receives whole cover pieces and keeps loot standing clear', () => {
   const cells = cellsOf(8, 8), fill = cells.filter(c => c.x >= 3 && c.x <= 5 && c.y >= 3 && c.y <= 5);
   const brief = input('pocket', cells, fill);
-  const normal = buildCover(brief), received = COVER_EXECUTION.build(brief);
-  assert.equal(normal.elements.length, 0);
+  // The lattice has no slot here; the per-cell fallback is buildCover's own (#717).
+  const received = COVER_EXECUTION.build(brief);
+  assert.deepEqual(buildCover(brief), received);
   assert.ok(received.elements.length > 0);
   assert.equal(COVER_EXECUTION.receiving(brief), null);
   const allowed = new Set(fill.map(c => `${c.x},${c.y}`));
@@ -41,8 +42,8 @@ test('a missed inherited pocket receives whole cover pieces and keeps loot stand
 test('an irregular delegated remnant is usable while empty, margined and zero-density fills are rejected', () => {
   const cells = cellsOf(8, 8), fill = cells.filter(c => c.x >= 3 && c.x <= 5 && c.y >= 3 && c.y <= 5 || c.x === 6 && c.y === 5);
   const brief = input('irregular', cells, fill);
-  assert.equal(buildCover(brief).elements.length, 0);
-  assert.ok(COVER_EXECUTION.build(brief).elements.length);
+  assert.ok(buildCover(brief).elements.length);
+  assert.deepEqual(COVER_EXECUTION.build(brief), buildCover(brief));
   for (const rejected of [input('empty', cells, []), input('margined', cellsOf(2, 2), undefined, {
     portals: [{ id: 'north', axis: 'h', x: 0, y: 0, length: 2 }, { id: 'south', axis: 'h', x: 0, y: 2, length: 2 }],
   }),
@@ -57,8 +58,8 @@ test('separate residual pieces retain doorway spacing and canonical input order'
   const cells = cellsOf(14, 8), fill = cells.filter(c => c.y >= 3 && c.y <= 5
     && (c.x >= 2 && c.x <= 4 || c.x >= 9 && c.x <= 11));
   const brief = input('spaced', cells, fill, { seed: 4, zones: [{ tier: 2, bonus: 0, lootChance: 0, cells }] });
-  assert.equal(buildCover(brief).elements.length, 0);
   const result = COVER_EXECUTION.build(brief);
+  assert.deepEqual(buildCover(brief), result);
   assert.equal(result.elements.length, 2);
   const [a, b] = result.elements.map(footprint);
   const dx = Math.max(0, a.x - b.x - b.w, b.x - a.x - a.w);
@@ -77,10 +78,10 @@ test('inherited fill and portal obligations survive fallback; large portal sets 
   for (const [id, active] of [['two', [portals[0], portals[32]]], ['many', portals]]) {
     const brief = input(id, cells, fill, { portals: active,
       zones: [{ tier: 2, bonus: 0, lootChance: 0, cells }] });
-    assert.equal(buildCover(brief).elements.length, 0);
     const result = COVER_EXECUTION.build(brief);
-    if (id === 'two') assert.ok(result.elements.length, 'the routed child places cover');
-    else assert.deepEqual(result, buildCover(brief), 'the high-portal child remains bounded');
+    assert.deepEqual(result, buildCover(brief));
+    if (id === 'two') assert.ok(result.elements.length, 'the routed region places cover');
+    else assert.equal(result.elements.length, 0, 'the high-portal region keeps no fallback, so its work stays bounded');
     assert.deepEqual(validateFillConstraints(brief, blockers(result)), []);
     assert.deepEqual(validatePortalReach({ ...brief, blockers: blockers(result) }).errors, []);
   }
@@ -92,7 +93,6 @@ test('fallback preserves the hunter crossing between opposite portals', () => {
     { id: 'west', axis: 'v', x: 0, y: 3, length: 2 },
     { id: 'east', axis: 'v', x: 10, y: 3, length: 2 },
   ], zones: [{ tier: 2, bonus: 0, lootChance: 0, cells }] });
-  assert.equal(buildCover(brief).elements.length, 0);
   const result = COVER_EXECUTION.build(brief);
   assert.ok(result.elements.length);
   assert.deepEqual(validateFillConstraints(brief, blockers(result)), []);
