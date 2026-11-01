@@ -3,9 +3,9 @@
  "build": "types-59",
  "node": "v24.15.0",
  "provenance": {
-  "commit": "dc06f551a66a042b3f3ded4f10b4f58ae5289d0f",
+  "commit": "2d1b82a4c926740a0b386a724475195165a03ca0",
   "sourceSha256": {
-   "tools/builder-census.mjs": "2e53893df56e9ef2c86c56abef13fabadab1ee667658def816b5fc2186649abf",
+   "tools/builder-census.mjs": "15419998ee419edafea3d5da56ef9e58d5605176569433183f1e6ea768690dee",
    "map/micro/region-types.ts": "daea23642846bca7610efc9ee83d87e4c76b7b5dbb1cc46437e3915f430b00c4",
    "map/micro/strategies/scatter.ts": "f5eabfeece7db1eea7ba0c6723a2d4e7101dcb0f1824608cd896eae3dd96befe",
    "map/micro/strategies/cover.ts": "58a99c3cfff189c8e21f8dc4884c842f41e1cae9d58039f991d94d642be4dd59",
@@ -15,7 +15,7 @@
    "map/micro/yard-handoff.ts": "1b07e072a333f083fe4fac7aba58fc55ba2108634b7259dbeff7150b3a041331"
   },
   "sourceGitBlob": {
-   "tools/builder-census.mjs": "0aaa73f11dba9d175d79291a8a22a30caf6a511e",
+   "tools/builder-census.mjs": "6e2f6c94c36aa1c718621e750ee18ed5c9e78a1d",
    "map/micro/region-types.ts": "fd1361e18ba65fc36dc70eaf6e1c09c6b9250d0c",
    "map/micro/strategies/scatter.ts": "dd02603abfde5376f9f01f0aef887c02975b1a84",
    "map/micro/strategies/cover.ts": "e34a82bbba27f1e05f0383485eb726102b1a7f6f",
@@ -25,7 +25,7 @@
    "map/micro/yard-handoff.ts": "04c33122814e03f54d7ecb921b4b28aad6f46fc8"
   },
   "sourceWorkingTreeSha256": {
-   "tools/builder-census.mjs": "2e53893df56e9ef2c86c56abef13fabadab1ee667658def816b5fc2186649abf",
+   "tools/builder-census.mjs": "15419998ee419edafea3d5da56ef9e58d5605176569433183f1e6ea768690dee",
    "map/micro/region-types.ts": "daea23642846bca7610efc9ee83d87e4c76b7b5dbb1cc46437e3915f430b00c4",
    "map/micro/strategies/scatter.ts": "f5eabfeece7db1eea7ba0c6723a2d4e7101dcb0f1824608cd896eae3dd96befe",
    "map/micro/strategies/cover.ts": "58a99c3cfff189c8e21f8dc4884c842f41e1cae9d58039f991d94d642be4dd59",
@@ -36,8 +36,12 @@
   }
  },
  "panel": "size-{12,24,36}-{1,2,3}, generate(seed, params, undefined, 48)",
+ "generation": {
+  "digest": "e3018a9a6d2020785bfd8762fb3ba4b0a437bdc98e47d369cc9d258fccb91081",
+  "files": 301
+ },
  "samplesPerCell": 16,
- "seconds": 87,
+ "seconds": 81,
  "byType": {
   "market": {
    "regions": 92,
