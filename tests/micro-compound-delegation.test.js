@@ -49,7 +49,7 @@ test('concave compound offers exterior cover while preserving its ring and actua
   assert.ok(node.children?.some(child => child.actualBuilder === 'cover' && child.retained.elements.length > 0),
     'cover visibly occupies an accepted exterior patch');
   assert.equal(createHash('sha256').update(JSON.stringify(ring(node.retained))).digest('hex'),
-    '6840a60df1039684d9aed3b7a2732e315892bdb6442d52cc1372a9814140188b',
+    'c07c9ff57951ac3244b43d4b38f3db24b0fe9c2cd61b72eb200ff0f5bd05fdd1',
     'the original 17-piece ring stays fixed');
   assert.deepEqual(ring(flat), ring(node.retained));
   assert.deepEqual(node.retained.brief.portals.filter(portal => original.portals.some(p => p.id === portal.id))

@@ -425,6 +425,7 @@ export interface Roof {
   overhang?: number | undefined;
   thresholds?: Cell[] | undefined;
   buildingId?: BuildingId | undefined;
+  appearance?: BuildingAppearance | undefined;
 }
 
 /** A ground-plane marking at a door or window: presentation only, never collision, sight or navigation (56.2). */
@@ -449,6 +450,8 @@ export interface SurfaceAppearance {
   weathered?: boolean | undefined;
   curb?: boolean | undefined;
   alpha?: number | undefined;
+  segmentSpan?: number | undefined;
+  split?: boolean | undefined;
 }
 
 export interface BuildingRoofSignAppearance {

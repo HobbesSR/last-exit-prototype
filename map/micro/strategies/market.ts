@@ -4,14 +4,87 @@ import { createBuilderCanvas } from '../canvas.ts';
 import { createRegionMask, elementShapes } from '../geometry.ts';
 import { MARKET_STALL } from '../placeables/market-stall.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
-import { draw } from '../random.ts';
+import { draw, rng } from '../random.ts';
 import { builtRegion } from '../result.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import { cellLoot, protectedRoutes, unfilledRegion } from './scatter.ts';
 
 const AISLE = CELL_SCALE.doorway;
 const DEPTH = 2;
 const CHANNEL = { cross: 1, loot: 2 };
+
+/**
+ * Authored minimal appearance descriptors for civic market stalls (11.1 §5.2, §5.5, 41.2 Step 5).
+ * Three visual decay tiers:
+ * - `MARKET_STALL_INTACT`: Vibrant awnings-yellow fabric awning, oxidized metal counter, clean plaza paving.
+ * - `MARKET_STALL_WEATHERED`: Weathered coral fabric awning, storefront-teal rim, dusty stucco counter, drainage stains.
+ * - `MARKET_STALL_DAMAGED`: Dirty cream torn awning, old sign red rim, cool concrete counter, drainage stain and scorch marks.
+ */
+export const MARKET_STALL_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'oxidizedMetal',
+  roofPaint: 'awningsYellow',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'awningsYellow',
+});
+
+export const MARKET_STALL_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'dustyStucco',
+  roofPaint: 'weatheredCoral',
+  roofRim: 'storefrontTeal',
+  interiorTrim: 'weatheredCoral',
+  neglect: {
+    roofDrainStain: { dx: 18, dy: 10, w: 22, h: 14 },
+  },
+});
+
+export const MARKET_STALL_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'dirtyCream',
+  roofRim: 'oldSignRed',
+  interiorTrim: 'oldSignRed',
+  neglect: {
+    roofDrainStain: { dx: 18, dy: 10, w: 24, h: 14 },
+    scorchMark: { dx: 22, dy: 12, w: 30, h: 18 },
+  },
+});
+
+export const MARKET_STALL_PRESETS: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance] = Object.freeze([
+  MARKET_STALL_INTACT,
+  MARKET_STALL_WEATHERED,
+  MARKET_STALL_DAMAGED,
+]);
+
+export interface MarketStallAppearanceOptions extends TieredAppearanceOptions {
+  length?: number | undefined;
+  alongX?: boolean | undefined;
+  cellSize?: number | undefined;
+}
+
+/**
+ * Procedural appearance generator for civic market stalls across intact, weathered, and
+ * competition-damaged visual decay tiers (11.1 §5.5, 41.2 Step 5).
+ */
+export function createMarketStallAppearance(options: MarketStallAppearanceOptions = {}): BuildingAppearance {
+  const alongX = options.alongX ?? true;
+  const length = options.length ?? 2;
+  const size = options.cellSize ?? 40;
+  const bw = (alongX ? length : 2) * size;
+  const bh = (alongX ? 2 : length) * size;
+  return createTieredBuildingAppearance({
+    ...options,
+    w: bw,
+    h: bh,
+  }, {
+    presets: MARKET_STALL_PRESETS,
+    thresholds: [0.4, 0.75],
+    tierChannel: 'stall-tier',
+  });
+}
 
 /** Market rows cover the whole mask, leaving two-cell lanes and periodic wider cross-lanes. */
 export function buildMarket(brief: RegionBrief): BuiltRegion {
@@ -46,12 +119,15 @@ export function buildMarket(brief: RegionBrief): BuiltRegion {
     if (!canvas.access.contains(rect((x - AISLE) * size, (y - AISLE) * size,
       (w + 2 * AISLE) * size, (h + 2 * AISLE) * size))
       || !canvas.fits(footprint) || !canvas.spaced(footprint, AISLE * size)) continue;
-    const stall = expectPlaced(MARKET_STALL.build({ length, alongX, flipped: row % 2 === 1, roofed }, size));
+    const stallSeed = Math.floor(rng(brief.seed, `${brief.id}:stall-appearance:${col}:${row}`).next() * 2 ** 31);
+    const stallApp = createMarketStallAppearance({ seed: stallSeed, length, alongX, cellSize: size });
+    const stall = expectPlaced(MARKET_STALL.build({ length, alongX, flipped: row % 2 === 1, roofed, appearance: stallApp }, size));
     if (!canvas.commit({ elements: placedElements(stall, `market-stall-${++stalls}`, x, y, size) }))
       throw new Error('Market stall failed its canvas commit.');
   }
   if (!stalls) return unfilledRegion(brief, CHANNEL.loot);
   const elements = [...canvas.elements];
+
   const loot = cellLoot(brief, createRegionMask(brief), elements.flatMap(e => elementShapes(e, true)), CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { stalls, awnings: roofed ? stalls : 0 });
 }

@@ -1,4 +1,5 @@
 import { polygon, rect } from '../../../shared/shape.ts';
+import type { ObstacleAppearance } from '../../../shared/types.ts';
 import type { Placeable } from './placeable.ts';
 
 /*
@@ -6,7 +7,7 @@ import type { Placeable } from './placeable.ts';
  */
 
 const INSET = 0.05, CHAMFER = 0.5;
-export interface PlantMachineParams { w: number; h: number; chamfered: boolean }
+export interface PlantMachineParams { w: number; h: number; chamfered: boolean; appearance?: ObstacleAppearance | undefined; }
 
 export const PLANT_MACHINE = Object.freeze<Placeable<PlantMachineParams>>({
   id: 'plant-machine', version: 'plant-machine-1', summary: 'A solid or chamfered industrial machine.',
@@ -16,13 +17,13 @@ export const PLANT_MACHINE = Object.freeze<Placeable<PlantMachineParams>>({
     { name: 'chamfered', summary: 'Cut its corners.', kind: 'boolean' },
   ],
   examples: [{ w: 2, h: 3, chamfered: false }, { w: 4, h: 4, chamfered: true }],
-  build({ w, h, chamfered }, cellSize) {
+  build({ w, h, chamfered, appearance }: PlantMachineParams, cellSize: number) {
     const x0 = INSET * cellSize, y0 = INSET * cellSize, x1 = (w - INSET) * cellSize, y1 = (h - INSET) * cellSize;
     const c = CHAMFER * cellSize;
     const shape = chamfered ? polygon(0, 0, [{ x: x0 + c, y: y0 }, { x: x1 - c, y: y0 }, { x: x1, y: y0 + c }, { x: x1, y: y1 - c },
       { x: x1 - c, y: y1 }, { x: x0 + c, y: y1 }, { x: x0, y: y1 - c }, { x: x0, y: y0 + c }]) : rect(x0, y0, x1 - x0, y1 - y0);
     return { elements: [{ x: 0, y: 0, template: { w: w * cellSize, h: h * cellSize,
-      parts: [{ part: 'obstacle' as const, shape, kind: 'container' as const }] } }],
+      parts: [{ part: 'obstacle' as const, shape, kind: 'container' as const, ...(appearance ? { appearance } : {}) }] } }],
       demand: { body: { w, h }, clear: [] }, details: undefined };
   },
 });

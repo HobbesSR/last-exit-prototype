@@ -35,7 +35,7 @@ test('plant infill preserves primary geometry with canonical candidate order', (
   assert.equal(result.manifest.infillCrates, crates(result).length);
   assert.deepEqual(crates(result).map(e => e.label), crates(result).map((_, i) => `plant-infill-crate-${i + 1}`));
   // Primary elements are committed before the infill pass.
-  assert.equal(digest(primary(result)), '0769ba0f68eb81408dd3c5bed6f6c2c11b47787e084c5b79eca45978d5a5caf7');
+  assert.equal(digest(primary(result)), 'b053c98d21a66557e3495f1ddf07e33c031e849b90c460a2b90230488b2a9108');
 });
 
 test('crates occupy only machine-roll slots and keep lattice aisles, shed and pipe stubs clear', () => {
@@ -117,7 +117,7 @@ test('density zero keeps the optional shed but adds no crates, and small regions
   assert.equal(shed.manifest.infillCrates, 0);
   assert.equal(crates(shed).length, 0);
   assert.ok(shed.elements.some(e => e.label.startsWith('plant-shed-')));
-  assert.equal(digest(traces), 'dacde3df60e1e2d3223a5efe864ff2f4837ae1825e259d71d30e640d63355bbb');
+  assert.equal(digest(traces), 'f161c17d1ef774a0df94f5868e33f1088c8f7886b23391faa4fc5380ca3c0cda');
   const thin = buildRegion(brief(cellsOf(32, 9), 1, 0));
   assert.equal(thin.elements.length, 0);
   assert.equal(thin.manifest.infillCrates, undefined);

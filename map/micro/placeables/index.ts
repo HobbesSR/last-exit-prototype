@@ -43,6 +43,7 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [MARKET_STALL.id]: MARKET_STALL,
 });
 
+
 /**
  * Build a placeable by id from unchecked parameters, as a tool or agent would. Strategies call
  * the descriptor itself, with typed parameters. Unknown ids and invalid parameters throw.

@@ -7,6 +7,7 @@ import { splitBuilding } from '../building/pieces.ts';
 import { reachableRoofGroups } from '../building/groups.ts';
 import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingRealization } from '../building/realize.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
 import type { Placeable } from './placeable.ts';
 
 /*
@@ -28,6 +29,7 @@ export interface CompoundRingParams {
   /** Bits N=1, E=2, S=4, W=8, selected by the builder. */
   gates: number;
   seed: number;
+  appearance?: BuildingAppearance | undefined;
 }
 
 export interface CompoundRingDetails {
@@ -55,7 +57,7 @@ export const COMPOUND_RING = Object.freeze<Placeable<CompoundRingParams, Compoun
     { w: 18, h: 16, gates: 5, seed: 9 },
     { w: 24, h: 24, gates: 15, seed: 4217 },
   ],
-  build({ w: W, h: H, gates, seed }: CompoundRingParams, size: number) {
+  build({ w: W, h: H, gates, seed, appearance }: CompoundRingParams, size: number) {
     // The ring in the box's own cells. A side's middle runs between the corner rooms.
     const strip = (side: Side, t: number, length: number): Box => {
       switch (side) {
@@ -109,7 +111,7 @@ export const COMPOUND_RING = Object.freeze<Placeable<CompoundRingParams, Compoun
         }),
       ],
     };
-    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: false, exteriorOrder: SIDES, corners: 'horizontal', clear: passages.map(passage => passage.id), widths, decalTheme: 'compound' });
+    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: false, exteriorOrder: SIDES, corners: 'horizontal', clear: passages.map(passage => passage.id), widths, decalTheme: 'compound', ...(appearance ? { appearance } : {}) });
     // A leading hyphen is the local suffix; the builder supplies its region ID after siting.
     const split = realization.template && splitBuilding(realization, allocation, { cellSize: size, roofed: rooms.map(room => room.id),
       groupId: reachableRoofGroups(realization, allocation, '') });

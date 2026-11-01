@@ -7,7 +7,8 @@ import { PLANT_MACHINE } from '../placeables/plant-machine.ts';
 import { PLANT_PIPE_RUN } from '../placeables/plant-pipe-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
-import { draw } from '../random.ts';
+import { draw, rng } from '../random.ts';
+import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { boundaryBoxFilter, boxesAgainstHints } from '../hints.ts';
@@ -37,6 +38,31 @@ const JOINED = 0.7;
 const SEAT = 0.5;
 /** The shed's size in slots: two by one, one by two, or two by two. */
 const SHEDS: ReadonlyArray<readonly [number, number]> = [[2, 1], [1, 2], [2, 2]];
+
+/**
+ * Authored minimal appearance descriptors for plant industrial sheds and machinery (11.1 §5.5, 41.2 Step 5).
+ */
+export const PLANT_SHED_APPEARANCE: BuildingAppearance = Object.freeze({
+  floorMaterial: 'concrete',
+  wallMaterial: 'metal',
+  roofPaint: 'slateShadow',
+  roofRim: 'sodiumAmber',
+  interiorTrim: 'oxidizedMetal',
+  roofSign: {
+    color: 'oxidizedMetal',
+    backing: 'structuralVoid',
+    stripe: 'sodiumAmber',
+    dx: 28,
+    dy: 16,
+    w: 90,
+    h: 22,
+  },
+  neglect: {
+    roofDrainStain: { dx: 80, dy: 30, w: 40, h: 26 },
+    floorStain: { dx: 60, dy: 50, w: 44, h: 28 },
+    scorchMark: { dx: 40, dy: 60, w: 46, h: 30 },
+  },
+});
 
 /** Per-cell draw channels, so no choice shifts another. */
 const CHANNEL = { phaseX: 1, phaseY: 2, machine: 3, width: 4, height: 5, jitterX: 6, jitterY: 7, chamfer: 8,
@@ -111,7 +137,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       const shed = box(site.slot), label = 'plant-shed-1';
       for (let j = 0; j < down; j++) for (let i = 0; i < across; i++) shedSlots.add(key(site.slot.x + i * PERIOD, site.slot.y + j * PERIOD));
       const seed = Math.floor(draw(brief.seed, shed.x, shed.y, CHANNEL.design) * 2 ** 31);
-      const built = expectPlaced(WAREHOUSE.build({ w: shed.w, h: shed.h, alongX: shed.w >= shed.h, seed }, size)), { design, allocation, realization, rejected } = built.details;
+      const built = expectPlaced(WAREHOUSE.build({ w: shed.w, h: shed.h, alongX: shed.w >= shed.h, seed, appearance: PLANT_SHED_APPEARANCE }, size)), { design, allocation, realization, rejected } = built.details;
       if (design.spaces.length > 1) designed++;
       observe?.({ label, origin: { x: shed.x * size, y: shed.y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
       commit(label, { elements: placedElements(built, label, shed.x, shed.y, size) });
@@ -137,7 +163,14 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     if (!clear(box)) continue;
     machines.set(key(slot.x, slot.y), box);
     const chamfered = draw(brief.seed, slot.x, slot.y, CHANNEL.chamfer) < CHAMFERED;
-    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered }, size)), label = `plant-machine-${machines.size}`;
+    const machRng = rng(brief.seed, `${brief.id}:machine-appearance:${slot.x}:${slot.y}`);
+    const machKind = chamfered ? 'cooling-tower' : machRng.next() < 0.5 ? 'substation' : 'machinery';
+    const appearance: ObstacleAppearance = machKind === 'cooling-tower'
+      ? { material: 'coolConcrete', focalRim: { side: 'N', color: 'sodiumAmber' } }
+      : machKind === 'substation'
+        ? { material: 'oxidizedMetal', focalRim: { side: 'E', color: 'electricTurquoise' } }
+        : { material: 'oxidizedMetal', focalRim: { side: 'S', color: 'hotOrange' } };
+    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered, appearance }, size)), label = `plant-machine-${machines.size}`;
     const placed = placedElements(built, label, box.x, box.y, size);
     machineShapes.set(key(slot.x, slot.y), placed.flatMap(element => elementShapes(element)));
     commit(label, { elements: placed });
