@@ -54,6 +54,10 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   "Accepted" does not imply implemented; resolve concrete open choices through
   existing user answers in `docs/17-open-questions.md` or explicitly recorded
   assumptions appropriate to the task.
+- Run test scripts through the thin reporter, `npm run brief -- test` (or `-- test:slow`,
+  `-- test:physics` and so on): a line per file and the details of each failure. Start
+  long runs in the background and wait for the exit notification; do not poll their
+  output ([31](docs/31-verification.md)).
 - Run focused checks for changed behavior. `npm test` is the fast tier for
   iterating; `npm run test:all` adds the slow seed sweeps and whole-match runs.
   Choose the rest by changed area from the table in

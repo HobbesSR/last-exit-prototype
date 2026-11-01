@@ -18,6 +18,7 @@
     "check": "node tests/check.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p map/tools",
     "test:times": "node tests/timing.mjs",
+    "brief": "node tests/brief.mjs",
     "bench": "node tests/bench.mjs",
     "bench:client": "node tests/bench-client.mjs",
     "bench:stages": "node tests/bench-stages.mjs",
