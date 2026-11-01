@@ -9,7 +9,8 @@ import { WAREHOUSE } from '../map/micro/placeables/warehouse.ts';
 import { HOUSE } from '../map/micro/placeables/house.ts';
 import { buildBlock } from '../map/micro/strategies/block.ts';
 import { buildMarket, MARKET_STALL_PRESETS, MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
-import { buildCompound, COMPOUND_RESIDENTIAL_PRESETS, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
+import { buildCompound, createCompoundAppearance, COMPOUND_RESIDENTIAL_PRESETS, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
+import { rng } from '../map/micro/random.ts';
 import { buildPlant, PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
 
 import { chainBrief } from './helpers/chain-briefs.js';
@@ -641,11 +642,25 @@ test('compound region strategy adopts residential/office block appearance and co
 
   // Damaged compound has scars on room pieces with non-repeating offsets across rooms:
   const damagedBrief = chainBrief({ type: 'compound', cells: cellsOf(20, 20), seed: 2, portals: [{ id: 'p1', side: 'N', axis: 'h', x: 8, y: 0, length: 4, partner: 'other' }] });
+  const ringAppSeed = Math.floor(rng(damagedBrief.seed, `${damagedBrief.id}:compound-appearance`).next() * 2 ** 31);
+  const tierRoll = rng(ringAppSeed, 'compound-tier').next();
+  assert.ok(tierRoll >= 0.7, `seed 2 explicitly rolls damaged tier (${tierRoll.toFixed(3)} >= 0.7)`);
   const damagedRegion = buildCompound(damagedBrief);
   const damagedRooms = damagedRegion.elements.filter(e => e.label.startsWith('compound-room') && e.template.appearance?.building?.neglect?.scorchMark);
   assert.ok(damagedRooms.length > 0, 'damaged compound has at least one scorch scar on some room piece');
   const scorchOffsets = new Set(damagedRooms.map(r => `${r.template.appearance.building.neglect.scorchMark.dx},${r.template.appearance.building.neglect.scorchMark.dy}`));
   assert.equal(scorchOffsets.size, damagedRooms.length, 'no two compound room pieces share identical scorch mark offsets');
+
+  // Direct helper test with explicit roll:
+  const explicitDamaged = createCompoundAppearance({ seed: 42, roll: 0.85, w: 160, h: 120 });
+  assert.equal(explicitDamaged.roofPaint, 'dirtyCream', 'explicit roll >= 0.7 selects damaged preset');
+  assert.ok(explicitDamaged.neglect?.scorchMark, 'explicit roll >= 0.7 generates scorch mark');
+  assert.ok(explicitDamaged.neglect.scorchMark.dx >= 0 && explicitDamaged.neglect.scorchMark.dx <= 160, 'scorch mark dx bounded by w');
+  assert.ok(explicitDamaged.neglect.scorchMark.dy >= 0 && explicitDamaged.neglect.scorchMark.dy <= 120, 'scorch mark dy bounded by h');
+
+  const explicitIntact = createCompoundAppearance({ seed: 42, roll: 0.1, w: 160, h: 120 });
+  assert.equal(explicitIntact.roofPaint, 'fadedViolet', 'explicit roll < 0.35 selects intact preset');
+  assert.equal(explicitIntact.neglect?.scorchMark, undefined, 'intact tier has no scorch mark');
 });
 
 test('plant region strategy adopts industrial shed appearance, cooling towers, and substation machinery', () => {

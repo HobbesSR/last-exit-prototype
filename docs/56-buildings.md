@@ -428,7 +428,7 @@ without changing authoritative geometry, navigation, or simulation RNG:
   and office blocks across three tiers (`COMPOUND_RESIDENTIAL_INTACT`, `COMPOUND_RESIDENTIAL_WEATHERED`,
   `COMPOUND_RESIDENTIAL_DAMAGED` / `createCompoundAppearance`) with faded violet, weathered coral,
   and dirty cream roofs, weathered brick, dusty stucco, and cool concrete walls, and courtyard paving
-  (`coolConcrete`). Perimeter room pieces inherit base palette and courtyard paving without duplicating scars across rooms.
+  (`coolConcrete`). Perimeter room pieces receive individual appearances drawn from per-room seeds and sized to each piece's bounds, sharing the compound's decay tier without duplicating scars across rooms.
 - **Heavy industrial plant kit (`plant` and `PLANT_MACHINE`):** industrial sheds
   (`PLANT_SHED_APPEARANCE` with slate shadow roof, metal walls, and sodium amber focal rims),
   cooling towers (`coolConcrete` with `sodiumAmber` focal rim), and generator substations

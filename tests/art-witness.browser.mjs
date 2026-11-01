@@ -9,7 +9,7 @@ import { arena } from './helpers/arena.js';
 import { SWATCHES, THEMES, contrast, mix, css, G } from '../public/palette.js';
 import { MATERIAL_SWATCH } from '../public/appearance.js';
 import { MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
-import { COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
+import { createCompoundAppearance, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
 import { PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
 
 import { INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM, playerZoom } from '../shared/view.ts';
@@ -1805,31 +1805,39 @@ try {
     { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 },
     { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 },
   ];
+  const expCompoundDamaged = createCompoundAppearance({ seed: 585, roll: 0.85, w: 160, h: 120 });
   const expMap = {
     seed: 585,
     width: 2400,
     height: 1600,
     modules: [],
     buildings: [
-      // Compound residential room
+      // Compound residential room (intact)
       { id: 'exp-compound-room', x: 160, y: 240, w: 160, h: 120, appearance: COMPOUND_RESIDENTIAL_INTACT },
       // Plant shed
       { id: 'exp-plant-shed', x: 360, y: 240, w: 160, h: 120, appearance: PLANT_SHED_APPEARANCE },
+      // Compound residential room (generated damaged wear with scorch marks and floor stains)
+      { id: 'exp-compound-damaged', x: 560, y: 240, w: 160, h: 120, appearance: expCompoundDamaged },
     ],
     roofs: [
       // Market stall awnings
       { id: 'exp-stall-intact', groupId: 'stall-1', bounds: { x: 200, y: 100, w: 120, h: 80 }, origin: { x: 200, y: 100 }, cellSize: 40, cells: stallCells, appearance: MARKET_STALL_INTACT },
       { id: 'exp-stall-weathered', groupId: 'stall-2', bounds: { x: 400, y: 100, w: 120, h: 80 }, origin: { x: 400, y: 100 }, cellSize: 40, cells: stallCells, appearance: MARKET_STALL_WEATHERED },
       { id: 'exp-stall-damaged', groupId: 'stall-3', bounds: { x: 600, y: 100, w: 120, h: 80 }, origin: { x: 600, y: 100 }, cellSize: 40, cells: stallCells, appearance: MARKET_STALL_DAMAGED },
-      // Compound residential roof
+      // Compound residential roof (intact)
       { id: 'exp-compound-roof', groupId: 'comp-1', bounds: { x: 160, y: 240, w: 160, h: 120 }, origin: { x: 160, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-compound-room', appearance: COMPOUND_RESIDENTIAL_INTACT },
       // Plant shed roof
       { id: 'exp-plant-roof', groupId: 'plant-1', bounds: { x: 360, y: 240, w: 160, h: 120 }, origin: { x: 360, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-plant-shed', appearance: PLANT_SHED_APPEARANCE },
+      // Compound residential roof (generated damaged wear)
+      { id: 'exp-compound-damaged-roof', groupId: 'comp-2', bounds: { x: 560, y: 240, w: 160, h: 120 }, origin: { x: 560, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-compound-damaged', appearance: expCompoundDamaged },
     ],
     obstacles: [
       // Compound perimeter walls
       { id: 'comp-w1', kind: 'building', x: 160, y: 240, w: 160, h: 14, buildingId: 'exp-compound-room' },
       { id: 'comp-w2', kind: 'building', x: 160, y: 240, w: 14, h: 120, buildingId: 'exp-compound-room' },
+      // Damaged compound perimeter walls
+      { id: 'comp-dw1', kind: 'building', x: 560, y: 240, w: 160, h: 14, buildingId: 'exp-compound-damaged' },
+      { id: 'comp-dw2', kind: 'building', x: 560, y: 240, w: 14, h: 120, buildingId: 'exp-compound-damaged' },
       // Plant cooling tower & substation
       { id: 'plant-ct', kind: 'container', x: 380, y: 380, w: 60, h: 40, appearance: { material: 'coolConcrete', focalRim: { side: 'N', color: 'sodiumAmber' } } },
       { id: 'plant-sub', kind: 'container', x: 460, y: 380, w: 60, h: 40, appearance: { material: 'oxidizedMetal', focalRim: { side: 'E', color: 'electricTurquoise' } } },
@@ -1885,6 +1893,7 @@ try {
     const stallDamagedPx = f.pixelAtWorld(660, 140);
     const compoundRoofPx = f.pixelAtWorld(240, 300);
     const plantRoofPx = f.pixelAtWorld(440, 300);
+    const compDamagedRoofPx = f.pixelAtWorld(640, 300);
     const streetRefPx = f.pixelAtWorld(360, 480);
 
     const compRoofAlphaClosed = s.roofs.get('exp-compound-roof')?.alpha ?? 0;
@@ -1916,6 +1925,7 @@ try {
       stallDamagedPx,
       compoundRoofPx,
       plantRoofPx,
+      compDamagedRoofPx,
       streetRefPx,
       compRoofAlphaClosed,
       compRoofAlphaInside,
@@ -1945,14 +1955,28 @@ try {
   assert.equal(expandedKitsDemo.compRoofAlphaClosed, 1, 'compound roof is closed when player is outside');
   assert.equal(expandedKitsDemo.compRoofAlphaInside, 0, 'compound roof reveals when player enters');
 
+  // 4. Generated compound wear validation:
+  assert.ok(expCompoundDamaged.neglect?.scorchMark, 'generated compound wear produces scorch mark');
+  assert.notEqual(expandedKitsDemo.compDamagedRoofPx.hex, expandedKitsDemo.compoundRoofPx.hex, 'damaged compound roof differs from intact compound roof');
+  const compDamagedRoofLum = toLuminance(expandedKitsDemo.compDamagedRoofPx.hex);
+  const compDamagedRatio = Number((Math.max(compDamagedRoofLum, streetLum) / Math.min(compDamagedRoofLum, streetLum)).toFixed(2));
+  assert.ok(compDamagedRatio >= 1.15, `damaged compound roof survives grayscale contrast vs street (${compDamagedRatio})`);
+
+  // Screenshot capture for expanded architectural kits (including generated compound wear):
+  const fileExpKits = 'expanded-kits-overview.png';
+  await page.screenshot({ path: path.join(outDir, fileExpKits) });
+  captures.push({ id: 'expanded-kits-overview', file: fileExpKits, theme: 'signature', fog: false, zoom: PLAY_ZOOM, view: 'step5-expanded-kits (market stalls, compound rooms across intact and damaged tiers with generated wear, plant structures)' });
+
   const step5ExpandedKitsSummary = {
     stallIntactHex: css(expandedKitsDemo.stallIntactPx.hex),
     stallWeatheredHex: css(expandedKitsDemo.stallWeatheredPx.hex),
     stallDamagedHex: css(expandedKitsDemo.stallDamagedPx.hex),
     compoundRoofHex: css(expandedKitsDemo.compoundRoofPx.hex),
+    compDamagedRoofHex: css(expandedKitsDemo.compDamagedRoofPx.hex),
     plantRoofHex: css(expandedKitsDemo.plantRoofPx.hex),
     stallIntactRatio,
     compRoofRatio,
+    compDamagedRatio,
     plantRoofRatio,
     compRoofAlphaClosed: expandedKitsDemo.compRoofAlphaClosed,
     compRoofAlphaInside: expandedKitsDemo.compRoofAlphaInside,
