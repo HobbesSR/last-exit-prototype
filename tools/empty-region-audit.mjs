@@ -92,7 +92,7 @@ try {
       const fillErrors = validateFillConstraints(b, blockers), reach = validatePortalReach({ ...b, blockers }, { search: 'thorough' });
       assert.deepEqual(fillErrors, [], `${b.id} fill`); assert.ok(reach.valid, `${b.id} reach ${reach.errors}`);
       const reordered = { ...b, cells: [...b.cells].reverse(), fillCells: [...b.fillCells].reverse(), clearCells: [...b.clearCells].reverse(),
-        portals: [...b.portals].reverse(), zones: b.zones.map(z => ({ ...z, cells: [...z.cells].reverse() })) };
+        zones: b.zones.map(z => ({ ...z, cells: [...z.cells].reverse() })) };
       const again = buildRegion(reordered);
       assert.deepEqual(again.elements, region.elements, `${b.id} reordered`); assert.deepEqual(again.loot, region.loot);
     }

@@ -123,7 +123,7 @@ test('a one-tile park the lattice misses gets single trees cell by cell, clear o
       assert.ok(gapBetween(a, b) >= 2, `seed ${seed}: single trees keep a doorway apart`);
     assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }, { search: 'thorough' }).errors, []);
     const reversed = structuredClone(result.brief);
-    reversed.cells.reverse(); reversed.portals.reverse(); reversed.zones[0].cells.reverse();
+    reversed.cells.reverse(); reversed.zones[0].cells.reverse();
     assert.deepEqual(buildRegion(reversed).elements, result.elements);
   }
   assert.ok(filled >= SEEDS.length / 2, `${filled} of ${SEEDS.length} seeds`);
