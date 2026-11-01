@@ -377,7 +377,7 @@ This is also a shared prerequisite for #529's composition sequence above.
 | --- | --- | --- |
 | Done | [#644](/corey/astra_test/issues/644) | Optional mesh fallback; independent final-geometry swept validation; grid default unchanged |
 | Done | [#645](/corey/astra_test/issues/645) | Opt-in atomic retained-content parcels anywhere in the fill, with deformable connectivity witness; no production adoption |
-| 3a | [#649](/corey/astra_test/issues/649) | Optional interior/perimeter growth helpers after #645, independent of delegation; a candidate lever for detour and dead ends (17.2.11), judged by #688 |
+| Done | [#649](/corey/astra_test/issues/649) | Optional interior-seed and perimeter-front growth helpers (20.10); park's hedge fronts as an opt-in measured experiment, not adopted ([42.30](42.30-park-hedge-fronts.md)) |
 | Done | [#646](/corey/astra_test/issues/646) | Carve-first whole-cell peripheral handoffs, paired margins and whole-portal transfer coordinated with routing; synthetic fixtures and recovery, no production adoption |
 | Hut and compound adoption | [#647](/corey/astra_test/issues/647) | Hut approved in #654; compound follows as a separate measured milestone. Each builder may choose interior or boundary handoffs (17.2.10) |
 
