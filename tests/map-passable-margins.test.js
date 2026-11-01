@@ -128,7 +128,7 @@ test('block child handoffs retain original ownership and apply inherited and new
 });
 
 // Every registered builder respecting the automatic fill exclusions, beside hints and across
-// internal strips, is the builder contract (micro-builder-contract.test.js).
+// internal strips, is the builder contract (tests/helpers/builder-contract.js).
 
 test('empty fill preserves core requests and original siting ownership', () => {
   const input = brief(cells(0, 0, 12, 12), []);

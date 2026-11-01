@@ -480,17 +480,17 @@ test('roof geometry works with non-40 cell size and non-zero origins', () => {
 });
 
 test('live map: roofs have unique ids, keep map id order, and declare multi-room groups', () => {
-  // #530's grounds, infill, #534's market, #647's yards, #532's structures, #533's warehouses/winged library, #717's fallback and #750's cord-routed park change counts.
+  // #530's grounds, infill, #534's market, #647's yards, #532's structures, #533's warehouses/winged library, #717's fallback, #750's cord-routed park and #759/#760's cord-routed rubble and plant and park fronts change counts.
   // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
   const map1 = generateLiveMap(1);
-  assert.equal(map1.obstacles?.at(-1)?.id, 'o869', 'obstacle IDs stay pinned on seed 1');
-  assert.equal(map1.gates?.at(-1)?.id, 'door-444', 'gate IDs stay pinned on seed 1');
-  assert.equal(map1.items?.at(-1)?.id, 'item-1791', 'item IDs stay pinned on seed 1');
+  assert.equal(map1.obstacles?.at(-1)?.id, 'o1133', 'obstacle IDs stay pinned on seed 1');
+  assert.equal(map1.gates?.at(-1)?.id, 'door-653', 'gate IDs stay pinned on seed 1');
+  assert.equal(map1.items?.at(-1)?.id, 'item-1952', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o1319', 'obstacle IDs stay pinned on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-874', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-2132', 'item IDs stay pinned on seed 2');
+  assert.equal(map2.obstacles?.at(-1)?.id, 'o1619', 'obstacle IDs stay pinned on seed 2');
+  assert.equal(map2.gates?.at(-1)?.id, 'door-1166', 'gate IDs stay pinned on seed 2');
+  assert.equal(map2.items?.at(-1)?.id, 'item-2386', 'item IDs stay pinned on seed 2');
 
   assert.ok([map1, map2].some(map => [...roofGroups(map).values()].some(group => group.length > 1)),
     'the live-map sample declares a multi-room group');

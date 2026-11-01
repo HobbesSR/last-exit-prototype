@@ -1,18 +1,14 @@
-import { portalMargin } from '../map/micro/hints.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { createRegionMask, elementShapes, shapesOverlap, shapesShareArea } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
-import { bounds, circle, overlaps } from '../shared/shape.ts';
+import { circle, overlaps } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { assertWithinBudget } from './helpers/budget.js';
 import { SIZE, brief, MASKS, SEEDS, blockers, kind, gapOf } from './helpers/plant-fixtures.js';
-import { assertPlantPromise } from './helpers/plant-promise.js';
-
-const cellBox = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
-const gapBetween = (a, b) => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+import { assertPlantPromise, assertPlantSpacing } from './helpers/plant-promise.js';
 
 // The fast tier runs two seeds; tests/slow/micro-plant-promise.test.js runs them all.
 test('a plant region keeps the portal promise over seeds, masks and parameters', () => assertPlantPromise(SEEDS.slice(0, 2)));
@@ -25,35 +21,9 @@ test('plants are deterministic and independent of the order of the brief\'s cell
   }
 });
 
-test('machines and the shed keep an aisle from each other and respect portal margins, and pipes from all but what they join', () => {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS)
-    for (const parameters of [{ density: 1, shed: 0 }, { density: 1, shed: 1 }]) {
-      const input = brief(name, seed, cells, portals, parameters);
-      const result = buildRegion(input), mask = createRegionMask(input);
-      const reserved = new Set(portalMargin(input, 1).map(c => `${c.x},${c.y}`));
-      const solid = result.elements.filter(e => !kind('pipe')(e)).map(e => ({ label: e.label, box: cellBox(e) }));
-      for (const [i, { label, box }] of solid.entries()) {
-        for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++)
-          assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: ${label} footprint`);
-        for (const other of solid.slice(i + 1)) assert.ok(gapBetween(box, other.box) >= 2, `${name} ${seed}: ${label} and ${other.label}`);
-      }
-      const cellsOfShape = shape => { const b = bounds(shape); return { x: b.x / SIZE, y: b.y / SIZE, w: b.w / SIZE, h: b.h / SIZE }; };
-      const pipes = result.elements.filter(kind('pipe')).map(pipe => {
-        const stubs = elementShapes(pipe).map(cellsOfShape);
-        // A run's box reaches into the two machines it joins, though a gap against one leaves it no stub there.
-        return { pipe, stubs, joins: solid.filter(({ box }) => gapBetween(cellBox(pipe), box) < 0) };
-      });
-      for (const { pipe, stubs, joins } of pipes) {
-        // Each run joins exactly two machines, and keeps clear of every other piece, and of every run that shares neither.
-        assert.equal(joins.length, 2, `${name} ${seed}: ${pipe.label} joins two machines`);
-        assert.ok(joins.every(j => j.label.startsWith('plant-machine')));
-        const others = [...solid.filter(s => !joins.includes(s)).map(s => s.box),
-          ...pipes.filter(p => p.pipe !== pipe && !p.joins.some(j => joins.includes(j))).flatMap(p => p.stubs)];
-        for (const s of stubs) for (const other of others)
-          assert.ok(gapBetween(s, other) >= 2, `${name} ${seed}: ${pipe.label} keeps clear`);
-      }
-    }
-});
+// The fast tier runs two seeds of this sweep; tests/slow/micro-plant-promise.test.js runs all eight.
+test('machines and the shed keep an aisle from each other and respect portal margins, and pipes from all but what they join', () =>
+  assertPlantSpacing(SEEDS.slice(0, 2)));
 
 test('pipe stubs end on the surfaces of the machines they join, chamfers included', () => {
   const [cells, portals] = MASKS.field;

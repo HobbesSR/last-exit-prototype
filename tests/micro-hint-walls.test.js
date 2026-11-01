@@ -117,7 +117,9 @@ test('hall, ruins and rubble wall their hints around their own pieces and keep t
     const wallShapes = walls.flatMap(e => elementShapes(e)), pieces = others.flatMap(e => elementShapes(e));
     assert.equal(wallShapes.some(w => pieces.some(p => shapesOverlap(w, p))), false, `${name} walls clear of its pieces`);
     assert.equal(wallShapes.some(w => result.loot.some(l => shapesOverlap(w, circle(l.x, l.y, 1)))), false, `${name} loot clear of walls`);
-    assert.deepEqual(validatePortalReach({ ...result.brief, blockers: [...pieces, ...wallShapes] }).errors, [], name);
+    // Rubble places against a live cord, so its proof is the thorough search's (20.10).
+    const search = type === 'rubble' ? { search: 'thorough' } : {};
+    assert.deepEqual(validatePortalReach({ ...result.brief, blockers: [...pieces, ...wallShapes] }, search).errors, [], name);
     // Without hints, nothing is walled.
     const bare = buildRegion({ ...b, hints: undefined });
     assert.equal(bare.manifest.hintWalls, 0, name);

@@ -22,6 +22,12 @@ export type CordWitnessResult = { ok: true; witness: CordWitness; counters: Cord
   | { ok: false; reason: 'budget' | 'external' | 'interior'; counters: CordCounters };
 
 const MAX_INPUTS = 16_384, MAX_SEGMENTS = 4_096;
+/**
+ * Path segments for scatter builders on a live cord (park, rubble, plant): winding cords to every
+ * stand of a many-portal region pass the default of 4,096. It is a tool limit, not a contract
+ * (20.10); callers that don't pass it keep the default.
+ */
+export const SCATTER_CORD_BUDGET: Readonly<CordBudget> = Object.freeze({ maxSegments: 16_384 });
 const same = (a: Vec2, b: Vec2): boolean => a.x === b.x && a.y === b.y;
 const compare = (a: Vec2, b: Vec2): number => a.x - b.x || a.y - b.y;
 const copy = (p: Vec2): Vec2 => ({ x: p.x, y: p.y });

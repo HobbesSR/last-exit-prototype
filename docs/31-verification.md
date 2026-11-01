@@ -117,8 +117,12 @@ at every seed, and most of its cost is the reach searches. The fast tier keeps a
 and the original seeds run in `tests/slow/` (#543, measured in
 [42.3](42.3-generation-and-delegation-evidence.md#builder-test-headroom-543-2026-10-27)):
 `micro-block-promise` runs the first of four seeds on each mask and
-`slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds and
-`slow/micro-plant-promise` all eight; `micro-compound` runs one of four seeds of its
+`slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds of its promise
+and spacing sweeps and `slow/micro-plant-promise` all eight, with #490's plant strips at
+three of forty seeds fast (in the builder contract) and all forty slow; `micro-park` runs one
+of eight seeds of its promise sweep and two of its clump-spacing sweep, and
+`slow/micro-park-promise` all eight, with the 36-portal park (#759, #760: cord-routed
+builders and park's hedge fronts cost several times more); `micro-compound` runs one of four seeds of its
 portal and roofed-ring checks; `micro-compound-observer`,
 `micro-compound-observer-shaped` and `micro-compound-observer-ring` split the
 same one-seed observer witness by mask;
@@ -126,7 +130,8 @@ same one-seed observer witness by mask;
 same four seeds into 1-2 and 3-4. Compound cell-order determinism
 keeps a fast seed and all eight original seeds in `slow/micro-compound-determinism`
 (#647). Each pair calls one function in
-`tests/helpers/` (`block-promise.js`, `plant-promise.js`, `compound-sweeps.js`) with a
+`tests/helpers/` (`block-promise.js`, `plant-promise.js`, `park-fixtures.js`,
+`builder-contract.js`, `compound-sweeps.js`) with a
 different seed list, so the assertions cannot drift apart. `test:micro` runs only the fast
 files: a builder change that moves a type's output also runs that type's slow file, for
 example `node --test tests/slow/micro-plant-promise.test.js`. Narrow a sweep this way, by
@@ -171,17 +176,21 @@ collision geometry with `validatePortalReach`, rather than from recorded routes.
 The negotiation, realization and explicit-port access and boundary tests retired
 with what they tested (#483).
 
-`tests/micro-builder-contract.test.js` (#540) holds every registered region type to the
+The builder contract (#540, `tests/helpers/builder-contract.js`) holds every registered region type to the
 promises of a builder (20.9) over chain-like briefs (`tests/helpers/chain-briefs.js`),
 which carry what a bare rectangle with portals lacks: cleared strips inside the owned
 cells, concave and holed masks, many portals, hints and a playable area larger than the
-owned cells (20.6). A builder loop runs only its own type, in seconds:
-`node --test --test-name-pattern=plant tests/micro-builder-contract.test.js`.
+owned cells (20.6). It runs from two fast files, split for the budget when rubble and plant
+moved to a live cord (#759): `micro-builder-contract-cord` for rubble, park and plant, and
+`micro-builder-contract` for every other type. A builder loop runs only its own type, in seconds:
+`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`.
 `BUILDER_SEEDS=<n>` runs seeds 1 to n on each fixture instead of two, for a builder change
 that moves a type's output; `BUILDER_SEEDS=20` took 67 to 70 s across all seventeen types.
 The default matrix, six fixtures of 224 to 660 cells at two seeds, plus #490's 120 plant
 builds, took about 9 s on the shared dev machine (14 s once, while it was busy), against the
-fast tier's 15 s; its comment records the sizing.
+fast tier's 15 s; its comment records the sizing. At types-62 the same matrix took 25 s and the
+120 strip builds 22 s, so the split files took 13.5 s and 13.1 s, with the strips at nine
+builds fast and 120 in `slow/micro-plant-promise`.
 
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing
@@ -339,7 +348,7 @@ the change cannot move adds minutes and no evidence (#542). Three tiers:
 
 | Changed area | Inner loop | Before the PR, beyond those gates | Integration |
 | --- | --- | --- | --- |
-| One region type's builder or strategy | the type's files (`node --test tests/micro-plant*.test.js`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract.test.js`); its replay (`sweep --check FILE --type plant`, 53) | `npm run test:micro`; the type's slow file when the change moved its output | the full chain sweep, no drift unless the PR declares a content change, recaptured last (53); `validate --diagnose true` on the maps it names as drifted |
+| One region type's builder or strategy | the type's files (`node --test tests/micro-plant*.test.js`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`); its replay (`sweep --check FILE --type plant`, 53) | `npm run test:micro`; the type's slow file when the change moved its output | the full chain sweep, no drift unless the PR declares a content change, recaptured last (53); `validate --diagnose true` on the maps it names as drifted |
 | Macro stages, the chain's authored library, the kernel | `npm run test:mapgen` | | the full chain sweep, recaptured last for a content change (53); the `map-library` slow files |
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | | `map-sweep`, `bot-objective` |
 | Simulation, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | | `characterization-bots`, `bot-objective`, `live-map`; `test:browser` or `bench` when the change reaches the client or tick cost |
@@ -373,7 +382,7 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `room-sizes-physics` | the same, on the shipped default `content-6` and the physics engine (#523) | the physics room plays to its end, its recording names `last-exit-0.8-physics-8`, and the map fits the content's ground capacity | rooms, recording, physics, item capacity, size-dependent generation |
 | `map-library` | the chain at the game size | 25 maps report no defects; every region of one keeps its portal promise (`diagnoseBuiltMap`) | macro stages, the library, a region type's builder |
 | `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
-| `micro-block-promise`, `micro-plant-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks) | that builder |
+| `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks, plant's and park's spacing, plant's #490 strips, park's 36-portal case) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
 | `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
 

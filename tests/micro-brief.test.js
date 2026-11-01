@@ -32,7 +32,8 @@ test('a brief\'s portals are kept, never walled, and every region type keeps its
   for (const type of Object.keys(REGION_TYPES)) for (const seed of [1, 2, 3]) {
     const result = buildRegion(brief(type, seed));
     assert.ok(result.elements.every(e => !e.label.startsWith('port:')), type);
-    const check = validatePortalReach({ ...result.brief, blockers: blockersOf(result) });
+    // As map diagnosis checks it: the thorough search retries only grid misses (20.10).
+    const check = validatePortalReach({ ...result.brief, blockers: blockersOf(result) }, { search: 'thorough' });
     assert.deepEqual(check.errors, [], `${type} seed ${seed}`);
     assert.equal(check.routes.length, 1);
   }

@@ -1,11 +1,12 @@
 import { rect } from '../../../shared/shape.ts';
 import { RUBBLE_DEBRIS } from '../placeables/rubble-debris.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
-import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, portalApproaches } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask } from '../geometry.ts';
 import { commitHintWalls, wallHints } from '../hint-walls.ts';
-import { createBuilderCanvas } from '../canvas.ts';
+import { createProspectiveParcels } from '../prospective-parcels.ts';
+import { SCATTER_CORD_BUDGET } from '../cord-witness.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
@@ -15,9 +16,11 @@ const DEFAULT_SQUEEZE_SHARE = 0.8;
 
 /**
  * Rubble has no children (54). Two-cell-spaced debris leaves selected 1.5-cell
- * gaps. Full portal approaches and one hunter route from the first portal to
- * each other portal are protected before any debris is placed. Plain walls then
- * stand along every hinted run where no debris or route is (`wallHints`).
+ * gaps. Portal approaches stay clear. Nothing else is reserved between portals:
+ * each piece commits only if a hunter cord still joins every portal stand, so
+ * debris bends the way through rather than leaving a fixed route bare (20.10,
+ * #759). Plain walls then stand along every hinted run where no debris or
+ * approach is (`wallHints`), each wall passed over if the cord refuses it.
  */
 export function buildRubble(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Rubble', 'density', DEFAULT_DENSITY);
@@ -28,8 +31,12 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   // The catalogue's shape need is proposed; open is the last resort (17 M24).
   if (!mask.cells.length || brief.cells.length < 12 || Math.min(spanX, spanY) < 3) return unfilledRegion(brief, 3);
 
-  const protectedShapes = protectedRoutes(brief, 'Rubble');
-  const canvas = createBuilderCanvas(brief, protectedShapes);
+  // Portal approaches are the fixed anchors; the coordinator keeps a live cord witness to
+  // every stand and refuses a commit that would leave none (20.10).
+  const approaches = portalApproaches(brief, 'Rubble');
+  const parcels = createProspectiveParcels(brief, { fixedAccess: approaches, budget: SCATTER_CORD_BUDGET });
+  if (!parcels.ok) throw new Error(`Rubble region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
+  const canvas = parcels.coordinator;
   const debris: Shape[] = [];
   let squeezeDebris = 0;
   // A half-cell square at every other cell leaves exactly 1.5 cells between
@@ -46,16 +53,15 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
     if (!canvas.fits(shape)) continue;
     const label = `rubble-${cell.x}-${cell.y}`;
     // A legacy world-absolute record: its template box is not its intent, so the debris is.
-    // Siting has already accepted it, so a refusal is a broken placement invariant.
+    // Siting has accepted it, so a refusal means it would leave a portal without a cord: it is
+    // passed over, and per-cell draws keep the rest unchanged.
     if (!canvas.commit({ elements: [{ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
-      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } }], areas: [shape], extents: [shape] }))
-      throw new Error(`Rubble placement ${label} failed its canvas commit.`);
+      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } }], areas: [shape], extents: [shape] })) continue;
     debris.push(shape);
     if (squeeze) squeezeDebris++;
   }
 
-  const walls = wallHints(brief, { kind: 'ruin-wall', avoid: [...protectedShapes, ...debris] });
-  commitHintWalls(canvas, walls);
+  const walls = commitHintWalls(canvas, wallHints(brief, { kind: 'ruin-wall', avoid: [...approaches, ...debris] }), { passOver: true });
   const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...debris, ...walls.shapes], 3);
   return builtRegion(brief, elements, loot, [], { squeezeDebris, hintWalls: walls.shapes.length });
