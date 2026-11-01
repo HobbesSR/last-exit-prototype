@@ -2,12 +2,12 @@ import { rect } from '../../../shared/shape.ts';
 import { PARK_TREE } from '../placeables/park-tree.ts';
 import { PARK_HEDGE_RUN } from '../placeables/park-hedge-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
-import { unfilledRegion, cellLoot, fraction, protectedRoutes, sitePiecesPerCell } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, portalApproaches, sitePiecesPerCell } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
-import { createBuilderCanvas } from '../canvas.ts';
+import { createProspectiveParcels } from '../prospective-parcels.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -45,7 +45,9 @@ type Box = { x: number; y: number; w: number; h: number };
  * `TREE` cells across, at seeded places in the slot's first `BAND` cells.
  *
  * Clumps and hedge runs keep `AISLE` clear cells from other slots. Candidate footprints
- * stay owned and clear of portal approaches; concave masks also protect a hunter corridor.
+ * stay owned and clear of portal approaches. Nothing else is reserved between portals: each
+ * piece commits only if a hunter cord still joins every portal stand, so pieces bend the way
+ * through rather than being refused by a route fixed in the empty shape (20.10, #750).
  * A hedge's door-wide gap leaves a crossing through the run. Hinted runs guide the first
  * tree in eligible slots. When the lattice places nothing, as in a one-tile park, single trees
  * are sited cell by cell instead (#717). A region too small for a tree stays clear.
@@ -57,13 +59,11 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Park', 'density', DEFAULT_DENSITY), hedgeChance = fraction(brief, 'Park', 'hedges', DEFAULT_HEDGES);
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
-  // Routes between portals are protected at any portal count. Past 32 portals a route from
-  // the first portal to each is too dear, so a nearby-portal tree stands in: boundary
-  // spacing alone let a clump or hedge seal a portal's approach (#361).
-  const protectedShapes = protectedRoutes(brief, 'Park', brief.portals.length <= 32 ? 'root' : 'nearby');
-
-
-  const canvas = createBuilderCanvas(brief, protectedShapes);
+  // Portal approaches are the fixed anchors; the coordinator keeps a live cord witness to
+  // every stand and refuses a commit that would leave none (20.10).
+  const parcels = createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Park') });
+  if (!parcels.ok) throw new Error(`Park region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
+  const canvas = parcels.coordinator;
   const pocket = hedgeChance > 0 ? siteParkPocket(brief, canvas) : { envelope: null };
   // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
   const clear = ({ x, y, w, h }: Box) => {
@@ -75,11 +75,9 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const key = (x: number, y: number) => `${x},${y}`;
   const hintedTrees = new Set(boxesAgainstHints(brief, TREE, TREE).map(b => key(b.x, b.y)));
 
-  // Siting has already accepted each assembly. A canvas refusal is a broken placement
-  // invariant, rather than a new fallback that silently changes the seeded build.
-  const place = (label: string, elements: RegionElement[]) => {
-    if (!canvas.commit({ elements })) throw new Error(`Park placement ${label} failed its canvas commit.`);
-  };
+  // Siting has accepted each assembly against the canvas, so a refusal means it would leave
+  // a portal without a cord. The piece is passed over; per-slot draws keep the rest unchanged.
+  const place = (elements: RegionElement[]) => canvas.commit({ elements });
   const taken = new Set<string>();
   let hedges = 0, trees = 0, clumps = 0;
 
@@ -91,12 +89,12 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     const row = Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeRow) * BAND);
     const box: Box = across ? { x: slot.x, y: slot.y + row, w: HEDGE_LENGTH, h: 1 } : { x: slot.x + row, y: slot.y, w: 1, h: HEDGE_LENGTH };
     if (taken.has(next) || !clear(box)) continue;
-    taken.add(key(slot.x, slot.y)).add(next);
     // The gap leaves at least a cell of hedge each side.
     const gap = 1 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeGap) * (HEDGE_LENGTH - AISLE - 1));
     const built = expectPlaced(PARK_HEDGE_RUN.build({ length: HEDGE_LENGTH, gap, aisle: AISLE, across }, size));
-    const label = `park-hedge-${++hedges}`;
-    place(label, placedElements(built, label, box.x, box.y, size));
+    if (!place(placedElements(built, `park-hedge-${hedges + 1}`, box.x, box.y, size))) continue;
+    hedges++;
+    taken.add(key(slot.x, slot.y)).add(next);
   }
 
   // A clump in each other slot that rolls under `density`, if its footprint fits.
@@ -115,11 +113,12 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     const x0 = Math.min(...footprints.map(f => f.x)), y0 = Math.min(...footprints.map(f => f.y));
     const box = { x: x0, y: y0, w: Math.max(...footprints.map(f => f.x + f.w)) - x0, h: Math.max(...footprints.map(f => f.y + f.h)) - y0 };
     if (!clear(box)) continue;
+    // A clump commits as one assembly.
+    if (!place(footprints.flatMap((f, n) =>
+      placedElements(expectPlaced(PARK_TREE.build({}, size)), `park-tree-${trees + n + 1}`, f.x, f.y, size)))) continue;
+    trees += footprints.length;
     taken.add(key(slot.x, slot.y));
     clumps++;
-    // A clump commits as one assembly.
-    place(`park-clump-${clumps}`, footprints.flatMap(f =>
-      placedElements(expectPlaced(PARK_TREE.build({}, size)), `park-tree-${++trees}`, f.x, f.y, size)));
   }
 
   // When the lattice places nothing, as in a one-tile park, single trees are sited cell by cell.

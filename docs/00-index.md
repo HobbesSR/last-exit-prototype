@@ -126,6 +126,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.26-macro-boundary.md](42.26-macro-boundary.md) | Opt-in macro curtain boundary/crossing experiment: fixed targets, physical versus guaranteed boundaries and adoption limits (#705) |
 | [42.27-empty-region-fallback.md](42.27-empty-region-fallback.md) | Geometry-empty regions by reason on the nine-map panel, and cover/park's single-piece fallback: uptake, navigation effect, cost and remaining gaps (#717) |
 | [42.28-builder-census.md](42.28-builder-census.md) | Per-builder census on the same panel: region sizes, empty share, fill covered, margin and protected-route share, and how often each mechanism fires, with candidates (#749) |
+| [42.29-park-perturbable-routes.md](42.29-park-perturbable-routes.md) | Park on a live cord witness instead of frozen protected routes: detour, dead ends, empty share, fill, proofs and cost against the old builder, and what other builders would need (#750) |
 
 ### 5x — Map generation
 

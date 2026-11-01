@@ -22,25 +22,21 @@ import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
 import { sitedCover } from '../map/micro/strategies/cover.ts';
 import { buildHutGeneration } from '../map/micro/strategies/hut.ts';
 import { buildCompoundGeneration } from '../map/micro/strategies/compound.ts';
-import { bounds, body, contains } from '../shared/shape.ts';
 import { captureSourceProvenance } from './lib/source-provenance.mjs';
+import { coveredSamples, SAMPLES } from './lib/covered-samples.mjs';
 
 const dir = process.argv[2] ?? 'docs/reports/issue-749';
 const cache = 'test-results/issue-749';
 mkdirSync(dir, { recursive: true }); mkdirSync(cache, { recursive: true });
 
 /** How each strategy calls `protectedRoutes` (mode, and the portal limit above which it skips them). */
-const ROUTED = { cover: ['root', 32], park: ['root', Infinity], plant: ['root', 32], hall: ['root', Infinity],
+const ROUTED = { cover: ['root', 32], plant: ['root', 32], hall: ['root', Infinity],
   rubble: ['root', Infinity], ruins: ['root', Infinity], depot: ['nearby', Infinity], market: ['nearby', Infinity] };
 const routeMode = brief => {
   const routed = ROUTED[brief.type];
   if (!routed) return null;
-  if (brief.type === 'park') return brief.portals.length <= 32 ? 'root' : 'nearby';
   return brief.portals.length <= routed[1] ? routed[0] : null;
 };
-/** Points per fill cell side when measuring covered area. */
-const SAMPLES = 4;
-
 /**
  * What a panel map depends on: the working tree's generation sources (macro, micro, kernel and the
  * shared core, tracked or not, as they stand on disk), the lockfiles, and Node. Any change misses
@@ -70,29 +66,6 @@ function panelMap(seed, width) {
   const map = generate(seed, params, undefined, key.cellSize), saved = { key, results: map.results };
   writeFileSync(file, gzipSync(JSON.stringify(saved)));
   return saved;
-}
-
-/** The share of `cells` (fill) whose sample points fall inside any of `shapes`. */
-function coveredSamples(cells, size, shapes) {
-  const near = new Map();
-  for (const shape of shapes) {
-    const box = bounds(shape), cached = shape.kind === 'polygon' ? body(shape) : undefined;
-    for (let y = Math.floor(box.y / size); y < Math.ceil((box.y + box.h) / size); y++)
-      for (let x = Math.floor(box.x / size); x < Math.ceil((box.x + box.w) / size); x++) {
-        const key = `${x},${y}`;
-        (near.get(key) ?? near.set(key, []).get(key)).push([shape, cached]);
-      }
-  }
-  let hit = 0;
-  for (const cell of cells) {
-    const list = near.get(`${cell.x},${cell.y}`);
-    if (!list) continue;
-    for (let i = 0; i < SAMPLES; i++) for (let j = 0; j < SAMPLES; j++) {
-      const px = (cell.x + (i + .5) / SAMPLES) * size, py = (cell.y + (j + .5) / SAMPLES) * size;
-      if (list.some(([shape, cached]) => contains(shape, px, py, cached))) hit++;
-    }
-  }
-  return hit / SAMPLES ** 2;
 }
 
 /** A label's mechanism family: the last path segment without numbers, and the delegation route to it. */

@@ -4,14 +4,14 @@ import { capsule, elementShapes, findRegionRoute } from '../geometry.ts';
 import { hunterClearance, portalStands } from '../portals.ts';
 import { PARK_HEDGE_POCKET } from '../placeables/park-hedge-pocket.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
-import type { BuilderCanvas } from '../canvas.ts';
+import type { SitingCanvas } from '../canvas.ts';
 import type { RegionBrief } from '../types.ts';
 
 /** Builder policy, not placeable demand: two clear cells outside one fixed pocket. */
 export const PARK_POCKET_LIMITS = Object.freeze({ candidates: 2048, routes: 8, side: 14, apron: 2 });
 
 /** One atomic pocket before scatter. No RNG, growth, or final-proof retry loop. */
-export function siteParkPocket(brief: RegionBrief, canvas: BuilderCanvas) {
+export function siteParkPocket(brief: RegionBrief, canvas: SitingCanvas) {
   const size = brief.cellSize, { side, apron } = PARK_POCKET_LIMITS;
   const built = expectPlaced(PARK_HEDGE_POCKET.build({}, size));
   let candidates = 0, routes = 0;
@@ -35,9 +35,9 @@ export function siteParkPocket(brief: RegionBrief, canvas: BuilderCanvas) {
     const route = findRegionRoute(canvas.access, elements.flatMap(e => elementShapes(e)), root, target, radius);
     if (route) {
       const access = route.slice(1).flatMap((p, i) => capsule(route[i]!, p, radius));
-      if (!canvas.commit({ elements, areas: [envelope], extents: [envelope], access }))
-        throw new Error(`Park pocket ${brief.id} failed its canvas commit.`);
-      return { envelope, candidates, routes };
+      // A canvas that proves circulation as it commits (20.10) may refuse walls that cut
+      // the portals apart; that candidate is passed over like an unroutable one.
+      if (canvas.commit({ elements, areas: [envelope], extents: [envelope], access })) return { envelope, candidates, routes };
     }
     if (routes === PARK_POCKET_LIMITS.routes) break;
   }

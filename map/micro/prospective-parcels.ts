@@ -65,6 +65,9 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   let canvas = createBuilderCanvas(brief, fixed);
   if (fixed.some(s => !canvas.access.contains(s))) return { ok: false as const, reason: 'canvas' as const };
   let witness = initial.witness, routingBrief = brief;
+  // The brief only changes when a handoff is accepted, so its masks are kept until then.
+  let masks: { brief: RegionBrief; fill: ReturnType<typeof createFillMask>; access: ReturnType<typeof createAccessMask> } | undefined;
+  const masksOf = () => masks?.brief === brief ? masks : (masks = { brief, fill: createFillMask(brief), access: createAccessMask(brief) });
   const fail = (reason: Refusal): Failed => ({ ok: false, reason });
   const lookup = (handle: ParcelHandle) => parcels.find(p => p.handle === handle);
   const replay = (ps: Parcel[], ops = operations, target = brief) => {
@@ -175,8 +178,8 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
     get revision() { return revision; },
     get witness(): CordWitness { return structuredClone(witness); },
     get elements() { return structuredClone(canvas.elements); },
-    get fill() { return createFillMask(brief); },
-    get access() { return createAccessMask(brief); },
+    get fill() { return masksOf().fill; },
+    get access() { return masksOf().access; },
     get addressed() { return allocation(); },
     get parcels() { return parcels.map(p => ({ handle: p.handle, area: structuredClone(p.area), populated: !!p.assembly, settled: p.settled })); },
     fits(shape: Shape) { return canvas.fits(shape) && !parcels.some(p => p.area.some(a => shapesOverlap(shape, a))); },
