@@ -76,13 +76,14 @@ test('market uses its own stalls rather than hall residual infill', () => {
   assert.ok(result.elements.every(element => element.label.startsWith('market-stall-')));
 });
 
-test('the primary rectangle stays reserved when all pillars are protected away', () => {
+test('the primary rectangle stays reserved around a lone pillar the cord bends round', () => {
   const input = brief(narrow, { hints: [], parameters: { spacing: 100 }, portals: [
     { id: 'west', axis: 'v', x: 0, y: 5, length: 2 },
     { id: 'east', axis: 'v', x: 30, y: 5, length: 2 },
   ] });
   const result = buildRegion(input), rectangle = largestRectangle(createFillMask(input), 6);
-  assert.equal(primary(result).length, 0);
+  // A frozen route once took this pillar away; the live cord passes it (#787).
+  assert.equal(primary(result).length, 1);
   assert.ok(crates(result).length > 0);
   for (const crate of crates(result)) assert.ok(gap(box(crate, size), rectangle) >= 2);
 });

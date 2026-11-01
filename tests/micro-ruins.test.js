@@ -29,7 +29,8 @@ test('a ruins region keeps the portal promise over seeds, masks and parameters',
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS)
     for (const parameters of [undefined, { density: 1, decay: 0 }, { density: 1, decay: 1 }]) {
       const result = buildRegion(brief(name, seed, cells, portals, parameters));
-      const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
+      // Ruins place against a live cord, so their proof is the thorough search's (20.10, #787).
+      const check = validatePortalReach({ ...result.brief, blockers: blockers(result) }, { search: 'thorough' });
       assert.deepEqual(check.errors, [], `${name} seed ${seed} ${JSON.stringify(parameters)}`);
     }
 });

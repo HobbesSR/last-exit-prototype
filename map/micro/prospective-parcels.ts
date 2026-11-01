@@ -337,14 +337,50 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       return true;
     },
     /**
+     * Whether committing `assembly` now would leave a cord, without committing it or changing
+     * anything. Only the cord is checked; the canvas's own rules are the caller's siting.
+     */
+    admits(assembly: CanvasAssembly): boolean {
+      const added = assemblyBlockers(structuredClone(assembly));
+      return witnessStandsClear(added)
+        || discoverCordWitness(routingBrief, [...blockers(parcels), ...added], terminals, witness, budget, added).ok;
+    },
+    /**
+     * Commit the most of `count` items, in order, that one assembly can hold and keep a cord:
+     * `build(kept)` makes the assembly from the items flagged true, or null when it would hold
+     * nothing. The whole set is tried first; a refused set is split in half, down to single
+     * items, with `admits` probes, and what stands is committed once. For pieces that belong to
+     * one element, as a hall's pillars do, where `commitEach` would commit them apart (#787).
+     * Returns the flags committed, all false if nothing was.
+     */
+    commitWhile(count: number, build: (kept: readonly boolean[]) => CanvasAssembly | null): boolean[] {
+      const all = Array.from({ length: count }, () => true), none = all.map(() => false);
+      const whole = build(all);
+      if (!whole || coordinator.commit(whole)) return whole ? all : none;
+      const kept = none.slice();
+      const run = (lo: number, hi: number, refused = false): void => {
+        if (hi <= lo) return;
+        const trial = kept.slice().fill(true, lo, hi), assembly = build(trial);
+        if (!refused && (!assembly || coordinator.admits(assembly))) { kept.fill(true, lo, hi); return; }
+        if (hi - lo === 1) return;
+        const mid = (lo + hi) >> 1;
+        run(lo, mid);
+        run(mid, hi, kept.slice(lo, mid).every(Boolean));
+      };
+      run(0, count, true);
+      const final = build(kept);
+      return final && coordinator.commit(final) ? kept : none;
+    },
+    /**
      * A detached draft of the current canvas for siting a batch without cord work: its commits
      * only record, and `flush` proves the cord for them through `commitEach`, once for as many
      * as stand together (#787). Removing a piece frees space, so pieces sited against a draft
-     * that kept one the cord then refuses still fit. Flush once; it returns what was committed.
+     * that kept one the cord then refuses still fit. Empty marks follow the commits. Flush once;
+     * it returns which commits were kept.
      */
     stage() {
       const draft = replay(parcels)!;
-      const staged: CanvasAssembly[] = [];
+      const staged: CanvasAssembly[] = [], empty: Shape[][] = [];
       const open = parcels.filter(p => !p.assembly && !p.settled);
       return {
         canvas: {
@@ -357,8 +393,18 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
             staged.push(structuredClone(assembly));
             return true;
           },
+          /** Empty intent adds no blocker, so it is marked after the batch, whatever the cord kept. */
+          markEmpty(areas: readonly Shape[]) {
+            if (!draft.markEmpty(areas)) return false;
+            empty.push(structuredClone([...areas]));
+            return true;
+          },
         },
-        flush: () => commitEach(coordinator, staged),
+        flush: () => {
+          const kept = commitEach(coordinator, staged);
+          for (const areas of empty) if (!coordinator.markEmpty(areas)) throw new Error('A staged empty mark failed on the coordinator.');
+          return kept;
+        },
       };
     },
   };

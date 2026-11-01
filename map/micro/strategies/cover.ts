@@ -4,15 +4,15 @@ import type { Shape } from '../../../shared/shape.ts';
 import { elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../random.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
-import { protectedRoutes, sitePiecesPerCell } from './scatter.ts';
+import { liveCord, portalApproaches, sitePiecesPerCell } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { COVER_PIECE, COVER_PIECES } from '../placeables/cover-piece.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import type { ExecutionBuilder } from '../delegation-execute.ts';
-import { createBuilderCanvas } from '../canvas.ts';
-import type { BuilderCanvas } from '../canvas.ts';
+import { commitEach, createBuilderCanvas, mergeAssemblies } from '../canvas.ts';
+import type { BuilderCanvas, SitingCanvas } from '../canvas.ts';
 import { builtRegion } from '../result.ts';
 
 /**
@@ -59,14 +59,17 @@ function fallbackCover(brief: RegionBrief, lattice: BuiltRegion, density: number
   // Above this limit the lattice's boundary policy bounds route work, so there is no fallback.
   if (lattice.elements.length || density === 0 || brief.portals.length > 32) return lattice;
   const size = brief.cellSize;
-  const canvas = createBuilderCanvas(brief, protectedRoutes(brief, 'Cover'));
-  sitePiecesPerCell(canvas, rng(brief.seed, `${brief.id}:cover-receiver-infill`), density, AISLE, 'cover', random => {
+  // Sited on a draft of a live cord, and committed as far as the cord allows (#787).
+  const coordinator = liveCord(brief, 'Cover'), staged = coordinator.stage();
+  sitePiecesPerCell(staged.canvas, rng(brief.seed, `${brief.id}:cover-receiver-infill`), density, AISLE, 'cover', random => {
     const pick = random.next(), turned = random.next() < 0.5, length = random.next(), offset = random.next();
     let first = PIECES[0]!;
     for (let sum = 0, i = 0; i < PIECES.length; i++) if (pick < (sum += PIECES[i]!.weight)) { first = PIECES[i]!; break; }
     return [first, ...PIECES.filter(other => other !== first)].map(piece => ({ name: piece.name,
       place: () => expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)) }));
   });
+  staged.flush();
+  const canvas = coordinator;
   if (!canvas.elements.length) return lattice;
   const loot = lattice.loot.filter(site => {
     const x = Math.floor(site.x / size), y = Math.floor(site.y / size);
@@ -102,7 +105,10 @@ function densityOf(brief: RegionBrief): number {
  * Slots lie on a lattice `PERIOD` cells apart. A slot is taken with chance `density`, by a
  * cluster of up to `CLUSTER` crates, barriers and the odd container, at jittered spots in it.
  * Neighbouring slots keep an aisle between clusters. Candidate boxes stay owned and clear
- * of portal approaches; concave masks also protect one hunter corridor. Hinted runs guide
+ * of portal approaches. Up to 32 portals nothing else is reserved between them: clusters are
+ * sited on a draft of a live cord (20.10), which commits as many pieces as keep a hunter cord
+ * to every portal stand, and a refused piece is passed over (#787). Past that, boxes keep an
+ * aisle from the boundary instead. Hinted runs guide
  * the first piece in each eligible slot. When the lattice places nothing, as in a one-tile
  * region, single pieces are sited cell by cell instead (#717). A region too small for a piece stays clear.
  *
@@ -115,16 +121,15 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
 }
 
 /**
- * `buildCover`'s region before its fallback, with the protections its canvas held, so the post-filters
- * commit against the same ones. Exported for tools that tell lattice cover from fallback cover (#749).
+ * `buildCover`'s region before its fallback. Exported for tools that tell lattice cover from
+ * fallback cover (#749).
  */
-export function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes: readonly Shape[] } {
+export function sitedCover(brief: RegionBrief): { region: BuiltRegion } {
   const density = densityOf(brief), size = brief.cellSize;
   const cells = [...brief.cells].sort(compareCells);
-  // Routes between portals are protected; past 32 portals that search is too dear, and
+  // Up to 32 portals a live cord joins them (20.10); past that, keeping it is too dear, and
   // boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const protectedShapes = routed ? protectedRoutes(brief, 'Cover') : [];
 
   const hinted = new Map<string, { x: number; y: number }[]>();
   for (const piece of PIECES) for (const [w, h] of [[piece.w, piece.h], [piece.h, piece.w]])
@@ -133,7 +138,8 @@ export function sitedCover(brief: RegionBrief): { region: BuiltRegion; protected
   const firstHint = hintedCells(brief)[0];
   if (firstHint) { phase.x = ((firstHint.x % PERIOD) + PERIOD) % PERIOD; phase.y = ((firstHint.y % PERIOD) + PERIOD) % PERIOD; }
   const onLattice = (value: number, offset: number) => ((value - offset) % PERIOD + PERIOD) % PERIOD === 0;
-  const canvas = createBuilderCanvas(brief, protectedShapes);
+  const coordinator = routed ? liveCord(brief, 'Cover') : undefined, staged = coordinator?.stage();
+  const canvas: SitingCanvas = staged?.canvas ?? createBuilderCanvas(brief);
   const cellBox = (x: number, y: number, w: number, h: number) => rect(x * size, y * size, w * size, h * size);
   const clear = (x: number, y: number, w: number, h: number) => (routed || boundary.fits({ x, y, w, h })) && canvas.fits(cellBox(x, y, w, h));
   for (const slot of cells) {
@@ -160,21 +166,32 @@ export function sitedCover(brief: RegionBrief): { region: BuiltRegion; protected
       box = grown;
     }
   }
+  staged?.flush();
+  // Loot and the result read what the cord kept.
+  const placed: SitingCanvas = coordinator ?? canvas;
 
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:cover-loot`), loot: LootSite[] = [];
   const lootOwned = new Set(brief.cells.map(c => `${c.x},${c.y}`));
   const standing = (x: number, y: number) => {
     for (let j = y - 1; j <= y + 1; j++) for (let i = x - 1; i <= x + 1; i++) if (!lootOwned.has(`${i},${j}`)) return false;
-    return canvas.spaced(cellBox(x - 1, y - 1, 3, 3));
+    return placed.spaced(cellBox(x - 1, y - 1, 3, 3));
   };
   for (const cell of cells) {
     const zone = zones.get(`${cell.x},${cell.y}`)!, roll = lootRandom.next(), jx = lootRandom.next(), jy = lootRandom.next();
     if (roll < zone.lootChance && standing(cell.x, cell.y)) loot.push({ x: (cell.x + 0.35 + jx * 0.3) * size, y: (cell.y + 0.35 + jy * 0.3) * size, tier: zone.tier });
   }
 
-  const elements = [...canvas.elements];
-  return { protectedShapes, region: builtRegion(brief, elements, loot) };
+  const elements = [...placed.elements];
+  return { region: builtRegion(brief, elements, loot) };
+}
+
+/**
+ * The canvas a post-filter commits on: portal approaches stay clear, as `sitedCover`'s did. Taking
+ * pieces away from cover the cord accepted can't break its cord, so this one has none.
+ */
+function approachCanvas(brief: RegionBrief): BuilderCanvas {
+  return createBuilderCanvas(brief, brief.portals.length <= 32 ? portalApproaches(brief, 'Cover') : []);
 }
 
 /** Commits each piece as its own assembly, as `buildCover` did. Siting has accepted them, so a refusal is an invariant failure. */
@@ -197,8 +214,8 @@ export interface ClearSite { x: number; y: number; radius: number; reach?: numbe
 export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], root?: { x: number; y: number }): Pick<BuiltRegion, 'elements' | 'loot'> {
   const lootRadius = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' }).lootRadius;
   const discs = sites.map(site => circle(site.x, site.y, site.radius));
-  const { region: cover, protectedShapes } = sitedCover(brief);
-  const canvas = createBuilderCanvas(brief, protectedShapes), blockers: Shape[] = [];
+  const { region: cover } = sitedCover(brief);
+  const canvas = approachCanvas(brief), blockers: Shape[] = [];
   for (const element of cover.elements) {
     const shapes = elementShapes(element);
     if (shapes.some(shape => discs.some(disc => shapesOverlap(shape, disc)))) continue;
@@ -214,7 +231,8 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
 /**
  * Makes sure some cover stands within `within` of `site`'s clear disc: if none of `elements`
  * does, one container is added there, if the region has room. Like `buildCover`'s clusters,
- * it keeps `AISLE` clear cells from every other piece and leaves portal approaches clear. It never cuts `site`'s route from `root`.
+ * it keeps `AISLE` clear cells from every other piece and leaves portal approaches clear. It never cuts `site`'s route from `root`,
+ * and up to 32 portals it stands only where a live cord still joins every portal stand (20.10, #787).
  * Loot it would cover is dropped. The pick among places that qualify is seeded.
  */
 export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements' | 'loot'>, site: ClearSite, within: number,
@@ -223,12 +241,20 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
   const blockers = cover.elements.flatMap(element => elementShapes(element));
   if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
 
-  // Routes between portals are protected; past 32 portals that search is too dear, and
-  // boxes keep an aisle from the boundary instead.
+  // Up to 32 portals a live cord joins them; past that, boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const protectedShapes = routed ? protectedRoutes(brief, 'Cover') : [];
-  const canvas = createBuilderCanvas(brief, protectedShapes);
-  commitPieces(brief, canvas, cover.elements);
+  let canvas: SitingCanvas;
+  if (routed) {
+    // The cover already stood on a cord, so it commits as one; a search that now refuses some of
+    // it keeps what it can.
+    const coordinator = liveCord(brief, 'Cover'), pieces = cover.elements.map(element => ({ elements: [element] }));
+    if (pieces.length && !coordinator.commit(mergeAssemblies(pieces))) commitEach(coordinator, pieces);
+    canvas = coordinator;
+  } else {
+    const builder = createBuilderCanvas(brief);
+    commitPieces(brief, builder, cover.elements);
+    canvas = builder;
+  }
   const fill = canvas.fill.cells;
   const clear = (x: number, y: number, w: number, h: number) => {
     const box = rect(x * size, y * size, w * size, h * size);
@@ -246,7 +272,11 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
     const shapes = elementShapes(element);
     if (root && !findRegionRoute(canvas.access, [...blockers, ...shapes], root, site, site.reach ?? site.radius)) continue;
     const lootRadius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
-    if (!canvas.commit({ elements: [element] })) throw new Error(`Region ${brief.id}: the canvas refused cover's guard, which its siting accepted.`);
+    // On the cord a refusal means the guard would leave a portal without a cord; it is passed over.
+    if (!canvas.commit({ elements: [element] })) {
+      if (routed) continue;
+      throw new Error(`Region ${brief.id}: the canvas refused cover's guard, which its siting accepted.`);
+    }
     return { elements: [...canvas.elements],
       loot: cover.loot.filter(loot => !shapes.some(shape => shapesOverlap(shape, circle(loot.x, loot.y, lootRadius)))) };
   }

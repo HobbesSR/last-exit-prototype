@@ -1,12 +1,13 @@
 import { rect } from '../../../shared/shape.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { largestRectangle } from './hall.ts';
-import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, liveCord } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import { createBuilderCanvas } from '../canvas.ts';
+import type { SitingCanvas } from '../canvas.ts';
+import { frozenRoutes } from '../experiments/frozen-routes.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { WAREHOUSE } from '../placeables/warehouse.ts';
 import { CONTAINER_ROW } from '../placeables/container-row.ts';
@@ -82,9 +83,11 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * per-cell rolls and the same piece spacing. Row sites rejected by density stay empty.
  *
  * Every piece's box keeps `AISLE` clear cells from other pieces and a complete exterior
- * ring that wide in the access mask. Candidate footprints stay
- * owned and clear of portal approaches, and the builder protects a swept hunter route tree
- * between nearby portals, whatever their count (#347).
+ * ring that wide in the access mask. Candidate footprints stay owned and clear of portal
+ * approaches, and nothing else is reserved between portals, whatever their count: warehouses,
+ * rows and crates are each sited on a draft of a live cord (20.10), which commits as many as
+ * keep a hunter cord to every portal stand, and a refused piece is passed over (#787). The cord,
+ * not a frozen route tree, now refuses #347's sealed approach.
  * Hinted runs receive priority when a warehouse can fit against them. A region with no
  * contained `MIN_SIDE` square goes to `open` (17 M24).
  *
@@ -116,19 +119,20 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   if (!largestRectangle(mask, MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  // Nearby portal routes are protected at any portal count. Boundary spacing alone let a
-  // warehouse seal a portal's approach in large depots (#347), and the tree stays cheap.
-  const protectedShapes = protectedRoutes(brief, 'Depot', 'nearby');
-
-
   // Lines run along u. `alongX` maps (u, v) to (x, y), or else to (y, x).
   const alongX = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
   const cells = [...mask.cells].map(c => alongX ? { u: c.x, v: c.y } : { u: c.y, v: c.x });
 
-  const experimental = experiment && createDepotExperimentCanvas(brief, experiment.mode, protectedShapes);
+  // The #663 comparison keeps its frozen-route control; production places through a live cord.
+  const experimental = experiment && createDepotExperimentCanvas(brief, experiment.mode, frozenRoutes(brief, 'Depot', 'nearby'));
   if (experimental && !experimental.ok) throw new Error(`Depot experiment initialization refused: ${experimental.reason}`);
-  const canvas = experimental?.ok ? experimental.canvas : createBuilderCanvas(brief, protectedShapes);
+  const coordinator = experiment ? undefined : liveCord(brief, 'Depot');
+  type Siting = SitingCanvas & { markEmpty(areas: readonly Shape[]): boolean };
+  const canvas: Siting = experimental?.ok ? experimental.canvas : coordinator!;
   if (experimental?.ok) experiment!.record(experimental.canvas);
+  // Production sites each phase on a draft and proves the cord once for as much as stands
+  // together; the experiment's canvas admits each piece itself.
+  const stageOf = (): { canvas: Siting; flush: () => boolean[] | null } => coordinator ? coordinator.stage() : { canvas, flush: () => null };
   // Label the empty yard once. Every admitted envelope has a complete two-cell ring and
   // two-cell inter-piece spacing, so later pieces can reroute a yard path around themselves.
   // This preserves local bypasses as well as portal routes, without the experimental solver.
@@ -155,18 +159,18 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
     return rect(x * size, y * size, w * size, h * size);
   };
   // A box must be owned, clear of portal approaches, and surrounded by a usable aisle.
-  const clear = (u: number, v: number, length: number, width: number) => {
+  const clear = (on: Siting, u: number, v: number, length: number, width: number) => {
     const box = boxAt(u, v, length, width);
     // A full exterior bypass prevents a piece closing an unported neck or a door approach.
-    return canvas.fits(box) && canvas.spaced(box, AISLE * size)
-      && canvas.access.contains(boxAt(u - AISLE, v - AISLE, length + 2 * AISLE, width + 2 * AISLE));
+    return on.fits(box) && on.spaced(box, AISLE * size)
+      && on.access.contains(boxAt(u - AISLE, v - AISLE, length + 2 * AISLE, width + 2 * AISLE));
   };
-  const place = (label: string, u: number, v: number, placed: Placed<unknown>) => {
+  const place = (on: Siting, label: string, u: number, v: number, placed: Placed<unknown>) => {
     const [x, y] = alongX ? [u, v] : [v, u];
     // Production siting guarantees commit. Experimental circulation/door admission
     // may refuse a candidate atomically, before publishing observer events.
     const access = placed.demand.clear.map(b => rect((x + b.x) * size, (y + b.y) * size, b.w * size, b.h * size));
-    const accepted = canvas.commit({ elements: placedElements(placed, label, x, y, size), access });
+    const accepted = on.commit({ elements: placedElements(placed, label, x, y, size), access });
     if (!accepted && !experiment) throw new Error(`Depot placement ${label} failed its canvas commit.`);
     return accepted;
   };
@@ -183,57 +187,72 @@ function buildDepotWithPolicy(brief: RegionBrief, observe?: BuildingObserver, ex
   // Keep the retained tool-only comparison's quota and versioned execution unchanged.
   const target = Math.max(1, Math.round(density * cells.length / ((experiment ? 4 : 2) * room * across)));
   let warehouses = 0, designed = 0;
+  const warehouseStage = stageOf();
+  const sitedWarehouses: Parameters<BuildingObserver>[0][] = [];
   const hintedWarehouses = new Set(boxesAgainstHints(brief, alongX ? room : across, alongX ? across : room)
     .map(b => alongX ? `${b.x},${b.y}` : `${b.y},${b.x}`));
   if (density > 0) for (const { u, v } of cells.filter(c => onLane(c.v)).map(c => ({ ...c, order: draw(brief.seed, c.u, c.v, CHANNEL.site),
     hinted: hintedWarehouses.has(`${c.u},${c.v}`) }))
     .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.v - b.v || a.u - b.u)) {
     if (warehouses === target) break;
-    if (!clear(u, v, room, across)) continue;
+    if (!clear(warehouseStage.canvas, u, v, room, across)) continue;
     const [x, y] = alongX ? [u, v] : [v, u];
     if (!experiment && brief.portals.length && !yard.has(key(x - AISLE, y - AISLE))) continue;
     const label = `depot-warehouse-${warehouses + 1}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
     const built = expectPlaced(WAREHOUSE.build({ w: alongX ? room : across, h: alongX ? across : room, alongX, seed, appearance: DEPOT_WAREHOUSE_APPEARANCE, shelfAppearance: { material: 'oxidizedMetal' } }, size));
     const { design, allocation, realization, rejected } = built.details;
-    if (experiment && !place(label, u, v, built)) continue;
+    if (experiment && !place(warehouseStage.canvas, label, u, v, built)) continue;
     warehouses++;
-    if (design.spaces.length > 1) designed++;
-    observe?.({ label, origin: { x: x * size, y: y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
-    if (!experiment) place(label, u, v, built);
+    sitedWarehouses.push({ label, origin: { x: x * size, y: y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
+    if (!experiment) place(warehouseStage.canvas, label, u, v, built);
+  }
+  // Observers see only the warehouses the cord kept.
+  const keptWarehouses = warehouseStage.flush();
+  warehouses = 0;
+  for (const [i, trace] of sitedWarehouses.entries()) {
+    if (keptWarehouses && !keptWarehouses[i]) continue;
+    warehouses++;
+    if (trace.design.spaces.length > 1) designed++;
+    observe?.(trace);
   }
 
   // Container rows packed along each lane, from its near end, around the warehouses. Each place
   // that fits a row is taken with chance `density`, and either way the next starts an aisle on.
   let rows = 0;
+  const rowStage = stageOf();
   const lanes = new Map<number, number[]>();
   for (const { u, v } of cells) if (onLane(v)) lanes.get(v)?.push(u) ?? lanes.set(v, [u]);
   for (const v of [...lanes.keys()].sort((a, b) => a - b)) {
     const us = lanes.get(v)!.sort((a, b) => a - b), last = us[us.length - 1]!;
     for (let u = us[0]!; u <= last;) {
       const length = CONTAINER * (ROW_MIN + Math.floor(draw(brief.seed, u, v, CHANNEL.length) * (ROW_MAX - ROW_MIN + 1)));
-      if (!clear(u, v, length, 1)) { u++; continue; }
+      if (!clear(rowStage.canvas, u, v, length, 1)) { u++; continue; }
       if (draw(brief.seed, u, v, CHANNEL.row) < density) {
-        if (place(`depot-row-${rows + 1}`, u, v, expectPlaced(CONTAINER_ROW.build({ length, alongX }, size)))) rows++;
-      } else if (!canvas.markEmpty([boxAt(u, v, length, 1)])) {
+        if (place(rowStage.canvas, `depot-row-${rows + 1}`, u, v, expectPlaced(CONTAINER_ROW.build({ length, alongX }, size)))) rows++;
+      } else if (!rowStage.canvas.markEmpty([boxAt(u, v, length, 1)])) {
         throw new Error('Depot empty row site failed its canvas mark.');
       }
       u += length + AISLE;
     }
   }
+  const keptRows = rowStage.flush();
+  if (keptRows) rows = keptRows.filter(Boolean).length;
 
   // Fill only untouched lane cells. Row sites that lost their density roll are deliberate
   // open spans, and accepted crates address their cells before the next candidate is tried.
   // Isolate primary composition: both experimental controls omit the secondary crate pass.
-  const infillCrates = experiment ? 0 : placeInfillCrates({ brief, canvas, chance: density, channels: CHANNEL,
+  const crates = experiment ? undefined : coordinator!.stage();
+  const sitedCrates = !crates ? 0 : placeInfillCrates({ brief, canvas: crates.canvas, chance: density, channels: CHANNEL,
     label: 'depot-infill-crate',
     drawAt: cell => alongX ? cell : { x: cell.y, y: cell.x },
     site: cell => {
       const { u, v } = alongX ? { u: cell.x, v: cell.y } : { u: cell.y, v: cell.x };
-      return onLane(v) && clear(u, v, 1, 1);
+      return onLane(v) && clear(crates.canvas, u, v, 1, 1);
     },
     commitError: label => `Depot placement ${label} failed its canvas commit.`,
   });
+  const infillCrates = crates ? crates.flush().filter(Boolean).length : sitedCrates;
 
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));

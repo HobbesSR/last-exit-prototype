@@ -1,7 +1,6 @@
 import { rect } from '../../../shared/shape.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import { createBuilderCanvas } from '../canvas.ts';
-import { createRegionMask, elementShapes } from '../geometry.ts';
+import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { MARKET_STALL } from '../placeables/market-stall.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { draw, rng } from '../random.ts';
@@ -9,7 +8,7 @@ import { builtRegion } from '../result.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import type { BuildingAppearance } from '../../../shared/types.ts';
 import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
-import { cellLoot, protectedRoutes, unfilledRegion } from './scatter.ts';
+import { cellLoot, liveCord, unfilledRegion } from './scatter.ts';
 
 const AISLE = CELL_SCALE.doorway;
 const DEPTH = 2;
@@ -86,15 +85,20 @@ export function createMarketStallAppearance(options: MarketStallAppearanceOption
   });
 }
 
-/** Market rows cover the whole mask, leaving two-cell lanes and periodic wider cross-lanes. */
+/**
+ * Market rows cover the whole mask, leaving two-cell lanes and periodic wider cross-lanes. Each
+ * stall keeps a full bypass ring. Portal approaches stay clear, and stalls are sited on a draft
+ * of a live cord (20.10), which commits as many as keep a hunter cord to every portal stand; a
+ * refused stall is passed over (#787).
+ */
 export function buildMarket(brief: RegionBrief): BuiltRegion {
   const spacing = brief.parameters?.spacing ?? 6;
   if (typeof spacing !== 'number' || !Number.isInteger(spacing) || spacing < 4)
     throw new RangeError('Market spacing must be a whole number of cells, at least 4.');
   const roofed = brief.parameters?.roofed ?? true;
   if (typeof roofed !== 'boolean') throw new TypeError('Market roofed must be true or false.');
-  const canvas = createBuilderCanvas(brief, protectedRoutes(brief, 'Market', 'nearby'));
-  if (!canvas.fill.cells.length) return unfilledRegion(brief, CHANNEL.loot);
+  if (!createFillMask(brief).cells.length) return unfilledRegion(brief, CHANNEL.loot);
+  const coordinator = liveCord(brief, 'Market'), staged = coordinator.stage(), canvas = staged.canvas;
   const size = brief.cellSize, bounds = createRegionMask(brief).bounds;
   const alongX = bounds.w >= bounds.h, length = Math.min(4, spacing - AISLE);
   const [u0, v0, width, height] = alongX
@@ -107,7 +111,7 @@ export function buildMarket(brief: RegionBrief): BuiltRegion {
   const startU = u0 + Math.floor((width - (columns - 1) * spacing - length) / 2);
   const startV = v0 + Math.floor((height - (rows - 1) * (DEPTH + AISLE) - DEPTH) / 2);
   const cross = Math.floor(draw(brief.seed, 0, 0, CHANNEL.cross) * 4);
-  let stalls = 0;
+  let sited = 0;
   for (let row = 0; row < rows; row++) for (let col = 0; col < columns; col++) {
     // The same skipped column across all rows makes a cross-lane, rather than isolated holes.
     if (columns >= 4 && (col + cross) % 4 === 3) continue;
@@ -122,11 +126,12 @@ export function buildMarket(brief: RegionBrief): BuiltRegion {
     const stallSeed = Math.floor(rng(brief.seed, `${brief.id}:stall-appearance:${col}:${row}`).next() * 2 ** 31);
     const stallApp = createMarketStallAppearance({ seed: stallSeed, length, alongX, cellSize: size });
     const stall = expectPlaced(MARKET_STALL.build({ length, alongX, flipped: row % 2 === 1, roofed, appearance: stallApp }, size));
-    if (!canvas.commit({ elements: placedElements(stall, `market-stall-${++stalls}`, x, y, size) }))
+    if (!canvas.commit({ elements: placedElements(stall, `market-stall-${++sited}`, x, y, size) }))
       throw new Error('Market stall failed its canvas commit.');
   }
+  const stalls = staged.flush().filter(Boolean).length;
   if (!stalls) return unfilledRegion(brief, CHANNEL.loot);
-  const elements = [...canvas.elements];
+  const elements = [...coordinator.elements];
 
   const loot = cellLoot(brief, createRegionMask(brief), elements.flatMap(e => elementShapes(e, true)), CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { stalls, awnings: roofed ? stalls : 0 });

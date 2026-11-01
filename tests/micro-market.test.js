@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { createAccessMask, createFillMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
-import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
+import { portalApproaches } from '../map/micro/strategies/scatter.ts';
 import { rect } from '../shared/shape.ts';
 import { createGenerationContext } from '../shared/map/context.ts';
 import { placeElement } from '../shared/map/element.ts';
@@ -15,7 +15,7 @@ const boxes = result => result.elements.map(e => ({ x: e.x / SIZE, y: e.y / SIZE
 const blockers = result => result.elements.flatMap(e => elementShapes(e));
 
 function checkGeometry(input, result) {
-  const fill = createFillMask(input), access = createAccessMask(input), routes = protectedRoutes(input, 'Market');
+  const fill = createFillMask(input), access = createAccessMask(input), approaches = portalApproaches(input, 'Market');
   const pieces = boxes(result);
   assert.ok(pieces.length > 0);
   assert.equal(result.manifest.stalls, pieces.length);
@@ -23,7 +23,7 @@ function checkGeometry(input, result) {
     const footprint = rect(b.x * SIZE, b.y * SIZE, b.w * SIZE, b.h * SIZE);
     assert.ok(fill.contains(footprint), 'stall is in reduced fill');
     assert.ok(access.contains(rect((b.x - 2) * SIZE, (b.y - 2) * SIZE, (b.w + 4) * SIZE, (b.h + 4) * SIZE)), 'complete hunter bypass ring');
-    assert.ok(routes.every(route => !shapesOverlap(footprint, route)), 'stall leaves protected routes clear');
+    assert.ok(approaches.every(strip => !shapesOverlap(footprint, strip)), 'stall leaves portal approaches clear');
     for (const other of pieces.slice(i + 1)) {
       const gap = Math.max(other.x - b.x - b.w, b.x - other.x - other.w, other.y - b.y - b.h, b.y - other.y - other.h);
       assert.ok(gap >= 2, `two-cell aisle, got ${gap}`);
@@ -32,7 +32,7 @@ function checkGeometry(input, result) {
   assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
 }
 
-test('market stalls fit their fill and access masks, keep routes and portals clear, and run along the longer axis', () => {
+test('market stalls fit their fill and access masks, keep portal approaches clear and portals joined, and run along the longer axis', () => {
   for (const [w, h] of [[36, 24], [24, 36]]) {
     const input = field(w, h, { portals: [{ id: 'west', axis: 'v', x: 0, y: 3, length: 3 },
       { id: 'east', axis: 'v', x: w, y: h - 6, length: 3 }],

@@ -18,7 +18,7 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import { generate } from '../map/tools/core.ts';
 import { buildRegion, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
 import { elementShapes, createRegionMask } from '../map/micro/geometry.ts';
-import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
+import { frozenRoutes as protectedRoutes } from '../map/micro/experiments/frozen-routes.ts';
 import { sitedCover } from '../map/micro/strategies/cover.ts';
 import { buildHutGeneration } from '../map/micro/strategies/hut.ts';
 import { buildCompoundGeneration } from '../map/micro/strategies/compound.ts';

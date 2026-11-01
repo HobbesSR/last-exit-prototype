@@ -20,7 +20,7 @@ import { measureNavigationStructure, summarizeRoutes } from '../map/tools/naviga
 import { measurePocketRoutes, pocketPairs } from './experiments/park-pocket-routes.mjs';
 import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 import { createBuilderCanvas } from '../map/micro/canvas.ts';
-import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
+import { frozenRoutes as protectedRoutes } from '../map/micro/experiments/frozen-routes.ts';
 import { siteParkPocket } from '../map/micro/strategies/park-pocket.ts';
 
 const dir = process.argv[2] ?? 'docs/reports/issue-698';

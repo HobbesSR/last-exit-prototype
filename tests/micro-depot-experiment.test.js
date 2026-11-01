@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { executeDelegation } from '../map/micro/delegation-execute.ts';
 import { saveDelegationSnapshot, readDelegationSnapshot } from '../map/micro/delegation-snapshot.ts';
 import { buildDepotExperiment } from '../map/micro/strategies/depot.ts';
-import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
+import { frozenRoutes as protectedRoutes } from '../map/micro/experiments/frozen-routes.ts';
 import { discoverCordWitness } from '../map/micro/cord-witness.ts';
 import { createAccessMask, elementShapes, findRegionRoute, shapesOverlap, shapesShareArea } from '../map/micro/geometry.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
