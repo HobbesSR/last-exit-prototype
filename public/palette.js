@@ -34,7 +34,7 @@ export function contrast(a, b) {
 // roof), never which swatch fills them, so a palette is swapped without touching a draw call.
 // Objectives, items, actors, traps and hazards keep their own colors: their meanings are #587's.
 
-/** The colors the arena was drawn in before 11.1; the default until a night palette is chosen to replace it. */
+/** The colors the arena was drawn in before 11.1; retained as an explicit global comparison theme (41.2 step 6). */
 const PROTOTYPE = {
   background: 0x162a29, ground: 0x39454c, groundEdge: 0x729b9e, street: 0x596269, streetLine: 0xa5bbc0,
   marking: 0x9daab0, garden: 0x44584e, zoneLabel: 0x91b9bc, interior: 0x50505d, tuft: 0x568f60, floor: 0x77717a,
@@ -74,11 +74,11 @@ function night({ background = U.structuralVoid, ground, street, streetLine, floo
 }
 
 /**
- * Selectable palettes, in menu order. `signature` is Corey's favored combination (11.1 §5.3); the four
+ * Selectable palettes, in menu order. `signature` is the default arena theme (11.1 §5.3, 41.2 step 6, #593); the other
  * scene identities after it are his suggestions, each with roles assigned from its six swatches here.
  */
 export const THEMES = Object.freeze({
-  prototype: { label: 'Prototype', colors: PROTOTYPE },
+  prototype: { label: 'Prototype (comparison)', colors: PROTOTYPE },
   signature: {
     label: 'Signature night',
     // Cool slate asphalt, weathered coral and brick, cobalt illumination, hot amber highlights.
@@ -112,7 +112,7 @@ export const THEMES = Object.freeze({
   },
 });
 
-export const DEFAULT_THEME = 'prototype';
+export const DEFAULT_THEME = 'signature';
 /** A theme's colors by id, or the default's for an id that names none. */
 export const themeColors = id => (Object.hasOwn(THEMES, id) ? THEMES[id] : THEMES[DEFAULT_THEME]).colors;
 /** `#rrggbb` for CSS and Phaser's string APIs. */

@@ -262,7 +262,7 @@ What remains elsewhere, as the owning documents state it:
   flat 2D material simplification and destruction shape vocabulary
   (#585), urban fringe landmarks
   and region/building differentiation (#586),
-  and contestant/hunter/hazard/objective readability validation (#587).
+  and contestant/hunter/hazard/objective readability validation and default promotion (#587, #593).
 
 Work in progress and its order live on the Forgejo tracker and in each step's
 issue ([34](34-forgejo-workflow.md)). mapgen's former `NEXT_TASKS.md` backlog is

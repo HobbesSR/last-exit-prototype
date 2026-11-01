@@ -193,21 +193,21 @@ try {
   const rgbOf = c => [c >> 16 & 255, c >> 8 & 255, c & 255];
   const { THEMES } = await import('../public/palette.js');
   const unstyled = await dev.evaluate(() => window.arenaDebug());
-  assert.equal(unstyled.palette, 'prototype');
-  assert.ok(await groundPixels(rgbOf(THEMES.prototype.colors.ground)) > 1000, 'the prototype ground is on screen');
-  await dev.locator('#dev-palette').selectOption('signature');
+  assert.equal(unstyled.palette, 'signature');
+  assert.ok(await groundPixels(rgbOf(THEMES.signature.colors.ground)) > 1000, 'the signature ground is on screen');
+  await dev.locator('#dev-palette').selectOption('prototype');
   // Tiles redraw over a few frames; wait for the old ground to go rather than a fixed 300 ms (#699).
   let staleGround;
-  for (const deadline = Date.now() + 3000; (staleGround = await groundPixels(rgbOf(THEMES.prototype.colors.ground))) > 0 && Date.now() < deadline;) {
+  for (const deadline = Date.now() + 3000; (staleGround = await groundPixels(rgbOf(THEMES.signature.colors.ground))) > 0 && Date.now() < deadline;) {
     await dev.waitForTimeout(50);
   }
   const styled = await dev.evaluate(() => window.arenaDebug());
-  assert.equal(styled.palette, 'signature');
-  assert.ok(await groundPixels(rgbOf(THEMES.signature.colors.ground)) > 1000, 'the signature ground replaced it');
+  assert.equal(styled.palette, 'prototype');
+  assert.ok(await groundPixels(rgbOf(THEMES.prototype.colors.ground)) > 1000, 'the prototype ground replaced it');
   assert.equal(staleGround, 0, 'no stale tile keeps the old ground');
   assert.equal(styled.follow, unstyled.follow); assert.equal(styled.actorCount, unstyled.actorCount);
   assert.ok(Math.abs(styled.camera.zoom - unstyled.camera.zoom) < 1e-6, 'restyling leaves the camera alone');
-  await dev.locator('#dev-palette').selectOption('prototype');
+  await dev.locator('#dev-palette').selectOption('signature');
   // T sends the followed player to the open ground under the cursor (#247).
   const view = await dev.evaluate(() => { const box = document.querySelector('#game canvas').getBoundingClientRect(); return { ...window.arenaDebug(), left: box.left, top: box.top }; });
   const before = room.game.players.find(p => p.id === subject);

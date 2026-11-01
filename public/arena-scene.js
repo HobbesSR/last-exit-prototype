@@ -6,7 +6,7 @@ import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
-import { themeColors, css } from './palette.js';
+import { DEFAULT_THEME, themeColors, css } from './palette.js';
 import {
   APPEARANCE_RECIPE_VERSION,
   resolveBuildingAppearance,
@@ -61,7 +61,7 @@ export function makeArenaScene(api) {
     constructor() { super('arena'); }
     preload() { this.load.svg('contestant', '/assets/contestant.svg', { width: 80, height: 80 }); this.load.svg('gladiator', '/assets/warden.svg', { width: 100, height: 100 }); }
     create() {
-      this.ready = true; this.paletteId = api.palette?.() || 'prototype'; this.lighting = true; this.wear = true;
+      this.ready = true; this.paletteId = api.palette?.() || DEFAULT_THEME; this.lighting = true; this.wear = true;
       this.colors = themeColors(this.paletteId); this.cameras.main.setBackgroundColor(css(this.colors.background));
       this.world = this.add.container(0, 0);
       // Terrain, structures and fixtures are drawn everywhere and dimmed where they are out of sight,

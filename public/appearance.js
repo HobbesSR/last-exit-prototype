@@ -3,7 +3,7 @@
 // viewer's art mode into material fills, structural edges, and a bounded list of decorative marks.
 // Never allocates game IDs, consumes simulation RNG, modifies `shapeOf`, or reads dynamic state.
 
-import { SWATCHES, themeColors, mix, U, L, T, G } from './palette.js';
+import { SWATCHES, DEFAULT_THEME, themeColors, mix, U, L, T, G } from './palette.js';
 
 export const APPEARANCE_RECIPE_VERSION = 2;
 
@@ -91,10 +91,10 @@ export function appearanceUnit(id, channel = 'default', version = APPEARANCE_REC
 }
 
 /**
- * Normalize art mode options (`lighting` and `wear` default to `true`; `palette` defaults to `'prototype'`).
+ * Normalize art mode options (`lighting` and `wear` default to `true`; `palette` defaults to `DEFAULT_THEME` ('signature')).
  */
 export function resolveArtOptions(options = {}) {
-  const palette = typeof options.palette === 'string' ? options.palette : 'prototype';
+  const palette = typeof options.palette === 'string' ? options.palette : DEFAULT_THEME;
   const lighting = options.lighting !== false;
   const wear = options.wear !== false;
   return {
