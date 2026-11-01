@@ -43,6 +43,25 @@ export {
   selectStorefrontAppearance,
   createStorefrontAppearance,
 } from './strategies/hut.ts';
+export {
+  MARKET_STALL_INTACT,
+  MARKET_STALL_WEATHERED,
+  MARKET_STALL_DAMAGED,
+  MARKET_STALL_PRESETS,
+  createMarketStallAppearance,
+} from './strategies/market.ts';
+export {
+  COMPOUND_RESIDENTIAL_INTACT,
+  COMPOUND_RESIDENTIAL_WEATHERED,
+  COMPOUND_RESIDENTIAL_DAMAGED,
+  COMPOUND_RESIDENTIAL_PRESETS,
+  createCompoundAppearance,
+} from './strategies/compound.ts';
+export { PLANT_SHED_APPEARANCE } from './strategies/plant.ts';
+export { GAS_STATION_APPEARANCE, LANDMARK_GAS_STATION } from './placeables/landmark-gas-station.ts';
+export { COLLAPSED_PARKING_APPEARANCE, LANDMARK_COLLAPSED_PARKING } from './placeables/landmark-collapsed-parking.ts';
+export { RUINED_RESTAURANT_APPEARANCE, LANDMARK_RUINED_RESTAURANT } from './placeables/landmark-ruined-restaurant.ts';
+
 
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
 

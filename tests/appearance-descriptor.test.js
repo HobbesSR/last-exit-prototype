@@ -8,6 +8,13 @@ import { placeElement } from '../shared/map/element.ts';
 import { WAREHOUSE } from '../map/micro/placeables/warehouse.ts';
 import { HOUSE } from '../map/micro/placeables/house.ts';
 import { buildBlock } from '../map/micro/strategies/block.ts';
+import { buildMarket, MARKET_STALL_PRESETS, MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
+import { buildCompound, COMPOUND_RESIDENTIAL_PRESETS, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
+import { buildPlant, PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
+import { LANDMARK_GAS_STATION, GAS_STATION_APPEARANCE } from '../map/micro/placeables/landmark-gas-station.ts';
+import { LANDMARK_COLLAPSED_PARKING, COLLAPSED_PARKING_APPEARANCE } from '../map/micro/placeables/landmark-collapsed-parking.ts';
+import { LANDMARK_RUINED_RESTAURANT, RUINED_RESTAURANT_APPEARANCE } from '../map/micro/placeables/landmark-ruined-restaurant.ts';
+
 import { chainBrief } from './helpers/chain-briefs.js';
 import { cellsOf } from './helpers/cells.js';
 import { buildDepot, DEPOT_WAREHOUSE_APPEARANCE } from '../map/micro/strategies/depot.ts';
@@ -570,5 +577,159 @@ test('presentation boundary invariant: shared, server, and map never import publ
         `${dir}/${file} must not import public/appearance.js`
       );
     }
+  }
+});
+
+test('market region strategy adopts fabric awnings across decay tiers, plaza pavers, and civic entry', () => {
+  const allowedKeys = new Set(['floorMaterial', 'wallMaterial', 'roofPaint', 'roofRim', 'interiorTrim', 'roofSign', 'neglect']);
+  for (const preset of MARKET_STALL_PRESETS) {
+    for (const k of Object.keys(preset)) {
+      assert.ok(allowedKeys.has(k), `market stall appearance field ${k} is allowed`);
+    }
+  }
+
+  const chain = generate('1', liveChainParams(), undefined, DEFAULT_CELL_SIZE);
+  let marketResult = chain.results.find(r => r.brief.type === 'market');
+  if (!marketResult) {
+    // Generate brief directly for test
+    const brief = chainBrief('market', 1, 40, { spacing: 6, roofed: true });
+    marketResult = { brief, elements: [], loot: [], routes: [], manifest: {} };
+  }
+  const region = buildMarket(marketResult.brief);
+  assert.ok(region.elements.length > 0, 'market produces stall elements');
+
+  // Stalls have appearance on roofs
+  const stallsWithApp = region.elements.filter(e => e.template.roofs?.some(r => r.appearance));
+  assert.ok(stallsWithApp.length > 0, 'market stalls have appearance on their awning roofs');
+
+  // Plaza pavers and entry marks
+  const firstElem = region.elements[0];
+  assert.ok(firstElem.template.appearance?.surfaces?.some(s => s.material === 'slatePaving'), 'plaza pavers surface emitted');
+  assert.ok(firstElem.template.appearance?.commercial?.some(c => c.kind === 'sign-panel'), 'civic market entry sign emitted');
+
+  // Stamping into context resolves cleanly
+  const ctx = createGenerationContext(24680);
+  for (const elem of region.elements) {
+    placeElement(ctx, elem.template, elem.x, elem.y, { nodeId: 'market-node' });
+  }
+  assert.ok(ctx.map.roofs && ctx.map.roofs.length > 0, 'market emits roofs into map');
+  for (const roof of ctx.map.roofs) {
+    const resolved = resolveBuildingAppearance({ id: roof.id, ...roof.bounds, appearance: roof.appearance }, ctx.map.appearance, { palette: 'signature' });
+    assert.ok(resolved.roofFill > 0, 'market stall awning resolves non-zero roof fill');
+  }
+  assert.ok(ctx.map.appearance?.surfaces?.some(s => s.material === 'slatePaving'), 'market plaza pavers attached to map appearance');
+});
+
+test('compound region strategy adopts residential/office block appearance and courtyard paving', () => {
+  const allowedKeys = new Set(['floorMaterial', 'wallMaterial', 'roofPaint', 'roofRim', 'interiorTrim', 'roofSign', 'neglect']);
+  for (const preset of COMPOUND_RESIDENTIAL_PRESETS) {
+    for (const k of Object.keys(preset)) {
+      assert.ok(allowedKeys.has(k), `compound appearance field ${k} is allowed`);
+    }
+  }
+
+  const brief = chainBrief({ type: 'compound', cells: cellsOf(20, 20), seed: 42, portals: [{ id: 'p1', side: 'N', axis: 'h', x: 8, y: 0, length: 4, partner: 'other' }] });
+  const region = buildCompound(brief);
+  assert.ok(region.elements.length > 0, 'compound produces ring and courtyard elements');
+
+  // Courtyard paving surface on first element
+  const firstElem = region.elements[0];
+  assert.ok(firstElem.template.appearance?.surfaces?.some(s => s.id?.includes('court-paving')), 'courtyard paving surface emitted');
+
+  // Stamping into context
+  const ctx = createGenerationContext(35791);
+  for (const elem of region.elements) {
+    placeElement(ctx, elem.template, elem.x, elem.y, { nodeId: 'compound-node' });
+  }
+  assert.ok(ctx.map.roofs && ctx.map.roofs.length > 0, 'compound emits roofs');
+  for (const roof of ctx.map.roofs) {
+    const resolved = resolveBuildingAppearance({ id: roof.id, ...roof.bounds, appearance: roof.appearance }, ctx.map.appearance, { palette: 'signature' });
+    assert.ok(resolved.roofFill > 0, 'compound room roof resolves non-zero fill');
+  }
+});
+
+test('plant region strategy adopts industrial shed appearance, cooling towers, and substation machinery', () => {
+  const allowedKeys = new Set(['floorMaterial', 'wallMaterial', 'roofPaint', 'roofRim', 'interiorTrim', 'roofSign', 'neglect']);
+  for (const k of Object.keys(PLANT_SHED_APPEARANCE)) {
+    assert.ok(allowedKeys.has(k), `plant shed appearance field ${k} is allowed`);
+  }
+
+  const brief = chainBrief({ type: 'plant', cells: cellsOf(24, 24), seed: 42 });
+  const region = buildPlant(brief);
+  assert.ok(region.elements.length > 0, 'plant produces machines and shed');
+
+  // Plant ground surface
+  const firstElem = region.elements[0];
+  assert.ok(firstElem.template.appearance?.surfaces?.some(s => s.id?.includes('plant-ground')), 'plant ground surface emitted');
+
+  // Machinery with obstacle appearances
+  const machines = region.elements.filter(e => e.label.startsWith('plant-machine'));
+  assert.ok(machines.length > 0, 'plant produces machine elements');
+  const styledMachines = machines.filter(e => e.template.parts.some(p => p.part === 'obstacle' && p.appearance));
+  assert.ok(styledMachines.length > 0, 'plant machines carry obstacle appearance');
+
+  // Stamping into context
+  const ctx = createGenerationContext(46802);
+  for (const elem of region.elements) {
+    placeElement(ctx, elem.template, elem.x, elem.y, { nodeId: 'plant-node' });
+  }
+  const styledObstacles = ctx.map.obstacles.filter(o => o.appearance);
+  assert.ok(styledObstacles.length > 0, 'stamped plant obstacles carry appearance');
+  for (const o of styledObstacles) {
+    const res = resolveObstacleAppearance(o, ctx.map.appearance, { palette: 'signature' });
+    assert.ok(res.fill > 0, 'machine obstacle resolves non-zero fill');
+  }
+});
+
+test('landmark silhouettes (gas station, collapsed parking, ruined restaurant) provide distinctive footprints and silhouettes (11.1 §8)', () => {
+  const size = 40;
+
+  // 1. Roadside gas station landmark
+  const gasStation = LANDMARK_GAS_STATION.build({ w: 8, h: 6 }, size);
+  assert.ok(!('refused' in gasStation), 'gas station builds cleanly');
+  assert.equal(gasStation.elements.length, 1);
+  const gsElem = gasStation.elements[0];
+  assert.equal(gsElem.template.encloses, true, 'gas station encloses a building');
+  assert.equal(gsElem.template.roofs?.length, 2, 'gas station has kiosk roof and extended fuel canopy roof');
+  assert.ok(gsElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'window'), 'kiosk has storefront window');
+  assert.ok(gsElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'container' && p.appearance), 'pump islands have obstacle appearance');
+  assert.ok(gsElem.template.appearance?.commercial?.some(c => c.kind === 'parking-stripes'), 'gas station has fuel bay pump stripes');
+
+  // 2. Collapsed parking structure landmark
+  const collapsedParking = LANDMARK_COLLAPSED_PARKING.build({ w: 8, h: 8 }, size);
+  assert.ok(!('refused' in collapsedParking), 'collapsed parking builds cleanly');
+  assert.equal(collapsedParking.elements.length, 1);
+  const cpElem = collapsedParking.elements[0];
+  assert.equal(cpElem.template.encloses, true);
+  // Collapsed central void: total 8x8 = 64 cells minus central 4x4 void = 48 cells
+  const roof = cpElem.template.roofs?.[0];
+  assert.ok(roof, 'parking deck roof exists');
+  assert.equal(roof.cells.length, 48, 'collapsed parking structure roof leaves 16-cell central void');
+  assert.ok(cpElem.template.appearance?.scars?.some(s => s.kind === 'scorch-group'), 'collapsed roof void carries scorch marks');
+
+  // 3. Ruined restaurant diner landmark
+  const ruinedDiner = LANDMARK_RUINED_RESTAURANT.build({ w: 8, h: 5 }, size);
+  assert.ok(!('refused' in ruinedDiner), 'ruined restaurant builds cleanly');
+  assert.equal(ruinedDiner.elements.length, 1);
+  const rdElem = ruinedDiner.elements[0];
+  assert.equal(rdElem.template.encloses, true);
+  assert.ok(rdElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'window'), 'diner dining room has window');
+  assert.ok(rdElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'crate'), 'diner has service counter obstacle');
+  assert.ok(rdElem.template.appearance?.surfaces?.some(s => s.material === 'slatePaving'), 'diner has drive-thru service apron');
+  assert.ok(rdElem.template.appearance?.commercial?.some(c => c.kind === 'awning'), 'diner has commercial fabric awning');
+  assert.ok(rdElem.template.appearance?.wear?.some(w => w.kind === 'drain-stain'), 'diner has drain wear mark');
+
+  // Stamp all 3 landmarks into context and verify presentation resolution
+  const ctx = createGenerationContext(57913);
+  placeElement(ctx, gsElem.template, 100, 100, { nodeId: 'gs' });
+  placeElement(ctx, cpElem.template, 600, 100, { nodeId: 'cp' });
+  placeElement(ctx, rdElem.template, 1100, 100, { nodeId: 'rd' });
+
+  assert.equal(ctx.map.buildings.length, 3, 'all 3 landmarks register buildings');
+  for (const b of ctx.map.buildings) {
+    const res = resolveBuildingAppearance(b, ctx.map.appearance, { palette: 'signature', wear: true });
+    assert.ok(res.floorFill > 0);
+    assert.ok(res.roofFill > 0);
+    assert.ok(res.roofMarks.length > 0, 'landmark buildings resolve roof commercial markings/signs');
   }
 });

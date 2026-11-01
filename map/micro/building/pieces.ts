@@ -72,6 +72,7 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
         parts,
         ...(pieceRoofs?.length ? { roofs: pieceRoofs } : {}),
         ...(decals.length ? { decals } : {}),
+        ...(template.appearance ? { appearance: structuredClone(template.appearance) } : {}),
       },
     });
   }

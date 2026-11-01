@@ -1,7 +1,8 @@
 import type { Side } from '../port-terms.ts';
 import { largestRectangle } from './hall.ts';
 import { cellLoot } from './scatter.ts';
-import { draw } from '../random.ts';
+import { draw, rng } from '../random.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { portalStands } from '../portals.ts';
@@ -39,6 +40,170 @@ const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
 
 /** Per-side draw channels, so no choice shifts another. */
 const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, loot: 5 };
+
+/**
+ * Authored minimal appearance descriptors for compound perimeter blocks (11.1 §5.5, 41.2 Step 5).
+ * Three visual decay tiers:
+ * - `COMPOUND_RESIDENTIAL_INTACT`: Weathered brick walls, slate paving, faded violet roof with clean cream rim.
+ * - `COMPOUND_RESIDENTIAL_WEATHERED`: Dusty stucco walls, warm masonry, weathered coral roof, drain stains.
+ * - `COMPOUND_RESIDENTIAL_DAMAGED`: Cool concrete walls, cracked slate paving, dirty cream roof, competition scorch mark and floor stains.
+ */
+export const COMPOUND_RESIDENTIAL_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'weatheredBrick',
+  roofPaint: 'fadedViolet',
+  roofRim: 'dirtyCream',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'fadedViolet',
+    backing: 'structuralVoid',
+    stripe: 'dirtyCream',
+    dx: 24,
+    dy: 16,
+    w: 80,
+    h: 20,
+  },
+});
+
+export const COMPOUND_RESIDENTIAL_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'warmMasonry',
+  wallMaterial: 'dustyStucco',
+  roofPaint: 'weatheredCoral',
+  roofRim: 'storefrontTeal',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'weatheredCoral',
+    backing: 'structuralVoid',
+    stripe: 'awningsYellow',
+    dx: 24,
+    dy: 16,
+    w: 76,
+    h: 20,
+  },
+  neglect: {
+    fadedPanel: { dx: 28, dy: 36, w: 56, h: 24 },
+    roofDrainStain: { dx: 90, dy: 24, w: 32, h: 20 },
+  },
+});
+
+export const COMPOUND_RESIDENTIAL_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'dirtyCream',
+  roofRim: 'structuralVoid',
+  interiorTrim: 'oldSignRed',
+  roofSign: {
+    color: 'oldSignRed',
+    backing: 'structuralVoid',
+    stripe: 'weatheredCoral',
+    dx: 24,
+    dy: 16,
+    w: 72,
+    h: 20,
+  },
+  neglect: {
+    fadedPanel: { dx: 24, dy: 32, w: 48, h: 22 },
+    roofDrainStain: { dx: 110, dy: 24, w: 30, h: 20 },
+    floorStain: { dx: 60, dy: 40, w: 36, h: 24 },
+    scorchMark: { dx: 45, dy: 50, w: 52, h: 32 },
+  },
+});
+
+export const COMPOUND_RESIDENTIAL_PRESETS: readonly BuildingAppearance[] = Object.freeze([
+  COMPOUND_RESIDENTIAL_INTACT,
+  COMPOUND_RESIDENTIAL_WEATHERED,
+  COMPOUND_RESIDENTIAL_DAMAGED,
+]);
+
+export interface CompoundAppearanceOptions {
+  seed?: number | undefined;
+  roll?: number | undefined;
+  w?: number | undefined;
+  h?: number | undefined;
+}
+
+export function createCompoundAppearance(options: CompoundAppearanceOptions = {}): BuildingAppearance {
+  const roll = options.roll ?? (options.seed !== undefined ? rng(options.seed, 'compound-tier').next() : 0);
+  const tier = roll < 0.35 ? 'intact' : roll < 0.7 ? 'weathered' : 'damaged';
+  const base = tier === 'intact'
+    ? COMPOUND_RESIDENTIAL_INTACT
+    : tier === 'weathered'
+      ? COMPOUND_RESIDENTIAL_WEATHERED
+      : COMPOUND_RESIDENTIAL_DAMAGED;
+
+  if (tier === 'intact') {
+    return {
+      floorMaterial: base.floorMaterial,
+      wallMaterial: base.wallMaterial,
+      roofPaint: base.roofPaint,
+      roofRim: base.roofRim,
+      interiorTrim: base.interiorTrim,
+      roofSign: base.roofSign ? { ...base.roofSign } : undefined,
+    };
+  }
+
+  const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), 'compound-wear');
+  if (tier === 'weathered') {
+    return {
+      floorMaterial: base.floorMaterial,
+      wallMaterial: base.wallMaterial,
+      roofPaint: base.roofPaint,
+      roofRim: base.roofRim,
+      interiorTrim: base.interiorTrim,
+      roofSign: base.roofSign ? { ...base.roofSign } : undefined,
+      neglect: {
+        fadedPanel: {
+          dx: Math.round(20 + subRng.next() * 16),
+          dy: Math.round(28 + subRng.next() * 16),
+          w: Math.round(48 + subRng.next() * 16),
+          h: Math.round(20 + subRng.next() * 8),
+        },
+        roofDrainStain: {
+          dx: Math.round(80 + subRng.next() * 24),
+          dy: Math.round(20 + subRng.next() * 12),
+          w: Math.round(28 + subRng.next() * 8),
+          h: Math.round(18 + subRng.next() * 6),
+        },
+      },
+    };
+  }
+
+  return {
+    floorMaterial: base.floorMaterial,
+    wallMaterial: base.wallMaterial,
+    roofPaint: base.roofPaint,
+    roofRim: base.roofRim,
+    interiorTrim: base.interiorTrim,
+    roofSign: base.roofSign ? { ...base.roofSign } : undefined,
+    neglect: {
+      fadedPanel: {
+        dx: Math.round(18 + subRng.next() * 14),
+        dy: Math.round(24 + subRng.next() * 14),
+        w: Math.round(44 + subRng.next() * 12),
+        h: Math.round(18 + subRng.next() * 8),
+      },
+      roofDrainStain: {
+        dx: Math.round(95 + subRng.next() * 24),
+        dy: Math.round(20 + subRng.next() * 12),
+        w: Math.round(28 + subRng.next() * 8),
+        h: Math.round(18 + subRng.next() * 6),
+      },
+      floorStain: {
+        dx: Math.round(50 + subRng.next() * 20),
+        dy: Math.round(35 + subRng.next() * 15),
+        w: Math.round(32 + subRng.next() * 10),
+        h: Math.round(22 + subRng.next() * 6),
+      },
+      scorchMark: {
+        dx: Math.round(40 + subRng.next() * 18),
+        dy: Math.round(45 + subRng.next() * 16),
+        w: Math.round(46 + subRng.next() * 12),
+        h: Math.round(28 + subRng.next() * 8),
+      },
+    },
+  };
+}
+
 
 /** A box in the compound's own cells. */
 interface Box { x: number; y: number; w: number; h: number }
@@ -250,7 +415,9 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   const { x: bx, y: by, w: W, h: H, gated } = site;
 
   const gatedBits = SIDES.reduce((bits, side, i) => bits | (gated.has(side) ? 1 << i : 0), 0);
-  const ring = expectPlaced(COMPOUND_RING.build({ w: W, h: H, gates: gatedBits, seed: brief.seed }, size));
+  const ringAppSeed = Math.floor(rng(brief.seed, `${brief.id}:compound-appearance`).next() * 2 ** 31);
+  const ringAppearance = createCompoundAppearance({ seed: ringAppSeed, w: W, h: H });
+  const ring = expectPlaced(COMPOUND_RING.build({ w: W, h: H, gates: gatedBits, seed: brief.seed, appearance: ringAppearance }, size));
   const { design, allocation, realization, rooms, passages } = ring.details;
   // The placeable gives local roof-group suffixes; the builder scopes them to this region.
   for (const element of ring.elements) for (const roof of element.template.roofs ?? [])
@@ -259,6 +426,25 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   const elements = placedElements(ring, 'compound', bx, by, size);
   // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
   if (!createBuilderCanvas(brief).commit({ elements })) throw new Error('Compound placement failed its canvas commit.');
+  const first = elements[0];
+  if (first) {
+    const courtX = (bx + DEPTH) * size;
+    const courtY = (by + DEPTH) * size;
+    const courtW = (W - 2 * DEPTH) * size;
+    const courtH = (H - 2 * DEPTH) * size;
+    first.template.appearance = {
+      ...first.template.appearance,
+      surfaces: [
+        {
+          id: `${brief.id}:court-paving`,
+          bounds: { x: courtX - first.x, y: courtY - first.y, w: courtW, h: courtH },
+          material: 'coolConcrete',
+          weathered: true,
+          segmentSpan: 160,
+        },
+      ],
+    };
+  }
   elements.push(...buildCompoundCourt(brief, site, observe));
   const steps = ring.details.steps.map(step => ({ x: bx + step.x, y: by + step.y }));
   const exterior = buildCompoundExterior(brief, site, steps, observe);

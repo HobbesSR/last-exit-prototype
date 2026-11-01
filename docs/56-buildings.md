@@ -420,3 +420,25 @@ without changing authoritative geometry, navigation, or simulation RNG:
   across seeds without identical repeated scars.
 - **Warehouse kit (`depot` and `WAREHOUSE`):** industrial cool concrete floor, oxidized metal
   walls, legacy storefront teal roof, weathered coral signage, and floor/roof drainage neglect.
+- **Civic market kit (`market` and `MARKET_STALL`):** three visual decay tiers
+  (`MARKET_STALL_INTACT`, `MARKET_STALL_WEATHERED`, `MARKET_STALL_DAMAGED` / `createMarketStallAppearance`)
+  supply vibrant awnings yellow, weathered coral, and dirty cream fabric awnings, counters
+  in oxidized metal, dusty stucco, and cool concrete, drainage neglect, civic entry storefront
+  sign panels, and plaza ground pavers (`slatePaving`).
+- **Compound residential/office kit (`compound` and `COMPOUND_RING`):** perimeter residential
+  and office blocks across three tiers (`COMPOUND_RESIDENTIAL_INTACT`, `COMPOUND_RESIDENTIAL_WEATHERED`,
+  `COMPOUND_RESIDENTIAL_DAMAGED` / `createCompoundAppearance`) with faded violet, weathered coral,
+  and dirty cream roofs, weathered brick, dusty stucco, and cool concrete walls, courtyard paving
+  (`coolConcrete`), and drainage/scorch marks.
+- **Heavy industrial plant kit (`plant` and `PLANT_MACHINE`):** industrial sheds
+  (`PLANT_SHED_APPEARANCE` with slate shadow roof, metal walls, and sodium amber focal rims),
+  cooling towers (`coolConcrete` with `sodiumAmber` focal rim), generator substations
+  (`oxidizedMetal` with `electricTurquoise` focal rim), and heavy industrial night asphalt ground.
+- **Landmark silhouettes (11.1 §8):**
+  - **Damaged roadside gas station (`LANDMARK_GAS_STATION`):** distinctive mini-mart kiosk,
+    extended fuel canopy, and pump islands with motel turquoise roof, electric turquoise rim and signage,
+    and sodium amber pump highlights.
+  - **Collapsed parking structure (`LANDMARK_COLLAPSED_PARKING`):** multi-bay parking deck,
+    fractured ramp section, structural pillars, cool concrete deck, and awnings yellow striping.
+  - **Ruined roadside restaurant (`LANDMARK_RUINED_RESTAURANT`):** front dining hall, rear kitchen,
+    prominent roadside sign, old sign red roof with dirty cream stripe, and competition blast scorches.

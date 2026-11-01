@@ -1,7 +1,7 @@
 import { transform } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { BaseGenerationContext } from './context.ts';
-import type { Box, Cell, Building, BuildingId, Decal, ElementAppearance, GateId, NodeId, ObstacleAppearance, ObstacleKind, Vec2, World } from '../types.ts';
+import type { Box, Cell, Building, BuildingAppearance, BuildingId, Decal, ElementAppearance, GateId, NodeId, ObstacleAppearance, ObstacleKind, Vec2, World } from '../types.ts';
 
 /**
  * A placeable element: one named assembly of geometry — a building, a cover cluster, a checkpoint —
@@ -41,6 +41,7 @@ export interface ElementRoof {
   origin?: Vec2 | undefined;
   overhang?: number | undefined;
   thresholds?: Cell[] | undefined;
+  appearance?: BuildingAppearance | undefined;
 }
 
 export interface ElementTemplate {
@@ -165,6 +166,7 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
         ...(r.overhang !== undefined ? { overhang: r.overhang } : {}),
         ...(r.thresholds?.length ? { thresholds: r.thresholds } : {}),
         ...(owner ? { buildingId: owner.buildingId } : {}),
+        ...(r.appearance ? { appearance: r.appearance } : template.appearance?.building ? { appearance: template.appearance.building } : {}),
       });
     }
   }
