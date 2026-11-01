@@ -127,8 +127,13 @@ depot/market interface metric, not all internal barriers or all possible family
 selections. Of the 3,883 eligible spans across the panel, 3,859 are one cell;
 the remaining 24 are two cells.
 
-The next design review should reassess the two-family selection and a composition
-whose required-access proof scales before another implementation. Do not add
+The next design review should weigh eligible seam length and macro guarantees/caps
+alongside two-family selection/composition. Nearly all eligible spans are only one
+cell long; short joins may be easy to walk around even with better opposing
+contacts. This is a hypothesis to test, not a measured family-independent ceiling.
+If macro constraints prevent useful seams, escalate under #716's stop rule rather
+than weakening guarantees within this prototype. The review must also consider a
+composition whose required-access proof scales before another implementation. Do not add
 more families to this prototype, weaken 20.6, replace the fixed panel, redefine
 encounters to force a pass, or resume optional #743 overhead work automatically.
 This pass stops at that concrete selection/readiness boundary.
@@ -175,6 +180,12 @@ comparisons. Cooperating comparisons use the machine lock; external load,
 hardware and power configuration were not measured. Capped attempts have no
 completion duration or speedup. [local-scale.json](local-scale.json) retains all
 six results; [local-verification.json](local-verification.json) retains checks.
+
+Because both arms are censored at the cap, these pairs cannot establish whether
+local repair improves or worsens completion time. A future scale comparison
+should first include a smaller witness where both arms finish, retaining paired
+durations and their ratio before choosing a search redesign. Keep the unchanged
+large witness as the readiness gate; a smaller diagnostic does not replace it.
 
 **Local repair is not a scale fix and is not adopted.** This experiment uses the
 original frozen content, not the new frontage candidate. Frontage capture build
