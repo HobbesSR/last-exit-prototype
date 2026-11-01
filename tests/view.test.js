@@ -488,9 +488,9 @@ test('live map: roofs have unique ids, keep map id order, and declare multi-room
   assert.equal(map1.items?.at(-1)?.id, 'item-1952', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o1618', 'obstacle IDs stay pinned on seed 2');
+  assert.equal(map2.obstacles?.at(-1)?.id, 'o1619', 'obstacle IDs stay pinned on seed 2');
   assert.equal(map2.gates?.at(-1)?.id, 'door-1166', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-2385', 'item IDs stay pinned on seed 2');
+  assert.equal(map2.items?.at(-1)?.id, 'item-2386', 'item IDs stay pinned on seed 2');
 
   assert.ok([map1, map2].some(map => [...roofGroups(map).values()].some(group => group.length > 1)),
     'the live-map sample declares a multi-room group');

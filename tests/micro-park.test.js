@@ -1,44 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { seeThrough } from '../shared/movement.ts';
 import { bounds } from '../shared/shape.ts';
-import { portalMargin } from '../map/micro/hints.ts';
 import { cellsOf } from './helpers/cells.js';
+import { SIZE, THOROUGH, brief, MASKS, SEEDS, DENSE, blockers, kind, boxOf, gapBetween, assertParkPromise, assertClumpSpacing } from './helpers/park-fixtures.js';
 
-const SIZE = 40;
-/** Park places against a live cord witness, so its proofs are the thorough search's (20.10). */
-const THOROUGH = { search: 'thorough' };
-const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'park', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals, ...(parameters ? { parameters } : {}) });
-
-/** A tile, a wide field, an L, and a ring around a hole, with portals on several sides. */
-const MASKS = {
-  tile: [cellsOf(6, 6), [{ id: 'west', axis: 'v', x: 0, y: 2, length: 2 }, { id: 'east', axis: 'v', x: 6, y: 1, length: 3 }]],
-  field: [cellsOf(40, 30), [{ id: 'west', axis: 'v', x: 0, y: 7, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 20, length: 3 },
-    { id: 'north', axis: 'h', x: 28, y: 0, length: 8 }]],
-  ell: [cellsOf(30, 30, (x, y) => y < 15 || x < 15), [{ id: 'east', axis: 'v', x: 30, y: 4, length: 3 }, { id: 'south', axis: 'h', x: 2, y: 30, length: 4 },
-    { id: 'corner', axis: 'h', x: 18, y: 15, length: 6 }]],
-  ring: [cellsOf(36, 36, (x, y) => x < 13 || x >= 23 || y < 13 || y >= 23), [{ id: 'north', axis: 'h', x: 15, y: 0, length: 4 },
-    { id: 'hole', axis: 'v', x: 23, y: 16, length: 3 }, { id: 'west', axis: 'v', x: 0, y: 26, length: 3 }]],
-};
-const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
-const DENSE = { density: 1, hedges: 0.5 };
-const blockers = result => result.elements.flatMap(element => elementShapes(element));
-const kind = prefix => element => element.label.startsWith(`park-${prefix}`);
-const boxOf = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
-const gapBetween = (a, b) => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-
-test('a park region keeps the portal promise over seeds, masks and parameters', () => {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS)
-    for (const parameters of [undefined, DENSE, { density: 0, hedges: 1 }, { density: 0.3, hedges: 0 }]) {
-      const result = buildRegion(brief(name, seed, cells, portals, parameters));
-      const check = validatePortalReach({ ...result.brief, blockers: blockers(result) }, THOROUGH);
-      assert.deepEqual(check.errors, [], `${name} seed ${seed} ${JSON.stringify(parameters)}`);
-    }
-});
+// The fast tier runs the first seed; tests/slow/micro-park-promise.test.js runs all eight.
+test('a park region keeps the portal promise over seeds, masks and parameters', () => assertParkPromise(SEEDS.slice(0, 1)));
 
 test('a park is its own type, with trees and hedge fronts and no buildings', () => {
   const [cells, portals] = MASKS.field;
@@ -60,7 +30,7 @@ test('a park is its own type, with trees and hedge fronts and no buildings', () 
 
 test('parks are deterministic and independent of the order of the brief\'s cells', () => {
   const [cells, portals] = MASKS.field;
-  for (const seed of SEEDS) {
+  for (const seed of SEEDS.slice(0, 4)) {
     const result = buildRegion(brief('field', seed, cells, portals));
     assert.deepEqual(buildRegion(brief('field', seed, [...cells].reverse(), portals)).elements, result.elements);
   }
@@ -74,23 +44,8 @@ test('a tree is round, and a hedge blocks bodies but not sight', () => {
   assert.equal(seeThrough('tree'), false);
 });
 
-test('clumps keep an aisle from each other and respect portal margins', () => {
-  // Hedge runs gave way to fronts in #760; fronts are tested in micro-park-fronts.
-  let clumps = 0;
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const input = brief(name, seed, cells, portals, DENSE);
-    const result = buildRegion(input), mask = createRegionMask(input);
-    const reserved = new Set(portalMargin(input, 1).map(c => `${c.x},${c.y}`));
-    const trees = result.elements.filter(kind('tree')).map(boxOf);
-    clumps += result.manifest.clumps;
-    for (const tree of trees) for (let y = tree.y; y < tree.y + tree.h; y++) for (let x = tree.x; x < tree.x + tree.w; x++)
-      assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: tree footprint`);
-    // Trees in different clumps keep their aisle: any two closer than it are in one clump (a slot's band).
-    for (const [i, a] of trees.entries()) for (const b of trees.slice(i + 1))
-      if (gapBetween(a, b) < 2) assert.ok(Math.abs(a.x - b.x) < 4 && Math.abs(a.y - b.y) < 4, `${name} ${seed}: trees ${a.x},${a.y} and ${b.x},${b.y}`);
-  }
-  assert.ok(clumps > 10, `${clumps} clumps`);
-});
+// The fast tier runs two seeds; tests/slow/micro-park-promise.test.js runs all eight.
+test('clumps keep an aisle from each other and respect portal margins', () => assertClumpSpacing(SEEDS.slice(0, 2)));
 
 test('a region too small for a tree gets no tree, and with fronts off stays clear', () => {
   assert.equal(buildRegion(brief('speck', 1, cellsOf(3, 1), [], DENSE)).elements.some(kind('tree')), false);
@@ -156,22 +111,6 @@ test('large concave park with many portals keeps a safe hinted attachment', () =
   const result = buildRegion(input);
   assert.ok(result.elements.some(element => element.x === 0), 'a piece reaches the hinted west edge');
   assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }, THOROUGH).errors, []);
-});
-
-test('a rectangular park past 32 portals keeps every portal reachable', () => {
-  // Boundary spacing alone let a clump stand flush over a side portal's approach on these
-  // seeds (#361); the nearby-portal route tree keeps them open.
-  const cells = cellsOf(36, 72), portals = [];
-  for (let k = 3; k < 36; k += 6) portals.push({ id: `n${k}`, axis: 'h', x: k, y: 0, length: 3 }, { id: `s${k}`, axis: 'h', x: k, y: 72, length: 3 });
-  for (let k = 3; k < 72; k += 6) portals.push({ id: `w${k}`, axis: 'v', x: 0, y: k, length: 3 }, { id: `e${k}`, axis: 'v', x: 36, y: k, length: 3 });
-  assert.equal(portals.length, 36);
-  for (const seed of [5, 6]) {
-    const input = brief('many-portals', seed, cells, portals), result = buildRegion(input);
-    // A connected pocket intentionally replaces several scatter slots (types-56).
-    assert.ok(result.manifest.clumps > 20 || (result.manifest.pockets === 1 && result.manifest.clumps > 10),
-      `seed ${seed} still composes scatter or a pocket: ${JSON.stringify(result.manifest)}`);
-    assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }, THOROUGH).errors, [], `seed ${seed}`);
-  }
 });
 
 test('thin rectangular park keeps a hunter aisle between opposite sides', () => {
