@@ -4,6 +4,7 @@ import { validatePortalReach, portalStands, hunterClearance } from '../map/micro
 import { createAccessMask, travelClear } from '../map/micro/geometry.ts';
 import { applyClearConstraints, clearFootprint } from '../map/kernel/margins.ts';
 import { rect } from '../shared/shape.ts';
+import { diagnoseRegion } from '../map/micro/diagnose.ts';
 
 const cells = (x, y, w, h) => Array.from({ length: w * h }, (_, i) => ({ x: x + i % w, y: y + Math.floor(i / w) }));
 const base = () => ({ cellSize: 40, cells: cells(0, 0, 8, 6), portals: [
@@ -123,4 +124,16 @@ test('zero/one portal exemption and input checks also apply in thorough mode', (
     assert.equal(validatePortalReach({ ...input, blockers: [rect(0, 0, -1, 1)] }, { search: 'thorough' }).valid, false);
   }
   assert.match(validatePortalReach({ ...base(), blockers: [] }, { search: 'other' }).errors[0], /Unknown portal search/);
+});
+
+test('map diagnosis uses the thorough search: an off-lattice route passes, a separating wall still fails', () => {
+  // Diagnosis (checkMap, the sweep's broken promises) must not fall back to grid alone: a
+  // grid-only check named 1,979 walkable cord-routed parks as broken (#750, 20.10).
+  const wall = shapes => [{ label: 'wall', x: 0, y: 0, template: { w: 320, h: 240,
+    parts: shapes.map(shape => ({ part: 'obstacle', kind: 'wall', shape })) } }];
+  const brief = { ...base(), id: 'diagnosed', seed: 1, type: 'test', zones: [] };
+  const offLattice = [rect(140, 0, 10, 52), rect(140, 128, 10, 112)];
+  assert.equal(validatePortalReach({ ...brief, blockers: offLattice }).valid, false);
+  assert.deepEqual(diagnoseRegion({ brief, elements: wall(offLattice) }), []);
+  assert.notDeepEqual(diagnoseRegion({ brief, elements: wall([rect(140, 0, 40, 240)]) }), []);
 });
