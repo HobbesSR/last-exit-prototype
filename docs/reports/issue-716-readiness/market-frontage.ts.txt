@@ -1,0 +1,31 @@
+  // Independent inward counters are attempted before the regular interior grid.
+  const owned = new Set(brief.cells.map(c => `${c.x},${c.y}`));
+  let frontageStalls = 0;
+  for (const cell of [...canvas.fill.cells].sort(compareCells)) {
+    if (draw(brief.seed, cell.x, cell.y, CHANNEL.frontage) >= 0.55) continue;
+    let accepted = false;
+    for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+      if (owned.has(`${cell.x + dx},${cell.y + dy}`)) continue;
+      const horizontal = dx !== 0;
+      for (const frontageLength of [4, 2]) {
+        const x = cell.x - (dx === 1 ? frontageLength - 1 : 0);
+        const y = cell.y - (dy === 1 ? frontageLength - 1 : 0);
+        const w = horizontal ? frontageLength : 1, h = horizontal ? 1 : frontageLength;
+        const footprint = rect(x * size, y * size, w * size, h * size);
+        if (!canvas.fits(footprint) || !canvas.spaced(footprint, AISLE * size)) continue;
+        const stall = expectPlaced(MARKET_STALL.build({ length: frontageLength, alongX: horizontal, flipped: false, roofed }, size));
+        const elements = structuredClone(placedElements(stall, `market-frontage-${frontageStalls + 1}`, x, y, size));
+        for (const e of elements) {
+          e.template.w = w * size; e.template.h = h * size;
+          for (const roof of e.template.roofs ?? []) roof.cells = roof.cells.filter(c => c.x < w && c.y < h);
+        }
+        const attached = attachBoundaryContent(elements, x, y, w, h);
+        const token = guard.prepare(attached.flatMap(e => elementShapes(e)));
+        if (!token) continue;
+        if (!canvas.commit({ elements: attached })) throw new Error('Market frontage failed its canvas commit.');
+        token.commit(); frontageStalls++; stalls++; accepted = true;
+        break;
+      }
+      if (accepted) break;
+    }
+  }

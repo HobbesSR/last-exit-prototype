@@ -1,0 +1,28 @@
+  // Boundary rows are chosen independently of the interior lane axis.
+  let boundaryRows = 0;
+  if (!experiment && density > 0) {
+    const owned = new Set(brief.cells.map(c => `${c.x},${c.y}`));
+    for (const cell of [...mask.cells].sort(compareCells)) {
+      if (draw(brief.seed, cell.x, cell.y, CHANNEL.boundary) >= density) continue;
+      let accepted = false;
+      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        if (owned.has(`${cell.x + dx},${cell.y + dy}`)) continue;
+        const horizontal = dx !== 0;
+        for (const length of [6, 4, 2]) {
+          const x = cell.x - (dx === 1 ? length - 1 : 0);
+          const y = cell.y - (dy === 1 ? length - 1 : 0);
+          const w = horizontal ? length : 1, h = horizontal ? 1 : length;
+          const footprint = rect(x * size, y * size, w * size, h * size);
+          if (!canvas.fits(footprint) || !canvas.spaced(footprint, AISLE * size)) continue;
+          const row = expectPlaced(CONTAINER_ROW.build({ length, alongX: horizontal }, size));
+          const elements = attachBoundaryContent!(placedElements(row, `depot-boundary-row-${boundaryRows + 1}`, x, y, size), x, y, w, h);
+          const token = guard!.prepare(elements.flatMap(e => elementShapes(e)));
+          if (!token) continue;
+          if (!canvas.commit({ elements })) throw new Error('Depot boundary row failed its canvas commit.');
+          token.commit(); boundaryRows++; accepted = true;
+          break;
+        }
+        if (accepted) break;
+      }
+    }
+  }

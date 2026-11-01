@@ -1,0 +1,42 @@
+/** Reconnect only the displaced span of an existing swept witness when possible. */
+function repairLocal(path: Evidence, added: readonly Shape[], radius: number, cellSize: number,
+  routeTo: (a: Vec2, b: Vec2) => Vec2[] | null): Vec2[] | null {
+  if (!added.length || path.points.length < 2) return null;
+  const boxes = added.map(bounds), padding = radius + cellSize;
+  const left = Math.min(...boxes.map(b => b.x)) - padding;
+  const top = Math.min(...boxes.map(b => b.y)) - padding;
+  const right = Math.max(...boxes.map(b => b.x + b.w)) + padding;
+  const bottom = Math.max(...boxes.map(b => b.y + b.h)) + padding;
+  const inside = (p: Vec2) => p.x >= left && p.x <= right && p.y >= top && p.y <= bottom;
+  // A root inside the padded box has no unchanged outside lead to retain.
+  if (inside(path.a) || inside(path.b)) return null;
+  let first: { index: number; t: number } | undefined;
+  let last: { index: number; t: number } | undefined;
+  for (let i = 0; i + 1 < path.points.length; i++) {
+    const a = path.points[i]!, b = path.points[i + 1]!;
+    let enter = 0, exit = 1, intersects = true;
+    for (const [origin, delta, min, max] of [
+      [a.x, b.x - a.x, left, right], [a.y, b.y - a.y, top, bottom],
+    ]) {
+      if (delta === 0) {
+        if (origin < min || origin > max) { intersects = false; break; }
+      } else {
+        const t0 = (min - origin) / delta, t1 = (max - origin) / delta;
+        enter = Math.max(enter, Math.min(t0, t1));
+        exit = Math.min(exit, Math.max(t0, t1));
+        if (enter > exit) { intersects = false; break; }
+      }
+    }
+    if (!intersects) continue;
+    if (!first) first = { index: i, t: enter };
+    last = { index: i, t: exit };
+  }
+  if (!first || !last) return null;
+  const pointAt = ({ index, t }: { index: number; t: number }): Vec2 => {
+    const a = path.points[index]!, b = path.points[index + 1]!;
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+  };
+  const local = routeTo(pointAt(first), pointAt(last));
+  if (!local) return null;
+  return [...path.points.slice(0, first.index + 1), ...local, ...path.points.slice(last.index + 1)];
+}
