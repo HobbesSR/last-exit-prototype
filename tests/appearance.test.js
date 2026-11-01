@@ -14,6 +14,7 @@ import {
   resolveObstacleAppearance,
   resolveGroundAppearance,
   getCanonicalFields,
+  resolveActorTint,
   resolvePropAppearance,
   applyLightSample,
 } from '../public/appearance.js';
@@ -185,6 +186,28 @@ test('resolveGroundAppearance emits layers in fixed order and gates wear/scars a
   const lightingOff = resolveGroundAppearance(mapAppearance, { palette: 'signature', lighting: false, wear: true });
   assert.ok(!lightingOff.some(item => item.layer === 'lighting'), 'lighting=false omits theatrical washes and focal edge');
   assert.ok(lightingOff.some(item => item.layer === 'wear') && lightingOff.some(item => item.layer === 'scars'), 'lighting=false retains wear and scars');
+});
+
+test('resolveActorTint provides bounded virtual lighting on actor body material while preserving base tint when unlit (#736)', () => {
+  const cobaltLight = {
+    tint: resolveSwatch('cobaltBlue', 0x1b3b6f),
+    weight: 0.42,
+    neutral: 0.58,
+    contributions: [{ id: 'cobalt-intersection', tint: 0x1b3b6f, weight: 0.42 }],
+  };
+  const unlitSample = { tint: 0x000000, weight: 0, neutral: 1, contributions: [] };
+
+  const baseBody = 0xffffff;
+  const bodyLit = resolveActorTint(baseBody, cobaltLight, { lighting: true });
+  const bodyNoLight = resolveActorTint(baseBody, cobaltLight, { lighting: false });
+  const bodyUnlit = resolveActorTint(baseBody, unlitSample, { lighting: true });
+
+  assert.notEqual(bodyLit, baseBody, 'actor body in lit field blends with regional spatial light');
+  assert.equal(bodyNoLight, baseBody, 'lighting:false returns base body tint');
+  assert.equal(bodyUnlit, baseBody, 'zero light weight returns base body tint');
+
+  const scaled = resolveActorTint(baseBody, cobaltLight, { lighting: true, actorScale: 0.5 });
+  assert.notEqual(scaled, bodyLit, 'actorScale option modulates tint intensity');
 });
 
 test('resolvePropAppearance provides bounded virtual lighting on physics props and getCanonicalFields memoizes', () => {

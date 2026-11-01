@@ -190,6 +190,21 @@ export function applyLightSample(baseColor, sample, roleScale = 1) {
 }
 
 /**
+ * Resolve bounded virtual lighting tint for moving actor body material (29.4 "Virtual lighting", 41.2 step 4, #736).
+ * Blends base actor neutral body material tint with regional spatial light sample.
+ * Bounded with `actorScale` (default 0.25) so base material reads with district ambience
+ * without darkening or hue-shifting. Identity markings remain untinted.
+ * Returns `baseTint` when lighting is disabled or light influence is zero.
+ */
+export function resolveActorTint(baseTint, lightSample, options = {}) {
+  if (options.lighting === false || !lightSample || lightSample.weight <= 0) {
+    return baseTint;
+  }
+  const scale = typeof options.actorScale === 'number' ? options.actorScale : 0.25;
+  return applyLightSample(baseTint, lightSample, scale);
+}
+
+/**
  * Resolve bounded virtual lighting fill and stroke for physics props (29.4, 41.2 step 4).
  * Blends base prop material fill/stroke with regional spatial light sample.
  * Returns base colors when lighting is disabled or light influence is zero.

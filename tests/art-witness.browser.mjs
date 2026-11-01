@@ -1357,8 +1357,10 @@ try {
     const f = window.witness, s = f.scene;
     const strikerArea1 = s.actors.get('striker');
     const scoutArea2 = s.actors.get('scout');
-    const strikerTintLit = strikerArea1.sprite.tintTopLeft;
-    const scoutTintLit = scoutArea2.sprite.tintTopLeft;
+    const strikerBodyTintLit = strikerArea1.sprite.tintTopLeft;
+    const strikerIdentityTintLit = strikerArea1.identity.tintTopLeft;
+    const scoutBodyTintLit = scoutArea2.sprite.tintTopLeft;
+    const scoutIdentityTintLit = scoutArea2.identity.tintTopLeft;
 
     const propArea1Lit = f.pixelAtWorld(960, 525).hex;
     const propArea2Lit = f.pixelAtWorld(1240, 525).hex;
@@ -1368,11 +1370,14 @@ try {
     const apronArea2Lit = f.pixelAtWorld(1205, 525).hex;
 
     await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 960, y: 400 } });
-    const selfArea1Tint = s.actors.get('self').sprite.tintTopLeft;
+    const selfBodyArea1Tint = s.actors.get('self').sprite.tintTopLeft;
+    const selfIdentityArea1Tint = s.actors.get('self').identity.tintTopLeft;
     await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 1170, y: 400 } });
-    const selfBoundaryTint = s.actors.get('self').sprite.tintTopLeft;
+    const selfBodyBoundaryTint = s.actors.get('self').sprite.tintTopLeft;
+    const selfIdentityBoundaryTint = s.actors.get('self').identity.tintTopLeft;
     await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 1260, y: 400 } });
-    const selfArea2Tint = s.actors.get('self').sprite.tintTopLeft;
+    const selfBodyArea2Tint = s.actors.get('self').sprite.tintTopLeft;
+    const selfIdentityArea2Tint = s.actors.get('self').identity.tintTopLeft;
 
     await f.settle({
       palette: 'signature',
@@ -1381,23 +1386,34 @@ try {
       camera: { x: 1120, y: 400, zoom: 1 },
       selfPos: { x: 960, y: 380 },
     });
-    const strikerTintUnlit = strikerArea1.sprite.tintTopLeft;
-    const scoutTintUnlit = scoutArea2.sprite.tintTopLeft;
-    const selfTintUnlit = s.actors.get('self').sprite.tintTopLeft;
+    const strikerBodyTintUnlit = strikerArea1.sprite.tintTopLeft;
+    const strikerIdentityTintUnlit = strikerArea1.identity.tintTopLeft;
+    const scoutBodyTintUnlit = scoutArea2.sprite.tintTopLeft;
+    const scoutIdentityTintUnlit = scoutArea2.identity.tintTopLeft;
+    const selfBodyTintUnlit = s.actors.get('self').sprite.tintTopLeft;
+    const selfIdentityTintUnlit = s.actors.get('self').identity.tintTopLeft;
     const propArea1Unlit = f.pixelAtWorld(960, 525).hex;
     const propArea2Unlit = f.pixelAtWorld(1240, 525).hex;
     const apronArea1Unlit = f.pixelAtWorld(920, 525).hex;
     const apronArea2Unlit = f.pixelAtWorld(1205, 525).hex;
 
     return {
-      strikerTintLit,
-      strikerTintUnlit,
-      scoutTintLit,
-      scoutTintUnlit,
-      selfArea1Tint,
-      selfBoundaryTint,
-      selfArea2Tint,
-      selfTintUnlit,
+      strikerBodyTintLit,
+      strikerIdentityTintLit,
+      strikerBodyTintUnlit,
+      strikerIdentityTintUnlit,
+      scoutBodyTintLit,
+      scoutIdentityTintLit,
+      scoutBodyTintUnlit,
+      scoutIdentityTintUnlit,
+      selfBodyArea1Tint,
+      selfIdentityArea1Tint,
+      selfBodyBoundaryTint,
+      selfIdentityBoundaryTint,
+      selfBodyArea2Tint,
+      selfIdentityArea2Tint,
+      selfBodyTintUnlit,
+      selfIdentityTintUnlit,
       propArea1Lit,
       propArea1Unlit,
       propArea2Lit,
@@ -1426,16 +1442,20 @@ try {
     await window.witness.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
 
-  // Moving actors: 29.4 "If body identity and material color cannot be separated in the current sprite, leave that sprite untinted."
-  // Kit and contestant tints ARE identity colors, so sprites remain untinted and never darkened or hue-shifted by theatrical washes:
-  assert.equal(step4SpatialCheck.strikerTintLit, 0xffd485, 'striker lit sprite retains exact identity kit tint 0xffd485');
-  assert.equal(step4SpatialCheck.strikerTintUnlit, 0xffd485, 'striker unlit sprite retains exact identity kit tint 0xffd485');
-  assert.equal(step4SpatialCheck.scoutTintLit, 0x9de6df, 'scout lit sprite retains exact identity kit tint 0x9de6df');
-  assert.equal(step4SpatialCheck.scoutTintUnlit, 0x9de6df, 'scout unlit sprite retains exact identity kit tint 0x9de6df');
-  assert.equal(step4SpatialCheck.selfArea1Tint, 0xffffff, 'contestant retains base white tint across Area 1');
-  assert.equal(step4SpatialCheck.selfArea2Tint, 0xffffff, 'contestant retains base white tint across Area 2');
-  assert.equal(step4SpatialCheck.selfBoundaryTint, 0xffffff, 'contestant retains base white tint at boundary without darkening or pop');
-  assert.equal(step4SpatialCheck.selfTintUnlit, 0xffffff, 'contestant unlit sprite retains exact base white tint');
+  // Moving actors: 29.4 & #736 separated body material and identity layers.
+  // Body material layer takes bounded virtual lighting (actorScale = 0.25); identity markings remain strictly untinted:
+  assert.notEqual(step4SpatialCheck.selfBodyArea1Tint, step4SpatialCheck.selfBodyArea2Tint, 'actor body in Area 1 takes distinct lighting tint from Area 2');
+  assert.notEqual(step4SpatialCheck.selfBodyArea1Tint, 0xffffff, 'actor body in Area 1 takes cobalt virtual lighting');
+  assert.notEqual(step4SpatialCheck.selfBodyArea2Tint, 0xffffff, 'actor body in Area 2 takes magenta virtual lighting');
+  assert.equal(step4SpatialCheck.selfBodyTintUnlit, 0xffffff, 'actor body unlit sprite retains exact unlit base white 0xffffff');
+  assert.equal(step4SpatialCheck.strikerIdentityTintLit, 0xffd485, 'striker identity retains exact kit tint 0xffd485 in lit field');
+  assert.equal(step4SpatialCheck.strikerIdentityTintUnlit, 0xffd485, 'striker identity retains exact kit tint 0xffd485 in unlit mode');
+  assert.equal(step4SpatialCheck.scoutIdentityTintLit, 0x9de6df, 'scout identity retains exact kit tint 0x9de6df in lit field');
+  assert.equal(step4SpatialCheck.scoutIdentityTintUnlit, 0x9de6df, 'scout identity retains exact kit tint 0x9de6df in unlit mode');
+  assert.equal(step4SpatialCheck.selfIdentityArea1Tint, 0xffffff, 'contestant identity retains base white across Area 1');
+  assert.equal(step4SpatialCheck.selfIdentityArea2Tint, 0xffffff, 'contestant identity retains base white across Area 2');
+  assert.equal(step4SpatialCheck.selfIdentityBoundaryTint, 0xffffff, 'contestant identity retains base white across boundary');
+  assert.equal(step4SpatialCheck.selfIdentityTintUnlit, 0xffffff, 'contestant identity retains base white when unlit');
 
   // Physics props on both sides of boundary:
   assert.notEqual(step4SpatialCheck.propArea1Lit, step4SpatialCheck.propArea2Lit, 'prop in Area 1 takes distinct lighting tint from prop in Area 2');
@@ -1599,14 +1619,18 @@ try {
   }
 
   const step4SpatialSummary = {
-    strikerArea1Lit: css(step4SpatialCheck.strikerTintLit),
-    strikerArea1Unlit: css(step4SpatialCheck.strikerTintUnlit),
-    scoutArea2Lit: css(step4SpatialCheck.scoutTintLit),
-    scoutArea2Unlit: css(step4SpatialCheck.scoutTintUnlit),
-    selfArea1Lit: css(step4SpatialCheck.selfArea1Tint),
-    selfBoundaryLit: css(step4SpatialCheck.selfBoundaryTint),
-    selfArea2Lit: css(step4SpatialCheck.selfArea2Tint),
-    selfUnlit: css(step4SpatialCheck.selfTintUnlit),
+    strikerIdentityLit: css(step4SpatialCheck.strikerIdentityTintLit),
+    strikerIdentityUnlit: css(step4SpatialCheck.strikerIdentityTintUnlit),
+    scoutIdentityLit: css(step4SpatialCheck.scoutIdentityTintLit),
+    scoutIdentityUnlit: css(step4SpatialCheck.scoutIdentityTintUnlit),
+    strikerBodyLit: css(step4SpatialCheck.strikerBodyTintLit),
+    scoutBodyLit: css(step4SpatialCheck.scoutBodyTintLit),
+    selfBodyArea1Lit: css(step4SpatialCheck.selfBodyArea1Tint),
+    selfBodyBoundaryLit: css(step4SpatialCheck.selfBodyBoundaryTint),
+    selfBodyArea2Lit: css(step4SpatialCheck.selfBodyArea2Tint),
+    selfBodyUnlit: css(step4SpatialCheck.selfBodyTintUnlit),
+    selfIdentityLit: css(step4SpatialCheck.selfIdentityArea1Tint),
+    selfIdentityUnlit: css(step4SpatialCheck.selfIdentityTintUnlit),
     propArea1Lit: css(step4SpatialCheck.propArea1Lit),
     propArea1Unlit: css(step4SpatialCheck.propArea1Unlit),
     propArea2Lit: css(step4SpatialCheck.propArea2Lit),
@@ -1621,7 +1645,8 @@ try {
     apronArea2Unlit: css(step4SpatialCheck.apronArea2Unlit),
     unlitPropsIdentical: step4SpatialCheck.propArea1Unlit === step4SpatialCheck.propArea2Unlit,
     unlitGroundIdentical: step4SpatialCheck.apronArea1Unlit === step4SpatialCheck.apronArea2Unlit,
-    actorIdentityUntinted: step4SpatialCheck.strikerTintLit === 0xffd485 && step4SpatialCheck.scoutTintLit === 0x9de6df,
+    actorIdentityUntinted: step4SpatialCheck.strikerIdentityTintLit === 0xffd485 && step4SpatialCheck.scoutIdentityTintLit === 0x9de6df,
+    actorBodyTinted: step4SpatialCheck.selfBodyArea1Tint !== 0xffffff && step4SpatialCheck.selfBodyArea1Tint !== step4SpatialCheck.selfBodyArea2Tint,
   };
 
   // 5c. Procedural commercial storefront kit adoption verification (41.2 step 5, #586 + #585):
@@ -2384,20 +2409,20 @@ try {
   </thead>
   <tbody>
     <tr>
-      <td>Contestant (<code>self</code>)</td>
-      <td><code>${step4SpatialSummary.selfArea1Lit}</code></td>
-      <td><code>${step4SpatialSummary.selfBoundaryLit}</code></td>
-      <td><code>${step4SpatialSummary.selfArea2Lit}</code></td>
-      <td><code>${step4SpatialSummary.selfUnlit}</code></td>
-      <td>Identity preserved (untinted per 29.4)</td>
+      <td>Contestant Body Material (<code>self</code> body)</td>
+      <td><code>${step4SpatialSummary.selfBodyArea1Lit}</code></td>
+      <td><code>${step4SpatialSummary.selfBodyBoundaryLit}</code></td>
+      <td><code>${step4SpatialSummary.selfBodyArea2Lit}</code></td>
+      <td><code>${step4SpatialSummary.selfBodyUnlit}</code></td>
+      <td>Modulated by virtual lighting (actorScale = 0.25, #736)</td>
     </tr>
     <tr>
-      <td>Gladiator (<code>striker</code> / <code>scout</code>)</td>
-      <td><code>${step4SpatialSummary.strikerArea1Lit}</code> (striker)</td>
-      <td>—</td>
-      <td><code>${step4SpatialSummary.scoutArea2Lit}</code> (scout)</td>
-      <td><code>${step4SpatialSummary.strikerArea1Unlit}</code> / <code>${step4SpatialSummary.scoutArea2Unlit}</code></td>
-      <td>Identity preserved (untinted per 29.4)</td>
+      <td>Actor Identity Layer (<code>self</code> / <code>striker</code> / <code>scout</code>)</td>
+      <td><code>${step4SpatialSummary.strikerIdentityLit}</code> (striker)</td>
+      <td><code>${step4SpatialSummary.selfIdentityLit}</code> (self)</td>
+      <td><code>${step4SpatialSummary.scoutIdentityLit}</code> (scout)</td>
+      <td><code>${step4SpatialSummary.strikerIdentityUnlit}</code> / <code>${step4SpatialSummary.scoutIdentityUnlit}</code></td>
+      <td>Identity preserved (untinted per 29.4 &amp; #736)</td>
     </tr>
     <tr>
       <td>Physics Prop (<code>prop</code>)</td>

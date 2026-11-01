@@ -14,6 +14,7 @@ import {
   resolveGroundAppearance,
   sampleSpatialLight,
   getCanonicalFields,
+  resolveActorTint,
   resolvePropAppearance,
   recordAppearanceOps,
 } from './appearance.js';
@@ -59,7 +60,12 @@ export function drawHookFlight(g, caster, flight) {
 export function makeArenaScene(api) {
   return class ArenaScene extends Phaser.Scene {
     constructor() { super('arena'); }
-    preload() { this.load.svg('contestant', '/assets/contestant.svg', { width: 80, height: 80 }); this.load.svg('gladiator', '/assets/warden.svg', { width: 100, height: 100 }); }
+    preload() {
+      this.load.svg('contestant', '/assets/contestant-body.svg', { width: 80, height: 80 });
+      this.load.svg('contestant-identity', '/assets/contestant-identity.svg', { width: 80, height: 80 });
+      this.load.svg('gladiator', '/assets/warden-body.svg', { width: 100, height: 100 });
+      this.load.svg('gladiator-identity', '/assets/warden-identity.svg', { width: 100, height: 100 });
+    }
     create() {
       this.ready = true; this.paletteId = api.palette?.() || DEFAULT_THEME; this.lighting = true; this.wear = true;
       this.colors = themeColors(this.paletteId); this.cameras.main.setBackgroundColor(css(this.colors.background));
@@ -629,13 +635,15 @@ export function makeArenaScene(api) {
       }
     }
     makeActor(p) {
-      const sprite = this.add.image(0, 0, p.role).setDisplaySize(p.role === 'gladiator' ? 65 : 43, p.role === 'gladiator' ? 65 : 43);
+      const size = p.role === 'gladiator' ? 65 : 43;
+      const sprite = this.add.image(0, 0, p.role).setDisplaySize(size, size);
+      const identity = this.add.image(0, 0, `${p.role}-identity`).setDisplaySize(size, size);
       const baseTint = actorBaseTint(p, api.playerId());
-      sprite.setTint(baseTint);
+      identity.setTint(baseTint);
       const ring = this.add.graphics(), bar = this.add.graphics(), geometry = this.add.graphics().setVisible(false);
       const name = this.add.text(0, -35, p.id === api.playerId() && !api.replay() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: LABEL_FONT_PX, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 8 }).setOrigin(0.5).setScale(this.nameScale);
-      const container = this.add.container(p.x, p.y, [ring, sprite, bar, name, geometry]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
-      const actor = { sprite, ring, bar, name, geometry, container, baseTint }; this.actors.set(p.id, actor); return actor;
+      const container = this.add.container(p.x, p.y, [ring, sprite, identity, bar, name, geometry]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
+      const actor = { sprite, identity, ring, bar, name, geometry, container, baseTint }; this.actors.set(p.id, actor); return actor;
     }
     /** The active player nearest a pointer, within a fixed screen distance of it, or null. */
     playerAt(pointer) {
@@ -1021,7 +1029,20 @@ export function makeArenaScene(api) {
         // this replaced converted every irregular arrival into a velocity spike besides.
         if (controlled && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
         else { actor.container.x = p.x; actor.container.y = p.y; }
-        actor.sprite.setRotation(controlled ? api.aim() : p.heading); actor.sprite.setAlpha(p.cloak ? 0.45 : 1);
+        const rot = controlled ? api.aim() : p.heading;
+        const alpha = p.cloak ? 0.45 : 1;
+        actor.sprite.setRotation(rot); actor.sprite.setAlpha(alpha);
+        actor.identity.setRotation(rot); actor.identity.setAlpha(alpha);
+        const baseTint = actorBaseTint(p, api.playerId());
+        if (actor.baseTint !== baseTint) { actor.baseTint = baseTint; actor.identity.setTint(baseTint); }
+        if (p.status === 'active' && shown) {
+          if (artOpts.lighting && canonicalFields.length > 0) {
+            const lightSample = sampleSpatialLight(canonicalFields, actor.container.x, actor.container.y, artOpts);
+            actor.sprite.setTint(resolveActorTint(0xffffff, lightSample, artOpts));
+          } else {
+            actor.sprite.setTint(0xffffff);
+          }
+        }
         // Markers hold their apparent size as the camera pulls back; names hold a fixed pixel height
         // rather than riding that scale, which would leave them unreadable at whole arena zoom.
         actor.container.setScale(this.marker); actor.name.setScale(this.nameScale);
