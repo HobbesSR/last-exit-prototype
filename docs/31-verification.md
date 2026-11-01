@@ -553,8 +553,9 @@ it. `npm run typecheck` is the separate, stronger pass.
 ## Content changes: one bump per batch
 
 Corey's rule (2026-11-01, #760), replacing the earlier integration-branch practice (#295). A
-**content change** is one that changes what the map chain generates: it moves the chain sweep
-(`map/tools/fixtures/chain-baseline.json`, 53) and needs a `REGION_TYPES_VERSION` bump. Each bump
+**content change** is one meant to change what the map chain generates by default, for any seed,
+parameter or branch, whether or not the chain sweep (`map/tools/fixtures/chain-baseline.json`, 53)
+covers the case it changes. It needs a `REGION_TYPES_VERSION` bump. Each bump
 and recapture makes saved maps and pinned ids stale, so content changes collect into batches that
 bump once. Content work happens on `main`, not on a standing branch.
 
@@ -580,10 +581,15 @@ no bump.
 nature: shared machinery, a builder's guarantee or a bug fix whose output change is
 unavoidable (#759 moved rubble and plant off frozen routes this way). Don't merge one on its own.
 - Prefer to fold it into the next adoption PR, as #765 did with #759.
-- If it needs its own review first, stack it: open it as a PR on a short-lived branch, and base
-  the adoption PR on that branch. Bring newer `main` into a stacked branch by merging it in,
-  not by rebasing, since the remote refuses force pushes. Corey merges the stack together.
-  Only the last PR in the stack bumps and recaptures, so `main` never has a failing sweep.
+- If it needs its own review first, stack it: open it as a review PR on a short-lived branch,
+  and base the adoption PR on that branch. Bring newer `main` into a stacked branch by merging
+  it in, not by rebasing, since the remote refuses force pushes. Only the adoption PR bumps and
+  recaptures, and the review PR is never merged on its own. To land the stack:
+  1. When the adoption PR is complete, retarget it to `main` (the agent in Forgejo, or Corey).
+     It then holds the whole stack: the review PR's commits, the bump and the recapture.
+  2. Its checks run against `main`; fix any failure there.
+  3. Corey merges the adoption PR, and closes the review PR, whose commits are now on `main`.
+  No commit that moves output without its bump reaches `main` on its own.
 - A bug fix that can't wait goes in alone with its own bump; say why in the PR.
 
 **4. A batch is one issue.** It lists each experiment or unavoidable change, its switch, its
@@ -591,9 +597,17 @@ measurement document and its status (measured, awaiting decision, adopted). The 
 with something for a batch opens it if none is open; later ones add to it. Agents propose what
 to adopt; Corey decides and says when to cut the batch.
 
-**Checking which kind of change you have:** run `sweep --check` (or the per-type replay, 53)
-before opening the PR. No drift means it is not a content change, whatever it touched. Drift in
-a change meant to preserve behaviour is a stop-and-escalate (53).
+**Checking which kind of change you have:** classify a change by what it is meant to do to the
+default output, not by the sweep alone. The sweep covers a fixed corpus of seeds and parameters
+(53), and the per-type replay only the briefs it caches, so a change to a seed, parameter or rare
+branch outside them can pass both and still change how saved maps regenerate.
+- A change meant to preserve behaviour, or an experiment switched off, needs a clean
+  `sweep --check` before its PR. That is evidence for the covered corpus, not proof for every map;
+  where a change could reach an uncovered case, add a focused test for that case too. The replay
+  is the inner loop; it doesn't replace the full sweep (53).
+- A change that alters default output anywhere is a content change, even if the sweep shows no
+  drift: it joins a batch (step 3).
+- Drift in a change meant to preserve behaviour is a stop-and-escalate (53).
 
 ## Coverage
 
