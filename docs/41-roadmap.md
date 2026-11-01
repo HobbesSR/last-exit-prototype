@@ -145,9 +145,10 @@ hypothesis are recorded in [17.2.11](17.2.11-navigation-structure-direction.md).
 Two open tasks now own the concrete gaps:
 
 - **#716:** audit all registered builders' edge policies, then deliver and measure
-  one two-family incidental cross-region obstacle capability. Start here; local
-  bypass rings may suppress behavior already permitted by 20.6. Preserve actual
-  access obligations rather than a walk around every piece or perimeter.
+  one two-family incidental cross-region obstacle capability. Outcome met as a
+  demonstration on 2026-10-31 (17.2.11): the PR #745 prototype evidence shows
+  joins happen and builder policy modulates them. Its content is not adopted,
+  and no frequency, scale or adoption gate remains.
 - **#717:** attribute geometry-empty outcomes, then deliver bounded useful
   fallback for two representative non-open families before viable themed fill
   becomes empty. Explicit open/zero-content intent and genuine no-fit cases stay
@@ -157,10 +158,8 @@ All registered types have their own strategies, including market; the original
 epic's placeholder claims are historical. There is no universal canvas moat,
 but several strategies impose additional rings, bay setbacks or boundary
 filters. Measure their effects instead of assuming they are all redundant.
-Prioritize #716; #717's reason inventory can accompany it, with overlapping
-builder edits sequenced explicitly. Acceptance needs fixed-panel ordinary
-traversal encounter denominators and visible misses, not only touching fixtures,
-piece counts or an invented detour-p90 target. No implementation is claimed here.
+With #716's demonstration met, #717 is the remaining task here. No
+implementation is claimed here.
 
 Existing owners are recalibrated rather than duplicated: #531 retains residual
 composition after primary success; #535 retains genuinely missing decomposition
