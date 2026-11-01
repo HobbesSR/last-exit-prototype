@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+const [control, frontage, repair, output] = process.argv.slice(2);
+if (!output) throw Error('Usage: source-audit.mjs CONTROL FRONTAGE LOCAL_REPAIR NEW_OUTPUT');
+const hash = b => createHash('sha256').update(b).digest('hex');
+const walk = (root, prefix) => fs.readdirSync(path.resolve(root, prefix), { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(root, `${prefix}/${e.name}`) : [`${prefix}/${e.name}`]);
+const roots = { control, frontage, repair };
+const files = [...new Set(Object.values(roots).flatMap(root => ['map', 'shared'].flatMap(dir => walk(root, dir))))].sort();
+const pins = Object.fromEntries(files.map(f => [f, Object.fromEntries(Object.entries(roots).map(([name, root]) => [name, fs.existsSync(path.resolve(root, f)) ? hash(fs.readFileSync(path.resolve(root, f))) : null]))]));
+const changed = Object.fromEntries(['frontage', 'repair'].map(name => [name, files.filter(f => pins[f][name] !== pins[f].control)]));
+const expected = { frontage: ['map/micro/strategies/depot.ts', 'map/micro/strategies/market.ts'], repair: ['map/micro/strategies/content-access.ts'] };
+for (const name of Object.keys(expected)) if (JSON.stringify(changed[name]) !== JSON.stringify(expected[name])) throw Error(`Unexpected ${name} source drift: ${changed[name]}`);
+fs.writeFileSync(output, JSON.stringify({ files: files.length, changed, pins }, null, 2) + '\n', { flag: 'wx' });
+console.log(JSON.stringify({ files: files.length, changed }));

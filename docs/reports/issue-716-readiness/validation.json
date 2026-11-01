@@ -1,0 +1,85 @@
+{
+  "panelManifestSha256": "85c428427f2047267cced63ba6484f8c1f398ef3621d0415b6802a052b91c46d",
+  "validatorSha256": "4a06c18f0036957590bdfd8f0b9356bde95feb190d8bab4f63797e0809e70970",
+  "maps": [
+    {
+      "seed": "size-12-1",
+      "inputSha256": "278a53196f33cbde2b2c9a2f7a6bfc91602fd8533eac413cb6b3bdbe3283cd0d",
+      "file": "size-12-1-validation.json.gz",
+      "sha256": "917063eb7b27b547af63a971ef098ab53e8c71a5e838ab0df6dc1528043a76bb",
+      "owners": 4
+    },
+    {
+      "seed": "size-12-2",
+      "inputSha256": "32b9dc3a8d1dd126c16215fd17f7982d9408ae1f9b233b31412b83261ff349e0",
+      "file": "size-12-2-validation.json.gz",
+      "sha256": "c62a144a970fd1df4351f979bebbf3f1eb731ade9a366bfa8c6cf5df04a00f78",
+      "owners": 4
+    },
+    {
+      "seed": "size-12-3",
+      "inputSha256": "a11eeb75364a28772fa4b4b0115e969481b2eb9202fd43cc29c54e62686915b4",
+      "file": "size-12-3-validation.json.gz",
+      "sha256": "26ccd14cd3dc10d7f03af3b2a0955230fcfab91af809cfdf3c89269d09434b8c",
+      "owners": 4
+    },
+    {
+      "seed": "size-24-1",
+      "inputSha256": "fb6872a1027c15600c157aa94c0a1b50e9dc6add5d066e597a6fb4cde600a61f",
+      "file": "size-24-1-validation.json.gz",
+      "sha256": "1a3e71ba97ba491107dbc7186ebdd54987529a30f6a64a214f872e9da31f9a77",
+      "owners": 15
+    },
+    {
+      "seed": "size-24-2",
+      "inputSha256": "aecbbe3a55f3522b82fc9fb1e93b628bd0dfe68f2f333f7bdfb7d687ec803eb8",
+      "file": "size-24-2-validation.json.gz",
+      "sha256": "43d6cb8cde8f9d59fcf46aeee77ab75aaddcda7d0639a0372f2c8fddb383c998",
+      "owners": 18
+    },
+    {
+      "seed": "size-24-3",
+      "inputSha256": "af17a8901ef88a716cd38c44be001e665564cec76933536660b84162c61f7f21",
+      "file": "size-24-3-validation.json.gz",
+      "sha256": "a4e16433db7fe939ffca77b03c57efb3e366e5b70503b3407bee396dd46782d9",
+      "owners": 13
+    },
+    {
+      "seed": "size-36-1",
+      "inputSha256": "fe2c193d0d55ad604f988e2d5e714a9bb42f25cb610c285ea5e2de261be97a37",
+      "file": "size-36-1-validation.json.gz",
+      "sha256": "53c6f86642e1399244382c1dadcaca385535fb66291d58a71c2d9a23e0b7846f",
+      "owners": 28
+    },
+    {
+      "seed": "size-36-2",
+      "inputSha256": "6db82d2a515d9a08eeff97bc9abc1a86960e0417fd8050ea0fe9e0d664bf4a7f",
+      "file": "size-36-2-validation.json.gz",
+      "sha256": "10b307a6ace56c8971025373983e3e3fb38f4add999f416fd49ae33039ecbffc",
+      "owners": 31
+    },
+    {
+      "seed": "size-36-3",
+      "inputSha256": "4279d74a9be7d0143f0c2e5b1cb4bee70c076067c6d7dd62b7e3d18e76caae6e",
+      "file": "size-36-3-validation.json.gz",
+      "sha256": "bf7210018fd9b656088ae9ca8eb55b030202ac3568ebe661309a16f7b7c8c3db",
+      "owners": 25
+    }
+  ],
+  "totals": {
+    "owners": 142,
+    "fillErrors": 0,
+    "portalFailures": 0,
+    "rebuildDrift": 0,
+    "loot": {
+      "contestant": {
+        "complete": 38831
+      },
+      "hunter": {
+        "complete": 32008,
+        "invalid-target": 6823
+      }
+    }
+  },
+  "complete": true
+}
