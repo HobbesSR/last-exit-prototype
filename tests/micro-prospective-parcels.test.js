@@ -69,6 +69,23 @@ test('interior terminals work without portals; an interior cut leaves state unch
   assert.deepEqual(snapshot(c), saved);
 });
 
+test('fill and access views are detached: a caller cannot change later reads', () => {
+  const c = ready(brief({ portals }));
+  for (const name of ['fill', 'access']) {
+    const view = c[name], before = structuredClone(view.cells), cells = before.length, box = { ...view.bounds }, inside = rect(40, 40, 8, 8);
+    assert.equal(view.contains(inside), true);
+    view.cells.length = 0;
+    assert.throws(() => { view.contains = () => false; });
+    assert.throws(() => { view.bounds.w = 0; });
+    assert.throws(() => { view.cells[0].x = -99; });
+    const again = c[name];
+    assert.deepEqual(again.cells, before, `${name} keeps its cells`);
+    assert.deepEqual(again.bounds, box);
+    assert.equal(again.contains(inside), true);
+    assert.equal(again.rectangles(1, 1).length, cells);
+  }
+});
+
 test('proposals are detached, stale or forged proposals fail, and IDs advance only on acceptance', () => {
   const c = ready(), p = c.probeClaim([rect(32,32,32,32)]);
   assert.equal(p.ok,true);

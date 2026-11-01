@@ -8,7 +8,7 @@ import { discoverCordWitness, type CordWitness } from './cord-witness.ts';
 import { capsule, createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
 import { hunterClearance } from './portals.ts';
 import { areaContains, parcelArea } from './parcel-area.ts';
-import type { RegionBrief } from './types.ts';
+import type { RegionBrief, RegionMask } from './types.ts';
 import type { PatchOffer, PreparedDelegation } from './delegation.ts';
 import type { ExecutionContext, ExecutionPolicyData } from './delegation-execute.ts';
 import { sameDelegationJSON } from './delegation-json.ts';
@@ -28,6 +28,16 @@ type Operation = { kind: 'assembly'; assembly: CanvasAssembly } | { kind: 'empty
 type Refusal = 'stale' | 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle' | 'populated' | 'handoff' | 'rejected' | 'partition';
 type Failed = { ok: false; reason: Refusal; counters?: ReturnType<typeof discoverCordWitness>['counters'] };
 type Proposed = { ok: true; proposal: ParcelProposal; counters: ReturnType<typeof discoverCordWitness>['counters'] } | Failed;
+
+/**
+ * A mask no caller can change: frozen, with frozen bounds and cells, and `cells` a fresh copy
+ * on each read. Its queries are the mask's own, which read state the caller never sees.
+ */
+function maskView(mask: RegionMask): RegionMask {
+  const cells = mask.cells.map(cell => Object.freeze({ ...cell }));
+  return Object.freeze({ get cells() { return [...cells]; }, cellSize: mask.cellSize, bounds: Object.freeze({ ...mask.bounds }),
+    has: mask.has, contains: mask.contains, rectangles: mask.rectangles });
+}
 
 /** Check expansion work before materializing roofs or replaying assemblies. */
 function assemblyWithinBudget(assembly: CanvasAssembly): boolean {
@@ -66,8 +76,9 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   let canvas = createBuilderCanvas(brief, fixed);
   if (fixed.some(s => !canvas.access.contains(s))) return { ok: false as const, reason: 'canvas' as const };
   let witness = initial.witness, routingBrief = brief;
-  // The brief only changes when a handoff is accepted, so its masks are kept until then.
-  let masks: { brief: RegionBrief; fill: ReturnType<typeof createFillMask>; access: ReturnType<typeof createAccessMask> } | undefined;
+  // The brief only changes when a handoff is accepted, so its masks are kept until then, as
+  // read-only views: a caller's edits to one must not reach later reads (20.10's isolation).
+  let masks: { brief: RegionBrief; fill: RegionMask; access: RegionMask } | undefined;
   // A witness's swept capsules, kept with the witness they belong to. `travelClear` is capsule
   // overlap, so blockers clear of every capsule leave each sweep, and so rediscovery, unchanged.
   let swept: { witness: CordWitness; capsules: { shape: Shape; box: ReturnType<typeof bounds> }[] } | undefined;
@@ -84,7 +95,8 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
         || !shapesOverlap(shape, c));
     });
   };
-  const masksOf = () => masks?.brief === brief ? masks : (masks = { brief, fill: createFillMask(brief), access: createAccessMask(brief) });
+  const masksOf = () => masks?.brief === brief ? masks
+    : (masks = { brief, fill: maskView(createFillMask(brief)), access: maskView(createAccessMask(brief)) });
   const fail = (reason: Refusal): Failed => ({ ok: false, reason });
   const lookup = (handle: ParcelHandle) => parcels.find(p => p.handle === handle);
   const replay = (ps: Parcel[], ops = operations, target = brief) => {
