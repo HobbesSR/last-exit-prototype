@@ -337,7 +337,7 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
     roofMarks.push(
       { kind: 'ellipse', layer: 'wear-scorch-halo', x: sx, y: sy, w: sw, h: sh, color: ash, alpha: 0.52 },
       { kind: 'ellipse', layer: 'wear-scorch-core', x: sx - 3, y: sy + 1, w: sw * 0.62, h: sh * 0.58, color: soot, alpha: 0.68 },
-      { kind: 'line', layer: 'wear-scorch-streak', x1: sx - sw * 0.35, y1: sy - sh * 0.15, x2: sx + sw * 0.32, y2: sy + sh * 0.2, width: 3, color: ember, alpha: 0.6 },
+      { op: 'line', kind: 'line', layer: 'wear-scorch-streak', x1: sx - sw * 0.35, y1: sy - sh * 0.15, x2: sx + sw * 0.32, y2: sy + sh * 0.2, width: 3, color: ember, alpha: 0.6 },
     );
     floorMarks.push({
       kind: 'ellipse',
@@ -363,8 +363,8 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
     roofMarks.push(
       { kind: 'ellipse', layer: 'wear-crater-halo', x: cx, y: cy, w: cw, h: ch, color: pulverized, alpha: 0.6 },
       { kind: 'ellipse', layer: 'wear-crater-core', x: cx - 2, y: cy + 1, w: Math.round(cw * 0.6), h: Math.round(ch * 0.58), color: craterCore, alpha: 0.88 },
-      { kind: 'line', layer: 'wear-crater-streak', x1: cx - Math.round(cw * 0.25), y1: cy - Math.round(ch * 0.25), x2: cx - Math.round(cw * 0.46), y2: cy - Math.round(ch * 0.42), width: 2, color: craterCore, alpha: 0.75 },
-      { kind: 'line', layer: 'wear-crater-streak', x1: cx + Math.round(cw * 0.22), y1: cy + Math.round(ch * 0.22), x2: cx + Math.round(cw * 0.45), y2: cy + Math.round(ch * 0.44), width: 2, color: craterCore, alpha: 0.75 },
+      { op: 'line', kind: 'line', layer: 'wear-crater-streak', x1: cx - Math.round(cw * 0.25), y1: cy - Math.round(ch * 0.25), x2: cx - Math.round(cw * 0.46), y2: cy - Math.round(ch * 0.42), width: 2, color: craterCore, alpha: 0.75 },
+      { op: 'line', kind: 'line', layer: 'wear-crater-streak', x1: cx + Math.round(cw * 0.22), y1: cy + Math.round(ch * 0.22), x2: cx + Math.round(cw * 0.45), y2: cy + Math.round(ch * 0.44), width: 2, color: craterCore, alpha: 0.75 },
     );
     floorMarks.push({
       kind: 'ellipse',
@@ -822,7 +822,7 @@ export function recordAppearanceOps(g, ops) {
     } else if (item.op === 'fillEllipse' || item.kind === 'ellipse') {
       g.fillStyle(item.color, item.alpha ?? 1);
       g.fillEllipse(item.x, item.y, item.w, item.h);
-    } else if (item.op === 'line') {
+    } else if (item.op === 'line' || item.kind === 'line') {
       g.lineStyle(item.width ?? 2, item.color, item.alpha ?? 1);
       g.lineBetween(item.x1, item.y1, item.x2, item.y2);
     }

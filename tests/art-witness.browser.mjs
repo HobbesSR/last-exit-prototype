@@ -17,6 +17,18 @@ import { INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM, playerZoom 
 const outDir = path.resolve('test-results/art-witness');
 await mkdir(outDir, { recursive: true });
 
+const toLuminance = hex => {
+  const r = ((hex >> 16) & 255) / 255;
+  const g = ((hex >> 8) & 255) / 255;
+  const b = (hex & 255) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+};
+const lumContrast = (h1, h2) => {
+  const l1 = toLuminance(h1) + 0.05;
+  const l2 = toLuminance(h2) + 0.05;
+  return Number((Math.max(l1, l2) / Math.min(l1, l2)).toFixed(2));
+};
+
 const VIEWPORT = { width: 1200, height: 800 };
 const PLAY_ZOOM = playerZoom(VIEWPORT.width, VIEWPORT.height); // 1.12
 const INDOOR_ZOOM = PLAY_ZOOM * INSIDE_ZOOM; // 1.288
@@ -1047,6 +1059,7 @@ try {
     roofImpactCrater: { x: 870, y: 690 },
     roofVegetation: { x: 990, y: 735 },
     windowSheen: { x: 846, y: 582 },
+    windowBaseGlass: { x: 860, y: 582 },
   };
 
   const sampleSliceMode = async ({ id, lighting, wear, selfPos, viewLabel }) => {
@@ -1203,8 +1216,23 @@ try {
   assert.ok(rgbDist(sliceFullInt.pixels.floorDrainStain, sliceNoWearInt.pixels.floorDrainStain) >= 20, 'interior floor neglect stain visibly changes when wear is toggled');
 
   // Specular reflection highlight on glazed window obstacle (11.1 §6, 29.4):
-  const windowFillPx = sliceFullExt.pixels.windowSheen;
-  assert.ok(windowFillPx > 0, 'window specular reflection sheen is rendered');
+  // When inside shop-room, roof is revealed (roofAlpha === 0), revealing shop-window:
+  const windowSheenInt = sliceFullInt.pixels.windowSheen;
+  const windowBaseGlassInt = sliceFullInt.pixels.windowBaseGlass;
+  assert.ok(rgbDist(windowSheenInt, windowBaseGlassInt) >= 15, 'window specular reflection sheen visibly separates from base glass fill');
+
+  // Grayscale value contrast assertions for cosmetic wear and scar marks (41.2):
+  const patchVsApronUnlit = lumContrast(sliceNoLightExt.pixels.asphaltPatch, sliceNoLightExt.pixels.slateApronClean);
+  const crackVsApronUnlit = lumContrast(sliceNoLightExt.pixels.pavementCrack, sliceNoLightExt.pixels.slateApronClean);
+  const vegVsApronUnlit = lumContrast(sliceNoLightExt.pixels.curbVegetation, sliceNoLightExt.pixels.slateApronClean);
+  const craterVsApronUnlit = lumContrast(sliceNoLightExt.pixels.impactCrater, sliceNoLightExt.pixels.slateApronClean);
+  const roofCraterVsRoof = lumContrast(sliceFullExt.pixels.roofImpactCrater, sliceFullExt.pixels.tealRoof);
+
+  assert.ok(patchVsApronUnlit >= 1.15, `patch repair separates from apron in luminance (unlit: ${patchVsApronUnlit})`);
+  assert.ok(crackVsApronUnlit >= 1.15, `pavement crack separates from apron in luminance (unlit: ${crackVsApronUnlit})`);
+  assert.ok(vegVsApronUnlit >= 1.15, `vegetation patch separates from apron in luminance (unlit: ${vegVsApronUnlit})`);
+  assert.ok(craterVsApronUnlit >= 1.15, `impact crater separates from apron in luminance (unlit: ${craterVsApronUnlit})`);
+  assert.ok(roofCraterVsRoof >= 1.5, `roof crater separates from roof paint in luminance (${roofCraterVsRoof})`);
 
   assert.equal(sliceFullExt.collisionDigest, sliceNoWearExt.collisionDigest, 'switching off wear keeps exact same obstacle and gate shapeOf collision geometry');
   assert.equal(sliceFullExt.visionDigest, sliceNoWearExt.visionDigest, 'switching off wear keeps exact same visibilityPolygon sight boundary');
@@ -1731,17 +1759,6 @@ try {
   });
 
   // Grayscale / luminance evaluation:
-  const toLuminance = hex => {
-    const r = ((hex >> 16) & 255) / 255;
-    const g = ((hex >> 8) & 255) / 255;
-    const b = (hex & 255) / 255;
-    return 0.299 * r + 0.587 * g + 0.114 * b;
-  };
-  const lumContrast = (h1, h2) => {
-    const l1 = toLuminance(h1) + 0.05;
-    const l2 = toLuminance(h2) + 0.05;
-    return Number((Math.max(l1, l2) / Math.min(l1, l2)).toFixed(2));
-  };
 
   const intactRoofLumRatio = lumContrast(storefrontDemo.intactRoofPx.hex, storefrontDemo.streetPx.hex);
   const damagedRoofLumRatio = lumContrast(storefrontDemo.damagedRoofPx.hex, storefrontDemo.streetPx.hex);

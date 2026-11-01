@@ -341,6 +341,7 @@ test('reusable cosmetic destruction and material vocabulary (#585): impact crate
   const bFull = resolveBuildingAppearance(building, null, { wear: true });
   assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-crater-halo'), 'roof includes crater halo');
   assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-crater-core'), 'roof includes crater core');
+  assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-crater-streak'), 'roof includes crater fracture streaks');
   assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-vegetation'), 'roof includes vegetation edge');
   assert.ok(bFull.floorMarks.some(m => m.layer === 'neglect-stain'), 'floor includes interior crater stain');
 

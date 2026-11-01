@@ -476,7 +476,7 @@ export interface BuildingNeglectAppearance {
   /** Center offset `(dx, dy)` in template-local world units relative to building origin (11.1 §3.3 kinetic damage). */
   impactCrater?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
   /** Center offset `(dx, dy)` in template-local world units relative to building origin (11.1 §5.1 edge weed encroachment). */
-  vegetationEdge?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined; along?: 'N' | 'S' | 'E' | 'W' | undefined } | undefined;
+  vegetationEdge?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
 }
 
 export interface BuildingAppearance {
@@ -551,7 +551,6 @@ export type WearMarkAppearance =
       kind: 'vegetation-patch';
       bounds: Box;
       color?: string | number | undefined;
-      along?: 'N' | 'S' | 'E' | 'W' | undefined;
     };
 
 export type ScarMarkAppearance =
