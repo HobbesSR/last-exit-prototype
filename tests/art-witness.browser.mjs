@@ -11,9 +11,6 @@ import { MATERIAL_SWATCH } from '../public/appearance.js';
 import { MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
 import { COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
 import { PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
-import { LANDMARK_GAS_STATION, GAS_STATION_APPEARANCE } from '../map/micro/placeables/landmark-gas-station.ts';
-import { LANDMARK_COLLAPSED_PARKING, COLLAPSED_PARKING_APPEARANCE } from '../map/micro/placeables/landmark-collapsed-parking.ts';
-import { LANDMARK_RUINED_RESTAURANT, RUINED_RESTAURANT_APPEARANCE } from '../map/micro/placeables/landmark-ruined-restaurant.ts';
 
 import { INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM, playerZoom } from '../shared/view.ts';
 
@@ -1798,7 +1795,7 @@ try {
   };
 
 
-  // 5b. Visual Screening & Grayscale Survival for Expanded Architectural Kits (Market, Compound, Plant, Landmarks):
+  // 5b. Visual Screening & Grayscale Survival for Expanded Architectural Kits (Market, Compound, Plant):
   const stallCells = [
     { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
     { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 },
@@ -1818,10 +1815,6 @@ try {
       { id: 'exp-compound-room', x: 160, y: 240, w: 160, h: 120, appearance: COMPOUND_RESIDENTIAL_INTACT },
       // Plant shed
       { id: 'exp-plant-shed', x: 360, y: 240, w: 160, h: 120, appearance: PLANT_SHED_APPEARANCE },
-      // Gas station kiosk
-      { id: 'exp-gas-station', x: 560, y: 240, w: 160, h: 120, appearance: GAS_STATION_APPEARANCE },
-      // Ruined restaurant
-      { id: 'exp-restaurant', x: 760, y: 240, w: 160, h: 120, appearance: RUINED_RESTAURANT_APPEARANCE },
     ],
     roofs: [
       // Market stall awnings
@@ -1832,10 +1825,6 @@ try {
       { id: 'exp-compound-roof', groupId: 'comp-1', bounds: { x: 160, y: 240, w: 160, h: 120 }, origin: { x: 160, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-compound-room', appearance: COMPOUND_RESIDENTIAL_INTACT },
       // Plant shed roof
       { id: 'exp-plant-roof', groupId: 'plant-1', bounds: { x: 360, y: 240, w: 160, h: 120 }, origin: { x: 360, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-plant-shed', appearance: PLANT_SHED_APPEARANCE },
-      // Gas station canopy roof
-      { id: 'exp-gas-roof', groupId: 'gas-1', bounds: { x: 560, y: 240, w: 160, h: 120 }, origin: { x: 560, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-gas-station', appearance: GAS_STATION_APPEARANCE },
-      // Restaurant roof
-      { id: 'exp-restaurant-roof', groupId: 'rest-1', bounds: { x: 760, y: 240, w: 160, h: 120 }, origin: { x: 760, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-restaurant', appearance: RUINED_RESTAURANT_APPEARANCE },
     ],
     obstacles: [
       // Compound perimeter walls
@@ -1886,8 +1875,8 @@ try {
       directed: true,
       fog: true,
       followId: 'self',
-      camera: { x: 540, y: 290, zoom: 1.0 },
-      selfPos: { x: 540, y: 480 },
+      camera: { x: 360, y: 290, zoom: 1.0 },
+      selfPos: { x: 360, y: 480 },
       roofSteps: 40,
     });
 
@@ -1896,9 +1885,7 @@ try {
     const stallDamagedPx = f.pixelAtWorld(660, 140);
     const compoundRoofPx = f.pixelAtWorld(240, 300);
     const plantRoofPx = f.pixelAtWorld(440, 300);
-    const gasRoofPx = f.pixelAtWorld(640, 300);
-    const restRoofPx = f.pixelAtWorld(840, 300);
-    const streetRefPx = f.pixelAtWorld(540, 480);
+    const streetRefPx = f.pixelAtWorld(360, 480);
 
     const compRoofAlphaClosed = s.roofs.get('exp-compound-roof')?.alpha ?? 0;
 
@@ -1929,8 +1916,6 @@ try {
       stallDamagedPx,
       compoundRoofPx,
       plantRoofPx,
-      gasRoofPx,
-      restRoofPx,
       streetRefPx,
       compRoofAlphaClosed,
       compRoofAlphaInside,
@@ -1946,18 +1931,15 @@ try {
   const streetLum = toLuminance(expandedKitsDemo.streetRefPx.hex);
   const stallIntactLum = toLuminance(expandedKitsDemo.stallIntactPx.hex);
   const compRoofLum = toLuminance(expandedKitsDemo.compoundRoofPx.hex);
-  const gasRoofLum = toLuminance(expandedKitsDemo.gasRoofPx.hex);
-  const restRoofLum = toLuminance(expandedKitsDemo.restRoofPx.hex);
+  const plantRoofLum = toLuminance(expandedKitsDemo.plantRoofPx.hex);
 
   const stallIntactRatio = Number((Math.max(stallIntactLum, streetLum) / Math.min(stallIntactLum, streetLum)).toFixed(2));
   const compRoofRatio = Number((Math.max(compRoofLum, streetLum) / Math.min(compRoofLum, streetLum)).toFixed(2));
-  const gasRoofRatio = Number((Math.max(gasRoofLum, streetLum) / Math.min(gasRoofLum, streetLum)).toFixed(2));
-  const restRoofRatio = Number((Math.max(restRoofLum, streetLum) / Math.min(restRoofLum, streetLum)).toFixed(2));
+  const plantRoofRatio = Number((Math.max(plantRoofLum, streetLum) / Math.min(plantRoofLum, streetLum)).toFixed(2));
 
   assert.ok(stallIntactRatio >= 1.15, `market intact awning survives grayscale contrast vs street (${stallIntactRatio})`);
   assert.ok(compRoofRatio >= 1.15, `compound roof survives grayscale contrast vs street (${compRoofRatio})`);
-  assert.ok(gasRoofRatio >= 1.15, `gas station roof survives grayscale contrast vs street (${gasRoofRatio})`);
-  assert.ok(restRoofRatio >= 1.15, `restaurant roof survives grayscale contrast vs street (${restRoofRatio})`);
+  assert.ok(plantRoofRatio >= 1.15, `plant roof survives grayscale contrast vs street (${plantRoofRatio})`);
 
   // 3. Compound roof reveals when player enters:
   assert.equal(expandedKitsDemo.compRoofAlphaClosed, 1, 'compound roof is closed when player is outside');
@@ -1969,12 +1951,9 @@ try {
     stallDamagedHex: css(expandedKitsDemo.stallDamagedPx.hex),
     compoundRoofHex: css(expandedKitsDemo.compoundRoofPx.hex),
     plantRoofHex: css(expandedKitsDemo.plantRoofPx.hex),
-    gasRoofHex: css(expandedKitsDemo.gasRoofPx.hex),
-    restRoofHex: css(expandedKitsDemo.restRoofPx.hex),
     stallIntactRatio,
     compRoofRatio,
-    gasRoofRatio,
-    restRoofRatio,
+    plantRoofRatio,
     compRoofAlphaClosed: expandedKitsDemo.compRoofAlphaClosed,
     compRoofAlphaInside: expandedKitsDemo.compRoofAlphaInside,
   };

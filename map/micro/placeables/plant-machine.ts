@@ -7,7 +7,7 @@ import type { Placeable } from './placeable.ts';
  */
 
 const INSET = 0.05, CHAMFER = 0.5;
-export interface PlantMachineParams { w: number; h: number; chamfered: boolean; kind?: 'machinery' | 'cooling-tower' | 'substation' | undefined; appearance?: ObstacleAppearance | undefined; }
+export interface PlantMachineParams { w: number; h: number; chamfered: boolean; appearance?: ObstacleAppearance | undefined; }
 
 export const PLANT_MACHINE = Object.freeze<Placeable<PlantMachineParams>>({
   id: 'plant-machine', version: 'plant-machine-1', summary: 'A solid or chamfered industrial machine.',

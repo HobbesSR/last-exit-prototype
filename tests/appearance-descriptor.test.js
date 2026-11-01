@@ -11,9 +11,6 @@ import { buildBlock } from '../map/micro/strategies/block.ts';
 import { buildMarket, MARKET_STALL_PRESETS, MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
 import { buildCompound, COMPOUND_RESIDENTIAL_PRESETS, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
 import { buildPlant, PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
-import { LANDMARK_GAS_STATION, GAS_STATION_APPEARANCE } from '../map/micro/placeables/landmark-gas-station.ts';
-import { LANDMARK_COLLAPSED_PARKING, COLLAPSED_PARKING_APPEARANCE } from '../map/micro/placeables/landmark-collapsed-parking.ts';
-import { LANDMARK_RUINED_RESTAURANT, RUINED_RESTAURANT_APPEARANCE } from '../map/micro/placeables/landmark-ruined-restaurant.ts';
 
 import { chainBrief } from './helpers/chain-briefs.js';
 import { cellsOf } from './helpers/cells.js';
@@ -580,7 +577,7 @@ test('presentation boundary invariant: shared, server, and map never import publ
   }
 });
 
-test('market region strategy adopts fabric awnings across decay tiers, plaza pavers, and civic entry', () => {
+test('market region strategy adopts fabric awnings across decay tiers', () => {
   const allowedKeys = new Set(['floorMaterial', 'wallMaterial', 'roofPaint', 'roofRim', 'interiorTrim', 'roofSign', 'neglect']);
   for (const preset of MARKET_STALL_PRESETS) {
     for (const k of Object.keys(preset)) {
@@ -602,10 +599,6 @@ test('market region strategy adopts fabric awnings across decay tiers, plaza pav
   const stallsWithApp = region.elements.filter(e => e.template.roofs?.some(r => r.appearance));
   assert.ok(stallsWithApp.length > 0, 'market stalls have appearance on their awning roofs');
 
-  // Plaza pavers and entry marks
-  const firstElem = region.elements[0];
-  assert.ok(firstElem.template.appearance?.surfaces?.some(s => s.material === 'slatePaving'), 'plaza pavers surface emitted');
-  assert.ok(firstElem.template.appearance?.commercial?.some(c => c.kind === 'sign-panel'), 'civic market entry sign emitted');
 
   // Stamping into context resolves cleanly
   const ctx = createGenerationContext(24680);
@@ -617,7 +610,6 @@ test('market region strategy adopts fabric awnings across decay tiers, plaza pav
     const resolved = resolveBuildingAppearance({ id: roof.id, ...roof.bounds, appearance: roof.appearance }, ctx.map.appearance, { palette: 'signature' });
     assert.ok(resolved.roofFill > 0, 'market stall awning resolves non-zero roof fill');
   }
-  assert.ok(ctx.map.appearance?.surfaces?.some(s => s.material === 'slatePaving'), 'market plaza pavers attached to map appearance');
 });
 
 test('compound region strategy adopts residential/office block appearance and courtyard paving', () => {
@@ -658,9 +650,6 @@ test('plant region strategy adopts industrial shed appearance, cooling towers, a
   const region = buildPlant(brief);
   assert.ok(region.elements.length > 0, 'plant produces machines and shed');
 
-  // Plant ground surface
-  const firstElem = region.elements[0];
-  assert.ok(firstElem.template.appearance?.surfaces?.some(s => s.id?.includes('plant-ground')), 'plant ground surface emitted');
 
   // Machinery with obstacle appearances
   const machines = region.elements.filter(e => e.label.startsWith('plant-machine'));
@@ -678,58 +667,5 @@ test('plant region strategy adopts industrial shed appearance, cooling towers, a
   for (const o of styledObstacles) {
     const res = resolveObstacleAppearance(o, ctx.map.appearance, { palette: 'signature' });
     assert.ok(res.fill > 0, 'machine obstacle resolves non-zero fill');
-  }
-});
-
-test('landmark silhouettes (gas station, collapsed parking, ruined restaurant) provide distinctive footprints and silhouettes (11.1 §8)', () => {
-  const size = 40;
-
-  // 1. Roadside gas station landmark
-  const gasStation = LANDMARK_GAS_STATION.build({ w: 8, h: 6 }, size);
-  assert.ok(!('refused' in gasStation), 'gas station builds cleanly');
-  assert.equal(gasStation.elements.length, 1);
-  const gsElem = gasStation.elements[0];
-  assert.equal(gsElem.template.encloses, true, 'gas station encloses a building');
-  assert.equal(gsElem.template.roofs?.length, 2, 'gas station has kiosk roof and extended fuel canopy roof');
-  assert.ok(gsElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'window'), 'kiosk has storefront window');
-  assert.ok(gsElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'container' && p.appearance), 'pump islands have obstacle appearance');
-  assert.ok(gsElem.template.appearance?.commercial?.some(c => c.kind === 'parking-stripes'), 'gas station has fuel bay pump stripes');
-
-  // 2. Collapsed parking structure landmark
-  const collapsedParking = LANDMARK_COLLAPSED_PARKING.build({ w: 8, h: 8 }, size);
-  assert.ok(!('refused' in collapsedParking), 'collapsed parking builds cleanly');
-  assert.equal(collapsedParking.elements.length, 1);
-  const cpElem = collapsedParking.elements[0];
-  assert.equal(cpElem.template.encloses, true);
-  // Collapsed central void: total 8x8 = 64 cells minus central 4x4 void = 48 cells
-  const roof = cpElem.template.roofs?.[0];
-  assert.ok(roof, 'parking deck roof exists');
-  assert.equal(roof.cells.length, 48, 'collapsed parking structure roof leaves 16-cell central void');
-  assert.ok(cpElem.template.appearance?.scars?.some(s => s.kind === 'scorch-group'), 'collapsed roof void carries scorch marks');
-
-  // 3. Ruined restaurant diner landmark
-  const ruinedDiner = LANDMARK_RUINED_RESTAURANT.build({ w: 8, h: 5 }, size);
-  assert.ok(!('refused' in ruinedDiner), 'ruined restaurant builds cleanly');
-  assert.equal(ruinedDiner.elements.length, 1);
-  const rdElem = ruinedDiner.elements[0];
-  assert.equal(rdElem.template.encloses, true);
-  assert.ok(rdElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'window'), 'diner dining room has window');
-  assert.ok(rdElem.template.parts.some(p => p.part === 'obstacle' && p.kind === 'crate'), 'diner has service counter obstacle');
-  assert.ok(rdElem.template.appearance?.surfaces?.some(s => s.material === 'slatePaving'), 'diner has drive-thru service apron');
-  assert.ok(rdElem.template.appearance?.commercial?.some(c => c.kind === 'awning'), 'diner has commercial fabric awning');
-  assert.ok(rdElem.template.appearance?.wear?.some(w => w.kind === 'drain-stain'), 'diner has drain wear mark');
-
-  // Stamp all 3 landmarks into context and verify presentation resolution
-  const ctx = createGenerationContext(57913);
-  placeElement(ctx, gsElem.template, 100, 100, { nodeId: 'gs' });
-  placeElement(ctx, cpElem.template, 600, 100, { nodeId: 'cp' });
-  placeElement(ctx, rdElem.template, 1100, 100, { nodeId: 'rd' });
-
-  assert.equal(ctx.map.buildings.length, 3, 'all 3 landmarks register buildings');
-  for (const b of ctx.map.buildings) {
-    const res = resolveBuildingAppearance(b, ctx.map.appearance, { palette: 'signature', wear: true });
-    assert.ok(res.floorFill > 0);
-    assert.ok(res.roofFill > 0);
-    assert.ok(res.roofMarks.length > 0, 'landmark buildings resolve roof commercial markings/signs');
   }
 });

@@ -15,9 +15,6 @@ import { PARK_HEDGE_POCKET } from './park-hedge-pocket.ts';
 import { PLANT_MACHINE } from './plant-machine.ts';
 import { PLANT_PIPE_RUN } from './plant-pipe-run.ts';
 import { MARKET_STALL } from './market-stall.ts';
-import { LANDMARK_GAS_STATION } from './landmark-gas-station.ts';
-import { LANDMARK_COLLAPSED_PARKING } from './landmark-collapsed-parking.ts';
-import { LANDMARK_RUINED_RESTAURANT } from './landmark-ruined-restaurant.ts';
 import { placeableErrors } from './placeable.ts';
 import type { Placeable, Placed, Refusal } from './placeable.ts';
 
@@ -44,14 +41,8 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [PLANT_MACHINE.id]: PLANT_MACHINE,
   [PLANT_PIPE_RUN.id]: PLANT_PIPE_RUN,
   [MARKET_STALL.id]: MARKET_STALL,
-  [LANDMARK_GAS_STATION.id]: LANDMARK_GAS_STATION,
-  [LANDMARK_COLLAPSED_PARKING.id]: LANDMARK_COLLAPSED_PARKING,
-  [LANDMARK_RUINED_RESTAURANT.id]: LANDMARK_RUINED_RESTAURANT,
 });
 
-export { LANDMARK_GAS_STATION } from './landmark-gas-station.ts';
-export { LANDMARK_COLLAPSED_PARKING } from './landmark-collapsed-parking.ts';
-export { LANDMARK_RUINED_RESTAURANT } from './landmark-ruined-restaurant.ts';
 
 /**
  * Build a placeable by id from unchecked parameters, as a tool or agent would. Strategies call

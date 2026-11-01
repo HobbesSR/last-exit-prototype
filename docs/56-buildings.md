@@ -432,13 +432,5 @@ without changing authoritative geometry, navigation, or simulation RNG:
   (`coolConcrete`), and drainage/scorch marks.
 - **Heavy industrial plant kit (`plant` and `PLANT_MACHINE`):** industrial sheds
   (`PLANT_SHED_APPEARANCE` with slate shadow roof, metal walls, and sodium amber focal rims),
-  cooling towers (`coolConcrete` with `sodiumAmber` focal rim), generator substations
-  (`oxidizedMetal` with `electricTurquoise` focal rim), and heavy industrial night asphalt ground.
-- **Landmark silhouettes (11.1 §8):**
-  - **Damaged roadside gas station (`LANDMARK_GAS_STATION`):** distinctive mini-mart kiosk,
-    extended fuel canopy, and pump islands with motel turquoise roof, electric turquoise rim and signage,
-    and sodium amber pump highlights.
-  - **Collapsed parking structure (`LANDMARK_COLLAPSED_PARKING`):** multi-bay parking deck,
-    fractured ramp section, structural pillars, cool concrete deck, and awnings yellow striping.
-  - **Ruined roadside restaurant (`LANDMARK_RUINED_RESTAURANT`):** front dining hall, rear kitchen,
-    prominent roadside sign, old sign red roof with dirty cream stripe, and competition blast scorches.
+  cooling towers (`coolConcrete` with `sodiumAmber` focal rim), and generator substations
+  (`oxidizedMetal` with `electricTurquoise` focal rim).

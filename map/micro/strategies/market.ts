@@ -8,6 +8,7 @@ import { draw, rng } from '../random.ts';
 import { builtRegion } from '../result.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import type { BuildingAppearance } from '../../../shared/types.ts';
+import { createTieredBuildingAppearance } from '../building/decay.ts';
 import { cellLoot, protectedRoutes, unfilledRegion } from './scatter.ts';
 
 const AISLE = CELL_SCALE.doorway;
@@ -52,7 +53,7 @@ export const MARKET_STALL_DAMAGED: BuildingAppearance = Object.freeze({
   },
 });
 
-export const MARKET_STALL_PRESETS: readonly BuildingAppearance[] = Object.freeze([
+export const MARKET_STALL_PRESETS: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance] = Object.freeze([
   MARKET_STALL_INTACT,
   MARKET_STALL_WEATHERED,
   MARKET_STALL_DAMAGED,
@@ -70,64 +71,20 @@ export interface MarketStallAppearanceOptions {
  * competition-damaged visual decay tiers (11.1 §5.5, 41.2 Step 5).
  */
 export function createMarketStallAppearance(options: MarketStallAppearanceOptions = {}): BuildingAppearance {
-  const roll = options.roll ?? (options.seed !== undefined ? rng(options.seed, 'stall-tier').next() : 0);
-  const tier = roll < 0.4 ? 'intact' : roll < 0.75 ? 'weathered' : 'damaged';
-  const base = tier === 'intact'
-    ? MARKET_STALL_INTACT
-    : tier === 'weathered'
-      ? MARKET_STALL_WEATHERED
-      : MARKET_STALL_DAMAGED;
-
-  if (tier === 'intact') {
-    return {
-      floorMaterial: base.floorMaterial,
-      wallMaterial: base.wallMaterial,
-      roofPaint: base.roofPaint,
-      roofRim: base.roofRim,
-      interiorTrim: base.interiorTrim,
-    };
-  }
-
-  const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), 'stall-wear');
-  if (tier === 'weathered') {
-    return {
-      floorMaterial: base.floorMaterial,
-      wallMaterial: base.wallMaterial,
-      roofPaint: base.roofPaint,
-      roofRim: base.roofRim,
-      interiorTrim: base.interiorTrim,
-      neglect: {
-        roofDrainStain: {
-          dx: Math.round(14 + subRng.next() * 12),
-          dy: Math.round(8 + subRng.next() * 8),
-          w: Math.round(20 + subRng.next() * 8),
-          h: Math.round(12 + subRng.next() * 6),
-        },
-      },
-    };
-  }
-
-  return {
-    floorMaterial: base.floorMaterial,
-    wallMaterial: base.wallMaterial,
-    roofPaint: base.roofPaint,
-    roofRim: base.roofRim,
-    interiorTrim: base.interiorTrim,
-    neglect: {
-      roofDrainStain: {
-        dx: Math.round(14 + subRng.next() * 12),
-        dy: Math.round(8 + subRng.next() * 8),
-        w: Math.round(22 + subRng.next() * 8),
-        h: Math.round(12 + subRng.next() * 6),
-      },
-      scorchMark: {
-        dx: Math.round(18 + subRng.next() * 14),
-        dy: Math.round(10 + subRng.next() * 8),
-        w: Math.round(26 + subRng.next() * 10),
-        h: Math.round(16 + subRng.next() * 8),
-      },
-    },
-  };
+  const alongX = options.alongX ?? true;
+  const length = options.length ?? 2;
+  const bw = (alongX ? length : 2) * 40;
+  const bh = (alongX ? 2 : length) * 40;
+  return createTieredBuildingAppearance({
+    seed: options.seed,
+    roll: options.roll,
+    w: bw,
+    h: bh,
+  }, {
+    presets: MARKET_STALL_PRESETS,
+    thresholds: [0.4, 0.75],
+    channelPrefix: 'stall',
+  });
 }
 
 /** Market rows cover the whole mask, leaving two-cell lanes and periodic wider cross-lanes. */
@@ -171,35 +128,6 @@ export function buildMarket(brief: RegionBrief): BuiltRegion {
   }
   if (!stalls) return unfilledRegion(brief, CHANNEL.loot);
   const elements = [...canvas.elements];
-
-  // Civic market entries and plaza pavers (11.1 §5.5, 41.2 Step 5):
-  const first = elements[0];
-  if (first) {
-    const entryW = Math.max(36, Math.min(100, bounds.w * 0.4));
-    const entryH = 20;
-    const entryX = bounds.x + Math.round((bounds.w - entryW) / 2);
-    const entryY = bounds.y + 8;
-    first.template.appearance = {
-      ...first.template.appearance,
-      surfaces: [
-        {
-          id: `${brief.id}:plaza-pavers`,
-          bounds: { x: bounds.x - first.x, y: bounds.y - first.y, w: bounds.w, h: bounds.h },
-          material: 'slatePaving',
-          weathered: true,
-          segmentSpan: 160,
-        },
-      ],
-      commercial: [
-        {
-          id: `${brief.id}:market-entry`,
-          kind: 'sign-panel',
-          bounds: { x: entryX - first.x, y: entryY - first.y, w: entryW, h: entryH },
-          color: 'storefrontTeal',
-        },
-      ],
-    };
-  }
 
   const loot = cellLoot(brief, createRegionMask(brief), elements.flatMap(e => elementShapes(e, true)), CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { stalls, awnings: roofed ? stalls : 0 });

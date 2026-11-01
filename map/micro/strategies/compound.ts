@@ -3,6 +3,7 @@ import { largestRectangle } from './hall.ts';
 import { cellLoot } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import type { BuildingAppearance } from '../../../shared/types.ts';
+import { createTieredBuildingAppearance } from '../building/decay.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { portalStands } from '../portals.ts';
@@ -109,7 +110,7 @@ export const COMPOUND_RESIDENTIAL_DAMAGED: BuildingAppearance = Object.freeze({
   },
 });
 
-export const COMPOUND_RESIDENTIAL_PRESETS: readonly BuildingAppearance[] = Object.freeze([
+export const COMPOUND_RESIDENTIAL_PRESETS: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance] = Object.freeze([
   COMPOUND_RESIDENTIAL_INTACT,
   COMPOUND_RESIDENTIAL_WEATHERED,
   COMPOUND_RESIDENTIAL_DAMAGED,
@@ -123,87 +124,12 @@ export interface CompoundAppearanceOptions {
 }
 
 export function createCompoundAppearance(options: CompoundAppearanceOptions = {}): BuildingAppearance {
-  const roll = options.roll ?? (options.seed !== undefined ? rng(options.seed, 'compound-tier').next() : 0);
-  const tier = roll < 0.35 ? 'intact' : roll < 0.7 ? 'weathered' : 'damaged';
-  const base = tier === 'intact'
-    ? COMPOUND_RESIDENTIAL_INTACT
-    : tier === 'weathered'
-      ? COMPOUND_RESIDENTIAL_WEATHERED
-      : COMPOUND_RESIDENTIAL_DAMAGED;
-
-  if (tier === 'intact') {
-    return {
-      floorMaterial: base.floorMaterial,
-      wallMaterial: base.wallMaterial,
-      roofPaint: base.roofPaint,
-      roofRim: base.roofRim,
-      interiorTrim: base.interiorTrim,
-      roofSign: base.roofSign ? { ...base.roofSign } : undefined,
-    };
-  }
-
-  const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), 'compound-wear');
-  if (tier === 'weathered') {
-    return {
-      floorMaterial: base.floorMaterial,
-      wallMaterial: base.wallMaterial,
-      roofPaint: base.roofPaint,
-      roofRim: base.roofRim,
-      interiorTrim: base.interiorTrim,
-      roofSign: base.roofSign ? { ...base.roofSign } : undefined,
-      neglect: {
-        fadedPanel: {
-          dx: Math.round(20 + subRng.next() * 16),
-          dy: Math.round(28 + subRng.next() * 16),
-          w: Math.round(48 + subRng.next() * 16),
-          h: Math.round(20 + subRng.next() * 8),
-        },
-        roofDrainStain: {
-          dx: Math.round(80 + subRng.next() * 24),
-          dy: Math.round(20 + subRng.next() * 12),
-          w: Math.round(28 + subRng.next() * 8),
-          h: Math.round(18 + subRng.next() * 6),
-        },
-      },
-    };
-  }
-
-  return {
-    floorMaterial: base.floorMaterial,
-    wallMaterial: base.wallMaterial,
-    roofPaint: base.roofPaint,
-    roofRim: base.roofRim,
-    interiorTrim: base.interiorTrim,
-    roofSign: base.roofSign ? { ...base.roofSign } : undefined,
-    neglect: {
-      fadedPanel: {
-        dx: Math.round(18 + subRng.next() * 14),
-        dy: Math.round(24 + subRng.next() * 14),
-        w: Math.round(44 + subRng.next() * 12),
-        h: Math.round(18 + subRng.next() * 8),
-      },
-      roofDrainStain: {
-        dx: Math.round(95 + subRng.next() * 24),
-        dy: Math.round(20 + subRng.next() * 12),
-        w: Math.round(28 + subRng.next() * 8),
-        h: Math.round(18 + subRng.next() * 6),
-      },
-      floorStain: {
-        dx: Math.round(50 + subRng.next() * 20),
-        dy: Math.round(35 + subRng.next() * 15),
-        w: Math.round(32 + subRng.next() * 10),
-        h: Math.round(22 + subRng.next() * 6),
-      },
-      scorchMark: {
-        dx: Math.round(40 + subRng.next() * 18),
-        dy: Math.round(45 + subRng.next() * 16),
-        w: Math.round(46 + subRng.next() * 12),
-        h: Math.round(28 + subRng.next() * 8),
-      },
-    },
-  };
+  return createTieredBuildingAppearance(options, {
+    presets: COMPOUND_RESIDENTIAL_PRESETS,
+    thresholds: [0.35, 0.7],
+    channelPrefix: 'compound',
+  });
 }
-
 
 /** A box in the compound's own cells. */
 interface Box { x: number; y: number; w: number; h: number }

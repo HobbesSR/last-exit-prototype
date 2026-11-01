@@ -11,7 +11,6 @@ export interface MarketStallParams {
   flipped: boolean;
   roofed: boolean;
   appearance?: BuildingAppearance | undefined;
-  counterMaterial?: string | undefined;
 }
 
 export const MARKET_STALL = Object.freeze<Placeable<MarketStallParams>>({
@@ -28,13 +27,13 @@ export const MARKET_STALL = Object.freeze<Placeable<MarketStallParams>>({
     { length: 4, alongX: true, flipped: false, roofed: true },
     { length: 2, alongX: false, flipped: true, roofed: false },
   ],
-  build({ length, alongX, flipped, roofed, appearance, counterMaterial }: MarketStallParams, cellSize: number) {
+  build({ length, alongX, flipped, roofed, appearance }: MarketStallParams, cellSize: number) {
     const box = oriented(cellSize, alongX), w = alongX ? length : 2, h = alongX ? 2 : length;
     const cells = Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
     return {
       elements: [{ x: 0, y: 0, template: {
         w: w * cellSize, h: h * cellSize,
-        parts: [{ part: 'obstacle', kind: 'crate', shape: box(0.1, flipped ? 1.1 : 0.1, length - 0.2, 0.8), ...(counterMaterial || appearance?.wallMaterial ? { appearance: { material: counterMaterial ?? appearance?.wallMaterial } } : {}) }],
+        parts: [{ part: 'obstacle', kind: 'crate', shape: box(0.1, flipped ? 1.1 : 0.1, length - 0.2, 0.8), ...(appearance?.wallMaterial ? { appearance: { material: appearance.wallMaterial } } : {}) }],
         ...(roofed ? { roofs: [{ id: 'awning', cellSize, cells, overhang: 0, ...(appearance ? { appearance } : {}) }] } : {}),
         ...(appearance ? { appearance: { building: appearance } } : {}),
       } }],

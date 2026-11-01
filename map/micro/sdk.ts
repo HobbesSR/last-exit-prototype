@@ -58,10 +58,6 @@ export {
   createCompoundAppearance,
 } from './strategies/compound.ts';
 export { PLANT_SHED_APPEARANCE } from './strategies/plant.ts';
-export { GAS_STATION_APPEARANCE, LANDMARK_GAS_STATION } from './placeables/landmark-gas-station.ts';
-export { COLLAPSED_PARKING_APPEARANCE, LANDMARK_COLLAPSED_PARKING } from './placeables/landmark-collapsed-parking.ts';
-export { RUINED_RESTAURANT_APPEARANCE, LANDMARK_RUINED_RESTAURANT } from './placeables/landmark-ruined-restaurant.ts';
-
 
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
 

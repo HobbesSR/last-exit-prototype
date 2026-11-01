@@ -64,7 +64,6 @@ export const PLANT_SHED_APPEARANCE: BuildingAppearance = Object.freeze({
   },
 });
 
-
 /** Per-cell draw channels, so no choice shifts another. */
 const CHANNEL = { phaseX: 1, phaseY: 2, machine: 3, width: 4, height: 5, jitterX: 6, jitterY: 7, chamfer: 8,
   loot: 9, shed: 10, shedOrder: 11, shedSize: 12, design: 13,
@@ -171,7 +170,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       : machKind === 'substation'
         ? { material: 'oxidizedMetal', focalRim: { side: 'E', color: 'electricTurquoise' } }
         : { material: 'oxidizedMetal', focalRim: { side: 'S', color: 'hotOrange' } };
-    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered, kind: machKind, appearance }, size)), label = `plant-machine-${machines.size}`;
+    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered, appearance }, size)), label = `plant-machine-${machines.size}`;
     const placed = placedElements(built, label, box.x, box.y, size);
     machineShapes.set(key(slot.x, slot.y), placed.flatMap(element => elementShapes(element)));
     commit(label, { elements: placed });
@@ -234,22 +233,6 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   });
 
   const elements = [...canvas.elements];
-  const first = elements[0];
-  if (first) {
-    const bounds = createRegionMask(brief).bounds;
-    first.template.appearance = {
-      ...first.template.appearance,
-      surfaces: [
-        {
-          id: `${brief.id}:plant-ground`,
-          bounds: { x: bounds.x - first.x, y: bounds.y - first.y, w: bounds.w, h: bounds.h },
-          material: 'nightAsphalt',
-          weathered: true,
-          segmentSpan: 160,
-        },
-      ],
-    };
-  }
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { machines: machines.size, pipes, sheds, designed, infillCrates });
