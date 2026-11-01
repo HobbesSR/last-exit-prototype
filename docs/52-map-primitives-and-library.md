@@ -463,7 +463,8 @@ catalogue, and it grows from here. The fixture libraries in
   inherited guarantees. It is separate from #338's exterior-yard policy.
   Before/after evidence is recorded in [42](42-performance-history.md).
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
-  for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
+  for a cover cluster; since `types-59` it usually takes a single piece or two
+  from the fallback (54 `cover`, #717). Cover comes mostly from
   the set pieces; its increased fill weight is intended to form larger joined
   cover regions.
 

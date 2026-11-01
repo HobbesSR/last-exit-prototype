@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { generate, checkMap } from '../map/tools/core.ts';
 import { buildRegion, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
 import { elementShapes } from '../map/micro/geometry.ts';
@@ -150,5 +151,5 @@ const summary = { issue: 717, base, build: REGION_TYPES_VERSION, node: process.v
   panel: 'size-{12,24,36}-{1,2,3}, generate(seed, params, undefined, 48)', totals: { byReason: sum('byReason'), byTypeReason: sum('byTypeReason') },
   maps, timings };
 writeFileSync(`${dir}/summary.json`, JSON.stringify(summary, null, 1) + '\n');
-writeFileSync(`${dir}/examples.json`, JSON.stringify(examples) + '\n');
+writeFileSync(`${dir}/examples.json.gz`, gzipSync(JSON.stringify(examples) + '\n'));
 console.log(JSON.stringify(summary.totals.byReason, null, 1));
