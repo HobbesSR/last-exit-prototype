@@ -15,8 +15,9 @@ import {
   resolveGroundAppearance,
   getCanonicalFields,
   resolvePropAppearance,
+  applyLightSample,
 } from '../public/appearance.js';
-import { SWATCHES, U, L, T, G } from '../public/palette.js';
+import { SWATCHES, THEMES, contrast, U, L, T, G } from '../public/palette.js';
 import { shapeOf } from '../shared/shape.ts';
 
 test('resolveSwatch resolves all authored palette swatches and uses fallback only for unknown names', () => {
@@ -214,6 +215,55 @@ test('resolvePropAppearance provides bounded virtual lighting on physics props a
   assert.equal(c1[0].id, 'field-a');
   assert.equal(c1[1].id, 'field-b');
   assert.equal(c1, c2, 'getCanonicalFields returns cached sorted array for identical array reference');
+});
+
+test('palette x field contrast sweep for dynamic object virtual lighting maintains >= 1.50 floor (#737, Step 5)', () => {
+  const fields = [
+    { id: 'cobalt-intersection', tint: 'cobaltBlue', intensity: 0.42 },
+    { id: 'magenta-transit-wash', tint: 'showtimeMagenta', intensity: 0.40 },
+    { id: 'amber-focal-edge', tint: 'sodiumAmber', intensity: 0.45 },
+  ];
+
+  const basePropFill = 0x8fa9a0;
+  const basePropStroke = 0xdce8d7;
+  const substrates = [
+    { key: 'slatePaving', colorOf: () => MATERIAL_SWATCH.slatePaving },
+    { key: 'ground', colorOf: theme => theme.colors.ground },
+    { key: 'street', colorOf: theme => theme.colors.street },
+  ];
+
+  for (const [themeId, theme] of Object.entries(THEMES)) {
+    // 1. Unlit mode across substrates
+    for (const sub of substrates) {
+      const substrateColor = sub.colorOf(theme);
+      const unlitRatio = Number(contrast(basePropFill, substrateColor).toFixed(2));
+      assert.ok(
+        unlitRatio >= 1.50,
+        `[${themeId}] unlit prop maintains contrast floor against ${sub.key} (${unlitRatio} >= 1.50)`
+      );
+    }
+
+    // 2. Lit mode across regional lighting fields and substrates
+    for (const field of fields) {
+      const sample = {
+        tint: resolveSwatch(field.tint),
+        weight: field.intensity,
+        neutral: 1 - field.intensity,
+        contributions: [{ id: field.id, tint: resolveSwatch(field.tint), weight: field.intensity }],
+      };
+      const propLit = resolvePropAppearance(basePropFill, basePropStroke, sample, { lighting: true });
+
+      for (const sub of substrates) {
+        const baseSub = sub.colorOf(theme);
+        const subLit = applyLightSample(baseSub, sample, 0.38);
+        const litRatio = Number(contrast(propLit.fill, subLit).toFixed(2));
+        assert.ok(
+          litRatio >= 1.50,
+          `[${themeId}] lit prop in ${field.id} maintains contrast floor against ${sub.key} (${litRatio} >= 1.50)`
+        );
+      }
+    }
+  }
 });
 
 test('spatial composition across two neighboring areas: normalized blending, boundary transition, and long surface splitting (41.2 step 4)', () => {

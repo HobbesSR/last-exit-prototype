@@ -1454,6 +1454,88 @@ try {
   assert.notEqual(step4SpatialCheck.apronBoundaryLit, step4SpatialCheck.apronArea1Lit, 'boundary transition segment blends smoothly across boundary');
   assert.equal(step4SpatialCheck.apronArea1Unlit, step4SpatialCheck.apronArea2Unlit, 'unlit ground segments revert to identical base paving color');
 
+  // Palette x field contrast sweep for dynamic object virtual lighting (#737, Step 5)
+  const paletteFieldSweep = await page.evaluate(async (themes) => {
+    const f = window.witness;
+    const sweep = {};
+    for (const themeId of themes) {
+      await f.settle({
+        palette: themeId,
+        lighting: true,
+        wear: true,
+        camera: { x: 1120, y: 400, zoom: 1 },
+        selfPos: { x: 960, y: 380 },
+      });
+      const propArea1Lit = f.pixelAtWorld(960, 525).hex;
+      const propArea2Lit = f.pixelAtWorld(1240, 525).hex;
+      const apronArea1Lit = f.pixelAtWorld(920, 525).hex;
+      const apronArea2Lit = f.pixelAtWorld(1205, 525).hex;
+
+      await f.settle({
+        palette: themeId,
+        lighting: false,
+        wear: true,
+        camera: { x: 1120, y: 400, zoom: 1 },
+        selfPos: { x: 960, y: 380 },
+      });
+      const propArea1Unlit = f.pixelAtWorld(960, 525).hex;
+      const propArea2Unlit = f.pixelAtWorld(1240, 525).hex;
+      const apronArea1Unlit = f.pixelAtWorld(920, 525).hex;
+      const apronArea2Unlit = f.pixelAtWorld(1205, 525).hex;
+
+      sweep[themeId] = {
+        propArea1Lit,
+        propArea2Lit,
+        apronArea1Lit,
+        apronArea2Lit,
+        propArea1Unlit,
+        propArea2Unlit,
+        apronArea1Unlit,
+        apronArea2Unlit,
+      };
+    }
+    return sweep;
+  }, themeNames);
+
+  // Restore witness defaults after sweep:
+  await page.evaluate(async () => {
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+  });
+
+  const paletteSweepSummary = {};
+  for (const [themeId, data] of Object.entries(paletteFieldSweep)) {
+    const area1Contrast = Number(contrast(data.propArea1Lit, data.apronArea1Lit).toFixed(2));
+    const area2Contrast = Number(contrast(data.propArea2Lit, data.apronArea2Lit).toFixed(2));
+    const unlitContrast = Number(contrast(data.propArea1Unlit, data.apronArea1Unlit).toFixed(2));
+
+    // Verify contrast floor >= 1.50 across all theme palettes and regional lighting fields
+    assert.ok(
+      area1Contrast >= 1.50,
+      `[${themeId}] Area 1 lit prop maintains contrast floor against ground (${area1Contrast} >= 1.50)`
+    );
+    assert.ok(
+      area2Contrast >= 1.50,
+      `[${themeId}] Area 2 lit prop maintains contrast floor against ground (${area2Contrast} >= 1.50)`
+    );
+    assert.ok(
+      unlitContrast >= 1.50,
+      `[${themeId}] Unlit prop maintains contrast floor against ground (${unlitContrast} >= 1.50)`
+    );
+
+    paletteSweepSummary[themeId] = {
+      propArea1Lit: css(data.propArea1Lit),
+      apronArea1Lit: css(data.apronArea1Lit),
+      area1Contrast,
+      propArea2Lit: css(data.propArea2Lit),
+      apronArea2Lit: css(data.apronArea2Lit),
+      area2Contrast,
+      propUnlit: css(data.propArea1Unlit),
+      apronUnlit: css(data.apronArea1Unlit),
+      unlitContrast,
+      passesFloor: area1Contrast >= 1.50 && area2Contrast >= 1.50 && unlitContrast >= 1.50,
+    };
+  }
+
   const step4SpatialSummary = {
     strikerArea1Lit: css(step4SpatialCheck.strikerTintLit),
     strikerArea1Unlit: css(step4SpatialCheck.strikerTintUnlit),
@@ -2148,6 +2230,7 @@ try {
     openFindings,
     step2SliceSummary,
     step4SpatialSummary,
+    step5PaletteFieldContrastSweep: paletteSweepSummary,
     step5StorefrontSummary,
     step5ExpandedKitsSummary,
     ochreUnderCobaltAssessment,
@@ -2258,6 +2341,28 @@ try {
   </tbody>
 </table>
 
+<h2>Step 5 Palette &times; Field Contrast Sweep for Dynamic Object Virtual Lighting (#737)</h2>
+<p>29.4 & 41.2 Step 5 policy: Physics props (and future separated actor material bodies) must maintain the &ge; 1.50 luminance contrast separation floor against underlying ground paving across all authored theme palettes and regional lighting fields without disappearing into background pavement.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Theme Palette</th><th>Area 1 (Cobalt) Lit Prop / Ground</th><th>Area 1 Contrast</th><th>Area 2 (Magenta) Lit Prop / Ground</th><th>Area 2 Contrast</th><th>Unlit Mode Prop / Ground</th><th>Unlit Contrast</th><th>Contrast Floor Verdict (&ge; 1.50)</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${Object.entries(paletteSweepSummary).map(([themeId, row]) => `<tr>
+      <td><code>${themeId}</code></td>
+      <td><code>${row.propArea1Lit}</code> on <code>${row.apronArea1Lit}</code></td>
+      <td><strong>${row.area1Contrast.toFixed(2)}</strong></td>
+      <td><code>${row.propArea2Lit}</code> on <code>${row.apronArea2Lit}</code></td>
+      <td><strong>${row.area2Contrast.toFixed(2)}</strong></td>
+      <td><code>${row.propUnlit}</code> on <code>${row.apronUnlit}</code></td>
+      <td><strong>${row.unlitContrast.toFixed(2)}</strong></td>
+      <td>${row.passesFloor ? '<span class="ok">Pass (&ge; 1.50)</span>' : '<span class="fail">Fail</span>'}</td>
+    </tr>`).join('\n')}
+  </tbody>
+</table>
+
 <h2>Neon Aftermath <code>broadcastPink</code> Street Line Observation</h2>
 <p>Raw swatch: <code>${broadcastPinkAssessment.rawSwatch}</code> · Rendered at <code>0.35</code> alpha on street (<code>${broadcastPinkAssessment.streetHex}</code>) → <code>${broadcastPinkAssessment.renderedStreetLineHex}</code> (line vs street luminance ratio <code>${broadcastPinkAssessment.renderedLineVsStreetContrast}</code>; luminance ratio vs mine <code>#ff778c</code>: <code>${broadcastPinkAssessment.contrastAgainstMinePink}</code>; vs gladiator ring <code>#ff7d8a</code>: <code>${broadcastPinkAssessment.contrastAgainstGladiatorRing}</code>). ${broadcastPinkAssessment.note}</p>
 
@@ -2281,6 +2386,7 @@ try {
     comment6317Candidates,
     broadcastPinkAssessment,
     step4SpatialSummary,
+    step5PaletteFieldContrastSweep: paletteSweepSummary,
     lowFillCount: lowFillCandidates.length,
   }, null, 2));
 } finally {
