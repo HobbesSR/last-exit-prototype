@@ -12,7 +12,8 @@ import type { Cell, RegionBrief } from './types.ts';
  * over `probeClaim`/`acceptClaim` instead. Work is bounded by attempt counts, never by time.
  */
 
-export type GrowthRefusal = 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle';
+/** The coordinator's refusals, and `pruned` when the builder's own `admit` excluded a whole seed. */
+export type GrowthRefusal = 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle' | 'pruned';
 /**
  * Why growth stopped: `done` when the candidates ran out, `refused` when every candidate of a
  * step was refused, `attempts` or `steps` when a limit was reached first.
@@ -80,7 +81,10 @@ const SIDES: readonly Cell[] = [{ x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 },
 export interface SeedOptions extends GrowthLimits {
   /** Directions to try each step after the whole ring, in order; by default north, east, south, west. */
   order?: readonly Cell[];
-  /** Builder pruning: a cell the seed may take. Fill membership and canvas checks still apply. */
+  /**
+   * Builder pruning: a cell the seed may take. It applies to the seed itself too: a seed with
+   * any excluded cell claims nothing. Fill membership and canvas checks still apply.
+   */
   admit?: (cell: Cell) => boolean;
 }
 
@@ -93,6 +97,8 @@ export interface SeedOptions extends GrowthLimits {
 export function growSeed(coordinator: ProspectiveParcels, seed: readonly Cell[], options: SeedOptions = {}): GrowthReport<Cell[]> & { cells: Cell[] } {
   const fill = coordinator.fill, size = fill.cellSize, admit = options.admit ?? (() => true), order = options.order ?? SIDES;
   if (!seed.length) throw new TypeError('A seed needs at least one cell.');
+  // All or nothing: a partly excluded seed is not trimmed into a different seed.
+  if (!seed.every(c => admit(c))) return { handle: null, taken: [], attempts: 0, refusals: { pruned: 1 }, stop: 'refused', cells: [] };
   const report = growParcel<Cell[]>(coordinator, taken => {
     if (!taken.length) return [{ shapes: cellShapes(seed, size), value: [...seed] }];
     const grown = new Set(taken.flat().map(keyOf));

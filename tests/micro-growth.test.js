@@ -87,6 +87,13 @@ test('growth is deterministic and bounded, with refusal reasons', () => {
   const blocked = growSeed(c, [{ x: 6, y: 4 }]);
   assert.equal(blocked.handle, null);
   assert.deepEqual(blocked.refusals, { allocation: 1 });
+  // `admit` prunes the seed itself, all or nothing, with no probe and no allocation.
+  const free = ready(), before = snapshot(free);
+  const pruned = growSeed(free, [{ x: 3, y: 4 }, { x: 4, y: 4 }], { admit: cell => cell.x !== 4 });
+  assert.deepEqual(pruned, { handle: null, taken: [], attempts: 0, refusals: { pruned: 1 }, stop: 'refused', cells: [] });
+  assert.deepEqual(snapshot(free), before);
+  assert.equal(growSeed(free, [{ x: 5, y: 5 }], { admit: () => false }).handle, null);
+  assert.deepEqual(free.parcels, []);
   assert.throws(() => growSeed(c, [], {}), TypeError);
   assert.throws(() => growFront(c, { x: 1, y: 1 }, { x: 1, y: 1 }), TypeError);
   assert.throws(() => growParcel(c, () => [], { attempts: -1 }), RangeError);
