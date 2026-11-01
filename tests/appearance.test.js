@@ -297,3 +297,55 @@ test('appearance resolver stays presentation-only: no simulation, server or map 
     assert.ok(!/appearance\.js/.test(readFileSync(path.join(dir, file), 'utf8')), `${dir}/${file} imports appearance.js`);
   }
 });
+
+test('reusable cosmetic destruction and material vocabulary (#585): impact craters, cracks, patches, and vegetation', () => {
+  const mapAppearance = {
+    wear: [
+      { id: 'asphalt-patch', kind: 'patch-repair', bounds: { x: 100, y: 100, w: 40, h: 30 } },
+      { id: 'pavement-crack', kind: 'pavement-crack', bounds: { x: 150, y: 100, w: 30, h: 20 } },
+      { id: 'edge-veg', kind: 'vegetation-patch', bounds: { x: 200, y: 100, w: 30, h: 15 } },
+    ],
+    scars: [
+      { id: 'kinetic-crater', kind: 'impact-crater', bounds: { x: 250, y: 100, w: 36, h: 28 } },
+    ],
+  };
+
+  const building = {
+    id: 'b-damaged',
+    x: 0,
+    y: 0,
+    w: 200,
+    h: 150,
+    appearance: {
+      roofPaint: 'storefrontTeal',
+      neglect: {
+        impactCrater: { dx: 60, dy: 50, w: 34, h: 26 },
+        vegetationEdge: { dx: 30, dy: 140, w: 40, h: 12, along: 'S' },
+      },
+    },
+  };
+
+  const groundFull = resolveGroundAppearance(mapAppearance, { wear: true });
+  assert.equal(groundFull.length, 4);
+  assert.equal(groundFull[0].id, 'asphalt-patch');
+  assert.equal(groundFull[1].id, 'pavement-crack');
+  assert.equal(groundFull[2].id, 'edge-veg');
+  assert.equal(groundFull[3].id, 'kinetic-crater');
+  assert.equal(groundFull[3].layer, 'scars');
+
+  // Verify wear: false omits all ground wear & scars:
+  const groundNoWear = resolveGroundAppearance(mapAppearance, { wear: false });
+  assert.equal(groundNoWear.length, 0);
+
+  // Building marks:
+  const bFull = resolveBuildingAppearance(building, null, { wear: true });
+  assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-crater-halo'), 'roof includes crater halo');
+  assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-crater-core'), 'roof includes crater core');
+  assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-crater-streak'), 'roof includes crater fracture streaks');
+  assert.ok(bFull.roofMarks.some(m => m.layer === 'wear-vegetation'), 'roof includes vegetation edge');
+  assert.ok(bFull.floorMarks.some(m => m.layer === 'neglect-stain'), 'floor includes interior crater stain');
+
+  const bNoWear = resolveBuildingAppearance(building, null, { wear: false });
+  assert.ok(!bNoWear.roofMarks.some(m => m.layer.startsWith('wear-')), 'wear: false strips all crater and vegetation marks');
+  assert.equal(bNoWear.floorMarks.length, 0);
+});

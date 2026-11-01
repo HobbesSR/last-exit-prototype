@@ -17,6 +17,18 @@ import { INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM, playerZoom 
 const outDir = path.resolve('test-results/art-witness');
 await mkdir(outDir, { recursive: true });
 
+const toLuminance = hex => {
+  const r = ((hex >> 16) & 255) / 255;
+  const g = ((hex >> 8) & 255) / 255;
+  const b = (hex & 255) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+};
+const lumContrast = (h1, h2) => {
+  const l1 = toLuminance(h1) + 0.05;
+  const l2 = toLuminance(h2) + 0.05;
+  return Number((Math.max(l1, l2) / Math.min(l1, l2)).toFixed(2));
+};
+
 const VIEWPORT = { width: 1200, height: 800 };
 const PLAY_ZOOM = playerZoom(VIEWPORT.width, VIEWPORT.height); // 1.12
 const INDOOR_ZOOM = PLAY_ZOOM * INSIDE_ZOOM; // 1.288
@@ -135,6 +147,8 @@ function createWitnessScene() {
           fadedPanel: { dx: 30, dy: 52, w: 88, h: 42 },
           roofDrainStain: { dx: 170, dy: 42, w: 44, h: 28 },
           floorStain: { dx: 155, dy: 70, w: 46, h: 28 },
+          impactCrater: { dx: 60, dy: 110, w: 36, h: 26 },
+          vegetationEdge: { dx: 180, dy: 155, w: 44, h: 12, along: 'S' },
         },
       },
     },
@@ -227,11 +241,15 @@ function createWitnessScene() {
       { id: 'coral-awning', kind: 'awning', bounds: { x: 850, y: 536, w: 90, h: 18 }, color: 'weatheredCoral', stripeColor: 'dirtyCream' },
     ],
     wear: [
-      { id: 'lane-faded-panel', kind: 'faded-panel', bounds: { x: 1118, y: 502, w: 36, h: 22 }, color: 'storefrontTeal' },
+      { id: 'lane-faded-panel', kind: 'faded-panel', bounds: { x: 1110, y: 502, w: 24, h: 22 }, color: 'storefrontTeal' },
       { id: 'lane-drain-stain', kind: 'drain-stain', bounds: { x: 1070, y: 528, w: 36, h: 22 } },
+      { id: 'lane-asphalt-patch', kind: 'patch-repair', bounds: { x: 1136, y: 502, w: 14, h: 22 } },
+      { id: 'lane-pavement-crack', kind: 'pavement-crack', bounds: { x: 1136, y: 528, w: 14, h: 22 } },
+      { id: 'lane-vegetation-patch', kind: 'vegetation-patch', bounds: { x: 1152, y: 528, w: 14, h: 22 } },
     ],
     scars: [
       { id: 'service-scorch-group', kind: 'scorch-group', bounds: { x: 1070, y: 502, w: 36, h: 22 } },
+      { id: 'service-impact-crater', kind: 'impact-crater', bounds: { x: 1152, y: 502, w: 14, h: 22 } },
     ],
     lighting: {
       fields: [
@@ -1022,10 +1040,10 @@ try {
     amberRim: { x: 985, y: 553 },
     wallAmberRim: { x: 985, y: 576 },
     southWallInside: { x: 910, y: 736 },
-    slateApronClean: { x: 1136, y: 539 },
+    slateApronClean: { x: 1122, y: 539 },
     ochreStripe: { x: 905, y: 512 },
     coralAwning: { x: 878, y: 545 },
-    fadedPanel: { x: 1136, y: 513 },
+    fadedPanel: { x: 1122, y: 513 },
     scorchGroup: { x: 1082, y: 511 },
     drainStain: { x: 1088, y: 539 },
     tealRoof: { x: 960, y: 635 },
@@ -1034,6 +1052,14 @@ try {
     warmMasonryFloor: { x: 900, y: 695 },
     floorDrainStain: { x: 965, y: 650 },
     warmMasonryWall: { x: 990, y: 582 },
+    asphaltPatch: { x: 1143, y: 513 },
+    pavementCrack: { x: 1143, y: 539 },
+    curbVegetation: { x: 1159, y: 539 },
+    impactCrater: { x: 1159, y: 513 },
+    roofImpactCrater: { x: 870, y: 690 },
+    roofVegetation: { x: 990, y: 735 },
+    windowSheen: { x: 846, y: 582 },
+    windowBaseGlass: { x: 860, y: 582 },
   };
 
   const sampleSliceMode = async ({ id, lighting, wear, selfPos, viewLabel }) => {
@@ -1171,13 +1197,42 @@ try {
   assert.equal(sliceNoWearExt.pixels.drainStain, sliceNoWearExt.pixels.slateApronClean, 'with wear off, drain stain location reverts to clean slate paving apron');
   assert.equal(sliceNoWearExt.pixels.scorchGroup, sliceNoWearExt.pixels.slateApronClean, 'with wear off, scorch group location reverts to clean slate paving apron');
   assert.equal(sliceNoWearExt.pixels.fadedPanel, sliceNoWearExt.pixels.slateApronClean, 'with wear off, faded panel location reverts to clean slate paving apron');
+  assert.equal(sliceNoWearExt.pixels.asphaltPatch, sliceNoWearExt.pixels.slateApronClean, 'with wear off, asphalt patch reverts to clean slate paving');
+  assert.equal(sliceNoWearExt.pixels.pavementCrack, sliceNoWearExt.pixels.slateApronClean, 'with wear off, pavement crack reverts to clean slate paving');
+  assert.equal(sliceNoWearExt.pixels.curbVegetation, sliceNoWearExt.pixels.slateApronClean, 'with wear off, curb vegetation reverts to clean slate paving');
+  assert.equal(sliceNoWearExt.pixels.impactCrater, sliceNoWearExt.pixels.slateApronClean, 'with wear off, impact crater reverts to clean slate paving');
 
   assert.ok(rgbDist(sliceFullExt.pixels.fadedPanel, sliceNoWearExt.pixels.fadedPanel) >= 20, 'faded panel visibly changes when wear is toggled');
   assert.ok(rgbDist(sliceFullExt.pixels.drainStain, sliceNoWearExt.pixels.drainStain) >= 20, 'drain stain visibly changes when wear is toggled');
   assert.ok(rgbDist(sliceFullExt.pixels.scorchGroup, sliceNoWearExt.pixels.scorchGroup) >= 20, 'scorch group visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.asphaltPatch, sliceNoWearExt.pixels.asphaltPatch) >= 20, 'asphalt patch visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.pavementCrack, sliceNoWearExt.pixels.pavementCrack) >= 15, 'pavement crack visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.curbVegetation, sliceNoWearExt.pixels.curbVegetation) >= 20, 'curb vegetation visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.impactCrater, sliceNoWearExt.pixels.impactCrater) >= 25, 'impact crater visibly changes when wear is toggled');
   assert.ok(rgbDist(sliceFullExt.pixels.roofFadedPanel, sliceNoWearExt.pixels.roofFadedPanel) >= 20, 'roof faded panel visibly changes when wear is toggled');
   assert.ok(rgbDist(sliceFullExt.pixels.roofDrainStain, sliceNoWearExt.pixels.roofDrainStain) >= 20, 'roof drain stain visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.roofImpactCrater, sliceNoWearExt.pixels.roofImpactCrater) >= 20, 'roof impact crater visibly changes when wear is toggled');
+  assert.ok(rgbDist(sliceFullExt.pixels.roofVegetation, sliceNoWearExt.pixels.roofVegetation) >= 20, 'roof vegetation visibly changes when wear is toggled');
   assert.ok(rgbDist(sliceFullInt.pixels.floorDrainStain, sliceNoWearInt.pixels.floorDrainStain) >= 20, 'interior floor neglect stain visibly changes when wear is toggled');
+
+  // Specular reflection highlight on glazed window obstacle (11.1 §6, 29.4):
+  // When inside shop-room, roof is revealed (roofAlpha === 0), revealing shop-window:
+  const windowSheenInt = sliceFullInt.pixels.windowSheen;
+  const windowBaseGlassInt = sliceFullInt.pixels.windowBaseGlass;
+  assert.ok(rgbDist(windowSheenInt, windowBaseGlassInt) >= 15, 'window specular reflection sheen visibly separates from base glass fill');
+
+  // Grayscale value contrast assertions for cosmetic wear and scar marks (41.2):
+  const patchVsApronUnlit = lumContrast(sliceNoLightExt.pixels.asphaltPatch, sliceNoLightExt.pixels.slateApronClean);
+  const crackVsApronUnlit = lumContrast(sliceNoLightExt.pixels.pavementCrack, sliceNoLightExt.pixels.slateApronClean);
+  const vegVsApronUnlit = lumContrast(sliceNoLightExt.pixels.curbVegetation, sliceNoLightExt.pixels.slateApronClean);
+  const craterVsApronUnlit = lumContrast(sliceNoLightExt.pixels.impactCrater, sliceNoLightExt.pixels.slateApronClean);
+  const roofCraterVsRoof = lumContrast(sliceFullExt.pixels.roofImpactCrater, sliceFullExt.pixels.tealRoof);
+
+  assert.ok(patchVsApronUnlit >= 1.15, `patch repair separates from apron in luminance (unlit: ${patchVsApronUnlit})`);
+  assert.ok(crackVsApronUnlit >= 1.15, `pavement crack separates from apron in luminance (unlit: ${crackVsApronUnlit})`);
+  assert.ok(vegVsApronUnlit >= 1.15, `vegetation patch separates from apron in luminance (unlit: ${vegVsApronUnlit})`);
+  assert.ok(craterVsApronUnlit >= 1.15, `impact crater separates from apron in luminance (unlit: ${craterVsApronUnlit})`);
+  assert.ok(roofCraterVsRoof >= 1.5, `roof crater separates from roof paint in luminance (${roofCraterVsRoof})`);
 
   assert.equal(sliceFullExt.collisionDigest, sliceNoWearExt.collisionDigest, 'switching off wear keeps exact same obstacle and gate shapeOf collision geometry');
   assert.equal(sliceFullExt.visionDigest, sliceNoWearExt.visionDigest, 'switching off wear keeps exact same visibilityPolygon sight boundary');
@@ -1704,17 +1759,6 @@ try {
   });
 
   // Grayscale / luminance evaluation:
-  const toLuminance = hex => {
-    const r = ((hex >> 16) & 255) / 255;
-    const g = ((hex >> 8) & 255) / 255;
-    const b = (hex & 255) / 255;
-    return 0.299 * r + 0.587 * g + 0.114 * b;
-  };
-  const lumContrast = (h1, h2) => {
-    const l1 = toLuminance(h1) + 0.05;
-    const l2 = toLuminance(h2) + 0.05;
-    return Number((Math.max(l1, l2) / Math.min(l1, l2)).toFixed(2));
-  };
 
   const intactRoofLumRatio = lumContrast(storefrontDemo.intactRoofPx.hex, storefrontDemo.streetPx.hex);
   const damagedRoofLumRatio = lumContrast(storefrontDemo.damagedRoofPx.hex, storefrontDemo.streetPx.hex);

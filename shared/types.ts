@@ -473,6 +473,10 @@ export interface BuildingNeglectAppearance {
   floorStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined; x?: number | undefined; y?: number | undefined } | undefined;
   /** Center offset `(dx, dy)` in template-local world units relative to building origin. */
   scorchMark?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
+  /** Center offset `(dx, dy)` in template-local world units relative to building origin (11.1 §3.3 kinetic damage). */
+  impactCrater?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
+  /** Center offset `(dx, dy)` in template-local world units relative to building origin (11.1 §5.1 edge weed encroachment). */
+  vegetationEdge?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
 }
 
 export interface BuildingAppearance {
@@ -528,13 +532,41 @@ export type WearMarkAppearance =
       kind: 'faded-panel';
       bounds: Box;
       color?: string | number | undefined;
+    }
+  | {
+      id?: string | undefined;
+      kind: 'patch-repair';
+      bounds: Box;
+      color?: string | number | undefined;
+      seamColor?: string | number | undefined;
+    }
+  | {
+      id?: string | undefined;
+      kind: 'pavement-crack';
+      bounds: Box;
+      color?: string | number | undefined;
+    }
+  | {
+      id?: string | undefined;
+      kind: 'vegetation-patch';
+      bounds: Box;
+      color?: string | number | undefined;
     };
 
-export interface ScarMarkAppearance {
-  id?: string | undefined;
-  kind: 'scorch-group';
-  bounds: Box;
-}
+export type ScarMarkAppearance =
+  | {
+      id?: string | undefined;
+      kind: 'scorch-group';
+      bounds: Box;
+    }
+  | {
+      id?: string | undefined;
+      kind: 'impact-crater';
+      bounds: Box;
+      color?: string | number | undefined;
+      coreColor?: string | number | undefined;
+      ejectionColor?: string | number | undefined;
+    };
 
 export interface LightingFocalEdgeAppearance {
   color?: string | number | undefined;

@@ -337,7 +337,7 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
     roofMarks.push(
       { kind: 'ellipse', layer: 'wear-scorch-halo', x: sx, y: sy, w: sw, h: sh, color: ash, alpha: 0.52 },
       { kind: 'ellipse', layer: 'wear-scorch-core', x: sx - 3, y: sy + 1, w: sw * 0.62, h: sh * 0.58, color: soot, alpha: 0.68 },
-      { kind: 'line', layer: 'wear-scorch-streak', x1: sx - sw * 0.35, y1: sy - sh * 0.15, x2: sx + sw * 0.32, y2: sy + sh * 0.2, width: 3, color: ember, alpha: 0.6 },
+      { op: 'line', kind: 'line', layer: 'wear-scorch-streak', x1: sx - sw * 0.35, y1: sy - sh * 0.15, x2: sx + sw * 0.32, y2: sy + sh * 0.2, width: 3, color: ember, alpha: 0.6 },
     );
     floorMarks.push({
       kind: 'ellipse',
@@ -349,6 +349,48 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
       color: mix(U.structuralVoid, U.weatheredBrick, 0.35),
       alpha: 0.5,
     });
+  }
+
+  // Roof & interior impact crater (kinetic competition damage, 11.1 §3.3)
+  if (art.wear && desc?.neglect?.impactCrater) {
+    const ic = desc.neglect.impactCrater;
+    const cw = Math.min(ic.w ?? 38, Math.max(16, building.w - 32));
+    const ch = Math.min(ic.h ?? 28, Math.max(12, building.h - 32));
+    const cx = Math.max(building.x + cw / 2 + 12, Math.min(building.x + building.w - cw / 2 - 12, building.x + (ic.dx ?? 40)));
+    const cy = Math.max(building.y + ch / 2 + 12, Math.min(building.y + building.h - ch / 2 - 12, building.y + (ic.dy ?? 40)));
+    const pulverized = applyLightSample(mix(U.coolConcrete, U.dirtySidewalk, 0.35), centerLight, 0.25);
+    const craterCore = applyLightSample(U.structuralVoid, centerLight, 0.2);
+    roofMarks.push(
+      { kind: 'ellipse', layer: 'wear-crater-halo', x: cx, y: cy, w: cw, h: ch, color: pulverized, alpha: 0.6 },
+      { kind: 'ellipse', layer: 'wear-crater-core', x: cx - 2, y: cy + 1, w: Math.round(cw * 0.6), h: Math.round(ch * 0.58), color: craterCore, alpha: 0.88 },
+      { op: 'line', kind: 'line', layer: 'wear-crater-streak', x1: cx - Math.round(cw * 0.25), y1: cy - Math.round(ch * 0.25), x2: cx - Math.round(cw * 0.46), y2: cy - Math.round(ch * 0.42), width: 2, color: craterCore, alpha: 0.75 },
+      { op: 'line', kind: 'line', layer: 'wear-crater-streak', x1: cx + Math.round(cw * 0.22), y1: cy + Math.round(ch * 0.22), x2: cx + Math.round(cw * 0.45), y2: cy + Math.round(ch * 0.44), width: 2, color: craterCore, alpha: 0.75 },
+    );
+    floorMarks.push({
+      kind: 'ellipse',
+      layer: 'neglect-stain',
+      x: cx,
+      y: cy,
+      w: Math.max(18, Math.round(cw * 0.65)),
+      h: Math.max(14, Math.round(ch * 0.62)),
+      color: craterCore,
+      alpha: 0.6,
+    });
+  }
+
+  // Roof & edge vegetation encroachment (11.1 §5.1, 29.4)
+  if (art.wear && desc?.neglect?.vegetationEdge) {
+    const ve = desc.neglect.vegetationEdge;
+    const vw = Math.min(ve.w ?? 44, Math.max(16, building.w - 24));
+    const vh = Math.min(ve.h ?? 16, Math.max(10, building.h - 24));
+    const vx = Math.max(building.x + vw / 2 + 8, Math.min(building.x + building.w - vw / 2 - 8, building.x + (ve.dx ?? 24)));
+    const vy = Math.max(building.y + vh / 2 + 8, Math.min(building.y + building.h - vh / 2 - 8, building.y + (ve.dy ?? 24)));
+    const vegColor = applyLightSample(U.urbanVegetation, centerLight, 0.25);
+    const vegShadow = mix(vegColor, U.slateShadow, 0.25);
+    roofMarks.push(
+      { kind: 'ellipse', layer: 'wear-vegetation', x: vx, y: vy, w: vw, h: vh, color: vegColor, alpha: 0.78 },
+      { kind: 'ellipse', layer: 'wear-vegetation', x: vx - Math.round(vw * 0.2), y: vy + 1, w: Math.round(vw * 0.6), h: Math.round(vh * 0.7), color: vegShadow, alpha: 0.8 },
+    );
   }
 
   return {
@@ -627,6 +669,52 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
             { op: 'fillRect', x: b.x + 6, y: b.y + 4, w: Math.round(b.w * 0.45), h: Math.max(6, b.h - 8), color: panelBase, alpha: 0.76 },
           ],
         });
+      } else if (w.kind === 'patch-repair') {
+        const basePatch = resolveSwatch(w.color, U.nightAsphalt);
+        const patchFill = applyLightSample(mix(basePatch, U.structuralVoid, 0.55), light, 0.25);
+        const seamColor = applyLightSample(resolveSwatch(w.seamColor, U.structuralVoid), light, 0.2);
+        items.push({
+          layer: 'wear',
+          id: w.id || 'patch-repair',
+          bounds: { x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 },
+          ops: [
+            { op: 'fillRect', x: b.x, y: b.y, w: b.w, h: b.h, color: patchFill, alpha: 0.88 },
+            { op: 'strokeRect', x: b.x, y: b.y, w: b.w, h: b.h, width: 2, color: seamColor, alpha: 0.82 },
+          ],
+        });
+      } else if (w.kind === 'pavement-crack') {
+        const crackColor = applyLightSample(resolveSwatch(w.color, U.structuralVoid), light, 0.2);
+        const chipColor = applyLightSample(U.coolConcrete, light, 0.25);
+        const x1 = b.x + Math.round(b.w * 0.12), y1 = b.y + Math.round(b.h * 0.22);
+        const x2 = b.x + Math.round(b.w * 0.48), y2 = b.y + Math.round(b.h * 0.58);
+        const x3 = b.x + Math.round(b.w * 0.88), y3 = b.y + Math.round(b.h * 0.78);
+        const bx = b.x + Math.round(b.w * 0.65), by = b.y + Math.round(b.h * 0.25);
+        items.push({
+          layer: 'wear',
+          id: w.id || 'pavement-crack',
+          bounds: { x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 },
+          ops: [
+            { op: 'line', x1: x1 + 1, y1: y1 + 1, x2: x2 + 1, y2: y2 + 1, width: 1, color: chipColor, alpha: 0.38 },
+            { op: 'line', x1: x2 + 1, y1: y2 + 1, x2: x3 + 1, y2: y3 + 1, width: 1, color: chipColor, alpha: 0.38 },
+            { op: 'line', x1, y1, x2, y2, width: 2, color: crackColor, alpha: 0.82 },
+            { op: 'line', x1: x2, y1: y2, x2: x3, y2: y3, width: 2, color: crackColor, alpha: 0.8 },
+            { op: 'line', x1: x2, y1: y2, x2: bx, y2: by, width: 2, color: crackColor, alpha: 0.7 },
+          ],
+        });
+      } else if (w.kind === 'vegetation-patch') {
+        const vegBase = applyLightSample(resolveSwatch(w.color, U.urbanVegetation), light, 0.25);
+        const vegShadow = mix(vegBase, U.slateShadow, 0.28);
+        const vegHighlight = mix(vegBase, L.fadedMint, 0.22);
+        items.push({
+          layer: 'wear',
+          id: w.id || 'vegetation-patch',
+          bounds: { x: b.x - 6, y: b.y - 6, w: b.w + 12, h: b.h + 12 },
+          ops: [
+            { op: 'fillEllipse', x: cx, y: cy, w: b.w, h: b.h, color: vegBase, alpha: 0.78 },
+            { op: 'fillEllipse', x: cx - Math.round(b.w * 0.22), y: cy + Math.round(b.h * 0.1), w: Math.round(b.w * 0.62), h: Math.round(b.h * 0.7), color: vegShadow, alpha: 0.82 },
+            { op: 'fillEllipse', x: cx + Math.round(b.w * 0.25), y: cy - Math.round(b.h * 0.12), w: Math.round(b.w * 0.55), h: Math.round(b.h * 0.62), color: vegHighlight, alpha: 0.85 },
+          ],
+        });
       }
     }
 
@@ -635,6 +723,7 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
       const b = scar.bounds;
       if (!b) continue;
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const light = sampleSpatialLight(fields, cx, cy, art);
       if (scar.kind === 'scorch-group') {
         const soot = U.structuralVoid;
         const ash = mix(U.structuralVoid, U.weatheredBrick, 0.32);
@@ -649,6 +738,25 @@ export function resolveGroundAppearance(mapAppearance, options = {}) {
             { op: 'fillEllipse', x: cx + b.w * 0.24, y: cy - b.h * 0.16, w: b.w * 0.34, h: b.h * 0.3, color: soot, alpha: 0.52 },
             { op: 'line', x1: cx - b.w * 0.38, y1: cy - b.h * 0.18, x2: cx + b.w * 0.36, y2: cy + b.h * 0.22, width: 3, color: ember, alpha: 0.55 },
             { op: 'line', x1: cx - b.w * 0.28, y1: cy + b.h * 0.24, x2: cx + b.w * 0.3, y2: cy - b.h * 0.2, width: 2, color: soot, alpha: 0.6 },
+          ],
+        });
+      } else if (scar.kind === 'impact-crater') {
+        const pulverizedRim = applyLightSample(resolveSwatch(scar.color, mix(U.coolConcrete, U.dirtySidewalk, 0.35)), light, 0.25);
+        const craterBasin = applyLightSample(resolveSwatch(scar.coreColor, U.structuralVoid), light, 0.2);
+        const craterCore = mix(craterBasin, 0x000000, 0.35);
+        const fractureColor = applyLightSample(resolveSwatch(scar.ejectionColor, U.structuralVoid), light, 0.2);
+        items.push({
+          layer: 'scars',
+          id: scar.id || 'impact-crater',
+          bounds: { x: b.x - 8, y: b.y - 8, w: b.w + 16, h: b.h + 16 },
+          ops: [
+            { op: 'fillEllipse', x: cx, y: cy, w: b.w, h: b.h, color: pulverizedRim, alpha: 0.58 },
+            { op: 'fillEllipse', x: cx, y: cy, w: Math.round(b.w * 0.62), h: Math.round(b.h * 0.6), color: craterBasin, alpha: 0.88 },
+            { op: 'fillEllipse', x: cx - 2, y: cy + 1, w: Math.round(b.w * 0.32), h: Math.round(b.h * 0.32), color: craterCore, alpha: 0.92 },
+            { op: 'line', x1: cx - Math.round(b.w * 0.25), y1: cy - Math.round(b.h * 0.25), x2: cx - Math.round(b.w * 0.46), y2: cy - Math.round(b.h * 0.42), width: 2, color: fractureColor, alpha: 0.78 },
+            { op: 'line', x1: cx + Math.round(b.w * 0.22), y1: cy + Math.round(b.h * 0.22), x2: cx + Math.round(b.w * 0.45), y2: cy + Math.round(b.h * 0.44), width: 2, color: fractureColor, alpha: 0.78 },
+            { op: 'line', x1: cx + Math.round(b.w * 0.24), y1: cy - Math.round(b.h * 0.2), x2: cx + Math.round(b.w * 0.44), y2: cy - Math.round(b.h * 0.38), width: 2, color: fractureColor, alpha: 0.7 },
+            { op: 'line', x1: cx - Math.round(b.w * 0.2), y1: cy + Math.round(b.h * 0.22), x2: cx - Math.round(b.w * 0.4), y2: cy + Math.round(b.h * 0.45), width: 2, color: fractureColor, alpha: 0.68 },
           ],
         });
       }
@@ -714,7 +822,7 @@ export function recordAppearanceOps(g, ops) {
     } else if (item.op === 'fillEllipse' || item.kind === 'ellipse') {
       g.fillStyle(item.color, item.alpha ?? 1);
       g.fillEllipse(item.x, item.y, item.w, item.h);
-    } else if (item.op === 'line') {
+    } else if (item.op === 'line' || item.kind === 'line') {
       g.lineStyle(item.width ?? 2, item.color, item.alpha ?? 1);
       g.lineBetween(item.x1, item.y1, item.x2, item.y2);
     }
