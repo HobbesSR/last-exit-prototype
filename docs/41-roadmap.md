@@ -88,8 +88,28 @@ strategy built on the micro SDK ([50](50-map-generation.md)). What has shipped:
 
 #### Region population epic #529
 
-Checkpoint as of 2026-10-30; defer to newer direction and status on Forgejo
+Checkpoint as of 2026-11-01; defer to newer direction and status on Forgejo
 epic #529 and its children.
+
+**Closing pass (2026-11-01).** #529 and #531 are judged by Corey's modulation-demo
+standard ([17.2.11](17.2.11-navigation-structure-direction.md#seam-outcome-is-a-demonstration-and-it-is-met)):
+show that the system produces each goal and that authoring changes how often, not
+frequency targets. That standard replaces the older rule at the end of this section
+that experiments alone do not count. Each goal has such evidence (detour: #716, #705,
+#649; dead ends: #698, #750; less empty space: #717, #750). Corey chose two closing
+prerequisites, to land as one batched content change:
+
+- **#759:** move representative scatter builders off frozen `protectedRoutes` onto
+  movable cords, as #750 did, measured with the 42.29 method.
+- **#760:** adopt park hedge fronts in production.
+
+The rest are follow-ups or out of scope and do not gate closing: #758 (dead-end
+measure and bays), #706 (park pocket refinements), #707 (second static family,
+standalone), #535 (decomposition and Building SDK, standalone), #581 (art). Two
+deferrals that had only #529 as owner now have issues: #761 (map-scale progression
+through macro boundaries and portals) and #762 (whether any set piece still needs
+inward grounds; investigate first). Compound exterior offset search (#629–#632) is
+dropped unless a selected outcome hits it.
 
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers
 of function and detail, without exhausting incidental minutiae. Apply the
@@ -177,8 +197,8 @@ to more families or frameworks.
 
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
-| Inward grounds (#529, workstream 1; no dedicated child yet) | Route through epic #529 to review remaining authored families against current library contents; remove interior margin fragmentation where it materially enables population. Do not assume every historical family is still unchanged. |
-| Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins. Compound exterior crossing limitations remain; #630/#632 diagnose and experiment without production adoption. Treat offset-search adoption as deferred refinement for next-task selection unless evidence makes it a blocker for the chosen functional outcome. |
+| Inward grounds (#529, workstream 1) | #530 gave inward variants to all six named families (42.4). Whether any set piece still needs them is #762, to investigate before authoring anything. |
+| Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins; #717 fallback and #750's live cord followed. Compound exterior offset search (#630/#632) is dropped unless a selected outcome hits it. Closing waits on #759 and #760 (closing pass above). |
 | Hut and compound structures (#532) | Multi-house huts, courtyard keeps/cover and one optional exterior HOUSE outbuilding have representative production admission and access evidence (20.3.4, 42.3), delivering the three original composition capabilities. Their effect on the newer detour/dead-end/empty-space goals remains unmeasured (#688; direction recorded in 17.2.11 via PR #690). Reassess retain/adapt/defer against those measures before more stand-in grammar or larger-hut margin authoring. Multiple rings and maximum residual use are not automatic successors. |
 | Depot and hall composition (#533) | Production depot warehouse composition now targets half-density fill with protected doorsteps and two-cell local bypasses; authored comparison and limits are in 42.3. Structural hall wings now add side-connected bays with 2.5-cell perimeter walks and optional roofs; a local L-shaped variant makes the capability available in ordinary library selection (20.3.3, 52, 42.3). Thin annexes and optimal partitioning remain deferred. |
 | Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
@@ -230,8 +250,8 @@ See the 2026-10-28 sequencing checkpoint on #529 and [20.10](20.10-portal-cords.
 
 The epic reaches its first functional tier when each workstream has a useful
 production capability on representative intended workloads, or an explicit
-recorded deferral with its impact and rationale. Experiments alone do not count
-as production delivery. Later tiers broaden coverage and refine quality. Closing
+recorded deferral with its impact and rationale. (Superseded for closing #529:
+the closing pass above applies Corey's modulation-demo standard instead.) Later tiers broaden coverage and refine quality. Closing
 the epic requires an explicit scope review of the delivered capabilities and
 remaining deferrals; neither perfect density on every seed nor an unsupported
 percentage is its completion criterion. No child is closed by this checkpoint.
