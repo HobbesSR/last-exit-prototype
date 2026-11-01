@@ -29,7 +29,8 @@ test('rubble keeps all portal stands and routes clear on rectangular and irregul
     const input = brief(seed, irregular);
     const result = buildRegion(input);
     assert.ok(result.elements.length > 0, `seed ${seed}, irregular ${irregular}`);
-    assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, [],
+    // Rubble places against a live cord, so its proof is the thorough search's (20.10).
+    assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }, { search: 'thorough' }).errors, [],
       `seed ${seed}, irregular ${irregular}`);
     assert.deepEqual(result.elements, buildRegion({ ...input, cells: [...input.cells].reverse() }).elements);
   }
@@ -71,13 +72,19 @@ test('a 1.5-cell rubble gap passes a contestant body and refuses a hunter body',
   const input = brief(9, false, { density: 1, squeezeShare: 1 });
   const result = buildRegion(input);
   const shapes = blockers(result);
-  const left = shapes.find(s => s.kind === 'rect' && s.x === 90 && s.y === 250);
-  const right = shapes.find(s => s.kind === 'rect' && s.x === 170 && s.y === left?.y);
-  assert.ok(left && right, 'an interior pair of lattice debris remains');
-  assert.equal(right.x - (left.x + left.w), 1.5 * input.cellSize);
+  // Any neighbouring pair on a row whose gap a contestant crosses: the live cord decides which
+  // debris stands (#759), so the pair is found rather than pinned.
+  const gap = 1.5 * input.cellSize;
   const mask = createRegionMask(input), clearance = microMetrics({ cellSize: input.cellSize, bodyProfile: 'cell' }).clearance;
-  const x = (left.x + left.w + right.x) / 2;
-  const a = { x, y: left.y - 15 }, b = { x, y: left.y + left.h + 15 };
+  const crossing = (left, right) => {
+    const x = (left.x + left.w + right.x) / 2;
+    return [{ x, y: left.y - 15 }, { x, y: left.y + left.h + 15 }];
+  };
+  const pairs = shapes.flatMap(left => shapes.filter(right => left.kind === 'rect' && right.kind === 'rect' && right.y === left.y
+    && right.x - (left.x + left.w) === gap).map(right => [left, right]));
+  const pair = pairs.find(([left, right]) => travelClear(mask, shapes, ...crossing(left, right), clearance.contestant));
+  assert.ok(pair, 'an interior pair of lattice debris remains');
+  const [a, b] = crossing(...pair);
   assert.equal(travelClear(mask, shapes, a, b, clearance.contestant), true);
   assert.equal(travelClear(mask, shapes, a, b, clearance.hunter), false);
 });

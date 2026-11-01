@@ -6,11 +6,12 @@ import { WAREHOUSE } from '../placeables/warehouse.ts';
 import { PLANT_MACHINE } from '../placeables/plant-machine.ts';
 import { PLANT_PIPE_RUN } from '../placeables/plant-pipe-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
-import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, portalApproaches } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { createBuilderCanvas } from '../canvas.ts';
+import { createProspectiveParcels } from '../prospective-parcels.ts';
 import { boundaryBoxFilter, boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
@@ -28,6 +29,13 @@ const AISLE = CELL_SCALE.doorway;
 /** Cells from one slot to the next. A slot's pieces stay in its first `BAND` cells, so the rest is aisle. */
 const PERIOD = 8, BAND = PERIOD - AISLE;
 const DEFAULT_DENSITY = 0.6, DEFAULT_SHED = 0.5;
+/** The most portals a live cord joins; past this, boxes keep an aisle from the boundary instead. */
+const ROUTED = 32;
+/**
+ * Witness path segments allowed: cords winding to every stand of a many-portal plant pass the
+ * coordinator's default of 4,096, a tool limit rather than a contract (20.10), as park's fronts do.
+ */
+const CORD_SEGMENTS = 16_384;
 /** A machine's sides in cells, and how far its body stands inside them. */
 const MACHINE_MIN = 2, MACHINE_MAX = 4;
 /** How much of a machine's corner a chamfer cuts, in cells, and the chance a machine has one. */
@@ -90,8 +98,11 @@ type Box = { x: number; y: number; w: number; h: number };
  * neighbouring machines through a door-wide gap, with owned aisles around each run. Each stub is
  * its run less both machines' shapes, broken into convex pieces, so it ends on the machine's
  * surface, chamfer included, rather than inside it (#490). Candidate footprints stay clear of
- * portal approaches; concave masks also protect a hunter corridor. Pieces commit through the
- * builder canvas (20.2), whose siting queries they were accepted with, so a refusal is a defect.
+ * portal approaches. Up to `ROUTED` portals, nothing else is reserved between them: pieces commit
+ * through a prospective-parcels coordinator (20.10), which refuses one that would leave no hunter
+ * cord to every portal stand, and a refused piece is passed over (#759). Past that, boxes keep an
+ * aisle from the boundary instead, and pieces commit through the builder canvas (20.2), whose
+ * siting queries they were accepted with, so a refusal there is a defect.
  * A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
  * Residual machinery bands then receive crates, preserving skipped/shed slots, aisles and a local hunter bypass (20.3.4).
  *
@@ -106,19 +117,26 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   // Eligibility is the original area's; the boxes themselves must fit the reduced fill (20.6).
   if (!largestRectangle(createRegionMask(brief), MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  // Routes between portals are protected; past 32 portals that search is too dear, and
-  // boxes keep an aisle from the boundary instead.
-  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const canvas = createBuilderCanvas(brief, routed ? protectedRoutes(brief, 'Plant') : []);
+  // Up to `ROUTED` portals, a live cord joins them (20.10); past that, keeping it is too dear,
+  // and boxes keep an aisle from the boundary instead.
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= ROUTED;
+  const parcels = routed ? createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Plant'),
+    budget: { maxSegments: CORD_SEGMENTS } }) : null;
+  if (parcels && !parcels.ok) throw new Error(`Plant region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
+  const canvas = parcels ? parcels.coordinator : createBuilderCanvas(brief);
 
   // A piece must stay owned, clear of portals and an aisle from other pieces.
   const clear = (box: Box) => {
     const shape = rect(box.x * size, box.y * size, box.w * size, box.h * size);
     return canvas.fits(shape) && (routed || boundary.fits(box)) && canvas.spaced(shape, AISLE * size);
   };
-  // Siting has already accepted these with the canvas's own queries; a refusal is a defect.
+  // Siting has already accepted these with the canvas's own queries. On the coordinator a refusal
+  // means the piece would leave a portal without a cord, and it is passed over; otherwise it is a defect.
+  const commitError = (label: string) => `Plant placement ${label} failed its canvas commit.`;
   const commit = (label: string, assembly: Parameters<typeof canvas.commit>[0]) => {
-    if (!canvas.commit(assembly)) throw new Error(`Plant placement ${label} failed its canvas commit.`);
+    if (canvas.commit(assembly)) return true;
+    if (!routed) throw new Error(commitError(label));
+    return false;
   };
 
   const slots = latticeSlots(brief, mask, PERIOD, { x: CHANNEL.phaseX, y: CHANNEL.phaseY });
@@ -131,17 +149,20 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     const [across, down] = SHEDS[Math.floor(draw(brief.seed, 0, 0, CHANNEL.shedSize) * SHEDS.length)]!;
     const box = (slot: { x: number; y: number }): Box => ({ x: slot.x, y: slot.y, w: across * PERIOD - AISLE, h: down * PERIOD - AISLE });
     const hintedSheds = new Set(boxesAgainstHints(brief, across * PERIOD - AISLE, down * PERIOD - AISLE).map(b => key(b.x, b.y)));
-    const site = slots.map(slot => ({ slot, order: draw(brief.seed, slot.x, slot.y, CHANNEL.shedOrder), hinted: hintedSheds.has(key(slot.x, slot.y)) }))
-      .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.slot.y - b.slot.y || a.slot.x - b.slot.x).find(({ slot }) => clear(box(slot)));
-    if (site) {
+    const sites = slots.map(slot => ({ slot, order: draw(brief.seed, slot.x, slot.y, CHANNEL.shedOrder), hinted: hintedSheds.has(key(slot.x, slot.y)) }))
+      .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.slot.y - b.slot.y || a.slot.x - b.slot.x);
+    // The first site that fits and that the canvas accepts.
+    for (const site of sites) {
+      if (!clear(box(site.slot))) continue;
       const shed = box(site.slot), label = 'plant-shed-1';
-      for (let j = 0; j < down; j++) for (let i = 0; i < across; i++) shedSlots.add(key(site.slot.x + i * PERIOD, site.slot.y + j * PERIOD));
       const seed = Math.floor(draw(brief.seed, shed.x, shed.y, CHANNEL.design) * 2 ** 31);
       const built = expectPlaced(WAREHOUSE.build({ w: shed.w, h: shed.h, alongX: shed.w >= shed.h, seed, appearance: PLANT_SHED_APPEARANCE }, size)), { design, allocation, realization, rejected } = built.details;
+      if (!commit(label, { elements: placedElements(built, label, shed.x, shed.y, size) })) continue;
+      for (let j = 0; j < down; j++) for (let i = 0; i < across; i++) shedSlots.add(key(site.slot.x + i * PERIOD, site.slot.y + j * PERIOD));
       if (design.spaces.length > 1) designed++;
       observe?.({ label, origin: { x: shed.x * size, y: shed.y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
-      commit(label, { elements: placedElements(built, label, shed.x, shed.y, size) });
       sheds = 1;
+      break;
     }
   }
 
@@ -161,7 +182,6 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     const box = { x: hint?.x ?? slot.x + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.jitterX) * (BAND - w + 1)),
       y: hint?.y ?? slot.y + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.jitterY) * (BAND - h + 1)), w, h };
     if (!clear(box)) continue;
-    machines.set(key(slot.x, slot.y), box);
     const chamfered = draw(brief.seed, slot.x, slot.y, CHANNEL.chamfer) < CHAMFERED;
     const machRng = rng(brief.seed, `${brief.id}:machine-appearance:${slot.x}:${slot.y}`);
     const machKind = chamfered ? 'cooling-tower' : machRng.next() < 0.5 ? 'substation' : 'machinery';
@@ -170,10 +190,11 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       : machKind === 'substation'
         ? { material: 'oxidizedMetal', focalRim: { side: 'E', color: 'electricTurquoise' } }
         : { material: 'oxidizedMetal', focalRim: { side: 'S', color: 'hotOrange' } };
-    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered, appearance }, size)), label = `plant-machine-${machines.size}`;
+    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered, appearance }, size)), label = `plant-machine-${machines.size + 1}`;
     const placed = placedElements(built, label, box.x, box.y, size);
+    if (!commit(label, { elements: placed })) continue;
+    machines.set(key(slot.x, slot.y), box);
     machineShapes.set(key(slot.x, slot.y), placed.flatMap(element => elementShapes(element)));
-    commit(label, { elements: placed });
   }
 
   // Pipe runs between neighbouring machines, across then down, each with one door-wide gap.
@@ -211,8 +232,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       // It addresses each stub's cells, flush with its machines' boxes; the gap is left as the aisle it is.
       const areas = [[0, gap], [gap + AISLE, length]].filter(([s, e]) => e > s).map(([s, e]) => across
         ? rect((run.x + s) * size, run.y * size, (e - s) * size, size) : rect(run.x * size, (run.y + s) * size, size, (e - s) * size));
-      commit(element!.label, { elements: [{ ...element!, template: { ...element!.template, parts } }], areas, extents: areas });
-      pipes++;
+      if (commit(element!.label, { elements: [{ ...element!, template: { ...element!.template, parts } }], areas, extents: areas })) pipes++;
     }
   }
 
@@ -229,7 +249,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
           (1 + 2 * AISLE) * size, (1 + 2 * AISLE) * size))
         && clear({ x: cell.x, y: cell.y, w: 1, h: 1 });
     },
-    commitError: label => `Plant placement ${label} failed its canvas commit.`,
+    ...routed ? {} : { commitError },
   });
 
   const elements = [...canvas.elements];
