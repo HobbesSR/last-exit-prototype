@@ -15,8 +15,9 @@ import {
   resolveGroundAppearance,
   getCanonicalFields,
   resolvePropAppearance,
+  applyLightSample,
 } from '../public/appearance.js';
-import { SWATCHES, U, L, T, G } from '../public/palette.js';
+import { SWATCHES, THEMES, contrast, mix, U, L, T, G } from '../public/palette.js';
 import { shapeOf } from '../shared/shape.ts';
 
 test('resolveSwatch resolves all authored palette swatches and uses fallback only for unknown names', () => {
@@ -214,6 +215,85 @@ test('resolvePropAppearance provides bounded virtual lighting on physics props a
   assert.equal(c1[0].id, 'field-a');
   assert.equal(c1[1].id, 'field-b');
   assert.equal(c1, c2, 'getCanonicalFields returns cached sorted array for identical array reference');
+});
+
+// Helper to derive the rendered substrate directly from resolveGroundAppearance ops:
+// - Authored material surfaces (slatePaving) take the 0.38 light scaling from step 1.
+// - All substrates under lighting fields receive the translucent theatrical wash fillRect from step 5.
+function renderSubstrate(sub, theme, field) {
+  const baseColor = sub.colorOf(theme);
+  const items = resolveGroundAppearance({
+    surfaces: sub.isMaterial ? [{ id: 'mat', bounds: field.bounds, material: sub.key }] : [],
+    lighting: { fields: [field] },
+  }, { lighting: true });
+
+  const pavingOp = items.find(i => i.layer === 'paving')?.ops.find(op => op.op === 'fillRect');
+  const surfaceColor = pavingOp ? pavingOp.color : baseColor;
+
+  const washOp = items.find(i => i.layer === 'lighting')?.ops.find(op => op.op === 'fillRect');
+  return washOp ? mix(surfaceColor, washOp.color, washOp.alpha) : surfaceColor;
+}
+
+test('palette x field contrast sweep for dynamic object virtual lighting (#737, Step 5)', () => {
+  // Evaluates all three lighting fields authored in the witness slice (cobalt, magenta, amber).
+  // Uses canonical sampleSpatialLight with fields centered on the evaluation point.
+  const fields = [
+    { id: 'cobalt-intersection', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'cobaltBlue', intensity: 0.42, falloff: 0 },
+    { id: 'magenta-transit-wash', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'showtimeMagenta', intensity: 0.40, falloff: 0 },
+    { id: 'amber-focal-edge', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'sodiumAmber', intensity: 0.45, falloff: 0 },
+  ];
+
+  const basePropFill = 0x8fa9a0;
+  const basePropStroke = 0xdce8d7;
+
+  const substrates = [
+    { key: 'slatePaving', isMaterial: true, colorOf: () => MATERIAL_SWATCH.slatePaving },
+    { key: 'ground', isMaterial: false, colorOf: theme => theme.colors.ground },
+    { key: 'street', isMaterial: false, colorOf: theme => theme.colors.street },
+  ];
+
+  for (const [themeId, theme] of Object.entries(THEMES)) {
+    // 1. Unlit mode across substrates
+    for (const sub of substrates) {
+      const substrateColor = sub.colorOf(theme);
+      const unlitRatio = Number(contrast(basePropFill, substrateColor).toFixed(2));
+      assert.ok(
+        unlitRatio >= 1.50,
+        `[${themeId}] unlit prop maintains contrast floor against ${sub.key} (${unlitRatio} >= 1.50)`
+      );
+    }
+
+    // 2. Lit mode across regional lighting fields and substrates (Tier 2 readability: 29.4)
+    for (const field of fields) {
+      const sample = sampleSpatialLight([field], 50, 50, { lighting: true });
+      const propLit = resolvePropAppearance(basePropFill, basePropStroke, sample, { lighting: true });
+
+      for (const sub of substrates) {
+        const renderedSub = renderSubstrate(sub, theme, field);
+        const fillRatio = Number(contrast(propLit.fill, renderedSub).toFixed(3));
+        const strokeRatio = Number(contrast(propLit.stroke, renderedSub).toFixed(3));
+        const passesTier2 = fillRatio >= 1.50 || (fillRatio >= 1.35 && strokeRatio >= 2.00);
+        assert.ok(
+          passesTier2,
+          `[${themeId}] lit prop in ${field.id} satisfies Tier 2 physical separation against ${sub.key} (fill ${fillRatio}, stroke ${strokeRatio})`
+        );
+      }
+    }
+  }
+});
+
+test('palette x field contrast sweep: signature amber over street satisfies Tier 2 composite separation (41.2 Step 5)', () => {
+  const field = { id: 'amber-focal-edge', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'sodiumAmber', intensity: 0.45, falloff: 0 };
+  const sample = sampleSpatialLight([field], 50, 50, { lighting: true });
+  const propLit = resolvePropAppearance(0x8fa9a0, 0xdce8d7, sample, { lighting: true });
+  const renderedSub = renderSubstrate({ key: 'street', isMaterial: false, colorOf: t => t.colors.street }, THEMES.signature, field);
+  const fillRatio = Number(contrast(propLit.fill, renderedSub).toFixed(3));
+  const strokeRatio = Number(contrast(propLit.stroke, renderedSub).toFixed(3));
+
+  // Tier 2 composite rule (29.4): fill >= 1.35 accompanied by high-contrast stroke >= 2.00
+  assert.equal(fillRatio, 1.475, 'signature amber over street records documented 1.475 fill contrast');
+  assert.ok(fillRatio >= 1.35, `fill ratio maintains Tier 2 floor (${fillRatio} >= 1.35)`);
+  assert.ok(strokeRatio >= 2.00, `stroke ratio maintains high-contrast edge separation (${strokeRatio} >= 2.00)`);
 });
 
 test('spatial composition across two neighboring areas: normalized blending, boundary transition, and long surface splitting (41.2 step 4)', () => {
