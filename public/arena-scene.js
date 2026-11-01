@@ -537,7 +537,25 @@ export function makeArenaScene(api) {
         g.lineStyle(2, 0xffffff, 0.22); g.strokePoints(points, true);
         return;
       }
-      if (o.kind === 'window') { g.fillStyle(ink.glass, 0.65); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, ink.glassEdge); g.strokeRect(o.x, o.y, o.w, o.h); return; }
+      if (o.kind === 'window') {
+        const fill = resolved ? resolved.fill : ink.glass;
+        const edge = resolved ? resolved.outline : ink.glassEdge;
+        g.fillStyle(fill, 0.65); g.fillRect(o.x, o.y, o.w, o.h);
+        g.lineStyle(2, edge); g.strokeRect(o.x, o.y, o.w, o.h);
+        // Specular graphic reflection highlights (11.1 §6, 29.4)
+        const alongX = o.w >= o.h;
+        g.lineStyle(2, 0xffffff, 0.28);
+        if (alongX && o.w >= 16) {
+          const sx = o.x + Math.round(o.w * 0.22);
+          g.lineBetween(sx - 4, o.y + o.h - 2, sx + 4, o.y + 2);
+          g.lineBetween(sx + 2, o.y + o.h - 2, sx + 10, o.y + 2);
+        } else if (!alongX && o.h >= 16) {
+          const sy = o.y + Math.round(o.h * 0.22);
+          g.lineBetween(o.x + 2, sy + 4, o.x + o.w - 2, sy - 4);
+          g.lineBetween(o.x + 2, sy + 10, o.x + o.w - 2, sy + 2);
+        }
+        return;
+      }
       if (o.kind === 'pipe') { g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h); g.fillStyle(ink.pipe); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, ink.pipeEdge, 0.6); o.w > o.h ? g.lineBetween(o.x, o.y + 2, o.x + o.w, o.y + 2) : g.lineBetween(o.x + 2, o.y, o.x + 2, o.y + o.h); return; }
       if (o.kind === 'hedge') { g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h); g.fillStyle(ink.hedge); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, ink.hedgeEdge, 0.7); g.strokeRect(o.x, o.y, o.w, o.h); return; }
       if (o.kind === 'ruin-wall') { g.fillStyle(ink.ruinShadow); g.fillRect(o.x + 5, o.y + 6, o.w, o.h); g.fillStyle(ink.ruin); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, ink.ruinEdge); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2); return; }

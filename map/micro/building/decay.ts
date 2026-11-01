@@ -167,6 +167,38 @@ export function createTieredBuildingAppearance(
     };
   }
 
+  if (base.neglect?.impactCrater) {
+    const craterW = Math.max(16, Math.min(Math.round(bw * 0.28), base.neglect.impactCrater.w ?? 38));
+    const craterH = Math.max(12, Math.min(Math.round(bh * 0.22), base.neglect.impactCrater.h ?? 28));
+    const minX = Math.ceil(craterW / 2) + 8;
+    const maxX = Math.max(minX, bw - Math.ceil(craterW / 2) - 8);
+    const minY = Math.ceil(craterH / 2) + 8;
+    const maxY = Math.max(minY, bh - Math.ceil(craterH / 2) - 8);
+    neglect.impactCrater = {
+      ...base.neglect.impactCrater,
+      dx: Math.round(minX + subRng.next() * (maxX - minX)),
+      dy: Math.round(minY + subRng.next() * (maxY - minY)),
+      w: craterW,
+      h: craterH,
+    };
+  }
+
+  if (base.neglect?.vegetationEdge) {
+    const vegW = Math.max(16, Math.min(Math.round(bw * 0.35), base.neglect.vegetationEdge.w ?? 44));
+    const vegH = Math.max(10, Math.min(Math.round(bh * 0.16), base.neglect.vegetationEdge.h ?? 16));
+    const minX = Math.ceil(vegW / 2) + 8;
+    const maxX = Math.max(minX, bw - Math.ceil(vegW / 2) - 8);
+    const minY = Math.ceil(vegH / 2) + 8;
+    const maxY = Math.max(minY, bh - Math.ceil(vegH / 2) - 8);
+    neglect.vegetationEdge = {
+      ...base.neglect.vegetationEdge,
+      dx: Math.round(minX + subRng.next() * (maxX - minX)),
+      dy: Math.round(minY + subRng.next() * (maxY - minY)),
+      w: vegW,
+      h: vegH,
+    };
+  }
+
   const signScale = tier === 'damaged' ? config.damagedSignScale : undefined;
 
   return {
