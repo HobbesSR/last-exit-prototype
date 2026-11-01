@@ -6,7 +6,18 @@ import { shapeOf, rect } from '../shared/shape.ts';
 import { createGenerationContext } from '../shared/map/context.ts';
 import { placeElement } from '../shared/map/element.ts';
 import { WAREHOUSE } from '../map/micro/placeables/warehouse.ts';
+import { HOUSE } from '../map/micro/placeables/house.ts';
+import { buildBlock } from '../map/micro/strategies/block.ts';
+import { chainBrief } from './helpers/chain-briefs.js';
+import { cellsOf } from './helpers/cells.js';
 import { buildDepot, DEPOT_WAREHOUSE_APPEARANCE } from '../map/micro/strategies/depot.ts';
+import {
+  buildHut,
+  RETAIL_STOREFRONT_PRESETS,
+  RETAIL_STOREFRONT_INTACT,
+  RETAIL_STOREFRONT_WEATHERED,
+  RETAIL_STOREFRONT_DAMAGED,
+} from '../map/micro/strategies/hut.ts';
 import {
   resolveBuildingAppearance,
   resolveObstacleAppearance,
@@ -47,7 +58,12 @@ test('minimal optional appearance descriptor holds only the 7 step-2 fields', ()
     'neglect',
   ]);
   for (const k of Object.keys(DEPOT_WAREHOUSE_APPEARANCE)) {
-    assert.ok(allowedBuildingKeys.has(k), `building appearance field ${k} is allowed`);
+    assert.ok(allowedBuildingKeys.has(k), `warehouse appearance field ${k} is allowed`);
+  }
+  for (const preset of RETAIL_STOREFRONT_PRESETS) {
+    for (const k of Object.keys(preset)) {
+      assert.ok(allowedBuildingKeys.has(k), `storefront appearance field ${k} is allowed`);
+    }
   }
 });
 
@@ -232,6 +248,169 @@ test('existing depot region strategy adopts DEPOT_WAREHOUSE_APPEARANCE on all pl
   }
 });
 
+test('HOUSE placeable attaches appearance when provided and leaves undefined when omitted', () => {
+  const cellSize = 40;
+  // 1. One-space house without appearance
+  const unstyledOne = HOUSE.build({ w: 4, h: 4, door: 'S', spaces: 1, seed: 0 }, cellSize);
+  assert.equal(unstyledOne.elements[0].template.appearance, undefined);
+
+  // 2. One-space house with storefront intact appearance
+  const styledOne = HOUSE.build({ w: 4, h: 4, door: 'S', spaces: 1, seed: 0, appearance: RETAIL_STOREFRONT_INTACT }, cellSize);
+  assert.deepEqual(styledOne.elements[0].template.appearance, { building: RETAIL_STOREFRONT_INTACT });
+
+  // 3. Multi-space house without appearance
+  const unstyledMulti = HOUSE.build({ w: 6, h: 4, door: 'N', spaces: 2, seed: 5 }, cellSize);
+  assert.equal(unstyledMulti.elements[0].template.appearance, undefined);
+
+  // 4. Multi-space house with storefront weathered appearance
+  const styledMulti = HOUSE.build({ w: 6, h: 4, door: 'N', spaces: 2, seed: 5, appearance: RETAIL_STOREFRONT_WEATHERED }, cellSize);
+  assert.deepEqual(styledMulti.elements[0].template.appearance, { building: RETAIL_STOREFRONT_WEATHERED });
+});
+
+test('existing hut region strategy adopts commercial retail storefront appearance presets across decay tiers', () => {
+  const tiersSeen = new Set();
+  const allHutBuildings = [];
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+    const brief = chainBrief({
+      id: `hut-test-${seed}`,
+      type: 'hut',
+      seed,
+      cells: cellsOf(32, 24),
+      portals: [
+        { id: 'w', axis: 'v', x: 0, y: 8, length: 3 },
+        { id: 'e', axis: 'v', x: 32, y: 12, length: 3 },
+      ],
+    });
+    const region = buildHut(brief);
+    const buildings = region.elements.filter(e => /^hut-building(?:-\d+)?$/.test(e.label));
+    assert.ok(buildings.length > 0, `hut generates buildings for seed ${seed}`);
+
+    for (const b of buildings) {
+      const app = b.template.appearance?.building;
+      assert.ok(app, `${b.label} carries building appearance`);
+      assert.ok(app.roofSign, `${b.label} carries commercial roofSign`);
+      allHutBuildings.push(b);
+
+      if (!app.neglect) tiersSeen.add('intact');
+      else if (app.neglect.scorchMark) tiersSeen.add('damaged');
+      else tiersSeen.add('weathered');
+    }
+  }
+
+  assert.equal(tiersSeen.size, 3, 'all 3 decay tiers (intact, weathered, damaged) appear across seed sample');
+
+  // Verify non-repeating wear and scorch placement across buildings (no identical repeated coordinates):
+  const damaged = allHutBuildings.filter(b => b.template.appearance?.building?.neglect?.scorchMark);
+  assert.ok(damaged.length > 0, 'sample contains competition-damaged buildings');
+  const scorchCoords = new Set(damaged.map(b => {
+    const sc = b.template.appearance.building.neglect.scorchMark;
+    return `${sc.dx},${sc.dy}:${sc.w}x${sc.h}`;
+  }));
+  assert.ok(scorchCoords.size > 1, 'damaged buildings do not repeat identical scorch mark coordinates/sizes');
+
+  const weathered = allHutBuildings.filter(b => b.template.appearance?.building?.neglect?.roofDrainStain && !b.template.appearance?.building?.neglect?.scorchMark);
+  assert.ok(weathered.length > 0, 'sample contains weathered buildings');
+  const drainCoords = new Set(weathered.map(b => {
+    const ds = b.template.appearance.building.neglect.roofDrainStain;
+    return `${ds.dx},${ds.dy}`;
+  }));
+  assert.ok(drainCoords.size > 1, 'weathered buildings do not repeat identical drain stain coordinates');
+
+  // Verify damaged storefront resolves scorch group on roof and soot mark on floor
+  const damagedSample = damaged[0];
+  const resolvedDamaged = resolveBuildingAppearance({ id: 'dmg-1', x: 100, y: 100, w: 200, h: 160, appearance: damagedSample.template.appearance.building }, {}, { wear: true });
+  assert.ok(resolvedDamaged.roofMarks.some(m => m.layer === 'wear-scorch-halo'), 'damaged building resolves scorch halo on roof');
+  assert.ok(resolvedDamaged.roofMarks.some(m => m.layer === 'wear-scorch-core'), 'damaged building resolves scorch core on roof');
+  assert.ok(resolvedDamaged.roofMarks.some(m => m.layer === 'wear-scorch-streak'), 'damaged building resolves scorch blast streak on roof');
+  assert.ok(resolvedDamaged.floorMarks.some(m => m.layer === 'neglect-stain'), 'damaged building resolves soot stain on floor');
+
+  // Verify stamping and presentation resolution on a styled hut
+  const sampleBrief = chainBrief({
+    id: 'hut-sample',
+    type: 'hut',
+    seed: 1,
+    cells: cellsOf(32, 24),
+    portals: [
+      { id: 'w', axis: 'v', x: 0, y: 8, length: 3 },
+      { id: 'e', axis: 'v', x: 32, y: 12, length: 3 },
+    ],
+  });
+  const sampleRegion = buildHut(sampleBrief);
+  const ctx = createGenerationContext(99999);
+  for (const elem of sampleRegion.elements) {
+    placeElement(ctx, elem.template, elem.x, elem.y, { nodeId: sampleBrief.id });
+  }
+
+  assert.ok(ctx.map.buildings.length > 0);
+  for (const b of ctx.map.buildings) {
+    assert.ok(b.appearance, 'stamped hut building carries appearance');
+    const resolved = resolveBuildingAppearance(b, {}, { palette: 'signature', wear: true });
+    assert.ok(resolved.floorFill > 0);
+    assert.ok(resolved.roofFill > 0);
+    assert.ok(resolved.roofMarks.length > 0, 'stamped hut resolves roofMarks (sign backing / sign / stripe)');
+  }
+});
+
+test('stamping styled HOUSE consumes zero simulation RNG, allocates identical IDs, and preserves shapes', () => {
+  const cellSize = 40;
+  const unstyled = HOUSE.build({ w: 6, h: 4, door: 'N', spaces: 2, seed: 17 }, cellSize);
+  const styled = HOUSE.build({ w: 6, h: 4, door: 'N', spaces: 2, seed: 17, appearance: RETAIL_STOREFRONT_DAMAGED }, cellSize);
+
+  const ctxFresh = createGenerationContext(54321);
+  const baselineFirstRng = ctxFresh.random();
+
+  const ctxU = createGenerationContext(54321);
+  placeElement(ctxU, unstyled.elements[0].template, 120, 160, { nodeId: 'test-node', locked: false });
+  const rngAfterU = ctxU.random();
+  assert.equal(rngAfterU, baselineFirstRng, 'placeElement on HOUSE consumes 0 simulation RNG');
+
+  const ctxS = createGenerationContext(54321);
+  placeElement(ctxS, styled.elements[0].template, 120, 160, { nodeId: 'test-node', locked: false });
+  const rngAfterS = ctxS.random();
+  assert.equal(rngAfterS, baselineFirstRng, 'placeElement on styled HOUSE consumes 0 simulation RNG');
+  assert.equal(rngAfterS, rngAfterU, 'styled and unstyled HOUSE advance simulation RNG identically');
+
+  assert.equal(ctxU.map.buildings.length, ctxS.map.buildings.length);
+  assert.equal(ctxU.map.obstacles.length, ctxS.map.obstacles.length);
+  assert.equal(ctxU.map.gates.length, ctxS.map.gates.length);
+
+  for (let i = 0; i < ctxU.map.buildings.length; i++) {
+    assert.equal(ctxS.map.buildings[i].id, ctxU.map.buildings[i].id);
+    assert.equal(ctxS.map.buildings[i].x, ctxU.map.buildings[i].x);
+    assert.equal(ctxS.map.buildings[i].y, ctxU.map.buildings[i].y);
+    assert.equal(ctxS.map.buildings[i].w, ctxU.map.buildings[i].w);
+    assert.equal(ctxS.map.buildings[i].h, ctxU.map.buildings[i].h);
+  }
+
+  for (let i = 0; i < ctxU.map.obstacles.length; i++) {
+    const oU = ctxU.map.obstacles[i];
+    const oS = ctxS.map.obstacles[i];
+    assert.equal(oS.id, oU.id);
+    assert.deepEqual(shapeOf(oS), shapeOf(oU), `HOUSE obstacle ${i} collision shapeOf matches byte-for-byte`);
+  }
+});
+
+test('block region strategy propagates storefront appearance to child hut lots', () => {
+  const brief = chainBrief({
+    id: 'block-retail-test',
+    type: 'block',
+    seed: 3,
+    cells: cellsOf(28, 20),
+    portals: [
+      { id: 'w', axis: 'v', x: 0, y: 10, length: 2 },
+      { id: 'e', axis: 'v', x: 28, y: 10, length: 2 },
+    ],
+  });
+  const region = buildBlock(brief);
+  const hutBuildings = region.elements.filter(e => e.label.includes('hut-building'));
+  assert.ok(hutBuildings.length > 0, 'block region contains at least one hut building');
+  for (const b of hutBuildings) {
+    const app = b.template.appearance?.building;
+    assert.ok(app, `block hut building ${b.label} carries appearance`);
+    assert.ok(app.roofSign, `block hut building ${b.label} carries storefront roofSign`);
+  }
+});
+
 test('stamping adopted building consumes zero simulation RNG, allocates identical IDs, and preserves shapes', () => {
   const cellSize = 40;
   const unstyled = WAREHOUSE.build({ w: 8, h: 6, alongX: true, seed: 42 }, cellSize);
@@ -348,11 +527,21 @@ test('chain map export/load round-trips via JSON and BSON and legacy maps load c
 
   // Stamping into live map preserves appearance on GameMap.buildings
   const liveMap = liveMapFromBuilt(1, composeRegions(loadedJson.results));
-  const warehousesWithApp = liveMap.buildings.filter(b => b.appearance);
-  assert.ok(warehousesWithApp.length > 0, 'live map has buildings with appearance');
-  for (const wh of warehousesWithApp) {
-    assert.deepEqual(wh.appearance, DEPOT_WAREHOUSE_APPEARANCE);
+  const buildingsWithApp = liveMap.buildings.filter(b => b.appearance);
+  assert.ok(buildingsWithApp.length > 0, 'live map has buildings with appearance');
+  const depotBuildings = buildingsWithApp.filter(b => b.nodeId === depotResult.brief.id);
+  assert.ok(depotBuildings.length > 0, 'depot buildings have appearance');
+  for (const b of depotBuildings) {
+    assert.deepEqual(b.appearance, DEPOT_WAREHOUSE_APPEARANCE);
   }
+  const hutResult = chain.results.find(r => r.brief.type === 'hut');
+  assert.ok(hutResult, 'chain map contains hut region');
+  const hutBuildings = buildingsWithApp.filter(b => b.nodeId === hutResult.brief.id);
+  assert.ok(hutBuildings.length > 0, 'hut buildings have appearance');
+  for (const b of hutBuildings) {
+    assert.ok(b.appearance.roofSign, 'hut building carries storefront appearance with roofSign');
+  }
+
 
   // 2. Legacy map without appearance loads and plays cleanly
   const legacyMap = {

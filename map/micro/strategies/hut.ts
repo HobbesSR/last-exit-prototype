@@ -11,6 +11,7 @@ import { placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
+import type { BuildingAppearance } from '../../../shared/types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { delegateYardCandidates, yardDiagnostics, yardExtentBoxes } from '../yard-handoff.ts';
@@ -39,8 +40,257 @@ const LARGER: ReadonlyArray<{ spaces: number; boxes: ReadonlyArray<readonly [num
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
 /** A box's house with its door on one side, as `HOUSE` builds it, or nothing where it refuses. */
 type House = Placed<HouseDetails>;
-const houseFor = (w: number, h: number, door: Side, spaces: number, size: number, seed: number): House | undefined => {
-  const result = HOUSE.build({ w, h, door, spaces, seed }, size);
+/**
+ * Authored minimal appearance descriptors for commercial retail storefronts (41.2 Step 5 / #586, #585, 11.1 §5.5).
+ * Three visual decay tiers:
+ * - `RETAIL_STOREFRONT_INTACT`: Surviving storefront-teal paint, clean coral signage, warm masonry, concrete floor.
+ * - `RETAIL_STOREFRONT_WEATHERED`: Weathered coral roof, dusty stucco, faded teal signage, drainage stain, warm masonry floor.
+ * - `RETAIL_STOREFRONT_DAMAGED`: Dirty cream roof, old red signage, cool concrete, cracked slate paving, drainage stain, floor stain, and competition scorch mark.
+ */
+export const RETAIL_STOREFRONT_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'concrete',
+  wallMaterial: 'warmMasonry',
+  roofPaint: 'storefrontTeal',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'weatheredCoral',
+    backing: 'structuralVoid',
+    stripe: 'dirtyCream',
+    dx: 18,
+    dy: 14,
+    w: 72,
+    h: 18,
+  },
+});
+
+export const RETAIL_STOREFRONT_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'warmMasonry',
+  wallMaterial: 'dustyStucco',
+  roofPaint: 'weatheredCoral',
+  roofRim: 'storefrontTeal',
+  interiorTrim: 'storefrontTeal',
+  roofSign: {
+    color: 'storefrontTeal',
+    backing: 'structuralVoid',
+    stripe: 'awningsYellow',
+    dx: 16,
+    dy: 14,
+    w: 68,
+    h: 18,
+  },
+  neglect: {
+    fadedPanel: { dx: 16, dy: 36, w: 48, h: 24 },
+    roofDrainStain: { dx: 80, dy: 30, w: 28, h: 20 },
+  },
+});
+
+export const RETAIL_STOREFRONT_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'dirtyCream',
+  roofRim: 'oldSignRed',
+  interiorTrim: 'oldSignRed',
+  roofSign: {
+    color: 'oldSignRed',
+    backing: 'structuralVoid',
+    stripe: 'weatheredCoral',
+    dx: 20,
+    dy: 14,
+    w: 64,
+    h: 18,
+  },
+  neglect: {
+    fadedPanel: { dx: 20, dy: 34, w: 44, h: 22 },
+    roofDrainStain: { dx: 100, dy: 30, w: 26, h: 18 },
+    floorStain: { dx: 80, dy: 60, w: 32, h: 22 },
+    scorchMark: { dx: 50, dy: 80, w: 48, h: 32 },
+  },
+});
+
+export const RETAIL_STOREFRONT_PRESETS: readonly BuildingAppearance[] = Object.freeze([
+  RETAIL_STOREFRONT_INTACT,
+  RETAIL_STOREFRONT_WEATHERED,
+  RETAIL_STOREFRONT_DAMAGED,
+]);
+
+export interface StorefrontAppearanceOptions {
+  seed?: number | undefined;
+  roll?: number | undefined;
+  w?: number | undefined;
+  h?: number | undefined;
+  door?: Side | undefined;
+}
+
+/**
+ * Procedural appearance generator for commercial retail storefronts across intact, weathered, and
+ * competition-damaged visual decay tiers (11.1 §5.5, 41.2 Step 5, #586 / #585).
+ * Generates bounded palette variants and footprint-aware, non-repeating wear and scorch placement.
+ */
+export function createStorefrontAppearance(options: StorefrontAppearanceOptions = {}): BuildingAppearance {
+  const roll = options.roll ?? (options.seed !== undefined ? rng(options.seed, 'tier').next() : 0);
+  const bw = options.w ?? 160;
+  const bh = options.h ?? 160;
+  const door = options.door ?? 'S';
+  const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), `${bw}x${bh}:${door}`);
+
+  const tier = roll < 0.33 ? 'intact' : roll < 0.67 ? 'weathered' : 'damaged';
+  const base = tier === 'intact'
+    ? RETAIL_STOREFRONT_INTACT
+    : tier === 'weathered'
+      ? RETAIL_STOREFRONT_WEATHERED
+      : RETAIL_STOREFRONT_DAMAGED;
+
+  // Frontage-aware sign placement (proportional to footprint width, positioned along door frontage):
+  const signW = Math.max(36, Math.min(bw - 32, Math.round(bw * (0.45 + subRng.next() * 0.2))));
+  const signH = 18;
+  let signDx = Math.round(16 + subRng.next() * Math.max(0, bw - signW - 32));
+  let signDy = 14;
+  if (door === 'S') {
+    signDy = Math.max(14, bh - signH - 16);
+  } else if (door === 'N') {
+    signDy = 14;
+  } else if (door === 'W') {
+    signDx = 14;
+    signDy = Math.round(16 + subRng.next() * Math.max(0, bh - signH - 32));
+  } else if (door === 'E') {
+    signDx = Math.max(14, bw - signW - 16);
+    signDy = Math.round(16 + subRng.next() * Math.max(0, bh - signH - 32));
+  }
+
+  if (tier === 'intact') {
+    return {
+      floorMaterial: base.floorMaterial,
+      wallMaterial: base.wallMaterial,
+      roofPaint: base.roofPaint,
+      roofRim: base.roofRim,
+      interiorTrim: base.interiorTrim,
+      roofSign: {
+        ...base.roofSign!,
+        dx: signDx,
+        dy: signDy,
+        w: signW,
+        h: signH,
+      },
+    };
+  }
+
+  if (tier === 'weathered') {
+    // Varied non-repeating wear placement:
+    // fadedPanel is top-left offset bounded in [12, bw - panelW - 12]
+    const panelW = Math.max(28, Math.min(bw - 32, Math.round(bw * (0.28 + subRng.next() * 0.18))));
+    const panelH = Math.max(18, Math.min(bh - 32, Math.round(bh * (0.16 + subRng.next() * 0.12))));
+    const panelDx = Math.round(12 + subRng.next() * Math.max(0, bw - panelW - 24));
+    const panelDy = door === 'S'
+      ? Math.round(12 + subRng.next() * Math.max(0, bh * 0.45 - 12))
+      : Math.round(Math.max(12, bh * 0.4 + subRng.next() * Math.max(0, bh * 0.45 - panelH)));
+
+    // roofDrainStain is center offset bounded in [12 + drainW / 2, bw - 12 - drainW / 2]
+    const drainW = Math.round(24 + subRng.next() * 10);
+    const drainH = Math.round(18 + subRng.next() * 8);
+    const minDrainX = 12 + Math.ceil(drainW / 2);
+    const maxDrainX = Math.max(minDrainX, bw - 12 - Math.ceil(drainW / 2));
+    const minDrainY = 12 + Math.ceil(drainH / 2);
+    const maxDrainY = Math.max(minDrainY, bh - 12 - Math.ceil(drainH / 2));
+    const drainDx = Math.round(minDrainX + subRng.next() * (maxDrainX - minDrainX));
+    const drainDy = Math.round(minDrainY + subRng.next() * (maxDrainY - minDrainY));
+
+    // floorStain is center offset bounded in [24 + floorStainW / 2, bw - 24 - floorStainW / 2]
+    const floorStainW = Math.round(28 + subRng.next() * 16);
+    const floorStainH = Math.round(20 + subRng.next() * 12);
+    const minFloorX = 24 + Math.ceil(floorStainW / 2);
+    const maxFloorX = Math.max(minFloorX, bw - 24 - Math.ceil(floorStainW / 2));
+    const minFloorY = 24 + Math.ceil(floorStainH / 2);
+    const maxFloorY = Math.max(minFloorY, bh - 24 - Math.ceil(floorStainH / 2));
+    const floorStainDx = Math.round(minFloorX + subRng.next() * (maxFloorX - minFloorX));
+    const floorStainDy = Math.round(minFloorY + subRng.next() * (maxFloorY - minFloorY));
+
+    return {
+      floorMaterial: base.floorMaterial,
+      wallMaterial: base.wallMaterial,
+      roofPaint: base.roofPaint,
+      roofRim: base.roofRim,
+      interiorTrim: base.interiorTrim,
+      roofSign: {
+        ...base.roofSign!,
+        dx: signDx,
+        dy: signDy,
+        w: signW,
+        h: signH,
+      },
+      neglect: {
+        fadedPanel: { dx: panelDx, dy: panelDy, w: panelW, h: panelH },
+        roofDrainStain: { dx: drainDx, dy: drainDy, w: drainW, h: drainH },
+        ...(subRng.next() < 0.6 ? { floorStain: { dx: floorStainDx, dy: floorStainDy, w: floorStainW, h: floorStainH } } : {}),
+      },
+    };
+  }
+
+  // Damaged tier: Competition scorch mark + heavy wear
+  // scorchMark is center offset bounded in [12 + scorchW / 2, bw - 12 - scorchW / 2]
+  const scorchW = Math.max(32, Math.min(bw - 28, Math.round(bw * (0.32 + subRng.next() * 0.16))));
+  const scorchH = Math.max(24, Math.min(bh - 28, Math.round(bh * (0.22 + subRng.next() * 0.12))));
+  const minScorchX = 12 + Math.ceil(scorchW / 2);
+  const maxScorchX = Math.max(minScorchX, bw - 12 - Math.ceil(scorchW / 2));
+  const minScorchY = 12 + Math.ceil(scorchH / 2);
+  const maxScorchY = Math.max(minScorchY, bh - 12 - Math.ceil(scorchH / 2));
+  const scorchDx = Math.round(minScorchX + subRng.next() * (maxScorchX - minScorchX));
+  const scorchDy = Math.round(minScorchY + subRng.next() * (maxScorchY - minScorchY));
+
+  // fadedPanel is top-left offset bounded in [12, bw - panelW - 12]
+  const panelW = Math.max(26, Math.min(bw - 32, Math.round(bw * (0.25 + subRng.next() * 0.15))));
+  const panelH = Math.max(16, Math.min(bh - 32, Math.round(bh * (0.15 + subRng.next() * 0.1))));
+  const panelDx = Math.round(12 + subRng.next() * Math.max(0, bw - panelW - 24));
+  const panelDy = Math.round(12 + subRng.next() * Math.max(0, bh - panelH - 24));
+
+  // roofDrainStain is center offset bounded in [12 + drainW / 2, bw - 12 - drainW / 2]
+  const drainW = Math.round(26 + subRng.next() * 8);
+  const drainH = Math.round(18 + subRng.next() * 8);
+  const minDrainX = 12 + Math.ceil(drainW / 2);
+  const maxDrainX = Math.max(minDrainX, bw - 12 - Math.ceil(drainW / 2));
+  const minDrainY = 12 + Math.ceil(drainH / 2);
+  const maxDrainY = Math.max(minDrainY, bh - 12 - Math.ceil(drainH / 2));
+  const drainDx = Math.round(minDrainX + subRng.next() * (maxDrainX - minDrainX));
+  const drainDy = Math.round(minDrainY + subRng.next() * (maxDrainY - minDrainY));
+
+  // floorStain is center offset bounded in [24 + floorStainW / 2, bw - 24 - floorStainW / 2]
+  const floorStainW = Math.round(36 + subRng.next() * 16);
+  const floorStainH = Math.round(24 + subRng.next() * 14);
+  const minFloorX = 24 + Math.ceil(floorStainW / 2);
+  const maxFloorX = Math.max(minFloorX, bw - 24 - Math.ceil(floorStainW / 2));
+  const minFloorY = 24 + Math.ceil(floorStainH / 2);
+  const maxFloorY = Math.max(minFloorY, bh - 24 - Math.ceil(floorStainH / 2));
+  const floorStainDx = Math.round(minFloorX + subRng.next() * (maxFloorX - minFloorX));
+  const floorStainDy = Math.round(minFloorY + subRng.next() * (maxFloorY - minFloorY));
+
+  return {
+    floorMaterial: base.floorMaterial,
+    wallMaterial: base.wallMaterial,
+    roofPaint: base.roofPaint,
+    roofRim: base.roofRim,
+    interiorTrim: base.interiorTrim,
+    roofSign: {
+      ...base.roofSign!,
+      dx: signDx,
+      dy: signDy,
+      w: Math.max(28, Math.round(signW * 0.75)),
+      h: signH,
+    },
+    neglect: {
+      fadedPanel: { dx: panelDx, dy: panelDy, w: panelW, h: panelH },
+      roofDrainStain: { dx: drainDx, dy: drainDy, w: drainW, h: drainH },
+      floorStain: { dx: floorStainDx, dy: floorStainDy, w: floorStainW, h: floorStainH },
+      scorchMark: { dx: scorchDx, dy: scorchDy, w: scorchW, h: scorchH },
+    },
+  };
+}
+
+export function selectStorefrontAppearance(roll: number, footprint?: { w?: number; h?: number; door?: Side }): BuildingAppearance {
+  return createStorefrontAppearance({ roll, ...footprint });
+}
+
+const houseFor = (w: number, h: number, door: Side, spaces: number, size: number, seed: number, appearance?: BuildingAppearance): House | undefined => {
+  const result = HOUSE.build({ w, h, door, spaces, seed, ...(appearance ? { appearance } : {}) }, size);
   return 'refused' in result ? undefined : result;
 };
 
@@ -110,12 +360,21 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   for (let index = 0; index < MAX_HOUSES; index++) {
     const suffix = index ? `:house-${index}` : '';
     const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design${suffix}`).next() * 2 ** 31);
+    const appearanceSeed = Math.floor(rng(brief.seed, `${brief.id}:hut-appearance${suffix}`).next() * 2 ** 31);
     let site: Site | undefined;
     for (const { spaces, boxes } of LARGER) {
       const houses = new Map<string, House | null>();
       const cached = (w: number, h: number, side: Side) => {
         const key = `${w},${h},${side}`;
-        if (!houses.has(key)) houses.set(key, houseFor(w, h, side, spaces, size, seed) ?? null);
+        if (!houses.has(key)) {
+          const app = createStorefrontAppearance({
+            seed: appearanceSeed,
+            w: w * size,
+            h: h * size,
+            door: side,
+          });
+          houses.set(key, houseFor(w, h, side, spaces, size, seed, app) ?? null);
+        }
         return houses.get(key) ?? undefined;
       };
       site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}${suffix}`, cached, sites, canvas);
@@ -123,7 +382,15 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
     }
     const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
     site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site${suffix}`,
-      (w, h, side) => houseFor(w, h, side, 1, size, seed), sites, canvas);
+      (w, h, side) => {
+        const app = createStorefrontAppearance({
+          seed: appearanceSeed,
+          w: w * size,
+          h: h * size,
+          door: side,
+        });
+        return houseFor(w, h, side, 1, size, seed, app);
+      }, sites, canvas);
     if (!site) break;
     const { design, allocation, realization } = site.house.details;
     const label = index ? `hut-building-${index + 1}` : 'hut-building';

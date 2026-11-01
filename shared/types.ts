@@ -462,9 +462,14 @@ export interface BuildingRoofSignAppearance {
 }
 
 export interface BuildingNeglectAppearance {
+  /** Top-left offset `(dx, dy)` in template-local world units relative to building origin. */
   fadedPanel?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
+  /** Center offset `(dx, dy)` in template-local world units relative to building origin. */
   roofDrainStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
+  /** Center offset `(dx, dy)` in template-local world units relative to building origin. */
   floorStain?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined; x?: number | undefined; y?: number | undefined } | undefined;
+  /** Center offset `(dx, dy)` in template-local world units relative to building origin. */
+  scorchMark?: { dx?: number | undefined; dy?: number | undefined; w?: number | undefined; h?: number | undefined } | undefined;
 }
 
 export interface BuildingAppearance {

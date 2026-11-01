@@ -5,7 +5,7 @@
 
 import { SWATCHES, themeColors, mix, U, L, T, G } from './palette.js';
 
-export const APPEARANCE_RECIPE_VERSION = 1;
+export const APPEARANCE_RECIPE_VERSION = 2;
 
 export const MATERIAL_SWATCH = Object.freeze({
   // Urban foundations
@@ -322,6 +322,33 @@ export function resolveBuildingAppearance(building, mapAppearance, options = {})
       { kind: 'ellipse', layer: 'wear-drain-pool', x: dx, y: dy, w: dw, h: dh, color: U.structuralVoid, alpha: 0.48 },
       { kind: 'rect', layer: 'wear-drain-streak', x: dx - 6, y: dy - 20, w: 12, h: 34, color: mix(U.structuralVoid, U.oxidizedMetal, 0.35), alpha: 0.44 },
     );
+  }
+
+  // Roof competition scar / scorch mark (11.1 §5.5, 41.2)
+  if (art.wear && desc?.neglect?.scorchMark) {
+    const sc = desc.neglect.scorchMark;
+    const sw = Math.min(sc.w ?? 44, Math.max(16, building.w - 32));
+    const sh = Math.min(sc.h ?? 30, Math.max(12, building.h - 32));
+    const sx = Math.max(building.x + sw / 2 + 12, Math.min(building.x + building.w - sw / 2 - 12, building.x + (sc.dx ?? 40)));
+    const sy = Math.max(building.y + sh / 2 + 12, Math.min(building.y + building.h - sh / 2 - 12, building.y + (sc.dy ?? 40)));
+    const soot = U.structuralVoid;
+    const ash = mix(U.structuralVoid, U.weatheredBrick, 0.32);
+    const ember = mix(U.oxidizedMetal, U.structuralVoid, 0.45);
+    roofMarks.push(
+      { kind: 'ellipse', layer: 'wear-scorch-halo', x: sx, y: sy, w: sw, h: sh, color: ash, alpha: 0.52 },
+      { kind: 'ellipse', layer: 'wear-scorch-core', x: sx - 3, y: sy + 1, w: sw * 0.62, h: sh * 0.58, color: soot, alpha: 0.68 },
+      { kind: 'line', layer: 'wear-scorch-streak', x1: sx - sw * 0.35, y1: sy - sh * 0.15, x2: sx + sw * 0.32, y2: sy + sh * 0.2, width: 3, color: ember, alpha: 0.6 },
+    );
+    floorMarks.push({
+      kind: 'ellipse',
+      layer: 'neglect-stain',
+      x: sx,
+      y: sy,
+      w: Math.max(20, sw * 0.7),
+      h: Math.max(16, sh * 0.65),
+      color: mix(U.structuralVoid, U.weatheredBrick, 0.35),
+      alpha: 0.5,
+    });
   }
 
   return {

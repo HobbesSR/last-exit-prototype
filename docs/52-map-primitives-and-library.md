@@ -51,7 +51,7 @@ and `MapAppearance`).
   inside `ElementTemplate` round-trip through JSON/BSON without altering wire schema or
   requiring migration.
 - **What bumps `APPEARANCE_RECIPE_VERSION`:** Presentation-only recipe version
-  (`APPEARANCE_RECIPE_VERSION = 1` in `public/appearance.js`) governs client cache
+  (`APPEARANCE_RECIPE_VERSION = 2` in `public/appearance.js`) governs client cache
   identity for static tile rasterisation. It bumps ONLY when the presentation hash
   algorithm or visual resolution recipe in `public/appearance.js` changes in a way that
   invalidates cached static tiles. It never bumps wire or simulation schemas.

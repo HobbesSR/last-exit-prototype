@@ -35,6 +35,14 @@ export type { BuildingRoofGroups } from './building/groups.ts';
 export type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 export { allocateBuilding } from './building/allocation.ts';
 export { DEPOT_WAREHOUSE_APPEARANCE } from './strategies/depot.ts';
+export {
+  RETAIL_STOREFRONT_INTACT,
+  RETAIL_STOREFRONT_WEATHERED,
+  RETAIL_STOREFRONT_DAMAGED,
+  RETAIL_STOREFRONT_PRESETS,
+  selectStorefrontAppearance,
+  createStorefrontAppearance,
+} from './strategies/hut.ts';
 
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
 
