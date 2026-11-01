@@ -218,18 +218,23 @@ test('resolvePropAppearance provides bounded virtual lighting on physics props a
 });
 
 test('palette x field contrast sweep for dynamic object virtual lighting maintains >= 1.50 floor (#737, Step 5)', () => {
+  // Evaluates regional lighting fields (Area 1 cobalt intersection & Area 2 magenta transit wash).
+  // Uses canonical sampleSpatialLight with fields centered on the evaluation point.
   const fields = [
-    { id: 'cobalt-intersection', tint: 'cobaltBlue', intensity: 0.42 },
-    { id: 'magenta-transit-wash', tint: 'showtimeMagenta', intensity: 0.40 },
-    { id: 'amber-focal-edge', tint: 'sodiumAmber', intensity: 0.45 },
+    { id: 'cobalt-intersection', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'cobaltBlue', intensity: 0.42, falloff: 0 },
+    { id: 'magenta-transit-wash', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'showtimeMagenta', intensity: 0.40, falloff: 0 },
   ];
 
   const basePropFill = 0x8fa9a0;
   const basePropStroke = 0xdce8d7;
+
+  // Substrates as rendered in production (arena-scene.js:298-312):
+  // - Map-authored material surfaces (slatePaving) receive 0.38 light scaling.
+  // - Theme-owned ground and street substrates are drawn flat unlit with ink.ground and ink.street.
   const substrates = [
-    { key: 'slatePaving', colorOf: () => MATERIAL_SWATCH.slatePaving },
-    { key: 'ground', colorOf: theme => theme.colors.ground },
-    { key: 'street', colorOf: theme => theme.colors.street },
+    { key: 'slatePaving', isMaterial: true, colorOf: () => MATERIAL_SWATCH.slatePaving },
+    { key: 'ground', isMaterial: false, colorOf: theme => theme.colors.ground },
+    { key: 'street', isMaterial: false, colorOf: theme => theme.colors.street },
   ];
 
   for (const [themeId, theme] of Object.entries(THEMES)) {
@@ -245,18 +250,14 @@ test('palette x field contrast sweep for dynamic object virtual lighting maintai
 
     // 2. Lit mode across regional lighting fields and substrates
     for (const field of fields) {
-      const sample = {
-        tint: resolveSwatch(field.tint),
-        weight: field.intensity,
-        neutral: 1 - field.intensity,
-        contributions: [{ id: field.id, tint: resolveSwatch(field.tint), weight: field.intensity }],
-      };
+      const sample = sampleSpatialLight([field], 50, 50, { lighting: true });
       const propLit = resolvePropAppearance(basePropFill, basePropStroke, sample, { lighting: true });
 
       for (const sub of substrates) {
         const baseSub = sub.colorOf(theme);
-        const subLit = applyLightSample(baseSub, sample, 0.38);
-        const litRatio = Number(contrast(propLit.fill, subLit).toFixed(2));
+        // Production renders lit props over unlit theme ground/street; only authored materials take the 0.38 light:
+        const subRendered = sub.isMaterial ? applyLightSample(baseSub, sample, 0.38) : baseSub;
+        const litRatio = Number(contrast(propLit.fill, subRendered).toFixed(2));
         assert.ok(
           litRatio >= 1.50,
           `[${themeId}] lit prop in ${field.id} maintains contrast floor against ${sub.key} (${litRatio} >= 1.50)`

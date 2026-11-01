@@ -472,6 +472,8 @@ function createWitnessScene() {
     { id: 'prop-box', kind: 'prop', x: 695, y: 325, angle: 0.35, generation: 1, shape: { kind: 'box', hx: 16, hy: 11 } },
     { id: 'prop-area1', kind: 'prop', x: 960, y: 525, angle: 0, generation: 1, shape: { kind: 'box', hx: 14, hy: 12 } },
     { id: 'prop-area2', kind: 'prop', x: 1240, y: 525, angle: 0, generation: 1, shape: { kind: 'box', hx: 14, hy: 12 } },
+    { id: 'prop-street-area1', kind: 'prop', x: 940, y: 465, angle: 0, generation: 1, shape: { kind: 'box', hx: 14, hy: 12 } },
+    { id: 'prop-ground-area2', kind: 'prop', x: 1240, y: 410, angle: 0, generation: 1, shape: { kind: 'box', hx: 14, hy: 12 } },
   ];
   const tethers = [{ id: 'tether-1', a: 'prop-circle', b: 'prop-box' }];
   const hookFlights = [{ id: 'hook-1', a: 'body-self', x: 625, y: 340 }];
@@ -1455,6 +1457,8 @@ try {
   assert.equal(step4SpatialCheck.apronArea1Unlit, step4SpatialCheck.apronArea2Unlit, 'unlit ground segments revert to identical base paving color');
 
   // Palette x field contrast sweep for dynamic object virtual lighting (#737, Step 5)
+  // Sweeps all six theme palettes across regional lighting fields (Area 1 cobalt, Area 2 magenta, unlit)
+  // and substrates (theme-owned street, theme-owned ground, and map-authored slate paving).
   const paletteFieldSweep = await page.evaluate(async (themes) => {
     const f = window.witness;
     const sweep = {};
@@ -1466,10 +1470,17 @@ try {
         camera: { x: 1120, y: 400, zoom: 1 },
         selfPos: { x: 960, y: 380 },
       });
+      // Area 1 (Cobalt): prop on slate paving (960, 525) & apron (920, 525); prop on street (1040, 420) & street (1000, 420)
       const propArea1Lit = f.pixelAtWorld(960, 525).hex;
-      const propArea2Lit = f.pixelAtWorld(1240, 525).hex;
       const apronArea1Lit = f.pixelAtWorld(920, 525).hex;
+      const propStreetCobaltLit = f.pixelAtWorld(940, 465).hex;
+      const streetCobaltLit = f.pixelAtWorld(980, 465).hex;
+
+      // Area 2 (Magenta): prop on slate paving (1240, 525) & apron (1205, 525); prop on ground (1240, 410) & ground (1205, 410)
+      const propArea2Lit = f.pixelAtWorld(1240, 525).hex;
       const apronArea2Lit = f.pixelAtWorld(1205, 525).hex;
+      const propGroundMagentaLit = f.pixelAtWorld(1240, 410).hex;
+      const groundMagentaLit = f.pixelAtWorld(1205, 410).hex;
 
       await f.settle({
         palette: themeId,
@@ -1479,19 +1490,27 @@ try {
         selfPos: { x: 960, y: 380 },
       });
       const propArea1Unlit = f.pixelAtWorld(960, 525).hex;
-      const propArea2Unlit = f.pixelAtWorld(1240, 525).hex;
       const apronArea1Unlit = f.pixelAtWorld(920, 525).hex;
-      const apronArea2Unlit = f.pixelAtWorld(1205, 525).hex;
+      const propStreetUnlit = f.pixelAtWorld(940, 465).hex;
+      const streetUnlit = f.pixelAtWorld(980, 465).hex;
+      const propGroundUnlit = f.pixelAtWorld(1240, 410).hex;
+      const groundUnlit = f.pixelAtWorld(1205, 410).hex;
 
       sweep[themeId] = {
         propArea1Lit,
-        propArea2Lit,
         apronArea1Lit,
+        propStreetCobaltLit,
+        streetCobaltLit,
+        propArea2Lit,
         apronArea2Lit,
+        propGroundMagentaLit,
+        groundMagentaLit,
         propArea1Unlit,
-        propArea2Unlit,
         apronArea1Unlit,
-        apronArea2Unlit,
+        propStreetUnlit,
+        streetUnlit,
+        propGroundUnlit,
+        groundUnlit,
       };
     }
     return sweep;
@@ -1502,37 +1521,80 @@ try {
     await window.witness.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
 
+  // Verify that sampled theme-owned substrates actually vary across themes (#737 review)
+  const streetColors = new Set(Object.values(paletteFieldSweep).map(d => d.streetCobaltLit));
+  const groundColors = new Set(Object.values(paletteFieldSweep).map(d => d.groundMagentaLit));
+  assert.ok(streetColors.size >= 4, `Sampled theme street colors vary across themes (${streetColors.size} distinct colors >= 4)`);
+  assert.ok(groundColors.size >= 4, `Sampled theme ground colors vary across themes (${groundColors.size} distinct colors >= 4)`);
+
   const paletteSweepSummary = {};
   for (const [themeId, data] of Object.entries(paletteFieldSweep)) {
-    const area1Contrast = Number(contrast(data.propArea1Lit, data.apronArea1Lit).toFixed(2));
-    const area2Contrast = Number(contrast(data.propArea2Lit, data.apronArea2Lit).toFixed(2));
-    const unlitContrast = Number(contrast(data.propArea1Unlit, data.apronArea1Unlit).toFixed(2));
+    const cobaltStreetContrast = Number(contrast(data.propStreetCobaltLit, data.streetCobaltLit).toFixed(2));
+    const cobaltApronContrast = Number(contrast(data.propArea1Lit, data.apronArea1Lit).toFixed(2));
+    const magentaGroundContrast = Number(contrast(data.propGroundMagentaLit, data.groundMagentaLit).toFixed(2));
+    const magentaApronContrast = Number(contrast(data.propArea2Lit, data.apronArea2Lit).toFixed(2));
+    const unlitStreetContrast = Number(contrast(data.propStreetUnlit, data.streetUnlit).toFixed(2));
+    const unlitGroundContrast = Number(contrast(data.propGroundUnlit, data.groundUnlit).toFixed(2));
+    const unlitApronContrast = Number(contrast(data.propArea1Unlit, data.apronArea1Unlit).toFixed(2));
 
     // Verify contrast floor >= 1.50 across all theme palettes and regional lighting fields
     assert.ok(
-      area1Contrast >= 1.50,
-      `[${themeId}] Area 1 lit prop maintains contrast floor against ground (${area1Contrast} >= 1.50)`
+      cobaltStreetContrast >= 1.50,
+      `[${themeId}] Cobalt lit prop maintains contrast floor against street (${cobaltStreetContrast} >= 1.50)`
     );
     assert.ok(
-      area2Contrast >= 1.50,
-      `[${themeId}] Area 2 lit prop maintains contrast floor against ground (${area2Contrast} >= 1.50)`
+      cobaltApronContrast >= 1.50,
+      `[${themeId}] Cobalt lit prop maintains contrast floor against apron (${cobaltApronContrast} >= 1.50)`
     );
     assert.ok(
-      unlitContrast >= 1.50,
-      `[${themeId}] Unlit prop maintains contrast floor against ground (${unlitContrast} >= 1.50)`
+      magentaGroundContrast >= 1.50,
+      `[${themeId}] Magenta lit prop maintains contrast floor against ground (${magentaGroundContrast} >= 1.50)`
+    );
+    assert.ok(
+      magentaApronContrast >= 1.50,
+      `[${themeId}] Magenta lit prop maintains contrast floor against apron (${magentaApronContrast} >= 1.50)`
+    );
+    assert.ok(
+      unlitStreetContrast >= 1.50,
+      `[${themeId}] Unlit prop maintains contrast floor against street (${unlitStreetContrast} >= 1.50)`
+    );
+    assert.ok(
+      unlitGroundContrast >= 1.50,
+      `[${themeId}] Unlit prop maintains contrast floor against ground (${unlitGroundContrast} >= 1.50)`
+    );
+    assert.ok(
+      unlitApronContrast >= 1.50,
+      `[${themeId}] Unlit prop maintains contrast floor against apron (${unlitApronContrast} >= 1.50)`
     );
 
     paletteSweepSummary[themeId] = {
-      propArea1Lit: css(data.propArea1Lit),
-      apronArea1Lit: css(data.apronArea1Lit),
-      area1Contrast,
-      propArea2Lit: css(data.propArea2Lit),
-      apronArea2Lit: css(data.apronArea2Lit),
-      area2Contrast,
-      propUnlit: css(data.propArea1Unlit),
-      apronUnlit: css(data.apronArea1Unlit),
-      unlitContrast,
-      passesFloor: area1Contrast >= 1.50 && area2Contrast >= 1.50 && unlitContrast >= 1.50,
+      propCobaltStreet: css(data.propStreetCobaltLit),
+      streetCobalt: css(data.streetCobaltLit),
+      cobaltStreetContrast,
+      propCobaltApron: css(data.propArea1Lit),
+      apronCobalt: css(data.apronArea1Lit),
+      cobaltApronContrast,
+      propMagentaGround: css(data.propGroundMagentaLit),
+      groundMagenta: css(data.groundMagentaLit),
+      magentaGroundContrast,
+      propMagentaApron: css(data.propArea2Lit),
+      apronMagenta: css(data.apronArea2Lit),
+      magentaApronContrast,
+      propUnlitStreet: css(data.propStreetUnlit),
+      streetUnlit: css(data.streetUnlit),
+      unlitStreetContrast,
+      propUnlitGround: css(data.propGroundUnlit),
+      groundUnlit: css(data.groundUnlit),
+      unlitGroundContrast,
+      passesFloor: [
+        cobaltStreetContrast,
+        cobaltApronContrast,
+        magentaGroundContrast,
+        magentaApronContrast,
+        unlitStreetContrast,
+        unlitGroundContrast,
+        unlitApronContrast,
+      ].every(c => c >= 1.50),
     };
   }
 
@@ -2342,22 +2404,29 @@ try {
 </table>
 
 <h2>Step 5 Palette &times; Field Contrast Sweep for Dynamic Object Virtual Lighting (#737)</h2>
-<p>29.4 & 41.2 Step 5 policy: Physics props (and future separated actor material bodies) must maintain the &ge; 1.50 luminance contrast separation floor against underlying ground paving across all authored theme palettes and regional lighting fields without disappearing into background pavement.</p>
+<p>29.4 & 41.2 Step 5 policy: Physics props (and future separated actor material bodies) must maintain the &ge; 1.50 luminance contrast separation floor against underlying pavement across all authored theme palettes and regional lighting fields without disappearing into background substrate.</p>
 <table>
   <thead>
     <tr>
-      <th>Theme Palette</th><th>Area 1 (Cobalt) Lit Prop / Ground</th><th>Area 1 Contrast</th><th>Area 2 (Magenta) Lit Prop / Ground</th><th>Area 2 Contrast</th><th>Unlit Mode Prop / Ground</th><th>Unlit Contrast</th><th>Contrast Floor Verdict (&ge; 1.50)</th>
+      <th>Theme Palette</th>
+      <th>Cobalt Lit on Street</th>
+      <th>Cobalt on Apron</th>
+      <th>Magenta Lit on Ground</th>
+      <th>Magenta on Apron</th>
+      <th>Unlit on Street</th>
+      <th>Unlit on Ground</th>
+      <th>Verdict (&ge; 1.50)</th>
     </tr>
   </thead>
   <tbody>
     ${Object.entries(paletteSweepSummary).map(([themeId, row]) => `<tr>
       <td><code>${themeId}</code></td>
-      <td><code>${row.propArea1Lit}</code> on <code>${row.apronArea1Lit}</code></td>
-      <td><strong>${row.area1Contrast.toFixed(2)}</strong></td>
-      <td><code>${row.propArea2Lit}</code> on <code>${row.apronArea2Lit}</code></td>
-      <td><strong>${row.area2Contrast.toFixed(2)}</strong></td>
-      <td><code>${row.propUnlit}</code> on <code>${row.apronUnlit}</code></td>
-      <td><strong>${row.unlitContrast.toFixed(2)}</strong></td>
+      <td><code>${row.propCobaltStreet}</code> / <code>${row.streetCobalt}</code>: <strong>${row.cobaltStreetContrast.toFixed(2)}</strong></td>
+      <td><code>${row.propCobaltApron}</code> / <code>${row.apronCobalt}</code>: <strong>${row.cobaltApronContrast.toFixed(2)}</strong></td>
+      <td><code>${row.propMagentaGround}</code> / <code>${row.groundMagenta}</code>: <strong>${row.magentaGroundContrast.toFixed(2)}</strong></td>
+      <td><code>${row.propMagentaApron}</code> / <code>${row.apronMagenta}</code>: <strong>${row.magentaApronContrast.toFixed(2)}</strong></td>
+      <td><code>${row.propUnlitStreet}</code> / <code>${row.streetUnlit}</code>: <strong>${row.unlitStreetContrast.toFixed(2)}</strong></td>
+      <td><code>${row.propUnlitGround}</code> / <code>${row.groundUnlit}</code>: <strong>${row.unlitGroundContrast.toFixed(2)}</strong></td>
       <td>${row.passesFloor ? '<span class="ok">Pass (&ge; 1.50)</span>' : '<span class="fail">Fail</span>'}</td>
     </tr>`).join('\n')}
   </tbody>
