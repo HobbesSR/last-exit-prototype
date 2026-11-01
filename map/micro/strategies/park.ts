@@ -1,6 +1,5 @@
 import { rect } from '../../../shared/shape.ts';
 import { PARK_TREE } from '../placeables/park-tree.ts';
-import { PARK_HEDGE_RUN } from '../placeables/park-hedge-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, portalApproaches, sitePiecesPerCell } from './scatter.ts';
 import { draw, rng } from '../random.ts';
@@ -23,15 +22,13 @@ import { siteParkPocket } from './park-pocket.ts';
 const AISLE = CELL_SCALE.doorway;
 /** Cells from one slot to the next. A slot's pieces stay in its first `BAND` cells, so the rest is aisle. */
 const PERIOD = 6, BAND = PERIOD - AISLE;
-const DEFAULT_DENSITY = 0.6, DEFAULT_HEDGES = 0.2;
+const DEFAULT_DENSITY = 0.6, DEFAULT_HEDGES = 0.2, DEFAULT_FRONTS = 1;
 /** A tree's footprint in cells, how much of it the trunk and crown fill, and the most trees in a clump. */
 const TREE = 2, CLUMP = 3;
-/** A hedge run spans two slots: a slot, the aisle after it, and the next slot's band. Its thickness is in cells, centred in its row. */
-const HEDGE_LENGTH = PERIOD + BAND;
 
 /**
- * Hedge fronts (#649, a measured experiment, off unless `hedgeFronts` is set): a front starts
- * at a fill edge with chance `hedgeFronts`, at least `PERIOD` cells from any front facing the
+ * Hedge fronts (#649, adopted in #760): a front starts at a fill edge with chance `hedgeFronts`
+ * (default `DEFAULT_FRONTS`), at least `PERIOD` cells from any front facing the
  * same way. Each grows to a seeded share of its reach, within `FRONT_DEPTH`, so fronts from
  * opposite edges can overlap and still leave the cord a way between them.
  */
@@ -59,21 +56,19 @@ type Box = { x: number; y: number; w: number; h: number };
 
 /**
  * The `park` region type (54): overgrown ground. Clumps of trees give soft cover with long open
- * lines between them, and hedge runs, which block bodies but not sight (17.2.8 M34), shut off
- * stretches of ground except at a gap a door wide. It has no decomposer and no buildings.
+ * lines between them, and hedges, which block bodies but not sight (17.2.8 M34), grow inward
+ * from the fill's edges as fronts the cord must go round (`growHedgeFronts`, #649, #760). With
+ * `hedges` above zero a hedge pocket may stand too (#698). It has no decomposer and no buildings.
  *
- * Slots lie on a lattice `PERIOD` cells apart at a seeded phase. With chance `hedges`, a slot
- * starts a hedge run across or down into the next slot, `HEDGE_LENGTH` cells long, in a seeded
- * row of the slot's band, with its gap at a seeded place that leaves a stub of hedge each side.
- * Each other slot holds a clump with chance `density`: up to `CLUMP` trees, round obstacles
- * `TREE` cells across, at seeded places in the slot's first `BAND` cells.
+ * Slots lie on a lattice `PERIOD` cells apart at a seeded phase. Each slot holds a clump with
+ * chance `density`: up to `CLUMP` trees, round obstacles `TREE` cells across, at seeded places
+ * in the slot's first `BAND` cells.
  *
- * Clumps and hedge runs keep `AISLE` clear cells from other slots. Candidate footprints
+ * Clumps keep `AISLE` clear cells from other slots. Candidate footprints
  * stay owned and clear of portal approaches. Nothing else is reserved between portals: each
  * piece commits only if a hunter cord still joins every portal stand, so pieces bend the way
  * through rather than being refused by a route fixed in the empty shape (20.10, #750).
- * A hedge's door-wide gap leaves a crossing through the run. Hinted runs guide the first
- * tree in eligible slots. When the lattice places nothing, as in a one-tile park, single trees
+ * Hints guide the first tree in eligible slots. When the lattice places nothing, as in a one-tile park, single trees
  * are sited cell by cell instead (#717). A region too small for a tree stays clear.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
@@ -81,7 +76,7 @@ type Box = { x: number; y: number; w: number; h: number };
  */
 export function buildPark(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Park', 'density', DEFAULT_DENSITY), hedgeChance = fraction(brief, 'Park', 'hedges', DEFAULT_HEDGES);
-  const frontChance = fraction(brief, 'Park', 'hedgeFronts', 0);
+  const frontChance = fraction(brief, 'Park', 'hedgeFronts', DEFAULT_FRONTS);
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   // Portal approaches are the fixed anchors; the coordinator keeps a live cord witness to
@@ -105,25 +100,10 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   // a portal without a cord. The piece is passed over; per-slot draws keep the rest unchanged.
   const place = (elements: RegionElement[]) => canvas.commit({ elements });
   const taken = new Set<string>();
-  let hedges = 0, trees = 0, clumps = 0;
+  let trees = 0, clumps = 0;
 
-  // Hedge runs first: each takes its slot and the next, if both are free and its footprint fits.
-  // Hedge fronts, when set, take their place.
+  // Hedge fronts first, through the coordinator (#649, #760).
   const grown = frontChance > 0 ? growHedgeFronts(brief, canvas, frontChance) : null;
-  for (const slot of grown ? [] : slots) {
-    if (taken.has(key(slot.x, slot.y)) || draw(brief.seed, slot.x, slot.y, CHANNEL.hedge) >= hedgeChance) continue;
-    const across = draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeTurn) < 0.5;
-    const next = across ? key(slot.x + PERIOD, slot.y) : key(slot.x, slot.y + PERIOD);
-    const row = Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeRow) * BAND);
-    const box: Box = across ? { x: slot.x, y: slot.y + row, w: HEDGE_LENGTH, h: 1 } : { x: slot.x + row, y: slot.y, w: 1, h: HEDGE_LENGTH };
-    if (taken.has(next) || !clear(box)) continue;
-    // The gap leaves at least a cell of hedge each side.
-    const gap = 1 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeGap) * (HEDGE_LENGTH - AISLE - 1));
-    const built = expectPlaced(PARK_HEDGE_RUN.build({ length: HEDGE_LENGTH, gap, aisle: AISLE, across }, size));
-    if (!place(placedElements(built, `park-hedge-${hedges + 1}`, box.x, box.y, size))) continue;
-    hedges++;
-    taken.add(key(slot.x, slot.y)).add(next);
-  }
 
   // A clump in each other slot that rolls under `density`, if its footprint fits.
   for (const slot of slots) {
@@ -157,7 +137,7 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return builtRegion(brief, elements, loot, [], { trees, clumps, hedges, ...(pocket.envelope ? { pockets: 1 } : {}), ...(grown ?? {}) });
+  return builtRegion(brief, elements, loot, [], { trees, clumps, ...(pocket.envelope ? { pockets: 1 } : {}), ...(grown ?? {}) });
 }
 
 const cellKey = (c: Cell) => `${c.x},${c.y}`;

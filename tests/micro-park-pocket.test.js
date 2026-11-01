@@ -38,7 +38,7 @@ test('saved park pocket retains fill, portal and hunter access after scatter', (
   const result = buildRegion(brief), pieces = pocket(result);
   assert.equal(pieces.length, 1);
   assert.equal(result.manifest.pockets, 1);
-  assert.equal(result.manifest.hedges, result.elements.filter(e => e.label.startsWith('park-hedge-')).length);
+  assert.equal(result.manifest.fronts, result.elements.filter(e => e.label.startsWith('park-front-')).length);
   for (const element of result.elements.filter(e => e.label !== 'park-pocket'))
     assert.ok(elementShapes(element, true).every(shape => !shapesShareArea(shape, sited.envelope)),
       'scatter leaves the whole pocket and apron free, not only the entrance witness');

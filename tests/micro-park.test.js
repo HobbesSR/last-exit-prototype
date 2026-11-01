@@ -40,9 +40,9 @@ test('a park region keeps the portal promise over seeds, masks and parameters', 
     }
 });
 
-test('a park is its own type, with trees and hedges and no buildings', () => {
+test('a park is its own type, with trees and hedge fronts and no buildings', () => {
   const [cells, portals] = MASKS.field;
-  let trees = 0, hedges = 0;
+  let trees = 0, fronts = 0;
   for (const seed of SEEDS) {
     const result = buildRegion(brief('field', seed, cells, portals, DENSE));
     for (const element of result.elements) for (const part of element.template.parts) {
@@ -50,12 +50,12 @@ test('a park is its own type, with trees and hedges and no buildings', () => {
       assert.equal(part.kind, element.label.startsWith('park-tree') ? 'tree' : 'hedge');
     }
     trees += result.elements.filter(kind('tree')).length;
-    hedges += result.elements.filter(kind('hedge')).length;
+    fronts += result.elements.filter(kind('front')).length;
     assert.equal(result.manifest.trees, result.elements.filter(kind('tree')).length);
-    assert.equal(result.manifest.hedges, result.elements.filter(kind('hedge')).length);
+    assert.equal(result.manifest.fronts, result.elements.filter(kind('front')).length);
     assert.equal(result.manifest.structures, 0);
   }
-  assert.ok(trees > 40 && hedges > 5, `${trees} trees, ${hedges} hedges`);
+  assert.ok(trees > 40 && fronts > 5, `${trees} trees, ${fronts} fronts`);
 });
 
 test('parks are deterministic and independent of the order of the brief\'s cells', () => {
@@ -74,50 +74,36 @@ test('a tree is round, and a hedge blocks bodies but not sight', () => {
   assert.equal(seeThrough('tree'), false);
 });
 
-test('clumps and hedge runs keep an aisle from each other and respect portal margins, and each run has one door-wide gap', () => {
-  let runs = 0;
+test('clumps keep an aisle from each other and respect portal margins', () => {
+  // Hedge runs gave way to fronts in #760; fronts are tested in micro-park-fronts.
+  let clumps = 0;
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
     const input = brief(name, seed, cells, portals, DENSE);
     const result = buildRegion(input), mask = createRegionMask(input);
     const reserved = new Set(portalMargin(input, 1).map(c => `${c.x},${c.y}`));
-    // A clump is its trees together, boxed; a hedge run is its element's box.
-    const hedgeBoxes = result.elements.filter(kind('hedge')).map(e => ({ label: e.label, box: boxOf(e) }));
     const trees = result.elements.filter(kind('tree')).map(boxOf);
-    for (const tree of trees) {
-      for (let y = tree.y; y < tree.y + tree.h; y++) for (let x = tree.x; x < tree.x + tree.w; x++)
-        assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: tree footprint`);
-      for (const { label, box } of hedgeBoxes) assert.ok(gapBetween(tree, box) >= 2, `${name} ${seed}: a tree and ${label}`);
-    }
-    for (const [i, { label, box }] of hedgeBoxes.entries()) {
-      runs++;
-      for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++)
-        assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: ${label} footprint`);
-      for (const other of hedgeBoxes.slice(i + 1)) assert.ok(gapBetween(box, other.box) >= 2, `${label} and ${other.label}`);
-      const element = result.elements.find(e => e.label === label), across = box.w > box.h;
-      const stubs = element.template.parts.map(({ shape }) => bounds(shape)).map(b => across ? [b.x / SIZE, (b.x + b.w) / SIZE] : [b.y / SIZE, (b.y + b.h) / SIZE])
-        .sort((a, b) => a[0] - b[0]);
-      assert.equal(stubs.length, 2, `${label} has a stub each side of its gap`);
-      assert.equal(stubs[1][0] - stubs[0][1], 2, `${label}'s gap is 2 cells`);
-      assert.ok(stubs[0][1] - stubs[0][0] >= 1 && stubs[1][1] - stubs[1][0] >= 1);
-    }
+    clumps += result.manifest.clumps;
+    for (const tree of trees) for (let y = tree.y; y < tree.y + tree.h; y++) for (let x = tree.x; x < tree.x + tree.w; x++)
+      assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: tree footprint`);
     // Trees in different clumps keep their aisle: any two closer than it are in one clump (a slot's band).
     for (const [i, a] of trees.entries()) for (const b of trees.slice(i + 1))
       if (gapBetween(a, b) < 2) assert.ok(Math.abs(a.x - b.x) < 4 && Math.abs(a.y - b.y) < 4, `${name} ${seed}: trees ${a.x},${a.y} and ${b.x},${b.y}`);
   }
-  assert.ok(runs > 10, `${runs} runs`);
+  assert.ok(clumps > 10, `${clumps} clumps`);
 });
 
-test('a region too small for a tree stays clear', () => {
-  const result = buildRegion(brief('speck', 1, cellsOf(3, 1), [], DENSE));
-  assert.equal(result.elements.length, 0);
+test('a region too small for a tree gets no tree, and with fronts off stays clear', () => {
+  assert.equal(buildRegion(brief('speck', 1, cellsOf(3, 1), [], DENSE)).elements.some(kind('tree')), false);
+  assert.equal(buildRegion(brief('speck', 1, cellsOf(3, 1), [], { ...DENSE, hedgeFronts: 0 })).elements.length, 0);
 });
 
 test('a one-tile park the lattice misses gets single trees cell by cell, clear of its portal routes (#717)', () => {
-  const [cells, portals] = MASKS.tile;
+  // Fronts off: with them, a front fills the canvas first and the fallback rightly stands aside.
+  const [cells, portals] = MASKS.tile, NO_FRONTS = { hedgeFronts: 0 };
   let filled = 0;
   for (const seed of SEEDS) {
-    const result = buildRegion(brief('tile', seed, cells, portals));
-    assert.equal(result.manifest.clumps + result.manifest.hedges, 0, `seed ${seed}: the lattice places nothing here`);
+    const result = buildRegion(brief('tile', seed, cells, portals, NO_FRONTS));
+    assert.equal(result.manifest.clumps, 0, `seed ${seed}: the lattice places nothing here`);
     assert.equal(result.manifest.trees, result.elements.length);
     if (result.elements.length) filled++;
     assert.ok(result.elements.every(kind('tree')));
@@ -129,7 +115,7 @@ test('a one-tile park the lattice misses gets single trees cell by cell, clear o
     assert.deepEqual(buildRegion(reversed).elements, result.elements);
   }
   assert.ok(filled >= SEEDS.length / 2, `${filled} of ${SEEDS.length} seeds`);
-  assert.equal(buildRegion(brief('tile', 1, cells, portals, { density: 0, hedges: 0 })).elements.length, 0, 'zero density stays clear');
+  assert.equal(buildRegion(brief('tile', 1, cells, portals, { density: 0, hedges: 0, hedgeFronts: 0 })).elements.length, 0, 'zero density stays clear');
 });
 
 test('parameters outside 0 to 1 are refused', () => {
@@ -143,7 +129,7 @@ test('pieces keep valid, in-footprint geometry at small and large cell sizes', (
     const cells = cellsOf(30, 30), input = { ...brief('field', seed, cells, [], { density: 1, hedges: 0.5 }), cellSize: size };
     input.zones = [{ tier: 3, bonus: 0, lootChance: 0, cells }];
     const result = buildRegion(input);
-    assert.ok(result.elements.some(kind('hedge')) && result.elements.some(kind('tree')), `size ${size} seed ${seed} has both`);
+    assert.ok(result.elements.some(kind('front')) && result.elements.some(kind('tree')), `size ${size} seed ${seed} has both`);
     for (const element of result.elements) for (const { shape } of element.template.parts) {
       const box = bounds(shape);
       assert.ok(box.w > 0 && box.h > 0, `size ${size}: ${element.label} has area`);

@@ -97,7 +97,9 @@ test('a live chain map: virtual columns are the generator zone tiers, and weapon
     assert.ok(Number.isInteger(quality) && quality >= 1 && quality <= 5 && LOOT.lootTiers.mixes[mixIndex][quality - 1] > 0,
       `mix ${mixIndex + 1} sampled unsupported quality ${quality}`);
   const means = byMix.slice(1).map(q => q.reduce((a, b) => a + b, 0) / q.length);
-  assert.ok(byMix.slice(1).every(q => q.length >= 10), `weapons per mix: ${byMix.map(q => q.length)}`);
+  // A floor, so no mean is one roll. It is not a content target: denser region content leaves fewer clear
+  // loot sites, and types-62 left mix 2 nine weapons on this seed, its means still rising (#759).
+  assert.ok(byMix.slice(1).every(q => q.length >= 5), `weapons per mix: ${byMix.map(q => q.length)}`);
   for (let i = 1; i < means.length; i++) assert.ok(means[i] > means[i - 1], `mean quality rises over mixes 2..5: ${means.map(m => m.toFixed(2))}`);
 });
 

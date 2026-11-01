@@ -5,7 +5,7 @@ import { createFillMask, elementShapes } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { cellsOf } from './helpers/cells.js';
 
-/** Park's hedge-front experiment (#649, 42.30): off by default, set by `hedgeFronts`. */
+/** Park's hedge fronts (#649, 42.30), on by default since #760; `hedgeFronts: 0` turns them off. */
 const SIZE = 40, THOROUGH = { search: 'thorough' };
 const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'park', cellSize: SIZE, cells,
   zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals, ...(parameters ? { parameters } : {}) });
@@ -22,7 +22,7 @@ const blockers = result => result.elements.flatMap(element => elementShapes(elem
 const kind = prefix => element => element.label.startsWith(`park-${prefix}`);
 const boxOf = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
 
-test('hedge fronts (#649 experiment) grow inward, keep the promise and leave no sealed open ground', () => {
+test('hedge fronts (#649, #760) grow inward, keep the promise and leave no sealed open ground', () => {
   let sealed = 0, fronts = 0;
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of [1, 2, 3]) {
     const input = brief(name, seed, cells, portals, { density: 0, hedges: 0, hedgeFronts: 1 }), result = buildRegion(input);
@@ -43,6 +43,9 @@ test('hedge fronts (#649 experiment) grow inward, keep the promise and leave no 
     sealed += result.manifest.sealedCells; fronts += result.manifest.fronts;
   }
   assert.ok(fronts > 0 && sealed > 0, `${fronts} fronts, ${sealed} sealed cells`);
-  // Off by default: no front counts in the manifest.
-  assert.equal(buildRegion(brief('field', 1, ...MASKS.field)).manifest.fronts, undefined);
+  // On by default (#760); `hedgeFronts: 0` leaves no front and no front counts in the manifest.
+  assert.ok(buildRegion(brief('field', 1, ...MASKS.field)).manifest.fronts > 0);
+  const off = buildRegion(brief('field', 1, ...MASKS.field, { hedgeFronts: 0 }));
+  assert.equal(off.manifest.fronts, undefined);
+  assert.equal(off.elements.some(kind('front')), false);
 });

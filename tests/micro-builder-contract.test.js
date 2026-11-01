@@ -81,7 +81,9 @@ function build(brief) {
 function check(type, brief) {
   const { result, found } = build(brief);
   if (!result) return { found };
-  const reach = validatePortalReach({ ...result.brief, blockers: result.elements.flatMap(e => elementShapes(e)) }).errors;
+  // The promise as map diagnosis checks it: the thorough search, which retries only grid misses, so
+  // cords a live witness finds between pieces off the grid count (20.10).
+  const reach = validatePortalReach({ ...result.brief, blockers: result.elements.flatMap(e => elementShapes(e)) }, { search: 'thorough' }).errors;
   if (reach.length) found.push(`breaks the portal promise: ${reach.join(' ')}`);
   if (result.manifest.cells !== brief.cells.length) found.push(`manifest counts ${result.manifest.cells} cells of ${brief.cells.length}`);
   const asked = Object.values(CORE[type] ?? {}).reduce((sum, count) => sum + count, 0);

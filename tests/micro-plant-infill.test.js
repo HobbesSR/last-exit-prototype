@@ -34,8 +34,9 @@ test('plant infill preserves primary geometry with canonical candidate order', (
   assert.ok(crates(result).length > 0);
   assert.equal(result.manifest.infillCrates, crates(result).length);
   assert.deepEqual(crates(result).map(e => e.label), crates(result).map((_, i) => `plant-infill-crate-${i + 1}`));
-  // Primary elements are committed before the infill pass.
-  assert.equal(digest(primary(result)), 'b053c98d21a66557e3495f1ddf07e33c031e849b90c460a2b90230488b2a9108');
+  // Primary elements are committed before the infill pass. Pinned at types-62, where pieces place
+  // against a live cord rather than frozen routes (#759).
+  assert.equal(digest(primary(result)), 'c00e2e91a3dcd82e23738ada964015969656cfce9d3cded887e4821fa16e0958');
 });
 
 test('crates occupy only machine-roll slots and keep lattice aisles, shed and pipe stubs clear', () => {
