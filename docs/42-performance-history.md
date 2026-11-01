@@ -37,6 +37,8 @@ Park's hedge fronts grown with the #649 helpers, an opt-in experiment measured o
 are in [42.30](42.30-park-hedge-fronts.md); they were adopted in types-62 (#760).
 Rubble and plant moved to a live cord the same way, measured against their frozen-route builders,
 are in [42.31](42.31-rubble-plant-live-cord.md) (#759).
+Where live-cord generation time goes, and two exact savings (36 wide 50.4 s → 45.9 s), are in
+[42.32](42.32-cord-generation-cost.md) (#767).
 
 The current unresolved slowdown is recorded below. Historical runtime measurements are in [42.2](42.2-runtime-performance.md), generation and delegation measurements in [42.3](42.3-generation-and-delegation-evidence.md), and map chain captures in [42.4](42.4-chain-checkpoint-history.md). The navigation experiment remains in [42.1](42.1-navigation-experiment.md), the portal graph's first measurements are in [42.5](42.5-portal-graph.md), its free-space mesh bottom level in [42.7](42.7-navigation-mesh.md), bots' adoption of the tile planner in [42.8](42.8-bot-adoption.md), replanning spread over ticks in [42.10](42.10-sliced-replanning.md), and local repair in [42.13](42.13-local-repair.md).
 

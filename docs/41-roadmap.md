@@ -116,8 +116,8 @@ onto a live cord and adopted park's hedge fronts; PR #766 recorded the batching 
 ([31](31-verification.md#content-changes-one-bump-per-batch)). Closing summaries are on
 #529 and #531, awaiting Corey. 42.31's finding: freeing routes about doubles content but
 barely moves detour or dead-end area, and 36-wide generation went from 31 s to 51 s.
-Next, by Corey's choice: #767 (cut live-cord generation cost, exactly, profiled first),
-then #762 as the detour candidate. Cover, ruins, depot, hall and market keep frozen routes
+#767 profiled the cost and landed two exact savings (36 wide 50.4 s → 45.9 s, 42.32); fewer mesh
+builds would change content and waits for Corey. Next: #762 as the detour candidate. Cover, ruins, depot, hall and market keep frozen routes
 until #767 and a reassessment (42.31). #535 is parked until Corey gives authorship direction.
 
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers

@@ -129,6 +129,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.29-park-perturbable-routes.md](42.29-park-perturbable-routes.md) | Park on a live cord witness instead of frozen protected routes: detour, dead ends, empty share, fill, proofs and cost against the old builder, and what other builders would need (#750) |
 | [42.30-park-hedge-fronts.md](42.30-park-hedge-fronts.md) | Park hedges grown as fronts with the #649 growth helpers: detour, dead ends, sealing, proofs and cost against today's park (#649; adopted in types-62, #760) |
 | [42.31-rubble-plant-live-cord.md](42.31-rubble-plant-live-cord.md) | Rubble and plant on a live cord witness instead of frozen protected routes: content, detour, dead ends, empty share, proofs and cost, and the reassessment before further rollout (#759) |
+| [42.32-cord-generation-cost.md](42.32-cord-generation-cost.md) | Live-cord generation cost split by work and builder, two exact savings (strictly simple screen, edge index) with zero drift, and what remains exact or inexact (#767) |
 
 ### 5x — Map generation
 
