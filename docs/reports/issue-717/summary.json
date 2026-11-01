@@ -4,13 +4,13 @@
  "build": "types-59",
  "node": "v24.15.0",
  "provenance": {
-  "commit": "87611a322a9c5886bc7450c681f41b7d729a6b5c",
+  "commit": "ec65cc4825d0c45d6f1bc7e1ae363ab9943c602d",
   "sourceSha256": {
    "map/micro/strategies/scatter.ts": "f5eabfeece7db1eea7ba0c6723a2d4e7101dcb0f1824608cd896eae3dd96befe",
    "map/micro/strategies/cover.ts": "0b4d1ede8a9ad7cc82f342df75b22b95d5ca2b7ea14daf2ea451cb183ad8a7a4",
    "map/micro/strategies/park.ts": "eff7bc2f008a605a9cc2141500d69470cea28799568a122b9f718d3f949395f4",
    "map/micro/region-types.ts": "daea23642846bca7610efc9ee83d87e4c76b7b5dbb1cc46437e3915f430b00c4",
-   "tools/empty-region-audit.mjs": "2e2fb7dc9bf08c43b2e6eded1d7ba07bfda0b369e207adb96d3a9c82d2f24b7a",
+   "tools/empty-region-audit.mjs": "824862f8a31fd933469b3162eda5679f2207d0974bab8c6d43b7b85b557aea46",
    "tools/experiments/park-pocket-routes.mjs": "bfe28bae6a4908ebfe5189d38f6099b277f603e0d87bb6bde747f77fbc0d6859"
   },
   "sourceGitBlob": {
@@ -18,7 +18,7 @@
    "map/micro/strategies/cover.ts": "99060be191b9f79f01d341dd055514dd044c3b66",
    "map/micro/strategies/park.ts": "0a5d1bced32648bd558586f65021db7e66afdd79",
    "map/micro/region-types.ts": "fd1361e18ba65fc36dc70eaf6e1c09c6b9250d0c",
-   "tools/empty-region-audit.mjs": "f6bd0ab53bd33530052499d73d0f212e24eac165",
+   "tools/empty-region-audit.mjs": "5d07cdf351ee7f2ee0990ddf7809694ed3c6e32d",
    "tools/experiments/park-pocket-routes.mjs": "5d2fb2120b278968fbb0d4efa0a07c210d26e55a"
   },
   "sourceWorkingTreeSha256": {
@@ -26,7 +26,7 @@
    "map/micro/strategies/cover.ts": "0b4d1ede8a9ad7cc82f342df75b22b95d5ca2b7ea14daf2ea451cb183ad8a7a4",
    "map/micro/strategies/park.ts": "eff7bc2f008a605a9cc2141500d69470cea28799568a122b9f718d3f949395f4",
    "map/micro/region-types.ts": "daea23642846bca7610efc9ee83d87e4c76b7b5dbb1cc46437e3915f430b00c4",
-   "tools/empty-region-audit.mjs": "2e2fb7dc9bf08c43b2e6eded1d7ba07bfda0b369e207adb96d3a9c82d2f24b7a",
+   "tools/empty-region-audit.mjs": "824862f8a31fd933469b3162eda5679f2207d0974bab8c6d43b7b85b557aea46",
    "tools/experiments/park-pocket-routes.mjs": "8c3b25b50a376c8ef52dee120e79c6455bce67c905352585aa18a5484c347832"
   }
  },
@@ -591,6 +591,52 @@
       70299497.20102692
      ]
     }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 1663,
+     "byCategory": {
+      "across-map": {
+       "complete": 52
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1460
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 1601,
+     "byCategory": {
+      "across-map": {
+       "complete": 52
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1398
+      }
+     },
+     "failures": []
+    }
    ]
   },
   {
@@ -963,6 +1009,52 @@
       71097371.9925766
      ]
     }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 1713,
+     "byCategory": {
+      "across-map": {
+       "complete": 55
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1507
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 1658,
+     "byCategory": {
+      "across-map": {
+       "complete": 56
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1451
+      }
+     },
+     "failures": []
+    }
    ]
   },
   {
@@ -1319,6 +1411,52 @@
       69081198.40170288,
       68500356.93767548
      ]
+    }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 1822,
+     "byCategory": {
+      "across-map": {
+       "complete": 55
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1616
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 1741,
+     "byCategory": {
+      "across-map": {
+       "complete": 54
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1536
+      }
+     },
+     "failures": []
     }
    ]
   },
@@ -1717,6 +1855,52 @@
       276839551.983696
      ]
     }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 5450,
+     "byCategory": {
+      "across-map": {
+       "complete": 50
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5249
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 5365,
+     "byCategory": {
+      "across-map": {
+       "complete": 50
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5164
+      }
+     },
+     "failures": []
+    }
    ]
   },
   {
@@ -2104,6 +2288,52 @@
       272830550.7521057
      ]
     }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 5820,
+     "byCategory": {
+      "across-map": {
+       "complete": 49
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5620
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 5708,
+     "byCategory": {
+      "across-map": {
+       "complete": 49
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5508
+      }
+     },
+     "failures": []
+    }
    ]
   },
   {
@@ -2481,6 +2711,52 @@
       278999694.7464447
      ]
     }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 5412,
+     "byCategory": {
+      "across-map": {
+       "complete": 48
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5213
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 5346,
+     "byCategory": {
+      "across-map": {
+       "complete": 48
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5147
+      }
+     },
+     "failures": []
+    }
    ]
   },
   {
@@ -2857,6 +3133,52 @@
       617894836.7011871,
       615180103.6451035
      ]
+    }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 10650,
+     "byCategory": {
+      "across-map": {
+       "complete": 34
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 10465
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 10477,
+     "byCategory": {
+      "across-map": {
+       "complete": 38
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 10288
+      }
+     },
+     "failures": []
     }
    ]
   },
@@ -3255,6 +3577,52 @@
       620263961.5980988
      ]
     }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 11008,
+     "byCategory": {
+      "across-map": {
+       "complete": 39
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 10818
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 10857,
+     "byCategory": {
+      "across-map": {
+       "complete": 39
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 10667
+      }
+     },
+     "failures": []
+    }
    ]
   },
   {
@@ -3632,6 +4000,52 @@
       621608960.5802917
      ]
     }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 10319,
+     "byCategory": {
+      "across-map": {
+       "complete": 43
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 10125
+      }
+     },
+     "failures": []
+    },
+    {
+     "body": "hunter",
+     "pairs": 10132,
+     "byCategory": {
+      "across-map": {
+       "complete": 42
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 9939
+      }
+     },
+     "failures": []
+    }
    ]
   }
  ],
@@ -3641,16 +4055,16 @@
    "briefs": 59,
    "passes": [
     {
-     "beforeMs": 148.3226999999997,
-     "afterMs": 168.18939999999975
+     "beforeMs": 131.73039999999992,
+     "afterMs": 159.2527
     },
     {
-     "beforeMs": 135.3373999999999,
-     "afterMs": 166.47800000000007
+     "beforeMs": 132.4744999999998,
+     "afterMs": 163.1925000000001
     },
     {
-     "beforeMs": 135.08159999999998,
-     "afterMs": 166.6528000000003
+     "beforeMs": 131.0101999999997,
+     "afterMs": 157.69590000000017
     }
    ]
   },
@@ -3659,16 +4073,16 @@
    "briefs": 68,
    "passes": [
     {
-     "beforeMs": 81.00439999999799,
-     "afterMs": 120.68569999999818
+     "beforeMs": 82.02770000000237,
+     "afterMs": 115.85750000000189
     },
     {
-     "beforeMs": 79.2628999999979,
-     "afterMs": 121.62909999999829
+     "beforeMs": 80.55779999999868,
+     "afterMs": 118.31630000000223
     },
     {
-     "beforeMs": 78.32560000000012,
-     "afterMs": 118.88420000000042
+     "beforeMs": 77.43539999999848,
+     "afterMs": 114.99239999999918
     }
    ]
   },
@@ -3677,16 +4091,16 @@
    "briefs": 74,
    "passes": [
     {
-     "beforeMs": 86.19019999999728,
-     "afterMs": 122.3943999999974
+     "beforeMs": 83.46020000000135,
+     "afterMs": 114.360299999993
     },
     {
-     "beforeMs": 83.75600000000122,
-     "afterMs": 117.98229999999603
+     "beforeMs": 80.38080000000627,
+     "afterMs": 109.55690000000322
     },
     {
-     "beforeMs": 86.3434999999954,
-     "afterMs": 118.193299999999
+     "beforeMs": 78.43099999999686,
+     "afterMs": 106.94200000000274
     }
    ]
   },
@@ -3695,16 +4109,16 @@
    "briefs": 236,
    "passes": [
     {
-     "beforeMs": 595.9532999999938,
-     "afterMs": 753.9686999999976
+     "beforeMs": 599.0210999999981,
+     "afterMs": 729.8912999999884
     },
     {
-     "beforeMs": 575.5858999999909,
-     "afterMs": 750.2939999999944
+     "beforeMs": 565.7560999999987,
+     "afterMs": 724.3862999999983
     },
     {
-     "beforeMs": 572.9110999999975,
-     "afterMs": 744.5152999999991
+     "beforeMs": 559.5757000000012,
+     "afterMs": 717.3257000000012
     }
    ]
   },
@@ -3713,16 +4127,16 @@
    "briefs": 245,
    "passes": [
     {
-     "beforeMs": 596.6956000000355,
-     "afterMs": 863.5929999999935
+     "beforeMs": 595.4419999999809,
+     "afterMs": 798.2539000000106
     },
     {
-     "beforeMs": 594.7730999999912,
-     "afterMs": 831.7380000000121
+     "beforeMs": 580.0309000000125,
+     "afterMs": 847.7865000000456
     },
     {
-     "beforeMs": 588.0692999999737,
-     "afterMs": 854.3386999999639
+     "beforeMs": 630.3457000000053,
+     "afterMs": 803.6987000000081
     }
    ]
   },
@@ -3731,16 +4145,16 @@
    "briefs": 256,
    "passes": [
     {
-     "beforeMs": 517.9895000000251,
-     "afterMs": 680.8956999999937
+     "beforeMs": 536.9357999999775,
+     "afterMs": 652.0524999999907
     },
     {
-     "beforeMs": 589.4180000000051,
-     "afterMs": 683.7235000000219
+     "beforeMs": 557.6818000000203,
+     "afterMs": 660.0300000000279
     },
     {
-     "beforeMs": 526.445299999963,
-     "afterMs": 676.8724999999977
+     "beforeMs": 518.7386999999871,
+     "afterMs": 670.0104999999749
     }
    ]
   },
@@ -3749,16 +4163,16 @@
    "briefs": 518,
    "passes": [
     {
-     "beforeMs": 498.2202999999281,
-     "afterMs": 754.1448000000091
+     "beforeMs": 545.3184000001056,
+     "afterMs": 801.2749000000767
     },
     {
-     "beforeMs": 501.2707999999402,
-     "afterMs": 758.6900000000605
+     "beforeMs": 550.5892999999924,
+     "afterMs": 776.7208999999566
     },
     {
-     "beforeMs": 499.16829999990296,
-     "afterMs": 757.7144000000553
+     "beforeMs": 534.9170999999624,
+     "afterMs": 789.8654000000097
     }
    ]
   },
@@ -3767,16 +4181,16 @@
    "briefs": 544,
    "passes": [
     {
-     "beforeMs": 673.3385999999009,
-     "afterMs": 963.2946999999695
+     "beforeMs": 641.4832999999635,
+     "afterMs": 916.7347000001464
     },
     {
-     "beforeMs": 663.5767999999225,
-     "afterMs": 949.6302000000142
+     "beforeMs": 652.9902000001166,
+     "afterMs": 918.185199999949
     },
     {
-     "beforeMs": 656.439400000032,
-     "afterMs": 970.3390999999829
+     "beforeMs": 641.4385000001639,
+     "afterMs": 900.2560000000522
     }
    ]
   },
@@ -3785,16 +4199,16 @@
    "briefs": 479,
    "passes": [
     {
-     "beforeMs": 612.2777000004426,
-     "afterMs": 854.941000000108
+     "beforeMs": 625.1452000001445,
+     "afterMs": 848.5460000000894
     },
     {
-     "beforeMs": 619.9303000001237,
-     "afterMs": 847.0394999999553
+     "beforeMs": 637.722200000193,
+     "afterMs": 838.7691000001505
     },
     {
-     "beforeMs": 611.6965999999084,
-     "afterMs": 904.814400000032
+     "beforeMs": 617.7531000003219,
+     "afterMs": 828.3210999998264
     }
    ]
   }
