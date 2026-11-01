@@ -55,15 +55,6 @@ export const COMPOUND_RESIDENTIAL_INTACT: BuildingAppearance = Object.freeze({
   roofPaint: 'fadedViolet',
   roofRim: 'dirtyCream',
   interiorTrim: 'storefrontTeal',
-  roofSign: {
-    color: 'fadedViolet',
-    backing: 'structuralVoid',
-    stripe: 'dirtyCream',
-    dx: 24,
-    dy: 16,
-    w: 80,
-    h: 20,
-  },
 });
 
 export const COMPOUND_RESIDENTIAL_WEATHERED: BuildingAppearance = Object.freeze({
@@ -72,15 +63,6 @@ export const COMPOUND_RESIDENTIAL_WEATHERED: BuildingAppearance = Object.freeze(
   roofPaint: 'weatheredCoral',
   roofRim: 'storefrontTeal',
   interiorTrim: 'storefrontTeal',
-  roofSign: {
-    color: 'weatheredCoral',
-    backing: 'structuralVoid',
-    stripe: 'awningsYellow',
-    dx: 24,
-    dy: 16,
-    w: 76,
-    h: 20,
-  },
   neglect: {
     fadedPanel: { dx: 28, dy: 36, w: 56, h: 24 },
     roofDrainStain: { dx: 90, dy: 24, w: 32, h: 20 },
@@ -93,15 +75,6 @@ export const COMPOUND_RESIDENTIAL_DAMAGED: BuildingAppearance = Object.freeze({
   roofPaint: 'dirtyCream',
   roofRim: 'structuralVoid',
   interiorTrim: 'oldSignRed',
-  roofSign: {
-    color: 'oldSignRed',
-    backing: 'structuralVoid',
-    stripe: 'weatheredCoral',
-    dx: 24,
-    dy: 16,
-    w: 72,
-    h: 20,
-  },
   neglect: {
     fadedPanel: { dx: 24, dy: 32, w: 48, h: 22 },
     roofDrainStain: { dx: 110, dy: 24, w: 30, h: 20 },
@@ -116,18 +89,14 @@ export const COMPOUND_RESIDENTIAL_PRESETS: readonly [BuildingAppearance, Buildin
   COMPOUND_RESIDENTIAL_DAMAGED,
 ]);
 
-export interface CompoundAppearanceOptions {
-  seed?: number | undefined;
-  roll?: number | undefined;
-  w?: number | undefined;
-  h?: number | undefined;
-}
+import type { TieredAppearanceOptions } from '../building/decay.ts';
+export type CompoundAppearanceOptions = TieredAppearanceOptions;
 
 export function createCompoundAppearance(options: CompoundAppearanceOptions = {}): BuildingAppearance {
   return createTieredBuildingAppearance(options, {
     presets: COMPOUND_RESIDENTIAL_PRESETS,
     thresholds: [0.35, 0.7],
-    channelPrefix: 'compound',
+    tierChannel: 'compound-tier',
   });
 }
 
@@ -342,7 +311,7 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
 
   const gatedBits = SIDES.reduce((bits, side, i) => bits | (gated.has(side) ? 1 << i : 0), 0);
   const ringAppSeed = Math.floor(rng(brief.seed, `${brief.id}:compound-appearance`).next() * 2 ** 31);
-  const ringAppearance = createCompoundAppearance({ seed: ringAppSeed, w: W, h: H });
+  const ringAppearance = createCompoundAppearance({ seed: ringAppSeed, w: W * size, h: H * size });
   const ring = expectPlaced(COMPOUND_RING.build({ w: W, h: H, gates: gatedBits, seed: brief.seed, appearance: ringAppearance }, size));
   const { design, allocation, realization, rooms, passages } = ring.details;
   // The placeable gives local roof-group suffixes; the builder scopes them to this region.

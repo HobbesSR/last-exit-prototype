@@ -14,8 +14,8 @@ import { circle, rect } from '../shared/shape.ts';
 import { brief, compoundBox, MASKS, SIZE } from './helpers/compound-fixtures.js';
 import { cellsOf } from './helpers/cells.js';
 
-const oldHashes = { field: 'bbb6cb81f2603d3bab3209fb227ef528cf3861241100b01abeb1f094a279aad1',
-  ell: '04627fed63b6b060ee2f7070bc238c08f5296190276ea9792cca596896ecadb0' };
+const oldHashes = { field: 'c123940e125114ae289206fe625ebd63d11a0f9a66472f33211430576e7bc86c',
+  ell: 'c95f41055cf807ad27cc92be13784f8120d5db27661c737c147fa33508c47240' };
 const json = value => JSON.parse(JSON.stringify(value));
 const make = name => brief(`exterior-${name}`, 1, ...MASKS[name]);
 function center(trace, space) {

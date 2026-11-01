@@ -59,11 +59,11 @@ export const MARKET_STALL_PRESETS: readonly [BuildingAppearance, BuildingAppeara
   MARKET_STALL_DAMAGED,
 ]);
 
-export interface MarketStallAppearanceOptions {
-  seed?: number | undefined;
-  roll?: number | undefined;
+import type { TieredAppearanceOptions } from '../building/decay.ts';
+export interface MarketStallAppearanceOptions extends TieredAppearanceOptions {
   length?: number | undefined;
   alongX?: boolean | undefined;
+  cellSize?: number | undefined;
 }
 
 /**
@@ -73,17 +73,17 @@ export interface MarketStallAppearanceOptions {
 export function createMarketStallAppearance(options: MarketStallAppearanceOptions = {}): BuildingAppearance {
   const alongX = options.alongX ?? true;
   const length = options.length ?? 2;
-  const bw = (alongX ? length : 2) * 40;
-  const bh = (alongX ? 2 : length) * 40;
+  const size = options.cellSize ?? 40;
+  const bw = (alongX ? length : 2) * size;
+  const bh = (alongX ? 2 : length) * size;
   return createTieredBuildingAppearance({
-    seed: options.seed,
-    roll: options.roll,
+    ...options,
     w: bw,
     h: bh,
   }, {
     presets: MARKET_STALL_PRESETS,
     thresholds: [0.4, 0.75],
-    channelPrefix: 'stall',
+    tierChannel: 'stall-tier',
   });
 }
 
@@ -121,7 +121,7 @@ export function buildMarket(brief: RegionBrief): BuiltRegion {
       (w + 2 * AISLE) * size, (h + 2 * AISLE) * size))
       || !canvas.fits(footprint) || !canvas.spaced(footprint, AISLE * size)) continue;
     const stallSeed = Math.floor(rng(brief.seed, `${brief.id}:stall-appearance:${col}:${row}`).next() * 2 ** 31);
-    const stallApp = createMarketStallAppearance({ seed: stallSeed, length, alongX });
+    const stallApp = createMarketStallAppearance({ seed: stallSeed, length, alongX, cellSize: size });
     const stall = expectPlaced(MARKET_STALL.build({ length, alongX, flipped: row % 2 === 1, roofed, appearance: stallApp }, size));
     if (!canvas.commit({ elements: placedElements(stall, `market-stall-${++stalls}`, x, y, size) }))
       throw new Error('Market stall failed its canvas commit.');

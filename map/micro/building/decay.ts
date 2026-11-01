@@ -1,4 +1,4 @@
-import type { BuildingAppearance, BuildingRoofSignAppearance } from '../../../shared/types.ts';
+import type { BuildingAppearance, BuildingNeglectAppearance, BuildingRoofSignAppearance } from '../../../shared/types.ts';
 import type { Side } from '../port-terms.ts';
 import { rng } from '../random.ts';
 
@@ -13,7 +13,11 @@ export interface TieredAppearanceOptions {
 export interface TieredAppearanceConfig {
   presets: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance];
   thresholds?: [number, number] | undefined;
-  channelPrefix?: string | undefined;
+  tierChannel?: string | undefined;
+  subRngChannel?: ((bw: number, bh: number, door: Side | undefined) => string) | undefined;
+  damagedSignScale?: number | undefined;
+  doorAwarePanel?: boolean | undefined;
+  weatheredFloorStainChance?: number | undefined;
 }
 
 /**
@@ -24,9 +28,10 @@ function placeFrontageSign(
   bw: number,
   bh: number,
   door: Side | undefined,
-  subRng: { next(): number }
+  subRng: { next(): number },
+  scale?: number
 ): BuildingRoofSignAppearance {
-  const signW = Math.max(28, Math.min(bw - 24, Math.round(bw * (0.42 + subRng.next() * 0.18))));
+  let signW = Math.max(28, Math.min(bw - 24, Math.round(bw * (0.42 + subRng.next() * 0.18))));
   const signH = sign.h ?? 18;
   let signDx = Math.round(12 + subRng.next() * Math.max(0, bw - signW - 24));
   let signDy = 14;
@@ -41,6 +46,10 @@ function placeFrontageSign(
   } else if (door === 'E') {
     signDx = Math.max(14, bw - signW - 14);
     signDy = Math.round(12 + subRng.next() * Math.max(0, bh - signH - 24));
+  }
+
+  if (scale !== undefined) {
+    signW = Math.max(28, Math.round(signW * scale));
   }
 
   return {
@@ -62,11 +71,13 @@ export function createTieredBuildingAppearance(
   config: TieredAppearanceConfig
 ): BuildingAppearance {
   const thresholds = config.thresholds ?? [0.33, 0.67];
-  const roll = options.roll ?? (options.seed !== undefined ? rng(options.seed, `${config.channelPrefix ?? 'kit'}-tier`).next() : 0);
+  const channel = config.tierChannel ?? 'tier';
+  const roll = options.roll ?? (options.seed !== undefined ? rng(options.seed, channel).next() : 0);
   const bw = Math.max(40, options.w ?? 160);
   const bh = Math.max(40, options.h ?? 160);
   const door = options.door ?? 'S';
-  const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), `${config.channelPrefix ?? 'kit'}:${bw}x${bh}`);
+  const subChannel = config.subRngChannel ? config.subRngChannel(bw, bh, door) : `${channel}:${bw}x${bh}`;
+  const subRng = rng(options.seed ?? Math.floor(roll * 2 ** 31), subChannel);
 
   const tierIndex = roll < thresholds[0] ? 0 : roll < thresholds[1] ? 1 : 2;
   const tier = tierIndex === 0 ? 'intact' : tierIndex === 1 ? 'weathered' : 'damaged';
@@ -84,7 +95,7 @@ export function createTieredBuildingAppearance(
   }
 
   // Weathered / Damaged: scale and jitter neglect marks strictly within footprint bounds:
-  const neglect: Record<string, any> = {};
+  const neglect: BuildingNeglectAppearance = {};
 
   if (base.neglect?.fadedPanel) {
     const maxW = Math.max(16, bw - 20);
@@ -92,7 +103,10 @@ export function createTieredBuildingAppearance(
     const panelW = Math.max(14, Math.min(maxW, Math.round(bw * (0.24 + subRng.next() * 0.16))));
     const panelH = Math.max(10, Math.min(maxH, Math.round(bh * (0.15 + subRng.next() * 0.12))));
     const panelDx = Math.round(8 + subRng.next() * Math.max(0, bw - panelW - 16));
-    const panelDy = Math.round(8 + subRng.next() * Math.max(0, bh - panelH - 16));
+    let panelDy = Math.round(8 + subRng.next() * Math.max(0, bh - panelH - 16));
+    if (config.doorAwarePanel && door === 'S') {
+      panelDy = Math.round(12 + subRng.next() * Math.max(0, bh * 0.45 - 12));
+    }
     neglect.fadedPanel = {
       ...base.neglect.fadedPanel,
       dx: panelDx,
@@ -118,15 +132,18 @@ export function createTieredBuildingAppearance(
     };
   }
 
-  if (base.neglect?.floorStain) {
-    const stainW = Math.max(16, Math.min(Math.round(bw * 0.28), base.neglect.floorStain.w ?? 32));
-    const stainH = Math.max(12, Math.min(Math.round(bh * 0.22), base.neglect.floorStain.h ?? 22));
+  const shouldHaveFloorStain = base.neglect?.floorStain
+    || (tier === 'weathered' && config.weatheredFloorStainChance !== undefined && subRng.next() < config.weatheredFloorStainChance);
+
+  if (shouldHaveFloorStain) {
+    const stainW = Math.max(16, Math.min(Math.round(bw * 0.28), base.neglect?.floorStain?.w ?? 32));
+    const stainH = Math.max(12, Math.min(Math.round(bh * 0.22), base.neglect?.floorStain?.h ?? 22));
     const minX = Math.ceil(stainW / 2) + 8;
     const maxX = Math.max(minX, bw - Math.ceil(stainW / 2) - 8);
     const minY = Math.ceil(stainH / 2) + 8;
     const maxY = Math.max(minY, bh - Math.ceil(stainH / 2) - 8);
     neglect.floorStain = {
-      ...base.neglect.floorStain,
+      ...(base.neglect?.floorStain ?? { dx: 0, dy: 0, w: stainW, h: stainH }),
       dx: Math.round(minX + subRng.next() * (maxX - minX)),
       dy: Math.round(minY + subRng.next() * (maxY - minY)),
       w: stainW,
@@ -150,13 +167,15 @@ export function createTieredBuildingAppearance(
     };
   }
 
+  const signScale = tier === 'damaged' ? config.damagedSignScale : undefined;
+
   return {
     floorMaterial: base.floorMaterial,
     wallMaterial: base.wallMaterial,
     roofPaint: base.roofPaint,
     roofRim: base.roofRim,
     interiorTrim: base.interiorTrim,
-    ...(base.roofSign ? { roofSign: placeFrontageSign(base.roofSign, bw, bh, door, subRng) } : {}),
+    ...(base.roofSign ? { roofSign: placeFrontageSign(base.roofSign, bw, bh, door, subRng, signScale) } : {}),
     ...(Object.keys(neglect).length > 0 ? { neglect } : {}),
   };
 }

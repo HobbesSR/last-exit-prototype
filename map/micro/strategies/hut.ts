@@ -115,13 +115,8 @@ export const RETAIL_STOREFRONT_PRESETS: readonly [BuildingAppearance, BuildingAp
   RETAIL_STOREFRONT_DAMAGED,
 ]);
 
-export interface StorefrontAppearanceOptions {
-  seed?: number | undefined;
-  roll?: number | undefined;
-  w?: number | undefined;
-  h?: number | undefined;
-  door?: Side | undefined;
-}
+import type { TieredAppearanceOptions } from '../building/decay.ts';
+export type StorefrontAppearanceOptions = TieredAppearanceOptions;
 
 /**
  * Procedural appearance generator for commercial retail storefronts across intact, weathered, and
@@ -131,7 +126,11 @@ export interface StorefrontAppearanceOptions {
 export function createStorefrontAppearance(options: StorefrontAppearanceOptions = {}): BuildingAppearance {
   return createTieredBuildingAppearance(options, {
     presets: RETAIL_STOREFRONT_PRESETS,
-    channelPrefix: 'storefront',
+    tierChannel: 'tier',
+    subRngChannel: (bw, bh, door) => `${bw}x${bh}:${door}`,
+    doorAwarePanel: true,
+    damagedSignScale: 0.75,
+    weatheredFloorStainChance: 0.6,
   });
 }
 

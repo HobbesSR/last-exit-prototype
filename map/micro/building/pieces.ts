@@ -72,7 +72,20 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
         parts,
         ...(pieceRoofs?.length ? { roofs: pieceRoofs } : {}),
         ...(decals.length ? { decals } : {}),
-        ...(template.appearance ? { appearance: structuredClone(template.appearance) } : {}),
+        ...(template.appearance ? {
+          appearance: {
+            ...template.appearance,
+            ...(template.appearance.building ? {
+              building: {
+                floorMaterial: template.appearance.building.floorMaterial,
+                wallMaterial: template.appearance.building.wallMaterial,
+                roofPaint: template.appearance.building.roofPaint,
+                roofRim: template.appearance.building.roofRim,
+                interiorTrim: template.appearance.building.interiorTrim,
+              },
+            } : {}),
+          },
+        } : {}),
       },
     });
   }
