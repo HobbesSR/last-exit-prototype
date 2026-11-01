@@ -14,7 +14,8 @@
  * `--fronts X` (#649) compares instead today's park with today's park given `hedgeFronts: X`, the
  * growth-helper experiment (42.30); `--base` is then unused.
  * `--type T` (#759) audits another strategy the same way, against its own file at `--base`
- * (rubble and plant, moved off frozen routes after park; 42.31).
+ * (rubble and plant, moved off frozen routes after park; 42.31; cover, ruins, depot, hall and market
+ * after them, #787, 42.33).
  * Usage: node tools/park-route-audit.mjs [outDir] [--base REV] [--fronts X] [--type T]
  */
 import assert from 'node:assert/strict';
@@ -42,11 +43,13 @@ const baseArg = at >= 0 ? args.splice(at, 2)[1] : undefined;
 const frontsAt = args.indexOf('--fronts'), fronts = frontsAt >= 0 ? Number(args.splice(frontsAt, 2)[1]) : undefined;
 if (fronts !== undefined && !(fronts > 0 && fronts <= 1)) throw new Error('--fronts takes a chance above 0, at most 1.');
 const typeAt = args.indexOf('--type'), type = typeAt >= 0 ? args.splice(typeAt, 2)[1] : 'park';
-const STRATEGIES = { park: 'buildPark', rubble: 'buildRubble', plant: 'buildPlant' };
+const STRATEGIES = { park: 'buildPark', rubble: 'buildRubble', plant: 'buildPlant',
+  cover: 'buildCover', ruins: 'buildRuins', depot: 'buildDepot', hall: 'buildHall', market: 'buildMarket' };
+const ROLLOUT = ['cover', 'ruins', 'depot', 'hall', 'market'];
 if (!STRATEGIES[type]) throw new Error(`--type takes one of ${Object.keys(STRATEGIES).join(', ')}.`);
 if (fronts !== undefined && type !== 'park') throw new Error('--fronts is park only.');
-const issue = type !== 'park' ? 759 : fronts === undefined ? 750 : 649;
-const base = at >= 0 ? baseArg : type === 'park' ? '8eb3c58' : '3fbd082';
+const issue = ROLLOUT.includes(type) ? 787 : type !== 'park' ? 759 : fronts === undefined ? 750 : 649;
+const base = at >= 0 ? baseArg : type === 'park' ? '8eb3c58' : ROLLOUT.includes(type) ? '5e30b4b' : '3fbd082';
 const dir = args[0] ?? `docs/reports/issue-${issue}${type === 'park' ? '' : `-${type}`}`;
 mkdirSync(dir, { recursive: true }); mkdirSync('test-results', { recursive: true });
 // Pinned first, so uncommitted sources fail before the long run rather than after it.
@@ -56,12 +59,17 @@ const provenance = await captureSourceProvenance(['map/micro/strategies/park.ts'
   ...type === 'park' ? [] : [`map/micro/strategies/${type}.ts`, 'map/micro/hint-walls.ts', 'map/micro/strategies/infill.ts']]);
 
 // #750: the base strategy, with its imports resolved to today's modules. Only park.ts changes its
-// placement path; scatter still exports `protectedRoutes`, and the pocket's commit never
+// placement path; `protectedRoutes` resolves as below, and the pocket's commit never
 // fails on a frozen-route canvas, so the base build is the base commit's.
 // #649: today's park on both sides, the after side with hedge fronts.
 let before = buildRegion, build = buildRegion;
 if (fronts === undefined) {
+  // #787 retired `protectedRoutes` from scatter; a base that reads it gets the same function,
+  // kept for tools in the frozen-routes module.
   const source = execFileSync('git', ['show', `${base}:map/micro/strategies/${type}.ts`], { encoding: 'utf8' })
+    .replace(/import \{([^}]*)protectedRoutes,? ?([^}]*)\} from '\.\/scatter\.ts';/, (_, a, b) =>
+      `import {${a}${b}} from './scatter.ts';
+import { frozenRoutes as protectedRoutes } from '../experiments/frozen-routes.ts';`)
     .replace(/from '([^']+)'/g, (_, spec) => `from '${pathToFileURL(resolve('map/micro/strategies', spec)).href}'`);
   writeFileSync(`test-results/issue-${issue}-before-${type}.mts`, source);
   before = (await import(pathToFileURL(resolve(`test-results/issue-${issue}-before-${type}.mts`)).href))[STRATEGIES[type]];
