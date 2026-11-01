@@ -1470,7 +1470,7 @@ try {
         camera: { x: 1120, y: 400, zoom: 1 },
         selfPos: { x: 960, y: 380 },
       });
-      // Area 1 (Cobalt): prop on slate paving (960, 525) & apron (920, 525); prop on street (1040, 420) & street (1000, 420)
+      // Area 1 (Cobalt): prop on slate paving (960, 525) & apron (920, 525); prop on street (940, 465) & street (980, 465)
       const propArea1Lit = f.pixelAtWorld(960, 525).hex;
       const apronArea1Lit = f.pixelAtWorld(920, 525).hex;
       const propStreetCobaltLit = f.pixelAtWorld(940, 465).hex;
@@ -2272,7 +2272,20 @@ try {
 
   // Record all cases where fill-only contrast is below 1.15 (near-equal luminance fill) so later steps (#585/#583/#593) have complete evidence:
   const lowFillCandidates = branchSummary.filter(r => r.fillRatio < 1.15);
-  const openFindings = comment6317Candidates.filter(c => c.gateStatus !== 'pass');
+  const amberOverStreetFinding = {
+    issue: 737,
+    topic: 'palette-field-contrast-floor',
+    theme: 'signature',
+    field: 'amber-focal-edge',
+    substrate: 'street',
+    propFill: '#9eab90',
+    substrateColor: '#8c877f',
+    contrast: 1.475,
+    floor: 1.50,
+    status: 'open-finding',
+    note: 'Signature theme amber-focal-edge wash over street yields 1.475 contrast, falling below the 1.50 floor. Pending Corey decision on prop scales, wash capping, or case acceptance.',
+  };
+  const openFindings = [...comment6317Candidates.filter(c => c.gateStatus !== 'pass'), amberOverStreetFinding];
 
   const report = {
     schema: 'art-witness-1',
