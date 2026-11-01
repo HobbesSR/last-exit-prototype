@@ -13,11 +13,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { generate } from '../map/tools/core.ts';
-import { REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
+import { buildRegion, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
 import { elementShapes, createRegionMask } from '../map/micro/geometry.ts';
 import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
-import { buildCover, sitedCover } from '../map/micro/strategies/cover.ts';
-import { buildPark } from '../map/micro/strategies/park.ts';
+import { sitedCover } from '../map/micro/strategies/cover.ts';
 import { buildHutGeneration } from '../map/micro/strategies/hut.ts';
 import { buildCompoundGeneration } from '../map/micro/strategies/compound.ts';
 import { bounds, body, contains } from '../shared/shape.ts';
@@ -119,19 +118,18 @@ for (const width of [12, 24, 36]) for (const n of [1, 2, 3]) {
     if (brief.type === 'cover') {
       const lattice = sitedCover(brief).region.elements.length;
       outcome(lattice ? 'lattice' : region.elements.length ? 'fallback' : brief.portals.length > 32 ? 'empty, >32 portals' : 'empty');
-      if (!lattice && !region.elements.length && fill.length)
-        outcome(solid(buildCover({ ...brief, parameters: { ...brief.parameters, density: 1 } })) ? 'empty: draw declined' : 'empty: no fit');
     }
     if (brief.type === 'park') {
       const m = region.manifest;
       outcome(m.pockets ? 'pocket' : m.hedges || m.clumps ? 'lattice' : m.trees ? 'fallback' : 'empty');
-      if (!m.trees && !m.hedges && !m.pockets && fill.length)
-        outcome(solid(buildPark({ ...brief, parameters: { ...brief.parameters, density: 1 } })) ? 'empty: draw declined' : 'empty: no fit');
     }
     if (brief.type === 'rubble') {
       const owned = createRegionMask(brief), span = Math.min(owned.bounds.w, owned.bounds.h) / size;
       if (!fill.length || brief.cells.length < 12 || span < 3) outcome('unfilledRegion exit');
     }
+    // An empty density-driven region: would any density place something, or does nothing fit (42.27)?
+    if (['cover', 'park', 'rubble'].includes(brief.type) && !solid(region) && fill.length)
+      outcome(solid(buildRegion({ ...brief, parameters: { ...brief.parameters, density: 1 } })) ? 'empty: draw declined' : 'empty: no fit');
     if (brief.type === 'hut' || brief.type === 'compound') {
       const yards = [];
       (brief.type === 'hut' ? buildHutGeneration : buildCompoundGeneration)(brief, { observeYard: d => yards.push(d) });
@@ -150,11 +148,12 @@ const elapsed = (performance.now() - started) / 1000;
 const quantile = (values, q) => { const s = values.toSorted((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
 const share = (a, b) => b ? Math.round(1000 * a / b) / 1000 : null;
 const sorted = o => Object.fromEntries(Object.entries(o).sort());
+const panelCells = Object.values(types).reduce((sum, t) => sum + t.totalCells, 0);
 const byType = Object.fromEntries(Object.entries(types).sort(([, a], [, b]) => b.totalFill - a.totalFill).map(([type, t]) => [type, {
   regions: t.regions,
   cells: { p10: quantile(t.cells, .1), p50: quantile(t.cells, .5), p90: quantile(t.cells, .9), max: Math.max(...t.cells), total: t.totalCells },
   fill: { p10: quantile(t.fill, .1), p50: quantile(t.fill, .5), p90: quantile(t.fill, .9), max: Math.max(...t.fill), total: t.totalFill },
-  marginShare: share(t.totalCells - t.totalFill, t.totalCells),
+  panelCellShare: share(t.totalCells, panelCells), marginShare: share(t.totalCells - t.totalFill, t.totalCells),
   emptyRegions: t.empty, emptyShare: share(t.empty, t.regions), emptyFillShare: share(t.emptyFill, t.totalFill),
   coveredFillShare: share(t.covered, t.totalFill),
   routes: t.routed ? { regions: t.routed, fillShare: share(t.routeCovered, t.routedFill) } : null,
