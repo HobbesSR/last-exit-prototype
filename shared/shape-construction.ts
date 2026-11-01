@@ -159,7 +159,9 @@ type SimplePass = { m_PolyOuts: { Pts: OutPt | null; IsOpen: boolean }[] };
  * Clipper's strictly simple pass splits a ring where it meets itself at a repeated point. It
  * compares every vertex with every later one, which is quadratic in the ring's length; a ring
  * without a repeated point is left untouched. So when no output ring repeats a point, the pass
- * is skipped, and the result is Clipper's own either way (#767).
+ * is skipped, and the result is Clipper's own either way (#767). It reads clipper-lib 6.4.x's
+ * internals (`m_PolyOuts`, `Pts`, `IsOpen`, `Next`); recheck them when upgrading. The test in
+ * `tests/shape-construction.test.js` fails if they move.
  */
 function screenedSimplePolygons(this: SimplePass): void {
   const seen = new Set<string>();
