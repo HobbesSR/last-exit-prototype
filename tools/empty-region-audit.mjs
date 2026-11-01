@@ -71,15 +71,16 @@ try {
     const indices = after.results.flatMap((r, i) => ADOPTERS.includes(r.brief.type) ? [i] : []);
     for (const i of indices) old.results[i] = before[after.results[i].brief.type](after.results[i].brief);
 
-    // Fallback cost: the base and current builders over the same briefs, three sequential passes.
-    for (const i of indices) buildRegion(after.results[i].brief);
+    // Fallback cost: the base and current builders over the same briefs, three sequential paired
+    // passes timing builder calls alone. The current builder's output is checked once, untimed.
+    for (const i of indices) assert.deepEqual(buildRegion(after.results[i].brief), after.results[i]);
     const passes = [];
     for (let repeat = 0; repeat < 3; repeat++) {
       let start = performance.now();
       for (const i of indices) before[after.results[i].brief.type](after.results[i].brief);
       const beforeMs = performance.now() - start;
       start = performance.now();
-      for (const i of indices) assert.deepEqual(buildRegion(after.results[i].brief), after.results[i]);
+      for (const i of indices) buildRegion(after.results[i].brief);
       passes.push({ beforeMs, afterMs: performance.now() - start });
     }
     timings.push({ seed, briefs: indices.length, passes });
@@ -128,12 +129,22 @@ try {
         emptyShare: struct.map(m => sum(m, 'emptySamples') / sum(m, 'walkableSamples')),
         deadEndArea: struct.map(m => m.deadEndArea), walkableArea: struct.map(m => m.walkableArea) };
     });
+    // Final targets, separately: the after map's own core and loot endpoints, statuses by category.
+    // Core targets (spawn to exit or charger) must all complete; every other failure is kept visible.
+    const finalTargets = navAfter.roles.map(role => {
+      const byCategory = {};
+      for (const s of role.samples) (byCategory[s.category] ??= {})[s.status] = ((byCategory[s.category] ??= {})[s.status] ?? 0) + 1;
+      const failures = role.samples.filter(s => s.status !== 'complete');
+      for (const s of failures) assert.ok(!['spawn-exit', 'spawn-charger'].includes(s.category), `${seed} ${role.body}: core target ${s.category} ${s.status}`);
+      return { body: role.body, pairs: role.samples.length, byCategory: Object.fromEntries(Object.entries(byCategory).sort()),
+        failures: failures.map(s => ({ category: s.category, status: s.status, from: s.from, to: s.to, fromRegion: s.fromRegion, toRegion: s.toRegion })) };
+    });
     maps.push({ seed, params, regions: after.results.length, adopterBriefs: indices.length, changed: changed.length,
       emptyBefore: { byReason: tally(emptyBefore, r => r.reason), byTypeReason: tally(emptyBefore, r => `${r.type}/${r.reason}`) },
       emptyAfter: { byReason: tally(emptyAfter, r => r.reason), byTypeReason: tally(emptyAfter, r => `${r.type}/${r.reason}`) },
       pieces: changed.reduce((t, i) => t + after.results[i].elements.length, 0),
       lootBefore: changed.reduce((t, i) => t + old.results[i].loot.length, 0), lootAfter: changed.reduce((t, i) => t + after.results[i].loot.length, 0),
-      coreElements: [checks.before.coreElements, checks.after.coreElements], roles });
+      coreElements: [checks.before.coreElements, checks.after.coreElements], roles, finalTargets });
   }
 } finally { release(); }
 
