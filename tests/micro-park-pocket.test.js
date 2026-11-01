@@ -71,7 +71,11 @@ test('pocket siting is bounded and leaves no partial placement on unsuitable fil
   }
   const original = readMap(JSON.parse(gunzipSync(readFileSync(new URL('../docs/reports/issue-688/size-12-1.json.gz', import.meta.url)))))
     .results.find(r => r.brief.id === small.id);
-  assert.deepEqual(buildRegion(small), original, 'the large real no-fit result remains exact');
+  // Its lattice placed nothing either, so #717's single trees now stand in; no pocket or partial claim does.
+  assert.deepEqual(original.elements, []);
+  const rebuilt = buildRegion(small);
+  assert.ok(rebuilt.elements.length && rebuilt.elements.every(e => e.label.startsWith('park-tree-')));
+  assert.equal(rebuilt.manifest.clumps + rebuilt.manifest.hedges, 0);
 });
 
 test('an unreachable pocket exhausts the route budget without a partial canvas claim', () => {

@@ -2,8 +2,8 @@ import { rect } from '../../../shared/shape.ts';
 import { PARK_TREE } from '../placeables/park-tree.ts';
 import { PARK_HEDGE_RUN } from '../placeables/park-hedge-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
-import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
-import { draw } from '../random.ts';
+import { unfilledRegion, cellLoot, fraction, protectedRoutes, sitePiecesPerCell } from './scatter.ts';
+import { draw, rng } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
@@ -47,7 +47,8 @@ type Box = { x: number; y: number; w: number; h: number };
  * Clumps and hedge runs keep `AISLE` clear cells from other slots. Candidate footprints
  * stay owned and clear of portal approaches; concave masks also protect a hunter corridor.
  * A hedge's door-wide gap leaves a crossing through the run. Hinted runs guide the first
- * tree in eligible slots. A region too small for a piece stays clear.
+ * tree in eligible slots. When the lattice places nothing, as in a one-tile park, single trees
+ * are sited cell by cell instead (#717). A region too small for a tree stays clear.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every piece. A park sites no core elements; any the brief lists are left for the report.
@@ -120,6 +121,11 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     place(`park-clump-${clumps}`, footprints.flatMap(f =>
       placedElements(expectPlaced(PARK_TREE.build({}, size)), `park-tree-${++trees}`, f.x, f.y, size)));
   }
+
+  // When the lattice places nothing, as in a one-tile park, single trees are sited cell by cell.
+  if (!canvas.elements.length && density > 0)
+    trees += sitePiecesPerCell(canvas, rng(brief.seed, `${brief.id}:park-fallback`), density, AISLE, 'park',
+      () => [{ name: 'tree', place: () => expectPlaced(PARK_TREE.build({}, size)) }]);
 
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
