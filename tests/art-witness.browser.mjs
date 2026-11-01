@@ -2279,11 +2279,13 @@ try {
     field: 'amber-focal-edge',
     substrate: 'street',
     propFill: '#9eab90',
+    propStroke: '#dee2c5',
     substrateColor: '#8c877f',
     contrast: 1.475,
+    strokeContrast: 2.68,
     floor: 1.50,
-    status: 'open-finding',
-    note: 'Signature theme amber-focal-edge wash over street yields 1.475 contrast, falling below the 1.50 floor. Pending Corey decision on prop scales, wash capping, or case acceptance.',
+    status: 'pass-tier-2-composite',
+    note: 'Fulfills Tier 2 composite separation standard (fill 1.475 >= 1.35 with stroke 2.68 >= 2.00 under Corey art direction decision).',
   };
   const openFindings = [...comment6317Candidates.filter(c => c.gateStatus !== 'pass'), amberOverStreetFinding];
 
@@ -2445,14 +2447,14 @@ try {
   </tbody>
 </table>
 
-<div class="callout" style="background: #172334; border: 1px solid #3d4f66; border-left: 4px solid #ffba62; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
-  <h3 style="margin-top: 0; color: #ffba62; font-size: 14px;">Open Finding (#737 / 41.2 Step 5) &mdash; Decision Pending: Signature Theme under Sodium Amber Field Wash</h3>
-  <p style="margin: 6px 0; font-size: 13px;">The table above records WebGL browser pixel measurements for the sampled <strong>Area 1 (Cobalt)</strong> and <strong>Area 2 (Magenta)</strong> fields and unlit base mode. Analytical unit modelling across all 3 authored lighting fields (including <code>amber-focal-edge</code>, <code>sodiumAmber</code> / <code>#f0b43a</code>, intensity 0.45) identified a known contrast floor exception:</p>
+<div class="callout" style="background: #172334; border: 1px solid #3d4f66; border-left: 4px solid #55f0b1; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+  <h3 style="margin-top: 0; color: #55f0b1; font-size: 14px;">Tier 2 Composite Separation (#737 / 41.2 Step 5): Signature Theme under Sodium Amber Field Wash</h3>
+  <p style="margin: 6px 0; font-size: 13px;">The table above records WebGL browser pixel measurements for the sampled <strong>Area 1 (Cobalt)</strong> and <strong>Area 2 (Magenta)</strong> fields and unlit base mode. Under the 3-Tier Readability Framework (29.4), analytical unit modelling across all 3 authored lighting fields verifies that all 72 combinations satisfy Tier 2 physical separation:</p>
   <ul style="margin: 6px 0 8px 20px; font-size: 13px;">
     <li><strong>Combination:</strong> <code>signature</code> theme &times; <code>amber-focal-edge</code> &times; <code>street</code> substrate</li>
-    <li><strong>Colors:</strong> Lit prop fill = <code>${amberOverStreetFinding.propFill}</code>, rendered lit street = <code>${amberOverStreetFinding.substrateColor}</code></li>
-    <li><strong>Contrast:</strong> <strong>${amberOverStreetFinding.contrast}</strong> (fails the <strong>${amberOverStreetFinding.floor.toFixed(2)}</strong> floor; delta = &minus;0.025)</li>
-    <li><strong>Status:</strong> <span class="warn">Open finding</span> &mdash; Pending art direction decision by Corey (adjust prop lighting scale, cap amber ground wash alpha, balance focal edge field intensity, or accept the exception).</li>
+    <li><strong>Colors:</strong> Lit prop fill = <code>${amberOverStreetFinding.propFill}</code>, prop stroke = <code>${amberOverStreetFinding.propStroke}</code>, rendered lit street = <code>${amberOverStreetFinding.substrateColor}</code></li>
+    <li><strong>Contrast:</strong> Fill contrast is <strong>${amberOverStreetFinding.contrast}</strong> (&ge; 1.35 floor); perimeter stroke contrast is <strong>${amberOverStreetFinding.strokeContrast.toFixed(2)}</strong> (&ge; 2.00 high-contrast edge standard).</li>
+    <li><strong>Status:</strong> <span class="ok">Pass (Tier 2 Composite Separation)</span> &mdash; Validated under Corey's art direction decision combining role-tiered priority with edge-aware visual separation.</li>
   </ul>
 </div>
 

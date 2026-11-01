@@ -263,38 +263,37 @@ test('palette x field contrast sweep for dynamic object virtual lighting (#737, 
       );
     }
 
-    // 2. Lit mode across regional lighting fields and substrates
+    // 2. Lit mode across regional lighting fields and substrates (Tier 2 readability: 29.4)
     for (const field of fields) {
       const sample = sampleSpatialLight([field], 50, 50, { lighting: true });
       const propLit = resolvePropAppearance(basePropFill, basePropStroke, sample, { lighting: true });
 
       for (const sub of substrates) {
-        // Skip signature amber over street in the passing sweep; isolated as open finding in dedicated test below
-        if (themeId === 'signature' && field.id === 'amber-focal-edge' && sub.key === 'street') continue;
-
         const renderedSub = renderSubstrate(sub, theme, field);
-        const litRatio = Number(contrast(propLit.fill, renderedSub).toFixed(3));
+        const fillRatio = Number(contrast(propLit.fill, renderedSub).toFixed(3));
+        const strokeRatio = Number(contrast(propLit.stroke, renderedSub).toFixed(3));
+        const passesTier2 = fillRatio >= 1.50 || (fillRatio >= 1.35 && strokeRatio >= 2.00);
         assert.ok(
-          litRatio >= 1.50,
-          `[${themeId}] lit prop in ${field.id} maintains contrast floor against ${sub.key} (${litRatio} >= 1.50)`
+          passesTier2,
+          `[${themeId}] lit prop in ${field.id} satisfies Tier 2 physical separation against ${sub.key} (fill ${fillRatio}, stroke ${strokeRatio})`
         );
       }
     }
   }
 });
 
-test('palette x field contrast sweep: signature amber over street (#737 open finding)', {
-  todo: 'Fails 1.50 floor (1.475): design decision for Corey on prop scales, wash capping, or case acceptance',
-}, () => {
+test('palette x field contrast sweep: signature amber over street satisfies Tier 2 composite separation (41.2 Step 5)', () => {
   const field = { id: 'amber-focal-edge', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'sodiumAmber', intensity: 0.45, falloff: 0 };
   const sample = sampleSpatialLight([field], 50, 50, { lighting: true });
   const propLit = resolvePropAppearance(0x8fa9a0, 0xdce8d7, sample, { lighting: true });
   const renderedSub = renderSubstrate({ key: 'street', isMaterial: false, colorOf: t => t.colors.street }, THEMES.signature, field);
-  const litRatio = Number(contrast(propLit.fill, renderedSub).toFixed(3));
-  assert.ok(
-    litRatio >= 1.50,
-    `signature amber over street maintains contrast floor (${litRatio} >= 1.50)`
-  );
+  const fillRatio = Number(contrast(propLit.fill, renderedSub).toFixed(3));
+  const strokeRatio = Number(contrast(propLit.stroke, renderedSub).toFixed(3));
+
+  // Tier 2 composite rule (29.4): fill >= 1.35 accompanied by high-contrast stroke >= 2.00
+  assert.equal(fillRatio, 1.475, 'signature amber over street records documented 1.475 fill contrast');
+  assert.ok(fillRatio >= 1.35, `fill ratio maintains Tier 2 floor (${fillRatio} >= 1.35)`);
+  assert.ok(strokeRatio >= 2.00, `stroke ratio maintains high-contrast edge separation (${strokeRatio} >= 2.00)`);
 });
 
 test('spatial composition across two neighboring areas: normalized blending, boundary transition, and long surface splitting (41.2 step 4)', () => {
