@@ -49,6 +49,7 @@ They do not replace the current owners recorded here until implementation.
 | 22.5 | Lobbies, matchmaking and rooms: the design for #237, what each part owns and the stages | [22.5](22.5-lobbies-and-matchmaking.md) |
 | 22.6 | Hierarchical navigation (#353): a free-space mesh and the knowledge tiles bots plan over (adopted under `content-3`), and a portal graph built but unused; private map knowledge and optimistic bot planning; load the relevant 22.6.x part | [22.6](22.6-hierarchical-navigation.md) |
 | 22.7 | Content/presentation metadata, client configuration, compatibility defaults and shared-rule ownership (#385; implemented in #386) | [22.7](22.7-content-and-presentation.md) |
+| 22.8 | Development tools: one core with lab, CLI and MCP faces, state documents and links, the in-page handle, pictures; appearance tools (#772, design) | [22.8](22.8-development-tools.md) |
 
 ## Earlier heading links
 
