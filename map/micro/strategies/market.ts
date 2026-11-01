@@ -8,7 +8,7 @@ import { draw, rng } from '../random.ts';
 import { builtRegion } from '../result.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import type { BuildingAppearance } from '../../../shared/types.ts';
-import { createTieredBuildingAppearance } from '../building/decay.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import { cellLoot, protectedRoutes, unfilledRegion } from './scatter.ts';
 
 const AISLE = CELL_SCALE.doorway;
@@ -59,7 +59,6 @@ export const MARKET_STALL_PRESETS: readonly [BuildingAppearance, BuildingAppeara
   MARKET_STALL_DAMAGED,
 ]);
 
-import type { TieredAppearanceOptions } from '../building/decay.ts';
 export interface MarketStallAppearanceOptions extends TieredAppearanceOptions {
   length?: number | undefined;
   alongX?: boolean | undefined;

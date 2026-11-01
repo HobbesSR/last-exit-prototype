@@ -3,7 +3,7 @@ import { largestRectangle } from './hall.ts';
 import { cellLoot } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import type { BuildingAppearance } from '../../../shared/types.ts';
-import { createTieredBuildingAppearance } from '../building/decay.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { portalStands } from '../portals.ts';
@@ -89,7 +89,6 @@ export const COMPOUND_RESIDENTIAL_PRESETS: readonly [BuildingAppearance, Buildin
   COMPOUND_RESIDENTIAL_DAMAGED,
 ]);
 
-import type { TieredAppearanceOptions } from '../building/decay.ts';
 export type CompoundAppearanceOptions = TieredAppearanceOptions;
 
 export function createCompoundAppearance(options: CompoundAppearanceOptions = {}): BuildingAppearance {
@@ -311,7 +310,8 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
 
   const gatedBits = SIDES.reduce((bits, side, i) => bits | (gated.has(side) ? 1 << i : 0), 0);
   const ringAppSeed = Math.floor(rng(brief.seed, `${brief.id}:compound-appearance`).next() * 2 ** 31);
-  const ringAppearance = createCompoundAppearance({ seed: ringAppSeed, w: W * size, h: H * size });
+  const tierRoll = rng(ringAppSeed, 'compound-tier').next();
+  const ringAppearance = createCompoundAppearance({ roll: tierRoll, w: W * size, h: H * size });
   const ring = expectPlaced(COMPOUND_RING.build({ w: W, h: H, gates: gatedBits, seed: brief.seed, appearance: ringAppearance }, size));
   const { design, allocation, realization, rooms, passages } = ring.details;
   // The placeable gives local roof-group suffixes; the builder scopes them to this region.
@@ -319,6 +319,20 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
     if (roof.groupId) roof.groupId = brief.id + roof.groupId;
   observe?.({ label: 'compound', origin: { x: bx * size, y: by * size }, cellSize: size, design, allocation, realization });
   const elements = placedElements(ring, 'compound', bx, by, size);
+  for (const element of elements) {
+    if (element.label.startsWith('compound-room')) {
+      const roomSeed = Math.floor(rng(brief.seed, `${brief.id}:room-appearance:${element.label}`).next() * 2 ** 31);
+      element.template.appearance = {
+        ...element.template.appearance,
+        building: createCompoundAppearance({
+          seed: roomSeed,
+          roll: tierRoll,
+          w: element.template.w,
+          h: element.template.h,
+        }),
+      };
+    }
+  }
   // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
   if (!createBuilderCanvas(brief).commit({ elements })) throw new Error('Compound placement failed its canvas commit.');
   const first = elements[0];

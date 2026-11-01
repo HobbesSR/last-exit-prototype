@@ -12,7 +12,7 @@ import type { Placed } from '../placeables/placeable.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import type { BuildingAppearance } from '../../../shared/types.ts';
-import { createTieredBuildingAppearance } from '../building/decay.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { delegateYardCandidates, yardDiagnostics, yardExtentBoxes } from '../yard-handoff.ts';
@@ -115,7 +115,6 @@ export const RETAIL_STOREFRONT_PRESETS: readonly [BuildingAppearance, BuildingAp
   RETAIL_STOREFRONT_DAMAGED,
 ]);
 
-import type { TieredAppearanceOptions } from '../building/decay.ts';
 export type StorefrontAppearanceOptions = TieredAppearanceOptions;
 
 /**

@@ -638,6 +638,14 @@ test('compound region strategy adopts residential/office block appearance and co
     const resolved = resolveBuildingAppearance({ id: roof.id, ...roof.bounds, appearance: roof.appearance }, ctx.map.appearance, { palette: 'signature' });
     assert.ok(resolved.roofFill > 0, 'compound room roof resolves non-zero fill');
   }
+
+  // Damaged compound has scars on room pieces with non-repeating offsets across rooms:
+  const damagedBrief = chainBrief({ type: 'compound', cells: cellsOf(20, 20), seed: 2, portals: [{ id: 'p1', side: 'N', axis: 'h', x: 8, y: 0, length: 4, partner: 'other' }] });
+  const damagedRegion = buildCompound(damagedBrief);
+  const damagedRooms = damagedRegion.elements.filter(e => e.label.startsWith('compound-room') && e.template.appearance?.building?.neglect?.scorchMark);
+  assert.ok(damagedRooms.length > 0, 'damaged compound has at least one scorch scar on some room piece');
+  const scorchOffsets = new Set(damagedRooms.map(r => `${r.template.appearance.building.neglect.scorchMark.dx},${r.template.appearance.building.neglect.scorchMark.dy}`));
+  assert.equal(scorchOffsets.size, damagedRooms.length, 'no two compound room pieces share identical scorch mark offsets');
 });
 
 test('plant region strategy adopts industrial shed appearance, cooling towers, and substation machinery', () => {
