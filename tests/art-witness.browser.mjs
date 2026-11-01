@@ -2428,7 +2428,7 @@ try {
       <th>Magenta on Apron</th>
       <th>Unlit on Street</th>
       <th>Unlit on Ground</th>
-      <th>Verdict (&ge; 1.50)</th>
+      <th>Verdict (Sampled Fields &ge; 1.50)</th>
     </tr>
   </thead>
   <tbody>
@@ -2440,10 +2440,21 @@ try {
       <td><code>${row.propMagentaApron}</code> / <code>${row.apronMagenta}</code>: <strong>${row.magentaApronContrast.toFixed(2)}</strong></td>
       <td><code>${row.propUnlitStreet}</code> / <code>${row.streetUnlit}</code>: <strong>${row.unlitStreetContrast.toFixed(2)}</strong></td>
       <td><code>${row.propUnlitGround}</code> / <code>${row.groundUnlit}</code>: <strong>${row.unlitGroundContrast.toFixed(2)}</strong></td>
-      <td>${row.passesFloor ? '<span class="ok">Pass (&ge; 1.50)</span>' : '<span class="fail">Fail</span>'}</td>
+      <td>${row.passesFloor ? '<span class="ok">Pass (Cobalt/Magenta/Unlit &ge; 1.50)</span>' : '<span class="fail">Fail</span>'}</td>
     </tr>`).join('\n')}
   </tbody>
 </table>
+
+<div class="callout" style="background: #172334; border: 1px solid #3d4f66; border-left: 4px solid #ffba62; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+  <h3 style="margin-top: 0; color: #ffba62; font-size: 14px;">Open Finding (#737 / 41.2 Step 5) &mdash; Decision Pending: Signature Theme under Sodium Amber Field Wash</h3>
+  <p style="margin: 6px 0; font-size: 13px;">The table above records WebGL browser pixel measurements for the sampled <strong>Area 1 (Cobalt)</strong> and <strong>Area 2 (Magenta)</strong> fields and unlit base mode. Analytical unit modelling across all 3 authored lighting fields (including <code>amber-focal-edge</code>, <code>sodiumAmber</code> / <code>#f0b43a</code>, intensity 0.45) identified a known contrast floor exception:</p>
+  <ul style="margin: 6px 0 8px 20px; font-size: 13px;">
+    <li><strong>Combination:</strong> <code>signature</code> theme &times; <code>amber-focal-edge</code> &times; <code>street</code> substrate</li>
+    <li><strong>Colors:</strong> Lit prop fill = <code>${amberOverStreetFinding.propFill}</code>, rendered lit street = <code>${amberOverStreetFinding.substrateColor}</code></li>
+    <li><strong>Contrast:</strong> <strong>${amberOverStreetFinding.contrast}</strong> (fails the <strong>${amberOverStreetFinding.floor.toFixed(2)}</strong> floor; delta = &minus;0.025)</li>
+    <li><strong>Status:</strong> <span class="warn">Open finding</span> &mdash; Pending art direction decision by Corey (adjust prop lighting scale, cap amber ground wash alpha, balance focal edge field intensity, or accept the exception).</li>
+  </ul>
+</div>
 
 <h2>Neon Aftermath <code>broadcastPink</code> Street Line Observation</h2>
 <p>Raw swatch: <code>${broadcastPinkAssessment.rawSwatch}</code> · Rendered at <code>0.35</code> alpha on street (<code>${broadcastPinkAssessment.streetHex}</code>) → <code>${broadcastPinkAssessment.renderedStreetLineHex}</code> (line vs street luminance ratio <code>${broadcastPinkAssessment.renderedLineVsStreetContrast}</code>; luminance ratio vs mine <code>#ff778c</code>: <code>${broadcastPinkAssessment.contrastAgainstMinePink}</code>; vs gladiator ring <code>#ff7d8a</code>: <code>${broadcastPinkAssessment.contrastAgainstGladiatorRing}</code>). ${broadcastPinkAssessment.note}</p>
