@@ -1,11 +1,12 @@
 import { clearFootprint } from '../kernel/margins.ts';
-import { rect, type Shape } from '../../shared/shape.ts';
+import { bounds, rect, type Shape } from '../../shared/shape.ts';
 import { construct } from '../../shared/shape-construction.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import { createAddressedArea } from './addressed.ts';
 import { assemblyBlockers, assemblyFootprints, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
 import { discoverCordWitness, type CordWitness } from './cord-witness.ts';
-import { createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
+import { capsule, createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
+import { hunterClearance } from './portals.ts';
 import { areaContains, parcelArea } from './parcel-area.ts';
 import type { RegionBrief } from './types.ts';
 import type { PatchOffer, PreparedDelegation } from './delegation.ts';
@@ -67,6 +68,22 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   let witness = initial.witness, routingBrief = brief;
   // The brief only changes when a handoff is accepted, so its masks are kept until then.
   let masks: { brief: RegionBrief; fill: ReturnType<typeof createFillMask>; access: ReturnType<typeof createAccessMask> } | undefined;
+  // A witness's swept capsules, kept with the witness they belong to. `travelClear` is capsule
+  // overlap, so blockers clear of every capsule leave each sweep, and so rediscovery, unchanged.
+  let swept: { witness: CordWitness; capsules: { shape: Shape; box: ReturnType<typeof bounds> }[] } | undefined;
+  const witnessStandsClear = (added: readonly Shape[]): boolean => {
+    if (swept?.witness !== witness) {
+      const radius = hunterClearance(routingBrief.cellSize);
+      const capsules = witness.paths.flatMap(path => path.length === 1 ? capsule(path[0]!, path[0]!, radius)
+        : path.slice(1).flatMap((p, i) => capsule(path[i]!, p, radius)));
+      swept = { witness, capsules: capsules.map(shape => ({ shape, box: bounds(shape) })) };
+    }
+    return added.every(shape => {
+      const b = bounds(shape);
+      return swept!.capsules.every(({ shape: c, box }) => box.x > b.x + b.w || b.x > box.x + box.w || box.y > b.y + b.h || b.y > box.y + box.h
+        || !shapesOverlap(shape, c));
+    });
+  };
   const masksOf = () => masks?.brief === brief ? masks : (masks = { brief, fill: createFillMask(brief), access: createAccessMask(brief) });
   const fail = (reason: Refusal): Failed => ({ ok: false, reason });
   const lookup = (handle: ParcelHandle) => parcels.find(p => p.handle === handle);
@@ -286,7 +303,8 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if ([...intent, ...assemblyFootprints(owned), ...(owned.access ?? [])].some(a => parcels.some(p => p.area.some(s => shapesOverlap(a, s))))) return false;
       const ops: Operation[] = [...operations, { kind: 'assembly', assembly: owned }];
       const addedBlockers = assemblyBlockers(owned);
-      const found = discoverCordWitness(routingBrief, [...blockers(parcels), ...addedBlockers], terminals, witness, budget);
+      const found = witnessStandsClear(addedBlockers) ? { ok: true as const, witness }
+        : discoverCordWitness(routingBrief, [...blockers(parcels), ...addedBlockers], terminals, witness, budget, addedBlockers);
       if (!found.ok) return false;
       // Search first; canvas.commit itself is atomic. No live write occurs on either refusal.
       if (!canvas.commit(owned)) return false;
