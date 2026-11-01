@@ -114,8 +114,11 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
   return fallbackCover(brief, sitedCover(brief).region, densityOf(brief));
 }
 
-/** `buildCover`'s region with the protections its canvas held, so the post-filters commit against the same ones. */
-function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes: readonly Shape[] } {
+/**
+ * `buildCover`'s region before its fallback, with the protections its canvas held, so the post-filters
+ * commit against the same ones. Exported for tools that tell lattice cover from fallback cover (#749).
+ */
+export function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes: readonly Shape[] } {
   const density = densityOf(brief), size = brief.cellSize;
   const cells = [...brief.cells].sort(compareCells);
   // Routes between portals are protected; past 32 portals that search is too dear, and
