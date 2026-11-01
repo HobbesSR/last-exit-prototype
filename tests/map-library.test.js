@@ -40,7 +40,8 @@ for (const [seed, contestantCount] of [['library-0', 8], ['library-4', 24]]) tes
     result.brief.type === type && result.elements.length), `${type} places actual geometry`);
   for (const result of map.results.filter(result => result.brief.type !== 'open')) {
     const { brief } = result, blockers = result.elements.flatMap(element => elementShapes(element));
-    assert.deepEqual(validatePortalReach({ ...brief, blockers }).errors, [], `${seed} ${brief.type} ${brief.id}`);
+    // Thorough, as the map diagnosis is: cord adopters such as park pass between pieces off the grid (20.10).
+    assert.deepEqual(validatePortalReach({ ...brief, blockers }, { search: 'thorough' }).errors, [], `${seed} ${brief.type} ${brief.id}`);
     // Reaching a site from the first portal is the core element strategies' own siting rule
     // (54), not the portal promise: a region's interior is its builder's business (51 principle 9).
     if (!result.coreElements.length) continue;

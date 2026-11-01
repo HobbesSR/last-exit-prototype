@@ -5,10 +5,11 @@ import { gunzipSync } from 'node:zlib';
 import { readMap } from '../map/tools/core.ts';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { createBuilderCanvas } from '../map/micro/canvas.ts';
+import { createProspectiveParcels } from '../map/micro/prospective-parcels.ts';
 import { createAccessMask, elementShapes, findRegionRoute, shapesShareArea, travelClear } from '../map/micro/geometry.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
-import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
+import { portalApproaches } from '../map/micro/strategies/scatter.ts';
 import { PARK_POCKET_LIMITS, siteParkPocket } from '../map/micro/strategies/park-pocket.ts';
 import { cellsOf } from './helpers/cells.js';
 import { rect } from '../shared/shape.ts';
@@ -18,8 +19,8 @@ const saved = size => readMap(JSON.parse(gunzipSync(readFileSync(new URL(`../doc
 const shapes = result => result.elements.flatMap(e => elementShapes(e));
 const pocket = result => result.elements.filter(e => e.label === 'park-pocket');
 const tryPocket = brief => {
-  const protectedShapes = protectedRoutes(brief, 'Park', brief.portals.length <= 32 ? 'root' : 'nearby');
-  const canvas = createBuilderCanvas(brief, protectedShapes);
+  // Park's own canvas: fixed portal approaches and a live cord witness (#750).
+  const canvas = createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Park') }).coordinator;
   const result = siteParkPocket(brief, canvas);
   assert.ok(result.candidates <= PARK_POCKET_LIMITS.candidates);
   assert.ok(result.routes <= PARK_POCKET_LIMITS.routes);
@@ -58,24 +59,27 @@ test('saved park pocket retains fill, portal and hunter access after scatter', (
 });
 
 test('pocket siting is bounded and leaves no partial placement on unsuitable fills', () => {
-  const small = saved(12).find(b => b.id === 'park@144,36');
-  assert.equal(small.cells.length, 936, 'a large real park can still have no admissible pocket');
   const noPortal = synthetic(cellsOf(24, 24));
   const fragmented = synthetic(cellsOf(40, 40, (x, y) => x % 8 < 6 || y === 0),
     [{ id: 'north', axis: 'h', x: 0, y: 0, length: 3 }]);
-  for (const brief of [small, noPortal, fragmented]) {
+  for (const brief of [noPortal, fragmented]) {
     const { result, canvas } = tryPocket(brief);
     assert.equal(result.envelope, null, brief.id);
     assert.deepEqual(canvas.elements, []);
     assert.equal(pocket(buildRegion(brief)).length, 0);
   }
+});
+
+test('a pocket the frozen routes refused fits once cords may bend round it (#750)', () => {
+  const small = saved(12).find(b => b.id === 'park@144,36');
+  assert.equal(small.cells.length, 936);
   const original = readMap(JSON.parse(gunzipSync(readFileSync(new URL('../docs/reports/issue-688/size-12-1.json.gz', import.meta.url)))))
     .results.find(r => r.brief.id === small.id);
-  // Its lattice placed nothing either, so #717's single trees now stand in; no pocket or partial claim does.
+  // Its routes between portals left no pocket envelope and no lattice slot clear.
   assert.deepEqual(original.elements, []);
   const rebuilt = buildRegion(small);
-  assert.ok(rebuilt.elements.length && rebuilt.elements.every(e => e.label.startsWith('park-tree-')));
-  assert.equal(rebuilt.manifest.clumps + rebuilt.manifest.hedges, 0);
+  assert.equal(pocket(rebuilt).length, 1);
+  assert.deepEqual(validatePortalReach({ ...small, blockers: shapes(rebuilt) }, { search: 'thorough' }).errors, []);
 });
 
 test('an unreachable pocket exhausts the route budget without a partial canvas claim', () => {

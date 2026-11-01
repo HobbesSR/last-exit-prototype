@@ -2,7 +2,7 @@ import { freePaths, triangulateFreeSpace, type FreeSpace } from '../../shared/fr
 import { bounds, rect, transform, type Shape } from '../../shared/shape.ts';
 import { CLIP_SCALE } from '../../shared/shape-construction.ts';
 import type { Vec2 } from '../../shared/types.ts';
-import { createAccessMask, travelClear, validShape } from './geometry.ts';
+import { capsule, createAccessMask, shapesOverlap, travelClear, validShape } from './geometry.ts';
 import { checkedRegionCells } from './limits.ts';
 import { hunterClearance, portalStands } from './portals.ts';
 import type { RegionBrief } from './types.ts';
@@ -31,9 +31,14 @@ const pointValid = (p: Vec2): boolean => !!p && Number.isFinite(p.x) && Number.i
  * Bounded optional discovery (20.10), not an impossibility test. All required stands and
  * every segment, including conservative mesh entry leads, receive exact swept proof.
  * A failed call never returns a partly repaired witness. No RNG or canvas state is touched.
+ *
+ * `added` is a promise from the caller: `previous` was proved on this brief against every
+ * blocker but these. A stand or old segment whose swept capsule misses all of them still passes
+ * (`travelClear` is capsule overlap), so it is not swept again; the witness is the one a full
+ * re-proof would find, at less cost and with fewer sweeps counted.
  */
 export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape[], terminals: readonly Vec2[] = [],
-  previous?: CordWitness, budget: CordBudget = {}): CordWitnessResult {
+  previous?: CordWitness, budget: CordBudget = {}, added?: readonly Shape[]): CordWitnessResult {
   const counters: CordCounters = { meshBuilds: 0, sweeps: 0, paths: 0 };
   const limits = { maxMeshBuilds: budget.maxMeshBuilds ?? 1, maxSweeps: budget.maxSweeps ?? 65_536, maxPaths: budget.maxPaths ?? 8_192 };
   if (Object.values(limits).some(n => !Number.isSafeInteger(n) || n < 0)) throw new Error('Cord budgets must be nonnegative safe integers.');
@@ -73,7 +78,13 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
     ...required.map(point => ({ point, reason: 'external' as const })),
     ...[...terminals].sort(compare).map(point => ({ point, reason: 'interior' as const })),
   ];
-  for (const node of nodes) if (!sweep(node.point, node.point)) return fail(exhausted ? 'budget' : node.reason);
+  const addedBoxes = previous && added ? added.map(shape => ({ shape, box: bounds(shape) })) : undefined;
+  const unchanged = (a: Vec2, b: Vec2): boolean => !!addedBoxes && capsule(a, b, radius).every(c => {
+    const box = bounds(c);
+    return addedBoxes.every(({ shape, box: o }) => o.x > box.x + box.w || box.x > o.x + o.w || o.y > box.y + box.h || box.y > o.y + o.h
+      || !shapesOverlap(c, shape));
+  });
+  for (const node of nodes) if (!unchanged(node.point, node.point) && !sweep(node.point, node.point)) return fail(exhausted ? 'budget' : node.reason);
   const paths: Vec2[][] = [];
   const root = nodes[0]?.point;
   let mesh: FreeSpace | undefined, segments = 0;
@@ -91,7 +102,7 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
     counters.paths++;
     let points: Vec2[] | undefined;
     const old = oldPaths.get(key(target));
-    if (old && proved(old)) points = old;
+    if (old && old.every((p, i) => !i || unchanged(old[i - 1]!, p) || sweep(old[i - 1]!, p))) points = old;
     if (exhausted) return fail('budget');
     if (!points && sweep(root!, target)) points = [root!, target];
     if (exhausted) return fail('budget');
@@ -143,11 +154,21 @@ function geometricEdges(paths: readonly Vec2[][]): CordEdge[] {
   const endpoints = new Map<string, Vec2>();
   const pointKey = (p: Vec2): string => `${p.x},${p.y}`;
   for (const { from, to } of segments) { endpoints.set(pointKey(from), from); endpoints.set(pointKey(to), to); }
+  // Sorted by x, so each segment reads only the endpoints within its own x span.
+  const sorted = [...endpoints.values()].sort(compare);
+  const firstAt = (x: number): number => {
+    let lo = 0, hi = sorted.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid]!.x < x) lo = mid + 1; else hi = mid; }
+    return lo;
+  };
   const edges = new Map<string, CordEdge>();
   for (const { from, to } of segments) {
-    const dx = to.x - from.x, dy = to.y - from.y;
-    const points = [...endpoints.values()].filter(p => (p.x - from.x) * dy === (p.y - from.y) * dx
-      && p.x >= Math.min(from.x, to.x) && p.x <= Math.max(from.x, to.x) && p.y >= Math.min(from.y, to.y) && p.y <= Math.max(from.y, to.y)).sort(compare);
+    const dx = to.x - from.x, dy = to.y - from.y, x1 = Math.max(from.x, to.x);
+    const y0 = Math.min(from.y, to.y), y1 = Math.max(from.y, to.y), points: Vec2[] = [];
+    for (let i = firstAt(Math.min(from.x, to.x)); i < sorted.length && sorted[i]!.x <= x1; i++) {
+      const p = sorted[i]!;
+      if (p.y >= y0 && p.y <= y1 && (p.x - from.x) * dy === (p.y - from.y) * dx) points.push(p);
+    }
     for (let i = 1; i < points.length; i++) {
       const a = points[i - 1]!, b = points[i]!;
       edges.set(`${pointKey(a)}:${pointKey(b)}`, { from: copy(a), to: copy(b) });

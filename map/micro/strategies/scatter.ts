@@ -4,7 +4,7 @@ import { hunterClearance, portalStands } from '../portals.ts';
 import { microMetrics } from '../metrics.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionMask, RegionRandom } from '../types.ts';
-import type { BuilderCanvas } from '../canvas.ts';
+import type { SitingCanvas } from '../canvas.ts';
 import { placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import { compareCells } from '../../kernel/cell.ts';
@@ -24,7 +24,7 @@ export interface FallbackPiece { name: string; place(): Placed<unknown> }
  * so one cell's fate never shifts another's. The canvas carries the strategy's protections, so
  * the portal promise holds as it does for the primary content. Returns the pieces committed.
  */
-export function sitePiecesPerCell(canvas: BuilderCanvas, random: RegionRandom, density: number, aisle: number, prefix: string,
+export function sitePiecesPerCell(canvas: SitingCanvas,random: RegionRandom, density: number, aisle: number, prefix: string,
   pieces: (random: RegionRandom) => FallbackPiece[]): number {
   const size = canvas.fill.cellSize, before = canvas.elements.length;
   for (const cell of random.shuffle([...canvas.fill.cells].sort(compareCells))) {
@@ -66,16 +66,12 @@ export function fraction(brief: RegionBrief, type: string, key: string, fallback
 }
 
 /**
- * The shapes no piece may touch: a strip over every portal's stands and threshold crossing,
- * and hunter routes connecting the portals in the empty shape. By default, each route
- * starts at the first portal. `'nearby'` instead joins the nearest portal outside the
- * connected set, comparing squared Euclidean stand distances, not routed path lengths,
- * and breaking ties by source then destination order in `portalStands`.
- * One portal carries no route obligation, so it
+ * A strip over every portal's stands and its threshold crossing: the fixed access anchors
+ * (20.10) that stay clear while cords move. One portal carries no route obligation, so it
  * protects nothing. `type` names the region type in what it throws.
  */
-export function protectedRoutes(brief: RegionBrief, type: string, mode: 'root' | 'nearby' = 'root'): Shape[] {
-  const mask = createAccessMask(brief), radius = hunterClearance(brief.cellSize), stands = portalStands(brief);
+export function portalApproaches(brief: RegionBrief, type: string): Shape[] {
+  const radius = hunterClearance(brief.cellSize), stands = portalStands(brief);
   const kept: Shape[] = [];
   if (stands.length < 2) return kept;
   for (const { portal, points } of stands) {
@@ -88,6 +84,21 @@ export function protectedRoutes(brief: RegionBrief, type: string, mode: 'root' |
       ? rect(start, line - radius, portal.length * brief.cellSize, 2 * radius)
       : rect(line - radius, start, 2 * radius, portal.length * brief.cellSize));
   }
+  return kept;
+}
+
+/**
+ * The shapes no piece may touch: `portalApproaches`, and hunter routes connecting the portals in the empty shape. By default, each route
+ * starts at the first portal. `'nearby'` instead joins the nearest portal outside the
+ * connected set, comparing squared Euclidean stand distances, not routed path lengths,
+ * and breaking ties by source then destination order in `portalStands`.
+ * One portal carries no route obligation, so it
+ * protects nothing. `type` names the region type in what it throws.
+ */
+export function protectedRoutes(brief: RegionBrief, type: string, mode: 'root' | 'nearby' = 'root'): Shape[] {
+  const mask = createAccessMask(brief), radius = hunterClearance(brief.cellSize), stands = portalStands(brief);
+  const kept = portalApproaches(brief, type);
+  if (!kept.length) return kept;
   if (mode === 'root') {
     const root = stands[0]!.points[0]!;
     for (const { portal, points } of stands.slice(1)) {

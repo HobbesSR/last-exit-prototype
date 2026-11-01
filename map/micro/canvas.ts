@@ -108,3 +108,8 @@ export function createBuilderCanvas(brief: RegionBrief, protectedShapes: readonl
 }
 
 export type BuilderCanvas = ReturnType<typeof createBuilderCanvas>;
+/**
+ * What siting asks of a canvas. A prospective-parcels coordinator (20.10) offers the same,
+ * and refuses a commit that would leave no hunter cord to every portal stand.
+ */
+export type SitingCanvas = Pick<BuilderCanvas, 'fill' | 'access' | 'elements' | 'fits' | 'spaced' | 'commit'>;

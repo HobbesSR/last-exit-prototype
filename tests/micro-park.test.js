@@ -9,6 +9,8 @@ import { portalMargin } from '../map/micro/hints.ts';
 import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
+/** Park places against a live cord witness, so its proofs are the thorough search's (20.10). */
+const THOROUGH = { search: 'thorough' };
 const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'park', cellSize: SIZE, cells,
   zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals, ...(parameters ? { parameters } : {}) });
 
@@ -33,7 +35,7 @@ test('a park region keeps the portal promise over seeds, masks and parameters', 
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS)
     for (const parameters of [undefined, DENSE, { density: 0, hedges: 1 }, { density: 0.3, hedges: 0 }]) {
       const result = buildRegion(brief(name, seed, cells, portals, parameters));
-      const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
+      const check = validatePortalReach({ ...result.brief, blockers: blockers(result) }, THOROUGH);
       assert.deepEqual(check.errors, [], `${name} seed ${seed} ${JSON.stringify(parameters)}`);
     }
 });
@@ -157,7 +159,7 @@ test('park can place geometry against a hinted edge while protecting portals', (
   const input = { ...brief('hinted', 1, cells, portals, { density: 1, hedges: 0 }), hints };
   const result = buildRegion(input);
   assert.ok(result.elements.some(element => element.y === 0), 'a piece reaches the hinted north edge');
-  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }, THOROUGH).errors, []);
 });
 
 test('large concave park with many portals keeps a safe hinted attachment', () => {
@@ -167,7 +169,7 @@ test('large concave park with many portals keeps a safe hinted attachment', () =
   const input = { ...brief('many-concave', 4, cells, portals, { density: 1, hedges: 0 }), hints: [{ axis: 'v', x: 0, y: 17, length: 12 }] };
   const result = buildRegion(input);
   assert.ok(result.elements.some(element => element.x === 0), 'a piece reaches the hinted west edge');
-  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }, THOROUGH).errors, []);
 });
 
 test('a rectangular park past 32 portals keeps every portal reachable', () => {
@@ -182,7 +184,7 @@ test('a rectangular park past 32 portals keeps every portal reachable', () => {
     // A connected pocket intentionally replaces several scatter slots (types-56).
     assert.ok(result.manifest.clumps > 20 || (result.manifest.pockets === 1 && result.manifest.clumps > 10),
       `seed ${seed} still composes scatter or a pocket: ${JSON.stringify(result.manifest)}`);
-    assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, [], `seed ${seed}`);
+    assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }, THOROUGH).errors, [], `seed ${seed}`);
   }
 });
 
@@ -192,7 +194,7 @@ test('thin rectangular park keeps a hunter aisle between opposite sides', () => 
     { id: 'south', axis: 'h', x: 1, y: 18, length: 2 }];
   const input = brief('thin', 7, cells, portals, { density: 1, hedges: 1 });
   const result = buildRegion(input);
-  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }, THOROUGH).errors, []);
   for (const element of result.elements) {
     const x = element.x / SIZE, width = element.template.w / SIZE;
     assert.ok(x >= 2 || 4 - x - width >= 2, `${element.label} leaves an aisle on one side`);
