@@ -32,7 +32,9 @@ These hold for every entry in the catalogue's parts (54.1 to 54.4), so the entri
 - **Core elements** are sited before the loot fill, as the entry builder does
   today (20). A core element class sites exactly the counts its brief lists.
 - **Loot** rolls each cell's loot chance and takes the cell's tier, from the
-  brief's zones (52, "Tier zones"). `open` places none (M25).
+  brief's zones (52, "Tier zones"). `open` places none (M25). This is a
+  placeholder for testing mechanics; builders are to place loot deliberately
+  later ([17.2.11](17.2.11-navigation-structure-direction.md#loot-placement-is-a-placeholder)).
 - **Core elements first.** Elements with mechanics other than core elements,
   such as traps, sensors and turrets (F-05, F-15), how builders incorporate
   them, and locked doors (P-06) are deferred until generation with core
