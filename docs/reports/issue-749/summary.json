@@ -1,0 +1,721 @@
+{
+ "issue": 749,
+ "build": "types-59",
+ "node": "v24.15.0",
+ "provenance": {
+  "commit": "dc06f551a66a042b3f3ded4f10b4f58ae5289d0f",
+  "sourceSha256": {
+   "tools/builder-census.mjs": "2e53893df56e9ef2c86c56abef13fabadab1ee667658def816b5fc2186649abf",
+   "map/micro/region-types.ts": "daea23642846bca7610efc9ee83d87e4c76b7b5dbb1cc46437e3915f430b00c4",
+   "map/micro/strategies/scatter.ts": "f5eabfeece7db1eea7ba0c6723a2d4e7101dcb0f1824608cd896eae3dd96befe",
+   "map/micro/strategies/cover.ts": "58a99c3cfff189c8e21f8dc4884c842f41e1cae9d58039f991d94d642be4dd59",
+   "map/micro/strategies/park.ts": "eff7bc2f008a605a9cc2141500d69470cea28799568a122b9f718d3f949395f4",
+   "map/micro/strategies/hut.ts": "66488b8599201a458a775d210a83e2624605293d2fc5afffe8e106af5498e772",
+   "map/micro/strategies/compound.ts": "7602fbef7896034f71fb9ee8e6516106bdae5e5c305f1926eb7316e981551337",
+   "map/micro/yard-handoff.ts": "1b07e072a333f083fe4fac7aba58fc55ba2108634b7259dbeff7150b3a041331"
+  },
+  "sourceGitBlob": {
+   "tools/builder-census.mjs": "0aaa73f11dba9d175d79291a8a22a30caf6a511e",
+   "map/micro/region-types.ts": "fd1361e18ba65fc36dc70eaf6e1c09c6b9250d0c",
+   "map/micro/strategies/scatter.ts": "dd02603abfde5376f9f01f0aef887c02975b1a84",
+   "map/micro/strategies/cover.ts": "e34a82bbba27f1e05f0383485eb726102b1a7f6f",
+   "map/micro/strategies/park.ts": "0a5d1bced32648bd558586f65021db7e66afdd79",
+   "map/micro/strategies/hut.ts": "277940fc7bffc8e43f933088719855770da85070",
+   "map/micro/strategies/compound.ts": "e9c931036bb60627efefd8a23e60d97c5433438f",
+   "map/micro/yard-handoff.ts": "04c33122814e03f54d7ecb921b4b28aad6f46fc8"
+  },
+  "sourceWorkingTreeSha256": {
+   "tools/builder-census.mjs": "2e53893df56e9ef2c86c56abef13fabadab1ee667658def816b5fc2186649abf",
+   "map/micro/region-types.ts": "daea23642846bca7610efc9ee83d87e4c76b7b5dbb1cc46437e3915f430b00c4",
+   "map/micro/strategies/scatter.ts": "f5eabfeece7db1eea7ba0c6723a2d4e7101dcb0f1824608cd896eae3dd96befe",
+   "map/micro/strategies/cover.ts": "58a99c3cfff189c8e21f8dc4884c842f41e1cae9d58039f991d94d642be4dd59",
+   "map/micro/strategies/park.ts": "eff7bc2f008a605a9cc2141500d69470cea28799568a122b9f718d3f949395f4",
+   "map/micro/strategies/hut.ts": "8b087a274e6a975086c73950ed9d2dbb4c2c146e9b902f81bbecce3dbf47044f",
+   "map/micro/strategies/compound.ts": "34a526fb5db52a82eac77488ef3a49677b5a8b98daedbb480125bebcf483878a",
+   "map/micro/yard-handoff.ts": "e45bb222d5edcb02bceab76cf761f948c7cbf9325aa00c739fd1964b6bb6ba8e"
+  }
+ },
+ "panel": "size-{12,24,36}-{1,2,3}, generate(seed, params, undefined, 48)",
+ "samplesPerCell": 16,
+ "seconds": 87,
+ "byType": {
+  "market": {
+   "regions": 92,
+   "cells": {
+    "p10": 1260,
+    "p50": 1800,
+    "p90": 5040,
+    "max": 11484,
+    "total": 224964
+   },
+   "fill": {
+    "p10": 1144,
+    "p50": 1654,
+    "p90": 4804,
+    "max": 11061,
+    "total": 209548
+   },
+   "panelCellShare": 0.159,
+   "marginShare": 0.069,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.112,
+   "routes": {
+    "regions": 92,
+    "fillShare": 0.086
+   },
+   "manifest": {
+    "awnings.regions": 92,
+    "awnings.total": 5860,
+    "stalls.regions": 92,
+    "stalls.total": 5860
+   },
+   "mechanisms": {
+    "market-stall": 92
+   },
+   "outcomes": {}
+  },
+  "open": {
+   "regions": 2553,
+   "cells": {
+    "p10": 9,
+    "p50": 36,
+    "p90": 369,
+    "max": 6255,
+    "total": 400898
+   },
+   "fill": {
+    "p10": 3,
+    "p50": 19,
+    "p90": 165,
+    "max": 2629,
+    "total": 175890
+   },
+   "panelCellShare": 0.283,
+   "marginShare": 0.561,
+   "emptyRegions": 2553,
+   "emptyShare": 1,
+   "emptyFillShare": 1,
+   "coveredFillShare": 0,
+   "routes": null,
+   "manifest": {},
+   "mechanisms": {},
+   "outcomes": {}
+  },
+  "park": {
+   "regions": 1449,
+   "cells": {
+    "p10": 36,
+    "p50": 36,
+    "p90": 72,
+    "max": 3348,
+    "total": 126108
+   },
+   "fill": {
+    "p10": 20,
+    "p50": 20,
+    "p90": 40,
+    "max": 3094,
+    "total": 94196
+   },
+   "panelCellShare": 0.089,
+   "marginShare": 0.253,
+   "emptyRegions": 978,
+   "emptyShare": 0.675,
+   "emptyFillShare": 0.243,
+   "coveredFillShare": 0.038,
+   "routes": {
+    "regions": 1449,
+    "fillShare": 0.368
+   },
+   "manifest": {
+    "clumps.regions": 62,
+    "clumps.total": 406,
+    "hedges.regions": 21,
+    "hedges.total": 119,
+    "pockets.regions": 19,
+    "pockets.total": 19,
+    "trees.regions": 471,
+    "trees.total": 1065
+   },
+   "mechanisms": {
+    "park-hedge": 21,
+    "park-pocket": 19,
+    "park-tree": 471
+   },
+   "outcomes": {
+    "empty": 978,
+    "empty: draw declined": 219,
+    "empty: no fit": 759,
+    "fallback": 409,
+    "lattice": 43,
+    "pocket": 19
+   }
+  },
+  "plant": {
+   "regions": 50,
+   "cells": {
+    "p10": 540,
+    "p50": 648,
+    "p90": 3600,
+    "max": 8640,
+    "total": 83160
+   },
+   "fill": {
+    "p10": 464,
+    "p50": 590,
+    "p90": 3404,
+    "max": 8412,
+    "total": 77352
+   },
+   "panelCellShare": 0.059,
+   "marginShare": 0.07,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.046,
+   "routes": {
+    "regions": 44,
+    "fillShare": 0.559
+   },
+   "manifest": {
+    "designed.regions": 5,
+    "designed.total": 5,
+    "infillCrates.regions": 50,
+    "infillCrates.total": 1119,
+    "machines.regions": 17,
+    "machines.total": 295,
+    "pipes.regions": 8,
+    "pipes.total": 156,
+    "sheds.regions": 5,
+    "sheds.total": 5
+   },
+   "mechanisms": {
+    "plant-infill-crate": 50,
+    "plant-machine": 17,
+    "plant-pipe": 8,
+    "plant-shed": 5
+   },
+   "outcomes": {}
+  },
+  "compound": {
+   "regions": 40,
+   "cells": {
+    "p10": 1152,
+    "p50": 1296,
+    "p90": 4032,
+    "max": 11232,
+    "total": 82368
+   },
+   "fill": {
+    "p10": 1036,
+    "p50": 1180,
+    "p90": 3819,
+    "max": 10986,
+    "total": 76873
+   },
+   "panelCellShare": 0.058,
+   "marginShare": 0.067,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.043,
+   "routes": null,
+   "manifest": {
+    "compoundGates.regions": 40,
+    "compoundGates.total": 80,
+    "rooms.regions": 40,
+    "rooms.total": 818
+   },
+   "mechanisms": {
+    "compound-court-cover": 40,
+    "compound-gate-E": 20,
+    "compound-gate-N": 21,
+    "compound-gate-S": 15,
+    "compound-gate-W": 24,
+    "compound-keep": 40,
+    "compound-outbuilding": 28,
+    "compound-room": 40,
+    "delegate:cover-barrier": 35,
+    "delegate:cover-container": 30,
+    "delegate:cover-crate": 38
+   },
+   "outcomes": {
+    "yard refused: budget": 22,
+    "yard refused: external": 561,
+    "yard refused: rejected": 11,
+    "yard: delegated": 40,
+    "yard: patches accepted": 104
+   }
+  },
+  "depot": {
+   "regions": 29,
+   "cells": {
+    "p10": 648,
+    "p50": 1944,
+    "p90": 6480,
+    "max": 6480,
+    "total": 62640
+   },
+   "fill": {
+    "p10": 542,
+    "p50": 1798,
+    "p90": 6214,
+    "max": 6219,
+    "total": 58475
+   },
+   "panelCellShare": 0.044,
+   "marginShare": 0.066,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.089,
+   "routes": {
+    "regions": 29,
+    "fillShare": 0.086
+   },
+   "manifest": {
+    "designed.regions": 29,
+    "designed.total": 324,
+    "infillCrates.regions": 29,
+    "infillCrates.total": 642,
+    "rows.regions": 29,
+    "rows.total": 461,
+    "warehouses.regions": 29,
+    "warehouses.total": 324
+   },
+   "mechanisms": {
+    "depot-infill-crate": 29,
+    "depot-row": 29,
+    "depot-warehouse": 29
+   },
+   "outcomes": {}
+  },
+  "block": {
+   "regions": 21,
+   "cells": {
+    "p10": 1728,
+    "p50": 1728,
+    "p90": 4320,
+    "max": 4320,
+    "total": 54432
+   },
+   "fill": {
+    "p10": 1572,
+    "p50": 1572,
+    "p90": 4064,
+    "max": 4064,
+    "total": 50589
+   },
+   "panelCellShare": 0.038,
+   "marginShare": 0.071,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.029,
+   "routes": null,
+   "manifest": {},
+   "mechanisms": {
+    "lot:compound-court-cover": 8,
+    "lot:compound-gate-E": 6,
+    "lot:compound-gate-N": 5,
+    "lot:compound-gate-S": 3,
+    "lot:compound-gate-W": 2,
+    "lot:compound-keep": 6,
+    "lot:compound-room": 8,
+    "lot:cover-barrier": 17,
+    "lot:cover-container": 11,
+    "lot:cover-crate": 18,
+    "lot:depot-infill-crate": 14,
+    "lot:depot-row": 14,
+    "lot:depot-warehouse": 14,
+    "lot:hint-wall": 2,
+    "lot:hut-building": 4,
+    "lot:ruins-debris": 16,
+    "lot:ruins-infill-crate": 19,
+    "lot:ruins-wall": 16
+   },
+   "outcomes": {}
+  },
+  "rubble": {
+   "regions": 4648,
+   "cells": {
+    "p10": 18,
+    "p50": 18,
+    "p90": 63,
+    "max": 504,
+    "total": 150478
+   },
+   "fill": {
+    "p10": 5,
+    "p50": 8,
+    "p90": 19,
+    "max": 150,
+    "total": 49218
+   },
+   "panelCellShare": 0.106,
+   "marginShare": 0.673,
+   "emptyRegions": 1883,
+   "emptyShare": 0.405,
+   "emptyFillShare": 0.292,
+   "coveredFillShare": 0.024,
+   "routes": {
+    "regions": 4648,
+    "fillShare": 0.668
+   },
+   "manifest": {
+    "hintWalls.regions": 1978,
+    "hintWalls.total": 2704,
+    "squeezeDebris.regions": 1393,
+    "squeezeDebris.total": 1862
+   },
+   "mechanisms": {
+    "hint-wall": 1978,
+    "rubble": 1658
+   },
+   "outcomes": {
+    "empty: draw declined": 99,
+    "empty: no fit": 1784
+   }
+  },
+  "hall": {
+   "regions": 41,
+   "cells": {
+    "p10": 756,
+    "p50": 1080,
+    "p90": 2160,
+    "max": 3240,
+    "total": 52812
+   },
+   "fill": {
+    "p10": 653,
+    "p50": 974,
+    "p90": 2004,
+    "max": 3034,
+    "total": 48016
+   },
+   "panelCellShare": 0.037,
+   "marginShare": 0.091,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.019,
+   "routes": {
+    "regions": 41,
+    "fillShare": 0.555
+   },
+   "manifest": {
+    "hintWalls.regions": 41,
+    "hintWalls.total": 596,
+    "infillCrates.regions": 1,
+    "infillCrates.total": 15,
+    "pillars.regions": 40,
+    "pillars.total": 322,
+    "wings.regions": 10,
+    "wings.total": 10
+   },
+   "mechanisms": {
+    "hall": 37,
+    "hall-infill-crate": 1,
+    "hall-wing": 10,
+    "hint-wall": 41
+   },
+   "outcomes": {}
+  },
+  "checkpoint": {
+   "regions": 27,
+   "cells": {
+    "p10": 1296,
+    "p50": 1296,
+    "p90": 1728,
+    "max": 2808,
+    "total": 39744
+   },
+   "fill": {
+    "p10": 1150,
+    "p50": 1150,
+    "p90": 1620,
+    "max": 2522,
+    "total": 35585
+   },
+   "panelCellShare": 0.028,
+   "marginShare": 0.105,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.062,
+   "routes": null,
+   "manifest": {
+    "barriers.regions": 27,
+    "barriers.total": 527,
+    "designed.regions": 10,
+    "designed.total": 10,
+    "infillCrates.regions": 27,
+    "infillCrates.total": 1118,
+    "posts.regions": 21,
+    "posts.total": 21
+   },
+   "mechanisms": {
+    "checkpoint-barrier": 27,
+    "checkpoint-infill-crate": 27,
+    "checkpoint-post": 21
+   },
+   "outcomes": {}
+  },
+  "cover": {
+   "regions": 1030,
+   "cells": {
+    "p10": 36,
+    "p50": 36,
+    "p90": 72,
+    "max": 3060,
+    "total": 60156
+   },
+   "fill": {
+    "p10": 20,
+    "p50": 20,
+    "p90": 40,
+    "max": 1700,
+    "total": 33968
+   },
+   "panelCellShare": 0.043,
+   "marginShare": 0.435,
+   "emptyRegions": 106,
+   "emptyShare": 0.103,
+   "emptyFillShare": 0.064,
+   "coveredFillShare": 0.031,
+   "routes": {
+    "regions": 1028,
+    "fillShare": 0.588
+   },
+   "manifest": {},
+   "mechanisms": {
+    "cover-barrier": 124,
+    "cover-container": 59,
+    "cover-crate": 859
+   },
+   "outcomes": {
+    "empty": 106,
+    "empty: draw declined": 106,
+    "fallback": 871,
+    "lattice": 53
+   }
+  },
+  "ruins": {
+   "regions": 13,
+   "cells": {
+    "p10": 720,
+    "p50": 2160,
+    "p90": 8064,
+    "max": 8064,
+    "total": 35568
+   },
+   "fill": {
+    "p10": 634,
+    "p50": 2004,
+    "p90": 7768,
+    "max": 7768,
+    "total": 33591
+   },
+   "panelCellShare": 0.025,
+   "marginShare": 0.056,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.015,
+   "routes": {
+    "regions": 13,
+    "fillShare": 0.559
+   },
+   "manifest": {
+    "debris.regions": 13,
+    "debris.total": 418,
+    "hintWalls.regions": 13,
+    "hintWalls.total": 278,
+    "infillCrates.regions": 10,
+    "infillCrates.total": 30,
+    "rooms.regions": 13,
+    "rooms.total": 629,
+    "walls.regions": 13,
+    "walls.total": 1449
+   },
+   "mechanisms": {
+    "hint-wall": 13,
+    "ruins-debris": 13,
+    "ruins-infill-crate": 10,
+    "ruins-wall": 13
+   },
+   "outcomes": {}
+  },
+  "hut": {
+   "regions": 241,
+   "cells": {
+    "p10": 72,
+    "p50": 144,
+    "p90": 144,
+    "max": 144,
+    "total": 26352
+   },
+   "fill": {
+    "p10": 46,
+    "p50": 72,
+    "p90": 78,
+    "max": 85,
+    "total": 14417
+   },
+   "panelCellShare": 0.019,
+   "marginShare": 0.453,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.114,
+   "routes": null,
+   "manifest": {},
+   "mechanisms": {
+    "delegate:cover-barrier": 19,
+    "delegate:cover-container": 21,
+    "delegate:cover-crate": 64,
+    "hut-building": 241
+   },
+   "outcomes": {
+    "yard refused: external": 8,
+    "yard refused: rejected": 150,
+    "yard: all-refused": 12,
+    "yard: delegated": 90,
+    "yard: no-eligible-candidates": 139,
+    "yard: patches accepted": 90
+   }
+  },
+  "transit": {
+   "regions": 54,
+   "cells": {
+    "p10": 144,
+    "p50": 144,
+    "p90": 144,
+    "max": 144,
+    "total": 7776
+   },
+   "fill": {
+    "p10": 80,
+    "p50": 80,
+    "p90": 86,
+    "max": 90,
+    "total": 4404
+   },
+   "panelCellShare": 0.005,
+   "marginShare": 0.434,
+   "emptyRegions": 5,
+   "emptyShare": 0.093,
+   "emptyFillShare": 0.091,
+   "coveredFillShare": 0.022,
+   "routes": null,
+   "manifest": {},
+   "mechanisms": {
+    "cover-barrier": 4,
+    "cover-crate": 7,
+    "cover-guard": 44
+   },
+   "outcomes": {
+    "empty: core elements only": 5
+   }
+  },
+  "charging": {
+   "regions": 27,
+   "cells": {
+    "p10": 144,
+    "p50": 144,
+    "p90": 144,
+    "max": 144,
+    "total": 3888
+   },
+   "fill": {
+    "p10": 80,
+    "p50": 80,
+    "p90": 90,
+    "max": 99,
+    "total": 2218
+   },
+   "panelCellShare": 0.003,
+   "marginShare": 0.43,
+   "emptyRegions": 8,
+   "emptyShare": 0.296,
+   "emptyFillShare": 0.289,
+   "coveredFillShare": 0.018,
+   "routes": null,
+   "manifest": {},
+   "mechanisms": {
+    "cover-barrier": 2,
+    "cover-crate": 2,
+    "cover-guard": 18
+   },
+   "outcomes": {
+    "empty: core elements only": 8
+   }
+  },
+  "arrival": {
+   "regions": 9,
+   "cells": {
+    "p10": 216,
+    "p50": 216,
+    "p90": 216,
+    "max": 216,
+    "total": 1944
+   },
+   "fill": {
+    "p10": 135,
+    "p50": 135,
+    "p90": 144,
+    "max": 144,
+    "total": 1233
+   },
+   "panelCellShare": 0.001,
+   "marginShare": 0.366,
+   "emptyRegions": 0,
+   "emptyShare": 0,
+   "emptyFillShare": 0,
+   "coveredFillShare": 0.013,
+   "routes": null,
+   "manifest": {},
+   "mechanisms": {
+    "cover-barrier": 5,
+    "cover-container": 2,
+    "cover-crate": 8
+   },
+   "outcomes": {}
+  },
+  "departure": {
+   "regions": 9,
+   "cells": {
+    "p10": 216,
+    "p50": 216,
+    "p90": 216,
+    "max": 216,
+    "total": 1944
+   },
+   "fill": {
+    "p10": 129,
+    "p50": 129,
+    "p90": 139,
+    "max": 139,
+    "total": 1178
+   },
+   "panelCellShare": 0.001,
+   "marginShare": 0.394,
+   "emptyRegions": 3,
+   "emptyShare": 0.333,
+   "emptyFillShare": 0.337,
+   "coveredFillShare": 0.006,
+   "routes": null,
+   "manifest": {},
+   "mechanisms": {
+    "cover-barrier": 2,
+    "cover-container": 1,
+    "cover-crate": 5
+   },
+   "outcomes": {
+    "empty: core elements only": 3
+   }
+  }
+ }
+}
