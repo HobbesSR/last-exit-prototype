@@ -23,7 +23,7 @@ test('long portals remain covered around an overlapping compound ring', () => {
   assert.deepEqual(initial.counters, {meshBuilds:0,sweeps:39,paths:19});
   const p = c.probeClaim([rect(240,160,160,32),rect(240,192,32,128),rect(368,192,32,128),rect(272,288,96,32),rect(240,160,64,32)]);
   assert.equal(p.ok,true);
-  assert.deepEqual(p.counters, {meshBuilds:1,sweeps:181,paths:19});
+  assert.deepEqual(p.counters, {meshBuilds:1,sweeps:152,paths:19});
   const h = c.acceptClaim(p.proposal).handle;
   const physical = p.proposal.area;
   assert.deepEqual(c.populate(h, { areas: physical, elements: [{label:'ring',x:0,y:0,template:{w:640,h:512,

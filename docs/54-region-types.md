@@ -97,7 +97,8 @@ described the early two-cell collar as pragmatic, meeting no thematic requiremen
   that join each other or grow inward from the not-guaranteed-passable fill
   perimeter, forming peninsulas and pockets. Movable portal cords keep the
   portal-to-portal routes while that growth pushes them around
-  ([20.10](20.10-portal-cords.md), growth helpers #649). That is one candidate
+  ([20.10](20.10-portal-cords.md); growth helpers in #649, measured on park's
+  hedge fronts in [42.30](42.30-park-hedge-fronts.md)). That is one candidate
   support; static authored barriers checked with the SDK's elective validation are
   another. Pockets off the portal routes are the dead ends.
 - **Across the map:** fewer portals per region boundary, longer impassable

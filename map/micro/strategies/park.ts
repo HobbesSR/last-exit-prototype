@@ -7,10 +7,13 @@ import { draw, rng } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
-import { createProspectiveParcels } from '../prospective-parcels.ts';
+import { createProspectiveParcels, type ProspectiveParcels } from '../prospective-parcels.ts';
+import { frontStarts, growFront, portalSetback } from '../growth.ts';
+import { portalStands } from '../portals.ts';
+import { PARK_HEDGE_BLOCK } from '../placeables/park-hedge-block.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import type { BuiltRegion, Cell, RegionBrief, RegionElement } from '../types.ts';
 import { builtRegion } from '../result.ts';
 import { siteParkPocket } from './park-pocket.ts';
 
@@ -26,8 +29,29 @@ const TREE = 2, CLUMP = 3;
 /** A hedge run spans two slots: a slot, the aisle after it, and the next slot's band. Its thickness is in cells, centred in its row. */
 const HEDGE_LENGTH = PERIOD + BAND;
 
+/**
+ * Hedge fronts (#649, a measured experiment, off unless `hedgeFronts` is set): a front starts
+ * at a fill edge with chance `hedgeFronts`, at least `PERIOD` cells from any front facing the
+ * same way. Each grows to a seeded share of its reach, within `FRONT_DEPTH`, so fronts from
+ * opposite edges can overlap and still leave the cord a way between them.
+ */
+const FRONT_DEPTH = { min: 0.55, max: 0.85 };
+/**
+ * Cells this near a portal start no front: a conservative setback (20.10), one cell rather than
+ * block's two, because dense-portal parks have a three-cell portal every six cells of edge.
+ */
+const FRONT_SETBACK = 1;
+/** The least reach worth a front: a doorway and a cell. */
+const MIN_FRONT = AISLE + 1;
+/**
+ * Witness path segments allowed with fronts: winding cords to every stand of a many-portal park
+ * pass the coordinator's default of 4,096, a tool limit rather than a contract (20.10).
+ */
+const FRONT_SEGMENTS = 16_384;
+
 /** Per-cell draw channels, so no choice shifts another. */
-const CHANNEL = { phaseX: 1, phaseY: 2, hedge: 3, hedgeTurn: 4, hedgeRow: 5, hedgeGap: 6, clump: 7, count: 8, treeX: 9, treeY: 10, loot: 11 };
+const CHANNEL = { phaseX: 1, phaseY: 2, hedge: 3, hedgeTurn: 4, hedgeRow: 5, hedgeGap: 6, clump: 7, count: 8, treeX: 9, treeY: 10, loot: 11,
+  front: 12, frontDepth: 13 };
 /** A clump's tries: each draws its own place, so a tree dropped for overlap never shifts the next. */
 const TRY = (n: number, channel: number) => channel * 8 + n;
 
@@ -57,11 +81,13 @@ type Box = { x: number; y: number; w: number; h: number };
  */
 export function buildPark(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Park', 'density', DEFAULT_DENSITY), hedgeChance = fraction(brief, 'Park', 'hedges', DEFAULT_HEDGES);
+  const frontChance = fraction(brief, 'Park', 'hedgeFronts', 0);
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   // Portal approaches are the fixed anchors; the coordinator keeps a live cord witness to
   // every stand and refuses a commit that would leave none (20.10).
-  const parcels = createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Park') });
+  const parcels = createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Park'),
+    ...(frontChance > 0 ? { budget: { maxSegments: FRONT_SEGMENTS } } : {}) });
   if (!parcels.ok) throw new Error(`Park region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
   const canvas = parcels.coordinator;
   const pocket = hedgeChance > 0 ? siteParkPocket(brief, canvas) : { envelope: null };
@@ -82,7 +108,9 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   let hedges = 0, trees = 0, clumps = 0;
 
   // Hedge runs first: each takes its slot and the next, if both are free and its footprint fits.
-  for (const slot of slots) {
+  // Hedge fronts, when set, take their place.
+  const grown = frontChance > 0 ? growHedgeFronts(brief, canvas, frontChance) : null;
+  for (const slot of grown ? [] : slots) {
     if (taken.has(key(slot.x, slot.y)) || draw(brief.seed, slot.x, slot.y, CHANNEL.hedge) >= hedgeChance) continue;
     const across = draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeTurn) < 0.5;
     const next = across ? key(slot.x + PERIOD, slot.y) : key(slot.x, slot.y + PERIOD);
@@ -129,5 +157,83 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return builtRegion(brief, elements, loot, [], { trees, clumps, hedges, ...(pocket.envelope ? { pockets: 1 } : {}) });
+  return builtRegion(brief, elements, loot, [], { trees, clumps, hedges, ...(pocket.envelope ? { pockets: 1 } : {}), ...(grown ?? {}) });
+}
+
+const cellKey = (c: Cell) => `${c.x},${c.y}`;
+const SIDES = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
+
+/**
+ * Hedge fronts (#649): from fill edges that face out of the region, hedges one cell thick grow
+ * inward through the coordinator, which admits each only as deep as a cord still joins every
+ * portal stand. Ground the fronts seal off from every portal becomes hedge too (17.2.10), so no
+ * unreachable open patch is left. Fronts start against the region's outside or its own clear
+ * margin alike; the coordinator decides how deep each may go.
+ */
+function growHedgeFronts(brief: RegionBrief, canvas: ProspectiveParcels, chance: number) {
+  const size = brief.cellSize, near = portalSetback(brief, FRONT_SETBACK);
+  const admit = (c: Cell) => !near.has(cellKey(c)) && canvas.fits(rect(c.x * size, c.y * size, size, size));
+  const taken: Cell[] = [], roots: { cell: Cell; side: number }[] = [];
+  let fronts = 0;
+  for (const start of frontStarts(brief, canvas.fill)) {
+    const side = start.inward.y > 0 ? 0 : start.inward.x < 0 ? 1 : start.inward.y < 0 ? 2 : 3;
+    if (draw(brief.seed, start.cell.x, start.cell.y, TRY(side, CHANNEL.front)) >= chance || !admit(start.cell)) continue;
+    if (roots.some(r => r.side === side && Math.max(Math.abs(r.cell.x - start.cell.x), Math.abs(r.cell.y - start.cell.y)) < PERIOD)) continue;
+    const share = FRONT_DEPTH.min + (FRONT_DEPTH.max - FRONT_DEPTH.min) * draw(brief.seed, start.cell.x, start.cell.y, TRY(side, CHANNEL.frontDepth));
+    // A zero-attempt call measures the reach without probing.
+    const reach = growFront(canvas, start.cell, start.inward, { admit, attempts: 0 }).reach;
+    // A stub along the edge deflects nothing; it would only take the place of a real front.
+    if (reach < MIN_FRONT) continue;
+    const front = growFront(canvas, start.cell, start.inward, { admit, depth: Math.max(1, Math.round(reach * share)) });
+    if (!front.handle) continue;
+    const x = Math.min(...front.cells.map(c => c.x)), y = Math.min(...front.cells.map(c => c.y));
+    const built = expectPlaced(PARK_HEDGE_BLOCK.build({ w: Math.max(...front.cells.map(c => c.x)) - x + 1, h: Math.max(...front.cells.map(c => c.y)) - y + 1 }, size));
+    const populated = canvas.populate(front.handle, { elements: placedElements(built, `park-front-${fronts + 1}`, x, y, size) });
+    if (!populated.ok) throw new Error(`Park region ${brief.id} could not populate its own front (${populated.reason}).`);
+    canvas.settle(front.handle, 'populated');
+    taken.push(...front.cells);
+    roots.push({ cell: start.cell, side });
+    fronts++;
+  }
+  return { fronts, frontCells: taken.length, sealedCells: fronts ? fillSealed(brief, canvas, taken) : 0 };
+}
+
+/**
+ * Hedge over fill cells that no cell path from a portal stand reaches past the fronts. A body
+ * needs more than a cell, so cell paths are optimistic and only certainly sealed ground is
+ * filled. Each sealed patch commits as one assembly, which the coordinator still proves.
+ */
+function fillSealed(brief: RegionBrief, canvas: ProspectiveParcels, fronts: readonly Cell[]): number {
+  const size = brief.cellSize, blocked = new Set(fronts.map(cellKey)), access = canvas.access;
+  const reached = new Set<string>(), queue: Cell[] = [];
+  const visit = (c: Cell) => {
+    if (reached.has(cellKey(c)) || blocked.has(cellKey(c)) || !access.has(c.x, c.y)) return;
+    reached.add(cellKey(c)); queue.push(c);
+  };
+  for (const { points } of portalStands(brief)) for (const p of points) visit({ x: Math.floor(p.x / size), y: Math.floor(p.y / size) });
+  // Without a portal there is nothing to be sealed from.
+  if (!reached.size) return 0;
+  for (let i = 0; i < queue.length; i++) for (const [dx, dy] of SIDES) visit({ x: queue[i]!.x + dx, y: queue[i]!.y + dy });
+  const sealed = canvas.fill.cells.filter(c => !reached.has(cellKey(c)) && !blocked.has(cellKey(c)));
+  const left = new Set(sealed.map(cellKey));
+  let filled = 0, patches = 0;
+  for (const first of sealed) {
+    if (!left.delete(cellKey(first))) continue;
+    const patch: Cell[] = [first];
+    for (let i = 0; i < patch.length; i++) for (const [dx, dy] of SIDES) {
+      const n = { x: patch[i]!.x + dx, y: patch[i]!.y + dy };
+      if (left.delete(cellKey(n))) patch.push(n);
+    }
+    // One hedge block per row run.
+    const rows = patch.toSorted((a, b) => a.y - b.y || a.x - b.x), elements: RegionElement[] = [];
+    for (let i = 0; i < rows.length;) {
+      let j = i + 1;
+      while (j < rows.length && rows[j]!.y === rows[i]!.y && rows[j]!.x === rows[j - 1]!.x + 1) j++;
+      const built = expectPlaced(PARK_HEDGE_BLOCK.build({ w: j - i, h: 1 }, size));
+      elements.push(...placedElements(built, `park-sealed-${patches + 1}-${elements.length + 1}`, rows[i]!.x, rows[i]!.y, size));
+      i = j;
+    }
+    if (canvas.commit({ elements })) { filled += patch.length; patches++; }
+  }
+  return filled;
 }
