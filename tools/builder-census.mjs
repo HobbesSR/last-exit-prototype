@@ -140,7 +140,7 @@ for (const width of [12, 24, 36]) for (const n of [1, 2, 3]) {
       }
     }
     if (!['open', 'cover', 'park', 'rubble'].includes(brief.type) && !solid(region))
-      outcome(fill.length ? 'empty (unfilledRegion exit or nothing placed)' : 'empty, no fill');
+      outcome(!fill.length ? 'empty, no fill' : region.coreElements.length ? 'empty: core elements only' : 'empty: unfilledRegion exit or nothing placed');
   }
 }
 const elapsed = (performance.now() - started) / 1000;
