@@ -153,6 +153,40 @@ function constructed(rings: ClipperLib.Paths, snap: Snap): Construction {
   };
 }
 
+type OutPt = { Pt: ClipperLib.IntPoint; Next: OutPt };
+type SimplePass = { m_PolyOuts: { Pts: OutPt | null; IsOpen: boolean }[] };
+/**
+ * Clipper's strictly simple pass splits a ring where it meets itself at a repeated point. It
+ * compares every vertex with every later one, which is quadratic in the ring's length; a ring
+ * without a repeated point is left untouched. So when no output ring repeats a point, the pass
+ * is skipped, and the result is Clipper's own either way (#767). It reads clipper-lib 6.4.x's
+ * internals (`m_PolyOuts`, `Pts`, `IsOpen`, `Next`); recheck them when upgrading. The test in
+ * `tests/shape-construction.test.js` fails if they move.
+ */
+function screenedSimplePolygons(this: SimplePass): void {
+  const seen = new Set<string>();
+  for (const outrec of this.m_PolyOuts) {
+    const first = outrec.Pts;
+    if (first === null || outrec.IsOpen) continue;
+    seen.clear();
+    let op = first;
+    do {
+      const key = `${op.Pt.X},${op.Pt.Y}`;
+      if (seen.has(key)) { (ClipperLib.Clipper.prototype as unknown as { DoSimplePolygons: (this: SimplePass) => void }).DoSimplePolygons.call(this); return; }
+      seen.add(key);
+      op = op.Next;
+    } while (op !== first);
+  }
+}
+
+/** A clipper whose output is strictly simple: rings may share a vertex but never touch another ring's edge. */
+export function strictlySimpleClipper(): ClipperLib.Clipper {
+  const clipper = new ClipperLib.Clipper();
+  clipper.StrictlySimple = true;
+  (clipper as unknown as { DoSimplePolygons: typeof screenedSimplePolygons }).DoSimplePolygons = screenedSimplePolygons;
+  return clipper;
+}
+
 function execute(type: ClipperLib.ClipType, subject: ClipperLib.Paths, by: ClipperLib.Paths, fill = ClipperLib.PolyFillType.pftNonZero): ClipperLib.Paths {
   const out: ClipperLib.Paths = [], clipper = new ClipperLib.Clipper();
   clipper.AddPaths(subject, ClipperLib.PolyType.ptSubject, true);
@@ -165,8 +199,7 @@ type Quad = [x0: number, y0: number, x1: number, y1: number];
 
 function piecesOf(rings: ClipperLib.Paths, snap: Snap): Shape[] {
   // Strictly simple, as a tree: each outer ring with its holes is one part.
-  const tree = new ClipperLib.PolyTree(), clipper = new ClipperLib.Clipper();
-  clipper.StrictlySimple = true;
+  const tree = new ClipperLib.PolyTree(), clipper = strictlySimpleClipper();
   clipper.AddPaths(rings, ClipperLib.PolyType.ptSubject, true);
   clipper.Execute(ClipperLib.ClipType.ctUnion, tree, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
   const parts: ClipperLib.Paths[] = [];

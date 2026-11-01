@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { construct, convexPieces, disjoint } from '../shared/shape-construction.ts';
+import ClipperLib from 'clipper-lib';
+import { construct, convexPieces, disjoint, strictlySimpleClipper } from '../shared/shape-construction.ts';
 import { circle, convex, outline, polygon, rect, sharesArea, transform } from '../shared/shape.ts';
 
 const area = shape => {
@@ -139,4 +140,33 @@ test('pieces never overlap one another or what was cut, over many rotated cuts',
     // Circles first, so later shapes meet their cut pieces.
     assertPieces(disjoint([circle(random() * 120, random() * 20, 4 + random() * 8), ...cut, ...from]), `${name} disjoint after circles`);
   }
+});
+
+test('the screened strictly simple pass matches Clipper whether or not a ring repeats a point (#767)', () => {
+  const { PolyType, ClipType, PolyFillType } = ClipperLib;
+  const pt = ([X, Y]) => ({ X, Y });
+  const union = (clipper, rings) => {
+    const out = [];
+    clipper.AddPaths(rings.map(r => r.map(pt)), PolyType.ptSubject, true);
+    clipper.Execute(ClipType.ctUnion, out, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
+    return out;
+  };
+  const plain = () => { const c = new ClipperLib.Clipper(); c.StrictlySimple = true; return c; };
+  // Found by fuzzing: unions whose output ring repeats a point, so Clipper's own pass must run.
+  const repeating = [
+    [[[15, 20], [20, 0], [15, 0]], [[20, 0], [20, 5], [10, 0]], [[0, 10], [10, 5], [15, 20]], [[15, 5], [5, 20], [5, 0]]],
+    [[[15, 15], [0, 15], [10, 0]], [[20, 10], [15, 15], [15, 15]], [[20, 20], [5, 0], [20, 10]], [[5, 0], [0, 20], [20, 5]]],
+  ];
+  const clean = [[[[0, 0], [10, 0], [10, 10], [0, 10]], [[20, 0], [30, 0], [30, 10], [20, 10]]]];
+  const original = ClipperLib.Clipper.prototype.DoSimplePolygons;
+  let runs = 0;
+  ClipperLib.Clipper.prototype.DoSimplePolygons = function () { runs++; return original.call(this); };
+  try {
+    for (const [rings, fallback] of [...repeating.map(r => [r, true]), ...clean.map(r => [r, false])]) {
+      runs = 0;
+      const screened = union(strictlySimpleClipper(), rings);
+      assert.equal(runs > 0, fallback, "Clipper's own pass runs exactly when a ring repeats a point");
+      assert.deepEqual(screened, union(plain(), rings));
+    }
+  } finally { ClipperLib.Clipper.prototype.DoSimplePolygons = original; }
 });

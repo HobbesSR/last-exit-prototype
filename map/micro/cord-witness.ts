@@ -162,21 +162,29 @@ function geometricEdges(paths: readonly Vec2[][]): CordEdge[] {
   const endpoints = new Map<string, Vec2>();
   const pointKey = (p: Vec2): string => `${p.x},${p.y}`;
   for (const { from, to } of segments) { endpoints.set(pointKey(from), from); endpoints.set(pointKey(to), to); }
-  // Sorted by x, so each segment reads only the endpoints within its own x span.
-  const sorted = [...endpoints.values()].sort(compare);
-  const firstAt = (x: number): number => {
-    let lo = 0, hi = sorted.length;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid]!.x < x) lo = mid + 1; else hi = mid; }
+  // Sorted by x and by y, so each segment reads only the endpoints within the narrower of its two
+  // spans: a long horizontal run reads one row, not every endpoint across its width (#767).
+  const byX = [...endpoints.values()].sort(compare);
+  const byY = [...byX].sort((a, b) => a.y - b.y || a.x - b.x);
+  // The first index whose coordinate is at least `value`, or past it when `after`.
+  const indexOf = (list: readonly Vec2[], axis: 'x' | 'y', value: number, after = false): number => {
+    let lo = 0, hi = list.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1, v = list[mid]![axis]; if (v < value || after && v === value) lo = mid + 1; else hi = mid; }
     return lo;
   };
   const edges = new Map<string, CordEdge>();
   for (const { from, to } of segments) {
-    const dx = to.x - from.x, dy = to.y - from.y, x1 = Math.max(from.x, to.x);
+    const dx = to.x - from.x, dy = to.y - from.y, x0 = Math.min(from.x, to.x), x1 = Math.max(from.x, to.x);
     const y0 = Math.min(from.y, to.y), y1 = Math.max(from.y, to.y), points: Vec2[] = [];
-    for (let i = firstAt(Math.min(from.x, to.x)); i < sorted.length && sorted[i]!.x <= x1; i++) {
-      const p = sorted[i]!;
-      if (p.y >= y0 && p.y <= y1 && (p.x - from.x) * dy === (p.y - from.y) * dx) points.push(p);
+    const xFrom = indexOf(byX, 'x', x0), xTo = indexOf(byX, 'x', x1, true);
+    const yFrom = indexOf(byY, 'y', y0), yTo = indexOf(byY, 'y', y1, true);
+    const [list, start, end] = xTo - xFrom <= yTo - yFrom ? [byX, xFrom, xTo] : [byY, yFrom, yTo];
+    for (let i = start; i < end; i++) {
+      const p = list[i]!;
+      if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && (p.x - from.x) * dy === (p.y - from.y) * dx) points.push(p);
     }
+    // In (x, y) order whichever list was read, as consecutive points make the edges.
+    if (list === byY) points.sort(compare);
     for (let i = 1; i < points.length; i++) {
       const a = points[i - 1]!, b = points[i]!;
       edges.set(`${pointKey(a)}:${pointKey(b)}`, { from: copy(a), to: copy(b) });

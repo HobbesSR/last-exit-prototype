@@ -1,7 +1,7 @@
 import ClipperLib from 'clipper-lib';
 import { IndexHeap } from './index-heap.ts';
 import { outline, polygon, rect, shapeOf, type Shape } from './shape.ts';
-import { CLIP_SCALE, canonicalRings, clipPath, triangulateRings } from './shape-construction.ts';
+import { CLIP_SCALE, canonicalRings, clipPath, strictlySimpleClipper, triangulateRings } from './shape-construction.ts';
 import { gateShape } from './movement.ts';
 import type { Box, CollisionMap, Vec2, World } from './types.ts';
 import { hypot } from './math.ts';
@@ -67,8 +67,7 @@ function erodedRings(within: readonly Shape[], open: readonly Shape[], blocked: 
   erode.AddPaths(free, JoinType.jtRound, EndType.etClosedPolygon);
   erode.Execute(eroded, -(clearance + ERODE_MARGIN) * SCALE);
   // Strictly simple: rings may share a vertex but never touch another ring's edge, as the triangulation requires.
-  const simple = new ClipperLib.Clipper();
-  simple.StrictlySimple = true;
+  const simple = strictlySimpleClipper();
   simple.AddPaths(eroded, PolyType.ptSubject, true);
   simple.Execute(ClipType.ctUnion, tidy, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
   return tidy.filter(ring => ring.length >= 3);
@@ -467,8 +466,7 @@ function unpackTile(packed: PackedTiles, box: Box, clearance: World): FreeTile |
 }
 
 function clip(subject: ClipperLib.Paths, by: ClipperLib.Paths, type: ClipperLib.ClipType): ClipperLib.Paths {
-  const out: ClipperLib.Paths = [], clipper = new ClipperLib.Clipper();
-  clipper.StrictlySimple = true;
+  const out: ClipperLib.Paths = [], clipper = strictlySimpleClipper();
   clipper.AddPaths(subject, ClipperLib.PolyType.ptSubject, true);
   clipper.AddPaths(by, ClipperLib.PolyType.ptClip, true);
   clipper.Execute(type, out, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
