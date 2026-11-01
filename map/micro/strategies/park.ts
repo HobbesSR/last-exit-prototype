@@ -7,6 +7,7 @@ import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts'
 import { boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
 import { createProspectiveParcels, type ProspectiveParcels } from '../prospective-parcels.ts';
+import { SCATTER_CORD_BUDGET } from '../cord-witness.ts';
 import { frontStarts, growFront, portalSetback } from '../growth.ts';
 import { portalStands } from '../portals.ts';
 import { PARK_HEDGE_BLOCK } from '../placeables/park-hedge-block.ts';
@@ -40,11 +41,6 @@ const FRONT_DEPTH = { min: 0.55, max: 0.85 };
 const FRONT_SETBACK = 1;
 /** The least reach worth a front: a doorway and a cell. */
 const MIN_FRONT = AISLE + 1;
-/**
- * Witness path segments allowed with fronts: winding cords to every stand of a many-portal park
- * pass the coordinator's default of 4,096, a tool limit rather than a contract (20.10).
- */
-const FRONT_SEGMENTS = 16_384;
 
 /** Per-cell draw channels, so no choice shifts another. */
 const CHANNEL = { phaseX: 1, phaseY: 2, hedge: 3, hedgeTurn: 4, hedgeRow: 5, hedgeGap: 6, clump: 7, count: 8, treeX: 9, treeY: 10, loot: 11,
@@ -82,7 +78,7 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   // Portal approaches are the fixed anchors; the coordinator keeps a live cord witness to
   // every stand and refuses a commit that would leave none (20.10).
   const parcels = createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Park'),
-    ...(frontChance > 0 ? { budget: { maxSegments: FRONT_SEGMENTS } } : {}) });
+    ...(frontChance > 0 ? { budget: SCATTER_CORD_BUDGET } : {}) });
   if (!parcels.ok) throw new Error(`Park region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
   const canvas = parcels.coordinator;
   const pocket = hedgeChance > 0 ? siteParkPocket(brief, canvas) : { envelope: null };

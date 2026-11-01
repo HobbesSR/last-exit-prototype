@@ -6,6 +6,7 @@ import { draw } from '../random.ts';
 import { createFillMask, createRegionMask } from '../geometry.ts';
 import { commitHintWalls, wallHints } from '../hint-walls.ts';
 import { createProspectiveParcels } from '../prospective-parcels.ts';
+import { SCATTER_CORD_BUDGET } from '../cord-witness.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
@@ -33,7 +34,7 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   // Portal approaches are the fixed anchors; the coordinator keeps a live cord witness to
   // every stand and refuses a commit that would leave none (20.10).
   const approaches = portalApproaches(brief, 'Rubble');
-  const parcels = createProspectiveParcels(brief, { fixedAccess: approaches });
+  const parcels = createProspectiveParcels(brief, { fixedAccess: approaches, budget: SCATTER_CORD_BUDGET });
   if (!parcels.ok) throw new Error(`Rubble region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
   const canvas = parcels.coordinator;
   const debris: Shape[] = [];

@@ -12,6 +12,7 @@ import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/typ
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { createProspectiveParcels } from '../prospective-parcels.ts';
+import { SCATTER_CORD_BUDGET } from '../cord-witness.ts';
 import { boundaryBoxFilter, boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
@@ -31,11 +32,7 @@ const PERIOD = 8, BAND = PERIOD - AISLE;
 const DEFAULT_DENSITY = 0.6, DEFAULT_SHED = 0.5;
 /** The most portals a live cord joins; past this, boxes keep an aisle from the boundary instead. */
 const ROUTED = 32;
-/**
- * Witness path segments allowed: cords winding to every stand of a many-portal plant pass the
- * coordinator's default of 4,096, a tool limit rather than a contract (20.10), as park's fronts do.
- */
-const CORD_SEGMENTS = 16_384;
+
 /** A machine's sides in cells, and how far its body stands inside them. */
 const MACHINE_MIN = 2, MACHINE_MAX = 4;
 /** How much of a machine's corner a chamfer cuts, in cells, and the chance a machine has one. */
@@ -121,7 +118,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   // and boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= ROUTED;
   const parcels = routed ? createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Plant'),
-    budget: { maxSegments: CORD_SEGMENTS } }) : null;
+    budget: SCATTER_CORD_BUDGET }) : null;
   if (parcels && !parcels.ok) throw new Error(`Plant region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
   const canvas = parcels ? parcels.coordinator : createBuilderCanvas(brief);
 
