@@ -73,7 +73,7 @@ try {
   });
   assert.equal(roofAlpha, true, 'roof groups also reuse textures for alpha changes');
   // A palette restyle (11.1, #582) re-records the art but keeps a group part way through its fade.
-  await page.evaluate(() => { const s = window.fixture.scene; s.setPalette('prototype'); s.update(performance.now(), 16); });
+  await page.evaluate(() => { const s = window.fixture.scene; s.setPalette('signature'); s.update(performance.now(), 16); });
   await page.waitForTimeout(60);
   assert.equal(await page.evaluate(() => window.fixture.scene.overheadGroups.get('canopy').alpha), 0.4, 'a restyle keeps the fade');
   assert.deepEqual(await page.evaluate(() => window.fixture.pixel()), faded, 'and draws the same crown at the same alpha');
