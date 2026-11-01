@@ -21,6 +21,18 @@ isolated file budgets are unchanged. The dated concurrency incident is retained 
 Use the normal scripts for integration; focused `node --test` commands remain
 available. The chain sweep's internal worker pool is separate.
 
+Agents run test scripts through `npm run brief -- <script>` (for example `npm run brief -- test`
+or `npm run brief -- test:slow`), because every line of test output they read is paid for in
+context, and in each agent that reads it. `tests/brief.mjs` runs the script with
+`tests/brief-reporter.mjs`, which writes one line per test file (its name and how many tests
+passed), the name, location and error of each failure, any diagnostic node scopes to a file (such
+as an error from asynchronous activity after a test ended), the crash output of a file that fails
+outside any test, and a closing count; a failing TODO counts as TODO, as in node. The exit status
+is the script's. The wrapper replaces any reporter already set in `NODE_OPTIONS`, and
+`test:times` drops the inherited one because it parses spec output. Agents start long runs in
+the background and wait for the exit notification instead of polling the output. `--test-reporter`
+cannot simply be appended (`npm test -- --test-reporter=...`): node ignores it after the file globs.
+
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`. Dated counts and timings are in
 [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). `npm run test:all` adds
