@@ -245,10 +245,10 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
   let canvas: SitingCanvas;
   if (routed) {
-    // The cover already stood on a cord, so it commits as one; a search that now refuses some of
-    // it keeps what it can.
+    // The cover already stood on a cord, so it commits as one. This only adds a guard: if the
+    // search now refuses any of the cover (its own non-monotonicity), the cover is returned as given.
     const coordinator = liveCord(brief, 'Cover'), pieces = cover.elements.map(element => ({ elements: [element] }));
-    if (pieces.length && !coordinator.commit(mergeAssemblies(pieces))) commitEach(coordinator, pieces);
+    if (pieces.length && !coordinator.commit(mergeAssemblies(pieces)) && !commitEach(coordinator, pieces).every(Boolean)) return cover;
     canvas = coordinator;
   } else {
     const builder = createBuilderCanvas(brief);
@@ -277,7 +277,7 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
       if (routed) continue;
       throw new Error(`Region ${brief.id}: the canvas refused cover's guard, which its siting accepted.`);
     }
-    return { elements: [...canvas.elements],
+    return { elements: [...cover.elements, element],
       loot: cover.loot.filter(loot => !shapes.some(shape => shapesOverlap(shape, circle(loot.x, loot.y, lootRadius)))) };
   }
   return cover;

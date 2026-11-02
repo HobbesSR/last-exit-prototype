@@ -91,6 +91,7 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
   const near = (a: Vec2, b: Vec2): Shape[] => {
     const x0 = Math.floor((Math.min(a.x, b.x) - radius) / grid), x1 = Math.floor((Math.max(a.x, b.x) + radius) / grid);
     const y0 = Math.floor((Math.min(a.y, b.y) - radius) / grid), y1 = Math.floor((Math.max(a.y, b.y) + radius) / grid);
+    // A Set, sort and map per sweep; a reusable stamp array would avoid them if sweeps dominate again.
     const found = new Set<number>();
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) for (const i of filed.get(`${x},${y}`) ?? []) found.add(i);
     return [...found].sort((i, j) => i - j).map(i => blockers[i]!);
@@ -123,7 +124,9 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
   const proved = (path: Vec2[]): boolean => path.every((p, i) => !i || sweep(path[i - 1]!, p));
   // One mesh search from the root finds every later target's corridor at once. The heap orders
   // by key, then index, and targets relax nothing, so each corridor is the one a search for it
-  // alone would find (#787).
+  // alone would find (#787). The trade-off: the search runs until every later target is found,
+  // including ones an old path or direct sweep would satisfy, and an unreachable one makes it
+  // explore the whole mesh. On the 36-wide panel it still saves time overall (42.33).
   let corridors: Map<string, ReturnType<typeof freePaths>[number]> | undefined;
   for (const [index, node] of nodes.slice(1).entries()) {
     const target = node.point;

@@ -346,11 +346,13 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
         || discoverCordWitness(routingBrief, [...blockers(parcels), ...added], terminals, witness, budget, added).ok;
     },
     /**
-     * Commit the most of `count` items, in order, that one assembly can hold and keep a cord:
+     * Commit items of `count`, greedily in index order, that one assembly can hold and keep a cord:
      * `build(kept)` makes the assembly from the items flagged true, or null when it would hold
      * nothing. The whole set is tried first; a refused set is split in half, down to single
      * items, with `admits` probes, and what stands is committed once. For pieces that belong to
      * one element, as a hall's pillars do, where `commitEach` would commit them apart (#787).
+     * Greedy, not a maximum: earlier items win. If the final commit disagrees with the probes
+     * (search budget or non-monotonicity), kept items are dropped from the end until one commits.
      * Returns the flags committed, all false if nothing was.
      */
     commitWhile(count: number, build: (kept: readonly boolean[]) => CanvasAssembly | null): boolean[] {
@@ -368,18 +370,28 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
         run(mid, hi, kept.slice(lo, mid).every(Boolean));
       };
       run(0, count, true);
-      const final = build(kept);
-      return final && coordinator.commit(final) ? kept : none;
+      for (let i = count; ; i--) {
+        const final = build(kept);
+        if (!final) return none;
+        if (coordinator.commit(final)) return kept;
+        while (i > 0 && !kept[i - 1]) i--;
+        if (i === 0) return none;
+        kept[i - 1] = false;
+      }
     },
     /**
      * A detached draft of the current canvas for siting a batch without cord work: its commits
      * only record, and `flush` proves the cord for them through `commitEach`, once for as many
      * as stand together (#787). Removing a piece frees space, so pieces sited against a draft
-     * that kept one the cord then refuses still fit. Empty marks follow the commits. Flush once;
-     * it returns which commits were kept.
+     * that kept one the cord then refuses still fit. Empty marks follow the commits. Flush once,
+     * with no other commit on the coordinator in between (the draft is a snapshot); either misuse
+     * throws. `fits` also avoids open parcels, as the coordinator's does; `spaced` measures
+     * clearance from standing elements, which an open parcel has none of, as the coordinator's.
+     * Returns which commits were kept.
      */
     stage() {
-      const draft = replay(parcels)!;
+      const draft = replay(parcels)!, at = revision;
+      let flushed = false;
       const staged: CanvasAssembly[] = [], empty: Shape[][] = [];
       const open = parcels.filter(p => !p.assembly && !p.settled);
       return {
@@ -401,6 +413,9 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
           },
         },
         flush: () => {
+          if (flushed) throw new Error('A staged batch was flushed twice.');
+          if (revision !== at) throw new Error('The coordinator changed between stage and flush.');
+          flushed = true;
           const kept = commitEach(coordinator, staged);
           for (const areas of empty) if (!coordinator.markEmpty(areas)) throw new Error('A staged empty mark failed on the coordinator.');
           return kept;

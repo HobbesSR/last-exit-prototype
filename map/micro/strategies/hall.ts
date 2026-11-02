@@ -45,8 +45,8 @@ type Box = { x: number; y: number; w: number; h: number };
  * Portal approaches stay clear, and nothing else is reserved between portals. Plain walls stand
  * along every hinted run where nothing of the hall's or the approaches' is (`wallHints`). The
  * bays, pillars and walls commit as one assembly through a live cord (20.10); if the cord
- * refuses it, the assembly keeps the most pillars, then walls, that leave a hunter cord to every
- * portal stand (`commitWhile`, #787). So the region keeps the portal promise whenever its shape does. With `roofed`, the rectangle has a
+ * refuses it, the assembly keeps pillars in order, then walls, while a hunter cord to every
+ * portal stand remains (`commitWhile`, #787); greedy, so earlier bays are favoured. So the region keeps the portal promise whenever its shape does. With `roofed`, the rectangle has a
  * roof, which hides what's under it as a building's does. A region with no such rectangle
  * goes to `open` (17 M24).
  *
@@ -109,8 +109,9 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
 
   const hinted = wallHints(brief, { kind: 'building', avoid: [...approaches, ...pillars] });
   const wallShapes = hinted.elements.map(element => elementShapes(element));
-  // The hall bays and hint walls commit as one assembly: pillars first, then walls, of which the
-  // cord keeps the most it can. A bay stands if it is roofed or keeps a pillar. Its intent is its
+  // The hall bays and hint walls commit as one assembly: pillars in order, then walls, kept
+  // greedily while a cord stands. A bay stands if it is roofed or keeps a pillar. Walls were
+  // hinted around every sited pillar, so a refused pillar leaves its wall gap. Its intent is its
   // rectangles and the walls, less the approaches it keeps clear (29's construction).
   const hallOf = (kept: readonly boolean[]) => {
     const bays = boxes.flatMap((wing, index) => {
@@ -131,7 +132,8 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   });
   const { bays: hall, shapes: hintWalls } = hallOf(kept);
   const keptPillars = pillars.filter((_, i) => kept[i]);
-  // Every selected bay remains reserved even when no pillar or roof was placed.
+  // Every selected bay stays reserved from crates (`boxes`), even one the canvas dropped
+  // because no pillar or roof of it stood.
   // A full owned bypass ring preserves access to side lobes with no protected route.
   const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
   const crates = brief.type === 'hall' ? canvas.stage() : undefined;

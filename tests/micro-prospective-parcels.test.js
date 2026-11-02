@@ -308,3 +308,28 @@ test('a staged batch that stands is one commit (#787)', () => {
   assert.equal(c.revision, before + 1);
   assert.equal(c.elements.length, 4);
 });
+
+test('a staged batch flushes once, with no commit in between (#787 review)', () => {
+  const c = ready(brief({ portals })), staged = c.stage();
+  assert.equal(staged.canvas.commit({ elements: [element(64, 32)] }), true);
+  assert.deepEqual(staged.flush(), [true]);
+  assert.throws(() => staged.flush(), /flushed twice/);
+  const late = c.stage();
+  assert.equal(late.canvas.commit({ elements: [element(256, 32)] }), true);
+  assert.equal(c.commit({ elements: [element(64, 192)] }), true);
+  assert.throws(() => late.flush(), /changed between stage and flush/);
+});
+
+test('commitWhile keeps items greedily in order and commits once (#787)', () => {
+  const c = ready(brief({ portals }));
+  const cut = { label: 'cut', x: 0, y: 0, template: { w: 320, h: 256, parts: [{ part: 'obstacle', kind: 'wall', shape: rect(160, 0, 32, 256) }] } };
+  const items = [element(64, 32), cut, element(256, 192)];
+  const before = c.revision;
+  const kept = c.commitWhile(items.length, flags => {
+    const elements = items.filter((_, i) => flags[i]);
+    return elements.length ? { elements } : null;
+  });
+  assert.deepEqual(kept, [true, false, true]);
+  assert.equal(c.revision, before + 1);
+  assert.equal(c.elements.length, 2);
+});
