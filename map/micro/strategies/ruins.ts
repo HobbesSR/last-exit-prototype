@@ -3,11 +3,11 @@ import { polygon, rect } from '../../../shared/shape.ts';
 import { FALLEN_SLAB } from '../placeables/fallen-slab.ts';
 import { RUIN_ROOM_SPAN } from '../placeables/ruin-room-span.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
-import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, liveCord, portalApproaches } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { commitHintWalls, wallHints } from '../hint-walls.ts';
-import { createBuilderCanvas } from '../canvas.ts';
+import { mergeAssemblies, type CanvasAssembly } from '../canvas.ts';
 import { disjoint } from '../../../shared/shape-construction.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -42,14 +42,17 @@ type Side = typeof SIDES[number];
  * falls with chance `decay`: half of those lie as a rotated slab of debris on their cell,
  * and the rest are gone.
  *
- * Portal approaches and one hunter route between portals are protected in the empty shape
- * before any piece is laid, and a piece that would touch them is left out, as `rubble` does.
- * Then plain walls stand along every hinted run where no piece or route is (`wallHints`).
- * So the region keeps the portal promise whenever its shape does. A region smaller than
+ * Portal approaches stay clear, and nothing else is reserved between portals: pieces commit
+ * through a live cord (20.10), which keeps a hunter cord to every portal stand. The rooms are
+ * tried as one commit; if the cord refuses them, each room keeps the most of its spans that
+ * leave a cord, and the rest are left out as broken wall (#787). Then plain walls stand along
+ * every hinted run where no piece or approach is (`wallHints`), each passed over if the cord
+ * refuses it. So the region keeps the portal promise whenever its shape does. A region smaller than
  * `MIN_CELLS`, or with no owned 3 × 3 box for a room, goes to `open` (17 M24).
  *
  * Residual crates keep two cells from every eligible room slot, including density-skipped
- * slots, plus existing extents and protected routes. Each needs a fully owned two-cell
+ * slots, plus existing extents. They are sited on a draft and committed as far as the cord
+ * allows. Each needs a fully owned two-cell
  * bypass ring; room interiors and door approaches remain clear.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear
@@ -61,7 +64,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   const mask = createFillMask(brief), size = brief.cellSize;
   if (mask.cells.length < MIN_CELLS || !mask.rectangles(3, 3).length) return unfilledRegion(brief, CHANNEL.loot);
 
-  const protectedShapes = protectedRoutes(brief, 'Ruins');
+  const approaches = portalApproaches(brief, 'Ruins'), canvas = liveCord(brief, 'Ruins');
   const phase = { x: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phase) * PERIOD), y: Math.floor(draw(brief.seed, 1, 0, CHANNEL.phase) * PERIOD) };
   const onLattice = (value: number, offset: number) => ((value - offset) % PERIOD + PERIOD) % PERIOD === 0;
   const owns = (x: number, y: number, w: number, h: number) => {
@@ -69,18 +72,16 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     return true;
   };
 
-  const canvas = createBuilderCanvas(brief, protectedShapes);
-  // A room's laid spans and their shapes, committed together once it is done: spans meet at its corners.
+  // A room's laid spans and their shapes, committed together once all rooms are sited: spans meet at its corners.
   let room: RegionElement[] = [], roomShapes: Shape[] = [];
-  const pieces: Shape[] = [];
+  const sited: { elements: RegionElement[]; shapes: Shape[] }[] = [];
   const reserved: { x: number; y: number; w: number; h: number }[] = [];
-  let rooms = 0, walls = 0, debris = 0;
+  let rooms = 0;
   const lay = (label: string, shape: Shape) => {
     if (!canvas.fits(shape)) return false;
     room.push({ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
       parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } });
     roomShapes.push(shape);
-    pieces.push(shape);
     return true;
   };
 
@@ -96,7 +97,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     };
     const open = SIDES.filter(side => beyond[side]);
     if (!open.length) continue;
-    // Reserve every eligible slot, including density-skipped and protected-away rooms.
+    // Reserve every eligible slot, including density-skipped rooms.
     reserved.push({ x: slot.x, y: slot.y, w, h });
     if (draw(brief.seed, slot.x, slot.y, CHANNEL.slot) >= density) continue;
     const door = open[Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.door) * open.length)]!;
@@ -124,22 +125,28 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
           // Keep the old arithmetic order in the absolute-shape record, including fractional cell sizes.
           const shape = rect(side === 'east' ? (cx + 1) * size - local.w : cx * size,
             side === 'south' ? (cy + 1) * size - local.h : cy * size, local.w, local.h);
-          if (lay(`${label}-wall`, shape)) walls++;
-        } else if (draw(brief.seed, cx, cy, CHANNEL.debris + s) < .5
-          && lay(`${label}-debris`, slab(cx, cy, size, draw(brief.seed, cx, cy, CHANNEL.angle + s), draw(brief.seed, cx, cy, CHANNEL.size + s)))) debris++;
+          lay(`${label}-wall`, shape);
+        } else if (draw(brief.seed, cx, cy, CHANNEL.debris + s) < .5)
+          lay(`${label}-debris`, slab(cx, cy, size, draw(brief.seed, cx, cy, CHANNEL.angle + s), draw(brief.seed, cx, cy, CHANNEL.size + s)));
       }
     }
-    // These legacy world-absolute records' template boxes are not their intent; their shapes are.
-    // The room's box is not either, as a protected route may run through a fallen span.
-    // Siting has already accepted every span, so a refusal is a broken placement invariant.
-    if (room.length && !canvas.commit({ elements: room, areas: disjoint(roomShapes), extents: roomShapes }))
-      throw new Error(`Ruins room at ${slot.x},${slot.y} failed its canvas commit.`);
+    if (room.length) sited.push({ elements: room, shapes: roomShapes });
   }
+  // These legacy world-absolute records' template boxes are not their intent; their shapes are.
+  // The room's box is not either, as the cord may run through a fallen span.
+  const assembly = (elements: readonly RegionElement[], shapes: readonly Shape[]): CanvasAssembly =>
+    ({ elements, areas: disjoint(shapes), extents: shapes });
+  const all = mergeAssemblies(sited.map(r => assembly(r.elements, r.shapes)));
+  if (sited.length && !canvas.commit(all)) for (const r of sited)
+    canvas.commitWhile(r.elements.length, kept => kept.some(Boolean)
+      ? assembly(r.elements.filter((_, i) => kept[i]), r.shapes.filter((_, i) => kept[i])) : null);
+  const laid = canvas.elements, pieces = laid.flatMap(e => elementShapes(e));
+  const walls = laid.filter(e => e.label.endsWith('-wall')).length, debris = laid.filter(e => e.label.endsWith('-debris')).length;
 
-  const hinted = wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...protectedShapes, ...pieces] });
-  commitHintWalls(canvas, hinted);
+  const hinted = commitHintWalls(canvas, wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...approaches, ...pieces] }), { passOver: true });
   const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
-  const infillCrates = placeInfillCrates({ brief, canvas, chance: density * 0.5, channels: CHANNEL,
+  const crates = canvas.stage();
+  placeInfillCrates({ brief, canvas: crates.canvas, chance: density * 0.5, channels: CHANNEL,
     label: 'ruins-infill-crate',
     site: cell => {
       const shape = rect(cell.x * size, cell.y * size, size, size);
@@ -147,10 +154,11 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
         box.y - cell.y - 1, cell.y - box.y - box.h) >= aisle)
         && access.contains(rect((cell.x - aisle) * size, (cell.y - aisle) * size,
           (1 + 2 * aisle) * size, (1 + 2 * aisle) * size))
-        && canvas.fits(shape) && canvas.spaced(shape, aisle * size);
+        && crates.canvas.fits(shape) && crates.canvas.spaced(shape, aisle * size);
     },
     commitError: label => `Ruins placement ${label} failed its canvas commit.`,
   });
+  const infillCrates = crates.flush().filter(Boolean).length;
   const elements = [...canvas.elements];
   const lootPieces = infillCrates ? elements.flatMap(element => elementShapes(element, true)) : [...pieces, ...hinted.shapes];
   const loot = cellLoot(brief, createRegionMask(brief), lootPieces, CHANNEL.loot);

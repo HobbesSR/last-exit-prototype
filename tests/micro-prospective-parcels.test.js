@@ -280,3 +280,70 @@ test('cached ordinary blockers survive parcel replay and remain in repaired proo
     assert.equal(travelClear(mask,blockers,path[Math.max(0,i-1)],path[i],radius),true);
   assert.equal(validatePortalReach({...b,blockers},{search:'thorough'}).valid,true);
 });
+
+test('a staged batch proves the cord once, and keeps what one-at-a-time commits keep (#787)', () => {
+  const b = brief({ portals });
+  const cut = { label: 'cut', x: 0, y: 0, template: { w: 320, h: 256, parts: [{ part: 'obstacle', kind: 'wall', shape: rect(160, 0, 32, 256) }] } };
+  const batch = [{ elements: [element(64, 32)] }, { elements: [element(64, 160)] }, { elements: [cut], areas: [rect(160, 0, 32, 256)] },
+    { elements: [element(256, 32)] }, { elements: [element(256, 192)] }];
+  const one = ready(b);
+  const single = batch.map(a => one.commit(a));
+  assert.deepEqual(single, [true, true, false, true, true]);
+
+  const c = ready(b), staged = c.stage();
+  // The draft sites without cord work: the cut stands on it.
+  for (const a of batch) assert.equal(staged.canvas.commit(a), true);
+  assert.equal(staged.canvas.elements.length, 5);
+  assert.equal(c.elements.length, 0);
+  assert.deepEqual(staged.flush(), single);
+  assert.deepEqual(c.elements, one.elements);
+  assert.deepEqual(c.addressed.areas, one.addressed.areas);
+});
+
+test('a staged batch that stands is one commit (#787)', () => {
+  const c = ready(brief({ portals })), staged = c.stage();
+  for (const [x, y] of [[64, 32], [64, 192], [256, 32], [256, 192]]) assert.equal(staged.canvas.commit({ elements: [element(x, y)] }), true);
+  const before = c.revision;
+  assert.deepEqual(staged.flush(), [true, true, true, true]);
+  assert.equal(c.revision, before + 1);
+  assert.equal(c.elements.length, 4);
+});
+
+test('a staged batch flushes once, with no commit in between (#787 review)', () => {
+  const c = ready(brief({ portals })), staged = c.stage();
+  assert.equal(staged.canvas.commit({ elements: [element(64, 32)] }), true);
+  assert.deepEqual(staged.flush(), [true]);
+  assert.throws(() => staged.flush(), /flushed twice/);
+  const late = c.stage();
+  assert.equal(late.canvas.commit({ elements: [element(256, 32)] }), true);
+  assert.equal(c.commit({ elements: [element(64, 192)] }), true);
+  assert.throws(() => late.flush(), /changed between stage and flush/);
+});
+
+test('commitWhile keeps items greedily in order and commits once (#787)', () => {
+  const c = ready(brief({ portals }));
+  const cut = { label: 'cut', x: 0, y: 0, template: { w: 320, h: 256, parts: [{ part: 'obstacle', kind: 'wall', shape: rect(160, 0, 32, 256) }] } };
+  const items = [element(64, 32), cut, element(256, 192)];
+  const before = c.revision;
+  const kept = c.commitWhile(items.length, flags => {
+    const elements = items.filter((_, i) => flags[i]);
+    return elements.length ? { elements } : null;
+  });
+  assert.deepEqual(kept, [true, false, true]);
+  assert.equal(c.revision, before + 1);
+  assert.equal(c.elements.length, 2);
+});
+
+test('commitWhile drops kept items from the end when the final commit disagrees with its probes (#787)', () => {
+  const c = ready(brief({ portals }));
+  // A commit stricter than `admits`, as a search budget or non-monotonicity could be.
+  const commit = c.commit.bind(c);
+  c.commit = assembly => assembly.elements.length <= 2 && commit(assembly);
+  const items = [element(64, 32), element(64, 192), element(256, 192)];
+  const kept = c.commitWhile(items.length, flags => {
+    const elements = items.filter((_, i) => flags[i]);
+    return elements.length ? { elements } : null;
+  });
+  assert.deepEqual(kept, [true, true, false]);
+  assert.equal(c.elements.length, 2);
+});

@@ -48,13 +48,13 @@ test('selected bays stay reserved at huge spacing', () => {
   const roofed = buildRegion(make(cells, { parameters: { spacing: 100, roofed: true } }));
   assert.deepEqual(hall(roofed).map(extent), fixtures[0][2]);
   assert.ok(hall(roofed).every(e => e.template.encloses));
-  // The single secondary pillar is protected away by a route across its bay.
-  // Its otherwise empty rectangle must still be excluded from crate infill.
+  // The single secondary pillar once fell to a frozen route across its bay; the live cord
+  // bends round it (#787). Its rectangle must still be excluded from crate infill.
   const empty = buildRegion(make(cells, { parameters: { spacing: 100 }, portals: [
     { id: 'west', axis: 'v', x: 0, y: 21, length: 2 },
     { id: 'indent', axis: 'v', x: 14, y: 21, length: 2 },
   ] }));
-  assert.equal(wing(empty).length, 0);
+  assert.equal(wing(empty).length, 1);
   assert.equal(empty.manifest.infillCrates, 0);
 });
 

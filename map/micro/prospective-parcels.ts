@@ -3,7 +3,7 @@ import { bounds, rect, type Shape } from '../../shared/shape.ts';
 import { construct } from '../../shared/shape-construction.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import { createAddressedArea } from './addressed.ts';
-import { assemblyBlockers, assemblyFootprints, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
+import { assemblyBlockers, assemblyFootprints, commitEach, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
 import { discoverCordWitness, type CordWitness } from './cord-witness.ts';
 import { capsule, createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
 import { hunterClearance } from './portals.ts';
@@ -335,6 +335,92 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if (!canvas.markEmpty(area)) return false;
       publish(parcels, [...operations, { kind: 'empty', area }], canvas, witness);
       return true;
+    },
+    /**
+     * Whether committing `assembly` now would leave a cord, without committing it or changing
+     * anything. Only the cord is checked; the canvas's own rules are the caller's siting.
+     */
+    admits(assembly: CanvasAssembly): boolean {
+      const added = assemblyBlockers(structuredClone(assembly));
+      return witnessStandsClear(added)
+        || discoverCordWitness(routingBrief, [...blockers(parcels), ...added], terminals, witness, budget, added).ok;
+    },
+    /**
+     * Commit items of `count`, greedily in index order, that one assembly can hold and keep a cord:
+     * `build(kept)` makes the assembly from the items flagged true, or null when it would hold
+     * nothing. The whole set is tried first; a refused set is split in half, down to single
+     * items, with `admits` probes, and what stands is committed once. For pieces that belong to
+     * one element, as a hall's pillars do, where `commitEach` would commit them apart (#787).
+     * Greedy, not a maximum: earlier items win. If the final commit disagrees with the probes
+     * (search budget or non-monotonicity), kept items are dropped from the end until one commits.
+     * Returns the flags committed, all false if nothing was.
+     */
+    commitWhile(count: number, build: (kept: readonly boolean[]) => CanvasAssembly | null): boolean[] {
+      const all = Array.from({ length: count }, () => true), none = all.map(() => false);
+      const whole = build(all);
+      if (!whole || coordinator.commit(whole)) return whole ? all : none;
+      const kept = none.slice();
+      const run = (lo: number, hi: number, refused = false): void => {
+        if (hi <= lo) return;
+        const trial = kept.slice().fill(true, lo, hi), assembly = build(trial);
+        if (!refused && (!assembly || coordinator.admits(assembly))) { kept.fill(true, lo, hi); return; }
+        if (hi - lo === 1) return;
+        const mid = (lo + hi) >> 1;
+        run(lo, mid);
+        run(mid, hi, kept.slice(lo, mid).every(Boolean));
+      };
+      run(0, count, true);
+      for (let i = count; ; i--) {
+        const final = build(kept);
+        if (!final) return none;
+        if (coordinator.commit(final)) return kept;
+        while (i > 0 && !kept[i - 1]) i--;
+        if (i === 0) return none;
+        kept[i - 1] = false;
+      }
+    },
+    /**
+     * A detached draft of the current canvas for siting a batch without cord work: its commits
+     * only record, and `flush` proves the cord for them through `commitEach`, once for as many
+     * as stand together (#787). Removing a piece frees space, so pieces sited against a draft
+     * that kept one the cord then refuses still fit. Empty marks follow the commits. Flush once,
+     * with no other commit on the coordinator in between (the draft is a snapshot); either misuse
+     * throws. `fits` also avoids open parcels, as the coordinator's does; `spaced` measures
+     * clearance from standing elements, which an open parcel has none of, as the coordinator's.
+     * Returns which commits were kept.
+     */
+    stage() {
+      const draft = replay(parcels)!, at = revision;
+      let flushed = false;
+      const staged: CanvasAssembly[] = [], empty: Shape[][] = [];
+      const open = parcels.filter(p => !p.assembly && !p.settled);
+      return {
+        canvas: {
+          fill: draft.fill, access: draft.access, addressed: draft.addressed,
+          get elements() { return draft.elements; },
+          fits: (shape: Shape) => draft.fits(shape) && !open.some(p => p.area.some(a => shapesOverlap(shape, a))),
+          spaced: (shape: Shape, clearance = 0) => draft.spaced(shape, clearance),
+          commit(assembly: CanvasAssembly) {
+            if (!draft.commit(assembly)) return false;
+            staged.push(structuredClone(assembly));
+            return true;
+          },
+          /** Empty intent adds no blocker, so it is marked after the batch, whatever the cord kept. */
+          markEmpty(areas: readonly Shape[]) {
+            if (!draft.markEmpty(areas)) return false;
+            empty.push(structuredClone([...areas]));
+            return true;
+          },
+        },
+        flush: () => {
+          if (flushed) throw new Error('A staged batch was flushed twice.');
+          if (revision !== at) throw new Error('The coordinator changed between stage and flush.');
+          flushed = true;
+          const kept = commitEach(coordinator, staged);
+          for (const areas of empty) if (!coordinator.markEmpty(areas)) throw new Error('A staged empty mark failed on the coordinator.');
+          return kept;
+        },
+      };
     },
   };
   return { ok: true as const, coordinator, counters: initial.counters };

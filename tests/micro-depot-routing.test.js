@@ -5,7 +5,7 @@ import { buildRegion } from '../map/micro/region-types.ts';
 import { capsule, createAccessMask, elementShapes, findRegionRoute } from '../map/micro/geometry.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
-import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
+import { frozenRoutes as protectedRoutes } from '../map/micro/experiments/frozen-routes.ts';
 import { rect } from '../shared/shape.ts';
 
 // Row runs preserve the production briefs' coordinates, seed, margins, zones, and portal order.

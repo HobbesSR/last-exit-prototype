@@ -6,7 +6,7 @@ import type { WallRunParams } from './placeables/wall-run.ts';
 import type { AddressedArea } from './addressed.ts';
 import { disjoint } from '../../shared/shape-construction.ts';
 import type { Shape } from '../../shared/shape.ts';
-import type { SitingCanvas } from './canvas.ts';
+import { commitEach, type SitingCanvas } from './canvas.ts';
 import type { Cell, RegionBrief, RegionElement } from './types.ts';
 
 export interface HintWallOptions {
@@ -91,12 +91,9 @@ export function wallHints(brief: RegionBrief, options: HintWallOptions): HintWal
 export function commitHintWalls(canvas: SitingCanvas, walls: HintWalls, options: { passOver?: boolean } = {}): Pick<HintWalls, 'elements' | 'shapes'> {
   if (!walls.elements.length || canvas.commit({ elements: walls.elements, areas: disjoint(walls.shapes), extents: walls.shapes })) return walls;
   if (!options.passOver) throw new Error('Hint walls failed their canvas commit.');
-  // One wall at a time, in hint order; a wall the canvas refuses is left out.
-  const kept: Pick<HintWalls, 'elements' | 'shapes'> = { elements: [], shapes: [] };
-  for (const element of walls.elements) {
-    const shapes = elementShapes(element);
-    if (!canvas.commit({ elements: [element], areas: disjoint(shapes), extents: shapes })) continue;
-    kept.elements.push(element); kept.shapes.push(...shapes);
-  }
-  return kept;
+  // Each wall its own assembly, in hint order, committed as far as they stand together;
+  // a wall the canvas refuses is left out (`commitEach`, #787).
+  const shapes = walls.elements.map(element => elementShapes(element));
+  const kept = commitEach(canvas, walls.elements.map((element, i) => ({ elements: [element], areas: disjoint(shapes[i]!), extents: shapes[i]! })));
+  return { elements: walls.elements.filter((_, i) => kept[i]), shapes: shapes.filter((_, i) => kept[i]).flat() };
 }

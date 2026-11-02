@@ -14,7 +14,7 @@ import { microMetrics } from '../map/micro/metrics.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { measureFill } from '../map/micro/fill.ts';
-import { protectedRoutes } from '../map/micro/strategies/scatter.ts';
+import { frozenRoutes as protectedRoutes } from '../map/micro/experiments/frozen-routes.ts';
 import { rect } from '../shared/shape.ts';
 import { chainBrief, reorderedBrief } from '../tests/helpers/chain-briefs.js';
 import { cellsOf } from '../tests/helpers/cells.js';

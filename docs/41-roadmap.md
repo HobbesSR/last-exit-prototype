@@ -117,8 +117,9 @@ onto a live cord and adopted park's hedge fronts; PR #766 recorded the batching 
 #529 and #531, awaiting Corey. 42.31's finding: freeing routes about doubles content but
 barely moves detour or dead-end area, and 36-wide generation went from 31 s to 51 s.
 #767 profiled the cost and landed two exact savings (36 wide 50.4 s → 45.9 s, 42.32); fewer mesh
-builds would change content and waits for Corey. Next: #762 as the detour candidate. Cover,
-ruins, depot, hall and market keep frozen routes until Corey's reassessment (42.31, 42.32).
+builds would change content and waits for Corey. #787 (`types-63`, 42.33) moved cover, ruins,
+depot, hall and market onto a live cord with batched commits and two more exact search savings,
+at main's generation cost. Next: #762 as the detour candidate.
 #535 is parked until Corey gives authorship direction.
 
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers
