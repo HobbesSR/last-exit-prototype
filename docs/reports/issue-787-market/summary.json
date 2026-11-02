@@ -1,0 +1,1359 @@
+{
+ "issue": 787,
+ "type": "market",
+ "base": "5e30b4b",
+ "build": "types-62",
+ "node": "v24.15.0",
+ "provenance": {
+  "commit": "9edef976af2f4ed3ad6ca8e0b5912c8714e760c8",
+  "sourceSha256": {
+   "map/micro/strategies/park.ts": "dd6155ad26265501cd18c123cb783793222f4976cedb5356a3e08b0339d3a83c",
+   "map/micro/strategies/park-pocket.ts": "eeec41543ec3e860512aadde55fe91e125379a02cbf725ef15bca8aaef73b155",
+   "map/micro/strategies/scatter.ts": "95e2bcea9f5aa952bc9de985abc2a982b85f1466c39b32107f46a0157ebc7c33",
+   "map/micro/prospective-parcels.ts": "ddb147cab0e3c6b8619b20be466f8f7585cbc8f6208f6f7f64daa986e28d418d",
+   "map/micro/cord-witness.ts": "6b20c88a48eba9aebbd8778a1bec2792b23a1c3f13f01a05baedf3670732eca3",
+   "map/micro/diagnose.ts": "e56b29486e6b1473e1312c31da3c2e1698ea7596b2450855660619492d5a435c",
+   "map/micro/region-types.ts": "5728c3aab5a7474fa881b0a4b6a0424ee80a9ba1f26d3ffd9d3be05bb4518983",
+   "map/micro/growth.ts": "73cfb1ef925a5fdae6ee4a2eb6ce11a83549a5ba3793d440eae1a0529f7f9e33",
+   "map/micro/placeables/park-hedge-block.ts": "f7e31ade129fa64e670707c3dcc06d3c7c71f5f4818ccd52e2a7887688d4d7e8",
+   "tools/park-route-audit.mjs": "d626b48aef0aeec853d1115dc674c478616815c1a4dd1a3796478def8bd8f77e",
+   "tools/experiments/park-pocket-routes.mjs": "bfe28bae6a4908ebfe5189d38f6099b277f603e0d87bb6bde747f77fbc0d6859",
+   "tools/lib/covered-samples.mjs": "f22fc4c180e93ce63ac679ac73c508ea7b68dc967fc3d6a15f87fef9d63b25a3",
+   "map/micro/strategies/market.ts": "2d5a34290e395f72ca450a665f891acb56f44339560faef3b5198c6349cad7ed",
+   "map/micro/hint-walls.ts": "09b6b02569eb71c09a8a5394f54a231a7bf068f4f7e3d1d64963543463e257c9",
+   "map/micro/strategies/infill.ts": "28dcfe60dae8ad76319db6bdc59f8d6e6a456bb3c23815e59dbe9cc46094388b"
+  },
+  "sourceGitBlob": {
+   "map/micro/strategies/park.ts": "294cbf69e7d456753ebbbfc31e09839814d0f88d",
+   "map/micro/strategies/park-pocket.ts": "86cb52cf88ad469c61576c4fff9b96f2a16d32c1",
+   "map/micro/strategies/scatter.ts": "5da1f901ebbec87e524a8218371e40f187afc721",
+   "map/micro/prospective-parcels.ts": "fe85738ce01be310ebc248fdfdec800d466545c7",
+   "map/micro/cord-witness.ts": "fb156dd8fedc873175d641de4f97a1eabc9c57c1",
+   "map/micro/diagnose.ts": "4cddcf8f1ada746041b196210e110d6d6eacbeb1",
+   "map/micro/region-types.ts": "490c31cafb4f3b6d4b8be90fbeacfd0458e7ea80",
+   "map/micro/growth.ts": "8bcfdb2aa692663c376ebe626a2bc20eb3f61cf0",
+   "map/micro/placeables/park-hedge-block.ts": "da6cb8d3a0c4e510a8b8c178054464f415e113ab",
+   "tools/park-route-audit.mjs": "21ea786d2d8f33ba3eac74931957d58e6458fd38",
+   "tools/experiments/park-pocket-routes.mjs": "5d2fb2120b278968fbb0d4efa0a07c210d26e55a",
+   "tools/lib/covered-samples.mjs": "1e7174b711ba8999050b4cf35ad935f6f69b2869",
+   "map/micro/strategies/market.ts": "2768d9b1cdd172ece58b48356e3a9fa463d8dcd3",
+   "map/micro/hint-walls.ts": "a41ea3f7c62a94824e8e52c1c018b94152fdc958",
+   "map/micro/strategies/infill.ts": "d0034b1e7ab042548fdab5f8eb7fe8336e17a597"
+  },
+  "sourceWorkingTreeSha256": {
+   "map/micro/strategies/park.ts": "99e6888cbd75d0304b8b568aa1290d8d4e2e979adb7c8112376dcd1bee031066",
+   "map/micro/strategies/park-pocket.ts": "e6a1b98ae48cbc09bad8a9ee475c323c24ee2036ca6a75103547a7ebcde8d1f0",
+   "map/micro/strategies/scatter.ts": "021620bef95f3812e3b4a20dab0f0e7391e131ffdee0949eef086d700697a48d",
+   "map/micro/prospective-parcels.ts": "0c748dd9818f9d6310a862b9eba940c86650ae4a8a087c595ef22458bb9c7bf5",
+   "map/micro/cord-witness.ts": "34012fcef81f0a77b77056d2f09bece7ae1827b50df1c7b93282f056320e2824",
+   "map/micro/diagnose.ts": "6103d1ae1dd66eb1ba5b7f0fd8561c2413b4efe22e2d8f51099a1b3f0f4b448e",
+   "map/micro/region-types.ts": "e5198ac9739fed0beeda29765a7b7f4e2e7062e5294e3c0737e1e8ca49a8bff4",
+   "map/micro/growth.ts": "9abf1341403fda255b4d10b8878a613bcb6298495b9ffdc7c964e8b851510a63",
+   "map/micro/placeables/park-hedge-block.ts": "f7e31ade129fa64e670707c3dcc06d3c7c71f5f4818ccd52e2a7887688d4d7e8",
+   "tools/park-route-audit.mjs": "d626b48aef0aeec853d1115dc674c478616815c1a4dd1a3796478def8bd8f77e",
+   "tools/experiments/park-pocket-routes.mjs": "8c3b25b50a376c8ef52dee120e79c6455bce67c905352585aa18a5484c347832",
+   "tools/lib/covered-samples.mjs": "f22fc4c180e93ce63ac679ac73c508ea7b68dc967fc3d6a15f87fef9d63b25a3",
+   "map/micro/strategies/market.ts": "9c2868a7e2471f7eb6b86de50772ec8dc7d3d084e0943ffdead28bf4ea262672",
+   "map/micro/hint-walls.ts": "93beb13d8907016bcffb16baf4ea3926cd16250bc02d4ffd177a04ba709c01a9",
+   "map/micro/strategies/infill.ts": "57374c06fa2f0b37c8ff3aa52c9ea9094880f9736e5c441711d1f57d643b1f96"
+  }
+ },
+ "panel": "size-{12,24,36}-1, generate(seed, params, undefined, 48)",
+ "maps": [
+  {
+   "seed": "size-12-1",
+   "params": {
+    "zoneWidth": 12,
+    "zoneHeight": 6,
+    "exitCount": 2,
+    "contestantCount": 8,
+    "hunterCount": 3,
+    "lootChance": 0.04,
+    "lootTierStep": 0.09
+   },
+   "regions": 287,
+   "parkBriefs": 1,
+   "changed": 0,
+   "content": {
+    "before": {
+     "parks": 1,
+     "fillCells": 1646,
+     "coveredFillShare": 0.12150668286755771,
+     "pieces": 50,
+     "geometryEmpty": 0
+    },
+    "after": {
+     "parks": 1,
+     "fillCells": 1646,
+     "coveredFillShare": 0.12150668286755771,
+     "pieces": 50,
+     "geometryEmpty": 0
+    }
+   },
+   "coreElements": [
+    [
+     {
+      "instance": "landing#17",
+      "element": "spawn",
+      "promised": 8,
+      "found": 8
+     },
+     {
+      "instance": "evac#18",
+      "element": "hunter-spawn",
+      "promised": 3,
+      "found": 3
+     },
+     {
+      "instance": "evac#18",
+      "element": "exit",
+      "promised": 2,
+      "found": 2
+     },
+     {
+      "instance": "transit-station#19",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#20",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#21",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#22",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#23",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#24",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#25",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#26",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#27",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     }
+    ],
+    [
+     {
+      "instance": "landing#17",
+      "element": "spawn",
+      "promised": 8,
+      "found": 8
+     },
+     {
+      "instance": "evac#18",
+      "element": "hunter-spawn",
+      "promised": 3,
+      "found": 3
+     },
+     {
+      "instance": "evac#18",
+      "element": "exit",
+      "promised": 2,
+      "found": 2
+     },
+     {
+      "instance": "transit-station#19",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#20",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#21",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#22",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#23",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#24",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#25",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#26",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#27",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     }
+    ]
+   ],
+   "roles": [
+    {
+     "body": "contestant",
+     "fixedPairs": 0,
+     "changedRoutes": 0,
+     "lostRoutes": 0,
+     "routes": {
+      "all": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalPortal": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalInterior": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      }
+     },
+     "emptyShare": [
+      0.9160460949187093,
+      0.9160460949187093
+     ],
+     "deadEndArea": [
+      347890.5430831909,
+      347890.5430831909
+     ],
+     "walkableArea": [
+      70369166.84967804,
+      70369166.84967804
+     ]
+    },
+    {
+     "body": "hunter",
+     "fixedPairs": 0,
+     "changedRoutes": 0,
+     "lostRoutes": 0,
+     "routes": {
+      "all": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalPortal": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalInterior": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      }
+     },
+     "emptyShare": [
+      0.981922441442317,
+      0.981922441442317
+     ],
+     "deadEndArea": [
+      328041.263923645,
+      328041.263923645
+     ],
+     "walkableArea": [
+      66323428.397987366,
+      66323428.397987366
+     ]
+    }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 1662,
+     "byCategory": {
+      "across-map": {
+       "complete": 52
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1459
+      }
+     },
+     "failures": 0
+    },
+    {
+     "body": "hunter",
+     "pairs": 1605,
+     "byCategory": {
+      "across-map": {
+       "complete": 52
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 1402
+      }
+     },
+     "failures": 0
+    }
+   ]
+  },
+  {
+   "seed": "size-24-1",
+   "params": {
+    "zoneWidth": 24,
+    "zoneHeight": 12,
+    "exitCount": 2,
+    "contestantCount": 8,
+    "hunterCount": 3,
+    "lootChance": 0.04,
+    "lootTierStep": 0.09
+   },
+   "regions": 1034,
+   "parkBriefs": 11,
+   "changed": 0,
+   "content": {
+    "before": {
+     "parks": 11,
+     "fillCells": 21709,
+     "coveredFillShare": 0.11294854668570639,
+     "pieces": 613,
+     "geometryEmpty": 0
+    },
+    "after": {
+     "parks": 11,
+     "fillCells": 21709,
+     "coveredFillShare": 0.11294854668570639,
+     "pieces": 613,
+     "geometryEmpty": 0
+    }
+   },
+   "coreElements": [
+    [
+     {
+      "instance": "landing#47",
+      "element": "spawn",
+      "promised": 8,
+      "found": 8
+     },
+     {
+      "instance": "evac#48",
+      "element": "hunter-spawn",
+      "promised": 3,
+      "found": 3
+     },
+     {
+      "instance": "evac#48",
+      "element": "exit",
+      "promised": 2,
+      "found": 2
+     },
+     {
+      "instance": "transit-station#49",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#50",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#51",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#52",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#53",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#54",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#55",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#56",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#57",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     }
+    ],
+    [
+     {
+      "instance": "landing#47",
+      "element": "spawn",
+      "promised": 8,
+      "found": 8
+     },
+     {
+      "instance": "evac#48",
+      "element": "hunter-spawn",
+      "promised": 3,
+      "found": 3
+     },
+     {
+      "instance": "evac#48",
+      "element": "exit",
+      "promised": 2,
+      "found": 2
+     },
+     {
+      "instance": "transit-station#49",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#50",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#51",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#52",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#53",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#54",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#55",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#56",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#57",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     }
+    ]
+   ],
+   "roles": [
+    {
+     "body": "contestant",
+     "fixedPairs": 0,
+     "changedRoutes": 0,
+     "lostRoutes": 0,
+     "routes": {
+      "all": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalPortal": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalInterior": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      }
+     },
+     "emptyShare": [
+      0.8824097658846308,
+      0.8824097658846308
+     ],
+     "deadEndArea": [
+      1966422.8434829712,
+      1966422.8434829712
+     ],
+     "walkableArea": [
+      278305621.3207092,
+      278305621.3207092
+     ]
+    },
+    {
+     "body": "hunter",
+     "fixedPairs": 0,
+     "changedRoutes": 0,
+     "lostRoutes": 0,
+     "routes": {
+      "all": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalPortal": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalInterior": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      }
+     },
+     "emptyShare": [
+      0.9602328164891399,
+      0.9602328164891399
+     ],
+     "deadEndArea": [
+      1946495.6353225708,
+      1946495.6353225708
+     ],
+     "walkableArea": [
+      260819121.1159439,
+      260819121.1159439
+     ]
+    }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 5461,
+     "byCategory": {
+      "across-map": {
+       "complete": 50
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5260
+      }
+     },
+     "failures": 0
+    },
+    {
+     "body": "hunter",
+     "pairs": 5348,
+     "byCategory": {
+      "across-map": {
+       "complete": 50
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 5147
+      }
+     },
+     "failures": 0
+    }
+   ]
+  },
+  {
+   "seed": "size-36-1",
+   "params": {
+    "zoneWidth": 36,
+    "zoneHeight": 18,
+    "exitCount": 2,
+    "contestantCount": 8,
+    "hunterCount": 3,
+    "lootChance": 0.04,
+    "lootTierStep": 0.09
+   },
+   "regions": 2094,
+   "parkBriefs": 19,
+   "changed": 0,
+   "content": {
+    "before": {
+     "parks": 19,
+     "fillCells": 42306,
+     "coveredFillShare": 0.11014986053987615,
+     "pieces": 1165,
+     "geometryEmpty": 0
+    },
+    "after": {
+     "parks": 19,
+     "fillCells": 42306,
+     "coveredFillShare": 0.11014986053987615,
+     "pieces": 1165,
+     "geometryEmpty": 0
+    }
+   },
+   "coreElements": [
+    [
+     {
+      "instance": "landing#55",
+      "element": "spawn",
+      "promised": 8,
+      "found": 8
+     },
+     {
+      "instance": "evac#56",
+      "element": "hunter-spawn",
+      "promised": 3,
+      "found": 3
+     },
+     {
+      "instance": "evac#56",
+      "element": "exit",
+      "promised": 2,
+      "found": 2
+     },
+     {
+      "instance": "transit-station#57",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#58",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#59",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#60",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#61",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#62",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#63",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#64",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#65",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     }
+    ],
+    [
+     {
+      "instance": "landing#55",
+      "element": "spawn",
+      "promised": 8,
+      "found": 8
+     },
+     {
+      "instance": "evac#56",
+      "element": "hunter-spawn",
+      "promised": 3,
+      "found": 3
+     },
+     {
+      "instance": "evac#56",
+      "element": "exit",
+      "promised": 2,
+      "found": 2
+     },
+     {
+      "instance": "transit-station#57",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#58",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#59",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#60",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#61",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "transit-station#62",
+      "element": "warp",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#63",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#64",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     },
+     {
+      "instance": "charging-station#65",
+      "element": "charger",
+      "promised": 1,
+      "found": 1
+     }
+    ]
+   ],
+   "roles": [
+    {
+     "body": "contestant",
+     "fixedPairs": 0,
+     "changedRoutes": 0,
+     "lostRoutes": 0,
+     "routes": {
+      "all": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalPortal": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalInterior": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      }
+     },
+     "emptyShare": [
+      0.8815643638970325,
+      0.8815643638970325
+     ],
+     "deadEndArea": [
+      3010936.498802185,
+      3010936.498802185
+     ],
+     "walkableArea": [
+      624881839.7272415,
+      624881839.7272415
+     ]
+    },
+    {
+     "body": "hunter",
+     "fixedPairs": 0,
+     "changedRoutes": 0,
+     "lostRoutes": 0,
+     "routes": {
+      "all": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalPortal": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      },
+      "portalInterior": {
+       "before": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       },
+       "after": {
+        "attempted": 0,
+        "complete": 0,
+        "median": null,
+        "p90": null,
+        "shareAbove1_5": null,
+        "invalidEndpoints": 0,
+        "unreachable": 0,
+        "searchMisses": 0,
+        "sweepDefects": 0
+       }
+      }
+     },
+     "emptyShare": [
+      0.9597737726443183,
+      0.9597737726443183
+     ],
+     "deadEndArea": [
+      3326161.2796936035,
+      3326161.2796936035
+     ],
+     "walkableArea": [
+      584996858.4057312,
+      584996858.4057312
+     ]
+    }
+   ],
+   "finalTargets": [
+    {
+     "body": "contestant",
+     "pairs": 10699,
+     "byCategory": {
+      "across-map": {
+       "complete": 35
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 10513
+      }
+     },
+     "failures": 0
+    },
+    {
+     "body": "hunter",
+     "pairs": 10500,
+     "byCategory": {
+      "across-map": {
+       "complete": 40
+      },
+      "charger-loot": {
+       "complete": 96
+      },
+      "spawn-charger": {
+       "complete": 33
+      },
+      "spawn-exit": {
+       "complete": 22
+      },
+      "within-region": {
+       "complete": 10309
+      }
+     },
+     "failures": 0
+    }
+   ]
+  }
+ ],
+ "timings": [
+  {
+   "seed": "size-12-1",
+   "briefs": 1,
+   "passes": [
+    {
+     "beforeMs": 13.650499999999738,
+     "afterMs": 135.47939999999926
+    },
+    {
+     "beforeMs": 13.880799999999908,
+     "afterMs": 140.77700000000004
+    },
+    {
+     "beforeMs": 13.822199999999611,
+     "afterMs": 137.65660000000025
+    }
+   ]
+  },
+  {
+   "seed": "size-24-1",
+   "briefs": 11,
+   "passes": [
+    {
+     "beforeMs": 186.6860000000015,
+     "afterMs": 2250.097800000003
+    },
+    {
+     "beforeMs": 190.00960000000487,
+     "afterMs": 2311.5602
+    },
+    {
+     "beforeMs": 199.35549999999785,
+     "afterMs": 2259.4469000000026
+    }
+   ]
+  },
+  {
+   "seed": "size-36-1",
+   "briefs": 19,
+   "passes": [
+    {
+     "beforeMs": 352.2387999999919,
+     "afterMs": 4964.525599999994
+    },
+    {
+     "beforeMs": 358.54570000001695,
+     "afterMs": 4970.748100000026
+    },
+    {
+     "beforeMs": 350.23470000003,
+     "afterMs": 4905.846900000004
+    }
+   ]
+  }
+ ]
+}

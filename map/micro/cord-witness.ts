@@ -76,10 +76,29 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
     : s.kind === 'circle' ? `${s.r}` : s.points.map(p => `${p.x},${p.y}`).join(';'));
   blockers = [...blockers].sort((a, b) => { const ka = shapeKey(a), kb = shapeKey(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
   let exhausted = false;
+  // Blockers filed by a coarse grid of their bounds, so a sweep tests only those its capsule's box
+  // can reach. `travelClear` is the same test over that subset: a blocker whose box misses the
+  // capsule's cannot overlap it (#787). Its order is the sorted order, as before.
+  const grid = 4 * brief.cellSize, filed = new Map<string, number[]>();
+  const boxes = blockers.map(bounds);
+  boxes.forEach((b, i) => {
+    for (let y = Math.floor(b.y / grid); y <= Math.floor((b.y + b.h) / grid); y++)
+      for (let x = Math.floor(b.x / grid); x <= Math.floor((b.x + b.w) / grid); x++) {
+        const list = filed.get(`${x},${y}`);
+        if (list) list.push(i); else filed.set(`${x},${y}`, [i]);
+      }
+  });
+  const near = (a: Vec2, b: Vec2): Shape[] => {
+    const x0 = Math.floor((Math.min(a.x, b.x) - radius) / grid), x1 = Math.floor((Math.max(a.x, b.x) + radius) / grid);
+    const y0 = Math.floor((Math.min(a.y, b.y) - radius) / grid), y1 = Math.floor((Math.max(a.y, b.y) + radius) / grid);
+    const found = new Set<number>();
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) for (const i of filed.get(`${x},${y}`) ?? []) found.add(i);
+    return [...found].sort((i, j) => i - j).map(i => blockers[i]!);
+  };
   const sweep = (a: Vec2, b: Vec2): boolean => {
     if (counters.sweeps >= limits.maxSweeps) { exhausted = true; return false; }
     counters.sweeps++;
-    return travelClear(mask, blockers, a, b, radius);
+    return travelClear(mask, near(a, b), a, b, radius);
   };
   const nodes: { point: Vec2; reason: 'external' | 'interior' }[] = [
     ...required.map(point => ({ point, reason: 'external' as const })),
@@ -102,7 +121,11 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
     else if (same(path.at(-1)!, root)) oldPaths.set(key(path[0]!), [...path].reverse());
   }
   const proved = (path: Vec2[]): boolean => path.every((p, i) => !i || sweep(path[i - 1]!, p));
-  for (const node of nodes.slice(1)) {
+  // One mesh search from the root finds every later target's corridor at once. The heap orders
+  // by key, then index, and targets relax nothing, so each corridor is the one a search for it
+  // alone would find (#787).
+  let corridors: Map<string, ReturnType<typeof freePaths>[number]> | undefined;
+  for (const [index, node] of nodes.slice(1).entries()) {
     const target = node.point;
     if (same(root!, target)) continue;
     if (counters.paths >= limits.maxPaths) return fail('budget');
@@ -136,7 +159,12 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
       }
       const local = (p: Vec2): Vec2 => ({ x: p.x - mask.bounds.x, y: p.y - mask.bounds.y });
       // Match thorough validator's one-cell bounded entry policy and retain all its leads.
-      const candidate = freePaths(mesh, local(root!), [local(target)], brief.cellSize)[0];
+      if (!corridors) {
+        const later = nodes.slice(index + 1).map(n => n.point).filter(p => !same(root!, p));
+        const found = freePaths(mesh, local(root!), later.map(local), brief.cellSize);
+        corridors = new Map(later.map((p, i) => [key(p), found[i]!]));
+      }
+      const candidate = corridors.get(key(target));
       if (candidate) {
         const world = candidate.points.map((p, i, all) => i === 0 ? root! : i === all.length - 1 ? target
           : { x: p.x + mask.bounds.x, y: p.y + mask.bounds.y });
