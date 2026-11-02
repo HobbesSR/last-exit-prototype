@@ -15,6 +15,8 @@ import {
   resolveGroundAppearance,
   getCanonicalFields,
   actorBaseTint,
+  DEFAULT_KIT_COLORS,
+  CONTESTANT_IDENTITY_COLORS,
   resolveActorTint,
   resolvePropAppearance,
   applyLightSample,
@@ -219,29 +221,42 @@ test('resolveActorTint provides bounded virtual lighting on actor body material 
   assert.ok(Math.abs(gLit - gBase) <= maxShiftG, 'green channel shift is mathematically bounded by actorScale * weight');
   assert.ok(Math.abs(bLit - bBase) <= maxShiftB, 'blue channel shift is mathematically bounded by actorScale * weight');
 
-  // Proportional scaling: actorScale = 0.50 strictly increases channel shift over actorScale = 0.25
+  // Proportional scaling: actorScale = 0.50 strictly increases channel shift over actorScale = 0.25 across all channels
   const scaled = resolveActorTint(baseBody, cobaltLight, { lighting: true, actorScale: 0.5 });
-  const rScaled = (scaled >> 16) & 0xff;
-  assert.ok(Math.abs(rScaled - rBase) > Math.abs(rLit - rBase), 'actorScale proportionally scales channel shift');
+  const rScaled = (scaled >> 16) & 0xff, gScaled = (scaled >> 8) & 0xff, bScaled = scaled & 0xff;
+  assert.ok(Math.abs(rScaled - rBase) > Math.abs(rLit - rBase), 'actorScale proportionally scales red shift');
+  assert.ok(Math.abs(gScaled - gBase) > Math.abs(gLit - gBase), 'actorScale proportionally scales green shift');
+  assert.ok(Math.abs(bScaled - bBase) > Math.abs(bLit - bBase), 'actorScale proportionally scales blue shift');
 });
 
 test('actorBaseTint defines saturated kit and contestant identity colors meeting Tier 1 contrast and pairwise distinctness (#736)', () => {
   const wardenTint = actorBaseTint({ role: 'gladiator', kit: 'warden' }, 'me');
   const specterTint = actorBaseTint({ role: 'gladiator', kit: 'specter' }, 'me');
   const strikerTint = actorBaseTint({ role: 'gladiator', kit: 'striker' }, 'me');
+  const hookTint = actorBaseTint({ role: 'gladiator', kit: 'hook' }, 'me');
+  const fallbackTint = actorBaseTint({ role: 'gladiator', kit: 'unknown' }, 'me');
+
+  assert.equal(wardenTint, 0xff6b70, 'warden gladiator has saturated coral red identity (#ff6b70)');
+  assert.equal(specterTint, 0xb39aff, 'specter gladiator matches content kit color (#b39aff)');
+  assert.equal(strikerTint, 0xffba62, 'striker gladiator matches content kit color (#ffba62)');
+  assert.equal(hookTint, 0x77dddd, 'hook gladiator matches content kit color (#77dddd)');
+  assert.equal(fallbackTint, 0xff6b70, 'unknown gladiator falls back to warden coral red');
+
+  // Passing presentation kits array overrides default table:
+  const mockKits = [{ id: 'custom', name: 'Custom', skill: 'dash', color: 0x123456 }];
+  assert.equal(actorBaseTint({ role: 'gladiator', kit: 'custom' }, 'me', mockKits), 0x123456);
 
   const selfTint = actorBaseTint({ role: 'contestant', id: 'me', name: 'Player' }, 'me');
   const contestantTints = [0, 1, 2, 3].map(len =>
     actorBaseTint({ role: 'contestant', id: `other-${len}`, name: 'A'.repeat(len) }, 'me')
   );
 
-  assert.equal(wardenTint, 0xff6b70, 'warden gladiator has saturated coral red identity (#ff6b70)');
-  assert.equal(specterTint, 0x9a7ae0, 'specter gladiator has saturated royal violet identity (#9a7ae0)');
-  assert.equal(strikerTint, 0xffaa22, 'striker gladiator has saturated golden amber identity (#ffaa22)');
   assert.equal(selfTint, 0xffffff, 'self contestant has signature white identity (#ffffff)');
+  assert.deepEqual(contestantTints, [0xffffff, 0x48c774, 0x3a86ff, 0x8ac926], 'contestant tints use high-distinctness hues');
 
   // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against street and ground across all themes
-  const allHues = [wardenTint, specterTint, strikerTint, selfTint, ...contestantTints];
+  const gladiatorKits = [wardenTint, specterTint, strikerTint, hookTint];
+  const allHues = [...gladiatorKits, ...CONTESTANT_IDENTITY_COLORS];
   for (const [themeId, theme] of Object.entries(THEMES)) {
     for (const hue of allHues) {
       const streetContrast = contrast(hue, theme.street);
@@ -257,9 +272,25 @@ test('actorBaseTint defines saturated kit and contestant identity colors meeting
     const r2 = (c2 >> 16) & 0xff, g2 = (c2 >> 8) & 0xff, b2 = c2 & 0xff;
     return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
   };
-  assert.ok(rgbDist(wardenTint, strikerTint) >= 80, 'warden vs striker pairwise color distance >= 80');
-  assert.ok(rgbDist(strikerTint, specterTint) >= 80, 'striker vs specter pairwise color distance >= 80');
-  assert.ok(rgbDist(wardenTint, specterTint) >= 80, 'warden vs specter pairwise color distance >= 80');
+  for (let i = 0; i < gladiatorKits.length; i++) {
+    for (let j = i + 1; j < gladiatorKits.length; j++) {
+      const d = rgbDist(gladiatorKits[i], gladiatorKits[j]);
+      assert.ok(d >= 80, `gladiator kit ${i} vs ${j} distance ${d.toFixed(1)} >= 80`);
+    }
+  }
+
+  // Cross-role distinctness check: contestant hues must be distinct from ALL gladiator kits (distance >= 90)
+  for (const cHue of CONTESTANT_IDENTITY_COLORS) {
+    for (const gHue of gladiatorKits) {
+      const d = rgbDist(cHue, gHue);
+      assert.ok(d >= 90, `contestant 0x${cHue.toString(16)} vs gladiator 0x${gHue.toString(16)} distance ${d.toFixed(1)} >= 90`);
+    }
+  }
+
+  // Distinctness among non-self contestant hues (distance >= 100)
+  assert.ok(rgbDist(CONTESTANT_IDENTITY_COLORS[1], CONTESTANT_IDENTITY_COLORS[2]) >= 100);
+  assert.ok(rgbDist(CONTESTANT_IDENTITY_COLORS[1], CONTESTANT_IDENTITY_COLORS[3]) >= 100);
+  assert.ok(rgbDist(CONTESTANT_IDENTITY_COLORS[2], CONTESTANT_IDENTITY_COLORS[3]) >= 100);
 });
 
 test('resolvePropAppearance provides bounded virtual lighting on physics props and getCanonicalFields memoizes', () => {

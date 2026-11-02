@@ -195,14 +195,34 @@ export function applyLightSample(baseColor, sample, roleScale = 1) {
  * (`actor.identity`), ensuring immediate peripheral recognition across all themes and zoom tiers.
  * Strictly untinted by theatrical lighting washes.
  */
-export function actorBaseTint(p, ownId) {
+export const DEFAULT_KIT_COLORS = Object.freeze({
+  warden: 0xff6b70,
+  specter: 0xb39aff,
+  striker: 0xffba62,
+  hook: 0x77dddd,
+});
+
+export const CONTESTANT_IDENTITY_COLORS = Object.freeze([
+  0xffffff, // Self / default: pure white
+  0x48c774, // Emerald green (Euclidean dist >= 117 to all hunter kits)
+  0x3a86ff, // Royal blue (Euclidean dist >= 111 to all hunter kits)
+  0x8ac926, // Vivid lime (Euclidean dist >= 132 to all hunter kits)
+]);
+
+export function actorBaseTint(p, ownId, kits) {
   if (p.role === 'gladiator') {
-    if (p.kit === 'specter') return 0x9a7ae0; // Royal violet
-    if (p.kit === 'striker') return 0xffaa22; // Golden amber
-    return 0xff6b70; // Warden coral red (MatchContent kits.warden.color)
+    if (Array.isArray(kits)) {
+      const match = kits.find(k => k.id === p.kit);
+      if (typeof match?.color === 'number') return match.color;
+    }
+    if (p.kit && Object.hasOwn(DEFAULT_KIT_COLORS, p.kit)) {
+      return DEFAULT_KIT_COLORS[p.kit];
+    }
+    return DEFAULT_KIT_COLORS.warden;
   }
-  if (p.id === ownId) return 0xffffff; // Self neutral white
-  return [0xffffff, 0x2ec4b6, 0xf5a623, 0xa37cf0][p.name.length % 4];
+  if (p.id === ownId) return CONTESTANT_IDENTITY_COLORS[0];
+  const idx = typeof p.name === 'string' ? p.name.length % CONTESTANT_IDENTITY_COLORS.length : 0;
+  return CONTESTANT_IDENTITY_COLORS[idx];
 }
 
 /**

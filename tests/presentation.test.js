@@ -11,7 +11,7 @@ test('a descriptor lists display data in table order and nothing private', () =>
   assert.deepEqual(p, {
     contentId: 'content-1',
     weapons: [{ id: 'pistol', name: 'Pistol', ammo: 48 }, { id: 'rifle', name: 'Rifle', ammo: 90 }, { id: 'scattergun', name: 'Scattergun', ammo: 24 }],
-    kits: [{ id: 'warden', name: 'Warden', skill: 'Shockwave' }, { id: 'specter', name: 'Specter', skill: 'Pulse scan' }, { id: 'striker', name: 'Striker', skill: 'Overdrive' }],
+    kits: [{ id: 'warden', name: 'Warden', skill: 'Shockwave', color: 0xff6b70 }, { id: 'specter', name: 'Specter', skill: 'Pulse scan', color: 0xb39aff }, { id: 'striker', name: 'Striker', skill: 'Overdrive', color: 0xffba62 }],
     capacity: { contestant: 8, gladiator: 2 },
     durationTicks: 12000,
     cellChargeTicks: 100,

@@ -55,8 +55,10 @@ export function makeArenaScene(api) {
     preload() {
       this.load.svg('contestant', '/assets/contestant-body.svg', { width: 80, height: 80 });
       this.load.svg('contestant-identity', '/assets/contestant-identity.svg', { width: 80, height: 80 });
+      this.load.svg('contestant-visor', '/assets/contestant-visor.svg', { width: 80, height: 80 });
       this.load.svg('gladiator', '/assets/warden-body.svg', { width: 100, height: 100 });
       this.load.svg('gladiator-identity', '/assets/warden-identity.svg', { width: 100, height: 100 });
+      this.load.svg('gladiator-visor', '/assets/warden-visor.svg', { width: 100, height: 100 });
     }
     create() {
       this.ready = true; this.paletteId = api.palette?.() || DEFAULT_THEME; this.lighting = true; this.wear = true;
@@ -630,12 +632,13 @@ export function makeArenaScene(api) {
       const size = p.role === 'gladiator' ? 65 : 43;
       const sprite = this.add.image(0, 0, p.role).setDisplaySize(size, size);
       const identity = this.add.image(0, 0, `${p.role}-identity`).setDisplaySize(size, size);
-      const baseTint = actorBaseTint(p, api.playerId());
+      const visor = this.add.image(0, 0, `${p.role}-visor`).setDisplaySize(size, size);
+      const baseTint = actorBaseTint(p, api.playerId(), api.kits?.());
       identity.setTint(baseTint);
       const ring = this.add.graphics(), bar = this.add.graphics(), geometry = this.add.graphics().setVisible(false);
       const name = this.add.text(0, -35, p.id === api.playerId() && !api.replay() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: LABEL_FONT_PX, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 8 }).setOrigin(0.5).setScale(this.nameScale);
-      const container = this.add.container(p.x, p.y, [ring, sprite, identity, bar, name, geometry]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
-      const actor = { sprite, identity, ring, bar, name, geometry, container, baseTint }; this.actors.set(p.id, actor); return actor;
+      const container = this.add.container(p.x, p.y, [ring, sprite, identity, visor, bar, name, geometry]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
+      const actor = { sprite, identity, visor, ring, bar, name, geometry, container, baseTint }; this.actors.set(p.id, actor); return actor;
     }
     /** The active player nearest a pointer, within a fixed screen distance of it, or null. */
     playerAt(pointer) {
@@ -1025,7 +1028,8 @@ export function makeArenaScene(api) {
         const alpha = p.cloak ? 0.45 : 1;
         actor.sprite.setRotation(rot); actor.sprite.setAlpha(alpha);
         actor.identity.setRotation(rot); actor.identity.setAlpha(alpha);
-        const baseTint = actorBaseTint(p, api.playerId());
+        actor.visor.setRotation(rot); actor.visor.setAlpha(alpha);
+        const baseTint = actorBaseTint(p, api.playerId(), api.kits?.());
         if (actor.baseTint !== baseTint) { actor.baseTint = baseTint; actor.identity.setTint(baseTint); }
         if (p.status === 'active' && shown) {
           if (artOpts.lighting && canonicalFields.length > 0) {

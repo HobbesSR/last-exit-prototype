@@ -589,7 +589,7 @@ try {
         performance.now = realNow;
       }
     };
-    f.settle = async ({ palette, lighting, wear, directed, fog, followId, camera, selfPos, frameAlpha = 0, now = fixedNow, roofSteps = 30 } = {}) => {
+    f.settle = async ({ palette, lighting, wear, directed, fog, followId, camera, selfPos, aim, frameAlpha = 0, now = fixedNow, roofSteps = 30 } = {}) => {
       const nextPalette = palette || f.palette;
       const nextLighting = lighting !== undefined ? lighting : f.lighting;
       const nextWear = wear !== undefined ? wear : f.wear;
@@ -602,6 +602,7 @@ try {
       if (directed !== undefined) f.directed = directed;
       if (fog !== undefined) f.fog = fog;
       if (followId !== undefined) f.followId = followId;
+      if (aim !== undefined) f.aim = aim;
       if (camera) f.camera = { ...f.camera, ...camera };
       if (frameAlpha !== undefined) f.frameAlpha = frameAlpha;
       if (selfPos) {
@@ -1375,7 +1376,26 @@ try {
     const apronBoundaryLit = f.pixelAtWorld(1170, 525).hex;
     const apronArea2Lit = f.pixelAtWorld(1205, 525).hex;
 
-    await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 960, y: 400 } });
+    const wardenActor = s.actors.get('warden');
+    const selfActor = s.actors.get('self');
+    const wardenVisorLayerOrder = wardenActor.container.list.indexOf(wardenActor.visor) > wardenActor.container.list.indexOf(wardenActor.identity);
+    const selfVisorLayerOrder = selfActor.container.list.indexOf(selfActor.visor) > selfActor.container.list.indexOf(selfActor.identity);
+    const wardenVisorVisible = wardenActor.visor.visible;
+    const selfVisorVisible = selfActor.visor.visible;
+
+    // Facing visor witness pixel check (#736 review 606):
+    // Align warden heading to 0 (East) so the facing visor projects forward at world dx=+9
+    const wardenPlayer = f.state.players.find(p => p.id === 'warden');
+    const oldWardenHeading = wardenPlayer.heading;
+    wardenPlayer.heading = 0;
+
+    await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 960, y: 400 }, aim: 0 });
+    const selfVisorPx = f.pixelAtWorld(968, 398);
+    const selfDomePx = f.pixelAtWorld(955, 400);
+    const wardenVisorPx = f.pixelAtWorld(779, 378);
+    const wardenPlatePx = f.pixelAtWorld(765, 380);
+    wardenPlayer.heading = oldWardenHeading;
+
     const selfBodyArea1Tint = s.actors.get('self').sprite.tintTopLeft;
     const selfIdentityArea1Tint = s.actors.get('self').identity.tintTopLeft;
     await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 1170, y: 400 } });
@@ -1441,6 +1461,14 @@ try {
       apronArea2Lit,
       apronArea1Unlit,
       apronArea2Unlit,
+      wardenVisorLayerOrder,
+      selfVisorLayerOrder,
+      wardenVisorVisible,
+      selfVisorVisible,
+      selfVisorPx,
+      selfDomePx,
+      wardenVisorPx,
+      wardenPlatePx,
     };
   });
 
@@ -1467,15 +1495,23 @@ try {
   assert.notEqual(step4SpatialCheck.selfBodyArea2Tint, 0xffffff, 'actor body in Area 2 takes magenta virtual lighting');
   assert.equal(step4SpatialCheck.selfBodyTintUnlit, 0xffffff, 'actor body unlit sprite retains exact unlit base white 0xffffff');
 
-  // Exact saturated kit identity hues preserved in lit and unlit modes (#736 review 605):
+  // Visor / facing cue layer order and unoccluded render verification (#736 review 606):
+  assert.ok(step4SpatialCheck.wardenVisorLayerOrder, 'warden visor layer is rendered strictly above identity layer');
+  assert.ok(step4SpatialCheck.selfVisorLayerOrder, 'contestant visor layer is rendered strictly above identity layer');
+  assert.ok(step4SpatialCheck.wardenVisorVisible, 'warden visor layer is visible');
+  assert.ok(step4SpatialCheck.selfVisorVisible, 'contestant visor layer is visible');
+  assert.notEqual(step4SpatialCheck.wardenVisorPx.hex, step4SpatialCheck.wardenIdentityTintLit, 'warden facing visor pixel is untinted equipment and not occluded by coral red identity plate');
+  assert.notEqual(step4SpatialCheck.selfVisorPx.hex, 0xffffff, 'contestant facing visor pixel is untinted cyan slit and not occluded by white identity dome');
+
+  // Exact saturated kit identity hues preserved in lit and unlit modes (#736 review 605, 606):
   assert.equal(step4SpatialCheck.wardenIdentityTintLit, 0xff6b70, 'warden identity retains exact coral red kit tint 0xff6b70 in lit field');
   assert.equal(step4SpatialCheck.wardenIdentityTintUnlit, 0xff6b70, 'warden identity retains exact coral red kit tint 0xff6b70 in unlit mode');
-  assert.equal(step4SpatialCheck.specterIdentityTintLit, 0x9a7ae0, 'specter identity retains exact royal violet kit tint 0x9a7ae0 in lit field');
-  assert.equal(step4SpatialCheck.specterIdentityTintUnlit, 0x9a7ae0, 'specter identity retains exact royal violet kit tint 0x9a7ae0 in unlit mode');
-  assert.equal(step4SpatialCheck.strikerIdentityTintLit, 0xffaa22, 'striker identity retains exact golden amber kit tint 0xffaa22 in lit field');
-  assert.equal(step4SpatialCheck.strikerIdentityTintUnlit, 0xffaa22, 'striker identity retains exact golden amber kit tint 0xffaa22 in unlit mode');
-  assert.equal(step4SpatialCheck.scoutIdentityTintLit, 0x2ec4b6, 'scout identity retains exact teal kit tint 0x2ec4b6 in lit field');
-  assert.equal(step4SpatialCheck.scoutIdentityTintUnlit, 0x2ec4b6, 'scout identity retains exact kit tint 0x2ec4b6 in unlit mode');
+  assert.equal(step4SpatialCheck.specterIdentityTintLit, 0xb39aff, 'specter identity retains exact lavender kit tint 0xb39aff in lit field');
+  assert.equal(step4SpatialCheck.specterIdentityTintUnlit, 0xb39aff, 'specter identity retains exact lavender kit tint 0xb39aff in unlit mode');
+  assert.equal(step4SpatialCheck.strikerIdentityTintLit, 0xffba62, 'striker identity retains exact golden amber kit tint 0xffba62 in lit field');
+  assert.equal(step4SpatialCheck.strikerIdentityTintUnlit, 0xffba62, 'striker identity retains exact golden amber kit tint 0xffba62 in unlit mode');
+  assert.equal(step4SpatialCheck.scoutIdentityTintLit, 0x48c774, 'scout identity retains exact emerald green tint 0x48c774 in lit field');
+  assert.equal(step4SpatialCheck.scoutIdentityTintUnlit, 0x48c774, 'scout identity retains exact emerald green tint 0x48c774 in unlit mode');
   assert.equal(step4SpatialCheck.selfIdentityArea1Tint, 0xffffff, 'contestant identity retains base white across Area 1');
   assert.equal(step4SpatialCheck.selfIdentityArea2Tint, 0xffffff, 'contestant identity retains base white across Area 2');
   assert.equal(step4SpatialCheck.selfIdentityBoundaryTint, 0xffffff, 'contestant identity retains base white across boundary');
@@ -1685,7 +1721,7 @@ try {
     apronArea2Unlit: css(step4SpatialCheck.apronArea2Unlit),
     unlitPropsIdentical: step4SpatialCheck.propArea1Unlit === step4SpatialCheck.propArea2Unlit,
     unlitGroundIdentical: step4SpatialCheck.apronArea1Unlit === step4SpatialCheck.apronArea2Unlit,
-    actorIdentityUntinted: step4SpatialCheck.strikerIdentityTintLit === 0xffaa22 && step4SpatialCheck.specterIdentityTintLit === 0x9a7ae0 && step4SpatialCheck.wardenIdentityTintLit === 0xff6b70 && step4SpatialCheck.scoutIdentityTintLit === 0x2ec4b6,
+    actorIdentityUntinted: step4SpatialCheck.strikerIdentityTintLit === 0xffba62 && step4SpatialCheck.specterIdentityTintLit === 0xb39aff && step4SpatialCheck.wardenIdentityTintLit === 0xff6b70 && step4SpatialCheck.scoutIdentityTintLit === 0x48c774,
     actorBodyTinted: step4SpatialCheck.selfBodyArea1Tint !== 0xffffff && step4SpatialCheck.selfBodyArea1Tint !== step4SpatialCheck.selfBodyArea2Tint,
   };
 
@@ -2460,7 +2496,7 @@ try {
       <td>Contestant Identity Layer (<code>self</code> / <code>scout</code>)</td>
       <td><code>${step4SpatialSummary.selfIdentityLit}</code> (self white)</td>
       <td><code>${step4SpatialSummary.selfIdentityLit}</code></td>
-      <td><code>${step4SpatialSummary.scoutIdentityLit}</code> (scout teal)</td>
+      <td><code>${step4SpatialSummary.scoutIdentityLit}</code> (scout green)</td>
       <td><code>${step4SpatialSummary.selfIdentityUnlit}</code> / <code>${step4SpatialSummary.scoutIdentityUnlit}</code></td>
       <td>Saturated identity preserved (untinted per 29.4 &amp; #736, Tier 1 contrast &ge; 1.80)</td>
     </tr>
@@ -2468,7 +2504,7 @@ try {
       <td>Gladiator Identity Layer (<code>warden</code> / <code>specter</code> / <code>striker</code>)</td>
       <td><code>${step4SpatialSummary.wardenIdentityLit}</code> (warden) &middot; <code>${step4SpatialSummary.strikerIdentityLit}</code> (striker)</td>
       <td>—</td>
-      <td><code>${step4SpatialSummary.specterIdentityLit}</code> (specter violet)</td>
+      <td><code>${step4SpatialSummary.specterIdentityLit}</code> (specter lavender)</td>
       <td><code>${step4SpatialSummary.wardenIdentityUnlit}</code> / <code>${step4SpatialSummary.specterIdentityUnlit}</code> / <code>${step4SpatialSummary.strikerIdentityUnlit}</code></td>
       <td>Distinct kit hues preserved (untinted per 29.4 &amp; #736; pairwise distance &ge; 80, Tier 1 contrast &ge; 1.80)</td>
     </tr>
