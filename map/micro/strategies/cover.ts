@@ -234,9 +234,14 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
  * it keeps `AISLE` clear cells from every other piece and leaves portal approaches clear. It never cuts `site`'s route from `root`,
  * and up to 32 portals it stands only where a live cord still joins every portal stand (20.10, #787).
  * Loot it would cover is dropped. The pick among places that qualify is seeded.
+ *
+ * It only adds: if a fresh cord now refuses any of the given cover (the search's own
+ * non-monotonicity), the cover is returned unchanged and `guardsSkipped` counts it, which
+ * callers put in the manifest so a sweep shows it (#787).
  */
-export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements' | 'loot'>, site: ClearSite, within: number,
-  root?: { x: number; y: number }): Pick<BuiltRegion, 'elements' | 'loot'> {
+export type NearCover = Pick<BuiltRegion, 'elements' | 'loot'> & { readonly guardsSkipped?: number };
+export function coverNear(brief: RegionBrief, cover: NearCover, site: ClearSite, within: number,
+  root?: { x: number; y: number }): NearCover {
   const size = brief.cellSize, disc = circle(site.x, site.y, site.radius), near = circle(site.x, site.y, site.radius + within);
   const blockers = cover.elements.flatMap(element => elementShapes(element));
   if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
@@ -248,7 +253,8 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
     // The cover already stood on a cord, so it commits as one. This only adds a guard: if the
     // search now refuses any of the cover (its own non-monotonicity), the cover is returned as given.
     const coordinator = liveCord(brief, 'Cover'), pieces = cover.elements.map(element => ({ elements: [element] }));
-    if (pieces.length && !coordinator.commit(mergeAssemblies(pieces)) && !commitEach(coordinator, pieces).every(Boolean)) return cover;
+    if (pieces.length && !coordinator.commit(mergeAssemblies(pieces)) && !commitEach(coordinator, pieces).every(Boolean))
+      return { ...cover, guardsSkipped: (cover.guardsSkipped ?? 0) + 1 };
     canvas = coordinator;
   } else {
     const builder = createBuilderCanvas(brief);
@@ -277,7 +283,7 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
       if (routed) continue;
       throw new Error(`Region ${brief.id}: the canvas refused cover's guard, which its siting accepted.`);
     }
-    return { elements: [...cover.elements, element],
+    return { ...cover, elements: [...cover.elements, element],
       loot: cover.loot.filter(loot => !shapes.some(shape => shapesOverlap(shape, circle(loot.x, loot.y, lootRadius)))) };
   }
   return cover;

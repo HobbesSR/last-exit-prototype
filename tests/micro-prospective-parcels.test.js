@@ -333,3 +333,17 @@ test('commitWhile keeps items greedily in order and commits once (#787)', () => 
   assert.equal(c.revision, before + 1);
   assert.equal(c.elements.length, 2);
 });
+
+test('commitWhile drops kept items from the end when the final commit disagrees with its probes (#787)', () => {
+  const c = ready(brief({ portals }));
+  // A commit stricter than `admits`, as a search budget or non-monotonicity could be.
+  const commit = c.commit.bind(c);
+  c.commit = assembly => assembly.elements.length <= 2 && commit(assembly);
+  const items = [element(64, 32), element(64, 192), element(256, 192)];
+  const kept = c.commitWhile(items.length, flags => {
+    const elements = items.filter((_, i) => flags[i]);
+    return elements.length ? { elements } : null;
+  });
+  assert.deepEqual(kept, [true, true, false]);
+  assert.equal(c.elements.length, 2);
+});

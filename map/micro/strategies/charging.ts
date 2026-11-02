@@ -1,4 +1,4 @@
-import { coverAround, coverNear } from './cover.ts';
+import { coverAround, coverNear, type NearCover } from './cover.ts';
 import { createAccessMask, createRegionMask, findRegionRoute } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
@@ -40,10 +40,10 @@ export function buildCharging(brief: RegionBrief): BuiltRegion {
     chargers = spreadPoints(mask, { count, radius, seed: brief.seed, accessMask, anchor: root }).points;
 
   const sites = chargers.map(point => ({ ...point, radius: Math.max(standing * size, radius), reach: radius }));
-  let cover = coverAround(brief, sites, root);
+  let cover: NearCover = coverAround(brief, sites, root);
   for (const site of sites) cover = coverNear(brief, cover, site, COVER_REACH * size, root);
   const { elements, loot } = cover;
   const coreElements = chargers.map(point => ({ kind: 'charger' as const, ...point }));
 
-  return builtRegion(brief, elements, loot, coreElements);
+  return builtRegion(brief, elements, loot, coreElements, cover.guardsSkipped ? { coverGuardsSkipped: cover.guardsSkipped } : {});
 }
