@@ -224,6 +224,9 @@ export function actorBaseTint(p, ownId, kits) {
   }
   if (p.id === ownId) return CONTESTANT_IDENTITY_COLORS[0];
   const variants = CONTESTANT_IDENTITY_COLORS.length - 1;
+  // Standard roster bot contestants receive stable IDs formatted as `c${index}` (see `rosterBot` in
+  // shared/simulation/state.ts). Distribute across variant hues round-robin, falling back to
+  // deterministic callsign hashing for human or non-standard player IDs.
   const seatMatch = typeof p.id === 'string' ? /^c(\d+)$/.exec(p.id) : null;
   if (seatMatch) {
     const seat = parseInt(seatMatch[1], 10);
