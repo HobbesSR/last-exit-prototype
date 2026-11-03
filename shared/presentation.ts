@@ -30,7 +30,7 @@ export function describeContent(content: MatchContent): ContentPresentation {
     contentId: content.id,
     weapons: Object.entries(content.weapons).map(([id, w]) => ({ id, name: w.name, ammo: w.ammo })),
     // The kits on offer, not only those the roster starts with: content-1 seats two hunters among three kits.
-    kits: Object.entries(content.kits).map(([id, k]) => ({ id, name: k.name, skill: k.skill })),
+    kits: Object.entries(content.kits).map(([id, k]) => ({ id, name: k.name, skill: k.skill, color: k.color })),
     capacity: { contestant: content.roster.contestants.length, gladiator: content.roster.gladiators.length },
     durationTicks: content.durationTicks,
     cellChargeTicks: content.cellChargeTicks,
@@ -77,7 +77,7 @@ export function readPresentation(value: unknown, expectedContentId?: string): Co
   if (!record(value) || !id(value.contentId)) return null;
   if (expectedContentId !== undefined && value.contentId !== expectedContentId) return null;
   const weapons = entries(value.weapons, e => typeof e.name === 'string' && count(e.ammo) ? { name: e.name, ammo: e.ammo } : null);
-  const kits = entries(value.kits, e => typeof e.name === 'string' && typeof e.skill === 'string' ? { name: e.name, skill: e.skill } : null);
+  const kits = entries(value.kits, e => typeof e.name === 'string' && typeof e.skill === 'string' ? { name: e.name, skill: e.skill, ...(count(e.color) ? { color: e.color as number } : {}) } : null);
   const capacity = value.capacity;
   if (!weapons || !kits || !record(capacity) || !count(capacity.contestant) || !count(capacity.gladiator)) return null;
   if (!positive(value.durationTicks) || !positive(value.cellChargeTicks)) return null;

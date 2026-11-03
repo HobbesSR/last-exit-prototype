@@ -190,6 +190,69 @@ export function applyLightSample(baseColor, sample, roleScale = 1) {
 }
 
 /**
+ * Authoritative kit and contestant identity colors (11.1, 14, 29.4, 41.2 #736).
+ * Defines saturated, unmistakable Tier 1 identity hues for the actor identity layer
+ * (`actor.identity`), ensuring immediate peripheral recognition across all themes and zoom tiers.
+ * Strictly untinted by theatrical lighting washes.
+ */
+export const DEFAULT_KIT_COLORS = Object.freeze({
+  warden: 0xff6b70,
+  specter: 0xb39aff,
+  striker: 0xffba62,
+  hook: 0x77dddd,
+});
+
+export const UNKNOWN_KIT_COLOR = 0xd0d5cc;
+
+export const CONTESTANT_IDENTITY_COLORS = Object.freeze([
+  0xffffff, // Self / default: pure white
+  0x48c774, // Emerald green (Euclidean dist >= 117 to all hunter kits)
+  0x3a86ff, // Royal blue (Euclidean dist >= 111 to all hunter kits)
+  0x8ac926, // Vivid lime (Euclidean dist >= 132 to all hunter kits)
+]);
+
+export function actorBaseTint(p, ownId, kits) {
+  if (p.role === 'gladiator') {
+    if (Array.isArray(kits)) {
+      const match = kits.find(k => k.id === p.kit);
+      if (typeof match?.color === 'number') return match.color;
+    }
+    if (p.kit && Object.hasOwn(DEFAULT_KIT_COLORS, p.kit)) {
+      return DEFAULT_KIT_COLORS[p.kit];
+    }
+    return UNKNOWN_KIT_COLOR;
+  }
+  if (p.id === ownId) return CONTESTANT_IDENTITY_COLORS[0];
+  const variants = CONTESTANT_IDENTITY_COLORS.length - 1;
+  // Standard roster bot contestants receive stable IDs formatted as `c${index}` (see `rosterBot` in
+  // shared/simulation/state.ts). Distribute across variant hues round-robin, falling back to
+  // deterministic callsign hashing for human or non-standard player IDs.
+  const seatMatch = typeof p.id === 'string' ? /^c(\d+)$/.exec(p.id) : null;
+  if (seatMatch) {
+    const seat = parseInt(seatMatch[1], 10);
+    return CONTESTANT_IDENTITY_COLORS[1 + (seat % variants)];
+  }
+  const hash = appearanceHash(p.id ?? p.name ?? '');
+  return CONTESTANT_IDENTITY_COLORS[1 + (hash % variants)];
+}
+
+/**
+ * Resolve bounded virtual lighting tint for moving actor body material (29.4 "Virtual lighting", 41.2 step 4, #736).
+ * Blends base actor neutral body material tint with regional spatial light sample.
+ * Bounded with `actorScale` (default 0.25) so base material reads with district ambience
+ * with bounded luminance modulation (~10-14% under regional fields), avoiding value collapse
+ * or destructive darkening. Identity markings remain untinted.
+ * Returns `baseTint` when lighting is disabled or light influence is zero.
+ */
+export function resolveActorTint(baseTint, lightSample, options = {}) {
+  if (options.lighting === false || !lightSample || lightSample.weight <= 0) {
+    return baseTint;
+  }
+  const scale = typeof options.actorScale === 'number' ? options.actorScale : 0.25;
+  return applyLightSample(baseTint, lightSample, scale);
+}
+
+/**
  * Resolve bounded virtual lighting fill and stroke for physics props (29.4, 41.2 step 4).
  * Blends base prop material fill/stroke with regional spatial light sample.
  * Returns base colors when lighting is disabled or light influence is zero.

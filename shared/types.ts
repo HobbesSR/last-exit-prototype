@@ -310,7 +310,7 @@ export interface ContentPresentation {
   actorGeometry?: ActorGeometry | undefined;
   contentId: string;
   weapons: { id: string; name: string; ammo: number }[];
-  kits: { id: string; name: string; skill: string }[];
+  kits: { id: string; name: string; skill: string; color?: number | undefined }[];
   capacity: { contestant: number; gladiator: number };
   durationTicks: Tick;
   cellChargeTicks: Tick;

@@ -14,11 +14,17 @@ import {
   resolveObstacleAppearance,
   resolveGroundAppearance,
   getCanonicalFields,
+  actorBaseTint,
+  DEFAULT_KIT_COLORS,
+  UNKNOWN_KIT_COLOR,
+  CONTESTANT_IDENTITY_COLORS,
+  resolveActorTint,
   resolvePropAppearance,
   applyLightSample,
 } from '../public/appearance.js';
 import { SWATCHES, THEMES, contrast, mix, U, L, T, G } from '../public/palette.js';
 import { shapeOf } from '../shared/shape.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 
 test('resolveSwatch resolves all authored palette swatches and uses fallback only for unknown names', () => {
   // All urban swatches resolve
@@ -185,6 +191,135 @@ test('resolveGroundAppearance emits layers in fixed order and gates wear/scars a
   const lightingOff = resolveGroundAppearance(mapAppearance, { palette: 'signature', lighting: false, wear: true });
   assert.ok(!lightingOff.some(item => item.layer === 'lighting'), 'lighting=false omits theatrical washes and focal edge');
   assert.ok(lightingOff.some(item => item.layer === 'wear') && lightingOff.some(item => item.layer === 'scars'), 'lighting=false retains wear and scars');
+});
+
+test('resolveActorTint provides bounded virtual lighting on actor body material while preserving base tint when unlit (#736)', () => {
+  const cobaltLight = {
+    tint: resolveSwatch('cobaltBlue', 0x1b3b6f),
+    weight: 0.42,
+    neutral: 0.58,
+    contributions: [{ id: 'cobalt-intersection', tint: 0x1b3b6f, weight: 0.42 }],
+  };
+  const unlitSample = { tint: 0x000000, weight: 0, neutral: 1, contributions: [] };
+
+  const baseBody = 0xffffff;
+  const bodyLit = resolveActorTint(baseBody, cobaltLight, { lighting: true });
+  const bodyNoLight = resolveActorTint(baseBody, cobaltLight, { lighting: false });
+  const bodyUnlit = resolveActorTint(baseBody, unlitSample, { lighting: true });
+
+  assert.notEqual(bodyLit, baseBody, 'actor body in lit field blends with regional spatial light');
+  assert.equal(bodyNoLight, baseBody, 'lighting:false returns base body tint');
+  assert.equal(bodyUnlit, baseBody, 'zero light weight returns base body tint');
+
+  // Bounded channel shift assertion (#736 review 605): shift <= ceil(weight * actorScale * |tint - base|) + 1
+  const actorScale = 0.25;
+  const rLit = (bodyLit >> 16) & 0xff, gLit = (bodyLit >> 8) & 0xff, bLit = bodyLit & 0xff;
+  const rBase = (baseBody >> 16) & 0xff, gBase = (baseBody >> 8) & 0xff, bBase = baseBody & 0xff;
+  const rCobalt = (cobaltLight.tint >> 16) & 0xff, gCobalt = (cobaltLight.tint >> 8) & 0xff, bCobalt = cobaltLight.tint & 0xff;
+  const maxShiftR = Math.ceil(cobaltLight.weight * actorScale * Math.abs(rCobalt - rBase)) + 1;
+  const maxShiftG = Math.ceil(cobaltLight.weight * actorScale * Math.abs(gCobalt - gBase)) + 1;
+  const maxShiftB = Math.ceil(cobaltLight.weight * actorScale * Math.abs(bCobalt - bBase)) + 1;
+  assert.ok(Math.abs(rLit - rBase) <= maxShiftR, 'red channel shift is mathematically bounded by actorScale * weight');
+  assert.ok(Math.abs(gLit - gBase) <= maxShiftG, 'green channel shift is mathematically bounded by actorScale * weight');
+  assert.ok(Math.abs(bLit - bBase) <= maxShiftB, 'blue channel shift is mathematically bounded by actorScale * weight');
+
+  // Proportional scaling: actorScale = 0.50 strictly increases channel shift over actorScale = 0.25 across all channels
+  const scaled = resolveActorTint(baseBody, cobaltLight, { lighting: true, actorScale: 0.5 });
+  const rScaled = (scaled >> 16) & 0xff, gScaled = (scaled >> 8) & 0xff, bScaled = scaled & 0xff;
+  assert.ok(Math.abs(rScaled - rBase) > Math.abs(rLit - rBase), 'actorScale proportionally scales red shift');
+  assert.ok(Math.abs(gScaled - gBase) > Math.abs(gLit - gBase), 'actorScale proportionally scales green shift');
+  assert.ok(Math.abs(bScaled - bBase) > Math.abs(bLit - bBase), 'actorScale proportionally scales blue shift');
+});
+
+test('DEFAULT_KIT_COLORS fallback table matches simulation MatchContent definitions (#736, #610)', () => {
+  const content = defaultContent();
+  for (const [kitId, kit] of Object.entries(content.kits)) {
+    if (typeof kit.color === 'number') {
+      assert.equal(
+        DEFAULT_KIT_COLORS[kitId],
+        kit.color,
+        `DEFAULT_KIT_COLORS.${kitId} matches authoritative MatchContent kit color`
+      );
+    }
+  }
+});
+
+test('actorBaseTint defines saturated kit and contestant identity colors meeting Tier 1 contrast and pairwise distinctness (#736)', () => {
+  const wardenTint = actorBaseTint({ role: 'gladiator', kit: 'warden' }, 'me');
+  const specterTint = actorBaseTint({ role: 'gladiator', kit: 'specter' }, 'me');
+  const strikerTint = actorBaseTint({ role: 'gladiator', kit: 'striker' }, 'me');
+  const hookTint = actorBaseTint({ role: 'gladiator', kit: 'hook' }, 'me');
+  const fallbackTint = actorBaseTint({ role: 'gladiator', kit: 'unknown' }, 'me');
+
+  assert.equal(wardenTint, 0xff6b70, 'warden gladiator has saturated coral red identity (#ff6b70)');
+  assert.equal(specterTint, 0xb39aff, 'specter gladiator matches content kit color (#b39aff)');
+  assert.equal(strikerTint, 0xffba62, 'striker gladiator matches content kit color (#ffba62)');
+  assert.equal(hookTint, 0x77dddd, 'hook gladiator matches content kit color (#77dddd)');
+  assert.equal(fallbackTint, UNKNOWN_KIT_COLOR, 'unknown gladiator falls back to neutral color rather than coral red');
+
+  // Passing presentation kits array overrides default table:
+  const mockKits = [{ id: 'custom', name: 'Custom', skill: 'dash', color: 0x123456 }];
+  assert.equal(actorBaseTint({ role: 'gladiator', kit: 'custom' }, 'me', mockKits), 0x123456);
+
+  const selfTint = actorBaseTint({ role: 'contestant', id: 'me', name: 'Player' }, 'me');
+  assert.equal(selfTint, 0xffffff, 'self contestant has signature white identity (#ffffff)');
+
+  // Content-1 roster seats c0..c7 distribute across variant hues with 0 non-self contestants receiving white (#610)
+  const content = defaultContent();
+  const rosterTints = content.roster.contestants.map((name, i) =>
+    actorBaseTint({ role: 'contestant', id: `c${i}`, name }, 'me')
+  );
+  assert.ok(!rosterTints.includes(0xffffff), 'zero non-self contestants collapse to self white');
+  const distinctHues = new Set(rosterTints);
+  assert.equal(distinctHues.size, 3, 'all 3 variant hues are represented across the roster');
+  for (let i = 0; i < rosterTints.length - 1; i++) {
+    assert.notEqual(rosterTints[i], rosterTints[i + 1], `adjacent roster seats c${i} and c${i + 1} have distinct hues`);
+  }
+
+  // Arbitrary callsigns hash deterministically into variant hues, never self white
+  for (const name of ['Runner', 'Striker', 'Shadow', 'Ace']) {
+    const tint = actorBaseTint({ role: 'contestant', id: `user-${name}`, name }, 'me');
+    assert.notEqual(tint, 0xffffff, 'non-self arbitrary callsign never receives self white');
+    assert.ok(CONTESTANT_IDENTITY_COLORS.slice(1).includes(tint), 'non-self arbitrary callsign receives a variant hue');
+  }
+
+  // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against street and ground across all themes
+  const gladiatorKits = [wardenTint, specterTint, strikerTint, hookTint];
+  const allHues = [...gladiatorKits, UNKNOWN_KIT_COLOR, ...CONTESTANT_IDENTITY_COLORS];
+  for (const [themeId, theme] of Object.entries(THEMES)) {
+    for (const hue of allHues) {
+      const streetContrast = contrast(hue, theme.street);
+      const groundContrast = contrast(hue, theme.ground);
+      assert.ok(streetContrast >= 1.80, `[${themeId}] hue 0x${hue.toString(16)} meets Tier 1 street contrast (${streetContrast.toFixed(2)} >= 1.80)`);
+      assert.ok(groundContrast >= 1.80, `[${themeId}] hue 0x${hue.toString(16)} meets Tier 1 ground contrast (${groundContrast.toFixed(2)} >= 1.80)`);
+    }
+  }
+
+  // Pairwise distinctness check between gladiator kits (Euclidean RGB distance >= 80):
+  const rgbDist = (c1, c2) => {
+    const r1 = (c1 >> 16) & 0xff, g1 = (c1 >> 8) & 0xff, b1 = c1 & 0xff;
+    const r2 = (c2 >> 16) & 0xff, g2 = (c2 >> 8) & 0xff, b2 = c2 & 0xff;
+    return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+  };
+  for (let i = 0; i < gladiatorKits.length; i++) {
+    for (let j = i + 1; j < gladiatorKits.length; j++) {
+      const d = rgbDist(gladiatorKits[i], gladiatorKits[j]);
+      assert.ok(d >= 80, `gladiator kit ${i} vs ${j} distance ${d.toFixed(1)} >= 80`);
+    }
+  }
+
+  // Cross-role distinctness check: contestant hues must be distinct from ALL gladiator kits (distance >= 90)
+  for (const cHue of CONTESTANT_IDENTITY_COLORS) {
+    for (const gHue of gladiatorKits) {
+      const d = rgbDist(cHue, gHue);
+      assert.ok(d >= 90, `contestant 0x${cHue.toString(16)} vs gladiator 0x${gHue.toString(16)} distance ${d.toFixed(1)} >= 90`);
+    }
+  }
+
+  // Distinctness among non-self contestant hues (distance >= 100)
+  assert.ok(rgbDist(CONTESTANT_IDENTITY_COLORS[1], CONTESTANT_IDENTITY_COLORS[2]) >= 100);
+  assert.ok(rgbDist(CONTESTANT_IDENTITY_COLORS[1], CONTESTANT_IDENTITY_COLORS[3]) >= 100);
+  assert.ok(rgbDist(CONTESTANT_IDENTITY_COLORS[2], CONTESTANT_IDENTITY_COLORS[3]) >= 100);
 });
 
 test('resolvePropAppearance provides bounded virtual lighting on physics props and getCanonicalFields memoizes', () => {

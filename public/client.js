@@ -458,6 +458,7 @@ let scene;
 const ArenaScene = makeArenaScene({
   palette: () => palette,
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
+  kits: () => displayPresentation()?.kits,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
   localPhysics: () => !directed() && !!state?.physicsProfile,
   predictionCut: () => physicsPrediction?.stats().cuts,
