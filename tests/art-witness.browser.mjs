@@ -1390,11 +1390,15 @@ try {
     wardenPlayer.heading = 0;
 
     await f.settle({ palette: 'signature', lighting: true, selfPos: { x: 960, y: 400 }, aim: 0 });
-    const selfVisorPx = f.pixelAtWorld(968, 398);
-    const selfDomePx = f.pixelAtWorld(955, 400);
-    const wardenVisorPx = f.pixelAtWorld(779, 378);
-    const wardenPlatePx = f.pixelAtWorld(765, 380);
+    const selfPosWorld = { x: selfActor.container.x, y: selfActor.container.y };
+    const wardenPosWorld = { x: wardenActor.container.x, y: wardenActor.container.y };
+
+    const selfVisorPx = f.pixelAtWorld(selfPosWorld.x + 8, selfPosWorld.y - 2);
+    const selfDomePx = f.pixelAtWorld(selfPosWorld.x - 5, selfPosWorld.y);
+    const wardenVisorPx = f.pixelAtWorld(wardenPosWorld.x + 9, wardenPosWorld.y - 2);
+    const wardenPlatePx = f.pixelAtWorld(wardenPosWorld.x - 5, wardenPosWorld.y);
     wardenPlayer.heading = oldWardenHeading;
+    const debugInfo = { selfPosWorld, wardenPosWorld, wardenHeading: wardenActor.visor.rotation };
 
     const selfBodyArea1Tint = s.actors.get('self').sprite.tintTopLeft;
     const selfIdentityArea1Tint = s.actors.get('self').identity.tintTopLeft;
@@ -1469,6 +1473,7 @@ try {
       selfDomePx,
       wardenVisorPx,
       wardenPlatePx,
+      debugInfo,
     };
   });
 
@@ -1495,13 +1500,25 @@ try {
   assert.notEqual(step4SpatialCheck.selfBodyArea2Tint, 0xffffff, 'actor body in Area 2 takes magenta virtual lighting');
   assert.equal(step4SpatialCheck.selfBodyTintUnlit, 0xffffff, 'actor body unlit sprite retains exact unlit base white 0xffffff');
 
-  // Visor / facing cue layer order and unoccluded render verification (#736 review 606):
+  // Visor / facing cue layer order and unoccluded render verification (#736 review 606, 610):
   assert.ok(step4SpatialCheck.wardenVisorLayerOrder, 'warden visor layer is rendered strictly above identity layer');
   assert.ok(step4SpatialCheck.selfVisorLayerOrder, 'contestant visor layer is rendered strictly above identity layer');
   assert.ok(step4SpatialCheck.wardenVisorVisible, 'warden visor layer is visible');
   assert.ok(step4SpatialCheck.selfVisorVisible, 'contestant visor layer is visible');
+
+  // Verify warden facing visor against chest plate below it (#610):
+  const [rWv, gWv, bWv] = step4SpatialCheck.wardenVisorPx.rgb;
+  const [rWp, gWp, bWp] = step4SpatialCheck.wardenPlatePx.rgb;
+  assert.notEqual(step4SpatialCheck.wardenVisorPx.hex, step4SpatialCheck.wardenPlatePx.hex, 'warden facing visor pixel is distinct from chest armor plate');
   assert.notEqual(step4SpatialCheck.wardenVisorPx.hex, step4SpatialCheck.wardenIdentityTintLit, 'warden facing visor pixel is untinted equipment and not occluded by coral red identity plate');
+  assert.ok(rWp > bWp && rWp > gWp, 'warden chest armor plate exhibits coral red hue (R > G, B)');
+  assert.ok(gWv > bWv, 'warden facing visor pixel exhibits yellow dash cue (G > B)');
+
+  // Verify contestant facing visor against helmet dome below it (#610):
+  const [rSv, gSv, bSv] = step4SpatialCheck.selfVisorPx.rgb;
+  assert.notEqual(step4SpatialCheck.selfVisorPx.hex, step4SpatialCheck.selfDomePx.hex, 'contestant facing visor pixel is distinct from identity dome');
   assert.notEqual(step4SpatialCheck.selfVisorPx.hex, 0xffffff, 'contestant facing visor pixel is untinted cyan slit and not occluded by white identity dome');
+  assert.ok(gSv > rSv && bSv > rSv, 'contestant facing visor pixel exhibits cyan slit chromaticity (G, B > R)');
 
   // Exact saturated kit identity hues preserved in lit and unlit modes (#736 review 605, 606):
   assert.equal(step4SpatialCheck.wardenIdentityTintLit, 0xff6b70, 'warden identity retains exact coral red kit tint 0xff6b70 in lit field');

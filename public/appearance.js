@@ -202,6 +202,8 @@ export const DEFAULT_KIT_COLORS = Object.freeze({
   hook: 0x77dddd,
 });
 
+export const UNKNOWN_KIT_COLOR = 0xd0d5cc;
+
 export const CONTESTANT_IDENTITY_COLORS = Object.freeze([
   0xffffff, // Self / default: pure white
   0x48c774, // Emerald green (Euclidean dist >= 117 to all hunter kits)
@@ -218,11 +220,17 @@ export function actorBaseTint(p, ownId, kits) {
     if (p.kit && Object.hasOwn(DEFAULT_KIT_COLORS, p.kit)) {
       return DEFAULT_KIT_COLORS[p.kit];
     }
-    return DEFAULT_KIT_COLORS.warden;
+    return UNKNOWN_KIT_COLOR;
   }
   if (p.id === ownId) return CONTESTANT_IDENTITY_COLORS[0];
-  const idx = typeof p.name === 'string' ? p.name.length % CONTESTANT_IDENTITY_COLORS.length : 0;
-  return CONTESTANT_IDENTITY_COLORS[idx];
+  const variants = CONTESTANT_IDENTITY_COLORS.length - 1;
+  const seatMatch = typeof p.id === 'string' ? /^c(\d+)$/.exec(p.id) : null;
+  if (seatMatch) {
+    const seat = parseInt(seatMatch[1], 10);
+    return CONTESTANT_IDENTITY_COLORS[1 + (seat % variants)];
+  }
+  const hash = appearanceHash(p.id ?? p.name ?? '');
+  return CONTESTANT_IDENTITY_COLORS[1 + (hash % variants)];
 }
 
 /**

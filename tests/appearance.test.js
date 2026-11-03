@@ -16,6 +16,7 @@ import {
   getCanonicalFields,
   actorBaseTint,
   DEFAULT_KIT_COLORS,
+  UNKNOWN_KIT_COLOR,
   CONTESTANT_IDENTITY_COLORS,
   resolveActorTint,
   resolvePropAppearance,
@@ -23,6 +24,7 @@ import {
 } from '../public/appearance.js';
 import { SWATCHES, THEMES, contrast, mix, U, L, T, G } from '../public/palette.js';
 import { shapeOf } from '../shared/shape.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 
 test('resolveSwatch resolves all authored palette swatches and uses fallback only for unknown names', () => {
   // All urban swatches resolve
@@ -229,6 +231,19 @@ test('resolveActorTint provides bounded virtual lighting on actor body material 
   assert.ok(Math.abs(bScaled - bBase) > Math.abs(bLit - bBase), 'actorScale proportionally scales blue shift');
 });
 
+test('DEFAULT_KIT_COLORS fallback table matches simulation MatchContent definitions (#736, #610)', () => {
+  const content = defaultContent();
+  for (const [kitId, kit] of Object.entries(content.kits)) {
+    if (typeof kit.color === 'number') {
+      assert.equal(
+        DEFAULT_KIT_COLORS[kitId],
+        kit.color,
+        `DEFAULT_KIT_COLORS.${kitId} matches authoritative MatchContent kit color`
+      );
+    }
+  }
+});
+
 test('actorBaseTint defines saturated kit and contestant identity colors meeting Tier 1 contrast and pairwise distinctness (#736)', () => {
   const wardenTint = actorBaseTint({ role: 'gladiator', kit: 'warden' }, 'me');
   const specterTint = actorBaseTint({ role: 'gladiator', kit: 'specter' }, 'me');
@@ -240,23 +255,37 @@ test('actorBaseTint defines saturated kit and contestant identity colors meeting
   assert.equal(specterTint, 0xb39aff, 'specter gladiator matches content kit color (#b39aff)');
   assert.equal(strikerTint, 0xffba62, 'striker gladiator matches content kit color (#ffba62)');
   assert.equal(hookTint, 0x77dddd, 'hook gladiator matches content kit color (#77dddd)');
-  assert.equal(fallbackTint, 0xff6b70, 'unknown gladiator falls back to warden coral red');
+  assert.equal(fallbackTint, UNKNOWN_KIT_COLOR, 'unknown gladiator falls back to neutral color rather than coral red');
 
   // Passing presentation kits array overrides default table:
   const mockKits = [{ id: 'custom', name: 'Custom', skill: 'dash', color: 0x123456 }];
   assert.equal(actorBaseTint({ role: 'gladiator', kit: 'custom' }, 'me', mockKits), 0x123456);
 
   const selfTint = actorBaseTint({ role: 'contestant', id: 'me', name: 'Player' }, 'me');
-  const contestantTints = [0, 1, 2, 3].map(len =>
-    actorBaseTint({ role: 'contestant', id: `other-${len}`, name: 'A'.repeat(len) }, 'me')
-  );
-
   assert.equal(selfTint, 0xffffff, 'self contestant has signature white identity (#ffffff)');
-  assert.deepEqual(contestantTints, [0xffffff, 0x48c774, 0x3a86ff, 0x8ac926], 'contestant tints use high-distinctness hues');
+
+  // Content-1 roster seats c0..c7 distribute across variant hues with 0 non-self contestants receiving white (#610)
+  const content = defaultContent();
+  const rosterTints = content.roster.contestants.map((name, i) =>
+    actorBaseTint({ role: 'contestant', id: `c${i}`, name }, 'me')
+  );
+  assert.ok(!rosterTints.includes(0xffffff), 'zero non-self contestants collapse to self white');
+  const distinctHues = new Set(rosterTints);
+  assert.equal(distinctHues.size, 3, 'all 3 variant hues are represented across the roster');
+  for (let i = 0; i < rosterTints.length - 1; i++) {
+    assert.notEqual(rosterTints[i], rosterTints[i + 1], `adjacent roster seats c${i} and c${i + 1} have distinct hues`);
+  }
+
+  // Arbitrary callsigns hash deterministically into variant hues, never self white
+  for (const name of ['Runner', 'Striker', 'Shadow', 'Ace']) {
+    const tint = actorBaseTint({ role: 'contestant', id: `user-${name}`, name }, 'me');
+    assert.notEqual(tint, 0xffffff, 'non-self arbitrary callsign never receives self white');
+    assert.ok(CONTESTANT_IDENTITY_COLORS.slice(1).includes(tint), 'non-self arbitrary callsign receives a variant hue');
+  }
 
   // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against street and ground across all themes
   const gladiatorKits = [wardenTint, specterTint, strikerTint, hookTint];
-  const allHues = [...gladiatorKits, ...CONTESTANT_IDENTITY_COLORS];
+  const allHues = [...gladiatorKits, UNKNOWN_KIT_COLOR, ...CONTESTANT_IDENTITY_COLORS];
   for (const [themeId, theme] of Object.entries(THEMES)) {
     for (const hue of allHues) {
       const streetContrast = contrast(hue, theme.street);
