@@ -25,6 +25,7 @@ from the primary checkout.
 | Claude Code | `agent-claudecode` (`claudecode@local.host`) | `../astra_test.agents/claude` | `claude/` | 3110 |
 | Codex | `agent-codex` (`codex@local.host`) | `../astra_test.agents/codex` | `codex/` | 3120 |
 | Antigravity | `agent-antigravity` (`antigravity@local.host`) | `../astra_test.agents/antigravity` | `antigravity/` | 3130 |
+| Hermes | `agent-hermes` (`hermes@local.host`) | `../astra_test.agents/hermes` | `hermes/` | 3140 |
 
 The primary checkout (`astra_test/`) belongs to the human: `main`, reviewing and
 merging. Agents never commit there and never touch another agent's worktree.
