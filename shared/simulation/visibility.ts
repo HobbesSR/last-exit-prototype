@@ -42,7 +42,13 @@ export function visiblePoint(s: Game, viewer: Vec2, target: Vec2): boolean {
 // private (inventory, ability timers, whether a slot is a bot) or unread by the renderer, so it never
 // leaves the server for anyone but the player it describes. Recordings keep the full state.
 const OBSERVED = ['id', 'role', 'kit', 'name', 'x', 'y', 'heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
-export const observed = (p: Player) => Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]]));
+// A gladiator has no roster place, so `seat` is appended only where the player has one. Every field
+// above is always present, so one mapping builds the record without a filtered copy (#792).
+export const observed = (p: Player) => {
+  const record = Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]])) as Record<string, Player[keyof Player]>;
+  if (p.seat !== undefined) record.seat = p.seat;
+  return record;
+};
 // Each published ground record's projection, made once and shared by every view and frame that carries the record.
 // Published records are frozen and replaced when they change, so an unchanged item projects to the same object and
 // its view layer matches its keyframe by identity (frame-layers.ts same()) instead of by value (#655).

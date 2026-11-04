@@ -23,7 +23,11 @@ export function createGame(seed = 4217, map: GameMap = generateMap(seed), conten
   // Identifier and iteration order are part of the recorded contract, so both are derived from the
   // roster's own order rather than from anything that could reorder independently of it.
   for (const role of ROLES) {
-    for (let i = 0; i < placeCount(s, role); i++) { const { id, name, kit } = rosterBot(s, role, i); s.players.push(makePlayer(id, name, role, kit, i)); }
+    for (let i = 0; i < placeCount(s, role); i++) {
+      const { id, name, kit } = rosterBot(s, role, i), p = makePlayer(id, name, role, kit, i);
+      if (role === 'contestant') attachSeat(p, i);
+      s.players.push(p);
+    }
   }
   for (const p of s.players) if (p.role === 'contestant') { p.inventory = Array(SLOT_COUNT).fill(null); p.selectedSlot = 0; }
   s.players.filter(p => p.role === 'contestant').forEach((p, i) => Object.assign(p, map.spawns[i]));
@@ -59,6 +63,15 @@ function rosterBot(s: Game, role: Role, index: number): { id: PlayerId; name: st
   if (role === 'contestant') return { id: `c${index}` as PlayerId, name: s.content.roster.contestants[index]!, kit: DEFAULT_KIT };
   const g = s.content.roster.gladiators[index]!;
   return { id: `g${index}` as PlayerId, name: g.name, kit: g.kit };
+}
+/**
+ * Attach a contestant's roster place, the identity a client gives its hue (#792). It belongs to the
+ * roster place rather than to whoever holds it, so joining, handing it back to a bot, resuming a
+ * connection or changing kit or seat leaves it alone. It is ordinary recorded player state: a frame
+ * carries the place its players held at that tick, and so does a recording.
+ */
+function attachSeat(player: Player, seat: number): void {
+  player.seat = seat;
 }
 /** A roster place as a match first holds it, before the map has placed it. */
 export function makePlayer(id: PlayerId, name: string, role: Role, kit: Kit, index: number): Player {

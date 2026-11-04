@@ -269,7 +269,7 @@ test('a full inventory E swap stages reserves: a rejected swap leaves them uncha
 });
 
 test('bots reload from their reserves, and a whole bot match conserves every round it does not fire', () => {
-  const fixtures = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-nav-1.json.gz', import.meta.url))));
+  const fixtures = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-seat-1.json.gz', import.meta.url))));
   const s = createGame(17, structuredClone(Object.values(fixtures.maps)[0]), contentById('content-ammo-1'));
   const contestants = new Set(s.players.filter(p => p.role === 'contestant').map(p => p.id));
   // One attack spends one round however many pellets it fires, so count shooter-ticks.
@@ -294,7 +294,7 @@ test('current recordings keep reserves, reloads and ammo pickups exactly through
   const chunks = [], frames = [];
   const header = { id: 'ammo-roundtrip', version: s.version, contentId: s.content.id, schema: SCHEMA,
     minSchema: minimumReaderForMatch(s.map, false), seed: s.seed, hz: 20, createdAt: 1, map: structuredClone(s.map) };
-  assert.equal(header.schema, 15);
+  assert.equal(header.schema, 16);
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => assert.fail(error.message) });
   const retain = () => { const frame = snapshot(s); frames.push(JSON.parse(JSON.stringify(frame))); assert.equal(writer.append(frame, []), true); };

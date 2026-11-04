@@ -43,7 +43,7 @@ later content does to the generated map.
 
 ## Behavior baseline contents
 
-`behavior-nav-1.json.gz` holds two independent things, and that separation is
+`behavior-seat-1.json.gz` holds two independent things, and that separation is
 the point of its shape:
 
 - `generated` — SHA-256 hashes of complete JSON maps, property and array order
@@ -72,6 +72,13 @@ it costs the continuity below, so it is a decision rather than a step.
 
 ## Provenance
 
+`seat-1` replaced `nav-1` when a contestant's roster place (`seat`, #792) joined recorded player
+state and every live projection. Each stored snapshot and each stored projection now carries a
+`seat` for every contestant, so every trace digest moved; the recapture belongs to that reviewed
+player-and-recording change (#792, PR #793), not to a refactor. `generated` and `maps`
+were carried forward unchanged, and that was checked rather than assumed. The superseded
+`behavior-nav-1.json.gz` remains in git history.
+
 `nav-1` replaced `netcode-1` when route ends stopped snapping across walls thinner than a
 tile (#351). It was captured at `5e83119`, against `content-1` and the stored arenas. `generated` and
 `maps` were carried forward. Of the traces, only the bot trace for seed 4217 moved: the other three
@@ -84,10 +91,11 @@ before a bot walks it. Both move what the simulation does, so both move the trac
 the generator, and that was checked rather than assumed — `generated` carried forward unchanged, and
 so did `maps`.
 
-`netcode-1` was the `95b7f1b` checkpoint; the current fixture is `nav-1`, captured
-from simulation tree `5e83119` and introduced in commit `fa6c143`. Its full historical chain is
+`netcode-1` was the `95b7f1b` checkpoint; `nav-1` followed it, captured
+from simulation tree `5e83119` and introduced in commit `fa6c143`; `seat-1` captures the tree that
+introduced #792. The full historical chain is
 `5dd7d61` (captured at `0cd204e`) → `elements-1` (`9fe2d94`) → the stored-arenas
-split (`aa833a6`) → hash-only cover update (`dede8fe`) → `netcode-1` → `nav-1`.
+split (`aa833a6`) → hash-only cover update (`dede8fe`) → `netcode-1` → `nav-1` → `seat-1`.
 The historical fixture names remain in git history;
 the current tests select legacy `content-1` through `contentById` under rules version
 `last-exit-0.7`, so the default `content-2` does not rewrite this evidence.
@@ -122,16 +130,20 @@ obtained through `contentById`: `mapHashes()`, `traceMaps()`, one
 `JSON.parse(JSON.stringify(scriptedTrace(maps[4217], content)))` — gzip it,
 and name it for the new checkpoint.
 
-To audit the existing `nav-1` fixture on this tree, select `content-1` and use
+To audit the existing `seat-1` fixture on this tree, select `content-1` and use
 its stored maps, never today's default content or freshly generated arenas.
 The three-hunter checkpoint preserved the then-current `behavior-netcode-1.json.gz`
 bytes (present at `95b7f1b` and `5e83119`), SHA-256
 `b8734d7cbf1292f8e5fad5c5f7007ed368bc33fc7d82b5965b23d71303a48ea2`.
-The current `behavior-nav-1.json.gz`, introduced at `fa6c143`, has gzip SHA-256
+`behavior-nav-1.json.gz`, introduced at `fa6c143`, has gzip SHA-256
 `708222c5e226019b2d601e4574f2d83c3832ed1b0cb09827bc5e9866e83ed7c8`.
+The current `behavior-seat-1.json.gz` has gzip SHA-256
+`a4a6856b4bb082f92ee8ee64a6bdc5273fc2384ed28f0e38684460b6c242d488`.
 `nav-1` changed the seed-4217 bot trace when route ends stopped snapping across
 walls thinner than a tile (#351); generated hashes, stored arenas, other bot traces
-and the scripted trace carried forward byte-identical.
+and the scripted trace carried forward byte-identical. `seat-1` moved every bot and
+scripted trace, because each snapshot and each contestant record in each projection gained its
+roster place (#792); generated hashes and stored arenas carried forward byte-identical.
 
 Carry `maps` over from the previous fixture unless the arenas themselves are meant to
 change: regenerating them folds whatever the generator has done since into a change

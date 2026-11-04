@@ -21,7 +21,7 @@ const fixture = map => {
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0] };
 };
-const fixtureMaps = () => Object.values(JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-nav-1.json.gz', import.meta.url)))).maps);
+const fixtureMaps = () => Object.values(JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-seat-1.json.gz', import.meta.url)))).maps);
 
 test('the 5 x 5 selector reproduces the diamond drawing and caps at mix 5', () => {
   const grid = [0, 1, 2, 3, 4].map(row => [0, 1, 2, 3, 4].map(col => spatialMix({ col, row })));

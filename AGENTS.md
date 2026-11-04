@@ -40,7 +40,7 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
 
 ## Project invariants and verification
 
-- The current frozen characterization fixture is `behavior-nav-1.json.gz`.
+- The current frozen characterization fixture is `behavior-seat-1.json.gz`.
   [31](docs/31-verification.md) owns verification policy; the
   [fixture README](tests/fixtures/README.md) owns the full provenance and digests.
   Never regenerate it to make a refactor pass. Separate intentional gameplay

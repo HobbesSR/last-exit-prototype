@@ -224,9 +224,13 @@ export function actorBaseTint(p, ownId, kits) {
   }
   if (p.id === ownId) return CONTESTANT_IDENTITY_COLORS[0];
   const variants = CONTESTANT_IDENTITY_COLORS.length - 1;
-  // Standard roster bot contestants receive stable IDs formatted as `c${index}` (see `rosterBot` in
-  // shared/simulation/state.ts). Distribute across variant hues round-robin, falling back to
-  // deterministic callsign hashing for human or non-standard player IDs.
+  // The server records each contestant's roster place (`seat`, #792), which survives joins, bot
+  // takeovers, reconnects and callsign changes, so it is authoritative wherever it is present.
+  // Waiting-yard frames and recordings older than the field carry none, so the roster bot id
+  // `c${index}` (see `rosterBot` in shared/simulation/state.ts) and then a deterministic callsign
+  // hash remain the fallbacks. A negative place is never valid and falls through, rather than
+  // wrapping to self white.
+  if (Number.isInteger(p.seat) && p.seat >= 0) return CONTESTANT_IDENTITY_COLORS[1 + (p.seat % variants)];
   const seatMatch = typeof p.id === 'string' ? /^c(\d+)$/.exec(p.id) : null;
   if (seatMatch) {
     const seat = parseInt(seatMatch[1], 10);
