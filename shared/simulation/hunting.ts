@@ -64,30 +64,33 @@ const chargerChecked = new WeakMap<Player, Tick>();
 /** A charger where a cell was powered is investigated for this long. */
 const CHARGER_INVESTIGATE_FOR = 60 * HZ;
 
-function updateChargerLead(s: Game): ChargerLead | undefined {
+interface CachedChargerLead {
+  tick: Tick;
+  lead?: ChargerLead | undefined;
+}
+const chargerLeadCache = new WeakMap<Game, CachedChargerLead>();
+
+export function chargerLeadOf(s: Game): ChargerLead | undefined {
+  const cached = chargerLeadCache.get(s);
+  if (cached && cached.tick === s.tick) return cached.lead;
   let known = knownChargedCells.get(s);
   if (!known) knownChargedCells.set(s, known = new WeakSet());
+  let lead = chargerLeads.get(s);
   for (const p of s.players) {
     if (p.role !== 'contestant') continue;
     const cell = carriedCell(p);
-    const charging = p.charging ? s.map.chargers.find(st => st.id === p.charging) : undefined;
-    if (charging && charging.x > s.hazardX + SWEEP_AHEAD) {
-      const lead = { station: { x: charging.x, y: charging.y }, tick: s.tick };
-      chargerLeads.set(s, lead);
-      return lead;
-    }
     if (cell && cell.charge >= s.content.cellChargeTicks && !known.has(cell)) {
       known.add(cell);
       const nearest = s.map.chargers.filter(st => st.x > s.hazardX + SWEEP_AHEAD)
         .map(st => ({ st, d: distance(p, st) })).sort((a, b) => a.d - b.d)[0]?.st;
       if (nearest) {
-        const lead = { station: { x: nearest.x, y: nearest.y }, tick: s.tick };
+        lead = { station: { x: nearest.x, y: nearest.y }, tick: s.tick };
         chargerLeads.set(s, lead);
-        return lead;
       }
     }
   }
-  return chargerLeads.get(s);
+  chargerLeadCache.set(s, { tick: s.tick, lead });
+  return lead;
 }
 
 /** Estimated left-to-right contestant x from elapsed match time, clamped ahead of the wall. */
@@ -158,7 +161,7 @@ function repulsionPenalty(p: Player, peers: Player[], centre: Vec2): number {
 export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): Vec2 | null {
   const frontMode = s.content.hunting === 'front';
   const goalkeep = frontMode && hasEvidenceFurtherRight(s);
-  const chargerLead = frontMode ? updateChargerLead(s) : undefined;
+  const chargerLead = frontMode ? chargerLeadOf(s) : undefined;
   const investigating = chargerLead && s.tick - chargerLead.tick <= CHARGER_INVESTIGATE_FOR && chargerLead.station.x > s.hazardX + SWEEP_AHEAD
     && (chargerChecked.get(p) ?? -Infinity) < chargerLead.tick ? chargerLead : undefined;
   const graph = portalGraphOf(s.map);
@@ -166,11 +169,19 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
   let sweep = sweeps.get(p);
   if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
   if (sweep.target) {
-    if (distance(p, sweep.moved) > TILE) { sweep.moved = { x: p.x, y: p.y }; sweep.progressed = s.tick; }
-    if (distance(p, sweep.target) < SWEEP_ARRIVE || s.tick - sweep.progressed > SWEEP_STALL) {
-      if (investigating && distance(p, investigating.station) < SWEEP_ARRIVE) chargerChecked.set(p, s.tick);
+    const invalid = sweep.target.x < s.hazardX + SWEEP_AHEAD
+      || (frontMode && goalkeep && distance(s.map.exit, sweep.target) > GOALKEEP_RADIUS)
+      || (frontMode && investigating && distance(investigating.station, sweep.target) > SWEEP_ARRIVE)
+      || (frontMode && !goalkeep && !investigating && sweep.target.x < estimatedFrontX(s) - 2400);
+    if (invalid) {
       giveUpSweep(s, p);
-    } else return sweep.target;
+    } else {
+      if (distance(p, sweep.moved) > TILE) { sweep.moved = { x: p.x, y: p.y }; sweep.progressed = s.tick; }
+      if (distance(p, sweep.target) < SWEEP_ARRIVE || s.tick - sweep.progressed > SWEEP_STALL) {
+        if (investigating && distance(p, investigating.station) < SWEEP_ARRIVE) chargerChecked.set(p, s.tick);
+        giveUpSweep(s, p);
+      } else return sweep.target;
+    }
   }
   if (investigating) {
     if (distance(p, investigating.station) < SWEEP_ARRIVE) {
@@ -198,6 +209,7 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
   }
   const anchor: Vec2 = goalkeep ? s.map.exit : { x: estimatedFrontX(s), y: s.map.height / 2 };
   const minStep = goalkeep ? 0 : FRONT_MIN_STEP;
+  const currentFront = estimatedFrontX(s);
   const pickRegion = (requireDistant: boolean, ignoreRevisit: boolean): number => {
     let best = -1, score = Infinity;
     graph.regions.forEach((region, index) => {
@@ -207,8 +219,10 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
       const d = distance(p, centre);
       if (requireDistant && d < minStep) return;
       if (goalkeep && distance(anchor, centre) > GOALKEEP_RADIUS && requireDistant) return;
-      const value = Math.abs(centre.x - anchor.x) * FRONT_X_WEIGHT + Math.abs(centre.y - anchor.y) * FRONT_Y_WEIGHT
-        + d * FRONT_DISTANCE_WEIGHT + repulsionPenalty(p, peers, centre);
+      const targetX = goalkeep ? anchor.x : Math.min(s.map.exit.x, currentFront + (d / 12) * FRONT_SPEED);
+      const behindPenalty = !goalkeep && centre.x < currentFront ? (currentFront - centre.x) * 3.0 : 0;
+      const value = Math.abs(centre.x - targetX) * FRONT_X_WEIGHT + Math.abs(centre.y - anchor.y) * FRONT_Y_WEIGHT
+        + d * FRONT_DISTANCE_WEIGHT + repulsionPenalty(p, peers, centre) + behindPenalty;
       if (value < score) { score = value; best = index; }
     });
     return best;
@@ -225,8 +239,8 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
 /** The region being swept is done with: swept on arrival, or set aside when it can't be reached. */
 export function giveUpSweep(s: Game, p: Player): void {
   const sweep = sweeps.get(p);
-  if (!sweep || sweep.region < 0) return;
-  sweep.swept.set(sweep.region, s.tick);
+  if (!sweep) return;
+  if (sweep.region >= 0) sweep.swept.set(sweep.region, s.tick);
   Object.assign(sweep, { region: -1, target: null });
 }
 

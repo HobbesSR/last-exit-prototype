@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { estimatedFrontX, hasEvidenceFurtherRight, noteHunterTarget, sweepTarget, transitPlan } from '../shared/simulation/hunting.ts';
+import { estimatedFrontX, giveUpSweep, hasEvidenceFurtherRight, noteHunterTarget, sweepTarget, transitPlan } from '../shared/simulation/hunting.ts';
 import { hearShot } from '../shared/simulation/hearing.ts';
 import { visibleTo } from '../shared/simulation/visibility.ts';
 import { arena } from './helpers/arena.js';
@@ -65,9 +65,9 @@ test('under content-12, sweeping targets coarse regions near the estimated left-
   noteHunterTarget(s, g1, false);
   const first = sweepTarget(s, g1, at => at);
   assert.ok(first, 'picked a sweep target');
-  // Gladiator at x=10500 picks a coarse region (> 2400 away) toward the early front, not the immediate neighbour.
+  // Gladiator at x=10500 picks a coarse region (> 2400 away) intercepting the advancing front.
   assert.ok(Math.hypot(g1.x - first.x, g1.y - first.y) >= 2400, `coarse step from ${g1.x} to ${first.x}`);
-  assert.ok(Math.abs(first.x - estimatedFrontX(s)) < 2000, `near estimated front ${estimatedFrontX(s)}: got ${first.x}`);
+  assert.ok(first.x >= estimatedFrontX(s) && first.x <= g1.x, `intercepts front between ${estimatedFrontX(s)} and ${g1.x}: got ${first.x}`);
   assert.equal(hasEvidenceFurtherRight(s), false);
 
   // Once evidence suggests a contestant is further right (e.g. shot heard near the exit), targetless gladiators head toward the exit to goalkeep.
@@ -142,18 +142,18 @@ test('bot-match under content-12 runs physics simulation cleanly and uses transi
   const { map } = arena({ cols: 30, rows: 6, corridor: { gaps: [2, 2, 2, 2] },
     stations: [{ id: 'st0', nodeId: 'n0', x: 300, y: 576 }, { id: 'st1', nodeId: 'n1', x: 5000, y: 576 }] });
   const actors = [
-    { role: 'gladiator', x: 250, y: 576 },
-    { role: 'contestant', bot: true, x: 5400, y: 576 },
+    { role: 'gladiator', x: 5050, y: 576 },
+    { role: 'contestant', bot: true, x: 1500, y: 576 },
   ];
   const { s, players: [g] } = await stagePhysics(map, {
     content: contentById('content-12'),
     actors,
   });
   try {
-    let sawOrTransit = false;
-    run(s, { ticks: 120, trace: s => { if (g.status === 'transit' || g.railCd > 0 || visibleTo(s, g, s.players[1])) sawOrTransit = true; } });
+    let usedTransit = false;
+    run(s, { ticks: 120, trace: s => { if (g.status === 'transit' || g.railCd > 0) usedTransit = true; } });
     assert.ok(s.tick === 120, 'ran 120 ticks cleanly');
-    assert.ok(sawOrTransit, 'gladiator swept or transited toward the contestant/goal');
+    assert.ok(usedTransit, 'gladiator at exit planned and used transit toward the front');
   } finally { disposePhysics(s); }
 });
 
@@ -211,4 +211,65 @@ test('under content-12, targetless gladiators repel each other while targeted gl
   assert.ok(repelled && unrepelled);
   assert.equal(unrepelled.x, frontRegionX, 'unrepelled gladiator picks the region right on the front');
   assert.notEqual(repelled.x, unrepelled.x, `repelled gladiator picks a different region (${repelled.x} vs ${unrepelled.x})`);
+});
+
+test('sweep target is invalidated and dropped when hazard wall passes it', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: 5000, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const s = {
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [g],
+  };
+  noteHunterTarget(s, g, false);
+  const target1 = sweepTarget(s, g, at => at);
+  assert.ok(target1, 'picked initial sweep target');
+  // Hazard moves past target1
+  s.hazardX = target1.x - 500; // so target1.x < s.hazardX + SWEEP_AHEAD (600)
+  const target2 = sweepTarget(s, g, at => at);
+  assert.ok(target2, 'picked new sweep target ahead of hazard');
+  assert.notEqual(target2.x, target1.x, 'dropped stale target swallowed by hazard');
+  assert.ok(target2.x >= s.hazardX + 600, 'new target is ahead of hazard wall');
+});
+
+test('sweep target is dropped when goalkeeping latches while target is far from exit', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: 5000, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const s = {
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [g],
+  };
+  noteHunterTarget(s, g, false);
+  const target1 = sweepTarget(s, g, at => at);
+  assert.ok(target1, 'picked initial sweep target');
+  assert.ok(Math.abs(target1.x - map.exit.x) > 2400, 'initial target is far from exit');
+  // Goalkeeping latches via escape pod claim
+  s.slots = 2;
+  s.tick = 101;
+  const target2 = sweepTarget(s, g, at => at);
+  assert.ok(target2, 'picked goalkeeping target');
+  assert.notEqual(target2.x, target1.x, 'dropped old sweep target');
+  assert.ok(Math.abs(target2.x - map.exit.x) <= 2400, 'new target is near exit');
+});
+
+test('giveUpSweep clears target even when region is -1', () => {
+  const chargers = [{ id: 'ch0', nodeId: 'n0', x: 3840, y: 576 }];
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] }, chargers });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: 10500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const cell = { kind: 'cell', charge: 100 };
+  const c = { id: 'c0', role: 'contestant', status: 'active', x: 3850, y: 576, inventory: [cell] };
+  const s = {
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [g, c],
+  };
+  noteHunterTarget(s, g, false);
+  const target = sweepTarget(s, g, at => at);
+  assert.ok(target, 'targeted charging station with region: -1');
+  giveUpSweep(s, g);
+  // Now if charger lead is expired or cleared, target is not retained
+  s.tick = 100 + 70 * 30; // beyond CHARGER_INVESTIGATE_FOR
+  const next = sweepTarget(s, g, at => at);
+  assert.ok(next && next.x !== chargers[0].x, 're-evaluates sweep and targets a region instead of retaining charger');
 });
