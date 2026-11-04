@@ -524,9 +524,9 @@ simulation version `last-exit-0.7`. `content-2` adds the third hunter, and the s
 default `content-5` plans bots over free-space tiles, each search spread over ticks and nearby changes repaired at once; see [14](14-match-rules.md) for the
 roster and [26](26-recording-contract.md) for the version decisions. `seat-1` replaced `nav-1` when a
 contestant's roster place joined recorded player state and every projection (#792): each snapshot and
-each player record now carries the optional `seat`, so every trace moved. That recapture is an
-explicitly decided projection-and-recording change (Corey, 2026-11-03), not a refactor. Within this
-checkpoint, no further change may alter the fixture's bytes.
+each player record now carries the optional `seat`, so every trace moved. The recapture belongs to that
+reviewed player-and-recording change (#792, PR #793), not to a refactor; the merge is the decision.
+Within this checkpoint, no further change may alter the fixture's bytes.
 
 What the `generated` hashes cover is the **legacy generator**, `generateMap` in
 `shared/map/generate.ts`, not the chain. So changes to the chain's library,

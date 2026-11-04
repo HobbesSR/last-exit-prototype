@@ -74,8 +74,8 @@ it costs the continuity below, so it is a decision rather than a step.
 
 `seat-1` replaced `nav-1` when a contestant's roster place (`seat`, #792) joined recorded player
 state and every live projection. Each stored snapshot and each stored projection now carries a
-`seat` for every contestant, so every trace digest moved; the recapture was explicitly decided
-(Corey, 2026-11-03) as a projection-and-recording change, not a refactor. `generated` and `maps`
+`seat` for every contestant, so every trace digest moved; the recapture belongs to that reviewed
+player-and-recording change (#792, PR #793), not to a refactor. `generated` and `maps`
 were carried forward unchanged, and that was checked rather than assumed. The superseded
 `behavior-nav-1.json.gz` remains in git history.
 
