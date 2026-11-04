@@ -24,9 +24,11 @@ the latter carry player `reserves` and `reload`, `ammo` ground items and
 pickup as an unknown item, so the floor stays.
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-5`, and recordings use schema 15 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+default content is `content-5`, and recordings use schema 16 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0. Optional appearance descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
+Schema 16 adds an optional contestant roster place to recorded player state (#792): identity rather than
+gameplay, so an older reader ignores it and the floor stays at zero.
 Schema 10 adds required engine-free physics presentation for experimental physics
 matches; those matches require reader 10. Ordinary match reader floors stay unchanged.
 Storage-only changes must preserve frozen gameplay fixtures.
@@ -105,6 +107,7 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 16 | Optional contestant roster place `seat` in recorded player state (#792) | unchanged |
 | 15 | Optional `transit` command, player `transit` state and `status: 'transit'` (#692) | unchanged |
 | 14 | Optional private hook state and hook-flight presentation (#446) | unchanged |
 | 13 | Optional L2 player reserves and reload, `ammo` ground items and `reload`/`dropAmmo` commands (#444) | unchanged |
@@ -320,6 +323,15 @@ order, input consumption, player sizes, combat and timers are unchanged. The
 intentional new map content is named by `generator` and embedded in full, rather
 than rebuilding an old recording with today's chain. Frozen characterization
 continues to use its stored legacy maps and is not regenerated.
+
+## Schema 16: contestant roster place (#792)
+
+Schema 16 adds an optional `seat` to recorded player state: a contestant's roster place, which a client
+uses to assign the same identity hue before and after a human takeover, a reconnect or a callsign change.
+It is presentation identity, not gameplay, and it changes nothing about how a match runs. The change is
+additive, so the minimum reader stays at zero; an older reader ignores the field and draws the hue from
+the id or callsign as before, and a recording that predates the field plays the same way. Rules stay
+`last-exit-0.7` and no content id changes.
 
 ## Schema 15: transit route selection (#692)
 

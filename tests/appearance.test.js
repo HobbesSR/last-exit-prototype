@@ -295,6 +295,9 @@ test('actorBaseTint defines saturated kit and contestant identity colors meeting
     'a roster-bot-shaped id does not override the seat');
   assert.equal(actorBaseTint({ role: 'contestant', id: 'me', name: 'Me', seat: 3 }, 'me'), 0xffffff,
     'the viewer stays self white with a seat');
+  assert.equal(actorBaseTint({ role: 'contestant', id: 'x', name: 'X', seat: -1 }, 'me'),
+    actorBaseTint({ role: 'contestant', id: 'x', name: 'X' }, 'me'),
+    'a negative place falls through to the id and callsign fallbacks');
 
   // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against street and ground across all themes
   const gladiatorKits = [wardenTint, specterTint, strikerTint, hookTint];

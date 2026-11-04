@@ -202,7 +202,7 @@ test('the roster is the one place a capacity is stated', () => {
   assert.deepEqual(gladiators.map(p => p.id), ['g0']);
 });
 
-test('a contestant roster place is transported for identity, not recorded (#792)', () => {
+test('a contestant roster place is recorded and every view carries the frame\'s place (#792)', () => {
   const s = createGame(4217);
   const contestants = s.players.filter(p => p.role === 'contestant');
   const gladiators = s.players.filter(p => p.role === 'gladiator');
@@ -221,14 +221,27 @@ test('a contestant roster place is transported for identity, not recorded (#792)
   const back = changeSeat(s, 'runner', 'contestant', 'warden');
   assert.equal(back.seat, 2, 'taking another contestant place takes that place\'s seat');
 
-  // A seat is identity, not gameplay, so a snapshot and a recording omit it and every view reads it
-  // from live state, directed and own alike.
+  // A seat is recorded player state, so a snapshot carries the place its players held at that tick.
   const frame = snapshot(s);
-  assert.ok(frame.players.every(p => !Object.hasOwn(p, 'seat')), 'a snapshot omits every seat');
-  assert.equal(JSON.stringify(frame).includes('"seat"'), false);
+  const recorded = new Map(frame.players.map(p => [p.id, p.seat]));
+  for (const p of s.players) assert.equal(recorded.get(p.id), p.seat, `${p.id} records its seat`);
+  assert.equal(JSON.stringify(frame.players.find(p => p.id === 'runner')).includes('"seat":2'), true);
   const directed = new Map(playerView(s, frame, 'spectator').players.map(p => [p.id, p]));
-  for (const p of s.players) assert.equal(directed.get(p.id)?.seat, p.seat, `${p.id} carries its live seat`);
+  for (const p of s.players) assert.equal(directed.get(p.id)?.seat, p.seat, `${p.id} carries its recorded seat`);
   assert.equal(playerView(s, frame, 'runner').players.find(p => p.id === 'runner').seat, 2, 'an own record carries it too');
+});
+
+test('a delayed spectator view carries the seat of the frame it shows, not the join after it (#792)', () => {
+  const s = createGame(4217);
+  const before = snapshot(s); // c0 still holds seat 0
+  const joined = joinGame(s, 'late', 'contestant', 'warden', 'Late'); // takes seat 0 after the frame
+  assert.equal(joined.id, 'late');
+
+  // The delayed frame is projected against the live match, so a live-state lookup would lose c0's seat.
+  const delayed = playerView(s, before, 'spectator');
+  assert.equal(delayed.players.find(p => p.id === 'c0').seat, 0, 'the old frame keeps its own title holder');
+  assert.equal(delayed.players.find(p => p.id === 'late'), undefined, 'the joiner is not in a frame from before the join');
+  assert.equal(playerView(s, snapshot(s), 'spectator').players.find(p => p.id === 'late').seat, 0, 'the live view reports the joiner');
 });
 
 test('trap balance is read from the match, not from the module it defaults in', () => {

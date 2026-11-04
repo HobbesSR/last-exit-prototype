@@ -72,11 +72,11 @@ it costs the continuity below, so it is a decision rather than a step.
 
 ## Provenance
 
-`seat-1` replaced `nav-1` when a contestant's roster place (`seat`, #792) began travelling in the
-own-player and other-player records of every live projection. It is identity state rather than
-gameplay: a snapshot does not carry it, so the scripted and bot snapshots are unchanged, but every
-stored projection now carries a `seat` for each contestant and every trace digest moved. `generated`
-and `maps` were carried forward unchanged, and that was checked rather than assumed. The superseded
+`seat-1` replaced `nav-1` when a contestant's roster place (`seat`, #792) joined recorded player
+state and every live projection. Each stored snapshot and each stored projection now carries a
+`seat` for every contestant, so every trace digest moved; the recapture was explicitly decided
+(Corey, 2026-11-03) as a projection-and-recording change, not a refactor. `generated` and `maps`
+were carried forward unchanged, and that was checked rather than assumed. The superseded
 `behavior-nav-1.json.gz` remains in git history.
 
 `nav-1` replaced `netcode-1` when route ends stopped snapping across walls thinner than a
@@ -138,12 +138,12 @@ bytes (present at `95b7f1b` and `5e83119`), SHA-256
 `behavior-nav-1.json.gz`, introduced at `fa6c143`, has gzip SHA-256
 `708222c5e226019b2d601e4574f2d83c3832ed1b0cb09827bc5e9866e83ed7c8`.
 The current `behavior-seat-1.json.gz` has gzip SHA-256
-`e667abb0853331b9c64654ededc67870f8ce052ff7bc909b4e8dc9e3aa6b2cd2`.
+`a4a6856b4bb082f92ee8ee64a6bdc5273fc2384ed28f0e38684460b6c242d488`.
 `nav-1` changed the seed-4217 bot trace when route ends stopped snapping across
 walls thinner than a tile (#351); generated hashes, stored arenas, other bot traces
 and the scripted trace carried forward byte-identical. `seat-1` moved every bot and
-scripted trace, because each contestant record in each projection gained its roster
-place (#792); generated hashes and stored arenas carried forward byte-identical.
+scripted trace, because each snapshot and each contestant record in each projection gained its
+roster place (#792); generated hashes and stored arenas carried forward byte-identical.
 
 Carry `maps` over from the previous fixture unless the arenas themselves are meant to
 change: regenerating them folds whatever the generator has done since into a change

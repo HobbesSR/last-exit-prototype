@@ -12,7 +12,7 @@ const projection = (fields: string) => {
   };
 };
 export const frameFields = projection('version duration cellChargeTicks tick phase hazardX slots players items gates traps projectiles effects events');
-const ownFields = projection('id name role kit x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered');
+const ownFields = projection('id name role kit seat x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered');
 export const itemFields = projection('id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family');
 export const gateFields = projection('id x y w h open locked kind buildingId');
 export const trapFields = projection('id kind x y homeX homeY heading offset cooldown spent aiming firing warning');
@@ -39,8 +39,6 @@ export function physicsHookFlightFields({ id, a, x, y }: { id: string; a: string
 }
 export function ownPlayerFields(player: Player, discovery?: DiscoveryMemory | null, heard?: HeardCue[]): Projected<Player> {
   const result = ownFields(player);
-  // A contestant's roster place (`seat`, #792) is identity state, not gameplay, so it is not in this
-  // closed list and no snapshot carries it; a view attaches it from live state (`visibility.ts`).
   // Carried items are projected through the same item contract; both sides are wire records.
   if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item) : item) as Inventory;
   if (result.cell) result.cell = itemFields(result.cell);

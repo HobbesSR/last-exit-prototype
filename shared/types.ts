@@ -805,10 +805,10 @@ export interface Player extends Vec2 {
   aggressor?: PlayerId | undefined;
   aggressionUntil?: Tick | undefined;
   /**
-   * The contestant's roster place, kept for contestants only: the stable identity a viewer assigns an
-   * identity hue from (#792). It is identity presentation rather than gameplay, so it is attached like
-   * `discovery`, non-enumerable: snapshots and recordings never carry it. It belongs to the roster
-   * place, so joining it, handing it back to a bot, resuming a connection or choosing a kit keeps it.
+   * The contestant's roster place, kept for contestants only: the stable identity a client assigns an
+   * identity hue from (#792). A frame carries the place its players held at that tick, so a delayed
+   * spectator view and a replay keep each player's own seat. It belongs to the roster place, so
+   * joining it, handing it back to a bot, resuming a connection or changing kit or seat keeps it.
    */
   seat?: number | undefined;
   /** Authoritative discovery state, kept for contestants only. */

@@ -67,11 +67,11 @@ function rosterBot(s: Game, role: Role, index: number): { id: PlayerId; name: st
 /**
  * Attach a contestant's roster place, the identity a client gives its hue (#792). It belongs to the
  * roster place rather than to whoever holds it, so joining, handing it back to a bot, resuming a
- * connection or changing kit or seat leaves it alone. Like discovery, it is identity state rather
- * than gameplay, so it is non-enumerable and a snapshot or recording never carries it.
+ * connection or changing kit or seat leaves it alone. It is ordinary recorded player state: a frame
+ * carries the place its players held at that tick, and so does a recording.
  */
 export function attachSeat(player: Player, seat: number): void {
-  Object.defineProperty(player, 'seat', { value: seat, writable: false, configurable: true, enumerable: false });
+  player.seat = seat;
 }
 /** A roster place as a match first holds it, before the map has placed it. */
 export function makePlayer(id: PlayerId, name: string, role: Role, kit: Kit, index: number): Player {

@@ -523,9 +523,10 @@ The frozen tests select legacy `content-1` through `contentById` while running u
 simulation version `last-exit-0.7`. `content-2` adds the third hunter, and the shipped
 default `content-5` plans bots over free-space tiles, each search spread over ticks and nearby changes repaired at once; see [14](14-match-rules.md) for the
 roster and [26](26-recording-contract.md) for the version decisions. `seat-1` replaced `nav-1` when a
-contestant's roster place began travelling in player projections (#792): snapshots are unchanged,
-but every projection now carries the optional `seat`, so every trace moved. Within this checkpoint,
-no further change may alter the fixture's bytes.
+contestant's roster place joined recorded player state and every projection (#792): each snapshot and
+each player record now carries the optional `seat`, so every trace moved. That recapture is an
+explicitly decided projection-and-recording change (Corey, 2026-11-03), not a refactor. Within this
+checkpoint, no further change may alter the fixture's bytes.
 
 What the `generated` hashes cover is the **legacy generator**, `generateMap` in
 `shared/map/generate.ts`, not the chain. So changes to the chain's library,
@@ -542,7 +543,7 @@ below. A change that is meant to be behaviour-preserving never recaptures.
 
 Never regenerate a fixture to make a refactor pass: a behaviour-preserving change
 must reproduce it exactly. Regenerating is correct only for a deliberate content,
-rules or projection-contract change that has been decided, and it restarts the evidence — the current
+rules or player-and-recording contract change that has been decided, and it restarts the evidence — the current
 fixture proves nothing about code predating it. Separate intentional gameplay
 changes, and the new expectations and version decision they require, from
 behaviour-preserving extraction. `tests/fixtures/README.md` records provenance, how
