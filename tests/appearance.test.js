@@ -283,6 +283,19 @@ test('actorBaseTint defines saturated kit and contestant identity colors meeting
     assert.ok(CONTESTANT_IDENTITY_COLORS.slice(1).includes(tint), 'non-self arbitrary callsign receives a variant hue');
   }
 
+  // The transported roster place outranks the id heuristics and a callsign hash (#792), so a human
+  // takeover keeps the hue the seat had, however the id or name changes.
+  const variants = CONTESTANT_IDENTITY_COLORS.length - 1;
+  for (let seat = 0; seat < 8; seat++) {
+    const tint = actorBaseTint({ role: 'contestant', id: `human-${seat}`, name: 'Runner', seat }, 'me');
+    assert.equal(tint, CONTESTANT_IDENTITY_COLORS[1 + (seat % variants)], `seat ${seat} picks its variant hue`);
+  }
+  assert.equal(actorBaseTint({ role: 'contestant', id: 'c1', name: 'Runner', seat: 4 }, 'me'),
+    actorBaseTint({ role: 'contestant', id: 'human', name: 'Runner', seat: 4 }, 'me'),
+    'a roster-bot-shaped id does not override the seat');
+  assert.equal(actorBaseTint({ role: 'contestant', id: 'me', name: 'Me', seat: 3 }, 'me'), 0xffffff,
+    'the viewer stays self white with a seat');
+
   // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against street and ground across all themes
   const gladiatorKits = [wardenTint, specterTint, strikerTint, hookTint];
   const allHues = [...gladiatorKits, UNKNOWN_KIT_COLOR, ...CONTESTANT_IDENTITY_COLORS];

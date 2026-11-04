@@ -373,7 +373,7 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 
 | File | Runs on | Asserts | Moved by a change to |
 | --- | --- | --- | --- |
-| `characterization-bots` | arenas stored in `behavior-nav-1.json.gz`, `content-1` | every tick's snapshot and the `c0`, `g0` and spectator projections of four bot matches equal the fixture's digests | simulation, bots, snapshot and projection shapes; not generation, which the stored arenas replace |
+| `characterization-bots` | arenas stored in `behavior-seat-1.json.gz`, `content-1` | every tick's snapshot and the `c0`, `g0` and spectator projections of four bot matches equal the fixture's digests | simulation, bots, snapshot and projection shapes; not generation, which the stored arenas replace |
 | `bot-objective` | the legacy generator, seeds 1, 9, 4217 | combat-neutralized bots complete the objective and fill all three pods | the legacy generator, simulation, bots |
 | `map-sweep` | the legacy generator, 200 seeds | a no-key route for both body sizes, loot and charger standing room, route clearance | the legacy generator, movement, the navigation grid |
 | `live-map` | the chain through `generateLiveMap`, seeds 1, 9, 4217, and the larger authored size | bots fill all three extraction slots within the match duration; the larger size generates with a matching recipe | simulation, bots, the live adapter (`map/live.ts`); chain output only as a stall or crash |
@@ -505,7 +505,7 @@ bot witnesses; their measured scope and outstanding human gates are [42.20](42.2
 
 ## The frozen fixture
 
-The current frozen characterization fixture is `behavior-nav-1.json.gz`.
+The current frozen characterization fixture is `behavior-seat-1.json.gz`.
 Its complete lineage, capture and introduction commits, digests and reconstruction
 instructions belong to [the fixture README](../tests/fixtures/README.md).
 
@@ -522,14 +522,17 @@ bots to completion over generated maps.
 The frozen tests select legacy `content-1` through `contentById` while running under
 simulation version `last-exit-0.7`. `content-2` adds the third hunter, and the shipped
 default `content-5` plans bots over free-space tiles, each search spread over ticks and nearby changes repaired at once; see [14](14-match-rules.md) for the
-roster and [26](26-recording-contract.md) for the version decisions. This checkpoint must not alter any fixture bytes.
+roster and [26](26-recording-contract.md) for the version decisions. `seat-1` replaced `nav-1` when a
+contestant's roster place began travelling in player projections (#792): snapshots are unchanged,
+but every projection now carries the optional `seat`, so every trace moved. Within this checkpoint,
+no further change may alter the fixture's bytes.
 
 What the `generated` hashes cover is the **legacy generator**, `generateMap` in
 `shared/map/generate.ts`, not the chain. So changes to the chain's library,
 placement or strategies never move this fixture. They move the chain's own seed
 sweep, `map/tools/fixtures/chain-baseline.json`, and `REGION_TYPES_VERSION`
-([53](53-map-artifacts-and-tools.md)). Only simulation changes (bot behaviour,
-or state added to a player and so to snapshots and projections) move the traces.
+([53](53-map-artifacts-and-tools.md)). Only simulation and projection changes (bot
+behaviour, state added to a player, or a field added to a live projection) move the traces.
 
 **Batching baseline-moving work.** The sweep is a drift diagnostic for any change that
 touches the chain (two to three minutes; a builder change iterates on the replay
@@ -538,8 +541,8 @@ batches with one version bump each: see [Content changes](#content-changes-one-b
 below. A change that is meant to be behaviour-preserving never recaptures.
 
 Never regenerate a fixture to make a refactor pass: a behaviour-preserving change
-must reproduce it exactly. Regenerating is correct only for a deliberate content or
-rules change that has been decided, and it restarts the evidence — the current
+must reproduce it exactly. Regenerating is correct only for a deliberate content,
+rules or projection-contract change that has been decided, and it restarts the evidence — the current
 fixture proves nothing about code predating it. Separate intentional gameplay
 changes, and the new expectations and version decision they require, from
 behaviour-preserving extraction. `tests/fixtures/README.md` records provenance, how

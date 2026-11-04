@@ -85,6 +85,15 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
   const authorized = frame.players.filter(p => couldSee(s, viewer, p));
+  // A contestant's roster place is identity rather than gameplay, so a snapshot does not carry it: it
+  // is attached like discovery, and a view reads it from live state. A place never changes within a
+  // match, which is what lets a delayed spectator frame read today's map and mean the same thing
+  // (#792). Directed frames read it the same way, and a gladiator has no place.
+  const seats = new Map(s.players.map(p => [p.id, p.seat]));
+  const project = (p: Player) => {
+    const record = p.id === id ? ownPlayerFields(p, discovery, heard) : observed(p), seat = seats.get(p.id);
+    return seat === undefined ? record : { ...record, seat };
+  };
   // Items have no radius; the grid only spares testing those out of reach, and inRange still decides.
   const items = viewer ? framedItems(s, frame.items, viewer, POTENTIAL, inRange) : frame.items;
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
@@ -96,7 +105,7 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
     }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
-    players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery, heard) : observed(p)),
+    players: authorized.map(project),
     items: items.map(projectedItem), gates: frame.gates && projectedGates(frame.gates),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };

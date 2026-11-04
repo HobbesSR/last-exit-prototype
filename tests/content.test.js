@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
+import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { defaultContent, legacyContent, contentById, CONTENT_ID, LEGACY_CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectEquipment, WEAPONS } from '../shared/equipment.ts';
@@ -199,6 +200,35 @@ test('the roster is the one place a capacity is stated', () => {
   // Identifiers stay derived from position, which the recorded contract depends on.
   assert.deepEqual(contestants.map(p => p.id), ['c0', 'c1']);
   assert.deepEqual(gladiators.map(p => p.id), ['g0']);
+});
+
+test('a contestant roster place is transported for identity, not recorded (#792)', () => {
+  const s = createGame(4217);
+  const contestants = s.players.filter(p => p.role === 'contestant');
+  const gladiators = s.players.filter(p => p.role === 'gladiator');
+  assert.deepEqual(contestants.map(p => p.seat), contestants.map((_, i) => i), 'a place starts at its roster index');
+  assert.ok(gladiators.every(p => p.seat === undefined), 'gladiators are told apart by kit, not by a place');
+
+  // The seat belongs to the roster place, not to whoever holds it: a join takes the place with it, and
+  // a role change leaves it behind when the place goes back to its bot.
+  assert.equal(joinGame(s, 'first', 'contestant', 'warden', 'First').seat, 0);
+  const joined = joinGame(s, 'runner', 'contestant', 'warden', 'Runner');
+  assert.equal(joined.seat, 1, 'the person in a place inherits its seat');
+  const moved = changeSeat(s, 'runner', 'gladiator', 'specter');
+  assert.equal(moved.seat, undefined, 'a gladiator place has no seat');
+  assert.equal(joined.seat, 1, 'the vacated place keeps its seat as a bot holds it again');
+  assert.equal(joinGame(s, 'other', 'contestant', 'warden', 'Other').seat, 1, 'someone else can take the vacated place');
+  const back = changeSeat(s, 'runner', 'contestant', 'warden');
+  assert.equal(back.seat, 2, 'taking another contestant place takes that place\'s seat');
+
+  // A seat is identity, not gameplay, so a snapshot and a recording omit it and every view reads it
+  // from live state, directed and own alike.
+  const frame = snapshot(s);
+  assert.ok(frame.players.every(p => !Object.hasOwn(p, 'seat')), 'a snapshot omits every seat');
+  assert.equal(JSON.stringify(frame).includes('"seat"'), false);
+  const directed = new Map(playerView(s, frame, 'spectator').players.map(p => [p.id, p]));
+  for (const p of s.players) assert.equal(directed.get(p.id)?.seat, p.seat, `${p.id} carries its live seat`);
+  assert.equal(playerView(s, frame, 'runner').players.find(p => p.id === 'runner').seat, 2, 'an own record carries it too');
 });
 
 test('trap balance is read from the match, not from the module it defaults in', () => {

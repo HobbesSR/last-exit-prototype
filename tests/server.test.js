@@ -172,10 +172,12 @@ test('two clients share authority; replay preserves each recorded frame and surv
       const archived = replay.frames.find(r => r.state.tick === frame.tick && r.state.phase === frame.phase)?.state;
       assert.ok(archived, `live tick ${frame.tick} retained`);
       for (const p of frame.players) {
-        // A live view is a projection of the recording: narrower for other players, never different.
+        // A live view is a projection of the recording: narrower for other players, never different,
+        // apart from state the recording deliberately does not carry (`discovered`, `heard`, and the
+        // contestant identity `seat`).
         const recorded = archived.players.find(a => a.id === p.id);
         for (const [field, value] of Object.entries(p)) {
-          if (field === 'discovered' || field === 'heard') {
+          if (field === 'discovered' || field === 'heard' || field === 'seat') {
             assert.equal(recorded[field], undefined, `${field} is left out of recorded frames`);
             continue;
           }

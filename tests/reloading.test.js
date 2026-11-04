@@ -269,7 +269,7 @@ test('a full inventory E swap stages reserves: a rejected swap leaves them uncha
 });
 
 test('bots reload from their reserves, and a whole bot match conserves every round it does not fire', () => {
-  const fixtures = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-nav-1.json.gz', import.meta.url))));
+  const fixtures = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-seat-1.json.gz', import.meta.url))));
   const s = createGame(17, structuredClone(Object.values(fixtures.maps)[0]), contentById('content-ammo-1'));
   const contestants = new Set(s.players.filter(p => p.role === 'contestant').map(p => p.id));
   // One attack spends one round however many pellets it fires, so count shooter-ticks.
