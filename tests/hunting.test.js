@@ -273,3 +273,62 @@ test('giveUpSweep clears target even when region is -1', () => {
   const next = sweepTarget(s, g, at => at);
   assert.ok(next && next.x !== chargers[0].x, 're-evaluates sweep and targets a region instead of retaining charger');
 });
+
+test('under content-11, a gladiator keeps its sweep target when the hazard wall passes it', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: 4500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const s = {
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-11'),
+    map, players: [g],
+  };
+  noteHunterTarget(s, g, false);
+  const target1 = sweepTarget(s, g, at => at);
+  assert.ok(target1, 'picked initial sweep target');
+  assert.ok(Math.hypot(g.x - target1.x, g.y - target1.y) > 400, 'target is not yet reached');
+  // Hazard moves past target1
+  s.hazardX = target1.x + 500;
+  s.tick = 101;
+  const target2 = sweepTarget(s, g, at => at);
+  assert.deepEqual(target2, target1, 'content-11 gladiator retains sweep target even when wall passes it');
+});
+
+test('under content-12, an active charger investigation target is preserved and not dropped under goalkeeping', () => {
+  const chargers = [{ id: 'ch0', nodeId: 'n0', x: 3840, y: 576 }];
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] }, chargers });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: 10500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const cell = { kind: 'cell', charge: 100 };
+  const c = { id: 'c0', role: 'contestant', status: 'active', x: 3850, y: 576, inventory: [cell] };
+  const s = {
+    tick: 100, hazardX: -80, slots: 2, events: [], // slots: 2 triggers goalkeeping
+    content: contentById('content-12'),
+    map, players: [g, c],
+  };
+  noteHunterTarget(s, g, false);
+  assert.equal(hasEvidenceFurtherRight(s), true, 'goalkeeping is active');
+  const target1 = sweepTarget(s, g, at => at);
+  assert.ok(target1 && target1.x === chargers[0].x, 'targets charging station despite goalkeeping');
+  // Next tick: gladiator has not moved yet; target should NOT be dropped or re-assigned
+  s.tick = 101;
+  noteHunterTarget(s, g, false);
+  const target2 = sweepTarget(s, g, at => at);
+  assert.equal(target2, target1, 'same target object reference returned without dropping');
+});
+
+test('sweep target is dropped when the advancing front moves far past it', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const g = { id: 'g0', role: 'gladiator', status: 'active', x: 5000, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const s = {
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [g],
+  };
+  noteHunterTarget(s, g, false);
+  const target1 = sweepTarget(s, g, at => at);
+  assert.ok(target1, 'picked initial sweep target');
+  // Advance front far past target1
+  s.tick = 3000;
+  const target2 = sweepTarget(s, g, at => at);
+  assert.ok(target2, 'picked new sweep target');
+  assert.notEqual(target2.x, target1.x, 'dropped stale target left behind the front');
+});

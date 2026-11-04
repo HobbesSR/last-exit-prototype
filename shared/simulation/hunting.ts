@@ -135,7 +135,10 @@ export function noteHunterTarget(s: Game, p: Player, targeted: boolean): void {
   let sweep = sweeps.get(p);
   if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
   sweep.targeted = targeted;
-  if (s.content.hunting === 'front') hasEvidenceFurtherRight(s);
+  if (s.content.hunting === 'front') {
+    hasEvidenceFurtherRight(s);
+    chargerLeadOf(s);
+  }
 }
 
 function repulsionPenalty(p: Player, peers: Player[], centre: Vec2): number {
@@ -169,10 +172,12 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
   let sweep = sweeps.get(p);
   if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
   if (sweep.target) {
-    const invalid = sweep.target.x < s.hazardX + SWEEP_AHEAD
-      || (frontMode && goalkeep && distance(s.map.exit, sweep.target) > GOALKEEP_RADIUS)
-      || (frontMode && investigating && distance(investigating.station, sweep.target) > SWEEP_ARRIVE)
-      || (frontMode && !goalkeep && !investigating && sweep.target.x < estimatedFrontX(s) - 2400);
+    const invalid = frontMode && (
+      sweep.target.x < s.hazardX + SWEEP_AHEAD
+      || (goalkeep && !investigating && distance(s.map.exit, sweep.target) > GOALKEEP_RADIUS)
+      || (investigating && distance(investigating.station, sweep.target) > SWEEP_ARRIVE)
+      || (!goalkeep && !investigating && sweep.target.x < estimatedFrontX(s) - 2400)
+    );
     if (invalid) {
       giveUpSweep(s, p);
     } else {
