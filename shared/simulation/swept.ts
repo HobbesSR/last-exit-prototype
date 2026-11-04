@@ -2,6 +2,7 @@ import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import { bounds, circle, polygon, rect, segmentShapeDistance } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import { seeThrough } from '../movement.ts';
+import { bucketBox, eachCellIn, Visited } from '../buckets.ts';
 import type { BodyDefinition } from '../physics/types.ts';
 import { bodyShape } from '../physics/presentation-geometry.ts';
 import { physicsRuntime } from './physics-runtime.ts';
@@ -11,33 +12,26 @@ import type { Box, CollisionMap, Game, Gate, Role, Vec2 } from '../types.ts';
 // tip/tether both ask the same questions, differing only in radius and which geometry blocks them.
 
 const BISECTION_STEPS = 26;
-/** Bucket side for the static and gate indexes, in world units; the same scale as movement's buckets. */
-const BUCKET = 200;
 
 /**
- * Shapes bucketed by their bounds, so a sweep reads only the shapes in the cells its box covers. `boxes[i]`
- * is `bounds(shapes[i])`, computed once. Buckets hold indices into `shapes`, so candidates can be put back in
- * list order: `firstContact` brackets each shape's bisection by the contact found before it, so its result
- * depends, in the last bits, on the order shapes are met.
+ * Shapes in the shared static grid (`buckets.ts`), so a sweep reads only the shapes in the cells its box covers.
+ * `boxes[i]` is `bounds(shapes[i])`, computed once. Buckets hold indices into `shapes`, so candidates can be put
+ * back in list order: `firstContact` brackets each shape's bisection by the contact found before it, so its
+ * result depends, in the last bits, on the order shapes are met.
  */
-interface ShapeIndex { shapes: Shape[]; boxes: Box[]; buckets: Map<string, number[]>; marks: Uint32Array; mark: number }
+interface ShapeIndex { shapes: Shape[]; boxes: Box[]; buckets: Map<string, number[]> }
 const shotCache = new WeakMap<CollisionMap, ShapeIndex>();
 const solidCache = new WeakMap<CollisionMap, ShapeIndex>();
 // A gate's box never moves; only `open` changes. Keyed by the gate list, as movement's gate index is: a list may
 // grow but is never reordered in place, so the count tells whether it has.
 interface GateShapes { count: number; index: ShapeIndex }
 const gateCache = new WeakMap<readonly Gate[], GateShapes>();
+const visited = new Visited();
 
 function shapeIndex(shapes: Shape[]): ShapeIndex {
   const boxes = shapes.map(bounds), buckets = new Map<string, number[]>();
-  boxes.forEach((box, i) => {
-    for (let x = Math.floor(box.x / BUCKET); x <= Math.floor((box.x + box.w) / BUCKET); x++)
-      for (let y = Math.floor(box.y / BUCKET); y <= Math.floor((box.y + box.h) / BUCKET); y++) {
-        const key = `${x},${y}`, list = buckets.get(key);
-        if (list) list.push(i); else buckets.set(key, [i]);
-      }
-  });
-  return { shapes, boxes, buckets, marks: new Uint32Array(shapes.length), mark: 0 };
+  boxes.forEach((box, i) => bucketBox(buckets, box, i));
+  return { shapes, boxes, buckets };
 }
 
 /**
@@ -46,17 +40,15 @@ function shapeIndex(shapes: Shape[]): ShapeIndex {
  */
 function candidates(index: ShapeIndex, left: number, top: number, right: number, bottom: number): number[] {
   const found: number[] = [];
-  if (++index.mark === 0xffffffff) { index.marks.fill(0); index.mark = 1; }
-  for (let x = Math.floor(left / BUCKET); x <= Math.floor(right / BUCKET); x++)
-    for (let y = Math.floor(top / BUCKET); y <= Math.floor(bottom / BUCKET); y++) {
-      for (const i of index.buckets.get(`${x},${y}`) ?? []) {
-        if (index.marks[i] === index.mark) continue;
-        index.marks[i] = index.mark;
-        const box = index.boxes[i]!;
-        if (box.x > right || box.y > bottom || box.x + box.w < left || box.y + box.h < top) continue;
-        found.push(i);
-      }
+  visited.begin(index.shapes.length);
+  eachCellIn(index.buckets, left, top, right, bottom, list => {
+    for (const i of list) {
+      if (!visited.first(i)) continue;
+      const box = index.boxes[i]!;
+      if (box.x > right || box.y > bottom || box.x + box.w < left || box.y + box.h < top) continue;
+      found.push(i);
     }
+  });
   return found.sort((a, b) => a - b);
 }
 
@@ -126,8 +118,10 @@ function solidProps(game: Game): Shape[] {
   return props.map(({ spec, transform }) => bodyShape({ ...transform, shape: spec.shape }));
 }
 
-/** Current solid query geometry for the physical hook and diagnostic casts.
- * Static descriptors are borrowed from the map cache; callers must treat all returned shapes as read-only.
+/**
+ * The whole solid query geometry as one list, for diagnostic casts and tests; the hook asks `solidContact`,
+ * which reads the same geometry through the indexes. Static descriptors are borrowed from the map cache;
+ * callers must treat all returned shapes as read-only.
  */
 export function solidBlockers(game: Game): Shape[] {
   return [...staticShapes(game.map, false), ...closedGateShapes(game.map.gates), ...solidProps(game)];
@@ -137,6 +131,7 @@ export function solidBlockers(game: Game): Shape[] {
 export function solidContact(game: Game, a: Vec2, b: Vec2, radius: number): number {
   return geometryContact(game.map, false, a, b, radius, solidProps(game));
 }
+
 /** First relative disk intersection of a moving point and a moving actor, including an initial overlap. */
 export function impact(a: Vec2, b: Vec2, start: Vec2, end: Vec2, radius: number): number | null {
   const x = a.x - start.x, y = a.y - start.y;

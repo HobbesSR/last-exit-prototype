@@ -65,7 +65,8 @@ shape, with analytic circles and polygon/rectangle containment and edge tests; t
 (`shared/simulation/swept.ts`: the hook tip and tether, shots and the lab's Cast ahead) use it through
 `firstContact`, and so does the navigation adapter in [42.1](42.1-navigation-experiment.md). The
 engine's own contact does not. Shots and the hook query the map through `geometryContact`, which keeps
-static shapes and gate shapes in 200-unit buckets and hands `firstContact` only those whose bounds meet
+static shapes and gate shapes in the static cell grid that movement's colliders, sight edges and gates also
+use (`shared/buckets.ts`, 200-unit cells), and hands `firstContact` only those whose bounds meet
 the sweep's box. The candidates stay in list order (static shapes, then closed gates, then extras). Each
 shape's bisection is bracketed by the contacts met before it, so a different order changes the result
 in its last bits (#668).

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { closedGateShapes, firstContact, geometryContact, staticShapes } from '../shared/simulation/swept.ts';
+import { circle, polygon } from '../shared/shape.ts';
 
 // #668: geometryContact reads only the shapes in the cells a sweep's box covers. It must give the same answer,
 // to the bit, as firstContact over the whole list, which brackets each shape's bisection by the contacts met
@@ -49,6 +50,28 @@ for (const passSeeThrough of [true, false]) test(`indexed sweeps equal the whole
 test('a sweep along a bucket boundary meets a shape that spans the cells on both sides', () => {
   const map = fixture();
   const a = { x: 100, y: 400 }, b = { x: 1100, y: 400 };
+  const expected = firstContact(a, b, [...staticShapes(map, true), ...closedGateShapes(map.gates)], 2);
+  assert.ok(expected < Infinity);
+  assert.ok(Object.is(geometryContact(map, true, a, b, 2), expected));
+});
+
+test('extra shapes are met after statics and gates, to the bit', () => {
+  const map = fixture(), random = lcg(1668);
+  // Props stand in for the hook's solid props: some overlap walls, so their place in the order matters.
+  const extra = Array.from({ length: 12 }, (_, i) => polygon(100 + i * 90, 380 + (i % 3) * 20, [{ x: -8, y: -8 }, { x: 8, y: -8 }, { x: 0, y: 9 }]));
+  extra.push(circle(600, 400, 15), circle(805, 410, 6));
+  for (let n = 0; n < 2000; n++) {
+    const a = { x: random() * 1200, y: 300 + random() * 200 }, angle = random() * Math.PI * 2, length = random() * 300;
+    const b = { x: a.x + Math.cos(angle) * length, y: a.y + Math.sin(angle) * length };
+    const expected = firstContact(a, b, [...staticShapes(map, false), ...closedGateShapes(map.gates), ...extra], 0);
+    assert.ok(Object.is(geometryContact(map, false, a, b, 0, extra), expected), `sweep ${n}`);
+  }
+});
+
+test('a gate added to the list is indexed', () => {
+  const map = fixture(), a = { x: 700, y: 200 }, b = { x: 700, y: 330 };
+  assert.equal(geometryContact(map, true, a, b, 2), Infinity);
+  map.gates.push({ id: 'g4', kind: 'gate', x: 700, y: 260, w: 40, h: 10, open: false });
   const expected = firstContact(a, b, [...staticShapes(map, true), ...closedGateShapes(map.gates)], 2);
   assert.ok(expected < Infinity);
   assert.ok(Object.is(geometryContact(map, true, a, b, 2), expected));
