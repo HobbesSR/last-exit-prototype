@@ -72,12 +72,21 @@ export function resolveEventLights(frame, { lighting = true, lit = () => true, i
  */
 const STEPS = 4;
 
+/** A unit 24-gon: a soft glow needs no finer outline than this. */
+const SIDES = 24;
+const UNIT = Array.from({ length: SIDES }, (_, i) => [Math.cos(i * 2 * Math.PI / SIDES), Math.sin(i * 2 * Math.PI / SIDES)]);
+const scratch = UNIT.map(() => ({ x: 0, y: 0 }));
+
 /** Draw glows additively (the layer's blend mode is ADD). */
 export function drawEventLights(g, lights) {
   g.clear();
   for (const light of lights) {
     g.fillStyle(light.tint, light.strength / STEPS);
-    for (let i = 0; i < STEPS; i++) g.fillCircle(light.x, light.y, light.radius * (STEPS - i) / STEPS);
+    for (let i = 0; i < STEPS; i++) {
+      const r = light.radius * (STEPS - i) / STEPS;
+      for (let k = 0; k < SIDES; k++) { scratch[k].x = light.x + UNIT[k][0] * r; scratch[k].y = light.y + UNIT[k][1] * r; }
+      g.fillPoints(scratch, true);
+    }
   }
 }
 

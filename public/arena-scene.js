@@ -813,6 +813,9 @@ export function makeArenaScene(api) {
       // below may light anything. Props drawn above the layer take the same lift as the ground beneath.
       const eventLights = resolveEventLights(state, { lighting: this.lighting, lit, inView: nearView, alpha: api.frameAlpha() });
       drawEventLights(this.eventLight, eventLights);
+      // An empty additive layer still costs Phaser a blend switch and batch flush each frame.
+      this.eventLight.setVisible(eventLights.length > 0);
+      count('work.eventLights', eventLights.length);
       // Level of detail thresholds for distant / spectator views:
       // zoom < LOD_LOW_ZOOM: simplified rects / outlines, skip sub-pixel inner details and rounded arc tessellations.
       // zoom < LOD_MEDIUM_ZOOM: simplified item geometry without sinusoids or drop shadows.

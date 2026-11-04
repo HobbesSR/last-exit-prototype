@@ -68,7 +68,7 @@ test('decorative glows never borrow a gameplay signal color or draw an outline',
   const calls = [];
   const g = new Proxy({}, { get: (_, name) => (...args) => { calls.push(name); return g; } });
   drawEventLights(g, resolveEventLights(frame()));
-  assert.deepEqual([...new Set(calls)].sort(), ['clear', 'fillCircle', 'fillStyle']);
+  assert.deepEqual([...new Set(calls)].sort(), ['clear', 'fillPoints', 'fillStyle']);
 });
 
 test('added light falls off from the centre, and props lift with the ground beneath them', () => {

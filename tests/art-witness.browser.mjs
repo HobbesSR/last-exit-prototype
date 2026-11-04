@@ -720,15 +720,19 @@ try {
           const litGroundHex = f.pixelAtWorld(surfaceRefs.ground.x, surfaceRefs.ground.y).hex;
           const shadedGroundHex = f.pixelAtWorld(surfaceRefs.shadedGround.x, surfaceRefs.shadedGround.y).hex;
           const dynamicCalls = [], lightCalls = [];
-          const orig = {}, lightFill = s.eventLight.fillCircle.bind(s.eventLight);
-          s.eventLight.fillCircle = (...args) => { lightCalls.push(args); return lightFill(...args); };
+          // A glow is drawn as polygons; record each one's centre.
+          const orig = {}, lightFill = s.eventLight.fillPoints.bind(s.eventLight);
+          s.eventLight.fillPoints = (points, ...rest) => {
+            lightCalls.push([points.reduce((sum, p) => sum + p.x, 0) / points.length, points.reduce((sum, p) => sum + p.y, 0) / points.length]);
+            return lightFill(points, ...rest);
+          };
           for (const m of ['fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'fillCircle', 'strokeCircle', 'fillEllipse']) {
             orig[m] = s.dynamic[m].bind(s.dynamic);
             s.dynamic[m] = (...args) => { dynamicCalls.push([m, args]); return orig[m](...args); };
           }
           f.step(16, fixedNow);
           for (const [m, fn] of Object.entries(orig)) s.dynamic[m] = fn;
-          s.eventLight.fillCircle = lightFill;
+          s.eventLight.fillPoints = lightFill;
           const litEffect = f.state.effects.find(e => e.id === 'fx-shock'), hiddenEffect = f.state.effects.find(e => e.id === 'fx-hidden');
           const nearCoord = (args, x, y) => Math.abs(args[0] - x) <= 16 && Math.abs(args[1] - y) <= 16;
           return {
