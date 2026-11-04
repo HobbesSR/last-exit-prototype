@@ -125,6 +125,22 @@ and walking on. A transit costs its travel time plus 3 seconds. A station counts
 spent by the time the gladiator gets there. When transit is quicker the gladiator heads for that station and, in
 reach, sends the destination with the `transit` input. Distances, times and weights are placeholders.
 
+`content-12` (#681, selectable) is `content-11` with front-estimated coarse sweeping, repulsion between targetless
+gladiators, and exit goalkeeping (`hunting: 'front'`, 17.3 #26). Before any evidence suggests a contestant is further
+right, a gladiator with no contestant seen and no lead targets an estimated contestant front advancing from the entry
+toward the exit at 4 units per tick (floored at 6,000 units ahead of the wall, up to 45% of the entry-to-exit span) in
+the vertical middle (`height / 2`). Once evidence suggests at least one contestant is further right — a sighted or
+revealed contestant or a heard gunfire cue more than 1,600 units east of the estimated front (or within 400 units of
+the exit), a charged power cell or claimed escape pod, or the estimated front itself reaching within 400 units of the
+exit — targetless gladiators switch their anchor to the exit to goalkeep (patrolling regions within 2,400 units of
+it). While sweeping toward the front, a gladiator prefers regions at least 2,400 units away so each sweep leg is a
+real trip where transit can pay off, falling back to closer or earlier-swept regions only when none is left. Candidate
+regions are scored by horizontal distance from the anchor (× 2.0), vertical distance from the anchor (× 1.0), distance
+from the gladiator (× 0.08), and a linear repulsion penalty (up to 2,400 units within 3,600 units) from both the
+positions and sweep targets of other gladiators that currently have no target. Gladiators that have a concrete target
+(a seen contestant or a gunfire lead) neither repel nor are repelled by teammates. Distances, speeds and weights are
+placeholders.
+
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
 ## Experimental physical world profile (#445)

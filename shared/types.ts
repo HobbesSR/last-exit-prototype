@@ -298,7 +298,7 @@ export interface MatchContent {
    * seen and nothing heard, a gladiator sweeps regions ahead of the wall rather than waiting at a station, and it
    * transits toward a lead or a sweep when walking to a station and transiting is quicker. Unset, neither.
    */
-  hunting?: 'sweep' | undefined;
+  hunting?: 'sweep' | 'front' | undefined;
 }
 
 /**

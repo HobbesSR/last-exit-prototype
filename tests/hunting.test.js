@@ -2,15 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { transitPlan } from '../shared/simulation/hunting.ts';
+import { estimatedFrontX, hasEvidenceFurtherRight, noteHunterTarget, sweepTarget, transitPlan } from '../shared/simulation/hunting.ts';
+import { hearShot } from '../shared/simulation/hearing.ts';
 import { arena } from './helpers/arena.js';
 import { gunfight, run, stagePhysics } from './helpers/scenario.js';
 
-// Gladiator bots sweep regions ahead of the wall and take transit when it is quicker (#683, 14 "Gladiator bots").
+// Gladiator bots sweep regions ahead of the wall and take transit when it is quicker (#683, #681, 14 "Gladiator bots").
 
 test('content-11 is content-10 with gladiators sweeping and transiting', () => {
   const { id, hunting, ...eleven } = contentById('content-11'), { id: ten, ...rest } = contentById('content-10');
   assert.deepEqual([id, ten, hunting, eleven], ['content-11', 'content-10', 'sweep', rest]);
+});
+
+test('content-12 is content-11 with front-estimated coarse sweeping, repulsion and exit goalkeeping', () => {
+  const { id, hunting, ...twelve } = contentById('content-12'), { id: eleven, hunting: _, ...rest } = contentById('content-11');
+  assert.deepEqual([id, eleven, hunting, twelve], ['content-12', 'content-11', 'front', rest]);
 });
 
 test('a transit is planned only when walking to a station, transiting and walking on is quicker', () => {
@@ -44,4 +50,61 @@ test('with no one seen and nothing heard, a gladiator sweeps the regions ahead, 
     assert.ok(reached.every(t => t !== null), `reached ${reached}`);
     assert.ok(reached[0] < reached[1] && reached[1] < reached[2], `in order ${reached}`);
   } finally { disposePhysics(s); }
+});
+
+test('under content-12, sweeping targets coarse regions near the estimated left-to-right front and switches to the exit once evidence is further right', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const g1 = { id: 'g0', role: 'gladiator', status: 'active', x: 10500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const c1 = { id: 'c0', role: 'contestant', status: 'active', x: 960, y: 576, revealed: 0 };
+  const s = {
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [g1, c1],
+  };
+  noteHunterTarget(s, g1, false);
+  const first = sweepTarget(s, g1, at => at);
+  assert.ok(first, 'picked a sweep target');
+  // Gladiator at x=10500 picks a coarse region (> 2400 away) toward the early front, not the immediate neighbour.
+  assert.ok(Math.hypot(g1.x - first.x, g1.y - first.y) >= 2400, `coarse step from ${g1.x} to ${first.x}`);
+  assert.ok(Math.abs(first.x - estimatedFrontX(s)) < 2000, `near estimated front ${estimatedFrontX(s)}: got ${first.x}`);
+  assert.equal(hasEvidenceFurtherRight(s), false);
+
+  // Once evidence suggests a contestant is further right (e.g. a cell charged or shot heard near the exit), targetless gladiators head toward the exit to goalkeep.
+  const g2 = { id: 'g1', role: 'gladiator', status: 'active', x: 6000, y: 576, railCd: 0, boost: 0, stun: 0 };
+  s.players.push(g2);
+  s.tick = 101;
+  hearShot(s, { id: 'c0', role: 'contestant', x: map.exit.x - 300, y: 576 }, 'pistol');
+  noteHunterTarget(s, g2, false);
+  assert.equal(hasEvidenceFurtherRight(s), true);
+  const keep = sweepTarget(s, g2, at => at);
+  assert.ok(keep && keep.x > map.exit.x - 2400, `goalkeeping near exit (${map.exit.x}): got ${keep?.x}`);
+});
+
+test('under content-12, targetless gladiators repel each other while targeted gladiators do not', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const peer = { id: 'g0', role: 'gladiator', status: 'active', x: 0, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const seekerA = { id: 'g1', role: 'gladiator', status: 'active', x: 10500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const seekerB = { id: 'g2', role: 'gladiator', status: 'active', x: 10500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const s = {
+    tick: 1380, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [peer, seekerA],
+  };
+  const frontRegionX = sweepTarget({ ...s, players: [{ ...seekerB }] }, { ...seekerB }, at => at).x;
+  // Place `peer` near `frontRegionX` (without sweeping `frontRegionX` itself, since peer is within 2400 of it).
+  peer.x = frontRegionX;
+  // When `peer` has no target, `seekerA` is repelled away from `peer`'s position near `frontRegionX`.
+  noteHunterTarget(s, peer, false);
+  noteHunterTarget(s, seekerA, false);
+  const repelled = sweepTarget(s, seekerA, at => at);
+
+  // When `peer` has a concrete target, `seekerB` ignores `peer` for repulsion and picks the region at `frontRegionX`.
+  s.players = [peer, seekerB];
+  noteHunterTarget(s, peer, true);
+  noteHunterTarget(s, seekerB, false);
+  const unrepelled = sweepTarget(s, seekerB, at => at);
+
+  assert.ok(repelled && unrepelled);
+  assert.equal(unrepelled.x, frontRegionX, 'unrepelled gladiator picks the region right on the front');
+  assert.notEqual(repelled.x, unrepelled.x, `repelled gladiator picks a different region (${repelled.x} vs ${unrepelled.x})`);
 });
