@@ -4,6 +4,7 @@ import { disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { estimatedFrontX, hasEvidenceFurtherRight, noteHunterTarget, sweepTarget, transitPlan } from '../shared/simulation/hunting.ts';
 import { hearShot } from '../shared/simulation/hearing.ts';
+import { visibleTo } from '../shared/simulation/visibility.ts';
 import { arena } from './helpers/arena.js';
 import { gunfight, run, stagePhysics } from './helpers/scenario.js';
 
@@ -69,7 +70,7 @@ test('under content-12, sweeping targets coarse regions near the estimated left-
   assert.ok(Math.abs(first.x - estimatedFrontX(s)) < 2000, `near estimated front ${estimatedFrontX(s)}: got ${first.x}`);
   assert.equal(hasEvidenceFurtherRight(s), false);
 
-  // Once evidence suggests a contestant is further right (e.g. a cell charged or shot heard near the exit), targetless gladiators head toward the exit to goalkeep.
+  // Once evidence suggests a contestant is further right (e.g. shot heard near the exit), targetless gladiators head toward the exit to goalkeep.
   const g2 = { id: 'g1', role: 'gladiator', status: 'active', x: 6000, y: 576, railCd: 0, boost: 0, stun: 0 };
   s.players.push(g2);
   s.tick = 101;
@@ -78,6 +79,109 @@ test('under content-12, sweeping targets coarse regions near the estimated left-
   assert.equal(hasEvidenceFurtherRight(s), true);
   const keep = sweepTarget(s, g2, at => at);
   assert.ok(keep && keep.x > map.exit.x - 2400, `goalkeeping near exit (${map.exit.x}): got ${keep?.x}`);
+});
+
+test('hasEvidenceFurtherRight checks each evidence branch without string-parsing match events', () => {
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] } });
+  const frontX = 1000;
+  const threshold = frontX + 1600; // 2600
+  const gladiator = { id: 'g0', role: 'gladiator', status: 'active', x: 500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const baseState = () => ({
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [gladiator],
+  });
+
+  // Branch 1: slots < INITIAL_ESCAPE_SLOTS (an escape pod was powered)
+  const sSlots = baseState();
+  sSlots.slots = 2;
+  assert.equal(hasEvidenceFurtherRight(sSlots), true, 'claimed escape pod latches evidence');
+
+  // Branch 2: front itself reaches exit
+  const sExit = baseState();
+  sExit.tick = 20000;
+  assert.equal(hasEvidenceFurtherRight(sExit), true, 'front reaching exit latches evidence');
+
+  // Branch 3: contestant sighted beyond threshold
+  const sSight = baseState();
+  const cSight = { id: 'c0', role: 'contestant', status: 'active', x: threshold + 100, y: 576, revealed: 0 };
+  gladiator.x = threshold + 50; // In sight and clear line
+  sSight.players = [gladiator, cSight];
+  assert.equal(hasEvidenceFurtherRight(sSight), true, 'sighted contestant beyond threshold latches evidence');
+
+  // Contestant sighted behind threshold does NOT latch
+  const sBehind = baseState();
+  gladiator.x = 500;
+  const cBehind = { id: 'c0', role: 'contestant', status: 'active', x: 600, y: 576, revealed: 0 };
+  sBehind.players = [gladiator, cBehind];
+  assert.equal(hasEvidenceFurtherRight(sBehind), false, 'sighted contestant behind threshold does not latch');
+
+  // Branch 4: contestant revealed beyond threshold (e.g. pulse scan) even if not directly visible
+  const sReveal = baseState();
+  const cReveal = { id: 'c0', role: 'contestant', status: 'active', x: threshold + 200, y: 576, revealed: 50 };
+  gladiator.x = 500; // Far away, cannot see directly
+  sReveal.players = [gladiator, cReveal];
+  assert.equal(hasEvidenceFurtherRight(sReveal), true, 'revealed contestant beyond threshold latches evidence');
+
+  // Branch 5: heard gunfire cue beyond threshold
+  const sHeard = baseState();
+  const gHeard = { id: 'g0', role: 'gladiator', status: 'active', x: 500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  sHeard.players = [gHeard];
+  hearShot(sHeard, { id: 'c0', role: 'contestant', x: threshold + 300, y: 576 }, 'pistol');
+  assert.equal(hasEvidenceFurtherRight(sHeard), true, 'heard shot beyond threshold latches evidence');
+
+  // Shot heard behind threshold does NOT latch
+  const sHeardBehind = baseState();
+  const gHeardBehind = { id: 'g0', role: 'gladiator', status: 'active', x: 500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  sHeardBehind.players = [gHeardBehind];
+  hearShot(sHeardBehind, { id: 'c0', role: 'contestant', x: 600, y: 576 }, 'pistol');
+  assert.equal(hasEvidenceFurtherRight(sHeardBehind), false, 'heard shot behind threshold does not latch');
+});
+
+test('bot-match under content-12 runs physics simulation cleanly and uses transit', async () => {
+  const { map } = arena({ cols: 30, rows: 6, corridor: { gaps: [2, 2, 2, 2] },
+    stations: [{ id: 'st0', nodeId: 'n0', x: 300, y: 576 }, { id: 'st1', nodeId: 'n1', x: 5000, y: 576 }] });
+  const actors = [
+    { role: 'gladiator', x: 250, y: 576 },
+    { role: 'contestant', bot: true, x: 5400, y: 576 },
+  ];
+  const { s, players: [g] } = await stagePhysics(map, {
+    content: contentById('content-12'),
+    actors,
+  });
+  try {
+    let sawOrTransit = false;
+    run(s, { ticks: 120, trace: s => { if (g.status === 'transit' || g.railCd > 0 || visibleTo(s, g, s.players[1])) sawOrTransit = true; } });
+    assert.ok(s.tick === 120, 'ran 120 ticks cleanly');
+    assert.ok(sawOrTransit, 'gladiator swept or transited toward the contestant/goal');
+  } finally { disposePhysics(s); }
+});
+
+test('under content-12, a powered cell directs gladiators to investigate the charging station rather than goalkeep at exit', () => {
+  const chargers = [{ id: 'ch0', nodeId: 'n0', x: 3840, y: 576 }, { id: 'ch1', nodeId: 'n1', x: 7680, y: 576 }];
+  const { map } = arena({ cols: 60, rows: 6, corridor: { gaps: [2, 2, 2, 2, 2, 2, 2, 2, 2] }, chargers });
+  const gladiator = { id: 'g0', role: 'gladiator', status: 'active', x: 10500, y: 576, railCd: 0, boost: 0, stun: 0 };
+  const cell = { kind: 'cell', charge: 100 };
+  const contestant = { id: 'c0', role: 'contestant', status: 'active', x: 3850, y: 576, inventory: [cell] };
+  const s = {
+    tick: 100, hazardX: -80, slots: 3, events: [],
+    content: contentById('content-12'),
+    map, players: [gladiator, contestant],
+  };
+  noteHunterTarget(s, gladiator, false);
+  // Charging in the west does NOT trigger exit goalkeeping.
+  assert.equal(hasEvidenceFurtherRight(s), false, 'charging in the west does not trigger goalkeeping at exit');
+  // Instead, the gladiator is directed to investigate the charging station.
+  const target = sweepTarget(s, gladiator, at => at);
+  assert.ok(target, 'picked investigation target');
+  assert.equal(target.x, chargers[0].x, 'gladiator targets the charging station where cell was powered');
+
+  // Once the gladiator arrives at the charging station, it marks it checked and resumes normal sweeping.
+  gladiator.x = chargers[0].x;
+  gladiator.y = chargers[0].y;
+  const afterArrival = sweepTarget(s, gladiator, at => at);
+  assert.ok(afterArrival, 'resumed sweeping after checking charger');
+  assert.notEqual(afterArrival.x, chargers[0].x, 'picked a new region after investigating charger');
 });
 
 test('under content-12, targetless gladiators repel each other while targeted gladiators do not', () => {

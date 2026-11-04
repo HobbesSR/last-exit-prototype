@@ -1,3 +1,4 @@
+import { carriedCell } from '../equipment.ts';
 import { movementSpeed, TILE } from '../movement.ts';
 import { portalGraphOf } from '../navigation/portal-graph.ts';
 import { distance } from './geometry.ts';
@@ -5,7 +6,7 @@ import { heardBy } from './hearing.ts';
 import { HZ, INITIAL_ESCAPE_SLOTS } from './rules.ts';
 import { transitTicks } from './transit.ts';
 import { visibleTo } from './visibility.ts';
-import type { Game, Player, Station, Tick, Vec2, World } from '../types.ts';
+import type { CellItem, Game, Player, Station, Tick, Vec2, World } from '../types.ts';
 
 // How a gladiator bot hunts with nothing seen (#683, #681, 14 "Gladiator bots"): it sweeps regions ahead of the wall,
 // and it takes transit when the trip to its goal is shorter that way. Under `hunting: 'front'` (`content-12`) it
@@ -28,8 +29,8 @@ const SWEEP_ARRIVE: World = 400, SWEEP_STALL = 10 * HZ;
 const SWEEP_REVISIT = 90 * HZ;
 /** Under `hunting: 'front'`, a sweep step prefers regions at least this far from where the gladiator stands. */
 const FRONT_MIN_STEP: World = 2400;
-/** Estimated left-to-right contestant advance speed (world units per tick) and how far ahead of the wall the front stays. */
-const FRONT_SPEED = 4.0, FRONT_WALL_LEAD: World = 6000;
+/** Estimated left-to-right contestant advance speed (world units per tick). */
+const FRONT_SPEED = 4.0;
 /** How strongly `hunting: 'front'` pulls candidate regions toward the estimated horizontal front and vertical middle. */
 const FRONT_X_WEIGHT = 2.0, FRONT_Y_WEIGHT = 1.0, FRONT_DISTANCE_WEIGHT = 0.08;
 /** Range within which targetless gladiators repel each other's positions and sweep targets, and peak penalty. */
@@ -53,19 +54,53 @@ interface Sweep {
 const sweeps = new WeakMap<Player, Sweep>();
 const frontEvidence = new WeakMap<Game, { tick: Tick; furtherRight: boolean }>();
 
+interface ChargerLead {
+  station: Vec2;
+  tick: Tick;
+}
+const chargerLeads = new WeakMap<Game, ChargerLead>();
+const knownChargedCells = new WeakMap<Game, WeakSet<CellItem>>();
+const chargerChecked = new WeakMap<Player, Tick>();
+/** A charger where a cell was powered is investigated for this long. */
+const CHARGER_INVESTIGATE_FOR = 60 * HZ;
+
+function updateChargerLead(s: Game): ChargerLead | undefined {
+  let known = knownChargedCells.get(s);
+  if (!known) knownChargedCells.set(s, known = new WeakSet());
+  for (const p of s.players) {
+    if (p.role !== 'contestant') continue;
+    const cell = carriedCell(p);
+    const charging = p.charging ? s.map.chargers.find(st => st.id === p.charging) : undefined;
+    if (charging && charging.x > s.hazardX + SWEEP_AHEAD) {
+      const lead = { station: { x: charging.x, y: charging.y }, tick: s.tick };
+      chargerLeads.set(s, lead);
+      return lead;
+    }
+    if (cell && cell.charge >= s.content.cellChargeTicks && !known.has(cell)) {
+      known.add(cell);
+      const nearest = s.map.chargers.filter(st => st.x > s.hazardX + SWEEP_AHEAD)
+        .map(st => ({ st, d: distance(p, st) })).sort((a, b) => a.d - b.d)[0]?.st;
+      if (nearest) {
+        const lead = { station: { x: nearest.x, y: nearest.y }, tick: s.tick };
+        chargerLeads.set(s, lead);
+        return lead;
+      }
+    }
+  }
+  return chargerLeads.get(s);
+}
+
 /** Estimated left-to-right contestant x from elapsed match time, clamped ahead of the wall. */
 export function estimatedFrontX(s: Game): World {
   const startX = s.map.entry?.x ?? 0, endX = s.map.exit.x;
   const elapsedX = startX + s.tick * FRONT_SPEED;
-  const wallLead = Math.min(FRONT_WALL_LEAD, (endX - startX) * 0.45);
-  const raw = Math.max(elapsedX, s.hazardX + wallLead);
-  return Math.min(endX, Math.max(s.hazardX + SWEEP_AHEAD, raw));
+  return Math.min(endX, Math.max(s.hazardX + SWEEP_AHEAD, elapsedX));
 }
 
 /**
  * Update and return whether gladiators have evidence that at least one contestant is further right than the
  * estimated front (or at the exit): a sighted or revealed contestant further right, a heard gunfire cue further right,
- * a charged power cell or claimed escape pod, or the estimated front itself reaching the exit.
+ * a claimed escape pod (`s.slots < INITIAL_ESCAPE_SLOTS`), or the estimated front itself reaching the exit.
  */
 export function hasEvidenceFurtherRight(s: Game): boolean {
   let state = frontEvidence.get(s);
@@ -74,8 +109,7 @@ export function hasEvidenceFurtherRight(s: Game): boolean {
   state.tick = s.tick;
   const frontX = estimatedFrontX(s);
   const threshold = Math.min(s.map.exit.x - SWEEP_ARRIVE, frontX + FRONT_EVIDENCE_MARGIN);
-  if (frontX >= s.map.exit.x - SWEEP_ARRIVE || s.slots < INITIAL_ESCAPE_SLOTS
-    || s.events.some(e => e.text.includes('charged a power cell') || e.text.includes('powered an escape pod'))) {
+  if (frontX >= s.map.exit.x - SWEEP_ARRIVE || s.slots < INITIAL_ESCAPE_SLOTS) {
     state.furtherRight = true;
     return true;
   }
@@ -90,7 +124,10 @@ export function hasEvidenceFurtherRight(s: Game): boolean {
   return false;
 }
 
-/** Record whether `p` currently has a concrete target (a seen contestant or a gunfire lead). */
+/**
+ * Record whether `p` currently has a concrete target (a seen contestant or a gunfire lead).
+ * Also primes the per-tick evidence cache so `hasEvidenceFurtherRight` evaluates early in the bot phase.
+ */
 export function noteHunterTarget(s: Game, p: Player, targeted: boolean): void {
   let sweep = sweeps.get(p);
   if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
@@ -121,14 +158,28 @@ function repulsionPenalty(p: Player, peers: Player[], centre: Vec2): number {
 export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): Vec2 | null {
   const frontMode = s.content.hunting === 'front';
   const goalkeep = frontMode && hasEvidenceFurtherRight(s);
+  const chargerLead = frontMode ? updateChargerLead(s) : undefined;
+  const investigating = chargerLead && s.tick - chargerLead.tick <= CHARGER_INVESTIGATE_FOR && chargerLead.station.x > s.hazardX + SWEEP_AHEAD
+    && (chargerChecked.get(p) ?? -Infinity) < chargerLead.tick ? chargerLead : undefined;
   const graph = portalGraphOf(s.map);
-  if (!graph) return goalkeep ? stand(s.map.exit) : null;
+  if (!graph) return goalkeep ? stand(s.map.exit) : investigating ? stand(investigating.station) : null;
   let sweep = sweeps.get(p);
   if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
   if (sweep.target) {
     if (distance(p, sweep.moved) > TILE) { sweep.moved = { x: p.x, y: p.y }; sweep.progressed = s.tick; }
-    if (distance(p, sweep.target) < SWEEP_ARRIVE || s.tick - sweep.progressed > SWEEP_STALL) giveUpSweep(s, p);
-    else return sweep.target;
+    if (distance(p, sweep.target) < SWEEP_ARRIVE || s.tick - sweep.progressed > SWEEP_STALL) {
+      if (investigating && distance(p, investigating.station) < SWEEP_ARRIVE) chargerChecked.set(p, s.tick);
+      giveUpSweep(s, p);
+    } else return sweep.target;
+  }
+  if (investigating) {
+    if (distance(p, investigating.station) < SWEEP_ARRIVE) {
+      chargerChecked.set(p, s.tick);
+    } else {
+      sweep.targeted = true;
+      Object.assign(sweep, { region: -1, target: stand(investigating.station), moved: { x: p.x, y: p.y }, progressed: s.tick });
+      return sweep.target;
+    }
   }
   const peers = s.players.filter(q => q !== p && q.role === 'gladiator' && q.status !== 'eliminated' && (!frontMode || !sweeps.get(q)?.targeted));
   const taken = new Set(peers.map(q => sweeps.get(q)?.region));
