@@ -811,20 +811,25 @@ try {
     }
   }
 
-  // 1b. Event light (#594): a seen shock brightens the ground beside it; switching lighting off removes the glow.
+  // 1b. Event light (#594): the glow is what a seen shock adds with lighting on, so compare the frame
+  // with and without that shock rather than lighting on and off (static fields would also change).
   const eventLightPixels = await page.evaluate(async ({ playZoom }) => {
-    const f = window.witness;
-    const read = async lighting => {
-      await f.settle({ palette: 'signature', lighting, directed: true, fog: true, followId: 'self', camera: { x: 620, y: 450, zoom: playZoom }, selfPos: { x: 600, y: 380 } });
-      return f.pixelAtWorld(340, 395).rgb;
+    const f = window.witness, effects = f.state.effects;
+    const read = async (lighting, withShock) => {
+      f.state.effects = withShock ? effects : effects.filter(e => e.id !== 'fx-shock');
+      try {
+        await f.settle({ palette: 'signature', lighting, directed: true, fog: true, followId: 'self', camera: { x: 620, y: 450, zoom: playZoom }, selfPos: { x: 600, y: 380 } });
+        return f.pixelAtWorld(340, 395).hex;
+      } finally { f.state.effects = effects; }
     };
-    const lit = await read(true), unlit = await read(false);
+    const result = { shock: await read(true, true), none: await read(true, false), offShock: await read(false, true), offNone: await read(false, false) };
     await f.settle({ lighting: true });
-    return { lit, unlit };
+    return result;
   }, { playZoom: PLAY_ZOOM });
-  const brightness = rgb => rgb[0] + rgb[1] + rgb[2];
-  assert.ok(brightness(eventLightPixels.lit) > brightness(eventLightPixels.unlit),
-    `event light brightens ground beside a seen shock (${eventLightPixels.lit} vs ${eventLightPixels.unlit})`);
+  const brightness = c => (c >> 16 & 255) + (c >> 8 & 255) + (c & 255);
+  assert.ok(brightness(eventLightPixels.shock) > brightness(eventLightPixels.none),
+    `event light brightens ground beside a seen shock (${eventLightPixels.shock.toString(16)} vs ${eventLightPixels.none.toString(16)})`);
+  assert.equal(eventLightPixels.offShock, eventLightPixels.offNone, 'with lighting off, the shock adds no light beside it');
 
   // 2. Exterior (`playerZoom`, roof covered) vs Interior (`playerZoom * INSIDE_ZOOM`, roof revealed) in live player view (`directed: false`):
   for (const themeId of ['prototype', 'signature']) {
@@ -1315,10 +1320,8 @@ try {
     };
     f.map = depotMap;
     s.recordStatic(depotMap);
-    // This samples static fill, so set aside the frame's effects, whose event light (#594) would land on the shelf.
     const priorEffects = f.state.effects;
-    f.state.effects = [];
-    await f.settle({
+    const settleDepot = () => f.settle({
       palette: 'signature',
       lighting: true,
       wear: true,
@@ -1327,14 +1330,23 @@ try {
       camera: { x: 420, y: 330, zoom: 1 },
       selfPos: { x: 600, y: 380 },
     });
-    // Sample container interior fill (x = x + 20, y = y + 14, clear of top highlight stroke at y + 7):
-    const shelfPx = f.pixelAtWorld(420, 314);
-    const cratePx = f.pixelAtWorld(420, 354);
-    f.map = priorMap;
-    f.state.effects = priorEffects;
-    s.recordStatic(priorMap);
-    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
-    return { shelfPx, cratePx };
+    try {
+      // The frame's `scan` (420, 350) lights the shelf (#594): event light adds over static fill.
+      await settleDepot();
+      const shelfUnderEventPx = f.pixelAtWorld(420, 314);
+      // The fill checks below are about static appearance, so set the frame's effects aside for them.
+      f.state.effects = [];
+      await settleDepot();
+      // Sample container interior fill (x = x + 20, y = y + 14, clear of top highlight stroke at y + 7):
+      const shelfPx = f.pixelAtWorld(420, 314);
+      const cratePx = f.pixelAtWorld(420, 354);
+      return { shelfPx, cratePx, shelfUnderEventPx };
+    } finally {
+      f.map = priorMap;
+      f.state.effects = priorEffects;
+      s.recordStatic(priorMap);
+      await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+    }
   });
 
   const { resolveObstacleAppearance } = await import('../public/appearance.js');
@@ -1344,6 +1356,9 @@ try {
     { palette: 'signature', lighting: true, wear: true }
   ).fill;
   const expectedCrateFill = THEMES.signature.colors.crates[0];
+  const rgbSum = c => (c >> 16 & 255) + (c >> 8 & 255) + (c & 255);
+  assert.ok(rgbSum(depotShelfCheck.shelfUnderEventPx.hex) > rgbSum(depotShelfCheck.shelfPx.hex),
+    'event light from a seen scan brightens the static shelf fill beneath it (#594)');
 
   assert.equal(
     depotShelfCheck.shelfPx.hex,

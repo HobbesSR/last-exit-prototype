@@ -35,9 +35,11 @@ test('an event the viewer cannot see lights nothing, even where its glow would r
   const lit = (x, y) => !(x === 100 && y === 100);
   const lights = resolveEventLights(frame(), { lit });
   assert.equal(lights.some(l => l.id === 'fx:1'), false);
-  // A flame trap is judged at its nozzle, not where its glow lands.
+  // A flame trap is judged at its nozzle, not where its glow lands (120 down the jet, at x = 520).
   const hiddenNozzle = resolveEventLights(frame(), { lit: (x, y) => !(x === 400 && y === 400) });
   assert.equal(hiddenNozzle.some(l => l.id === 'trap:flame-a'), false);
+  const hiddenGlowCentre = resolveEventLights(frame(), { lit: x => x < 460 });
+  assert.equal(hiddenGlowCentre.some(l => l.id === 'trap:flame-a'), true, 'a seen flame firing into a wall still lights');
   // Nothing at all when no source is visible.
   assert.deepEqual(resolveEventLights(frame(), { lit: () => false }), []);
 });
@@ -76,7 +78,7 @@ test('added light falls off from the centre, and props lift with the ground bene
   const red = d => eventLightAt(lights, d, 0)[0];
   assert.ok(red(0) > red(40) && red(40) > red(80) && red(80) > 0, 'brightest at the centre, fading outward');
   assert.equal(red(100), 0, 'nothing at or beyond the radius');
-  assert.ok(red(0) - red(30) <= 255 * 0.2 / 4 + 1e-9, 'no step is larger than one disc');
+  assert.ok(Math.abs(red(99) * 4 - red(0)) < 1e-9, 'the outermost ring carries a quarter of the centre light, so the edge is soft');
   assert.equal(liftByEventLight(0x102030, [0, 0, 0]), 0x102030);
   assert.equal(liftByEventLight(0x102030, [16, 16, 16]), 0x203040);
   assert.equal(liftByEventLight(0xf0f0f0, [64, 0, 0]), 0xfff0f0, 'channels clamp');

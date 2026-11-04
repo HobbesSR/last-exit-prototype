@@ -42,8 +42,9 @@ const order = (a, b) => b.strength - a.strength || (String(a.id) < String(b.id) 
 export function resolveEventLights(frame, { lighting = true, lit = () => true, inView = () => true, alpha = 0, max = EVENT_LIGHT.max } = {}) {
   if (lighting === false || !frame) return [];
   const lights = [];
-  const add = (id, x, y, radius, tint, strength) => {
-    if (strength <= 0 || !lit(x, y) || !inView(x, y, radius)) return;
+  // `source` is the point the renderer tests to draw the event; the glow may sit elsewhere.
+  const add = (id, x, y, radius, tint, strength, source = { x, y }) => {
+    if (strength <= 0 || !lit(source.x, source.y) || !inView(x, y, radius)) return;
     lights.push({ id, x, y, radius, tint, strength: Number((EVENT_LIGHT.peak * strength).toFixed(4)) });
   };
   for (const e of frame.effects || []) {
@@ -57,10 +58,10 @@ export function resolveEventLights(frame, { lighting = true, lit = () => true, i
   }
   for (const trap of frame.traps || []) {
     if (trap.kind !== 'flame' || !trap.firing || trap.spent) continue;
-    // The source is the nozzle the renderer draws; the glow sits a little way down the jet.
-    if (!lit(trap.x, trap.y)) continue;
+    // The source is the nozzle, which is all the renderer tests before drawing the jet; the glow
+    // sits a little way down the jet, so a seen flame firing into a wall still lights its side.
     const heading = trap.heading || 0;
-    add(`trap:${trap.id}`, trap.x + Math.cos(heading) * FLAME.reach, trap.y + Math.sin(heading) * FLAME.reach, FLAME.radius, FLAME.tint, FLAME.strength);
+    add(`trap:${trap.id}`, trap.x + Math.cos(heading) * FLAME.reach, trap.y + Math.sin(heading) * FLAME.reach, FLAME.radius, FLAME.tint, FLAME.strength, trap);
   }
   lights.sort(order);
   return lights.length > max ? lights.slice(0, max) : lights;
