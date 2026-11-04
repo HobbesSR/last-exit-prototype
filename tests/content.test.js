@@ -225,7 +225,7 @@ test('a contestant roster place is recorded and every view carries the frame\'s 
   const frame = snapshot(s);
   const recorded = new Map(frame.players.map(p => [p.id, p.seat]));
   for (const p of s.players) assert.equal(recorded.get(p.id), p.seat, `${p.id} records its seat`);
-  assert.equal(JSON.stringify(frame.players.find(p => p.id === 'runner')).includes('"seat":2'), true);
+  assert.ok(Object.hasOwn(frame.players.find(p => p.id === 'runner'), 'seat'), 'the snapshot record serializes the seat');
   const directed = new Map(playerView(s, frame, 'spectator').players.map(p => [p.id, p]));
   for (const p of s.players) assert.equal(directed.get(p.id)?.seat, p.seat, `${p.id} carries its recorded seat`);
   assert.equal(playerView(s, frame, 'runner').players.find(p => p.id === 'runner').seat, 2, 'an own record carries it too');

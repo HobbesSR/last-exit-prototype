@@ -543,7 +543,7 @@ below. A change that is meant to be behaviour-preserving never recaptures.
 
 Never regenerate a fixture to make a refactor pass: a behaviour-preserving change
 must reproduce it exactly. Regenerating is correct only for a deliberate content,
-rules or player-and-recording contract change that has been decided, and it restarts the evidence — the current
+rules, recorded-state or wire-contract change that has been decided, and it restarts the evidence — the current
 fixture proves nothing about code predating it. Separate intentional gameplay
 changes, and the new expectations and version decision they require, from
 behaviour-preserving extraction. `tests/fixtures/README.md` records provenance, how

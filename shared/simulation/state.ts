@@ -70,7 +70,7 @@ function rosterBot(s: Game, role: Role, index: number): { id: PlayerId; name: st
  * connection or changing kit or seat leaves it alone. It is ordinary recorded player state: a frame
  * carries the place its players held at that tick, and so does a recording.
  */
-export function attachSeat(player: Player, seat: number): void {
+function attachSeat(player: Player, seat: number): void {
   player.seat = seat;
 }
 /** A roster place as a match first holds it, before the map has placed it. */
