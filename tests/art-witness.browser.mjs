@@ -339,6 +339,8 @@ function createWitnessScene() {
     { id: 'fx-shock', kind: 'shock', x: 340, y: 350, radius: 36, life: 8 },
     { id: 'fx-scan', kind: 'scan', x: 420, y: 350, radius: 40, life: 8 },
     { id: 'fx-smoke', kind: 'smoke', x: 500, y: 350, radius: 38, life: 8 },
+    // Behind `occluder-wall`: it reaches the client by range but must neither draw nor light anything (#594).
+    { id: 'fx-hidden', kind: 'shock', x: 1100, y: 175, radius: 36, life: 8 },
   ];
 
   // Actors & roles:
@@ -717,14 +719,21 @@ try {
           const hiddenTrapPixelHex = f.pixelAtWorld(hiddenTrap.x, hiddenTrap.y).hex;
           const litGroundHex = f.pixelAtWorld(surfaceRefs.ground.x, surfaceRefs.ground.y).hex;
           const shadedGroundHex = f.pixelAtWorld(surfaceRefs.shadedGround.x, surfaceRefs.shadedGround.y).hex;
-          const dynamicCalls = [];
-          const orig = {};
+          const dynamicCalls = [], lightCalls = [];
+          // A glow is drawn as polygons; record each one's centre.
+          const orig = {}, lightFill = s.eventLight.fillPoints.bind(s.eventLight);
+          s.eventLight.fillPoints = (points, ...rest) => {
+            lightCalls.push([points.reduce((sum, p) => sum + p.x, 0) / points.length, points.reduce((sum, p) => sum + p.y, 0) / points.length]);
+            return lightFill(points, ...rest);
+          };
           for (const m of ['fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'fillCircle', 'strokeCircle', 'fillEllipse']) {
             orig[m] = s.dynamic[m].bind(s.dynamic);
             s.dynamic[m] = (...args) => { dynamicCalls.push([m, args]); return orig[m](...args); };
           }
           f.step(16, fixedNow);
           for (const [m, fn] of Object.entries(orig)) s.dynamic[m] = fn;
+          s.eventLight.fillPoints = lightFill;
+          const litEffect = f.state.effects.find(e => e.id === 'fx-shock'), hiddenEffect = f.state.effects.find(e => e.id === 'fx-hidden');
           const nearCoord = (args, x, y) => Math.abs(args[0] - x) <= 16 && Math.abs(args[1] - y) <= 16;
           return {
             selfVisible: vis('self'),
@@ -739,6 +748,8 @@ try {
             litTrapDrawn: dynamicCalls.some(([, a]) => nearCoord(a, litTrap.x, litTrap.y)),
             hiddenItemDrawn: dynamicCalls.some(([, a]) => nearCoord(a, hiddenItem.x, hiddenItem.y)),
             hiddenTrapDrawn: dynamicCalls.some(([, a]) => nearCoord(a, hiddenTrap.x, hiddenTrap.y)),
+            litEffectLight: lightCalls.some(a => nearCoord(a, litEffect.x, litEffect.y)),
+            hiddenEffectLight: lightCalls.some(a => nearCoord(a, hiddenEffect.x, hiddenEffect.y)),
             hiddenItemPixelHex,
             hiddenTrapPixelHex,
             litGroundHex,
@@ -758,6 +769,8 @@ try {
         assert.equal(fogCheck.litTrapDrawn, true, `${themeId}: lit trap drawn in fog`);
         assert.equal(fogCheck.hiddenItemDrawn, false, `${themeId}: wall-occluded item withheld from dynamic draw calls in fog`);
         assert.equal(fogCheck.hiddenTrapDrawn, false, `${themeId}: wall-occluded trap withheld from dynamic draw calls in fog`);
+        assert.equal(fogCheck.litEffectLight, true, `${themeId}: a seen shock lights its surroundings in fog`);
+        assert.equal(fogCheck.hiddenEffectLight, false, `${themeId}: a wall-occluded shock lights nothing in fog`);
         assert.equal(fogCheck.hiddenItemPixelHex, fogCheck.shadedGroundHex, `${themeId}: withheld item position renders bare shaded ground`);
         assert.equal(fogCheck.hiddenTrapPixelHex, fogCheck.shadedGroundHex, `${themeId}: withheld trap position renders bare shaded ground`);
         assert.notEqual(fogCheck.litGroundHex, fogCheck.shadedGroundHex, `${themeId}: out-of-sight ground is shaded`);
@@ -797,6 +810,26 @@ try {
       }
     }
   }
+
+  // 1b. Event light (#594): the glow is what a seen shock adds with lighting on, so compare the frame
+  // with and without that shock rather than lighting on and off (static fields would also change).
+  const eventLightPixels = await page.evaluate(async ({ playZoom }) => {
+    const f = window.witness, effects = f.state.effects;
+    const read = async (lighting, withShock) => {
+      f.state.effects = withShock ? effects : effects.filter(e => e.id !== 'fx-shock');
+      try {
+        await f.settle({ palette: 'signature', lighting, directed: true, fog: true, followId: 'self', camera: { x: 620, y: 450, zoom: playZoom }, selfPos: { x: 600, y: 380 } });
+        return f.pixelAtWorld(340, 395).hex;
+      } finally { f.state.effects = effects; }
+    };
+    const result = { shock: await read(true, true), none: await read(true, false), offShock: await read(false, true), offNone: await read(false, false) };
+    await f.settle({ lighting: true });
+    return result;
+  }, { playZoom: PLAY_ZOOM });
+  const brightness = c => (c >> 16 & 255) + (c >> 8 & 255) + (c & 255);
+  assert.ok(brightness(eventLightPixels.shock) > brightness(eventLightPixels.none),
+    `event light brightens ground beside a seen shock (${eventLightPixels.shock.toString(16)} vs ${eventLightPixels.none.toString(16)})`);
+  assert.equal(eventLightPixels.offShock, eventLightPixels.offNone, 'with lighting off, the shock adds no light beside it');
 
   // 2. Exterior (`playerZoom`, roof covered) vs Interior (`playerZoom * INSIDE_ZOOM`, roof revealed) in live player view (`directed: false`):
   for (const themeId of ['prototype', 'signature']) {
@@ -1287,7 +1320,8 @@ try {
     };
     f.map = depotMap;
     s.recordStatic(depotMap);
-    await f.settle({
+    const priorEffects = f.state.effects;
+    const settleDepot = () => f.settle({
       palette: 'signature',
       lighting: true,
       wear: true,
@@ -1296,13 +1330,23 @@ try {
       camera: { x: 420, y: 330, zoom: 1 },
       selfPos: { x: 600, y: 380 },
     });
-    // Sample container interior fill (x = x + 20, y = y + 14, clear of top highlight stroke at y + 7):
-    const shelfPx = f.pixelAtWorld(420, 314);
-    const cratePx = f.pixelAtWorld(420, 354);
-    f.map = priorMap;
-    s.recordStatic(priorMap);
-    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
-    return { shelfPx, cratePx };
+    try {
+      // The frame's `scan` (420, 350) lights the shelf (#594): event light adds over static fill.
+      await settleDepot();
+      const shelfUnderEventPx = f.pixelAtWorld(420, 314);
+      // The fill checks below are about static appearance, so set the frame's effects aside for them.
+      f.state.effects = [];
+      await settleDepot();
+      // Sample container interior fill (x = x + 20, y = y + 14, clear of top highlight stroke at y + 7):
+      const shelfPx = f.pixelAtWorld(420, 314);
+      const cratePx = f.pixelAtWorld(420, 354);
+      return { shelfPx, cratePx, shelfUnderEventPx };
+    } finally {
+      f.map = priorMap;
+      f.state.effects = priorEffects;
+      s.recordStatic(priorMap);
+      await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+    }
   });
 
   const { resolveObstacleAppearance } = await import('../public/appearance.js');
@@ -1312,6 +1356,9 @@ try {
     { palette: 'signature', lighting: true, wear: true }
   ).fill;
   const expectedCrateFill = THEMES.signature.colors.crates[0];
+  const rgbSum = c => (c >> 16 & 255) + (c >> 8 & 255) + (c & 255);
+  assert.ok(rgbSum(depotShelfCheck.shelfUnderEventPx.hex) > rgbSum(depotShelfCheck.shelfPx.hex),
+    'event light from a seen scan brightens the static shelf fill beneath it (#594)');
 
   assert.equal(
     depotShelfCheck.shelfPx.hex,
