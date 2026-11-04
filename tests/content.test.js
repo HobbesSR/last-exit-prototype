@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
+import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';
 import { defaultContent, legacyContent, contentById, CONTENT_ID, LEGACY_CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectEquipment, WEAPONS } from '../shared/equipment.ts';
 import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
@@ -242,6 +243,19 @@ test('a delayed spectator view carries the seat of the frame it shows, not the j
   assert.equal(delayed.players.find(p => p.id === 'c0').seat, 0, 'the old frame keeps its own title holder');
   assert.equal(delayed.players.find(p => p.id === 'late'), undefined, 'the joiner is not in a frame from before the join');
   assert.equal(playerView(s, snapshot(s), 'spectator').players.find(p => p.id === 'late').seat, 0, 'the live view reports the joiner');
+});
+
+test('a frame from before schema 16 projects without a seat and keeps the id fallback tint (#792)', () => {
+  const s = createGame(4217);
+  const old = snapshot(s);
+  for (const p of old.players) delete p.seat; // what a recording written before schema 16 looks like
+  const view = playerView(s, old, 'spectator');
+  assert.ok(view.players.every(p => !Object.hasOwn(p, 'seat')), 'no seat is invented for an older frame');
+  const variants = CONTESTANT_IDENTITY_COLORS.length - 1;
+  for (const p of view.players.filter(p => p.role === 'contestant')) {
+    const place = Number(p.id.slice(1)); // c0..c7 encode the same place the missing seat would give
+    assert.equal(actorBaseTint(p, 'me'), CONTESTANT_IDENTITY_COLORS[1 + (place % variants)], `${p.id} keeps its hue`);
+  }
 });
 
 test('trap balance is read from the match, not from the module it defaults in', () => {
