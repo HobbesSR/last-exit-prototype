@@ -19,6 +19,7 @@ import {
   resolvePropAppearance,
   recordAppearanceOps,
 } from './appearance.js';
+import { resolveEventLights, drawEventLights, eventLightAt, liftByEventLight } from './event-light.js';
 
 
 // Heard gunfire's ring and edge arrow (#684).
@@ -73,8 +74,11 @@ export function makeArenaScene(api) {
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups = new Map();
       this.scratch = this.make.graphics({ x: 0, y: 0, add: false }); this.decor = this.add.container(0, 0);
       this.fixtures = this.add.graphics(); this.shade = this.add.graphics(); this.dynamic = this.add.graphics();
+      // Event light (#594) adds onto the ground below the shade, so a glow spilling past a wall dims
+      // with the terrain there, and below actors and items, whose identity colors it must not tint.
+      this.eventLight = this.add.graphics().setBlendMode('ADD');
       // Static tile textures are inserted at index 0, beneath everything here.
-      this.world.add([this.decor, this.fixtures, this.shade, this.dynamic]);
+      this.world.add([this.decor, this.fixtures, this.eventLight, this.shade, this.dynamic]);
       this.roofs = new Map(); this.roofMembers = new Map(); this.coveredBuildingIds = new Set(); this.insideBlend = 0;
       this.overheadLayer = this.add.container(0, 0);
       this.overheadCanopies = this.add.container(0, 0); this.overheadRoofs = this.add.container(0, 0);
@@ -805,6 +809,10 @@ export function makeArenaScene(api) {
       const canonicalFields = getCanonicalFields(fields);
       const artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById: this.buildingsById };
       start('render.world');
+      // Event light (#594): only sources that pass the same `lit` rule as the shots and effects drawn
+      // below may light anything. Props drawn above the layer take the same lift as the ground beneath.
+      const eventLights = resolveEventLights(state, { lighting: this.lighting, lit, inView: nearView, alpha: api.frameAlpha() });
+      drawEventLights(this.eventLight, eventLights);
       // Level of detail thresholds for distant / spectator views:
       // zoom < LOD_LOW_ZOOM: simplified rects / outlines, skip sub-pixel inner details and rounded arc tessellations.
       // zoom < LOD_MEDIUM_ZOOM: simplified item geometry without sinusoids or drop shadows.
@@ -844,7 +852,8 @@ export function makeArenaScene(api) {
         if (!nearView(body.x, body.y, bodyRadius(shape))) continue;
         const propLight = sampleSpatialLight(canonicalFields, body.x, body.y, artOpts);
         const { fill: propFill, stroke: propStroke } = resolvePropAppearance(0x8fa9a0, 0xdce8d7, propLight, artOpts);
-        g.fillStyle(propFill, 0.9); g.lineStyle(2, propStroke, 0.95);
+        const propLift = eventLights.length ? eventLightAt(eventLights, body.x, body.y) : [0, 0, 0];
+        g.fillStyle(liftByEventLight(propFill, propLift), 0.9); g.lineStyle(2, liftByEventLight(propStroke, propLift), 0.95);
         if (shape.kind === 'circle') {
           g.fillCircle(body.x, body.y, shape.radius); g.strokeCircle(body.x, body.y, shape.radius);
         } else {
