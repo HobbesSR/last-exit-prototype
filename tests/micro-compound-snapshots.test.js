@@ -15,16 +15,23 @@ const concave = () => brief('compound-concave', cellsOf(40, 34, (x, y) => y < 20
 ]);
 const roundTrip = value => JSON.parse(JSON.stringify(value));
 
+// The concave compound has a keep, an outbuilding and delegated cover, so one build shows every
+// snapshot claim; both tests read it (#807).
+const observed = [];
+let built;
+const concaveNode = () => built ??= buildCompoundGeneration(concave(), { observe: trace => observed.push(trace) });
+
 test('observer sees each retained building once and snapshots preserve the events', () => {
-  const observed = [], node = buildCompoundGeneration(concave(), { observe: trace => observed.push(trace) });
+  const node = concaveNode();
   assert.deepEqual(observed.map(trace => trace.label), ['compound', 'compound-keep', 'compound-outbuilding']);
   assert.deepEqual(node.observerEvents, observed);
   assert.deepEqual(readDelegationSnapshot(roundTrip(saveDelegationSnapshot(node))).observerEvents, observed);
 });
 
-test('full and omitted compound snapshots recover the same hierarchy and result', () => {
-  const node = buildCompoundGeneration(concave()), flat = flattenDelegationResult(node);
+test('full and omitted compound snapshots recover the same hierarchy, outbuilding event and result', () => {
+  const node = concaveNode(), flat = flattenDelegationResult(node);
   assert.ok(node.children?.some(child => child.actualBuilder === 'cover'));
+  assert.equal(node.observerEvents.filter(event => event.label === 'compound-outbuilding').length, 1);
   const full = roundTrip(saveDelegationSnapshot(node));
   assert.deepEqual(readDelegationSnapshot(full), node);
   assert.deepEqual(delegationSnapshotResult(full), flat);

@@ -3,23 +3,38 @@ import { buildRegion } from '../../map/micro/region-types.ts';
 import { elementShapes, shapesOverlap } from '../../map/micro/geometry.ts';
 import { validatePortalReach } from '../../map/micro/portals.ts';
 import { rect } from '../../shared/shape.ts';
-import { SIZE, MASKS, PARAMETERS, brief, build, blockers, ringElements, compoundBox } from './compound-fixtures.js';
+import { SIZE, MASKS, PARAMETERS, SEEDS, brief, build, blockers, ringElements, compoundBox } from './compound-fixtures.js';
 
 /**
- * micro-compound's checks over every mask and gate count at each of `seeds`. Together they cost
- * 64 cases at four seeds, the portal check's reach searches about half of that, so the fast
- * tier runs one seed and the two `tests/slow/micro-compound-sweeps*.test.js` files the first four (31, #543).
+ * Every mask at every gate count at each of `seeds`: the matrix the two
+ * `tests/slow/micro-compound-sweeps*.test.js` files run at the first four seeds (31, #543).
  */
-function forEachCase(seeds, check, maskNames = Object.keys(MASKS)) {
-  for (const name of maskNames) {
+export const sweepCases = seeds => Object.keys(MASKS).flatMap(name => seeds.flatMap(seed =>
+  PARAMETERS.map(parameters => ({ name, seed, parameters }))));
+
+/**
+ * The fast tier's witnesses (31, #807): each mask once at the default two gates, and each other
+ * gate count once. Builds are the cost here (0.5 to 1.4 s each on the field, ell and ring, about
+ * 10 ms on the yard), so one and three gates go on the yard. Four gates go on the ell, where the
+ * concave corner leaves no fourth gate stand until the ring steps down from 18 × 22 to 16 × 20
+ * (siting rejects the larger boxes for insufficient-gate-stands): the cheapest mask that shows a
+ * gate count resizing the ring.
+ */
+export const FAST_CASES = [
+  ...Object.keys(MASKS).map(name => ({ name, seed: SEEDS[0], parameters: undefined })),
+  ...PARAMETERS.filter(Boolean).map(parameters =>
+    ({ name: parameters.gates === 4 ? 'ell' : 'yard', seed: SEEDS[0], parameters })),
+];
+
+function forEachCase(cases, check) {
+  for (const { name, seed, parameters } of cases) {
     const [cells, portals] = MASKS[name];
-    for (const seed of seeds) for (const parameters of PARAMETERS)
-      check(name, seed, parameters, brief(name, seed, cells, portals, parameters));
+    check(name, seed, parameters, brief(name, seed, cells, portals, parameters));
   }
 }
 
-export function assertPortalPromise(seeds) {
-  forEachCase(seeds, (name, seed, parameters, input) => {
+export function assertPortalPromise(cases) {
+  forEachCase(cases, (name, seed, parameters, input) => {
     const result = build(input);
     assert.ok(result.manifest.rooms >= 4, `${name} seed ${seed} stood a compound`);
     const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
@@ -27,8 +42,8 @@ export function assertPortalPromise(seeds) {
   });
 }
 
-export function assertRoofedRing(seeds) {
-  forEachCase(seeds, (name, seed, parameters, input) => {
+export function assertRoofedRing(cases) {
+  forEachCase(cases, (name, seed, parameters, input) => {
     const result = build(input), box = compoundBox(result);
     assert.ok(box.w >= 10 && box.h >= 10 && box.w <= 24 && box.h <= 24, `${name} ${seed}: ${box.w} × ${box.h}`);
     const court = rect((box.x + 3) * SIZE, (box.y + 3) * SIZE, (box.w - 6) * SIZE, (box.h - 6) * SIZE);
@@ -43,8 +58,8 @@ export function assertRoofedRing(seeds) {
   });
 }
 
-export function assertObservedRing(seeds, maskNames = Object.keys(MASKS)) {
-  forEachCase(seeds, (name, seed, parameters, input) => {
+export function assertObservedRing(cases) {
+  forEachCase(cases, (name, seed, parameters, input) => {
     const traces = [];
     const result = buildRegion(input, undefined, trace => traces.push(trace));
     assert.deepEqual(result, build(input), `${name} ${seed}: observing changes nothing`);
@@ -62,7 +77,7 @@ export function assertObservedRing(seeds, maskNames = Object.keys(MASKS)) {
     assert.deepEqual(origin, { x: box.x * SIZE, y: box.y * SIZE });
     assert.equal(allocation.footprint.length, box.w * box.h - (box.w - 6) * (box.h - 6));
     for (const space of design.spaces) assert.ok(realization.openings.some(o => o.a === space.id || o.b === space.id), `${name} ${seed}: ${space.id} has an opening`);
-  }, maskNames);
+  });
 }
 
 export function assertCompoundDeterminism(seeds) {

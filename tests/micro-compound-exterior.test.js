@@ -2,10 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { buildCompoundGeneration, COMPOUND_EXECUTION_REGISTRY } from '../map/micro/strategies/compound.ts';
 import { buildCompoundExterior } from '../map/micro/strategies/compound-exterior.ts';
-import { flattenDelegationResult } from '../map/micro/delegation-execute.ts';
-import { saveDelegationSnapshot, readDelegationSnapshot, delegationSnapshotResult } from '../map/micro/delegation-snapshot.ts';
 import { createAccessMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from '../map/micro/geometry.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
@@ -16,7 +13,6 @@ import { cellsOf } from './helpers/cells.js';
 
 const oldHashes = { field: 'f8b9c5f79df5e25ffbaff754c375169751ec5f3bb166eb6768683703d9259e76',
   ell: '9e694bd6080b1e335c13f907e1a12054074e1339b0ca12abc32a32932c6a7ffc' };
-const json = value => JSON.parse(JSON.stringify(value));
 const make = name => brief(`exterior-${name}`, 1, ...MASKS[name]);
 function center(trace, space) {
   const xs = space.cells.map(c => c.x), ys = space.cells.map(c => c.y);
@@ -118,6 +114,9 @@ test('compact yard declines an exterior house', () => {
   assert.ok(!result.elements.some(e => e.label === 'compound-outbuilding'));
 });
 
+// The fast tier's order witness for buildRegion's compound: the field's ring, court and outbuilding
+// under reversed cells, portals and zones. All eight seeds of cell order run in
+// slow/micro-compound-determinism; micro-compound-delegation checks the delegation tree (#807).
 test('outbuilding is deterministic under reversed cells, portals and zones', () => {
   const input = make('field');
   input.zones = [{ tier: 1, bonus: 0, lootChance: 0.2, cells: input.cells.filter(c => c.x < 20) },
@@ -127,14 +126,4 @@ test('outbuilding is deterministic under reversed cells, portals and zones', () 
   assert.ok(first.elements.some(e => e.label === 'compound-outbuilding'));
   assert.deepEqual(reversed.elements, first.elements);
   assert.deepEqual(reversed.loot, first.loot);
-});
-
-test('full and omitted snapshots recover the outbuilding observer event and result', () => {
-  const node = buildCompoundGeneration(make('field')), flat = flattenDelegationResult(node);
-  assert.equal(node.observerEvents.filter(e => e.label === 'compound-outbuilding').length, 1);
-  for (const options of [{}, { omitResults: true }]) {
-    const snapshot = json(saveDelegationSnapshot(node, options));
-    assert.deepEqual(readDelegationSnapshot(snapshot, COMPOUND_EXECUTION_REGISTRY), node);
-    assert.deepEqual(delegationSnapshotResult(snapshot, COMPOUND_EXECUTION_REGISTRY), flat);
-  }
 });

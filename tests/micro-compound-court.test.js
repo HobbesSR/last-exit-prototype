@@ -70,9 +70,3 @@ test('a small court stays empty when no keep or cover can fit', () => {
   assert.ok(!traces.some(trace => trace.label === 'compound-keep'));
   assert.ok(!result.elements.some(e => e.label === 'compound-keep' || e.label.startsWith('compound-court-cover-')));
 });
-
-test('court composition is deterministic when brief cells are reversed', () => {
-  const input = brief('court-order', 1, ...MASKS.field);
-  const result = buildRegion(input);
-  assert.deepEqual(buildRegion({ ...input, cells: [...input.cells].reverse() }).elements, result.elements);
-});
