@@ -55,7 +55,7 @@ test('malformed or hostile version fields fall back to the oldest meaning rather
 });
 
 test('the server stamps every recording with the schema pair its readers check', () => {
-  const harness = roomHarness();
+  const harness = roomHarness({ reuseMaps: true });
   const { writer } = harness.live(9);
   assert.equal(writer.header.schema, SCHEMA);
   assert.equal(writer.header.minSchema, minimumReaderForMap(writer.header.map));
@@ -64,7 +64,7 @@ test('the server stamps every recording with the schema pair its readers check',
 });
 
 test('a recording names the content set its match was pinned to', () => {
-  const harness = roomHarness();
+  const harness = roomHarness({ reuseMaps: true });
   const { writer } = harness.live(9);
   // `version` says which rules produced the recording; this says which numbers they ran over. A
   // reader looking at an old archive needs both to say what its contents meant.

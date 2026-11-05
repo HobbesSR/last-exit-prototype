@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roomHarness } from './helpers/room-harness.js';
+import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
 import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
 
@@ -111,7 +111,7 @@ test('matchmaking balances occupied fractions against three hunter places and fi
 });
 
 test('match boundary preserves simulation output and returns detached commands, identities and maps', () => {
-  const match = createMatch(9), game = createGame(9, match.map());
+  const match = createMatch(9, undefined, generatedMap(9)), game = createGame(9, match.map());
   const actor = match.join('human', 'contestant', 'warden', 'Runner');
   joinGame(game, 'human', 'contestant', 'warden', 'Runner'); actor.name = 'Changed';
   const command = { seq: 1, x: 1, interact: true, hp: 999 };

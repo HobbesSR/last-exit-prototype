@@ -37,7 +37,7 @@ test('the dev view follows the server policy and sees the current directed frame
 });
 
 test('a dev pause stops only its own room, drops owed time and leaves one mark', async () => {
-  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = h.live(), other = h.live(10);
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = h.live(), other = h.live();
   try {
     const dev = h.joined(room, { role: 'dev' });
     h.wake(100); const tick = room.match.tick;

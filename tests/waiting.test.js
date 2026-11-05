@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roomHarness } from './helpers/room-harness.js';
+import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { waitingYard } from '../shared/waiting-yard.ts';
 import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView } from '../shared/simulation/waiting.ts';
 import { canOccupy } from '../shared/movement.ts';
@@ -44,7 +44,7 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
 test('players wait in the yard, never see the match map before the start, and walking there changes no match', async () => {
   // Two rooms with the same seed: in one the players walk about before the start, in the other they do not.
   const run = walk => {
-    const h = roomHarness(), room = h.service.makeRoom(9);
+    const h = roomHarness({ reuseMaps: true }), room = h.room();
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner', role: 'gladiator', kit: 'specter' });
     for (const peer of [owner, runner]) {
@@ -77,7 +77,7 @@ test('players wait in the yard, never see the match map before the start, and wa
 });
 
 test('someone who leaves before the start leaves the yard, and a resume brings them back', async () => {
-  const h = roomHarness(), room = h.service.makeRoom(9);
+  const h = roomHarness({ reuseMaps: true }), room = h.room();
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), welcome = runner.messages.find(m => m.type === 'welcome');
@@ -100,7 +100,7 @@ test('a room still generating its map already has a waiting yard', async () => {
     assert.equal(runner.messages.find(m => m.type === 'welcome').map.generator, 'waiting-yard-1');
     runner.send({ type: 'input', seq: 0, x: 1 }); h.wake(50);
     assert.equal(frames(runner).length, 1);
-    release(undefined);
+    release(generatedMap(9));
     await room.ready;
     assert.ok(room.match);
     assert.ok(!runner.messages.some(m => m.type === 'ready'), 'the map arriving does not reveal it');
@@ -108,7 +108,7 @@ test('a room still generating its map already has a waiting yard', async () => {
 });
 
 test('a resume replacing a live connection starts the yard input afresh, where the old one stood', async () => {
-  const h = roomHarness(), room = h.service.makeRoom(9);
+  const h = roomHarness({ reuseMaps: true }), room = h.room();
   try {
     h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), welcome = runner.messages.find(m => m.type === 'welcome');

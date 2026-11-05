@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMapGenerator } from '../server/map-generator.js';
-import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
-import { defaultContent } from '../shared/simulation/content.ts';
+import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { freeSpaceTile } from '../shared/free-space.ts';
 import { discoveryGrid } from '../shared/discovery.ts';
@@ -11,14 +10,18 @@ import { generatedMap, roomHarness } from './helpers/room-harness.js';
 test('the map worker returns exactly the map generated inline', async () => {
   const maps = createMapGenerator();
   try {
-    const [first, second] = await Promise.all([maps.generate(4217, DEFAULT_LIVE_ZONE_SIZE), maps.generate(9, DEFAULT_LIVE_ZONE_SIZE)]);
-    const inline = generateLiveMap(4217, defaultContent(), DEFAULT_LIVE_ZONE_SIZE);
-    assert.equal(JSON.stringify(first), JSON.stringify(inline));
-    assert.equal(JSON.stringify(second), JSON.stringify(generatedMap(9, DEFAULT_LIVE_ZONE_SIZE)), 'requests are answered in their own order');
-    assert.deepEqual(portalGraphOf(first), portalGraphOf(inline), 'the portal graph crosses beside the map');
+    const answers = Promise.all([maps.generate(4217, DEFAULT_LIVE_ZONE_SIZE), maps.generate(9, DEFAULT_LIVE_ZONE_SIZE)]);
+    // Seed 9's inline map is the one this file's other tests share, generated here while the worker works,
+    // so the exact comparison costs no generation of its own; the other request only has to be answered with
+    // its own map, in its own place.
+    const inline = generatedMap(9, DEFAULT_LIVE_ZONE_SIZE), [first, second] = await answers;
+    assert.equal(JSON.stringify(second), JSON.stringify(inline), "the worker's map is exactly the inline one");
+    assert.equal(first.generator, inline.generator, 'the earlier request is answered with a live map');
+    assert.notEqual(JSON.stringify(first), JSON.stringify(inline), 'requests are answered in their own order');
+    assert.deepEqual(portalGraphOf(second), portalGraphOf(inline), 'the portal graph crosses beside the map');
     // A gladiator's tiles cross too, packed (22.6, "Bot adoption"): read from one buffer, equal to those built inline.
     const { cols, size } = discoveryGrid(inline), boxOf = cell => ({ x: (cell % cols) * size, y: Math.floor(cell / cols) * size, w: size, h: size });
-    const crossed = [cols * 3 + 5, cols * 5 + 40, cols * 10 + 90].map(cell => freeSpaceTile(first, boxOf(cell), 25));
+    const crossed = [cols * 3 + 5, cols * 5 + 40, cols * 10 + 90].map(cell => freeSpaceTile(second, boxOf(cell), 25));
     assert.ok(crossed.every(t => t.points.buffer === crossed[0].points.buffer), 'one packed buffer, not tiles built here');
     crossed.forEach((tile, i) => assert.deepEqual(tile, freeSpaceTile(inline, tile.box, 25), `tile ${i}`));
   } finally { await maps.close(); }

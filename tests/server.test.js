@@ -9,9 +9,10 @@ import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 import { next, open, createRoom } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
-import { generatedMap } from './helpers/room-harness.js';
+import { generatedMap, reusedMap } from './helpers/room-harness.js';
 
-const fastMap = (seed, size) => Promise.resolve(generatedMap(seed, size));
+// Rooms here are about the server, not their maps: every seed, the random ones too, plays seed 9's map.
+const fastMap = reusedMap;
 
 test('abandoned live rooms keep a reconnect grace then stop simulation and finalize their replay', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-abandoned-'));

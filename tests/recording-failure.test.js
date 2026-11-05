@@ -3,17 +3,21 @@ import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 
 for (const failure of ['start', 'append', 'async']) test(`${failure} recording failure leaves inputs, viewers and other rooms live`, async () => {
-  const errors = []; let fail, appends = 0, aborts = 0;
-  const h = roomHarness({ reportError: e => errors.push(e.message), startWriter(header, { onError }) {
-    if (header.seed === 9 && failure === 'start') throw new Error('start failed');
-    if (header.seed === 9) fail = onError;
+  const errors = []; let failing, fail, appends = 0, aborts = 0;
+  // The first room to start recording is the one that fails; both play copies of one shared map.
+  const h = roomHarness({ reuseMaps: true, reportError: e => errors.push(e.message), startWriter(header, { onError }) {
+    failing ??= header.id;
+    const failed = header.id === failing;
+    if (failed && failure === 'start') throw new Error('start failed');
+    if (failed) fail = onError;
     return { blocked: true, append() {
-      if (header.seed === 9) { appends++; if (failure === 'append') throw new Error('append failed'); }
+      if (failed) { appends++; if (failure === 'append') throw new Error('append failed'); }
       return true;
     }, abort() { aborts++; }, async finish() { return { id: header.id }; } };
   } });
   try {
-    const { room, owner } = h.live(9), other = h.live(4217);
+    const { room, owner } = h.live(), other = h.live();
+    assert.equal(failing, room.id, 'the first room is the failing one');
     if (failure === 'async') { fail(new Error('async failed')); fail(new Error('duplicate failure')); }
     const player = room.game.players.find(p => p.id === owner.session.playerId);
     const x = player.x;
@@ -37,7 +41,7 @@ for (const failure of ['start', 'append', 'async']) test(`${failure} recording f
 
 test('partial recording transitions notify once and successful recovery retains partial metadata', async () => {
   let omit = false, droppedFrames = 0;
-  const h = roomHarness({ startWriter(header) { return {
+  const h = roomHarness({ reuseMaps: true, startWriter(header) { return {
     get droppedFrames() { return droppedFrames; },
     append() { if (omit) { droppedFrames++; return false; } return true; },
     async finish({ ticks }) { return { id: header.id, recording: { complete: false, droppedFrames, endTick: ticks } }; }
@@ -58,11 +62,11 @@ test('partial recording transitions notify once and successful recovery retains 
 test('stalled adapter finalization has a deadline and cannot report late success', async () => {
   const deadlines = new Map(), errors = []; let serial = 0, release, aborted = 0;
   const pending = new Promise(resolve => release = resolve);
-  const h = roomHarness({ reportError: e => errors.push(e.message),
+  const h = roomHarness({ reuseMaps: true, reportError: e => errors.push(e.message),
     setTimer(fn) { deadlines.set(++serial, fn); return serial; }, clearTimer(id) { deadlines.delete(id); },
     startWriter() { return { append() {}, finish: () => pending, abort() { aborted++; } }; }
   });
-  const { room, owner } = h.live(), second = h.live(4217);
+  const { room, owner } = h.live(), second = h.live();
   const closing = h.service.close();
   assert.equal(h.service.close(), closing);
   assert.equal(deadlines.size, 2, 'finalization starts concurrently for every room');
@@ -79,7 +83,7 @@ test('stalled adapter finalization has a deadline and cannot report late success
 
 test('synchronous callback failure during start and failed cleanup are contained', async () => {
   const errors = [];
-  const h = roomHarness({ reportError: e => errors.push(e.message), startWriter(_header, { onError }) {
+  const h = roomHarness({ reuseMaps: true, reportError: e => errors.push(e.message), startWriter(_header, { onError }) {
     onError(new Error('early failure'));
     return { abort() { throw new Error('cleanup failed'); }, append() { assert.fail('failed writer must not append'); },
       finish() { throw new Error('finish failed'); } };

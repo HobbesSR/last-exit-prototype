@@ -4,6 +4,7 @@ import { createLayerDecoder } from '../../shared/frame-layers.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../../map/live.ts';
 import { legacyContent } from '../../shared/simulation/content.ts';
 import { createMatch } from '../../server/match.js';
+import { attachPortalGraph, portalGraphOf } from '../../shared/navigation/portal-graph.ts';
 
 // These tests are about room policy with a fake clock, not about an engine. They pin the legacy mover and
 // its synchronous match so a room has its match at once, as characterization pins `content-1`; physics
@@ -14,13 +15,24 @@ const generated = new Map();
 /**
  * The live map for a seed and size, generated once per test file, as a fresh copy each call. Copying
  * is what a room is given anyway: the worker's map arrives structured-cloned (map-worker.js), so no
- * two rooms ever share one, and none can change the map another is given.
+ * two rooms ever share one, and none can change the map another is given. The portal graph is kept
+ * beside a map rather than in it (22.6) and a clone drops it, so each copy is given its own, as the
+ * worker's answer is (map-generator.js): bots plan with it in every room that plays a live map.
  */
 export function generatedMap(seed = 9, size = DEFAULT_LIVE_ZONE_SIZE) {
   const key = `${seed} ${zoneSizeName(size)}`;
   if (!generated.has(key)) generated.set(key, generateLiveMap(seed, legacyContent(), size));
-  return structuredClone(generated.get(key));
+  const original = generated.get(key), copy = structuredClone(original), graph = portalGraphOf(original);
+  if (graph) attachPortalGraph(copy, structuredClone(graph));
+  return copy;
 }
+
+/**
+ * A `generateMap` answering every seed with a copy of seed 9's map, as `reuseMaps`' pool does: for tests
+ * where a room's seed is only a label and need not be the seed of its map, so random or extra seeds
+ * cost no generation. The room keeps the seed it was asked for.
+ */
+export const reusedMap = (_seed, size = DEFAULT_LIVE_ZONE_SIZE) => Promise.resolve(generatedMap(9, size));
 
 /**
  * Fake time, peers and replay writers around a real room service and directory. `reuseMaps` is for
@@ -61,11 +73,13 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, p
   const joined = (room, extra = {}) => {
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;
   };
-  return { service, directory, writers, peer, joined,
+  // A room with its match at once: on a copy of the seed's shared map with `reuseMaps`, else generated inline.
+  const room = (seed = 9) => service.makeRoom(seed, false, DEFAULT_LIVE_ZONE_SIZE, reuseMaps ? generatedMap(seed) : undefined);
+  return { service, directory, writers, peer, joined, room,
     wake(elapsed, wallElapsed = elapsed) { wall += wallElapsed; monotonic += elapsed; service.advance(elapsed, monotonic); },
     live(seed = 9) {
-      const room = service.makeRoom(seed, false, DEFAULT_LIVE_ZONE_SIZE, reuseMaps ? generatedMap(seed) : undefined), owner = joined(room, { ownerKey: room.ownerKey });
-      owner.send({ type: 'start' }); return { room, owner, writer: writers.get(room.id) };
+      const made = room(seed), owner = joined(made, { ownerKey: made.ownerKey });
+      owner.send({ type: 'start' }); return { room: made, owner, writer: writers.get(made.id) };
     }
   };
 }

@@ -238,9 +238,13 @@ optimized (share a generated map across tests, build fewer rooms), split into fi
 that run in parallel, or has its largest cases gated behind an environment variable as
 `room-sizes` does. The room harness shares maps for tests about room policy rather than
 maps: `roomHarness({ reuseMaps: true })` gives every room its own copy of a map generated
-once per file, as `room-directory` does (#376: about 26 s to 3 s). Files already over budget
-when this was added: `room-service`, `room-directory` (since fixed), `server`, `map-generator`
-and the slow `map-library`; they are the first candidates, not a precedent.
+once per file, with its own copy of the portal graph its bots plan by, as `room-directory`
+does (#376: about 26 s to 3 s), and `h.room(seed)` opens one without starting it. A server
+test whose seeds are only labels passes `generateMap: reusedMap`, which answers every seed,
+random ones too, with seed 9's map (#806: the `rooms` set's files, timed alone, from 202 s
+to 98 s). Files already over budget when this was added: `room-service`, `room-directory`,
+`server`, `map-generator` (all since fixed) and the slow `map-library`; they are the first
+candidates, not a precedent.
 
 <a id="test-cost"></a>
 
