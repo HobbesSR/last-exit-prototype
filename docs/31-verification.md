@@ -293,6 +293,14 @@ slower machine can fail one without a regression; repeat before believing it. CI
 set the variable. A threshold that should gate every run belongs in a deterministic
 count (work, portals visited, pieces placed), not a duration.
 
+The opt-in duration hid a regression: since #787's live cord the depot's macro case takes
+about 460 s alone and 20 minutes in CI, against 2 s before, and no run reported it (#790).
+Until #801 fixes the cord's cost it runs only with `DEPOT_MACRO=1` (also needed for the
+command above to time it). Every run instead builds a 100 × 75 depot with 84 portals and
+bounds its whole-region cord meshes with `cordWork`, a process-wide count in
+`map/micro/cord-witness.ts` (4 today; 98 at 125 × 94). That is the pattern for the other macro
+cases: a count every run catches what a duration nobody prints does not.
+
 Other agents' worktrees share this machine's CPU. `npm run bench` and
 `npm run bench:client` therefore take a machine-wide lock and wait for each
 other rather than overlap. The lock (`tests/helpers/machine-lock.js`) is a
