@@ -76,7 +76,9 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    content version on its own.
 5. Open the PR with `create_pull_request`, linking the issue ("Fixes #N").
    Re-running it returns the existing PR. Say in the body what testing you did,
-   including which gates ran and which were skipped.
+   including which gates ran and which were skipped. A PR that adds, grows or
+   turns on a test, or makes existing tests slower, also states the cost to the
+   test workflow (31, [A test's cost is part of the change](31-verification.md#test-cost)).
 6. Review others with `list_pull_requests` and `get_pull_request_diff`
    (`stat` for the file list, `file` or `offset`/`limit` for parts). Trust the PR
    author's testing assertions as evidence when their scope matches the commit,

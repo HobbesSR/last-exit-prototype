@@ -72,7 +72,10 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   PR is ready; run `npm run test:slow` first when your change is likely to move it.
 - A new or grown test file stays under 15 s (fast tier) or 60 s (`tests/slow/`); check it with
   `npm run test:times -- <file>`. Optimize, split or gate expensive cases behind an environment
-  variable rather than adding minutes to every run (`docs/31`).
+  variable rather than adding minutes to every run (`docs/31`). Adding, growing or turning on a
+  test, or slowing existing ones, obliges you to show the PR knows its workflow cost: isolated
+  time, tier and its effect there (CI runs several times slower), and why that scope is the
+  cheapest that shows the claim ([31](docs/31-verification.md#test-cost)).
 - Before adding third-party code, assets or a newly served package, check that its licence is
   compatible with the project's MIT licence, and record it with its notices
   ([21.1](docs/21.1-third-party-licenses.md)). Escalate copyleft, non-commercial or
