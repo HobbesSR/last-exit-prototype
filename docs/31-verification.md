@@ -414,10 +414,13 @@ A set is the inner loop's unit when no single file is narrow enough, and `change
 sets a branch reaches. Sources overlap where code is shared (`map/kernel/` prompts `macro` and
 `micro`), and a set's sources are where its own code lives, not everything it imports: through the
 shared registries almost every file imports almost everything (a change under `shared/physics`
-reaches 221 of 246 fast files' imports), so selection by import graph would select the whole tier.
+reaches 221 of the 246 fast files' imports on 2026-11-04), so selection by import graph would select the whole tier.
 `npm test` stays the gate before a PR; sets make iterating cheaper, not the gate smaller.
-`npm run test:physics` is the `physics` set. Each selection keeps its own timing record
-(`test-results/test-times/set-<names>.json`).
+`npm run test:physics` is the `physics` set. Each selection's unit tests keep their own timing
+record (`test-results/test-times/set-<names>.json`); browser scripts are not recorded.
+`npm run test:micro` stays hand-written for now: it runs the micro files one at a time and adds
+four preview scripts (`micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo`) that
+the catalog does not hold yet; #808 decides where they belong.
 
 ## Choosing checks by changed area
 

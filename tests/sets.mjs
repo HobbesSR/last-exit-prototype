@@ -88,7 +88,8 @@ const listed = (dir, suffix) => existsSync(dir) ? readdirSync(dir).filter(f => f
 /** Every unit and browser test file, by tier. Browser scripts are the ones `npm run test:browser` runs. */
 export function inventory() {
   const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts;
-  const browser = [...scripts['test:browser'].matchAll(/node (\S+\.browser\.m[jt]s|tests\/browser\.mjs)/g)].map(m => m[1]);
+  // Every script `test:browser` runs, whatever its name, so a new one cannot escape the catalog test.
+  const browser = [...scripts['test:browser'].matchAll(/node (\S+)/g)].map(m => m[1]);
   return { fast: listed(FAST_DIR, '.test.js'), slow: listed(SLOW_DIR, '.test.js'), browser };
 }
 
@@ -157,4 +158,13 @@ function main(args) {
   return status;
 }
 
-if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) process.exitCode = main(process.argv.slice(2));
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  try {
+    process.exitCode = main(process.argv.slice(2));
+  } catch (error) {
+    // A mistyped set is a usage error, not a crash: say what exists instead of a stack.
+    console.error(String(error.message ?? error));
+    console.error('usage: node tests/sets.mjs <set|set:word ...> [--slow] [--browser] | list | changed [base]');
+    process.exitCode = 2;
+  }
+}
