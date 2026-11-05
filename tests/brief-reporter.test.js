@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { briefNodeOptions, reporterUrl } from './brief.mjs';
+import { briefNodeOptions, npmArgs, reporterUrl } from './brief.mjs';
+import { drifted, slowerLine } from './brief-reporter.mjs';
 
 const FILES = {
   'good.test.mjs': "import test from 'node:test';\nfor (let i = 0; i < 3; i++) test(`case ${i}`, () => {});\n",
@@ -26,14 +27,18 @@ const FILES = {
 
 // Runs `node --test` over throwaway files with the given NODE_OPTIONS (and no reporter flag of its
 // own unless asked). Without NODE_TEST_CONTEXT the child is its own test runner, not this one's.
+// The timing record lands in the throwaway directory; `record` is what it holds afterwards.
 const runNodeTest = (files, { nodeOptions = '', reporterFlag = true } = {}) => {
   const dir = mkdtempSync(path.join(tmpdir(), 'brief-reporter-'));
   try {
     for (const name of files) writeFileSync(path.join(dir, name), FILES[name]);
-    const { NODE_TEST_CONTEXT: _context, ...env } = process.env;
+    const { NODE_TEST_CONTEXT: _context, BRIEF_TIMES_DIR: _times, ...env } = process.env;
     const args = ['--test', ...(reporterFlag ? [`--test-reporter=${reporterUrl}`] : []), ...files];
-    return spawnSync(process.execPath, args,
-      { cwd: dir, encoding: 'utf8', env: { ...env, NODE_OPTIONS: nodeOptions, FORCE_COLOR: '0', NO_COLOR: '1' } });
+    const result = spawnSync(process.execPath, args,
+      { cwd: dir, encoding: 'utf8', env: { ...env, NODE_OPTIONS: nodeOptions, BRIEF_SCRIPT: 'probe', FORCE_COLOR: '0', NO_COLOR: '1' } });
+    let record;
+    try { record = JSON.parse(readFileSync(path.join(dir, 'test-results', 'test-times', 'probe.json'), 'utf8')); } catch { record = undefined; }
+    return { ...result, record };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -43,21 +48,57 @@ test('brief reporter writes a line per file and the detail of each failure', () 
   const result = runNodeTest(['good.test.mjs', 'mixed.test.mjs', 'late.test.mjs', 'crash.test.mjs']);
   const out = result.stdout;
   assert.equal(result.status, 1, result.stderr);
-  assert.match(out, /^ok {3}good {2}3 ok$/m);
-  assert.match(out, /^FAIL mixed {2}1 ok, 1 failed, 1 skipped, 1 todo$/m);
+  assert.match(out, /^ok {3}good {2}3 ok {2}[\d.]+s$/m);
+  assert.match(out, /^FAIL mixed {2}1 ok, 1 failed, 1 skipped, 1 todo {2}[\d.]+s$/m);
   assert.match(out, /^ {2}✖ mixed › bad child \(mixed\.test\.mjs:4\)\n.*\n.*\n.*2 !== 3$/m);
   assert.doesNotMatch(out, /known unfinished/, 'a failing TODO is not reported as a failure');
   assert.match(out, /^ {2}! late\n.*"late error".*important late error cause/m, 'a late error keeps its test and cause');
-  assert.match(out, /^FAIL crash {2}0 ok, 1 failed$/m);
+  assert.match(out, /^FAIL crash {2}0 ok, 1 failed {2}[\d.]+s$/m);
   assert.match(out, /Error: import crash/);
   assert.doesNotMatch(out, /node:internal|case 0|good child/, 'passing names and node frames stay out');
+  assert.match(out, /^slowest: (\w+ [\d.]+s, ){3}\w+ [\d.]+s$/m, 'the slowest files, one line');
   assert.match(out, /^FAILED: 6 ok, 3 failed, 1 skipped, 1 todo, [\d.]+s\n$/m);
+});
+
+test('every run records each file and top-level test duration', () => {
+  const result = runNodeTest(['good.test.mjs', 'late.test.mjs']);
+  const [run] = result.record.runs;
+  assert.equal(result.record.runs.length, 1);
+  assert.equal(run.script, 'probe');
+  assert.deepEqual(Object.keys(run.files).sort(), ['good.test.mjs', 'late.test.mjs']);
+  assert.ok(Object.values(run.files).every(ms => Number.isInteger(ms) && ms >= 0));
+  assert.deepEqual(Object.keys(run.tests['good.test.mjs']), ['case 0', 'case 1', 'case 2']);
+  assert.ok(run.tests['late.test.mjs'].waits >= 40, 'a test that waits 50 ms records about that');
+  assert.ok(Number.isInteger(run.wallMs) && run.cpus > 0);
+});
+
+test('a file is flagged slower only well above its median over enough earlier runs', () => {
+  const runs = [1000, 1200, 1100].map(ms => ({ files: { 'a.test.js': ms, 'b.test.js': 500 } }));
+  assert.deepEqual(drifted(runs, { 'a.test.js': 5000, 'b.test.js': 900, 'c.test.js': 9000 }),
+    [{ file: 'a.test.js', ms: 5000, median: 1100, runs: 3 }], 'b is under 3 s more; c has no history');
+  assert.deepEqual(drifted(runs.slice(0, 2), { 'a.test.js': 5000 }), [], 'two earlier runs are not enough');
+  assert.deepEqual(drifted(runs, { 'a.test.js': 2100 }), [], 'under twice the median');
+});
+
+test('drifted files share one line, five named and the rest counted', () => {
+  assert.equal(slowerLine([]), '');
+  const flagged = Array.from({ length: 7 }, (_, i) => ({ file: `tests/f${i}.test.js`, ms: 9000 - i * 1000, median: 1000, runs: 4 }));
+  const line = slowerLine(flagged, '; machine 50% busy, this run included');
+  assert.equal(line.split('\n').length, 2, 'one line and its newline');
+  assert.match(line, /^slower: f0 9\.0s \(median 1\.0s over 4 runs\), .*f4 5\.0s .* and 2 more; machine 50% busy/);
+  assert.doesNotMatch(line, /f5|f6/);
+});
+
+test('the brief wrapper passes a script its own flags after --, which npm would otherwise take', () => {
+  assert.deepEqual(npmArgs('test'), ['run', '--silent', 'test']);
+  assert.deepEqual(npmArgs('test:set', ['rooms', '--slow']), ['run', '--silent', 'test:set', '--', 'rooms', '--slow']);
+  assert.deepEqual(npmArgs('test', ['--', '--test-name-pattern=x']), ['run', '--silent', 'test', '--', '--test-name-pattern=x'], 'an existing -- is not doubled');
 });
 
 test('a failing TODO alone passes, as node does', () => {
   const result = runNodeTest(['todo.test.mjs']);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^ok {3}todo {2}0 ok, 1 todo$/m);
+  assert.match(result.stdout, /^ok {3}todo {2}0 ok, 1 todo {2}[\d.]+s$/m);
   assert.match(result.stdout, /^passed: 0 ok, 0 failed, 0 skipped, 1 todo, [\d.]+s\n$/m);
 });
 
@@ -67,5 +108,5 @@ test('the brief wrapper replaces a reporter already set in NODE_OPTIONS', () => 
   assert.equal(options, `--max-old-space-size=4096 --test-reporter="${reporterUrl}"`);
   const result = runNodeTest(['good.test.mjs'], { nodeOptions: options, reporterFlag: false });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^ok {3}good {2}3 ok$/m);
+  assert.match(result.stdout, /^ok {3}good {2}3 ok {2}[\d.]+s$/m);
 });

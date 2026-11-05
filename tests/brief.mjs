@@ -14,6 +14,9 @@ const REPORTER_OPTION = /(^|\s)--test-reporter(?:-destination)?(?:=|\s+)(?:"[^"]
 export const withoutReporterOptions = (nodeOptions = '') => nodeOptions.replace(REPORTER_OPTION, ' ').trim();
 export const briefNodeOptions = (inherited = '') =>
   `${withoutReporterOptions(inherited)} --test-reporter="${reporterUrl}"`.trim();
+// `--` hands the rest to the script: npm 12 would otherwise read a flag such as `--slow` as its own
+// option and refuse it, which --silent hides.
+export const npmArgs = (script, extra = []) => ['run', '--silent', script, ...(extra.length && extra[0] !== '--' ? ['--', ...extra] : extra)];
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   const script = process.argv[2];
@@ -21,8 +24,9 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     console.error('usage: npm run brief -- <npm test script, e.g. test or test:slow>');
     process.exit(2);
   }
-  const env = { ...process.env, NODE_OPTIONS: briefNodeOptions(process.env.NODE_OPTIONS) };
-  const args = ['run', '--silent', script, ...process.argv.slice(3)];
+  // BRIEF_SCRIPT names the reporter's timing record, so each script keeps its own history.
+  const env = { ...process.env, NODE_OPTIONS: briefNodeOptions(process.env.NODE_OPTIONS), BRIEF_SCRIPT: script };
+  const args = npmArgs(script, process.argv.slice(3));
   const npm = process.env.npm_execpath;
   const result = npm
     ? spawnSync(process.execPath, [npm, ...args], { stdio: 'inherit', env })

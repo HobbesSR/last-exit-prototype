@@ -24,7 +24,9 @@ jobs:
       - run: npm --prefix map/macro ci
       - run: npm run check
       - run: npm run typecheck
-      - run: npm test
+      # Through the thin reporter: a line per file with its wall time, each failure, and the
+      # slowest files, so the log shows where verify's time goes (docs/31, #800).
+      - run: npm run brief -- test
       - run: npm run test:mapgen
 
   # The slow tier (docs/31) runs after merge, not on PRs, on its own runner queue
