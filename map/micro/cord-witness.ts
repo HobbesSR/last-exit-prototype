@@ -18,6 +18,12 @@ export interface CordWitness {
 /** Counts actual mesh constructions, travelClear calls and attempted root-to-terminal routes. */
 export interface CordCounters { meshBuilds: number; sweeps: number; paths: number }
 export interface CordBudget { maxMeshBuilds?: number; maxSweeps?: number; maxPaths?: number; maxSegments?: number }
+/**
+ * Running totals of every discovery in this process (calls, and the meshes they built), for
+ * tests that bound a builder's cord work by count rather than by duration (31, #801).
+ * Generation never reads them; a worker thread keeps its own.
+ */
+export const cordWork = { calls: 0, meshBuilds: 0 };
 export type CordWitnessResult = { ok: true; witness: CordWitness; counters: CordCounters }
   | { ok: false; reason: 'budget' | 'external' | 'interior'; counters: CordCounters };
 
@@ -46,6 +52,7 @@ const pointValid = (p: Vec2): boolean => !!p && Number.isFinite(p.x) && Number.i
 export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape[], terminals: readonly Vec2[] = [],
   previous?: CordWitness, budget: CordBudget = {}, added?: readonly Shape[]): CordWitnessResult {
   const counters: CordCounters = { meshBuilds: 0, sweeps: 0, paths: 0 };
+  cordWork.calls++;
   const limits = { maxMeshBuilds: budget.maxMeshBuilds ?? 1, maxSweeps: budget.maxSweeps ?? 65_536, maxPaths: budget.maxPaths ?? 8_192,
     maxSegments: budget.maxSegments ?? MAX_SEGMENTS };
   if (Object.values(limits).some(n => !Number.isSafeInteger(n) || n < 0)) throw new Error('Cord budgets must be nonnegative safe integers.');
@@ -158,6 +165,7 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
           return b.x <= box.x + box.w + pad && b.x + b.w >= box.x - pad && b.y <= box.y + box.h + pad && b.y + b.h >= box.y - pad;
         });
         counters.meshBuilds++;
+        cordWork.meshBuilds++;
         mesh = triangulateFreeSpace(domain, domain, nearby.map(s => transform(s, -box.x, -box.y)), radius);
       }
       const local = (p: Vec2): Vec2 => ({ x: p.x - mask.bounds.x, y: p.y - mask.bounds.y });
