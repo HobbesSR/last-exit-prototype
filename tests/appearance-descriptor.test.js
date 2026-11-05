@@ -39,6 +39,13 @@ import { generate } from '../map/chain.ts';
 import { liveChainParams, liveMapFromBuilt } from '../map/live.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 
+/**
+ * The live chain map that the depot, market and round-trip cases read, generated once per file
+ * (about 3.4 s each, #807). No case mutates it: each rebuilds or decodes its own copy.
+ */
+let liveChain;
+const liveChainMap = () => liveChain ??= generate('1', liveChainParams(), undefined, DEFAULT_CELL_SIZE);
+
 test('minimal optional appearance descriptor holds only the 7 step-2 fields', () => {
   const allowedMapKeys = new Set(['surfaces', 'commercial', 'wear', 'scars', 'lighting']);
   const sampleMapAppearance = {
@@ -188,7 +195,7 @@ test('BuildingNeglectAppearance floorStain uses dx/dy relative to building origi
 });
 
 test('existing depot region strategy adopts DEPOT_WAREHOUSE_APPEARANCE on all placed warehouses', () => {
-  const chain = generate('1', liveChainParams(), undefined, DEFAULT_CELL_SIZE);
+  const chain = liveChainMap();
   const depotResult = chain.results.find(r => r.brief.type === 'depot');
   assert.ok(depotResult, 'depot region exists in live chain map');
   const brief = depotResult.brief;
@@ -275,7 +282,14 @@ test('HOUSE placeable attaches appearance when provided and leaves undefined whe
 test('existing hut region strategy adopts commercial retail storefront appearance presets across decay tiers', () => {
   const tiersSeen = new Set();
   const allHutBuildings = [];
+  const neglected = mark => new Set(allHutBuildings.map(b => b.template.appearance.building.neglect)
+    .filter(neglect => neglect?.[mark] && (mark === 'scorchMark' || !neglect.scorchMark))
+    .map(neglect => `${neglect[mark].dx},${neglect[mark].dy}`)).size;
+  // Each building rolls its own tier, so the sample stops at the first seed whose buildings show
+  // every tier and two distinct scorch and drain placements, rather than building ten regions (#807).
+  const witnessed = () => tiersSeen.size === 3 && neglected('scorchMark') > 1 && neglected('roofDrainStain') > 1;
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+    if (witnessed()) break;
     const brief = chainBrief({
       id: `hut-test-${seed}`,
       type: 'hut',
@@ -512,7 +526,7 @@ test('omitted and unknown appearance values use documented neutral fallbacks', (
 
 test('chain map export/load round-trips via JSON and BSON and legacy maps load cleanly', () => {
   // 1. Generated chain map with adopted depot warehouses
-  const chain = generate('1', liveChainParams(), undefined, DEFAULT_CELL_SIZE);
+  const chain = liveChainMap();
   const depotResult = chain.results.find(r => r.brief.type === 'depot');
   assert.ok(depotResult, 'depot region exists in live chain map');
   assert.ok(
@@ -586,7 +600,7 @@ test('market region strategy adopts fabric awnings across decay tiers', () => {
     }
   }
 
-  const chain = generate('1', liveChainParams(), undefined, DEFAULT_CELL_SIZE);
+  const chain = liveChainMap();
   let marketResult = chain.results.find(r => r.brief.type === 'market');
   if (!marketResult) {
     // Generate brief directly for test

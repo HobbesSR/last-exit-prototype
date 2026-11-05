@@ -11,6 +11,7 @@ import { GAME_ENGINES } from '../map/tools/engines.ts';
 import { REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { GAME, checkLibraryMap } from './helpers/map-library-game.js';
 
 /**
  * Step 10a (#144): the CLI and MCP in map/tools/, on the generation chain (51.1) and the game's engines.
@@ -27,8 +28,15 @@ test('the tools build with the game registry and the chain library', () => {
   const check = checkMap(map);
   assert.equal(check.valid, true, JSON.stringify(check.defects));
   assert.equal(check.brokenPromises, undefined, 'the slow diagnostic runs only on request');
-  // Saved whole in either encoding, or as the Layout alone, it reads back the same map.
-  for (const saved of [JSON.parse(chainMapToJson(map)), chainMapToBson(map), JSON.parse(chainMapToJson(map, { results: false }))])
+  // The default contestant count's fast library witness reads this map (about 10 ms of routes):
+  // its sites, built huts, cover and rubble, and routes to core elements. `map-library` checks
+  // the portal search on a 24-contestant map (#807).
+  assert.equal(map.layout.params.contestantCount, GAME.contestantCount);
+  checkLibraryMap(map, 'tools-game', GAME.contestantCount, { reach: false });
+  // Saved whole in either encoding, it reads back the same map. Reading a game map from its
+  // Layout alone rebuilds every region (2.3 s); `map-container` does that with these engines,
+  // and the custom save below reads a Layout through `readMap` (#807).
+  for (const saved of [JSON.parse(chainMapToJson(map)), chainMapToBson(map)])
     assert.deepEqual(readMap(saved), map);
 });
 
