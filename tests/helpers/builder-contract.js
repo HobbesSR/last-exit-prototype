@@ -17,23 +17,23 @@ import { MASKS } from './plant-fixtures.js';
  *
  *   node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js
  *
- * `BUILDER_SEEDS=<n>` runs seeds 1 to `n` on each fixture instead of `SEEDS`, a deeper sweep
+ * `BUILDER_SEEDS=<n>` runs seeds 1 to `n` on each fixture instead of `FAST_SEEDS`, a deeper sweep
  * for a builder change (31). Seeds 1 to 20 took about 70 s across every type.
  *
- * Budget (31: 15 s fast tier): six fixtures of 224 to 660 cells at `SEEDS` seeds each, two
- * builds a case (the second in another cell order), then #490's 120 plant builds. On the shared
- * dev machine, with other agents' work and a dev server running, three sequential runs took
- * 8.7 to 8.8 s: 6.6 s for the types and 1.9 s for #490. A run during a heavier spell took 14 s,
- * so the margin under 15 s is thin when the machine is busy. A build's cost grows
- * faster than its region's cells (a 40 × 30 region cost five times a 24 × 18), so the
- * fixtures' sizes are what keep the seventeen types affordable. `npm run test:times` checks.
+ * Budget (31: 15 s fast tier): six fixtures of 224 to 660 cells at one seed, two builds a case
+ * (the second in another cell order), then #490's nine plant builds. One seed is the witness:
+ * every promise below is checked per build, so a second seed repeats the same claims on the
+ * same fixtures, and `tests/slow/micro-builder-contract-sweeps` runs it (`SLOW_SEEDS`, #807).
+ * A build's cost grows faster than its region's cells (a 40 × 30 region cost five times a
+ * 24 × 18), so the fixtures' sizes are what keep the seventeen types affordable.
+ * `npm run test:times` checks.
  */
-const SEEDS = 2;
-const seedCount = (() => {
+export const FAST_SEEDS = [1], SLOW_SEEDS = [2];
+const fastSeeds = (() => {
   const text = process.env.BUILDER_SEEDS;
-  if (text === undefined) return SEEDS;
+  if (text === undefined) return FAST_SEEDS;
   if (!/^[1-9]\d{0,3}$/.test(text)) throw new RangeError(`BUILDER_SEEDS must be a whole number from 1 to 9999, not "${text}".`);
-  return Number(text);
+  return Array.from({ length: Number(text) }, (_, i) => i + 1);
 })();
 
 /**
@@ -101,13 +101,13 @@ function check(type, brief) {
   return { result, found };
 }
 
-/** One test per type: the promises of a builder over every fixture at `SEEDS` seeds. */
-export function contractTests(types) {
+/** One test per type: the promises of a builder over every fixture at each of `seeds`. */
+export function contractTests(types, seeds = fastSeeds) {
   for (const type of types) {
     test(`builder contract: ${type}`, () => {
       const found = [], built = new Set();
       let cases = 0;
-      for (const fixture of chainFixtures()) for (let seed = 1; seed <= seedCount; seed++) {
+      for (const fixture of chainFixtures()) for (const seed of seeds) {
         const brief = chainBrief({ ...fixture, id: `${type}-${fixture.name}`, seed, type, parameters: FORCED[type], coreElements: CORE[type] });
         const checked = check(type, brief);
         for (const problem of checked.found) found.push(`${fixture.name}, seed ${seed}: ${problem}`);

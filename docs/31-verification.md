@@ -133,9 +133,11 @@ and the original seeds run in `tests/slow/` (#543, measured in
 `slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds of its promise
 and spacing sweeps and `slow/micro-plant-promise` all eight, with #490's plant strips at
 three of forty seeds fast (in the builder contract) and all forty slow; `micro-park` runs one
-of eight seeds of its promise sweep and two of its clump-spacing sweep, and
+of eight seeds of its promise and cell-size sweeps and two of its clump-spacing sweep, and
 `slow/micro-park-promise` all eight, with the 36-portal park (#759, #760: cord-routed
-builders and park's hedge fronts cost several times more); `micro-compound` runs its
+builders and park's hedge fronts cost several times more; #807); `micro-hut` runs one of
+sixteen seeds of its small-house sweep and `slow/micro-hut-sweeps` all sixteen, with the
+whole-map save that first caught the hut adapter dropping its brief; `micro-compound` runs its
 portal, roofed-ring and observer checks on seven cases at the first seed (each mask at the
 default two gates, one and three gates on the small yard, and four on the ell, where the
 concave corner leaves no fourth gate stand until the ring steps down from 18×22 to 16×20, #807), and
@@ -145,7 +147,7 @@ gate count over seeds 1-2 and 3-4. Compound cell order has a fast witness in
 delegation tree, the only one that sees the root brief's canonical order), and all eight
 original seeds in `slow/micro-compound-determinism` (#647). Each pair calls one function in
 `tests/helpers/` (`block-promise.js`, `plant-promise.js`, `park-fixtures.js`,
-`builder-contract.js`, `compound-sweeps.js`) with different inputs (a seed list, or for
+`builder-contract.js`, `compound-sweeps.js`, `hut-fixtures.js`) with different inputs (a seed list, or for
 compound a case list: `FAST_CASES` fast, `sweepCases` slow), so the assertions cannot drift apart. `test:micro` runs only the fast
 files: a builder change that moves a type's output also runs that type's slow file, for
 example `node --test tests/slow/micro-plant-promise.test.js`. Narrow a sweep this way, by
@@ -198,13 +200,14 @@ owned cells (20.6). It runs from two fast files, split for the budget when rubbl
 moved to a live cord (#759): `micro-builder-contract-cord` for rubble, park and plant, and
 `micro-builder-contract` for every other type. A builder loop runs only its own type, in seconds:
 `node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`.
-`BUILDER_SEEDS=<n>` runs seeds 1 to n on each fixture instead of two, for a builder change
+`BUILDER_SEEDS=<n>` runs seeds 1 to n on each fixture instead of one, for a builder change
 that moves a type's output; `BUILDER_SEEDS=20` took 67 to 70 s across all seventeen types.
-The default matrix, six fixtures of 224 to 660 cells at two seeds, plus #490's 120 plant
-builds, took about 9 s on the shared dev machine (14 s once, while it was busy), against the
-fast tier's 15 s; its comment records the sizing. At types-62 the same matrix took 25 s and the
-120 strip builds 22 s, so the split files took 13.5 s and 13.1 s, with the strips at nine
-builds fast and 120 in `slow/micro-plant-promise`.
+The fast files run six fixtures of 224 to 660 cells at seed 1, plus nine of #490's plant
+strip builds; `slow/micro-builder-contract-sweeps` runs every type at seed 2 (#807). Every
+promise is checked per build, so the second seed repeats the same claims, and one seed keeps
+the cell-order witness: with `createRegionMask`'s sort removed, depot and park fail on all six
+fixtures at seed 1. At two seeds the files had grown to 16.6 s and 10.6 s isolated; at one
+they took 8.3 s and 5.6 s, and the slow file 14.4 s.
 
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing
@@ -486,9 +489,11 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `room-sizes-physics` | the same, on the shipped default `content-6` and the physics engine (#523) | the physics room plays to its end, its recording names `last-exit-0.8-physics-8`, and the map fits the content's ground capacity | rooms, recording, physics, item capacity, size-dependent generation |
 | `map-library` | the chain at the game size | 25 maps report no defects; every region of one keeps its portal promise (`diagnoseBuiltMap`) | macro stages, the library, a region type's builder |
 | `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
-| `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring and observer checks at every gate count on every mask, the fast tier keeping one case per mask and per gate count, #807; plant's and park's spacing, plant's #490 strips, park's 36-portal case) | that builder |
+| `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring and observer checks at every gate count on every mask, the fast tier keeping one case per mask and per gate count, #807; plant's and park's spacing, plant's #490 strips, park's cell sizes and 36-portal case) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
 | `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
+| `micro-builder-contract-sweeps` | the chain-like fixtures of `tests/helpers/chain-briefs.js`, every region type, seed 2 | the builder contract: builds, stays in the fill, keeps the portal promise, counts its cells and core elements, builds the same in another cell order (the fast tier runs seed 1, #807) | any builder |
+| `micro-hut-sweeps` | 6 and 7 cell squares and oblongs at four cell sizes, sixteen seeds; one whole game map | a house with a reachable outside door and a window in any cell order (the fast tier runs seed 1); the map saves and reads back with the hut adapter's briefs (#807) | the hut builder and its adapter |
 | `micro-depot-sweeps` | depot's four synthetic masks, every seed; the four stored production witnesses | the portal promise under three parameter sets; loot indoors and out reachable over three seeds; every witness's portal reach (the fast tier runs the first seed and the two smaller witnesses, #807) | the depot builder |
 | `micro-depot-scale` | one 200 × 150 depot, 170 portals | at most 12 cord searches and meshes; more than 100 warehouses and 200 rows; the 12 s limit only under `BUILD_BUDGETS=enforce` (readings 5.8 to 7.6 s) | the depot builder, the live cord and its limits (#801) |
 

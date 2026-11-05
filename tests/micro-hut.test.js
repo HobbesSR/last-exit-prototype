@@ -2,43 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
-import { createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, travelClear } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, findRegionRoute } from '../map/micro/geometry.ts';
 import { circle, overlaps } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { assertWithinBudget } from './helpers/budget.js';
+import { SIZE, brief, MASKS, SEEDS, house, blockers, assertSmallHouses } from './helpers/hut-fixtures.js';
 
-const SIZE = 40;
-const brief = (id, seed, cells, portals, extra = {}) => ({ id, seed, type: 'hut', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }], portals, ...extra });
-
-/** 52's worked case, then masks with portals on several sides: a yard, an L, and a ring around a hole. */
-const MASKS = {
-  worked: [cellsOf(6, 6), [{ id: 'south', axis: 'h', x: 1, y: 6, length: 2 }, { id: 'east', axis: 'v', x: 6, y: 3, length: 2 }]],
-  yard: [cellsOf(10, 8), [{ id: 'north', axis: 'h', x: 1, y: 0, length: 3 }, { id: 'east', axis: 'v', x: 10, y: 2, length: 4 },
-    { id: 'south', axis: 'h', x: 4, y: 8, length: 2 }, { id: 'west', axis: 'v', x: 0, y: 5, length: 2 }]],
-  ell: [cellsOf(12, 12, (x, y) => y < 6 || x < 6), [{ id: 'east', axis: 'v', x: 12, y: 2, length: 2 }, { id: 'south', axis: 'h', x: 1, y: 12, length: 3 },
-    { id: 'corner', axis: 'h', x: 7, y: 6, length: 4 }]],
-  ring: [cellsOf(14, 14, (x, y) => x < 5 || x >= 9 || y < 5 || y >= 9), [{ id: 'north', axis: 'h', x: 6, y: 0, length: 2 },
-    { id: 'hole', axis: 'v', x: 9, y: 6, length: 2 }, { id: 'west', axis: 'v', x: 0, y: 10, length: 3 }]],
-};
-const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
-
-const house = result => result.elements.find(element => element.template.encloses);
-const blockers = (result, doors = false) => result.elements.flatMap(element => elementShapes(element, doors));
-
-test('small regions use a house with a reachable outside door', () => {
-  for (const [w, h] of [[6, 6], [7, 7], [7, 6], [6, 7]]) for (const cellSize of [1, 7, 40, 53]) for (let seed = 1; seed <= 16; seed++) {
-    const cells = cellsOf(w, h);
-    const result = buildRegion({ id: 'one-space', seed, type: 'hut', cellSize, cells, zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }],
-      portals: [{ id: 's', axis: 'h', x: 0, y: h, length: 2 }] });
-    const building = house(result);
-    assert.ok(building);
-    assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
-    assert.ok(building.template.parts.some(part => part.part === 'gate'));
-    assert.ok(building.template.parts.some(part => part.kind === 'window'));
-    assert.deepEqual(buildRegion({ ...result.brief, cells: [...cells].reverse() }).elements, result.elements);
+/**
+ * Each mask at each seed, built once with an observer and once without, for the three tests that
+ * read those builds (the promise, the door and the observer), as `micro-depot-routing` shares its
+ * builds (#807). Tests read the results and never change them.
+ */
+const builds = new Map();
+const built = (name, seed) => {
+  const key = `${name} ${seed}`;
+  if (!builds.has(key)) {
+    const [cells, portals] = MASKS[name], traces = [];
+    const observed = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
+    builds.set(key, { observed, traces, plain: buildRegion(brief(name, seed, cells, portals)) });
   }
-});
+  return builds.get(key);
+};
+
+// The fast tier runs the first seed; tests/slow/micro-hut-sweeps.test.js all sixteen.
+test('small regions use a house with a reachable outside door', () => assertSmallHouses([1]));
 
 test('one-space houses retain all four outside door orientations', () => {
   const sides = new Set();
@@ -54,8 +41,8 @@ test('one-space houses retain all four outside door orientations', () => {
 });
 
 test('a hut region keeps the portal promise over seeds and masks', () => {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const result = buildRegion(brief(name, seed, cells, portals));
+  for (const name of Object.keys(MASKS)) for (const seed of SEEDS) {
+    const result = built(name, seed).plain;
     assert.ok(house(result), `${name} ${seed} built a house`);
     const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
     assert.deepEqual(check.errors, [], `${name} seed ${seed}`);
@@ -73,9 +60,9 @@ test('a hinted edge can hold the house while its portal and doorstep stay clear'
 
 test('every space of the house is reached through its one outside door, and only through it', () => {
   const radius = hunterClearance(SIZE), counts = new Set();
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
-    const [trace] = traces, building = house(result), mask = createRegionMask(result.brief), access = createAccessMask(result.brief);
+  for (const name of Object.keys(MASKS)) for (const seed of SEEDS) {
+    const { observed: result, traces: [trace] } = built(name, seed);
+    const building = house(result), access = createAccessMask(result.brief);
     counts.add(trace.design.spaces.length);
     const door = trace.realization.openings.find(opening => opening.connectionId === 'door');
     assert.equal(trace.realization.openings.filter(o => o.kind === 'door' && (o.a === 'outside' || o.b === 'outside')).length, 1, `${name} ${seed}: one outside door`);
@@ -186,9 +173,9 @@ test('a macro-sized hut region with hundreds of portals builds in bounded time',
 });
 
 test('an observer sees the house its element was realized from, and changes nothing', () => {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
-    assert.deepEqual(result, buildRegion(brief(name, seed, cells, portals)), `${name} ${seed}`);
+  for (const name of Object.keys(MASKS)) for (const seed of SEEDS) {
+    const { observed: result, traces, plain } = built(name, seed);
+    assert.deepEqual(result, plain, `${name} ${seed}`);
     assert.equal(traces.length, 1);
     const [trace] = traces, building = house(result);
     assert.equal(trace.label, building.label);

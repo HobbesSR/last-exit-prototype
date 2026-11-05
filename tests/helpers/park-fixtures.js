@@ -3,6 +3,7 @@ import { buildRegion } from '../../map/micro/region-types.ts';
 import { createRegionMask, elementShapes } from '../../map/micro/geometry.ts';
 import { portalMargin } from '../../map/micro/hints.ts';
 import { validatePortalReach } from '../../map/micro/portals.ts';
+import { bounds } from '../../shared/shape.ts';
 import { cellsOf } from './cells.js';
 
 /** Park fixtures shared by tests/micro-park.test.js and tests/slow/micro-park-promise.test.js. */
@@ -29,6 +30,19 @@ export const kind = prefix => element => element.label.startsWith(`park-${prefix
 export const boxOf = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
 export const gapBetween = (a, b) => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
 
+/**
+ * A mask's park at a seed under `parameters`, built once per process: the promise, clump and
+ * kind checks read the same builds (#807). Callers read the result and never change it.
+ */
+const builds = new Map();
+export function built(name, seed, parameters) {
+  const key = `${name} ${seed} ${JSON.stringify(parameters)}`;
+  if (!builds.has(key)) {
+    const [cells, portals] = MASKS[name];
+    builds.set(key, buildRegion(brief(name, seed, cells, portals, parameters)));
+  }
+  return builds.get(key);
+}
 
 /**
  * A park keeps the portal promise on every mask at each of `seeds`, under each parameter set. The
@@ -36,9 +50,9 @@ export const gapBetween = (a, b) => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w
  * fronts on by default (types-62, #760) the eight took 24 s (31).
  */
 export function assertParkPromise(seeds) {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of seeds)
+  for (const name of Object.keys(MASKS)) for (const seed of seeds)
     for (const parameters of [undefined, DENSE, { density: 0, hedges: 1 }, { density: 0.3, hedges: 0 }]) {
-      const result = buildRegion(brief(name, seed, cells, portals, parameters));
+      const result = built(name, seed, parameters);
       const check = validatePortalReach({ ...result.brief, blockers: blockers(result) }, THOROUGH);
       assert.deepEqual(check.errors, [], `${name} seed ${seed} ${JSON.stringify(parameters)}`);
     }
@@ -53,7 +67,7 @@ export function assertClumpSpacing(seeds) {
   let clumps = 0;
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of seeds) {
     const input = brief(name, seed, cells, portals, DENSE);
-    const result = buildRegion(input), mask = createRegionMask(input);
+    const result = built(name, seed, DENSE), mask = createRegionMask(input);
     const reserved = new Set(portalMargin(input, 1).map(c => `${c.x},${c.y}`));
     const trees = result.elements.filter(kind('tree')).map(boxOf);
     clumps += result.manifest.clumps;
@@ -64,4 +78,23 @@ export function assertClumpSpacing(seeds) {
       if (gapBetween(a, b) < 2) assert.ok(Math.abs(a.x - b.x) < 4 && Math.abs(a.y - b.y) < 4, `${name} ${seed}: trees ${a.x},${a.y} and ${b.x},${b.y}`);
   }
   assert.ok(clumps > 2 * seeds.length, `${clumps} clumps`);
+}
+
+/**
+ * Pieces keep valid geometry inside their footprints at cell sizes from 1 to 200, with both
+ * trees and fronts, at each of `seeds`. The fast tier runs the first seed and
+ * tests/slow/micro-park-promise.test.js all eight: the forty builds took 2.9 s (#807).
+ */
+export function assertPiecesAtSizes(seeds) {
+  for (const size of [1, 2, 8, 40, 200]) for (const seed of seeds) {
+    const cells = cellsOf(30, 30), input = { ...brief('field', seed, cells, [], { density: 1, hedges: 0.5 }), cellSize: size };
+    input.zones = [{ tier: 3, bonus: 0, lootChance: 0, cells }];
+    const result = buildRegion(input);
+    assert.ok(result.elements.some(kind('front')) && result.elements.some(kind('tree')), `size ${size} seed ${seed} has both`);
+    for (const element of result.elements) for (const { shape } of element.template.parts) {
+      const box = bounds(shape);
+      assert.ok(box.w > 0 && box.h > 0, `size ${size}: ${element.label} has area`);
+      assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.w <= element.template.w + 1e-9 && box.y + box.h <= element.template.h + 1e-9, `size ${size}: ${element.label} stays in its footprint`);
+    }
+  }
 }
