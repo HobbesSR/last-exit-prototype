@@ -155,6 +155,8 @@ SHIPPED['content-9'] = { ...SHIPPED['content-8'], id: 'content-9', hearingRespon
 SHIPPED['content-10'] = { ...SHIPPED['content-9'], id: 'content-10', transit: 'selectable', transitTime: { base: 0, perUnit: 0 } };
 // Gladiator bots sweep regions ahead of the wall and take transit when it is quicker (#683, 17.3 #26); otherwise content-10.
 SHIPPED['content-11'] = { ...SHIPPED['content-10'], id: 'content-11', hunting: 'sweep' };
+// Gladiator bots sweep coarse waypoints along an estimated contestant front, repel each other when targetless, and goalkeep at the exit once evidence places a contestant further right (#681, 17.3 #26); otherwise content-11.
+SHIPPED['content-12'] = { ...SHIPPED['content-11'], id: 'content-12', hunting: 'front' };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {

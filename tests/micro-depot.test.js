@@ -8,7 +8,7 @@ import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
 import { designsNotUsed } from '../map/micro/building/draw.ts';
 import { cellsOf } from './helpers/cells.js';
-import { assertWithinBudget } from './helpers/budget.js';
+import { cordWork } from '../map/micro/cord-witness.ts';
 
 const SIZE = 40;
 const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'depot', cellSize: SIZE, cells,
@@ -162,15 +162,25 @@ test('a depot checks its parameters, and a region with no contained 10 × 10 goe
   assert.equal(thin.elements.length, 0);
 });
 
-test('a macro-sized depot with hundreds of portals builds quickly', () => {
-  const cells = cellsOf(200, 150), portals = [];
-  for (let x = 2; x < 196; x += 4) portals.push({ id: `n${x}`, axis: 'h', x, y: 0, length: 2 }, { id: `s${x}`, axis: 'h', x, y: 150, length: 2 });
-  for (let y = 2; y < 146; y += 4) portals.push({ id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: 200, y, length: 2 });
-  const started = performance.now();
-  const result = buildRegion(brief('macro', 3, cells, portals));
-  assertWithinBudget(performance.now() - started, 3000, 'macro depot built');
-  assert.ok(result.manifest.warehouses > 10 && result.manifest.rows > 100);
-  assert.ok(bounds(blockers(result)[0]).w > 0);
+/** A `w` × `h` depot with a two-cell portal every `step` cells along all four sides. */
+const portalled = (w, h, step) => {
+  const portals = [];
+  for (let x = 2; x < w - 4; x += step) portals.push({ id: `n${x}`, axis: 'h', x, y: 0, length: 2 }, { id: `s${x}`, axis: 'h', x, y: h, length: 2 });
+  for (let y = 2; y < h - 4; y += step) portals.push({ id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: w, y, length: 2 });
+  return brief('portalled', 3, cellsOf(w, h), portals);
+};
+
+// The cost witness that runs every time (31, "A test's cost is part of the change"): counts, not
+// a duration. 104 portals take 4 cord searches, each with a whole-region mesh. When the witness
+// outgrew a fixed point limit, every later commit failed as `budget` and `commitEach` split it
+// into more whole-region proofs (#801). This region passes the old 16,384-point limit: with it
+// the build took 98 meshes, so a limit set too low again fails here, in every run, for 1.6 s.
+test('a many-portal depot proves its cord with few whole-region meshes', () => {
+  const before = { ...cordWork };
+  const result = buildRegion(portalled(125, 94, 4));
+  assert.ok(result.manifest.warehouses > 20 && result.manifest.rows > 30, JSON.stringify(result.manifest));
+  const calls = cordWork.calls - before.calls, meshes = cordWork.meshBuilds - before.meshBuilds;
+  assert.ok(calls <= 12 && meshes <= 12, `cord searches ${calls}, meshes ${meshes}, ceiling 12 each (#801)`);
 });
 
 test('depot leaves a bypass at a hinted edge while protecting portals', () => {
