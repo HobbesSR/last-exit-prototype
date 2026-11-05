@@ -229,6 +229,41 @@ once per file, as `room-directory` does (#376: about 26 s to 3 s). Files already
 when this was added: `room-service`, `room-directory` (since fixed), `server`, `map-generator`
 and the slow `map-library`; they are the first candidates, not a precedent.
 
+<a id="test-cost"></a>
+
+### A test's cost is part of the change
+
+Every author waits on the fast tier, on every PR, and a decomposed task waits on it at every stage.
+So adding a test, growing one or turning one on (removing a skip, changing a gate's default) brings
+an obligation: show that you know what it costs that workflow (Corey, 2026-11-04, #795). The PR
+body states, for each test file added or grown:
+
+- **Its isolated time**, from `npm run test:times -- <file>`, and the new or grown cases' own times.
+- **Its tier**, and what it adds there. The fast tier runs four files at a time, so a single file
+  longer than about a quarter of the tier's wall time becomes its critical path whatever the total.
+  CI's runner is slower than the development machine, about 2.5 to 4 times on 2026-11-04
+  ([42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints)): a minute
+  here is several minutes on every PR's `verify`.
+- **Why that scope.** Name the claim and why the scene it builds is the cheapest that shows it
+  ([Test arenas](#test-arenas)). A rule about rooms, protocol or one builder does not generate a
+  whole chain map unless that is the claim; it shares one (`reuseMaps`), uses an arena or a stored
+  map. Sweeps over seeds and whole matches go to `tests/slow/` with a fast witness (above).
+
+A reviewer treats a missing or implausible statement as a finding. The same obligation covers a
+change that makes existing tests slower, such as a builder whose cost rises: the PR says which
+test files moved and by how much, from `test:times` before and after.
+
+A case that exists to catch a cost regression must fail when cost regresses, in the runs people
+actually make. A duration that nobody prints is not a witness: the macro-sized depot case went
+from about 2 s to about 460 s alone (about 20 minutes in CI) with #787's live cord, and the run
+passed for three days because its limit is opt-in (below). A new cost witness asserts a
+deterministic count of work, as the paragraph after the table below says, rather than leaning on
+`BUILD_BUDGETS`.
+
+Notice bloat rather than add to it. When a run you are making is slower than the numbers here or in
+42.3, or a file you touch is over budget, say so in the PR or file an issue; do not add cases to a
+file already over budget without bringing it back under.
+
 Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 `cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder
