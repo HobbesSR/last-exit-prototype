@@ -1,4 +1,4 @@
-import { actorHitRadius, firstContact, impact, solidBlockers } from './swept.ts';
+import { actorHitRadius, impact, solidContact } from './swept.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { HookState } from '../physics/types.ts';
 import type { Game, Player, Vec2 } from '../types.ts';
@@ -12,7 +12,7 @@ const length = (a: Vec2, b: Vec2) => hypot(a.x - b.x, a.y - b.y);
 const lerp = (a: Vec2, b: Vec2, t: number): Vec2 => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
 /** A blocked prefix wins a simultaneous actor contact. The experimental tip/tether has zero radius. */
-function blockedAt(s: Game, a: Vec2, b: Vec2): number { return firstContact(a, b, solidBlockers(s), 0); }
+function blockedAt(s: Game, a: Vec2, b: Vec2): number { return solidContact(s, a, b, 0); }
 
 function remove(s: Game, hook: HookState): void {
   const r = physicsRuntime(s);

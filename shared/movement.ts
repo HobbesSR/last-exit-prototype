@@ -6,6 +6,7 @@ import { shapeOf, bounds, nearBounds, edgesOf, body, separate, segmentShapeDista
 import type { Bounded, Edge, Shape } from './shape.ts';
 import type { Box, CollisionMap, Gate, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
 import { atan2, cos, hypot, sin } from './math.ts';
+import { BUCKET, bucketBox, eachCellIn, Visited } from './buckets.ts';
 
 // Geometry is described once in `shape.ts` and consumed here. This module owns what the simulation
 // does with a shape -- occupancy, the movement sweep and sight -- not what a shape is.
@@ -43,7 +44,6 @@ export const VISION = 620;
 // (simulation/dynamic-navigation.ts), share one geometry instead of rebuilding every collider (#727).
 const shapeCache = new WeakMap<readonly Obstacle[], Geometry>();
 const playableRows = new WeakMap<PlayableArea, Map<number, Array<[number, number]>>>();
-const BUCKET = 200;
 const vec = (x: World, y: World) => new SAT.Vector(x, y);
 /** Resolve a stored record -- an obstacle, or a closed gate's box -- into a reusable collider. */
 function collider(source: Bounded & { kind?: string | undefined }): Collider {
@@ -55,12 +55,7 @@ function geometry(map: CollisionMap): Geometry {
   if (cached && cached.count === map.obstacles.length) return cached;
   const shapes = map.obstacles.map(o => ({ ...collider(o), source: o }));
   const buckets = new Map<string, Collider[]>();
-  for (const entry of shapes) {
-    const { x: left, y: top, w, h } = entry.box;
-    for (let x = Math.floor(left / BUCKET); x <= Math.floor((left + w) / BUCKET); x++) for (let y = Math.floor(top / BUCKET); y <= Math.floor((top + h) / BUCKET); y++) {
-      const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key)!.push(entry);
-    }
-  }
+  for (const entry of shapes) bucketBox(buckets, entry.box, entry);
   const segments = shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)), sight = new Map<string, number[]>();
   segments.forEach((edge, i) => bucketBox(sight, edgeBox(edge), i));
   cached = { count: map.obstacles.length, shapes, buckets, segments, sight };
@@ -70,12 +65,6 @@ const edgeBox = (edge: Edge): Box => {
   const x = Math.min(edge.a.x, edge.b.x), y = Math.min(edge.a.y, edge.b.y);
   return { x, y, w: Math.max(edge.a.x, edge.b.x) - x, h: Math.max(edge.a.y, edge.b.y) - y };
 };
-function bucketBox<T>(buckets: Map<string, T[]>, box: Box, entry: T): void {
-  for (let x = Math.floor(box.x / BUCKET); x <= Math.floor((box.x + box.w) / BUCKET); x++) for (let y = Math.floor(box.y / BUCKET); y <= Math.floor((box.y + box.h) / BUCKET); y++) {
-    const key = `${x},${y}`, list = buckets.get(key);
-    if (list) list.push(entry); else buckets.set(key, [entry]);
-  }
-}
 // Gates indexed by their boxes, which never move, with each box's sight edges; whether one is open is read
 // when it is met. Buckets hold indices into `map.gates`, so a query can return its gates in map order. A gate
 // list may grow, but is never reordered in place: a different order is a different array. Edges are built
@@ -92,30 +81,7 @@ function gateIndex(map: CollisionMap): GateIndex {
   return cached;
 }
 const gateEdges = (map: CollisionMap, gates: GateIndex, i: number): Edge[] => gates.edges[i] ??= edgesOf(shapeOf(gateShape(map.gates[i])));
-/**
- * Which indices a query has already met, for entries listed in several cells. `begin` starts a query in
- * constant time by moving to a fresh mark, so nothing is allocated per query once the array has grown.
- */
-class Visited {
-  private marks = new Uint32Array(0);
-  private mark = 0;
-  begin(size: number): void {
-    if (this.marks.length < size) this.marks = new Uint32Array(Math.max(size, this.marks.length * 2));
-    if (++this.mark === 0xffffffff) { this.marks.fill(0); this.mark = 1; }
-  }
-  first(i: number): boolean {
-    if (this.marks[i] === this.mark) return false;
-    this.marks[i] = this.mark; return true;
-  }
-}
 const visitedGates = new Visited(), visitedEdges = new Visited();
-/** Each bucket list of the cells a box touches; the cell of every point in the box is visited. */
-function eachCellIn<T>(buckets: Map<string, T[]>, left: World, top: World, right: World, bottom: World, visit: (entries: T[]) => void): void {
-  for (let x = Math.floor(left / BUCKET); x <= Math.floor(right / BUCKET); x++) for (let y = Math.floor(top / BUCKET); y <= Math.floor(bottom / BUCKET); y++) {
-    const list = buckets.get(`${x},${y}`);
-    if (list) visit(list);
-  }
-}
 /**
  * The gates, open or closed, whose boxes may touch the closed box from `left`,`top` to `right`,`bottom`,
  * in map order and each once. It may also return gates near the box; the caller makes its exact test.
