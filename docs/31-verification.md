@@ -256,7 +256,7 @@ test files moved and by how much, from `test:times` before and after.
 A case that exists to catch a cost regression must fail when cost regresses, in the runs people
 actually make. A duration that nobody prints is not a witness: the macro-sized depot case went
 from about 2 s to about 460 s alone (about 20 minutes in CI) with #787's live cord, and the run
-passed for three days because its limit is opt-in (below). A new cost witness asserts a
+passed for two and a half days because its limit is opt-in (below). A new cost witness asserts a
 deterministic count of work, as the paragraph after the table below says, rather than leaning on
 `BUILD_BUDGETS`.
 
