@@ -15,9 +15,10 @@ export const sweepCases = seeds => Object.keys(MASKS).flatMap(name => seeds.flat
 /**
  * The fast tier's witnesses (31, #807): each mask once at the default two gates, and each other
  * gate count once. Builds are the cost here (0.5 to 1.4 s each on the field, ell and ring, about
- * 10 ms on the yard), so one and three gates go on the yard. Four gates go on the ell: on the yard's
- * four portals every gate lands on a portal, while the ell has three, so its fourth gate is placed
- * off a portal and the ring shrinks (18 × 22 to 16 × 20), the cheapest large mask that shows it.
+ * 10 ms on the yard), so one and three gates go on the yard. Four gates go on the ell, where the
+ * concave corner leaves no fourth gate stand until the ring steps down from 18 × 22 to 16 × 20
+ * (siting rejects the larger boxes for insufficient-gate-stands): the cheapest mask that shows a
+ * gate count resizing the ring.
  */
 export const FAST_CASES = [
   ...Object.keys(MASKS).map(name => ({ name, seed: SEEDS[0], parameters: undefined })),

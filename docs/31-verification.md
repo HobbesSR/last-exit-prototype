@@ -137,8 +137,8 @@ of eight seeds of its promise sweep and two of its clump-spacing sweep, and
 `slow/micro-park-promise` all eight, with the 36-portal park (#759, #760: cord-routed
 builders and park's hedge fronts cost several times more); `micro-compound` runs its
 portal, roofed-ring and observer checks on seven cases at the first seed (each mask at the
-default two gates, one and three gates on the small yard, and four on the ell, whose three
-portals leave a gate off-portal, #807), and
+default two gates, one and three gates on the small yard, and four on the ell, where the
+concave corner leaves no fourth gate stand until the ring steps down from 18×22 to 16×20, #807), and
 `slow/micro-compound-sweeps` and `slow/micro-compound-sweeps-tail` run every mask at every
 gate count over seeds 1-2 and 3-4. Compound cell order has a fast witness in
 `micro-compound-exterior` (elements and loot) and `micro-compound-delegation` (the whole
