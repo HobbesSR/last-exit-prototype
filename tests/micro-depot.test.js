@@ -8,45 +8,18 @@ import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
 import { designsNotUsed } from '../map/micro/building/draw.ts';
 import { cellsOf } from './helpers/cells.js';
+import { MASKS, SEEDS, SIZE, assertDepotPromise, blockers, brief } from './helpers/depot-fixtures.js';
 import { cordWork } from '../map/micro/cord-witness.ts';
 
-const SIZE = 40;
-const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'depot', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals, ...(parameters ? { parameters } : {}) });
-
-/** A yard, a wide field, an L, and a ring around a hole, with portals on several sides. */
-const MASKS = {
-  yard: [cellsOf(14, 12), [{ id: 'north', axis: 'h', x: 1, y: 0, length: 3 }, { id: 'east', axis: 'v', x: 14, y: 2, length: 4 },
-    { id: 'south', axis: 'h', x: 6, y: 12, length: 2 }, { id: 'west', axis: 'v', x: 0, y: 7, length: 2 }]],
-  field: [cellsOf(40, 30), [{ id: 'west', axis: 'v', x: 0, y: 7, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 20, length: 3 },
-    { id: 'north', axis: 'h', x: 28, y: 0, length: 8 }]],
-  ell: [cellsOf(30, 30, (x, y) => y < 15 || x < 15), [{ id: 'east', axis: 'v', x: 30, y: 4, length: 3 }, { id: 'south', axis: 'h', x: 2, y: 30, length: 4 },
-    { id: 'corner', axis: 'h', x: 18, y: 15, length: 6 }]],
-  ring: [cellsOf(36, 36, (x, y) => x < 13 || x >= 23 || y < 13 || y >= 23), [{ id: 'north', axis: 'h', x: 15, y: 0, length: 4 },
-    { id: 'hole', axis: 'v', x: 23, y: 16, length: 3 }, { id: 'west', axis: 'v', x: 0, y: 26, length: 3 }]],
-};
-const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
-const blockers = result => result.elements.flatMap(element => elementShapes(element));
 /** An element's box in cells. */
 const cellBox = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
 
-test('a depot region keeps the portal promise over seeds, masks and parameters', () => {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS)
-    for (const parameters of [undefined, { density: 1, roomCells: 6 }, { density: 0.3, roomCells: 12 }]) {
-      const result = buildRegion(brief(name, seed, cells, portals, parameters));
-      if (name !== 'yard') assert.ok(result.elements.length > 0, `${name} seed ${seed} stood warehouses or rows`);
-      const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
-      assert.deepEqual(check.errors, [], `${name} seed ${seed} ${JSON.stringify(parameters)}`);
-    }
-});
-
-test('depots are deterministic and independent of the order of the brief\'s cells', () => {
-  const [cells, portals] = MASKS.field;
-  for (const seed of SEEDS) {
-    const result = buildRegion(brief('field', seed, cells, portals));
-    assert.deepEqual(buildRegion(brief('field', seed, [...cells].reverse(), portals)).elements, result.elements);
-  }
-});
+// The first seed on every mask under each parameter set; tests/slow/micro-depot-sweeps.test.js runs
+// all eight. Independence from the brief's cell order is the builder contract's to show
+// (micro-builder-contract, depot already a contract type): the depot inherits it from the canonical
+// sort in createRegionMask (map/micro/geometry.ts), and only the contract fails when that sort is
+// removed; micro-depot-routing's reversed-order test stays green then (#807, review 633).
+test('a depot region keeps the portal promise over masks and parameters', () => assertDepotPromise(SEEDS.slice(0, 1)));
 
 test('every piece keeps an aisle from the next and from the region\'s edge, all on one axis', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) {
