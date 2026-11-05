@@ -151,13 +151,18 @@ test('two clients share authority; replay preserves each recorded frame and surv
     assert.equal(wa.started, false);
     // Decoded as the client does, so the check below covers what layered items and gates rebuild to (#250).
     const received = [], layers = createLayerDecoder();
-    a.on('message', raw => { const data = JSON.parse(raw); if (data.type === 'state') received.push(layers.decode(data.state)); });
+    // The lobby's waiting-yard frames (#236) run on a real timer and are never recorded, so only the match's are compared.
+    a.on('message', raw => {
+      const data = JSON.parse(raw); if (data.type !== 'state') return;
+      const frame = layers.decode(data.state); if (frame.phase !== 'waiting') received.push(frame);
+    });
     const b = await open(base);
     const welcomeB = next(b, 'welcome'); b.send(JSON.stringify({ type: 'join', room: room.id, role: 'gladiator' }));
     const wb = await welcomeB; assert.notEqual(wb.id, wa.id); assert.equal(wb.owner, false);
     b.send(JSON.stringify({ type: 'finish' }));
     a.send(JSON.stringify({ type: 'start' }));
-    const live = await next(a, 'state'); assert.equal(live.state.phase, 'live');
+    // A yard frame can already be on the socket when the start is sent, as in server-matchmaking.test.js.
+    const live = await next(a, 'state', 5000, frame => frame.state.phase !== 'waiting'); assert.equal(live.state.phase, 'live');
     a.send(JSON.stringify({ type: 'input', seq: 1, x: 1, hp: 99999, interact: true, moveSlot: { from: 0, to: 5 } }));
     await next(a, 'state'); await next(a, 'state');
     const saved = next(a, 'saved'); a.send(JSON.stringify({ type: 'finish' })); const metadata = (await saved).replay;
