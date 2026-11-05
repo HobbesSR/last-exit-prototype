@@ -21,7 +21,8 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     console.error('usage: npm run brief -- <npm test script, e.g. test or test:slow>');
     process.exit(2);
   }
-  const env = { ...process.env, NODE_OPTIONS: briefNodeOptions(process.env.NODE_OPTIONS) };
+  // BRIEF_SCRIPT names the reporter's timing record, so each script keeps its own history.
+  const env = { ...process.env, NODE_OPTIONS: briefNodeOptions(process.env.NODE_OPTIONS), BRIEF_SCRIPT: script };
   const args = ['run', '--silent', script, ...process.argv.slice(3)];
   const npm = process.env.npm_execpath;
   const result = npm

@@ -24,14 +24,26 @@ available. The chain sweep's internal worker pool is separate.
 Agents run test scripts through `npm run brief -- <script>` (for example `npm run brief -- test`
 or `npm run brief -- test:slow`), because every line of test output they read is paid for in
 context, and in each agent that reads it. `tests/brief.mjs` runs the script with
-`tests/brief-reporter.mjs`, which writes one line per test file (its name and how many tests
-passed), the name, location and error of each failure, any diagnostic node scopes to a file (such
+`tests/brief-reporter.mjs`, which writes one line per test file (its name, how many tests
+passed and its wall time), the name, location and error of each failure, any diagnostic node scopes to a file (such
 as an error from asynchronous activity after a test ended), the crash output of a file that fails
 outside any test, and a closing count; a failing TODO counts as TODO, as in node. The exit status
 is the script's. The wrapper replaces any reporter already set in `NODE_OPTIONS`, and
 `test:times` drops the inherited one because it parses spec output. Agents start long runs in
 the background and wait for the exit notification instead of polling the output. `--test-reporter`
 cannot simply be appended (`npm test -- --test-reporter=...`): node ignores it after the file globs.
+
+<a id="recorded-test-times"></a>
+
+**Recorded test times** (#800). Every run through `brief` records each file's wall time and each
+top-level test's duration in `test-results/test-times/<script>.json` (ignored by git), keeping the
+last ten runs, with the run's wall time, CPU count and how busy the machine was (this run's own
+tests included). The output pays two lines at most for it: `slowest:` names the five slowest
+files, and `slower:` names any file at least twice its median over three or more recorded runs and
+three seconds more. A `slower:` line is a prompt to look, not a verdict: the busy share says how
+loaded the machine was, and a regression is believed only after the repeats this section asks
+for. Read the record for a file's history or its slowest tests rather than re-running it with the
+spec reporter; `test:times` stays the isolated per-file measurement against the budgets.
 
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`. Dated counts and timings are in
@@ -461,8 +473,9 @@ Forgejo Actions runs `.forgejo/workflows/ci.yml` in fresh `node:24.15.0` contain
 the npm that `packageManager` names, as two jobs on separate runner queues:
 
 - **`verify`** (label `docker`) runs on every pull request and every push to `main`:
-  `npm run check`, `npm run typecheck`, `npm test` and `npm run test:mapgen`. It is the
-  pull request's check, and takes a few minutes.
+  `npm run check`, `npm run typecheck`, `npm test` (through `brief`, so the log gives each
+  file's wall time and the slowest files) and `npm run test:mapgen`. It is the pull request's
+  check. The runner is several times slower than the development machine (42.3, 2026-11-04).
 - **`slow`** (label `slow`) runs `npm run test:slow` on every push to `main`, after
   merge, so pull requests never wait for it. When it fails,
   `tools/ci/slow-failures.mjs` files one issue per failing test, titled
