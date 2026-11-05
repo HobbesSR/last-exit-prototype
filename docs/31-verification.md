@@ -38,7 +38,8 @@ cannot simply be appended (`npm test -- --test-reporter=...`): node ignores it a
 **Recorded test times** (#800). Every run through `brief` records each file's wall time and each
 top-level test's duration in `test-results/test-times/<script>.json` (ignored by git), keeping the
 last ten runs, with the run's wall time, CPU count and how busy the machine was (this run's own
-tests included). The output pays two lines at most for it: `slowest:` names the five slowest
+tests included). The file is replaced whole, so a reader never sees part of one; two runs of the
+same script finishing at the same moment can keep only one of them. The output pays two lines at most for it: `slowest:` names the five slowest
 files, and `slower:` names, on one line, up to five files at least twice their median over three
 or more recorded runs and three seconds more, and how many more there are. A `slower:` line is a prompt to look, not a verdict: the busy share says how
 loaded the machine was, and a regression is believed only after the repeats this section asks
