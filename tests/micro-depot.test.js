@@ -8,7 +8,6 @@ import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
 import { designsNotUsed } from '../map/micro/building/draw.ts';
 import { cellsOf } from './helpers/cells.js';
-import { assertWithinBudget } from './helpers/budget.js';
 import { cordWork } from '../map/micro/cord-witness.ts';
 
 const SIZE = 40;
@@ -171,27 +170,17 @@ const portalled = (w, h, step) => {
   return brief('portalled', 3, cellsOf(w, h), portals);
 };
 
-// The cost witness that runs every time (31, "A test's cost is part of the change"): a count, not
-// a duration. 84 portals build 4 cord meshes today; past 100 × 75 the count climbs steeply (98 at
-// 125 × 94, 390 at 150 × 112, #801), and this ceiling fails if it starts climbing here too.
+// The cost witness that runs every time (31, "A test's cost is part of the change"): counts, not
+// a duration. 104 portals take 4 cord searches, each with a whole-region mesh. When the witness
+// outgrew a fixed point limit, every later commit failed as `budget` and `commitEach` split it
+// into more whole-region proofs (#801). This region passes the old 16,384-point limit: with it
+// the build took 98 meshes, so a limit set too low again fails here, in every run, for 1.6 s.
 test('a many-portal depot proves its cord with few whole-region meshes', () => {
   const before = { ...cordWork };
-  const result = buildRegion(portalled(100, 75, 4));
+  const result = buildRegion(portalled(125, 94, 4));
   assert.ok(result.manifest.warehouses > 20 && result.manifest.rows > 30, JSON.stringify(result.manifest));
-  const meshes = cordWork.meshBuilds - before.meshBuilds;
-  assert.ok(meshes <= 12, `cord meshes ${meshes}, ceiling 12 (#801)`);
-});
-
-// About 460 s alone and 20 minutes in CI since #787, from cord proof, not from the depot's own
-// siting (#801). Opt-in until #801 brings it back near its old 2 s; then it returns to every run
-// with a mesh-count bound like the case above.
-test('a macro-sized depot with hundreds of portals builds quickly', { skip: process.env.DEPOT_MACRO ? false : 'about 460 s since #787; DEPOT_MACRO=1 runs it (#801)' }, () => {
-  const { cells, portals } = portalled(200, 150, 4);
-  const started = performance.now();
-  const result = buildRegion(brief('macro', 3, cells, portals));
-  assertWithinBudget(performance.now() - started, 3000, 'macro depot built');
-  assert.ok(result.manifest.warehouses > 10 && result.manifest.rows > 100);
-  assert.ok(bounds(blockers(result)[0]).w > 0);
+  const calls = cordWork.calls - before.calls, meshes = cordWork.meshBuilds - before.meshBuilds;
+  assert.ok(calls <= 12 && meshes <= 12, `cord searches ${calls}, meshes ${meshes}, ceiling 12 each (#801)`);
 });
 
 test('depot leaves a bypass at a hinted edge while protecting portals', () => {

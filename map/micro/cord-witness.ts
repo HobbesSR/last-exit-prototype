@@ -21,7 +21,8 @@ export interface CordBudget { maxMeshBuilds?: number; maxSweeps?: number; maxPat
 /**
  * Running totals of every discovery in this process (calls, and the meshes they built), for
  * tests that bound a builder's cord work by count rather than by duration (31, #801).
- * Generation never reads them; a worker thread keeps its own.
+ * Generation never reads them, and nothing resets them: read them as the difference across a
+ * call, which holds because a test file's tests run one at a time. A worker thread keeps its own.
  */
 export const cordWork = { calls: 0, meshBuilds: 0 };
 export type CordWitnessResult = { ok: true; witness: CordWitness; counters: CordCounters }
@@ -29,11 +30,26 @@ export type CordWitnessResult = { ok: true; witness: CordWitness; counters: Cord
 
 const MAX_INPUTS = 16_384, MAX_SEGMENTS = 4_096;
 /**
- * Path segments for scatter builders on a live cord (park, rubble, plant): winding cords to every
- * stand of a many-portal region pass the default of 4,096. It is a tool limit, not a contract
- * (20.10); callers that don't pass it keep the default.
+ * Points in the witness's paths and edges and in the blockers' outlines. These grow with a
+ * region's area and portal count: the witness repeats each shared prefix once per stand, so a
+ * 100 × 75 depot of 84 portals carries 12,500 path points and a 200 × 150 depot of 170 carries
+ * 35,000, with 16,600 blocker points. At the former 16,384 every later commit failed as `budget`,
+ * and `commitEach` turned each failure into log n more whole-region proofs, while the refused
+ * pieces would have fit (#801). It is a tool limit, not a contract (20.10).
+ *
+ * 2^18 is headroom, about 7 times the largest measured, not a fit to it: a region that outgrows
+ * the limit brings the cascade back, while the work a search accepts stays bounded by its sweep,
+ * path and mesh budgets. The count bounds below stay at MAX_INPUTS; they grow with pieces and
+ * portals, not with area times portals, and the 200 × 150 depot peaks at 4,158 blockers and 340
+ * stands and paths.
  */
-export const SCATTER_CORD_BUDGET: Readonly<CordBudget> = Object.freeze({ maxSegments: 16_384 });
+const MAX_POINTS = 1 << 18;
+/**
+ * Path segments for builders on a live cord (scatter types, park, rubble, plant, depot): winding
+ * cords to every stand of a many-portal region pass the default of 4,096. It is a tool limit, not
+ * a contract (20.10); callers that don't pass it keep the default.
+ */
+export const SCATTER_CORD_BUDGET: Readonly<CordBudget> = Object.freeze({ maxSegments: MAX_POINTS });
 const same = (a: Vec2, b: Vec2): boolean => a.x === b.x && a.y === b.y;
 const compare = (a: Vec2, b: Vec2): number => a.x - b.x || a.y - b.y;
 const copy = (p: Vec2): Vec2 => ({ x: p.x, y: p.y });
@@ -67,9 +83,9 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
   const fail = (reason: 'budget' | 'external' | 'interior'): CordWitnessResult => ({ ok: false, reason, counters });
   // Bound preprocessing, mesh complexity and graph normalization independently of caller budgets.
   if (blockers.length > MAX_INPUTS || terminals.length > MAX_INPUTS || (previous?.paths.length ?? 0) > MAX_INPUTS
-    || (previous?.paths.reduce((n, p) => n + p.length, 0) ?? 0) > MAX_INPUTS
-    || (previous?.edges.length ?? 0) > MAX_INPUTS
-    || blockers.reduce((n, s) => n + (s.kind === 'polygon' ? s.points.length : s.kind === 'circle' ? 16 : 4), 0) > MAX_INPUTS) return fail('budget');
+    || (previous?.paths.reduce((n, p) => n + p.length, 0) ?? 0) > MAX_POINTS
+    || (previous?.edges.length ?? 0) > MAX_POINTS
+    || blockers.reduce((n, s) => n + (s.kind === 'polygon' ? s.points.length : s.kind === 'circle' ? 16 : 4), 0) > MAX_POINTS) return fail('budget');
   // Avoid allocating millions of stands from individually legal long portal runs.
   const needsPortalStands = brief.portals.length >= 2 || terminals.length > 0;
   const standCount = !needsPortalStands ? 0 : brief.portals.reduce((n, p) =>
@@ -186,8 +202,8 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
     if (exhausted) return fail('budget');
     if (!points) return fail(node.reason);
     segments += points.length - 1;
-    // Past `MAX_INPUTS` points the witness could not be passed back as `previous`.
-    if (segments > limits.maxSegments || segments + paths.length + 1 > MAX_INPUTS) return fail('budget');
+    // Past `MAX_POINTS` points the witness could not be passed back as `previous`.
+    if (segments > limits.maxSegments || segments + paths.length + 1 > MAX_POINTS) return fail('budget');
     paths.push(points.map(copy));
   }
   // One optional terminal still has a clearance obligation and an explicit witness point.
