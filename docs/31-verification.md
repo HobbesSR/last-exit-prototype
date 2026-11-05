@@ -38,7 +38,8 @@ cannot simply be appended (`npm test -- --test-reporter=...`): node ignores it a
 **Recorded test times** (#800). Every run through `brief` records each file's wall time and each
 top-level test's duration in `test-results/test-times/<script>.json` (ignored by git), keeping the
 last ten runs, with the run's wall time, CPU count and how busy the machine was (this run's own
-tests included). The output pays two lines at most for it: `slowest:` names the five slowest
+tests included). The file is replaced whole, so a reader never sees part of one; two runs of the
+same script finishing at the same moment can keep only one of them. The output pays two lines at most for it: `slowest:` names the five slowest
 files, and `slower:` names, on one line, up to five files at least twice their median over three
 or more recorded runs and three seconds more, and how many more there are. A `slower:` line is a prompt to look, not a verdict: the busy share says how
 loaded the machine was, and a regression is believed only after the repeats this section asks
@@ -268,7 +269,7 @@ test files moved and by how much, from `test:times` before and after.
 A case that exists to catch a cost regression must fail when cost regresses, in the runs people
 actually make. A duration that nobody prints is not a witness: the macro-sized depot case went
 from about 2 s to about 460 s alone (about 20 minutes in CI) with #787's live cord, and the run
-passed for three days because its limit is opt-in (below). A new cost witness asserts a
+passed for two and a half days because its limit is opt-in (below). A new cost witness asserts a
 deterministic count of work, as the paragraph after the table below says, rather than leaning on
 `BUILD_BUDGETS`.
 

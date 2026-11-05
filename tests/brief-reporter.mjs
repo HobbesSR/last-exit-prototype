@@ -1,6 +1,6 @@
 import path from 'node:path';
 import os from 'node:os';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 
 // A thin node:test reporter for agents, whose every line of test output is paid for in context.
 // One line per test file (its name, how many top-level tests passed and its wall time), the name,
@@ -174,7 +174,12 @@ export default async function* briefReporter(source) {
       busy: busy === undefined ? null : Math.round(100 * busy) / 100, files,
       tests: Object.fromEntries([...testMs].map(([key, tests]) => [relative(key), tests])) };
     mkdirSync(path.dirname(record), { recursive: true });
-    writeFileSync(record, `${JSON.stringify({ runs: [...runs, run].slice(-RUNS_KEPT) })}\n`);
+    // Re-read just before writing, and replace the file by renaming a finished copy, so a reader
+    // never sees half a file and a run that finished meanwhile is kept. Two runs finishing at the
+    // same moment can still drop one record; the history is a convenience, not a ledger.
+    const latest = readRuns(record), temporary = `${record}.${process.pid}.tmp`;
+    writeFileSync(temporary, `${JSON.stringify({ runs: [...latest, run].slice(-RUNS_KEPT) })}\n`);
+    renameSync(temporary, record);
   } catch {
     // Recording is a convenience: an unwritable directory leaves the run's result as it was.
   }
