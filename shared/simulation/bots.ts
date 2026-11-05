@@ -9,7 +9,7 @@ import { createPortalPlanner, portalGraphOf, regionAt, type PortalGraph, type Re
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, sameQuality, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ, TRANSIT_REACH } from './rules.ts';
-import { giveUpSweep, sweepTarget, transitPlan } from './hunting.ts';
+import { giveUpSweep, noteHunterTarget, sweepTarget, transitPlan } from './hunting.ts';
 import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { dynamicWaypoint } from './dynamic-navigation.ts';
@@ -613,7 +613,8 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   const lead = reacting ? leadOf(s, p) : null;
   // Under `hunting: 'sweep'` a gladiator with no one seen and nothing heard sweeps regions ahead of the wall, and takes
   // transit toward a lead or a sweep when that is quicker (#683).
-  const hunting = p.role === 'gladiator' && s.content.hunting === 'sweep';
+  const hunting = p.role === 'gladiator' && (s.content.hunting === 'sweep' || s.content.hunting === 'front');
+  if (hunting) noteHunterTarget(s, p, !!(nearest || lead));
   const sweep = hunting && !nearest && !lead ? sweepTarget(s, p, at => standingIn(s, p, at)) : null;
   let target: Vec2 = p.role === 'gladiator' ? nearest || lead || sweep || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
   let transitTo: StationId | undefined;
