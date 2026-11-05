@@ -284,7 +284,7 @@ file already over budget without bringing it back under.
 Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 `cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder
-contract runs, `reorderedBrief`), `block-masks.js`, `plant-fixtures.js` and
+contract runs, `reorderedBrief`), `block-masks.js`, `plant-fixtures.js`, `depot-fixtures.js` and
 `compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and slow files
 share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
@@ -488,6 +488,7 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks, plant's and park's spacing, plant's #490 strips, park's 36-portal case) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
 | `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
+| `micro-depot-sweeps` | depot's four synthetic masks, every seed; the four stored production witnesses | the portal promise under three parameter sets; loot indoors and out reachable over three seeds; every witness's portal reach (the fast tier runs the first seed and the two smaller witnesses, #807) | the depot builder |
 | `micro-depot-scale` | one 200 × 150 depot, 170 portals | at most 12 cord searches and meshes; more than 100 warehouses and 200 rows; the 12 s limit only under `BUILD_BUDGETS=enforce` (readings 5.8 to 7.6 s) | the depot builder, the live cord and its limits (#801) |
 
 A new `tests/slow/` file adds its row here in the same change.
