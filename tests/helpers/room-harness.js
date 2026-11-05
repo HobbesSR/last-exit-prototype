@@ -74,6 +74,7 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, p
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;
   };
   // A room with its match at once: on a copy of the seed's shared map with `reuseMaps`, else generated inline.
+  // It never asks `generateMap`, which only the directory's rooms use: with both set, `h.room()` still takes the copy.
   const room = (seed = 9) => service.makeRoom(seed, false, DEFAULT_LIVE_ZONE_SIZE, reuseMaps ? generatedMap(seed) : undefined);
   return { service, directory, writers, peer, joined, room,
     wake(elapsed, wallElapsed = elapsed) { wall += wallElapsed; monotonic += elapsed; service.advance(elapsed, monotonic); },

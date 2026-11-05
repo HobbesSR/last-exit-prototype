@@ -6,7 +6,8 @@ import { composeRegions } from '../map/micro/compose.ts';
 import { defaultContent, contentById } from '../shared/simulation/content.ts';
 import { createMatch } from '../server/match.js';
 
-// One generation of seed 1's chain serves the file; live-map.test.js holds that it is the map generateLiveMap(1) makes.
+// One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is held
+// here, by the first test's createMatch(1).map(), a generation of its own; live-map.test.js leans on it.
 let defaultMap, defaultChain, defaultBuilt;
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());
 const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);

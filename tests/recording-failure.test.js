@@ -17,6 +17,7 @@ for (const failure of ['start', 'append', 'async']) test(`${failure} recording f
   } });
   try {
     const { room, owner } = h.live(), other = h.live();
+    // Guards the setup, not the server: the injected failure must land on `room`, or the test would pass vacuously.
     assert.equal(failing, room.id, 'the first room is the failing one');
     if (failure === 'async') { fail(new Error('async failed')); fail(new Error('duplicate failure')); }
     const player = room.game.players.find(p => p.id === owner.session.playerId);

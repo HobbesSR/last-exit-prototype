@@ -7,17 +7,20 @@ import { freeSpaceTile } from '../shared/free-space.ts';
 import { discoveryGrid } from '../shared/discovery.ts';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 
-test('the map worker returns exactly the map generated inline', async () => {
+test("the map worker returns exactly the map generated inline, and each request its own seed's map", async () => {
   const maps = createMapGenerator();
   try {
     const answers = Promise.all([maps.generate(4217, DEFAULT_LIVE_ZONE_SIZE), maps.generate(9, DEFAULT_LIVE_ZONE_SIZE)]);
-    // Seed 9's inline map is the one this file's other tests share, generated here while the worker works,
-    // so the exact comparison costs no generation of its own; the other request only has to be answered with
-    // its own map, in its own place.
+    // Seed 9's inline map is the one this file's other tests share, generated here while the worker works, so
+    // the exact comparison is seed 9's alone and costs no generation of its own. The 4217 answer is checked
+    // only for being a live map of its own seed, in its own place: one seed shows the two paths agree.
+    // The worker generates with the shipped content, the harness with the legacy content; their rosters are the
+    // same size, so are their maps (room-content.test.js relies on this too). A roster change shows up here.
     const inline = generatedMap(9, DEFAULT_LIVE_ZONE_SIZE), [first, second] = await answers;
     assert.equal(JSON.stringify(second), JSON.stringify(inline), "the worker's map is exactly the inline one");
     assert.equal(first.generator, inline.generator, 'the earlier request is answered with a live map');
-    assert.notEqual(JSON.stringify(first), JSON.stringify(inline), 'requests are answered in their own order');
+    assert.deepEqual([first.seed, second.seed], [4217, 9], "each request is answered with its own seed's map, in its own order");
+    assert.notEqual(JSON.stringify(first), JSON.stringify(inline), 'and not with a copy of another');
     assert.deepEqual(portalGraphOf(second), portalGraphOf(inline), 'the portal graph crosses beside the map');
     // A gladiator's tiles cross too, packed (22.6, "Bot adoption"): read from one buffer, equal to those built inline.
     const { cols, size } = discoveryGrid(inline), boxOf = cell => ({ x: (cell % cols) * size, y: Math.floor(cell / cols) * size, w: size, h: size });

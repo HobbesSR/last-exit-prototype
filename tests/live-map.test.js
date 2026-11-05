@@ -11,6 +11,7 @@ import { createGame, setInput, step } from '../shared/simulation.ts';
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
 // live-map-adapter.test.js's claim (createMatch(1).map() against this same chain), so it is not paid twice.
+// liveMismatch regenerates the chain on each call, so its three cases below are most of this file's time.
 let defaultMap, defaultChain, defaultBuilt;
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());
 const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);
@@ -38,7 +39,7 @@ test('a chain live map supplies usable authored sites and retained loot metadata
   assert.ok(map.items.some(item => Number.isInteger(item.tier) && item.tier >= 1), 'micro loot tier survives runtime conversion');
 });
 
-test('a chain map the Map Lab calls live is the map a room with its seed plays', () => {
+test("a chain map the Map Lab calls live names a room seed and recipe, and only the seed's own map passes", () => {
   const chain = liveChain();
   assert.deepEqual(liveMismatch(chain), []);
   assert.equal(liveSeed(chain.layout.seed), 1, "the chain's seed text names the room seed whose map it is");
