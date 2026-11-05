@@ -27,8 +27,10 @@ test('the tools build with the game registry and the chain library', () => {
   const check = checkMap(map);
   assert.equal(check.valid, true, JSON.stringify(check.defects));
   assert.equal(check.brokenPromises, undefined, 'the slow diagnostic runs only on request');
-  // Saved whole in either encoding, or as the Layout alone, it reads back the same map.
-  for (const saved of [JSON.parse(chainMapToJson(map)), chainMapToBson(map), JSON.parse(chainMapToJson(map, { results: false }))])
+  // Saved whole in either encoding, it reads back the same map. Reading a game map from its
+  // Layout alone rebuilds every region (2.3 s); `map-container` does that with these engines,
+  // and the custom save below reads a Layout through `readMap` (#807).
+  for (const saved of [JSON.parse(chainMapToJson(map)), chainMapToBson(map)])
     assert.deepEqual(readMap(saved), map);
 });
 

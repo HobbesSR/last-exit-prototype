@@ -100,15 +100,19 @@ Do not resize test grids or relax generation to make a check pass.
 The chain's authored library (52) is checked against the actual region strategies.
 Macro's `tests/chain-content.test.ts` checks the game quotas in 52, distinct
 enormous pieces, and core element regions staying inside their owning instances.
-Root `tests/map-library.test.js` checks 8 and 24 contestants, actual huts, cover
-and rubble, that each core element is reachable from its region's first portal
-(the strategies' own siting rule in 54, not a contract), and the portal promise within
-each non-open region. `node --test tests/slow/map-library.test.js` checks the
-report on 20 seeds with 8 contestants and 5 with 24; one full diagnostic also
-checks the large open regions. These are bounded samples, not a guarantee for
-every seed. `tests/map-container.test.js` saves and reloads this library's
-game-size map through JSON, BSON and Layout-only regeneration with the real
-strategy version (53).
+Root `tests/map-library.test.js` checks one map with 24 contestants: its core element
+counts, actual huts, cover and rubble, that each core element is reachable from its
+region's first portal (the strategies' own siting rule in 54, not a contract), and the
+portal promise within each non-open region under the thorough search. That map holds
+more region types than the default count's, and fails if the count is ignored.
+`node --test tests/slow/map-library.test.js` checks the report on 20 seeds with 8
+contestants and 5 with 24, and runs the same checks with 8 contestants on the one map it
+diagnoses in full, the large open regions too (`tests/helpers/map-library-game.js`
+holds the checks both share). The fast file checked both counts with the portal search
+on each map until #807; the search, not generation, was most of its 21.8 s isolated.
+These are bounded samples, not a guarantee for every seed. `tests/map-container.test.js`
+saves and reloads this library's game-size map through JSON, BSON and Layout-only
+regeneration with the real strategy version (53).
 
 The larger authored-size report samples live in separate slow files
 (`map-library-24`, `map-library-36`, and `map-library-36-tail`) to stay under
@@ -119,7 +123,15 @@ in both batches.
 The tools in `map/tools/` are checked by `tests/map-tools.test.js`, which drives
 the CLI and MCP as subprocesses, and typechecked by `npm run typecheck` under
 their own `map/tools/tsconfig.json`, which checks what they reach in macro as
-macro's own config does.
+macro's own config does. It reads a Layout alone through `readMap` on a small
+playground map; a game map's Layout-only rebuild is `map-container`'s (#807).
+
+`tests/map-sweep-replay.test.js` captures the quick cases once, for a game map's
+markets. Its drift, throw and reach-mode cases tamper with huts: they test the replay,
+not a type, and a hut's thorough portal check costs about a fifteenth of a market's.
+`tests/appearance-descriptor.test.js` reads one live chain map for its depot, market
+and round-trip cases, and samples hut seeds only until every decay tier and two
+distinct scorch and drain placements have appeared (#807).
 
 The compound's multi-mask room/court route sweep lives in
 `tests/slow/micro-compound-access.test.js`; the fast delegation file keeps the
@@ -289,7 +301,8 @@ Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder
 contract runs, `reorderedBrief`), `block-masks.js`, the per-type `plant-fixtures.js`,
 `depot-fixtures.js` and `compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and
-slow files share), `stands.js` (`standNear`), `listen.js`, `browser.js`
+slow files share), `map-library-game.js` (the game-size library map's checks, which the fast and slow
+`map-library` share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
 (the bench and demo `--key=value` map), `room-harness.js` (which pins the legacy mover, `content-5` and
 the synchronous `createMatch`, because its tests are about room policy and not an engine; a physics room
@@ -486,7 +499,7 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `physics-navigation` | the chain through `generateLiveMap`, seed 4217, `content-physics-8` | physical contestants complete the match | physics, navigation; chain output only as a stall or crash |
 | `room-sizes` | the chain, one room per authored size (12 × 6 unless `ROOM_SIZES`), on the legacy mover the room harness pins | the room plays to its end, records, and replays | rooms, recording, the replay timeline, size-dependent generation |
 | `room-sizes-physics` | the same, on the shipped default `content-6` and the physics engine (#523) | the physics room plays to its end, its recording names `last-exit-0.8-physics-8`, and the map fits the content's ground capacity | rooms, recording, physics, item capacity, size-dependent generation |
-| `map-library` | the chain at the game size | 25 maps report no defects; every region of one keeps its portal promise (`diagnoseBuiltMap`) | macro stages, the library, a region type's builder |
+| `map-library` | the chain at the game size | 25 maps report no defects; on one with 8 contestants, the core element counts, built huts, cover and rubble, routes to each core element, and every region's portal promise (`diagnoseBuiltMap`; the fast tier checks one 24-contestant map, #807) | macro stages, the library, a region type's builder |
 | `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
 | `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring and observer checks at every gate count on every mask, the fast tier keeping one case per mask and per gate count, #807; plant's and park's spacing, plant's #490 strips, park's kinds, cell sizes and 36-portal case) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |

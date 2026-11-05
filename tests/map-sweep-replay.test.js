@@ -53,27 +53,31 @@ test('a manifest begins with the shared counts, so what follows is the type\'s o
   assert.deepEqual(Object.keys(records[0].manifest).slice(0, SHARED_MANIFEST.length), [...SHARED_MANIFEST]);
 });
 
+// The replay machinery's own cases tamper with huts: a market's thorough portal check costs
+// about 0.7 s a region and a hut's about 0.05 s, and these cases are about the replay, not the type (#807).
 test('a region whose result moved is named by map and region, with the counts that moved', async () => {
-  const dir = copy(), { key, records, save } = cached(dir, 'market');
+  const dir = copy(), { key, records, save } = cached(dir, 'hut');
   const { brief, manifest } = records[0];
+  const count = 'structures';
   records[0].hash = 'moved';
-  records[0].manifest = { ...manifest, stalls: manifest.stalls + 1 };
+  records[0].manifest = { ...manifest, [count]: manifest[count] + 1 };
   save();
-  const report = await replayBriefs(baseline, ['market'], { dir, jobs: 2 });
-  assert.deepEqual(report.drift, [{ map: key, region: brief.id, type: 'market', manifest: { stalls: [manifest.stalls + 1, manifest.stalls] } }]);
+  const report = await replayBriefs(baseline, ['hut'], { dir, jobs: 2 });
+  assert.deepEqual(report.drift, [{ map: key, region: brief.id, type: 'hut', manifest: { [count]: [manifest[count] + 1, manifest[count]] } }]);
   assert.equal(replayFailed(report), true);
   assert.equal(report.reachChecked, 1, 'only the drifted region was checked');
-  assert.equal((await replayBriefs(baseline, ['market'], { dir, jobs: 2, reach: 'all' })).reachChecked, report.regions);
-  assert.equal((await replayBriefs(baseline, ['market'], { dir, jobs: 2, reach: 'none' })).reachChecked, 0);
+  assert.ok(report.regions > 1, 'the cache holds huts that did not drift');
+  assert.equal((await replayBriefs(baseline, ['hut'], { dir, jobs: 2, reach: 'all' })).reachChecked, report.regions);
+  assert.equal((await replayBriefs(baseline, ['hut'], { dir, jobs: 2, reach: 'none' })).reachChecked, 0);
 });
 
 test('a region that throws is named and the rest are still rebuilt', async () => {
-  const dir = copy(), { key, records, save } = cached(dir, 'market');
+  const dir = copy(), { key, records, save } = cached(dir, 'hut');
   records[0].brief.cells = [];
   save();
-  const report = await replayBriefs(baseline, ['market'], { dir, jobs: 2 });
+  const report = await replayBriefs(baseline, ['hut'], { dir, jobs: 2 });
   assert.equal(report.threw.length, 1);
-  assert.deepEqual({ ...report.threw[0], error: undefined }, { map: key, region: records[0].brief.id, type: 'market', error: undefined });
+  assert.deepEqual({ ...report.threw[0], error: undefined }, { map: key, region: records[0].brief.id, type: 'hut', error: undefined });
   assert.match(report.threw[0].error, /Invalid brief/);
   assert.equal(report.drift.length, 0);
   assert.equal(replayFailed(report), true);
@@ -140,7 +144,7 @@ test('a refused capture leaves the previous cache as it was', async () => {
   await assert.rejects(captureBriefs(movedBaseline(), dir, 2), /doesn't reproduce the baseline/);
   assert.equal(readFileSync(join(dir, 'index.json'), 'utf8'), before);
   assert.equal(existsSync(join(dir, 'regions.new')), false);
-  assert.deepEqual((await replayBriefs(baseline, ['market'], { dir, jobs: 2 })).drift, []);
+  assert.deepEqual((await replayBriefs(baseline, ['hut'], { dir, jobs: 2 })).drift, []);
 });
 
 test('capture will not empty a directory that holds other files', async () => {
