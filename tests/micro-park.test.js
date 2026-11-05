@@ -5,28 +5,13 @@ import { validatePortalReach } from '../map/micro/portals.ts';
 import { seeThrough } from '../shared/movement.ts';
 import { cellsOf } from './helpers/cells.js';
 import { SIZE, THOROUGH, brief, built, MASKS, SEEDS, DENSE, blockers, kind, boxOf, gapBetween, assertParkPromise, assertClumpSpacing,
-  assertPiecesAtSizes } from './helpers/park-fixtures.js';
+  assertParkKinds, assertPiecesAtSizes } from './helpers/park-fixtures.js';
 
 // The fast tier runs the first seed; tests/slow/micro-park-promise.test.js runs all eight.
 test('a park region keeps the portal promise over seeds, masks and parameters', () => assertParkPromise(SEEDS.slice(0, 1)));
 
-// Seeds 1 and 2 of the dense field, the builds the clump test reads.
-test('a park is its own type, with trees and hedge fronts and no buildings', () => {
-  let trees = 0, fronts = 0;
-  for (const seed of SEEDS.slice(0, 2)) {
-    const result = built('field', seed, DENSE);
-    for (const element of result.elements) for (const part of element.template.parts) {
-      assert.equal(part.part, 'obstacle');
-      assert.equal(part.kind, element.label.startsWith('park-tree') ? 'tree' : 'hedge');
-    }
-    trees += result.elements.filter(kind('tree')).length;
-    fronts += result.elements.filter(kind('front')).length;
-    assert.equal(result.manifest.trees, result.elements.filter(kind('tree')).length);
-    assert.equal(result.manifest.fronts, result.elements.filter(kind('front')).length);
-    assert.equal(result.manifest.structures, 0);
-  }
-  assert.ok(trees > 20 && fronts > 5, `${trees} trees, ${fronts} fronts`);
-});
+// Seeds 1 and 2 of the dense field, the builds the clump test reads; tests/slow/micro-park-promise.test.js all eight.
+test('a park is its own type, with trees and hedge fronts and no buildings', () => assertParkKinds(SEEDS.slice(0, 2)));
 
 // Order independence and determinism are the builder contract's (micro-builder-contract-cord), which
 // shuffles every cell list of six chain briefs (#807).

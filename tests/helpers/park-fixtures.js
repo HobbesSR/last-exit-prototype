@@ -98,3 +98,26 @@ export function assertPiecesAtSizes(seeds) {
     }
   }
 }
+
+/**
+ * A park is its own type: only tree and hedge obstacles, counted in its manifest, and no
+ * structures, on the dense field at each of `seeds`. The fast tier reads seeds 1 and 2, the
+ * builds the clump sweep shares, and tests/slow/micro-park-promise.test.js all eight (#807).
+ * Seeds 1 to 8 gave 8 to 24 trees each, so ten a seed on average guards against a thin park.
+ */
+export function assertParkKinds(seeds) {
+  let trees = 0, fronts = 0;
+  for (const seed of seeds) {
+    const result = built('field', seed, DENSE);
+    for (const element of result.elements) for (const part of element.template.parts) {
+      assert.equal(part.part, 'obstacle');
+      assert.equal(part.kind, element.label.startsWith('park-tree') ? 'tree' : 'hedge');
+    }
+    trees += result.elements.filter(kind('tree')).length;
+    fronts += result.elements.filter(kind('front')).length;
+    assert.equal(result.manifest.trees, result.elements.filter(kind('tree')).length);
+    assert.equal(result.manifest.fronts, result.elements.filter(kind('front')).length);
+    assert.equal(result.manifest.structures, 0);
+  }
+  assert.ok(trees > 10 * seeds.length && fronts > 5, `${trees} trees, ${fronts} fronts`);
+}

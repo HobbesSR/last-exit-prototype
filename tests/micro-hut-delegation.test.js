@@ -68,8 +68,9 @@ test('a broad concave yard gives cover a lobe while preserving the house, door, 
   assert.deepEqual(buildHut(original), { ...flat, brief: original });
 });
 
-// The adapter returning its own brief (`buildHut` above) is what chain saves rely on; the whole-map
-// save round trip that first found it is in tests/slow/micro-hut-sweeps.test.js (#807).
+// Chain saves rely on the adapter returning its own brief, which `buildHut` above checks. A whole
+// game map's save round trip once checked it here at 8 s; map-tools' CLI, MCP and custom-save round
+// trips also fail without it, so that test retired (#807).
 
 test('a small yard retains its house without forcing a cover patch', () => {
   const original = input('small-yard', rectangle(6, 6), [{ id: 'south', axis: 'h', x: 1, y: 6, length: 2 }]);
