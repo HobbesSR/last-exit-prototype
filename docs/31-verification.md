@@ -310,8 +310,8 @@ remains subject to the strict 15-second isolated budget.
 
 **Build durations are measured on request, not asserted by default** (#548, which
 supersedes #567's `CI` skip). The macro-sized cases build one region with hundreds of
-portals and check what it holds: the cover, compound, depot, hut and plant cases in
-`tests/micro-*.test.js`, and the slow `micro-block-scale`. Those assertions are the
+portals and check what it holds: the cover, compound, hut and plant cases in
+`tests/micro-*.test.js`, and the slow `micro-block-scale` and `micro-depot-scale`. Those assertions are the
 functional witness and stay in the fast tier; each fast-tier case costs 0.3 to 2 s alone
 (measurements in [42.3](42.3-generation-and-delegation-evidence.md#build-duration-assertions-made-opt-in-548-2026-10-27)).
 How long a build took depends on the machine and what else it runs, so the default run
@@ -326,7 +326,7 @@ unrecognised value fails with the supported ones:
 
 ```powershell
 $env:BUILD_BUDGETS = 'report'   # or 'enforce'
-node --test --test-concurrency=1 --test-name-pattern=macro-sized tests/micro-cover.test.js tests/micro-compound.test.js tests/micro-depot.test.js tests/micro-plant.test.js tests/micro-hut.test.js tests/slow/micro-block-scale.test.js
+node --test --test-concurrency=1 --test-name-pattern=macro-sized tests/micro-cover.test.js tests/micro-compound.test.js tests/micro-plant.test.js tests/micro-hut.test.js tests/slow/micro-block-scale.test.js tests/slow/micro-depot-scale.test.js
 Remove-Item Env:BUILD_BUDGETS
 ```
 
@@ -334,12 +334,22 @@ On a POSIX shell, put `BUILD_BUDGETS=report` before `node`. Add one file to the 
 time just that builder; the pattern selects the macro-sized case alone, which separates
 builder cost from the rest of the file and from suite contention. `enforce` is for a quiet
 machine and one file at a time, with no other agent's tests or benchmarks running: the
-limits (cover 2 s, compound, depot and plant 3 s, block 5 s, hut 8 s) are ceilings that catch a builder
+limits (cover 2 s, compound and plant 3 s, block 5 s, hut 8 s, depot 12 s) are ceilings that catch a builder
 turning quadratic, set above that machine's isolated readings, and are not capacity
 promises. They sit 1.4 to 7 times above the readings, the block's 5 s the closest, so a loaded or
 slower machine can fail one without a regression; repeat before believing it. CI does not
 set the variable. A threshold that should gate every run belongs in a deterministic
 count (work, portals visited, pieces placed), not a duration.
+
+The opt-in duration hid a regression: after #787's live cord the depot's macro case (170
+portals) took about 460 s alone and 20 minutes in CI, against 2 s before, and no run reported
+it (#790). Its witness had outgrown fixed point limits, so every later commit failed as
+`budget` and split into more whole-region proofs (#801). Now every run bounds the cord searches
+and meshes of a 125 × 94 depot with 104 portals through `cordWork`, a process-wide count in
+`map/micro/cord-witness.ts` (4 each; 98 meshes under the old limit, so the fast tier fails if a
+limit is set too low again), and the slow `micro-depot-scale` bounds the same for the macro case
+(4 each, about 6 s). That is the pattern for the other macro cases: a count every
+run catches what a duration nobody prints does not.
 
 Other agents' worktrees share this machine's CPU. `npm run bench` and
 `npm run bench:client` therefore take a machine-wide lock and wait for each
@@ -474,6 +484,7 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks, plant's and park's spacing, plant's #490 strips, park's 36-portal case) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
 | `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
+| `micro-depot-scale` | one 200 × 150 depot, 170 portals | at most 12 cord searches and meshes; more than 100 warehouses and 200 rows; the 12 s limit only under `BUILD_BUDGETS=enforce` (readings 5.8 to 7.6 s) | the depot builder, the live cord and its limits (#801) |
 
 A new `tests/slow/` file adds its row here in the same change.
 
