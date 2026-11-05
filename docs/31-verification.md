@@ -380,6 +380,44 @@ of each published frame differs from the previous tick's, per collection and by 
 nothing, so it needs no lock and runs in parallel. Results are in
 [42.22](42.22-tick-cost-attribution.md#change-fraction-per-tick-655) (#655).
 
+<a id="test-sets"></a>
+
+## Test sets
+
+Every test file belongs to exactly one set, named for what it validates (#800). `tests/sets.mjs`
+holds the catalog: each set's fast, slow and browser members, and the source paths whose change
+should prompt it. `tests/sets.test.js` fails when a file is in no set or two, or when a member
+names no file, so a new test file names its set in the same change.
+
+| Set | Validates |
+| --- | --- |
+| `tooling` | the test and CI tooling, documentation and licence checks |
+| `geometry` | shapes, clipping, math and free-space meshes every system shares |
+| `client` | what the browser draws, and how it presents and buffers frames |
+| `simulation` | game rules, items, bots, navigation, sight and projections, the legacy generator |
+| `physics` | the Rapier engine, its items, hook, ballistics and physical navigation |
+| `rooms` | the server: rooms, matchmaking, recording and replay, the map pool, live-map wiring |
+| `macro` | macro generation, the chain and its library, map tools and the Map Lab |
+| `micro` | region builders and their machinery |
+
+```powershell
+npm run brief -- test:set physics            # the set's fast files
+npm run brief -- test:set micro:depot        # the micro files whose name holds "depot"
+npm run brief -- test:set rooms --slow       # fast and slow files
+npm run brief -- test:set physics --browser  # then its browser scripts, one at a time
+node tests/sets.mjs list                     # sets, member counts and recorded time
+node tests/sets.mjs changed                  # the sets whose sources this branch touched
+```
+
+A set is the inner loop's unit when no single file is narrow enough, and `changed` suggests which
+sets a branch reaches. Sources overlap where code is shared (`map/kernel/` prompts `macro` and
+`micro`), and a set's sources are where its own code lives, not everything it imports: through the
+shared registries almost every file imports almost everything (a change under `shared/physics`
+reaches 221 of 246 fast files' imports), so selection by import graph would select the whole tier.
+`npm test` stays the gate before a PR; sets make iterating cheaper, not the gate smaller.
+`npm run test:physics` is the `physics` set. Each selection keeps its own timing record
+(`test-results/test-times/set-<names>.json`).
+
 ## Choosing checks by changed area
 
 A check is worth running when something the change touched can move what it asserts.
@@ -389,18 +427,18 @@ the change cannot move adds minutes and no evidence (#542). Three tiers:
 
 | Tier | When | Runs |
 | --- | --- | --- |
-| Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, or a replay. Seconds |
+| Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, a set or `set:word` ([Test sets](#test-sets)), or a replay. Seconds |
 | Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; plus the area's extras |
 | Integration | once per PR, where the area can move it | The sweep, slow files, browser scripts and benchmarks the area calls for |
 
 | Changed area | Inner loop | Before the PR, beyond those gates | Integration |
 | --- | --- | --- | --- |
-| One region type's builder or strategy | the type's files (`node --test tests/micro-plant*.test.js`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`); its replay (`sweep --check FILE --type plant`, 53) | `npm run test:micro`; the type's slow file when the change moved its output | the full chain sweep, no drift unless the PR declares a content change, recaptured last (53); `validate --diagnose true` on the maps it names as drifted |
+| One region type's builder or strategy | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`); its replay (`sweep --check FILE --type plant`, 53) | `npm run test:micro`; the type's slow file when the change moved its output | the full chain sweep, no drift unless the PR declares a content change, recaptured last (53); `validate --diagnose true` on the maps it names as drifted |
 | Macro stages, the chain's authored library, the kernel | `npm run test:mapgen` | | the full chain sweep, recaptured last for a content change (53); the `map-library` slow files |
-| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | | `map-sweep`, `bot-objective` |
-| Simulation, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | | `characterization-bots`, `bot-objective`, `live-map`; `test:browser` or `bench` when the change reaches the client or tick cost |
-| Rooms, recording and replay | the unit file for the rule | | `room-sizes` |
-| Physics | the unit file for the rule | `npm run test:physics` | `physics-navigation`; the physics scripts in `test:browser` |
+| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `test:set simulation` | `map-sweep`, `bot-objective` |
+| Simulation, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `test:set simulation` | `characterization-bots`, `bot-objective`, `live-map`; `test:browser` or `bench` when the change reaches the client or tick cost |
+| Rooms, recording and replay | the unit file for the rule | `test:set rooms` | `room-sizes` |
+| Physics | the unit file for the rule | `npm run test:physics` (the `physics` set) | `physics-navigation`; the physics scripts in `test:browser` |
 
 The replay needs its cache captured before the first edit (53). An area not listed
 follows the gates above and the paragraph that describes its suite. Whatever the area,

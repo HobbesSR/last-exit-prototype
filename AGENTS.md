@@ -58,8 +58,11 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   `-- test:physics` and so on): a line per file and the details of each failure. Start
   long runs in the background and wait for the exit notification; do not poll their
   output ([31](docs/31-verification.md)).
-- Run focused checks for changed behavior. `npm test` is the fast tier for
-  iterating; `npm run test:all` adds the slow seed sweeps and whole-match runs.
+- Run focused checks for changed behavior. Iterate on a file or a test set
+  (`npm run brief -- test:set micro:depot`; `node tests/sets.mjs changed` names the
+  sets a branch reaches; [31](docs/31-verification.md#test-sets)). A new test file joins
+  one set in `tests/sets.mjs`. `npm test` is the fast tier, the gate before a PR;
+  `npm run test:all` adds the slow seed sweeps and whole-match runs.
   Choose the rest by changed area from the table in
   [31](docs/31-verification.md#choosing-checks-by-changed-area): it gives each
   area's inner-loop, pre-PR and integration checks and what each `tests/slow/` file
