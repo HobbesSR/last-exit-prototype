@@ -69,6 +69,18 @@ export function drifted(runs, files) {
   return flagged.sort((a, b) => b.ms - a.ms);
 }
 
+/**
+ * One `slower:` line however many files drifted (slowest first, SLOWEST_SHOWN named and a count of
+ * the rest), so a loaded machine can't flood the output; empty when none did.
+ */
+export function slowerLine(flagged, load = '') {
+  if (!flagged.length) return '';
+  const named = flagged.slice(0, SLOWEST_SHOWN)
+    .map(flag => `${fileName(flag.file)} ${seconds(flag.ms)} (median ${seconds(flag.median)} over ${flag.runs} runs)`);
+  const more = flagged.length > SLOWEST_SHOWN ? ` and ${flagged.length - SLOWEST_SHOWN} more` : '';
+  return `slower: ${named.join(', ')}${more}${load}\n`;
+}
+
 // The share of the machine's CPU time spent busy since `before` (this run's own tests included).
 const cpuTimes = () => os.cpus().reduce((sum, cpu) => {
   const t = cpu.times, all = t.user + t.nice + t.sys + t.idle + t.irq;
@@ -155,8 +167,8 @@ export default async function* briefReporter(source) {
   if (ranked.length > 1) yield `slowest: ${ranked.slice(0, SLOWEST_SHOWN).map(([file, ms]) => `${fileName(file)} ${seconds(ms)}`).join(', ')}\n`;
   const record = recordPath(script), runs = readRuns(record);
   const load = busy === undefined ? '' : `; machine ${Math.round(100 * busy)}% busy, this run included`;
-  for (const flag of drifted(runs, files))
-    yield `slower: ${fileName(flag.file)} ${seconds(flag.ms)}, median ${seconds(flag.median)} over ${flag.runs} runs${load}\n`;
+  const slower = slowerLine(drifted(runs, files), load);
+  if (slower) yield slower;
   try {
     const run = { at: new Date().toISOString(), script, wallMs: Math.round(wall), cpus: os.cpus().length,
       busy: busy === undefined ? null : Math.round(100 * busy) / 100, files,

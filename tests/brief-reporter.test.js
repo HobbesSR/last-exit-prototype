@@ -4,8 +4,8 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { briefNodeOptions, reporterUrl } from './brief.mjs';
-import { drifted } from './brief-reporter.mjs';
+import { briefNodeOptions, npmArgs, reporterUrl } from './brief.mjs';
+import { drifted, slowerLine } from './brief-reporter.mjs';
 
 const FILES = {
   'good.test.mjs': "import test from 'node:test';\nfor (let i = 0; i < 3; i++) test(`case ${i}`, () => {});\n",
@@ -78,6 +78,21 @@ test('a file is flagged slower only well above its median over enough earlier ru
     [{ file: 'a.test.js', ms: 5000, median: 1100, runs: 3 }], 'b is under 3 s more; c has no history');
   assert.deepEqual(drifted(runs.slice(0, 2), { 'a.test.js': 5000 }), [], 'two earlier runs are not enough');
   assert.deepEqual(drifted(runs, { 'a.test.js': 2100 }), [], 'under twice the median');
+});
+
+test('drifted files share one line, five named and the rest counted', () => {
+  assert.equal(slowerLine([]), '');
+  const flagged = Array.from({ length: 7 }, (_, i) => ({ file: `tests/f${i}.test.js`, ms: 9000 - i * 1000, median: 1000, runs: 4 }));
+  const line = slowerLine(flagged, '; machine 50% busy, this run included');
+  assert.equal(line.split('\n').length, 2, 'one line and its newline');
+  assert.match(line, /^slower: f0 9\.0s \(median 1\.0s over 4 runs\), .*f4 5\.0s .* and 2 more; machine 50% busy/);
+  assert.doesNotMatch(line, /f5|f6/);
+});
+
+test('the brief wrapper passes a script its own flags after --, which npm would otherwise take', () => {
+  assert.deepEqual(npmArgs('test'), ['run', '--silent', 'test']);
+  assert.deepEqual(npmArgs('test:set', ['rooms', '--slow']), ['run', '--silent', 'test:set', '--', 'rooms', '--slow']);
+  assert.deepEqual(npmArgs('test', ['--', '--test-name-pattern=x']), ['run', '--silent', 'test', '--', '--test-name-pattern=x'], 'an existing -- is not doubled');
 });
 
 test('a failing TODO alone passes, as node does', () => {
