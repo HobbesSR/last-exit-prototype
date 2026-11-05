@@ -9,8 +9,10 @@ import { CHAIN_LIBRARY } from '../../map/chain.ts';
 
 /**
  * The chain's library at the game size, built by the game's own strategies (B4, #97). The fast
- * `map-library` checks one map with every claim; the slow one checks the default contestant
- * count on the map it diagnoses, so each claim reads a map some file already generates (#807).
+ * `map-library` checks one 24-contestant map with every claim, and `map-tools` runs the same
+ * checks, but the portal search, on the default game map it generates. The slow one checks the
+ * default count on the map it diagnoses, so each claim reads a map some file already
+ * generates (#807).
  */
 export const GAME = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 export const ENGINES = { version: REGION_TYPES_VERSION, build: brief => buildRegion(brief), compose: composeRegions };
@@ -18,6 +20,17 @@ export const LIBRARY = CHAIN_LIBRARY;
 
 export const libraryMap = (seed, contestantCount = GAME.contestantCount) =>
   generateChainMap(seed, { ...GAME, contestantCount }, LIBRARY, 48, ENGINES);
+
+/**
+ * The report batch (step 8): `library-<i>` for each i in `indices` reports no defects. About
+ * 4 s a map, so the slow files split the 25 maps to stay under the 60 s budget (#807).
+ */
+export function checkReportBatch(indices, contestantCount) {
+  for (const i of indices) {
+    const seed = `library-${i}`;
+    assert.deepEqual(mapViews(libraryMap(seed, contestantCount), ENGINES.compose).report.defects, [], `${seed} with ${contestantCount}`);
+  }
+}
 
 /**
  * A game-size map sites its core elements for `contestantCount`, built real content, and

@@ -104,12 +104,16 @@ Root `tests/map-library.test.js` checks one map with 24 contestants: its core el
 counts, actual huts, cover and rubble, that each core element is reachable from its
 region's first portal (the strategies' own siting rule in 54, not a contract), and the
 portal promise within each non-open region under the thorough search. That map holds
-more region types than the default count's, and fails if the count is ignored.
-`node --test tests/slow/map-library.test.js` checks the report on 20 seeds with 8
-contestants and 5 with 24, and runs the same checks with 8 contestants on the one map it
-diagnoses in full, the large open regions too (`tests/helpers/map-library-game.js`
-holds the checks both share). The fast file checked both counts with the portal search
-on each map until #807; the search, not generation, was most of its 21.8 s isolated.
+more region types than the default count's, and fails if the count is ignored. The
+default count's fast witness is the default game map `map-tools` already generates: the
+same checks but the portal search, about 10 ms. The slow report batch checks 20 seeds
+with 8 contestants (`map-library-8` and `map-library-8-tail`, ten each) and 5 with 24
+(`map-library`), at about 4 s a map; `slow/map-library` also runs the same checks with 8
+contestants on the one map it diagnoses in full, the large open regions too.
+`tests/helpers/map-library-game.js` holds the checks and the batch they all share. Until
+#807 the fast file checked both counts with the portal search on each map (the search,
+not generation, was most of its 21.8 s isolated), and one slow file ran the whole batch
+(110 s).
 These are bounded samples, not a guarantee for every seed. `tests/map-container.test.js`
 saves and reloads this library's game-size map through JSON, BSON and Layout-only
 regeneration with the real strategy version (53).
@@ -128,7 +132,7 @@ playground map; a game map's Layout-only rebuild is `map-container`'s (#807).
 
 `tests/map-sweep-replay.test.js` captures the quick cases once, for a game map's
 markets. Its drift, throw and reach-mode cases tamper with huts: they test the replay,
-not a type, and a hut's thorough portal check costs about a fifteenth of a market's.
+not a type, and a hut's thorough portal check costs about 0.05 s a region against a market's 0.7 s.
 `tests/appearance-descriptor.test.js` reads one live chain map for its depot, market
 and round-trip cases, and samples hut seeds only until every decay tier and two
 distinct scorch and drain placements have appeared (#807).
@@ -258,7 +262,7 @@ does (#376: about 26 s to 3 s), and `h.room(seed)` opens one without starting it
 test whose seeds are only labels passes `generateMap: reusedMap`, which answers every seed,
 random ones too, with seed 9's map (#806: the `rooms` set's files, timed alone, from 202 s
 to 98 s). Files already over budget when this was added: `room-service`, `room-directory`,
-`server`, `map-generator` (all since fixed) and the slow `map-library`; they are the first
+`server`, `map-generator` and the slow `map-library` (all since fixed, the last by #807); they were the first
 candidates, not a precedent.
 
 <a id="test-cost"></a>
@@ -301,8 +305,8 @@ Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder
 contract runs, `reorderedBrief`), `block-masks.js`, the per-type `plant-fixtures.js`,
 `depot-fixtures.js` and `compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and
-slow files share), `map-library-game.js` (the game-size library map's checks, which the fast and slow
-`map-library` share), `stands.js` (`standNear`), `listen.js`, `browser.js`
+slow files share), `map-library-game.js` (the game-size library map's checks and report batch, which the `map-library`
+files and `map-tools` share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
 (the bench and demo `--key=value` map), `room-harness.js` (which pins the legacy mover, `content-5` and
 the synchronous `createMatch`, because its tests are about room policy and not an engine; a physics room
@@ -499,7 +503,8 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `physics-navigation` | the chain through `generateLiveMap`, seed 4217, `content-physics-8` | physical contestants complete the match | physics, navigation; chain output only as a stall or crash |
 | `room-sizes` | the chain, one room per authored size (12 × 6 unless `ROOM_SIZES`), on the legacy mover the room harness pins | the room plays to its end, records, and replays | rooms, recording, the replay timeline, size-dependent generation |
 | `room-sizes-physics` | the same, on the shipped default `content-6` and the physics engine (#523) | the physics room plays to its end, its recording names `last-exit-0.8-physics-8`, and the map fits the content's ground capacity | rooms, recording, physics, item capacity, size-dependent generation |
-| `map-library` | the chain at the game size | 25 maps report no defects; on one with 8 contestants, the core element counts, built huts, cover and rubble, routes to each core element, and every region's portal promise (`diagnoseBuiltMap`; the fast tier checks one 24-contestant map, #807) | macro stages, the library, a region type's builder |
+| `map-library` | the chain at the game size | 5 maps with 24 contestants report no defects; on one with 8, the core element counts, built huts, cover and rubble, routes to each core element, and every region's portal promise (`diagnoseBuiltMap`; the fast tier checks one 24-contestant map with the portal search, #807) | macro stages, the library, a region type's builder |
+| `map-library-8`, `-8-tail` | the chain at the game size, 8 contestants, seeds `library-0` to `9` and `10` to `19` | the report finds no defect | macro stages, the library, a region type's builder |
 | `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
 | `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring and observer checks at every gate count on every mask, the fast tier keeping one case per mask and per gate count, #807; plant's and park's spacing, plant's #490 strips, park's kinds, cell sizes and 36-portal case) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
