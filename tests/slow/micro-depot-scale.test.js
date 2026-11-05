@@ -17,7 +17,7 @@ test('a macro-sized depot with hundreds of portals builds with few cord searches
   const brief = { id: 'macro', seed: 3, type: 'depot', cellSize: 40, cells, zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals };
   const before = { ...cordWork }, started = performance.now();
   const result = buildRegion(brief);
-  assertWithinBudget(performance.now() - started, 8000, 'macro depot built');
+  assertWithinBudget(performance.now() - started, 12000, 'macro depot built');
   const calls = cordWork.calls - before.calls, meshes = cordWork.meshBuilds - before.meshBuilds;
   assert.ok(calls <= 12 && meshes <= 12, `cord searches ${calls}, meshes ${meshes}, ceiling 12 each (#801)`);
   assert.ok(result.manifest.warehouses > 100 && result.manifest.rows > 200, JSON.stringify(result.manifest));

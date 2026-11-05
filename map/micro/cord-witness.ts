@@ -21,7 +21,8 @@ export interface CordBudget { maxMeshBuilds?: number; maxSweeps?: number; maxPat
 /**
  * Running totals of every discovery in this process (calls, and the meshes they built), for
  * tests that bound a builder's cord work by count rather than by duration (31, #801).
- * Generation never reads them; a worker thread keeps its own.
+ * Generation never reads them, and nothing resets them: read them as the difference across a
+ * call, which holds because a test file's tests run one at a time. A worker thread keeps its own.
  */
 export const cordWork = { calls: 0, meshBuilds: 0 };
 export type CordWitnessResult = { ok: true; witness: CordWitness; counters: CordCounters }
@@ -35,6 +36,12 @@ const MAX_INPUTS = 16_384, MAX_SEGMENTS = 4_096;
  * 35,000, with 16,600 blocker points. At the former 16,384 every later commit failed as `budget`,
  * and `commitEach` turned each failure into log n more whole-region proofs, while the refused
  * pieces would have fit (#801). It is a tool limit, not a contract (20.10).
+ *
+ * 2^18 is headroom, about 7 times the largest measured, not a fit to it: a region that outgrows
+ * the limit brings the cascade back, while the work a search accepts stays bounded by its sweep,
+ * path and mesh budgets. The count bounds below stay at MAX_INPUTS; they grow with pieces and
+ * portals, not with area times portals, and the 200 × 150 depot peaks at 4,158 blockers and 340
+ * stands and paths.
  */
 const MAX_POINTS = 1 << 18;
 /**

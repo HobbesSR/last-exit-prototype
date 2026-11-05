@@ -286,7 +286,7 @@ On a POSIX shell, put `BUILD_BUDGETS=report` before `node`. Add one file to the 
 time just that builder; the pattern selects the macro-sized case alone, which separates
 builder cost from the rest of the file and from suite contention. `enforce` is for a quiet
 machine and one file at a time, with no other agent's tests or benchmarks running: the
-limits (cover 2 s, compound and plant 3 s, block 5 s, depot and hut 8 s) are ceilings that catch a builder
+limits (cover 2 s, compound and plant 3 s, block 5 s, hut 8 s, depot 12 s) are ceilings that catch a builder
 turning quadratic, set above that machine's isolated readings, and are not capacity
 promises. They sit 1.4 to 7 times above the readings, the block's 5 s the closest, so a loaded or
 slower machine can fail one without a regression; repeat before believing it. CI does not
@@ -395,7 +395,7 @@ What each `tests/slow/` file runs on, what it asserts, and what can move it:
 | `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring checks, plant's and park's spacing, plant's #490 strips, park's 36-portal case) | that builder |
 | `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
 | `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
-| `micro-depot-scale` | one 200 × 150 depot, 170 portals | at most 12 cord searches and meshes; more than 100 warehouses and 200 rows; the 8 s limit only under `BUILD_BUDGETS=enforce` | the depot builder, the live cord and its limits (#801) |
+| `micro-depot-scale` | one 200 × 150 depot, 170 portals | at most 12 cord searches and meshes; more than 100 warehouses and 200 rows; the 12 s limit only under `BUILD_BUDGETS=enforce` (readings 5.8 to 7.6 s) | the depot builder, the live cord and its limits (#801) |
 
 A new `tests/slow/` file adds its row here in the same change.
 
