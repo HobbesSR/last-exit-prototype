@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed } from '../map/live.ts';
+import { liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed } from '../map/live.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapFrame } from '../map/micro/adapter.ts';
@@ -9,10 +9,13 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { createGame, setInput, step } from '../shared/simulation.ts';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
+// live-map-adapter.test.js's claim (createMatch(1).map() against this same chain), so it is not paid twice.
+// liveMismatch regenerates the chain on each call, so its three cases below are most of this file's time.
 let defaultMap, defaultChain, defaultBuilt;
-const live = () => defaultMap ??= generateLiveMap(1);
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());
 const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);
+const live = () => defaultMap ??= liveMapFromBuilt(1, liveBuilt());
 
 test('a chain live map supplies usable authored sites and retained loot metadata', () => {
   const map = live(), content = defaultContent();
@@ -36,10 +39,10 @@ test('a chain live map supplies usable authored sites and retained loot metadata
   assert.ok(map.items.some(item => Number.isInteger(item.tier) && item.tier >= 1), 'micro loot tier survives runtime conversion');
 });
 
-test('a chain map the Map Lab calls live is the map a room with its seed plays', () => {
+test("a chain map the Map Lab calls live names a room seed and recipe, and only the seed's own map passes", () => {
   const chain = liveChain();
   assert.deepEqual(liveMismatch(chain), []);
-  assert.deepEqual(liveMapFromBuilt(liveSeed(chain.layout.seed), liveBuilt()), live());
+  assert.equal(liveSeed(chain.layout.seed), 1, "the chain's seed text names the room seed whose map it is");
   const other = { ...chain, layout: { ...chain.layout, seed: '01', params: { ...chain.layout.params, exitCount: 2 } },
     library: { ...chain.library, name: 'draft' }, cellSize: 32, build: 'older' };
   assert.deepEqual(liveMismatch(other).map(reason => reason.split(' ').slice(0, 2).join(' ')),

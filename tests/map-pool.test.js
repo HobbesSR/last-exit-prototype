@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMapPool } from '../server/map-pool.js';
-import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES, zoneSizeName } from '../map/live.ts';
-import { defaultContent } from '../shared/simulation/content.ts';
-import { roomHarness } from './helpers/room-harness.js';
+import { DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES, zoneSizeName } from '../map/live.ts';
+import { generatedMap, roomHarness } from './helpers/room-harness.js';
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
 /** A generator whose requests wait until the test answers them, with numbered seeds. */
@@ -44,9 +43,10 @@ test('a failed generation is reported and refilling waits for the next map taken
 });
 
 test('a room naming no seed opens on a pooled map at once; a named seed or an empty pool generates', async () => {
-  const pooled = heldGenerator((seed, size) => generateLiveMap(seed, defaultContent(), size));
+  // Which way a room gets its map is the claim, not the map: every one is a copy of seed 9's, labelled with the seed asked for.
+  const pooled = heldGenerator((_seed, size) => generatedMap(9, size));
   const pool = createMapPool({ generate: pooled.generate, draw: pooled.draw, perSize: 1, sizes: [DEFAULT_LIVE_ZONE_SIZE] });
-  const onDemand = [], generateMap = (seed, size) => { onDemand.push(seed); return Promise.resolve(generateLiveMap(seed, defaultContent(), size)); };
+  const onDemand = [], generateMap = (seed, size) => { onDemand.push(seed); return Promise.resolve(generatedMap(9, size)); };
   const h = roomHarness({ generateMap, pool });
   try {
     pooled.held[0].resolve(); await settle();

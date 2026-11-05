@@ -6,10 +6,12 @@ import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 import { next, open, createRoom } from './helpers/arena-socket.js';
+import { reusedMap } from './helpers/room-harness.js';
 
 test('matchmaking separates private rooms, honors available preferences, falls back, and starts automatically', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-match-'));
-  const server = await createArenaServer({ replayDir: dir });
+  // Matchmaking, not generation: every room, the private one and the matchmade one, plays seed 9's map.
+  const server = await createArenaServer({ replayDir: dir, generateMap: reusedMap });
   try {
     const base = await listen(server);
     const privateRoom = await createRoom(server, base, '{"seed":9}');

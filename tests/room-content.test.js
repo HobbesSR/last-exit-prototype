@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
 import { defaultContent, legacyContent } from '../shared/simulation/content.ts';
 import { createMatchFor } from '../server/match.js';
-import { generateLiveMap } from '../map/live.ts';
 import { describeContent, readPresentation } from '../shared/presentation.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
@@ -81,7 +80,8 @@ test('a room describes the content it pins, on every welcome and ready and once 
 test('rooms created by the default service describe the shipped content', async () => {
   // The shipped default is physics content, so this room runs the physics engine and its world starts asynchronously.
   const h = roomHarness({ content: defaultContent, matchFactory: createMatchFor });
-  const room = h.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generateLiveMap(9, defaultContent(), DEFAULT_LIVE_ZONE_SIZE));
+  // The shipped content's rosters generate the same seed 9 map as the harness's, so the file's one generation serves.
+  const room = h.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generatedMap(9));
   const owner = h.joined(room, { ownerKey: room.ownerKey });
   try {
     await room.ready;
