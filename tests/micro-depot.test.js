@@ -171,13 +171,13 @@ const portalled = (w, h, step) => {
 };
 
 // The cost witness that runs every time (31, "A test's cost is part of the change"): counts, not
-// a duration. 84 portals take 4 cord searches, each with a whole-region mesh. When the witness
+// a duration. 104 portals take 4 cord searches, each with a whole-region mesh. When the witness
 // outgrew a fixed point limit, every later commit failed as `budget` and `commitEach` split it
-// into more whole-region proofs: 98 meshes at 125 × 94 and 390 at 150 × 112 (#801). This region
-// carries 12,500 witness points, the closest of the fast cases to such a limit.
+// into more whole-region proofs (#801). This region passes the old 16,384-point limit: with it
+// the build took 98 meshes, so a limit set too low again fails here, in every run, for 1.6 s.
 test('a many-portal depot proves its cord with few whole-region meshes', () => {
   const before = { ...cordWork };
-  const result = buildRegion(portalled(100, 75, 4));
+  const result = buildRegion(portalled(125, 94, 4));
   assert.ok(result.manifest.warehouses > 20 && result.manifest.rows > 30, JSON.stringify(result.manifest));
   const calls = cordWork.calls - before.calls, meshes = cordWork.meshBuilds - before.meshBuilds;
   assert.ok(calls <= 12 && meshes <= 12, `cord searches ${calls}, meshes ${meshes}, ceiling 12 each (#801)`);

@@ -297,9 +297,10 @@ The opt-in duration hid a regression: after #787's live cord the depot's macro c
 portals) took about 460 s alone and 20 minutes in CI, against 2 s before, and no run reported
 it (#790). Its witness had outgrown fixed point limits, so every later commit failed as
 `budget` and split into more whole-region proofs (#801). Now every run bounds the cord searches
-and meshes of a 100 × 75 depot with 84 portals through `cordWork`, a process-wide count in
-`map/micro/cord-witness.ts` (4 each), and the slow `micro-depot-scale` bounds the same for the
-macro case (4 each, about 6 s). That is the pattern for the other macro cases: a count every
+and meshes of a 125 × 94 depot with 104 portals through `cordWork`, a process-wide count in
+`map/micro/cord-witness.ts` (4 each; 98 meshes under the old limit, so the fast tier fails if a
+limit is set too low again), and the slow `micro-depot-scale` bounds the same for the macro case
+(4 each, about 6 s). That is the pattern for the other macro cases: a count every
 run catches what a duration nobody prints does not.
 
 Other agents' worktrees share this machine's CPU. `npm run bench` and
