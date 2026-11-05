@@ -284,9 +284,9 @@ file already over budget without bringing it back under.
 Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 `cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder
-contract runs, `reorderedBrief`), `block-masks.js`, `plant-fixtures.js`, `depot-fixtures.js` and
-`compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and slow files
-share), `stands.js` (`standNear`), `listen.js`, `browser.js`
+contract runs, `reorderedBrief`), `block-masks.js`, the per-type `plant-fixtures.js`,
+`depot-fixtures.js` and `compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and
+slow files share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
 (the bench and demo `--key=value` map), `room-harness.js` (which pins the legacy mover, `content-5` and
 the synchronous `createMatch`, because its tests are about room policy and not an engine; a physics room

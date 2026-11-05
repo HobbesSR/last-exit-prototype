@@ -15,8 +15,10 @@ import { cordWork } from '../map/micro/cord-witness.ts';
 const cellBox = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
 
 // The first seed on every mask under each parameter set; tests/slow/micro-depot-sweeps.test.js runs
-// all eight. Determinism under another cell order is the builder contract's (micro-builder-contract)
-// and the production witnesses' (micro-depot-routing) to show (#807).
+// all eight. Independence from the brief's cell order is the builder contract's to show
+// (micro-builder-contract, depot already a contract type): the depot inherits it from the canonical
+// sort in createRegionMask (map/micro/geometry.ts), and only the contract fails when that sort is
+// removed; micro-depot-routing's reversed-order test stays green then (#807, review 633).
 test('a depot region keeps the portal promise over masks and parameters', () => assertDepotPromise(SEEDS.slice(0, 1)));
 
 test('every piece keeps an aisle from the next and from the region\'s edge, all on one axis', () => {

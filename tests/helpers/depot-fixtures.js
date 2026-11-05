@@ -75,7 +75,7 @@ export const WITNESSES = JSON.parse(readFileSync(new URL('../fixtures/micro-depo
 
 /**
  * The witnesses' portals are reachable once the depot stands. The two 756- and 648-cell witnesses
- * (2 and 14) take about 0.3 s together and run in the fast tier; the two 1944-cell witnesses
+ * (2 and 14) take about 0.6 s together and run in the fast tier; the two 1944-cell witnesses
  * (5 and 8) spend about 1.9 s each in the reach search and run in tests/slow/micro-depot-sweeps.test.js.
  */
 export function assertWitnessReach(witnesses, build = fixture => buildRegion(fixture.brief)) {
