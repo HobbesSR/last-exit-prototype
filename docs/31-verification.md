@@ -137,15 +137,16 @@ of eight seeds of its promise sweep and two of its clump-spacing sweep, and
 `slow/micro-park-promise` all eight, with the 36-portal park (#759, #760: cord-routed
 builders and park's hedge fronts cost several times more); `micro-compound` runs its
 portal, roofed-ring and observer checks on seven cases at the first seed (each mask at the
-default two gates, and the other gate counts on the small yard mask, #807), and
+default two gates, one and three gates on the small yard, and four on the ell, whose three
+portals leave a gate off-portal, #807), and
 `slow/micro-compound-sweeps` and `slow/micro-compound-sweeps-tail` run every mask at every
 gate count over seeds 1-2 and 3-4. Compound cell order has a fast witness in
 `micro-compound-exterior` (elements and loot) and `micro-compound-delegation` (the whole
 delegation tree, the only one that sees the root brief's canonical order), and all eight
 original seeds in `slow/micro-compound-determinism` (#647). Each pair calls one function in
 `tests/helpers/` (`block-promise.js`, `plant-promise.js`, `park-fixtures.js`,
-`builder-contract.js`, `compound-sweeps.js`) with a
-different seed list, so the assertions cannot drift apart. `test:micro` runs only the fast
+`builder-contract.js`, `compound-sweeps.js`) with different inputs (a seed list, or for
+compound a case list: `FAST_CASES` fast, `sweepCases` slow), so the assertions cannot drift apart. `test:micro` runs only the fast
 files: a builder change that moves a type's output also runs that type's slow file, for
 example `node --test tests/slow/micro-plant-promise.test.js`. Narrow a sweep this way, by
 moving its seeds to the slow tier, only where the fast tier keeps a witness of the same

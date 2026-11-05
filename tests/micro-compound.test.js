@@ -12,7 +12,8 @@ import { FAST_CASES, assertPortalPromise, assertRoofedRing, assertObservedRing }
 
 // The fast tier runs each mask once and each gate count once (FAST_CASES); the slow sweeps run
 // every mask at every gate count over four seeds, and cell-order determinism over eight (31, #543,
-// #807). The three checks share one build per case through compound-fixtures' cache.
+// #807). The portal and roofed-ring checks share one build per case through compound-fixtures'
+// cache; the observer check builds again with a trace and compares the two.
 
 test('a compound region keeps the portal promise on every mask and at every gate count', () => assertPortalPromise(FAST_CASES));
 
