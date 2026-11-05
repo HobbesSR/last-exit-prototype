@@ -3,42 +3,20 @@ import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { seeThrough } from '../shared/movement.ts';
-import { bounds } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
-import { SIZE, THOROUGH, brief, MASKS, SEEDS, DENSE, blockers, kind, boxOf, gapBetween, assertParkPromise, assertClumpSpacing } from './helpers/park-fixtures.js';
+import { SIZE, THOROUGH, brief, built, MASKS, SEEDS, DENSE, blockers, kind, boxOf, gapBetween, assertParkPromise, assertClumpSpacing,
+  assertParkKinds, assertPiecesAtSizes } from './helpers/park-fixtures.js';
 
 // The fast tier runs the first seed; tests/slow/micro-park-promise.test.js runs all eight.
 test('a park region keeps the portal promise over seeds, masks and parameters', () => assertParkPromise(SEEDS.slice(0, 1)));
 
-test('a park is its own type, with trees and hedge fronts and no buildings', () => {
-  const [cells, portals] = MASKS.field;
-  let trees = 0, fronts = 0;
-  for (const seed of SEEDS) {
-    const result = buildRegion(brief('field', seed, cells, portals, DENSE));
-    for (const element of result.elements) for (const part of element.template.parts) {
-      assert.equal(part.part, 'obstacle');
-      assert.equal(part.kind, element.label.startsWith('park-tree') ? 'tree' : 'hedge');
-    }
-    trees += result.elements.filter(kind('tree')).length;
-    fronts += result.elements.filter(kind('front')).length;
-    assert.equal(result.manifest.trees, result.elements.filter(kind('tree')).length);
-    assert.equal(result.manifest.fronts, result.elements.filter(kind('front')).length);
-    assert.equal(result.manifest.structures, 0);
-  }
-  assert.ok(trees > 40 && fronts > 5, `${trees} trees, ${fronts} fronts`);
-});
+// Seeds 1 and 2 of the dense field, the builds the clump test reads; tests/slow/micro-park-promise.test.js all eight.
+test('a park is its own type, with trees and hedge fronts and no buildings', () => assertParkKinds(SEEDS.slice(0, 2)));
 
-test('parks are deterministic and independent of the order of the brief\'s cells', () => {
-  const [cells, portals] = MASKS.field;
-  for (const seed of SEEDS.slice(0, 4)) {
-    const result = buildRegion(brief('field', seed, cells, portals));
-    assert.deepEqual(buildRegion(brief('field', seed, [...cells].reverse(), portals)).elements, result.elements);
-  }
-});
-
+// Order independence and determinism are the builder contract's (micro-builder-contract-cord), which
+// shuffles every cell list of six chain briefs (#807).
 test('a tree is round, and a hedge blocks bodies but not sight', () => {
-  const [cells, portals] = MASKS.field;
-  const result = buildRegion(brief('field', 1, cells, portals, DENSE));
+  const result = built('field', 1, DENSE);
   for (const tree of result.elements.filter(kind('tree'))) assert.equal(tree.template.parts[0].shape.kind, 'circle');
   assert.equal(seeThrough('hedge'), true);
   assert.equal(seeThrough('tree'), false);
@@ -79,19 +57,8 @@ test('parameters outside 0 to 1 are refused', () => {
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { hedges: -1 })), /hedges/);
 });
 
-test('pieces keep valid, in-footprint geometry at small and large cell sizes', () => {
-  for (const size of [1, 2, 8, 40, 200]) for (const seed of SEEDS) {
-    const cells = cellsOf(30, 30), input = { ...brief('field', seed, cells, [], { density: 1, hedges: 0.5 }), cellSize: size };
-    input.zones = [{ tier: 3, bonus: 0, lootChance: 0, cells }];
-    const result = buildRegion(input);
-    assert.ok(result.elements.some(kind('front')) && result.elements.some(kind('tree')), `size ${size} seed ${seed} has both`);
-    for (const element of result.elements) for (const { shape } of element.template.parts) {
-      const box = bounds(shape);
-      assert.ok(box.w > 0 && box.h > 0, `size ${size}: ${element.label} has area`);
-      assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.w <= element.template.w + 1e-9 && box.y + box.h <= element.template.h + 1e-9, `size ${size}: ${element.label} stays in its footprint`);
-    }
-  }
-});
+// The fast tier runs the first seed; tests/slow/micro-park-promise.test.js all eight.
+test('pieces keep valid, in-footprint geometry at small and large cell sizes', () => assertPiecesAtSizes(SEEDS.slice(0, 1)));
 
 test('park can place geometry against a hinted edge while protecting portals', () => {
   const cells = cellsOf(40, 30);

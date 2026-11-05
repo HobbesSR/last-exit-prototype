@@ -11,8 +11,6 @@ import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { measurement } from '../map/macro/src/chain/measurement.ts';
 import { liveMapFromBuilt } from '../map/live.ts';
-import { generate, readMap } from '../map/tools/core.ts';
-import { chainMapToJson, chainMapToBson } from '../map/macro/src/chain/saving.ts';
 import { cellsOf as rectangle } from './helpers/cells.js';
 
 const SIZE = 40;
@@ -70,12 +68,9 @@ test('a broad concave yard gives cover a lobe while preserving the house, door, 
   assert.deepEqual(buildHut(original), { ...flat, brief: original });
 });
 
-test('production hut adapters preserve Layout briefs for full chain saves', () => {
-  const map = generate('last-exit-001');
-  const json = chainMapToJson(map), bson = chainMapToBson(map);
-  assert.deepEqual(readMap(JSON.parse(json)), map);
-  assert.deepEqual(readMap(bson), map);
-});
+// Chain saves rely on the adapter returning its own brief, which `buildHut` above checks. A whole
+// game map's save round trip once checked it here at 8 s; map-tools' CLI, MCP and custom-save round
+// trips also fail without it, so that test retired (#807).
 
 test('a small yard retains its house without forcing a cover patch', () => {
   const original = input('small-yard', rectangle(6, 6), [{ id: 'south', axis: 'h', x: 1, y: 6, length: 2 }]);

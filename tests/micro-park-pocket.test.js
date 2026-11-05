@@ -14,8 +14,8 @@ import { PARK_POCKET_LIMITS, siteParkPocket } from '../map/micro/strategies/park
 import { cellsOf } from './helpers/cells.js';
 import { rect } from '../shared/shape.ts';
 
-const saved = size => readMap(JSON.parse(gunzipSync(readFileSync(new URL(`../docs/reports/issue-688/size-${size}-1.json.gz`, import.meta.url))))).results
-  .filter(r => r.brief.type === 'park').map(r => r.brief);
+const savedResults = size => readMap(JSON.parse(gunzipSync(readFileSync(new URL(`../docs/reports/issue-688/size-${size}-1.json.gz`, import.meta.url))))).results;
+const saved = size => savedResults(size).filter(r => r.brief.type === 'park').map(r => r.brief);
 const shapes = result => result.elements.flatMap(e => elementShapes(e));
 const pocket = result => result.elements.filter(e => e.label === 'park-pocket');
 const tryPocket = brief => {
@@ -51,11 +51,8 @@ test('saved park pocket retains fill, portal and hunter access after scatter', (
   assert.ok(stands.some(start => findRegionRoute(mask, blockers, start, target, radius)), 'a portal can reach the pocket interior');
   assert.ok(travelClear(mask, blockers, { x: e.x + 12 * size, y: e.y + 7 * size },
     { x: e.x + 15 * size, y: e.y + 7 * size }, radius), 'the mouth stays clear after scatter');
-  const reordered = { ...brief, cells: [...brief.cells].reverse() };
-  assert.deepEqual(buildRegion(reordered).elements, result.elements);
-  const noHedges = buildRegion({ ...brief, parameters: { ...brief.parameters, hedges: 0 } });
-  assert.equal(pocket(noHedges).length, 0);
-  assert.ok(!noHedges.manifest.pockets);
+  // Cell order and hedges off are checked on the smaller saved park below, which also builds a pocket:
+  // each rebuild of this 2232-cell brief cost about 2 s (#807).
 });
 
 test('pocket siting is bounded and leaves no partial placement on unsuitable fills', () => {
@@ -70,16 +67,19 @@ test('pocket siting is bounded and leaves no partial placement on unsuitable fil
   }
 });
 
-test('a pocket the frozen routes refused fits once cords may bend round it (#750)', () => {
-  const small = saved(12).find(b => b.id === 'park@144,36');
+test('a pocket the frozen routes refused fits once cords may bend round it (#750), in any cell order, and not with hedges off', () => {
+  const original = savedResults(12).find(r => r.brief.id === 'park@144,36'), small = original.brief;
   assert.equal(small.cells.length, 936);
-  const original = readMap(JSON.parse(gunzipSync(readFileSync(new URL('../docs/reports/issue-688/size-12-1.json.gz', import.meta.url)))))
-    .results.find(r => r.brief.id === small.id);
   // Its routes between portals left no pocket envelope and no lattice slot clear.
   assert.deepEqual(original.elements, []);
   const rebuilt = buildRegion(small);
   assert.equal(pocket(rebuilt).length, 1);
+  assert.equal(rebuilt.manifest.pockets, 1);
   assert.deepEqual(validatePortalReach({ ...small, blockers: shapes(rebuilt) }, { search: 'thorough' }).errors, []);
+  assert.deepEqual(buildRegion({ ...small, cells: [...small.cells].reverse() }).elements, rebuilt.elements);
+  const noHedges = buildRegion({ ...small, parameters: { ...small.parameters, hedges: 0 } });
+  assert.equal(pocket(noHedges).length, 0);
+  assert.ok(!noHedges.manifest.pockets);
 });
 
 test('an unreachable pocket exhausts the route budget without a partial canvas claim', () => {
