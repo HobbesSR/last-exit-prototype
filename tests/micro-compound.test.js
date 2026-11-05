@@ -7,14 +7,19 @@ import { microMetrics } from '../map/micro/metrics.ts';
 import { circle } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { assertWithinBudget } from './helpers/budget.js';
-import { SIZE, brief, MASKS, SEEDS, build, blockers, compoundBox } from './helpers/compound-fixtures.js';
-import { assertPortalPromise, assertRoofedRing, assertCompoundDeterminism } from './helpers/compound-sweeps.js';
+import { SIZE, brief, MASKS, build, blockers, compoundBox } from './helpers/compound-fixtures.js';
+import { FAST_CASES, assertPortalPromise, assertRoofedRing, assertObservedRing } from './helpers/compound-sweeps.js';
 
-// The fast tier runs one seed of the portal, roofed-ring and determinism sweeps; the slow tier
-// keeps their full seed coverage (31, #543).
-const FAST = SEEDS.slice(0, 1);
+// The fast tier runs each mask once and each gate count once (FAST_CASES); the slow sweeps run
+// every mask at every gate count over four seeds, and cell-order determinism over eight (31, #543,
+// #807). The three checks share one build per case through compound-fixtures' cache.
 
-test('a compound region keeps the portal promise over seeds, masks and gate counts', () => assertPortalPromise(FAST));
+test('a compound region keeps the portal promise on every mask and at every gate count', () => assertPortalPromise(FAST_CASES));
+
+test('one compound has roofed rooms around a clear court and its gates', () => assertRoofedRing(FAST_CASES));
+
+test('the ring is one design: an observer sees it, and every room has an opening into the court or a neighbour', () =>
+  assertObservedRing(FAST_CASES));
 
 test('a hinted perimeter can hold the ring without blocking portal or gate access', () => {
   const cells = cellsOf(18, 18), portals = [{ id: 'south', axis: 'h', x: 7, y: 18, length: 3 }];
@@ -37,12 +42,6 @@ test('a 24 by 18 yard keeps an intermediate ring size between its portals', () =
     assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
   }
 });
-
-test('compounds are deterministic and independent of the order of the brief\'s cells', () => {
-  assertCompoundDeterminism(FAST);
-});
-
-test('one compound has roofed rooms around a clear court and its gates', () => assertRoofedRing(FAST));
 
 test('compounds roll loot by zone and keep every site clear of walls and doors', () => {
   const [cells, portals] = MASKS.field;

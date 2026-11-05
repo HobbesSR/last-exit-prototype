@@ -164,6 +164,8 @@ test('individual cover fits the narrow exterior witness that rejected clusters',
   assert.deepEqual(validatePortalReach({ ...node.input, blockers: blockers(flattenDelegationResult(node)) }).errors, []);
 });
 
+// The compound's order independence comes from canonicalDelegationBrief at the root. Removing its
+// cell sort fails this test but no element-level comparison, which the builder's own sorts mask (#807).
 test('compound delegation is canonical across cell, portal and zone order', () => {
   const original = concave();
   original.zones = [
