@@ -456,6 +456,20 @@ collected, and writes a `.heapprofile` that DevTools opens. It also prints the t
 the nearest frame in the repository's own code. A profiled run's times are slower and are not comparable with an
 unprofiled run's (#727).
 
+`node tools/perf/room-startup.mjs --size=12x6 --out=test-results/startup.json`
+is the short startup diagnostic for #842 (also accepts `--size=36x18` and
+`--seed`). It takes the benchmark lock, prepares two maps through the production
+map worker before timing, and runs the real room service and scheduler with one
+dev viewer per room and replay compression to a discard stream. After a cold
+room's first tick, that room runs for one second before a second room is
+constructed and started; both run for another 1.5 seconds. Construction/readiness,
+start, the cold first tick, timer delays, delivery gaps and host wake work are
+reported separately. Raw wakes and profiler stages accompany `--out`.
+Recorder drops or lifecycle errors fail the diagnostic. No sockets or disk are
+measured, nor map delivery/adoption while live rooms run. The short sample's
+p99.9 is effectively its maximum; delivery gaps over 50 ms include normal cadence
+jitter. This locates blocking work, not capacity or closure evidence for #635.
+
 `node tests/measure-changes.mjs` (`--size`, `--content`, `--seed`, `--ticks`, `--out`) counts how much
 of each published frame differs from the previous tick's, per collection and by entity id. It times
 nothing, so it needs no lock and runs in parallel. Results are in
