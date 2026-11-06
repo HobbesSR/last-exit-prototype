@@ -161,8 +161,9 @@ and spacing sweeps and `slow/micro-plant-promise` all eight, with #490's plant s
 three of forty seeds fast (in the builder contract) and all forty slow; `micro-park` runs its
 promise on every mask under every parameter set and its cell-size sweep at the first seed, and its
 clump-spacing and kind sweeps at two, and `slow/micro-park-promise` runs each mask under each
-parameter set, and each cell size, once more, the seed rotating over 2 to 5, with the promise,
-spacing and kind checks reading the same sixteen builds (`SLOW_CASES`, #822), and the 36-portal park
+parameter set once more, the seed rotating over 2 to 5, and each cell size at seeds 2 to 6, with the
+promise, spacing and kind checks reading the same sixteen builds (`SLOW_CASES`, #822; nine of them
+place trees, and the dense ones, one seed per mask, carry most of the spacing check), and the 36-portal park
 (#759, #760: cord-routed builders and park's hedge fronts cost several times more; #807); `micro-hut` runs one of
 sixteen seeds of its small-house sweep and `slow/micro-hut-sweeps` all sixteen; `micro-compound` runs its
 portal, roofed-ring and observer checks on seven cases at the first seed (each mask at the

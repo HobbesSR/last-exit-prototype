@@ -55,7 +55,8 @@ export const FAST_CASES = PARAMETERS.flatMap(parameters => casesAt(SEEDS.slice(0
 /**
  * The slow tier's cases (tests/slow/micro-park-promise.test.js, #822): every mask under every
  * parameter set once more, the seed rotating over 2 to 5 so that each mask and each parameter set
- * meets all four. A seed moves where clumps and fronts fall and how many there are; each build
+ * meets all four. Nine of the sixteen place trees (the tile and the fronts-only set place none), so the
+ * dense tree-bearing depth is one seed per mask. A seed moves where clumps and fronts fall and how many there are; each build
  * checks every claim, so the full mask × parameter × seed product (128 builds, 23 s) repeated the
  * same claims eight times over.
  */
@@ -121,8 +122,8 @@ export function assertPiecesAtSizes(cases) {
 /**
  * A park is its own type: only tree and hedge obstacles, counted in its manifest, and no
  * structures, in each case. The fast tier reads the dense field at seeds 1 and 2, the builds the
- * clump sweep shares, and the slow tier its sixteen cases. More than two trees a case on average
- * keeps the check from passing on empty parks; how many trees a park holds is stand-in content,
+ * clump sweep shares, and the slow tier its sixteen cases. More than four trees a case on average
+ * (the sixteen gave 94, the two dense fields 31) keeps the check from passing on a thinned park; how many trees a park holds is stand-in content,
  * not a claim (17.2.11).
  */
 export function assertParkKinds(cases) {
@@ -139,5 +140,5 @@ export function assertParkKinds(cases) {
     assert.equal(result.manifest.fronts, result.elements.filter(kind('front')).length, label(at));
     assert.equal(result.manifest.structures, 0, label(at));
   }
-  assert.ok(trees > 2 * cases.length && fronts > cases.length, `${trees} trees, ${fronts} fronts in ${cases.length} cases`);
+  assert.ok(trees > 4 * cases.length && fronts > cases.length, `${trees} trees, ${fronts} fronts in ${cases.length} cases`);
 }
