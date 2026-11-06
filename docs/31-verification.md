@@ -17,7 +17,8 @@ npm run bench:client
 
 `npm test` and `npm run test:all` cap file concurrency at four, keeping CPU and memory contention
 bounded on the shared machine. Each command runs every case in its selected tier; `test:all` includes the slow tier;
-isolated file budgets are unchanged. The dated concurrency incident is retained in [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints).
+isolated file budgets are unchanged. CI uses the same four; it does not size concurrency to its
+runner (Corey, 2026-11-05, #800 S5), so per-file times stay comparable across machines. The dated concurrency incident is retained in [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints).
 Use the normal scripts for integration; focused `node --test` commands remain
 available. The chain sweep's internal worker pool is separate.
 
@@ -259,7 +260,17 @@ budget (15 s fast tier, 60 s slow tier) with their slowest tests; `-- --strict` 
 any, and file paths limit it. With no paths it times every unit file of `npm run test:all`
 and `npm run test:mapgen`: `tests/`, `map/macro/tests/` and the `slow/` directory of each,
 where a file under `slow/` is slow tier. Browser scripts and opt-in size runs are not in it.
-Run it when adding or growing a test file. A file over budget is
+Run it when adding or growing a test file.
+
+The slow tier as a whole has a budget as well: its `tests/slow/` files, each timed alone on the
+development machine, total at most 900 s (Corey, 2026-11-05, #800 S5;
+`npm run test:times -- tests/slow/*.test.js`). It was 871 s on 2026-11-05. That is about 4 to 5
+minutes of wall time at four files at a time here and roughly 11 to 15 in CI, inside the slow
+job's 35 minutes ([below](#continuous-integration)). A change that would take the total past it
+cuts as much elsewhere or raises it with Corey. Splitting a file moves its time, not the total.
+The fast tier has no whole-tier budget; its per-file budget and the cost statement below govern it.
+
+A file over budget is
 optimized (share a generated map across tests, build fewer rooms), split into files
 that run in parallel, or has its largest cases gated behind an environment variable as
 `room-sizes` does. The room harness shares maps for tests about room policy rather than
@@ -484,11 +495,11 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 
 | Changed area | Inner loop | Integration | Alone, 2026-11-05 |
 | --- | --- | --- | --- |
-| One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; `sweep --check FILE --type <type>`, adding `block` for a type block delegates to, under the working rule below; no drift | hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
+| One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; the full chain sweep once, no drift. While iterating, `sweep --check FILE --type <type>` (adding `block` for a type block delegates to) is the inner loop (below) | the sweep 159 s, plus the type's own: hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
 | One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `map-library-24` and `-36*` when what a region holds moves (its loot, set-piece share) | about 9 to 10 min: the sweep 159 s and the larger sizes 353 s, plus the type's own |
 | Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 264 s |
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
-| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep; every `map-library` slow file: the game-size report batch (`map-library`, `-8`, `-8-tail`) and `map-library-24`, `-36` and `-36-tail`, the sizes the sweep doesn't hold; the recapture for a content change. Leaving the game-size batch to content changes only is proposed, not decided (below) | 623 s |
+| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep; every `map-library` slow file: the game-size report batch (`map-library`, `-8`, `-8-tail`) and `map-library-24`, `-36` and `-36-tail`, the sizes the sweep doesn't hold; the recapture for a content change. A behaviour-preserving change leaves the game-size batch to the slow tier on `main` (below) | 623 s; 512 s behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep`, `bot-objective` | 52 s |
 | Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 82 s, 113 s with `map-sweep` |
@@ -504,12 +515,13 @@ never regenerated to make a check pass (below), and timing comparisons run seque
 
 <a id="the-replay-or-the-full-sweep"></a>
 
-**The replay or the full sweep.** This is the working rule until Corey decides it with the rest of
-#800 S5; before #808, 53 had the replay never stand in for the full sweep.
-`sweep --check FILE --type <types>` rebuilds every cached
+**The replay or the full sweep.** The replay is the inner loop and the full sweep is the
+integration check: a builder change replays while it iterates and runs the full sweep once before
+its PR (Corey, 2026-11-05, #800 S5). `sweep --check FILE --type <types>` rebuilds every cached
 brief of those types with the current builders and compares each result's hash (53). A replay
 with no drift means those types' regions are byte-identical on every sweep map, so the full sweep
-would show no drift either, provided the list holds every type whose builder reaches the change:
+should show no drift either; the once-per-PR sweep confirms it. The replay sees a change only
+when its list holds every type whose builder reaches the change:
 
 - a type's own builder: that type, plus `block` when block delegates to it (`cover`, `ruins`,
   `depot`, `compound`, `hut`). The block replay rebuilds its lots with the current builders:
@@ -517,12 +529,12 @@ would show no drift either, provided the list holds every type whose builder rea
   `--type block` 45 of 95 (2026-11-05). On today's corpus block plans 120 cover, 181 ruins,
   72 depot, 27 compound and 1 hut lot, so a hut change shows in block on at most one region;
 - code several types share: every type that calls it. Replaying all seventeen types took 133 s
-  against the full sweep's 159 s, so run the full sweep instead: it also hashes macro's stages
-  and the report.
+  against the full sweep's 159 s, so iterate on the full sweep instead: it also hashes macro's
+  stages and the report.
 
-The full sweep is needed for a content change (the recapture is only made by it), for anything
-upstream of the briefs (macro, the library, a strategy's brief making, the kernel, `shared/`), and
-for shared builder code. A replay that drifts on a change meant to preserve behaviour is a
+The replay cannot see anything upstream of the briefs (macro, the library, a strategy's brief
+making, the kernel, `shared/`), so those changes iterate on the full sweep too, and only the full
+sweep recaptures for a content change. A replay that drifts on a change meant to preserve behaviour is a
 stop-and-escalate, as a full sweep's drift is (53); on a declared content change the full sweep
 is the check from then on. A hut break (`BOX` 4 to 5) drifted 1609 of 1833 hut regions in the replay and 222
 of 224 maps in the full sweep; both caught it, and the replay named the regions.
@@ -615,11 +627,12 @@ and `map-library-36*`: the sweep's chain cases are 12 × 6 games and smaller pla
 those files alone check the report at the larger authored sizes. They took 102 to 148 s each on
 2026-11-05, over the 60 s budget (#808 notes it as debt).
 
-**Pending a decision (#800 S5, #817).** For a behaviour-preserving macro change, the game-size
-report batch (`map-library`, `-8`, `-8-tail`, 111 s) may add little: with no drift the sweep has
-shown its 161 game-size maps byte-identical, report included. But the library's seeds are not the
-sweep's, so a seed-specific defect could pass, and no probe was found to show either way. Until
-Corey decides, the batch stays in the macro row.
+**The game-size batch on a behaviour-preserving macro change** (Corey, 2026-11-05, #800 S5).
+The author does not run the game-size report batch (`map-library`, `-8`, `-8-tail`, 111 s) before
+the PR: with no drift the sweep shows its 161 game-size maps byte-identical, report included. The
+library's seeds are not the sweep's, so a seed-specific defect can still pass; the slow tier runs
+the batch on `main` after merge, and a failure there files an issue and is fixed forward. A
+content change, or any change that drifts, still runs it.
 
 A new slow or browser member adds its row to its set's table here in the same change, and a
 member whose value is unclear is raised with Corey rather than dropped.
@@ -663,7 +676,9 @@ the npm that `packageManager` names, as two jobs on separate runner queues:
 
 - **`verify`** (label `docker`) runs on every pull request and every push to `main`:
   `npm run check`, `npm run typecheck`, `npm test` (through `brief`, so the log gives each
-  file's wall time and the slowest files) and `npm run test:mapgen`. It is the pull request's
+  file's wall time and the slowest files) and `npm run test:mapgen`. It runs the whole fast
+  tier on every pull request, not only the sets a branch reaches (Corey, 2026-11-05, #800 S5);
+  a slow `verify` is answered by cutting slow files, not by narrowing it. It is the pull request's
   check. The runner is several times slower than the development machine (42.3, 2026-11-04).
 - **`slow`** (label `slow`) runs `npm run test:slow` on every push to `main`, after
   merge, so pull requests never wait for it. When it fails,
@@ -845,8 +860,8 @@ branch outside them can pass both and still change how saved maps regenerate.
 - A change meant to preserve behaviour, or an experiment switched off, needs a clean
   `sweep --check` before its PR. That is evidence for the covered corpus, not proof for every map;
   where a change could reach an uncovered case, add a focused test for that case too. A replay
-  stands in for it only on the terms of [The replay or the full sweep](#the-replay-or-the-full-sweep),
-  a working rule pending #800 S5.
+  is the inner loop and does not stand in for it
+  ([The replay or the full sweep](#the-replay-or-the-full-sweep)).
 - A change that alters default output anywhere is a content change, even if the sweep shows no
   drift: it joins a batch (step 3).
 - Drift in a change meant to preserve behaviour is a stop-and-escalate (53).
