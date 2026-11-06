@@ -107,8 +107,8 @@ self-checks, not a new fast-tier test file or a production content baseline.
 
 ## Results
 
-Captured at `c96e24fb776c274b0b715aed8376660234c3a208`, Node v24.15.0,
-with only the new probe involved in this measurement. The concurrent #837
+Captured from base `c96e24fb776c274b0b715aed8376660234c3a208`, Node v24.15.0,
+plus this PR's new probe tool (added in `746a1d8`). The concurrent #837
 helper changes do not run on this macro-only path. Tool SHA-256 (LF):
 `dd190a0498b849ab51a56d12a498cb98fa8633674e3cf0091824840f9ca109fe`.
 The retained [JSON](seam-pitch.json) supplies all integer counts.
@@ -155,7 +155,7 @@ have none of those three witnesses. The narrow-gap calculation above explains
 why this particular negative result is more than a grid-search miss.
 
 **Fewer guaranteed sides can expose much longer structural runs**, about
-50–55% of unguaranteed seam length in this panel. Remaining guarantees still
+49.64–55.15% of unguaranteed seam length in this panel. Remaining guarantees still
 fragment fillable runs substantially. At 36, thinning without cap changes makes
 1,977 / 1,997 units part of fillable 6+ runs; combining both candidates makes
 3,208 / 3,143. The complementary phases give similar aggregate shares, but

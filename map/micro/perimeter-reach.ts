@@ -92,6 +92,8 @@ export function perimeterWalls(brief: RegionBrief, options: PerimeterReachOption
  * as on a coordinator whose live cord may refuse them (20.10), a refused set is split into
  * smaller batches, leaving out each wall the canvas refuses (a corner wall overlapping
  * a kept one among them). Returns what was committed.
+ * Use `passOver` only with a planner given no `addressed` ledger: planning marks that
+ * ledger eagerly, and this committer cannot undo marks for refused candidates.
  */
 export function commitPerimeterWalls(canvas: SitingCanvas, walls: PerimeterWalls, options: { passOver?: boolean } = {}): Pick<PerimeterWalls, 'elements' | 'shapes'> {
   if (!walls.elements.length || canvas.commit({ elements: walls.elements, areas: disjoint(walls.shapes), extents: walls.shapes })) return walls;

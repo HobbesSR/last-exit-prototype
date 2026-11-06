@@ -3,7 +3,10 @@ import { perimeterWalls, commitPerimeterWalls } from './perimeter-reach.ts';
 import type { PerimeterReachOptions, PerimeterWalls } from './perimeter-reach.ts';
 import type { RegionBrief } from './types.ts';
 
-export type HintWallOptions = Omit<PerimeterReachOptions, 'runs'>;
+export interface HintWallOptions extends Omit<PerimeterReachOptions, 'runs' | 'label'> {
+  /** Prefixed to each wall's label. Default `hint-wall`. */
+  label?: string;
+}
 export type HintWalls = PerimeterWalls;
 
 /** Preserve hint selection, labels, candidate order and addressed intent for existing builders. */

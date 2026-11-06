@@ -25,12 +25,15 @@ assembly, rather than a new builder-content sweep. CI machines run slower.
 Whole-map generation can be reproduced with:
 
 ```sh
-node docs/reports/issue-837/generate.mjs docs/reports/issue-837/generate.json
+node docs/reports/issue-837/generate.mjs
 ```
 
 It takes the machine-wide bench lock and records one cold `generate` call at
 36 wide, along with exact arguments, Node version, starting revision and an
-output hash. This measures the switched-off landing only; it is not an
+output hash to stdout, leaving the retained capture untouched. The retained
+`checkpoint` names base `c96e24f` plus this PR's helper and new capture tool
+(added in `746a1d8`); the tool did not exist at the base commit alone.
+This measures the switched-off landing only; it is not an
 estimate of future adoption cost or a performance comparison. The retained
 quiet capture took **44.97 s**, at cell size 48. It ran after waiting for the
 other agents' active Node test/sweep processes to finish, under the bench lock.
