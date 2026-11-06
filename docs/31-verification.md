@@ -307,6 +307,13 @@ Notice bloat rather than add to it. When a run you are making is slower than the
 42.3, or a file you touch is over budget, say so in the PR or file an issue; do not add cases to a
 file already over budget without bringing it back under.
 
+Placeholder values are not claims. Loot's spawn chance, tier gradient, density, supply and kind
+weights are stand-ins (Corey, 2026-11-05,
+[17.2.11](17.2.11-navigation-structure-direction.md#loot-placement-is-a-placeholder)): a test
+may assert that some loot spawns where its mechanic needs a pickup, never a value or a band.
+The loot-per-tile band in `tests/helpers/map-library-sizes.js` predates this and retires with
+those files.
+
 Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 `cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder

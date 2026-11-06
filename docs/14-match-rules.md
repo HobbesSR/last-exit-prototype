@@ -478,6 +478,9 @@ The cell-profile contestant-only passage balance is a separate tuning pass;
 this checkpoint does not claim that the smaller live hunter is blocked by every
 1.5-cell squeeze (52).
 
+Every spawn value in this paragraph is a placeholder, so that there is loot to play with: none is
+a requirement, and none is tuned or asserted by tests (Corey, 2026-11-05,
+[17.2.11](17.2.11-navigation-structure-direction.md#loot-placement-is-a-placeholder)).
 Generated loot uses its authoritative site and tier metadata. #214 lowers the
 default gradient from 0.015 plus 0.034 per tier to 0.012 plus 0.027: the more
 varied fill paints more regions that roll loot, so the roughly 20% reduction
