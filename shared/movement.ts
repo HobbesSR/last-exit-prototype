@@ -50,16 +50,58 @@ function collider(source: Bounded & { kind?: string | undefined }): Collider {
   const shape = shapeOf(source);
   return { shape, box: bounds(shape), body: body(shape), kind: source.kind };
 }
-function geometry(map: CollisionMap): Geometry {
-  let cached = shapeCache.get(map.obstacles);
-  if (cached && cached.count === map.obstacles.length) return cached;
-  const shapes = map.obstacles.map(o => ({ ...collider(o), source: o }));
+// Count work rather than reading a clock: this path also runs in the portable simulation.
+const GEOMETRY_CHUNK = 128;
+function* buildGeometry(obstacles: readonly Obstacle[]): Generator<void, Geometry> {
+  const count = obstacles.length, shapes: Collider[] = [];
+  let work = 0;
+  for (const o of obstacles) {
+    shapes.push({ ...collider(o), source: o });
+    if (++work % GEOMETRY_CHUNK === 0) yield;
+  }
   const buckets = new Map<string, Collider[]>();
-  for (const entry of shapes) bucketBox(buckets, entry.box, entry);
-  const segments = shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)), sight = new Map<string, number[]>();
-  segments.forEach((edge, i) => bucketBox(sight, edgeBox(edge), i));
-  cached = { count: map.obstacles.length, shapes, buckets, segments, sight };
-  shapeCache.set(map.obstacles, cached); return cached;
+  for (const entry of shapes) {
+    bucketBox(buckets, entry.box, entry);
+    if (++work % GEOMETRY_CHUNK === 0) yield;
+  }
+  const segments: Edge[] = [], sight = new Map<string, number[]>();
+  for (const entry of shapes) if (!seeThrough(entry.kind)) for (const edge of edgesOf(entry.shape)) {
+    const i = segments.length;
+    segments.push(edge);
+    bucketBox(sight, edgeBox(edge), i);
+    if (++work % GEOMETRY_CHUNK === 0) yield;
+  }
+  if (work % GEOMETRY_CHUNK !== 0) yield;
+  return { count, shapes, buckets, segments, sight };
+}
+function geometry(map: CollisionMap): Geometry {
+  const cached = shapeCache.get(map.obstacles);
+  if (cached && cached.count === map.obstacles.length) return cached;
+  const build = buildGeometry(map.obstacles);
+  let next = build.next();
+  while (!next.done) next = build.next();
+  shapeCache.set(map.obstacles, next.value);
+  return next.value;
+}
+/** Prepare the same cache queries build on demand, yielding between bounded batches. Only a
+ * complete build is published; a query or another preparation may safely finish its own meanwhile.
+ * A rejected callback leaves no partial cache. Obstacle-list replacement/growth during a yield
+ * restarts preparation with the current list, preserving the synchronous cache's identity/length key. */
+export async function prepareMovementGeometry(map: CollisionMap, yieldControl: () => Promise<void>): Promise<void> {
+  for (;;) {
+    const obstacles = map.obstacles, cached = shapeCache.get(obstacles);
+    if (cached && cached.count === obstacles.length) return;
+    const build = buildGeometry(obstacles), count = obstacles.length;
+    let next = build.next();
+    while (!next.done) {
+      await yieldControl();
+      if (map.obstacles !== obstacles || obstacles.length !== count) break;
+      next = build.next();
+    }
+    if (!next.done) continue;
+    shapeCache.set(obstacles, next.value);
+    return;
+  }
 }
 const edgeBox = (edge: Edge): Box => {
   const x = Math.min(edge.a.x, edge.b.x), y = Math.min(edge.a.y, edge.b.y);

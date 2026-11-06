@@ -42,7 +42,7 @@ export const SETS = {
     fast: ['simulation', 'characterization', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'traps', 'transit',
       'utility-use', 'hearing', 'hearing-bots', 'hunting', 'hunter-planning', 'discovery', 'visibility', 'view', 'view-items',
       'projection-contract', 'presentation', 'frame-gates', 'frame-layers', 'rewind', 'reloading', 'input-queue',
-      'movement-speed', 'bot-discovery', 'navigation-*', 'route', 'boundaries', 'arena', 'playability', 'shared-rules', 'content'],
+      'movement-speed', 'movement-preparation', 'bot-discovery', 'navigation-*', 'route', 'boundaries', 'arena', 'playability', 'shared-rules', 'content'],
     slow: ['characterization-bots', 'map-sweep'],
     browser: ['hearing', 'transit'],
     sources: ['shared/simulation*', 'shared/simulation/**', 'shared/movement.ts', 'shared/view.ts', 'shared/discovery.ts', 'shared/equipment.ts',
