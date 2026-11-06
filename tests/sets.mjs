@@ -10,10 +10,13 @@ import { pathToFileURL } from 'node:url';
 //   npm run brief -- test:set micro:depot        the micro files whose name holds "depot"
 //   npm run brief -- test:set rooms --slow       fast and slow files
 //   npm run brief -- test:set physics --browser  then its browser scripts, one at a time
+//   node tests/sets.mjs browser [set ...]        browser scripts alone: every set's (npm run test:browser) or these
 //   node tests/sets.mjs list                     sets, member counts and recorded time
 //   node tests/sets.mjs changed [base]           sets whose sources this branch touched
 // Members are file stems (`physics-world` is tests/physics-world.test.js, tests/slow/…, or
 // tests/physics-world.browser.mjs), or a prefix ending in `*` for a family that shares one.
+// A browser script drives Chrome: tests/*.browser.mjs, map/tools/tests/*.browser.mts and
+// tests/browser.mjs. Why each set's slow and browser members exist is 31's per-set table.
 
 /** @type {Record<string, { about: string, fast: string[], slow?: string[], browser?: string[], sources: string[] }>} */
 export const SETS = {
@@ -51,7 +54,7 @@ export const SETS = {
     fast: ['physics-*', 'bot-intents'],
     slow: ['physics-navigation'],
     browser: ['default-physics', 'physics-*'],
-    sources: ['shared/physics/**'],
+    sources: ['shared/physics/**', 'public/physics-*', 'public/dev/physics-lab*', 'public/dev/squish-shell.js'],
   },
   rooms: {
     about: 'the server: rooms, matchmaking, recording and replay, the map pool and live-map wiring',
@@ -73,24 +76,41 @@ export const SETS = {
     sources: ['map/macro/**', 'map/kernel/**', 'map/tools/**', 'map/*.ts'],
   },
   micro: {
-    about: 'region builders and their machinery; select one type with micro:<type>',
+    about: 'region builders and their machinery and the micro labs; select one type with micro:<type> (also npm run test:micro)',
     fast: ['micro-*', 'element', 'region-examples'],
     slow: ['micro-*'],
-    sources: ['map/micro/**', 'map/kernel/**'],
+    browser: ['micro-lab', 'region-explorer', 'decomposition-lab', 'generation-demo'],
+    sources: ['map/micro/**', 'map/kernel/**', 'public/micro-lab*', 'public/decomposition-*', 'public/generation-demo*'],
   },
 };
 
-const FAST_DIR = 'tests', SLOW_DIR = 'tests/slow';
+const FAST_DIR = 'tests', SLOW_DIR = 'tests/slow', BROWSER_DIRS = ['tests', 'map/tools/tests'];
 export const stem = file => path.basename(file).replace(/\.(test\.js|browser\.mjs|browser\.mts|mjs)$/, '');
 export const matches = (pattern, name) => pattern.endsWith('*') ? name.startsWith(pattern.slice(0, -1)) : name === pattern;
 const listed = (dir, suffix) => existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith(suffix)).map(f => `${dir}/${f}`) : [];
 
-/** Every unit and browser test file, by tier. Browser scripts are the ones `npm run test:browser` runs. */
+/** Every unit and browser test file, by tier. A browser script is found by its name, so a new one cannot escape
+ * the catalog test, and `npm run test:browser`, the union of the sets' browser members, runs it. */
 export function inventory() {
-  const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts;
-  // Every script `test:browser` runs, whatever its name, so a new one cannot escape the catalog test.
-  const browser = [...scripts['test:browser'].matchAll(/node (\S+)/g)].map(m => m[1]);
+  const browser = [...BROWSER_DIRS.flatMap(dir => [...listed(dir, '.browser.mjs'), ...listed(dir, '.browser.mts')]), `${FAST_DIR}/browser.mjs`]
+    .filter(file => existsSync(file)).sort();
   return { fast: listed(FAST_DIR, '.test.js'), slow: listed(SLOW_DIR, '.test.js'), browser };
+}
+
+/** Run browser scripts one at a time, reporting each with its time, so one failure hides none of the rest. */
+export function runBrowser(scripts, env = process.env, run = script => spawnSync(process.execPath, [script], { stdio: 'inherit', env }).status) {
+  const failed = [];
+  const started = Date.now();
+  for (const script of scripts) {
+    const at = Date.now();
+    // Browser scripts are not node:test files; a reporter in NODE_OPTIONS would only get in their way.
+    const status = run(script, { ...env, NODE_OPTIONS: '' });
+    console.log(`${status === 0 ? 'ok  ' : 'FAIL'} ${script} ${((Date.now() - at) / 1000).toFixed(1)}s`);
+    if (status !== 0) failed.push(script);
+  }
+  console.log(`browser: ${scripts.length - failed.length} ok, ${failed.length} failed, ${((Date.now() - started) / 1000).toFixed(0)} s${failed.length ? `
+  failed: ${failed.join(' ')}` : ''}`);
+  return failed.length ? 1 : 0;
 }
 
 /** The sets each file of `files` (a tier's list) belongs to, by its stem. */
@@ -109,6 +129,8 @@ export function resolve(selector, tier, files = inventory()[tier]) {
 export function setsFor(changed) {
   return Object.keys(SETS).filter(name => changed.some(file => SETS[name].sources.some(glob => path.matchesGlob(file, glob))));
 }
+
+const USAGE = 'usage: node tests/sets.mjs <set|set:word ...> [--slow] [--browser] | browser [set ...] | list | changed [base]';
 
 const recordedMs = () => {
   try {
@@ -137,8 +159,14 @@ function main(args) {
     console.log(sets.length ? `sets touched since ${base}: ${sets.join(' ')}\n  npm run brief -- test:set ${sets.join(' ')}` : `no set's sources changed since ${base}`);
     return 0;
   }
+  if (names[0] === 'browser') {
+    const files = inventory().browser, chosen = names.slice(1);
+    const scripts = chosen.length ? [...new Set(chosen.flatMap(n => resolve(n, 'browser', files)))] : files;
+    if (!scripts.length) { console.error(`no browser scripts in ${chosen.join(' ')}`); return 1; }
+    return runBrowser(scripts);
+  }
   if (!names.length) {
-    console.error('usage: node tests/sets.mjs <set|set:word ...> [--slow] [--browser] | list | changed [base]');
+    console.error(USAGE);
     return 2;
   }
   const files = inventory();
@@ -149,12 +177,7 @@ function main(args) {
   const env = { ...process.env, BRIEF_SCRIPT: `set-${names.join('+').replace(/:/g, '-')}${flags.has('--slow') ? '-slow' : ''}` };
   let status = 0;
   if (unit.length) status = spawnSync(process.execPath, ['--test', '--test-concurrency=4', ...unit], { stdio: 'inherit', env }).status ?? 1;
-  for (const script of browser) {
-    // Browser scripts are not node:test files; the reporter in NODE_OPTIONS would only get in their way.
-    const result = spawnSync(process.execPath, [script], { stdio: 'inherit', env: { ...env, NODE_OPTIONS: '' } });
-    console.log(`${result.status === 0 ? 'ok  ' : 'FAIL'} ${script}`);
-    if (result.status !== 0) status = result.status ?? 1;
-  }
+  if (browser.length && runBrowser(browser, env) !== 0) status ||= 1;
   return status;
 }
 
@@ -164,7 +187,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   } catch (error) {
     // A mistyped set is a usage error, not a crash: say what exists instead of a stack.
     console.error(String(error.message ?? error));
-    console.error('usage: node tests/sets.mjs <set|set:word ...> [--slow] [--browser] | list | changed [base]');
+    console.error(USAGE);
     process.exitCode = 2;
   }
 }

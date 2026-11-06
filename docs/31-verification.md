@@ -50,9 +50,10 @@ The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`. Dated counts and timings are in
 [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). `npm run test:all` adds
 `tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
-fixture, and bots completing whole matches. Those slow tests sum to about four minutes
-by default, plus about half a minute for the builder sweeps below, and their evidence
-only moves when generation or simulation moves.
+fixture, and bots completing whole matches, and the builder sweeps below. Its 26 files took
+871 s timed one at a time on 2026-11-05 (#808; each set's share is in
+[Integration checks per set](#integration-checks-per-set)), and their evidence only moves when
+generation or simulation moves.
 `tests/slow/room-sizes.test.js` and `room-sizes-physics.test.js` run only the 12 × 6 room unless asked
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
 the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
@@ -92,9 +93,10 @@ seed sweep from the repository root, `node map/tools/cli.mts sweep --check
 map/tools/fixtures/chain-baseline.json` (224 maps, two to three minutes, [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`
 pins its quick cases. It must show no drift unless the PR declares a content
 change and recaptures last ([53](53-map-artifacts-and-tools.md)). A change to one
-region type's builder can iterate on `sweep --check ... --type <type>` first, which
-rebuilds that type's cached briefs per region instead of regenerating every map; it
-doesn't replace the full sweep ([53](53-map-artifacts-and-tools.md#replaying-one-region-type)).
+region type's builder replays `sweep --check ... --type <type>` instead, which rebuilds that
+type's cached briefs per region rather than regenerating every map
+([53](53-map-artifacts-and-tools.md#replaying-one-region-type)); when the replay is enough and
+when the full sweep is needed is [The replay or the full sweep](#the-replay-or-the-full-sweep).
 Do not resize test grids or relax generation to make a check pass.
 
 The chain's authored library (52) is checked against the actual region strategies.
@@ -164,7 +166,7 @@ original seeds in `slow/micro-compound-determinism` (#647). Each pair calls one 
 `tests/helpers/` (`block-promise.js`, `plant-promise.js`, `park-fixtures.js`,
 `builder-contract.js`, `compound-sweeps.js`, `hut-fixtures.js`) with different inputs (a seed list, or for
 compound a case list: `FAST_CASES` fast, `sweepCases` slow), so the assertions cannot drift apart. `test:micro` runs only the fast
-files: a builder change that moves a type's output also runs that type's slow file, for
+files and the micro labs: a builder change that moves a type's output also runs that type's slow file, for
 example `node --test tests/slow/micro-plant-promise.test.js`. Narrow a sweep this way, by
 moving its seeds to the slow tier, only where the fast tier keeps a witness of the same
 promise; do not narrow it by shrinking a grid or relaxing generation.
@@ -174,18 +176,21 @@ An access test routes from the portal stand nearest each target (`standNear` in
 target, so the nearest stand costs a fraction of the first, and it proves the same thing:
 the portal promise joins every portal's stands, and each builder's own sweep owns that.
 
-Micro-generation changes additionally run `npm run test:micro`: focused contracts
-and seeded builder tests plus isolated browser previews. Its unit files run one at a
-time so macro-size timing witnesses do not compete with other tests. Contention was
-not the sole cause of the timing misses: block's delegation dispatch added about
-1.4 s (54%) on the macro-block witness and 2.6% across eight whole maps in the
-review comparison ([42.3](42.3-generation-and-delegation-evidence.md#block-delegation-dispatch-cost-604--535-2026-10-26)). The unit tests also run
-in `npm test`. The lab browser check verifies region type content, control
+`npm run test:micro` is the `micro` set with its browser members: the focused contracts and
+seeded builder tests, four files at a time, then the four micro lab scripts. The unit files
+also run in `npm test`. Until #808 the unit files ran one at a time, so that macro-size timing
+witnesses did not compete; those durations are opt-in now (`BUILD_BUDGETS`, below) and the
+depot's are counts. Four at a time took 57 s against 194 s one at a time, and the whole script
+about 98 s against 235 s (2026-11-05). Contention was not the sole cause of the old timing misses: block's
+delegation dispatch added about 1.4 s (54%) on the macro-block witness and 2.6% across eight
+whole maps in the review comparison ([42.3](42.3-generation-and-delegation-evidence.md#block-delegation-dispatch-cost-604--535-2026-10-26)).
+The labs are for a change to a lab, not to a builder
+([Integration checks per set](#integration-checks-per-set)). `tests/micro-lab.browser.mjs` verifies region type content, control
 variation, result download and movement, and saves `test-results/micro-lab.png`.
 It also toggles each building view for `hut`, `compound` and `block`, checks the drawn
 counts against the build in memory, and shows unmet guidance as a warning
 ([56](56-buildings.md) L4, L5).
-`node tests/region-explorer.mjs` checks the Region Builder Explorer's full builder
+`node tests/region-explorer.browser.mjs` checks the Region Builder Explorer's full builder
 catalogue, shape and size controls against direct builds, core-site output, JSON
 download, zoom/pan, walker placement, arrow movement and compact layout. It runs
 in `test:micro` and saves `test-results/region-explorer.png`. The focused
@@ -239,7 +244,9 @@ Playwright and start an isolated temporary server; screenshots land in
 `test-results/`. `tests/browser.mjs` is one long scenario whose sections share
 pages and rooms, so it takes minutes; a feature that needs only its own server and
 tabs gets its own script, as `tests/dev-view.browser.mjs` (the dev view, 24) does,
-so it can be iterated on in seconds. `npm run test:browser` runs them all.
+so it can be iterated on in seconds. `npm run test:browser` runs them all, one at a time,
+and reports each with its time; a failure does not stop the scripts after it. It is the
+union of the sets' browser members ([Test sets](#test-sets)).
 
 The shipped default is physics content (#523), and `tests/browser.mjs` pins the legacy set and factory it was
 written for: its fixtures swap a room's map and place actors by assigning positions on the server's game, which a
@@ -422,7 +429,9 @@ nothing, so it needs no lock and runs in parallel. Results are in
 Every test file belongs to exactly one set, named for what it validates (#800). `tests/sets.mjs`
 holds the catalog: each set's fast, slow and browser members, and the source paths whose change
 should prompt it. `tests/sets.test.js` fails when a file is in no set or two, or when a member
-names no file, so a new test file names its set in the same change.
+names no file, so a new test file names its set in the same change. A browser script is found by
+its name (`tests/*.browser.mjs`, `map/tools/tests/*.browser.mts` and `tests/browser.mjs`), so a
+new one cannot escape the catalog either.
 
 | Set | Validates |
 | --- | --- |
@@ -433,13 +442,14 @@ names no file, so a new test file names its set in the same change.
 | `physics` | the Rapier engine, its items, hook, ballistics and physical navigation |
 | `rooms` | the server: rooms, matchmaking, recording and replay, the map pool, live-map wiring |
 | `macro` | macro generation, the chain and its library, map tools and the Map Lab |
-| `micro` | region builders and their machinery |
+| `micro` | region builders and their machinery, and the micro labs |
 
 ```powershell
 npm run brief -- test:set physics            # the set's fast files
 npm run brief -- test:set micro:depot        # the micro files whose name holds "depot"
 npm run brief -- test:set rooms --slow       # fast and slow files
 npm run brief -- test:set physics --browser  # then its browser scripts, one at a time
+node tests/sets.mjs browser micro           # browser scripts alone: these sets', or every set's with none named
 node tests/sets.mjs list                     # sets, member counts and recorded time
 node tests/sets.mjs changed                  # the sets whose sources this branch touched
 ```
@@ -450,71 +460,160 @@ sets a branch reaches. Sources overlap where code is shared (`map/kernel/` promp
 shared registries almost every file imports almost everything (a change under `shared/physics`
 reaches 221 of the 246 fast files' imports on 2026-11-04), so selection by import graph would select the whole tier.
 `npm test` stays the gate before a PR; sets make iterating cheaper, not the gate smaller.
-`npm run test:physics` is the `physics` set. Each selection's unit tests keep their own timing
-record (`test-results/test-times/set-<names>.json`); browser scripts are not recorded.
-`npm run test:micro` stays hand-written for now: it runs the micro files one at a time and adds
-four preview scripts (`micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo`) that
-the catalog does not hold yet; #808 decides where they belong.
+`npm run test:physics` is the `physics` set, `npm run test:micro` the `micro` set with its browser
+members, and `npm run test:browser` every set's browser members (`node tests/sets.mjs browser`).
+Browser scripts run one at a time, each reported `ok` or `FAIL` with its time, and a failure stops
+none of the rest; the run closes with the count and the failed scripts. Each selection's unit tests
+keep their own timing record (`test-results/test-times/set-<names>.json`); browser scripts are not
+recorded, so their times are in [Integration checks per set](#integration-checks-per-set).
 
 ## Choosing checks by changed area
 
 A check is worth running when something the change touched can move what it asserts.
 The gates above are the whole set, not a default: `npm run test:all`, the sweep, the
 browser scripts and the benchmarks are chosen by the area changed, because a slow file
-the change cannot move adds minutes and no evidence (#542). Three tiers:
+the change cannot move adds minutes and no evidence (#542). "The map was touched" or
+"it shows in the browser" is not a reason by itself (Corey, 2026-11-04, #808). Three tiers:
 
 | Tier | When | Runs |
 | --- | --- | --- |
 | Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, a set or `set:word` ([Test sets](#test-sets)), or a replay. Seconds |
 | Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; plus the area's extras |
-| Integration | once per PR, where the area can move it | The sweep, slow files, browser scripts and benchmarks the area calls for |
+| Integration | once per PR, where the area can move it | The members of [Integration checks per set](#integration-checks-per-set) the change can move, and no others |
 
-| Changed area | Inner loop | Before the PR, beyond those gates | Integration |
+| Changed area | Inner loop | Integration | Alone, 2026-11-05 |
 | --- | --- | --- | --- |
-| One region type's builder or strategy | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`); its replay (`sweep --check FILE --type plant`, 53) | `npm run test:micro`; the type's slow file when the change moved its output | the full chain sweep, no drift unless the PR declares a content change, recaptured last (53); `validate --diagnose true` on the maps it names as drifted |
-| Macro stages, the chain's authored library, the kernel | `npm run test:mapgen` | | the full chain sweep, recaptured last for a content change (53); the `map-library` slow files |
-| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `test:set simulation` | `map-sweep`, `bot-objective` |
-| Simulation, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `test:set simulation` | `characterization-bots`, `bot-objective`, `live-map`; `test:browser` or `bench` when the change reaches the client or tick cost |
-| Rooms, recording and replay | the unit file for the rule | `test:set rooms` | `room-sizes` |
-| Physics | the unit file for the rule | `npm run test:physics` (the `physics` set) | `physics-navigation`; the physics scripts in `test:browser` |
+| One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; `sweep --check FILE --type <type>`, adding `block` for a type block delegates to (below); no drift | hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
+| One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `map-library-24` and `-36*` when what a region holds moves (its loot, set-piece share) | about 9 to 10 min: the sweep 159 s and the larger sizes 353 s, plus the type's own |
+| Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 264 s |
+| A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
+| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep; `map-library-24`, `-36` and `-36-tail`, the sizes the sweep doesn't hold; for a content change also the game-size report batch (`map-library`, `-8`, `-8-tail`) and the recapture | 512 s behaviour-preserving, 623 s for a content change |
+| Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
+| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep`, `bot-objective` | 52 s |
+| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 82 s, 113 s with `map-sweep` |
+| Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser` | 56 s beyond the fast set |
+| Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`, `room-sizes-physics`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 48 s and 90 s |
+| The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-physics`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
+| Shared geometry and math (`test:set geometry`) | the unit file | the full chain sweep (shapes reach every builder); the physics Node/Chrome equality scripts (`physics-world`, `-hook`, `-hook-live`, `-navigation`, 8 s), since simulation math must be bit-equal in Chrome | 167 s |
+| Tooling and docs | the unit file; `test:set tooling` | none; `npm run test:browser` when the browser runner changes | |
 
-The replay needs its cache captured before the first edit (53). An area not listed
-follows the gates above and the paragraph that describes its suite. Whatever the area,
-a fixture is never regenerated to make a check pass (below), and timing comparisons run
-sequentially.
+The replay needs its cache captured before the first edit (53). Whatever the area, a fixture is
+never regenerated to make a check pass (below), and timing comparisons run sequentially.
+`npm test`, the gate, is not repeated by a set; the before-the-PR gates stay as above.
 
-A builder or strategy change does not run `test:all`. `characterization-bots`,
-`bot-objective` and `map-sweep` never build a chain map. `map-library`, `live-map`,
-`physics-navigation` and `room-sizes` build one only to report its defects or play a
-match, so all they can see is a defect, a crash or a stalled bot, which the sweep's
-`built` and `report` hashes and `diagnoseBuiltMap` show first. The exceptions are the type's own slow files, above, and
-`map-library-24` and `map-library-36*`: the sweep's chain cases are 12 × 6 games and
-smaller playgrounds (53), so those files alone check the report at the larger authored
-sizes. Run them when the change alters what a region holds, such as its loot.
+<a id="the-replay-or-the-full-sweep"></a>
 
-What each `tests/slow/` file runs on, what it asserts, and what can move it:
+**The replay or the full sweep.** `sweep --check FILE --type <types>` rebuilds every cached
+brief of those types with the current builders and compares each result's hash (53). A replay
+with no drift means those types' regions are byte-identical on every sweep map, so the full sweep
+would show no drift either, provided the list holds every type whose builder reaches the change:
 
-| File | Runs on | Asserts | Moved by a change to |
+- a type's own builder: that type, plus `block` when block delegates to it (`cover`, `ruins`,
+  `depot`, `compound`, `hut`). The block replay rebuilds its lots with the current builders:
+  with depot's default density broken, `--type depot` drifted 363 of 366 regions and
+  `--type block` 45 of 95 (2026-11-05). On today's corpus block plans 120 cover, 181 ruins,
+  72 depot, 27 compound and 1 hut lot, so a hut change shows in block on at most one region;
+- code several types share: every type that calls it. Replaying all seventeen types took 133 s
+  against the full sweep's 159 s, so run the full sweep instead: it also hashes macro's stages
+  and the report.
+
+The full sweep is needed for a content change (the recapture is only made by it), for anything
+upstream of the briefs (macro, the library, a strategy's brief making, the kernel, `shared/`), and
+for shared builder code. A replay that drifts on a change meant to preserve behaviour is a
+stop-and-escalate, as a full sweep's drift is (53); on a declared content change the full sweep
+is the check from then on. A hut break (`BOX` 4 to 5) drifted 1609 of 1833 hut regions in the replay and 222
+of 224 maps in the full sweep; both caught it, and the replay named the regions.
+
+<a id="integration-checks-per-set"></a>
+
+### Integration checks per set
+
+Each [test set](#test-sets)'s slow and browser members, what each catches that the set's fast
+files can't, and which changes move it. Times are each member alone on the development machine,
+one at a time with nothing else running (2026-11-05, #808); CI's runner is several times slower.
+A member listed here is run when a change can move it, not because its set was touched.
+
+**`tooling`, `geometry`**: no slow or browser members. Geometry's integration reach is through
+the sweep and the physics equality scripts (the table above).
+
+**`client`** (browser 56 s). The fast files test presentation state in Node; only these draw.
+
+| Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| `characterization-bots` | arenas stored in `behavior-seat-1.json.gz`, `content-1` | every tick's snapshot and the `c0`, `g0` and spectator projections of four bot matches equal the fixture's digests | simulation, bots, snapshot and projection shapes; not generation, which the stored arenas replace |
-| `bot-objective` | the legacy generator, seeds 1, 9, 4217 | combat-neutralized bots complete the objective and fill all three pods | the legacy generator, simulation, bots |
-| `map-sweep` | the legacy generator, 200 seeds | a no-key route for both body sizes, loot and charger standing room, route clearance | the legacy generator, movement, the navigation grid |
-| `live-map` | the chain through `generateLiveMap`, seeds 1, 9, 4217, and the larger authored size | bots fill all three extraction slots within the match duration; the larger size generates with a matching recipe | simulation, bots, the live adapter (`map/live.ts`); chain output only as a stall or crash |
-| `physics-navigation` | the chain through `generateLiveMap`, seed 4217, `content-physics-8` | physical contestants complete the match | physics, navigation; chain output only as a stall or crash |
-| `room-sizes` | the chain, one room per authored size (12 × 6 unless `ROOM_SIZES`), on the legacy mover the room harness pins | the room plays to its end, records, and replays | rooms, recording, the replay timeline, size-dependent generation |
-| `room-sizes-physics` | the same, on the shipped default `content-6` and the physics engine (#523) | the physics room plays to its end, its recording names `last-exit-0.8-physics-8`, and the map fits the content's ground capacity | rooms, recording, physics, item capacity, size-dependent generation |
-| `map-library` | the chain at the game size | 5 maps with 24 contestants report no defects; on one with 8, the core element counts, built huts, cover and rubble, routes to each core element, and every region's portal promise (`diagnoseBuiltMap`; the fast tier checks one 24-contestant map with the portal search, #807) | macro stages, the library, a region type's builder |
-| `map-library-8`, `-8-tail` | the chain at the game size, 8 contestants, seeds `library-0` to `9` and `10` to `19` | the report finds no defect | macro stages, the library, a region type's builder |
-| `map-library-24`, `-36`, `-36-tail` | the chain at larger authored sizes, five seeds | `checkMap` finds no defect; set-piece share and loot per tile stay in bounds | macro stages, the library, what a builder puts in a region |
-| `micro-block-promise`, `micro-plant-promise`, `micro-park-promise`, `micro-compound-sweeps` | each type's synthetic fixtures, every seed | the portal promise (and the compound's ring and observer checks at every gate count on every mask, the fast tier keeping one case per mask and per gate count, #807; plant's and park's spacing, plant's #490 strips, park's kinds, cell sizes and 36-portal case) | that builder |
-| `micro-compound-access`, `micro-compound-siting-solution` | compound masks and gate counts; the stored authored quarter | rooms and court reachable through gates; the stored quarter builds a traversable compound | the compound builder and siting |
-| `micro-block-scale` | one macro-sized block, hundreds of portals | more than 50 structures and no lots in the manifest; the 5 s limit applies only under `BUILD_BUDGETS=enforce` | the block builder and its delegation |
-| `micro-builder-contract-sweeps` | the chain-like fixtures of `tests/helpers/chain-briefs.js`, every region type, seed 2 | the builder contract: builds, stays in the fill, keeps the portal promise, counts its cells and core elements, builds the same in another cell order (the fast tier runs seed 1, #807) | any builder |
-| `micro-hut-sweeps` | 6 and 7 cell squares and oblongs at four cell sizes, sixteen seeds | a house with a reachable outside door and a window in any cell order (the fast tier runs seed 1, #807) | the hut builder |
-| `micro-depot-sweeps` | depot's four synthetic masks, every seed; the four stored production witnesses | the portal promise under three parameter sets; loot indoors and out reachable over three seeds; every witness's portal reach (the fast tier runs the first seed and the two smaller witnesses, #807) | the depot builder |
-| `micro-depot-scale` | one 200 × 150 depot, 170 portals | at most 12 cord searches and meshes; more than 100 warehouses and 200 rows; the 12 s limit only under `BUILD_BUDGETS=enforce` (readings 5.8 to 7.6 s) | the depot builder, the live cord and its limits (#801) |
+| `art-witness` | 8.1 s | the real arena renderer's pixels over six palettes, fog, roofs and LOD cutoffs; glass alpha; withheld entities stay undrawn | the renderer, appearance, palette, art assets |
+| `overhead` | 25.0 s | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
+| `dev-view` | 23.0 s | a player tab, the dev tab it opens and what the dev tab does to the room | the dev view (client and server), room dev tools |
 
-A new `tests/slow/` file adds its row here in the same change.
+**`simulation`** (slow 65 s, browser 17 s)
+
+| Member | Alone | Catches that the fast tier can't | Moved by |
+| --- | --- | --- | --- |
+| `characterization-bots` | 13.4 s | every tick's snapshot and three projections of four whole bot matches on the fixture's stored arenas; the fast tier has the map hashes and one scripted trace | simulation rules, bots, snapshot and projection shapes; not generation |
+| `bot-objective` | 20.8 s | bots complete the objective and fill all three pods on legacy maps, seeds 1, 9, 4217 | the legacy generator, bots, navigation, the objective rules |
+| `map-sweep` | 30.7 s | 200 legacy maps keep a no-key route for both body sizes, standing room and clearance | the legacy generator, movement, the navigation grid; not rules or bots |
+| `hearing` (browser) | 10.1 s | a heard-gunfire cue reaches the player's frame and is drawn as a ring, an edge arrow and on the minimap | hearing, its projection, the HUD and minimap |
+| `transit` (browser) | 6.6 s | a gladiator at a station sees its rings on the minimap and a click transits | transit, its projection, minimap input |
+
+**`physics`** (slow 13 s, browser 43 s). Most browser members prove Chrome runs what Node runs.
+
+| Member | Alone | Catches that the fast tier can't | Moved by |
+| --- | --- | --- | --- |
+| `physics-navigation` (slow) | 13.1 s | physical contestants complete a live-chain match, seed 4217 | physics, physical navigation, bots on physics; chain output only as a stall |
+| `default-physics` (browser) | 7.0 s | the shipped default room's lobby, start, walking and item drop in Chrome | the client, physics content, room start |
+| `physics-world`, `-hook`, `-hook-live`, `-navigation` | 2.0 to 2.2 s each | the production Rapier WASM bootstrap in Chrome, and Node and Chrome producing identical world, authoritative and projected frames | `shared/physics/`, the Rapier version, simulation math |
+| `physics-prediction` | 4.2 s | the production prediction module replays pending input after a delayed correction | `public/physics-prediction*`, the motor |
+| `physics-playback`, `physics-geometry` | 1.6 s, 12.2 s | physics drawn from a retained frame without an engine; display circles only in an authorized dev view | the renderer's physics drawing, the projection |
+| `physics-ballistics`, `-jelly`, `-playtest` | 1.3 s, 2.2 s, 5.9 s | the physics labs replay their stored recordings and lay out without overflow | the labs (`public/dev/physics-lab*`), their report recordings |
+
+**`rooms`** (slow 65 s, browser 90 s)
+
+| Member | Alone | Catches that the fast tier can't | Moved by |
+| --- | --- | --- | --- |
+| `live-map` (slow) | 47.8 s | legacy-mover bots fill all three extraction slots on three live chain maps; the larger authored size generates with a matching recipe | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
+| `room-sizes` (slow) | 6.8 s | a whole legacy room through the server loop: every tick recorded once in order, and the sparse replay timeline | rooms, recording, the replay timeline; size-dependent generation under `ROOM_SIZES` |
+| `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
+| `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
+
+**`macro`** (slow 464 s, browser at least 131 s; and the chain sweep, 159 s)
+
+| Member | Alone | Catches that the fast tier can't | Moved by |
+| --- | --- | --- | --- |
+| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps, naming the stage; `npm test` pins only the quick cases | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
+| `map-library` | 31.3 s | five 24-contestant game maps report no defects; one 8-contestant map's full diagnosis | macro, the library, builders: as a defect |
+| `map-library-8`, `-8-tail` | 42.5 s, 37.5 s | twenty 8-contestant game maps report no defects | the same |
+| `map-library-24`, `-36`, `-36-tail` | 101.8 s, 148.0 s, 102.8 s | the larger authored sizes, which the sweep doesn't hold: no defects, set-piece share and loot per tile in bounds | macro, the library, what a builder puts in a region |
+| `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
+
+**`micro`** (slow 264 s, browser 41 s; and the replay, 3.5 to 35 s a type)
+
+| Member | Alone | Catches that the fast tier can't | Moved by |
+| --- | --- | --- | --- |
+| `sweep --check --type` | 3.5 s (block) to 35 s (park); all types 133 s | each cached region of the type rebuilt and compared, with its portal check where it drifted | that type's builder and the builders it delegates to |
+| `micro-builder-contract-sweeps` | 14.0 s | every type's builder contract at seed 2 | any builder |
+| `micro-block-promise`, `micro-block-scale` | 13.6 s, 4.3 s | the block's promise on every seed; a macro-sized block's structure counts | the block builder and its delegation |
+| `micro-compound-sweeps`, `-sweeps-tail`, `-determinism`, `-access`, `-siting-solution` | 38.4, 42.9, 14.0, 15.8, 46.5 s | compound's promise, ring and observer checks at every gate count on every mask, seeds 1 to 4; cell order over eight seeds; rooms and court reachable; the stored authored quarter builds | the compound builder and siting |
+| `micro-depot-sweeps`, `micro-depot-scale` | 13.9 s, 6.0 s | depot's promise and aisle access over its seeds; the stored witnesses' reach; the macro case's cord counts | the depot builder, the live cord |
+| `micro-hut-sweeps` | 4.9 s | small houses at sixteen seeds | the hut builder |
+| `micro-park-promise`, `micro-plant-promise` | 34.5 s, 15.3 s | each type's promise, spacing and kinds at every seed; park's 36-portal case; plant's forty #490 strips | that builder |
+| `micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo` (browser) | 18.0, 8.0, 5.8, 8.7 s | the micro labs in Chrome: controls, imports, downloads, walking, building views | the lab pages, `region-examples`, `brief-link`, building drawing; not builder output (below) |
+
+The micro labs compare what they show with a build in Node made by the same code, so a builder's
+output is not what they check: with hut's box changed from 4 to 5, `micro-hut` failed and
+`micro-lab`, `region-explorer` and `generation-demo` passed (2026-11-05). The Map Lab script, by
+contrast, pins some builder output by name, so a content change can fail it (#816).
+`npm run test:micro` is the `micro` set's fast files, four at a time, then these four scripts.
+
+A builder or strategy change does not run `test:all`. `characterization-bots`, `bot-objective`
+and `map-sweep` never build a chain map. `map-library`, `live-map`, `physics-navigation` and
+`room-sizes` build one only to report its defects or play a match, so all they can see is a
+defect, a crash or a stalled bot, which the sweep's `built` and `report` hashes and
+`diagnoseBuiltMap` show first. The exceptions are the type's own slow files and `map-library-24`
+and `map-library-36*`: the sweep's chain cases are 12 × 6 games and smaller playgrounds (53), so
+those files alone check the report at the larger authored sizes. They took 102 to 148 s each on
+2026-11-05, over the 60 s budget (#808 notes it as debt).
+
+A new slow or browser member adds its row to its set's table here in the same change, and a
+member whose value is unclear is raised with Corey rather than dropped.
 
 <a id="test-arenas"></a>
 
@@ -736,8 +835,8 @@ default output, not by the sweep alone. The sweep covers a fixed corpus of seeds
 branch outside them can pass both and still change how saved maps regenerate.
 - A change meant to preserve behaviour, or an experiment switched off, needs a clean
   `sweep --check` before its PR. That is evidence for the covered corpus, not proof for every map;
-  where a change could reach an uncovered case, add a focused test for that case too. The replay
-  is the inner loop; it doesn't replace the full sweep (53).
+  where a change could reach an uncovered case, add a focused test for that case too. A replay
+  stands in for it only on the terms of [The replay or the full sweep](#the-replay-or-the-full-sweep).
 - A change that alters default output anywhere is a content change, even if the sweep shows no
   drift: it joins a batch (step 3).
 - Drift in a change meant to preserve behaviour is a stop-and-escalate (53).
