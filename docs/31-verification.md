@@ -604,7 +604,7 @@ the sweep and the physics equality scripts (the table above).
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| `live-map` (slow) | 19.9 s | legacy-mover bots fill all three extraction slots on two live chain maps; at the larger authored size macro states a room's recipe and the frame its briefs give is the room's size (the regions are not built: `micro-large-briefs` owns their builds, #822) | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
+| `live-map` (slow) | 19.9 s | legacy-mover bots fill all three extraction slots on two live chain maps; at the larger authored size macro states a room's recipe and the frame its briefs give is the room's size (the regions are not built, so no per-run test converts a composed 24 × 12 map; `micro-large-briefs` builds each type's extreme stored brief at that size, not these, #822) | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
 | `room-sizes` (slow) | 6.8 s | a whole legacy room through the server loop: every tick recorded once in order, and the sparse replay timeline | rooms, recording, the replay timeline; size-dependent generation under `ROOM_SIZES` |
 | `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
 | `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
@@ -947,7 +947,7 @@ establishes nothing about the reported slowdown.
 loot, region/tier ownership, determinism and JSON prediction agreement. The
 boundary tests cover concave edges, holes and whole-body clearance while pinning
 legacy diamond movement. `tests/slow/live-map.test.js` plays combat-neutralized
-bots through all three extraction slots on seeds 1 and 9 (4217 is `physics-navigation`'s, #822), each bounded by
+bots through all three extraction slots on seeds 1 and 9 (#822; `physics-navigation` plays 4217's map with physical contestants, not legacy-mover bots), each bounded by
 the match duration so a stalled match fails rather than hangs. Transit strategy
 and macro library tests check hunter access, standing space, six separate owned
 regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bot
