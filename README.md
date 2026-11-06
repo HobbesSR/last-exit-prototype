@@ -155,9 +155,9 @@ npm run typecheck     # Strict tsc --noEmit across shared/, map/micro/, map/kern
 npm test              # Fast unit and integration suite (concurrency-capped for rapid iteration)
 npm run test:all      # Full unit suite including slow seed sweeps and whole-match bot runs
 npm run test:mapgen   # Typecheck and unit/quota suite for the macro generator in map/macro/
-npm run test:micro    # Micro-generation unit tests plus browser checks for /dev/micro labs
+npm run test:micro    # The micro test set plus browser checks for the /dev/micro labs
 npm run test:physics  # Focused Rapier 2D physics, item identity, hook, and dynamic navigation suite
-npm run test:browser  # End-to-end Playwright suite in Google Chrome (game, dev view, labs, physics)
+npm run test:browser  # Every browser script in Google Chrome (game, dev view, labs, physics), each reported
 npm run test:times    # Measures per-file execution times against the 15s (fast) / 60s (slow) budgets
 ```
 

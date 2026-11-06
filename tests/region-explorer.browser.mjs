@@ -1,4 +1,4 @@
-// Region Builder Explorer acceptance: node tests/region-explorer.mjs
+// Region Builder Explorer acceptance: node tests/region-explorer.browser.mjs
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';

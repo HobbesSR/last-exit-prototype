@@ -1,4 +1,4 @@
-// Developer preview acceptance: run directly with `node tests/micro-lab.mjs`.
+// Developer preview acceptance: run directly with `node tests/micro-lab.browser.mjs`.
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';

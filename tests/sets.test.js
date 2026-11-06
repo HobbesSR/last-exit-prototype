@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SETS, inventory, matches, membership, resolve, setsFor, stem } from './sets.mjs';
+import { SETS, inventory, matches, membership, resolve, runBrowser, setsFor, stem } from './sets.mjs';
 
 // The catalog stays complete as files are added (31, "Test sets"): a new test file names its set.
 test('every unit and browser test file belongs to exactly one set', () => {
@@ -35,4 +35,20 @@ test('changed paths map to the sets they should prompt', () => {
   assert.deepEqual(setsFor(['map/kernel/scale.ts']).sort(), ['macro', 'micro']);
   assert.deepEqual(setsFor(['server/room-service.js', 'public/palette.js']).sort(), ['client', 'rooms']);
   assert.deepEqual(setsFor(['README.md']), []);
+});
+
+test('the browser run reports every script, a failure hiding none after it', t => {
+  const ran = [], lines = [];
+  t.mock.method(console, 'log', line => lines.push(line));
+  const status = runBrowser(['a.browser.mjs', 'b.browser.mjs', 'c.browser.mjs'], {}, script => (ran.push(script), script.startsWith('b') ? 1 : 0));
+  assert.equal(status, 1);
+  assert.deepEqual(ran, ['a.browser.mjs', 'b.browser.mjs', 'c.browser.mjs']);
+  assert.deepEqual(lines.slice(0, 3).map(line => line.replace(/ [\d.]+s$/, '')), ['ok   a.browser.mjs', 'FAIL b.browser.mjs', 'ok   c.browser.mjs']);
+  assert.match(lines[3], /^browser: 2 ok, 1 failed, \d+ s\n  failed: b\.browser\.mjs$/);
+});
+
+test('npm run test:browser is every set\'s browser scripts', () => {
+  const files = inventory().browser;
+  const union = new Set(Object.keys(SETS).flatMap(name => resolve(name, 'browser', files)));
+  assert.deepEqual([...union].sort(), files);
 });

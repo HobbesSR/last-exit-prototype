@@ -169,9 +169,11 @@ and market on a live cord, batched cord commits, 42.33).
 
 A builder change can't move anything upstream of the briefs, yet the full sweep
 regenerates every map to find which `built` views moved. The replay (#541,
-`map/tools/sweep-briefs.mts`) is the inner check before it, for a change to one
-region type's builder. It doesn't replace the full sweep, which stays the
-integration check and the way to recapture.
+`map/tools/sweep-briefs.mts`) is the check for a change to one region type's builder.
+Under a working rule pending Corey's decision (#800 S5), it stands in for the full sweep when it
+replays every type the change reaches and finds no drift; the full sweep stays the check for anything upstream of the briefs, for code several
+types share, for a content change, and the only way to recapture
+([31](31-verification.md#the-replay-or-the-full-sweep)).
 
 - `node map/tools/cli.mts sweep --capture-briefs map/tools/fixtures/chain-baseline.json`
   writes every sweep map's region briefs, bucketed by region type, to a gitignored
@@ -182,7 +184,9 @@ integration check and the way to recapture.
   editing a builder, or from a checkout that matches the baseline.
 - `sweep --check FILE --type plant` rebuilds only that type's briefs, in parallel, and compares
   each result's hash with the cache's. `--type` takes a list, and a type bound to another's
-  strategy is replayed with it. Market and hall now have independent strategies.
+  strategy is replayed with it. Market and hall now have independent strategies. A type that
+  delegates (block, to cover, ruins, depot, compound and hut) rebuilds its children with the
+  current builders, so list it beside the type it delegates to.
   It reports, per region and not per map:
   - **`drift`**: the regions whose result moved, by map and region id, with the manifest counts
     that moved (an empty set means the geometry moved and no count did);
