@@ -74,12 +74,14 @@ export function liveRecipeMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'c
  * Why a chain map isn't the map a room with its seed plays; empty when it is (53 "Play in
  * the game"). Beyond the recipe, the map must be the one its seed generates: a loaded save
  * can keep its seed and recipe and still carry an edited layout or results. This generates
- * the map again to compare, so it costs a generation.
+ * the map again to compare, so it costs a generation; a caller already holding the map its seed
+ * generates under this recipe may pass it as `fresh` instead (#822).
  */
-export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSize' | 'build' | 'results'>, content: MatchContent = defaultContent()): string[] {
+export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSize' | 'build' | 'results'>, content: MatchContent = defaultContent(),
+  fresh?: Pick<ChainMap, 'layout' | 'results'>): string[] {
   const reasons = liveRecipeMismatch(map, content);
   if (reasons.length) return reasons;
-  const fresh = generate(map.layout.seed, liveChainParams(content, liveZoneSize(map.layout.params)), undefined, DEFAULT_CELL_SIZE);
+  fresh ??= generate(map.layout.seed, liveChainParams(content, liveZoneSize(map.layout.params)), undefined, DEFAULT_CELL_SIZE);
   const differs = firstDifference(fresh.layout, map.layout, 'layout') ?? firstDifference(fresh.results, map.results, 'results');
   return differs ? [`the map isn't the one its seed generates (${differs.replace(' rebuilt, ', ' from the seed, ').replace(/ stored$/, ' here')})`] : [];
 }

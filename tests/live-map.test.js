@@ -11,7 +11,9 @@ import { createGame, setInput, step } from '../shared/simulation.ts';
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
 // live-map-adapter.test.js's claim (createMatch(1).map() against this same chain), so it is not paid twice.
-// liveMismatch regenerates the chain on each call, so its three cases below are most of this file's time.
+// liveMismatch regenerates the chain on each call without `fresh`. The seed's own map and the moved core
+// element keep that path, so the regenerated map matches its own seed's and a stored map that differs is
+// refused unaided; the turned slot is compared with this chain, passed as `fresh` (#822).
 let defaultMap, defaultChain, defaultBuilt;
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());
 const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);
@@ -51,9 +53,10 @@ test("a chain map the Map Lab calls live names a room seed and recipe, and only 
   const turned = structuredClone(chain), slot = turned.layout.slots[0];
   slot.orientation = slot.orientation === 0 ? 90 : 0;
   assert.deepEqual(liveRecipeMismatch(turned), []);
-  assert.match(liveMismatch(turned).join(), /^the map isn't the one its seed generates \(layout\.slots\[0\]\.orientation: /);
+  assert.match(liveMismatch(turned, undefined, chain).join(), /^the map isn't the one its seed generates \(layout\.slots\[0\]\.orientation: /);
   const moved = structuredClone(chain);
   moved.results[0].coreElements.push({ kind: 'charger', x: 0, y: 0 });
+  // Without `fresh`: an edited map is refused by the path the Lab runs.
   assert.match(liveMismatch(moved).join(), /\(results\[0\]\.coreElements/);
   for (const seed of ['0', '1e3', '2147483648', '1.5', ' 7', 'last-exit-001']) assert.equal(liveSeed(seed), null, seed);
   assert.equal(liveSeed('2147483647'), 2147483647);
