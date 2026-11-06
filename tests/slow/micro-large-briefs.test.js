@@ -5,15 +5,17 @@ import { gunzipSync } from 'node:zlib';
 import { checkBrief } from '../helpers/builder-contract.js';
 
 /**
- * What builders make of the briefs only the larger authored sizes hand them (#821): per type,
- * the 24 × 12 or 36 × 18 brief with the most portals or cells, where it beats the full
- * sweep's 12 × 6 maps (`tools/large-briefs.mjs`, tests/fixtures README). The root
- * `map-library-24` and `-36*` files used to build five whole maps a size for this, at about
+ * What builders make of the briefs only the larger authored sizes hand them (#821): for each
+ * type whose larger-size briefs exceed the full sweep's 12 × 6 maximum (13 of 17 on capture),
+ * the 24 × 12 or 36 × 18 brief with the most portals or cells (`tools/large-briefs.mjs`,
+ * tests/fixtures README). The root `map-library-24` and `-36*` files used to build five whole maps a size for this, at about
  * 85% of their 353 s; macro at those sizes is pinned by the chain sweep's `macro-*` cases
  * (tests/slow/map-macro-sizes.test.js), and composing and reporting run at 12 × 6.
  *
  * The claims are the ones those maps' reports made of a region: it builds, keeps its geometry
- * in the fill, counts every cell and sites the core elements it was asked for. The portal
+ * in the fill and counts every cell. None of these briefs asks for a core element (the core
+ * element types are no larger at the larger sizes), so the core count check reads zero; the
+ * game-size library maps and the builder contract cover siting. The portal
  * promise is left to the type's own files and the sweep's diagnosis: on these briefs the
  * thorough search costs up to 80 s where the build costs one.
  */

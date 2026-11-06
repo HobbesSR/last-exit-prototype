@@ -126,11 +126,11 @@ maps (Corey, 2026-11-05, #821). Macro's stages, layout through briefs, are pinne
 sweep's `macro-24x12` and `macro-36x18` cases (two seeds each, nothing built), which
 `tests/slow/map-macro-sizes.test.js` also runs on `main`'s slow tier; macro's own
 `tests/slow/chain-content.test.ts` checks their quotas, proof and set-piece share. What builders
-make of those sizes' briefs is `tests/slow/micro-large-briefs.test.js`: per type, the stored brief
-with the most portals or cells where it beats the full sweep's 12 × 6 maps
+make of those sizes' briefs is `tests/slow/micro-large-briefs.test.js`: for each type whose larger-size briefs exceed the full
+sweep's 12 × 6 maximum (13 of 17), the stored brief with the most portals or cells
 (`tools/large-briefs.mjs`, tests/fixtures README), each built and checked for the claims the
-maps' reports made of a region (it builds, stays in its fill, counts every cell and sites its
-core elements), not the thorough portal search, which costs up to 80 s on one of them. Composing
+maps' reports made of a region (it builds, stays in its fill and counts every cell; none of these
+briefs asks for a core element, as the core element types are no larger there), not the thorough portal search, which costs up to 80 s on one of them. Composing
 and reporting are size-generic, so they run only at 12 × 6. The `map-library-24`, `-36` and
 `-36-tail` files this replaces built five whole maps a size, 353 s, about 85% of it builds.
 
@@ -626,7 +626,7 @@ the sweep and the physics equality scripts (the table above).
 | `micro-block-promise`, `micro-block-scale` | 13.6 s, 4.3 s | the block's promise on every seed; a macro-sized block's structure counts | the block builder and its delegation |
 | `micro-compound-sweeps`, `-sweeps-tail`, `-determinism`, `-access`, `-siting-solution` | 38.4, 42.9, 14.0, 15.8, 46.5 s | compound's promise, ring and observer checks at every gate count on every mask, seeds 1 to 4; cell order over eight seeds; rooms and court reachable; the stored authored quarter builds | the compound builder and siting |
 | `micro-depot-sweeps`, `micro-depot-scale` | 13.9 s, 6.0 s | depot's promise and aisle access over its seeds; the stored witnesses' reach; the macro case's cord counts | the depot builder, the live cord |
-| `micro-large-briefs` | 25.3 s | the larger sizes' extreme briefs per type (up to 88 portals, 11,484 cells) build, stay in their fill and site their core elements | any builder; macro only through a recapture |
+| `micro-large-briefs` | 25.3 s | the larger sizes' extreme briefs, for the 13 types they exceed 12 × 6 in (up to 88 portals, 11,484 cells), build and stay in their fill | any builder; macro only through a recapture |
 | `micro-hut-sweeps` | 4.9 s | small houses at sixteen seeds | the hut builder |
 | `micro-park-promise`, `micro-plant-promise` | 34.5 s, 15.3 s | each type's promise, spacing and kinds at every seed; park's 36-portal case; plant's forty #490 strips | that builder |
 | `micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo` (browser) | 18.0, 8.0, 5.8, 8.7 s | the micro labs in Chrome: controls, imports, downloads, walking, building views | the lab pages, `region-examples`, `brief-link`, building drawing; not builder output (below) |

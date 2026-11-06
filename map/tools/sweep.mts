@@ -103,11 +103,12 @@ export function sweepCases(requested: unknown = 120): SweepCase[] {
 /**
  * The larger authored sizes, macro only (#821): two seeds each, since a 36 × 18 layout holds
  * about 2,000 regions. Their builds cost about 85% of a whole map and repeat what the stored
- * briefs check.
+ * briefs check. The seeds are the first two of the five `tools/large-briefs.mjs` picks those
+ * briefs from, so a moved `briefs` hash here is the usual sign the fixture needs recapturing.
  */
 export const LARGER_CASES: SweepCase[] = [
-  { id: 'macro-24x12', params: { zoneWidth: 24, zoneHeight: 12 }, seedPrefix: 'size', count: 2, stages: 'macro' },
-  { id: 'macro-36x18', params: { zoneWidth: 36, zoneHeight: 18 }, seedPrefix: 'size', count: 2, stages: 'macro' },
+  { id: 'macro-24x12', params: { zoneWidth: 24, zoneHeight: 12 }, seedPrefix: 'size-24', count: 2, stages: 'macro' },
+  { id: 'macro-36x18', params: { zoneWidth: 36, zoneHeight: 18 }, seedPrefix: 'size-36', count: 2, stages: 'macro' },
 ];
 
 /**
