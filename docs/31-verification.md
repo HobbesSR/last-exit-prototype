@@ -469,6 +469,17 @@ Recorder drops or lifecycle errors fail the diagnostic. No sockets or disk are
 measured, nor map delivery/adoption while live rooms run. The short sample's
 p99.9 is effectively its maximum; delivery gaps over 50 ms include normal cadence
 jitter. This locates blocking work, not capacity or closure evidence for #635.
+`--maps-cache=FILE` saves the two worker-prepared maps with their navigation and
+tile data, or restores them on another run. Use a fresh path after generator or
+content changes; the cache checks seed, size and content id, not source hashes.
+`--profile=PREFIX` writes separate CPU profiles for the concurrent preparation,
+join and start phases after map generation. Inspector start/stop and profile
+writing also block the event loop, so profiled timings and delivery gaps are
+diagnostic only and must not be compared with unprofiled runs.
+`tools/perf/frame-hashes.mjs` also accepts this cache, for example
+`--size=36x18 --contents=content-6 --seeds=4217 --views --maps-cache=FILE`.
+It restores the worker's navigation data, then hashes a whole match and every
+player/spectator projection as usual. Cache seed, size and content must match.
 
 `node tests/measure-changes.mjs` (`--size`, `--content`, `--seed`, `--ticks`, `--out`) counts how much
 of each published frame differs from the previous tick's, per collection and by entity id. It times

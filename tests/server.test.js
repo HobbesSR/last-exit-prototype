@@ -53,7 +53,10 @@ test('a room created with no seed is answered with a pooled map\'s seed, and hea
     const pooledSeed = asked[0], before = asked.length;
     const created = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
     assert.equal(created.seed, pooledSeed, 'the default size\'s pooled map');
-    assert.ok(server.rooms.get(created.id).match, 'ready at once');
+    const room = server.rooms.get(created.id);
+    assert.ok(room, 'the pooled room exists before preparation finishes');
+    await room.ready;
+    assert.ok(room.match, 'the pooled map still goes through match preparation');
     assert.equal(asked.length, before + 1, 'only the pool\'s refill was generated');
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });

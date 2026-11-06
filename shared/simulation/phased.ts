@@ -1,5 +1,5 @@
 import { createGame } from './state.ts';
-import { canOccupy, reachClear, movementSpeed, gateShape } from '../movement.ts';
+import { canOccupy, reachClear, movementSpeed, gateShape, prepareMovementGeometry } from '../movement.ts';
 import { actorRadius, actorMotor, validateActorPhysics, PHYSICS_CHARACTER_VERSION } from './actor-physics.ts';
 import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWorldPhysics, writePhysicalItemPoses, PHYSICS_WORLD_VERSION } from './world-physics.ts';
 import { HZ } from './rules.ts';
@@ -31,11 +31,17 @@ const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, b.id));
 /** Games inside stepPhysics; a synchronize anywhere else is between ticks. */
 const stepping = new WeakSet<Game>();
 
-/** Explicit opt-in. Legacy createGame stays synchronous and never initializes WASM. */
-export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent): Promise<Game> {
+/** Explicit opt-in. Legacy createGame stays synchronous and never initializes WASM.
+ * `yieldControl` is for private preparation of a caller-owned map; the caller must
+ * not publish or mutate that map while construction is pending. It never runs in a tick. */
+export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
   if (content?.itemInstances && !content.worldPhysics) throw new RangeError('physical item integration requires P5; use createGame for L0');
   if (content?.reloading) throw new RangeError('L2 reloading has no physics tick yet; use createGame for content-ammo-1');
+  // Preparation is private until the factory resolves. Only the server supplies
+  // event-loop yields; shared/browser callers retain the ordinary construction path.
+  if (map && yieldControl) await prepareMovementGeometry(map, yieldControl);
   const s = createGame(seed, map, content);
+  if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
   if (s.content.dynamicNavigation && (!s.content.actorPhysics || s.content.navigation !== 'tiles')) throw new RangeError('dynamic navigation requires actor physics and tiles');
@@ -75,9 +81,13 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
   try {
     const geometry = buildPhysicsGeometry(s.map).sort((a, b) => compare(a.id, b.id));
+    if (yieldControl) await yieldControl();
     for (let i = 0; i < geometry.length; i++) {
       world.queueAddBody({ ...geometry[i]!, mapGeometry: true });
-      if (i % 512 === 511) world.commitMutations();
+      if (i % 512 === 511) {
+        world.commitMutations();
+        if (yieldControl) await yieldControl();
+      }
     }
     world.commitMutations();
     // Authored static geometry stays pinned; P8 overlays current dynamic observations locally.
@@ -93,6 +103,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     for (const gate of s.map.gates) for (const key of ['id', 'x', 'y', 'w', 'h', 'kind'] as const) Object.defineProperty(gate, key, { writable: false, configurable: false });
     Object.freeze(s.map.gates);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
+    if (yieldControl) await yieldControl();
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
     Object.defineProperty(s, 'version', { value: s.content.dynamicNavigation ? PHYSICS_NAVIGATION_VERSION : s.content.hook ? PHYSICS_HOOK_VERSION : s.content.worldPhysics ? PHYSICS_WORLD_VERSION : s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });

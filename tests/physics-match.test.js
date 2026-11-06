@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createPhysicsMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
 import { contentById } from '../shared/simulation/content.ts';
-import { createPhysicsGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse } from '../shared/simulation.ts';
+import { createPhysicsGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { insideMap } from '../shared/movement.ts';
 
@@ -49,6 +49,62 @@ test('room composition awaits explicit physics factory, stamps pinned rules and 
   await service.close();
   assert.equal(header.version, PHYSICS_VERSION);
   assert.throws(() => world.counts(), /disposed/);
+});
+
+test('cooperative physics preparation yields between static geometry batches without changing the match trace', async () => {
+  const map = arena();
+  map.obstacles = Array.from({ length: 520 }, (_, i) => ({ id: `obstacle-${String(i).padStart(4, '0')}`,
+    x: 300 + (i % 20) * 10, y: 20 + Math.floor(i / 20) * 10, w: 3, h: 3 }));
+  let opportunities = 0;
+  const pause = async () => { await new Promise(resolve => setTimeout(resolve, 0)); opportunities++; };
+  const synchronous = await createPhysicsGame(9, structuredClone(map), content());
+  let cooperative;
+  try {
+    cooperative = await createPhysicsGame(9, structuredClone(map), content(), pause);
+    assert.ok(opportunities > 1, 'preparation yielded to timer callbacks');
+    assert.equal(synchronous.tick, 0);
+    assert.equal(cooperative.tick, 0, 'preparation never steps the match');
+    const bodies = game => physicsRuntime(game).world.snapshot({ includeStatic: true }).bodies.map(({ spec, generation }) => [spec.id, generation]);
+    assert.deepEqual(bodies(cooperative), bodies(synchronous), 'native body generation order is unchanged');
+    assert.deepEqual(snapshot(cooperative), snapshot(synchronous), 'initial captured frames are unchanged');
+
+    for (let tick = 1; tick <= 3; tick++) {
+      for (const game of [synchronous, cooperative]) {
+        const player = game.players[0]; player.bot = false;
+        assert.ok(setInput(game, player.id, { x: tick % 2 ? 1 : 0, y: tick % 2 ? 0 : 1, seq: tick }));
+        step(game);
+      }
+      const a = snapshot(synchronous), b = snapshot(cooperative);
+      assert.equal(b.tick, tick);
+      assert.deepEqual(b, a, `frame after tick ${tick}`);
+      assert.deepEqual(playerView(cooperative, b, 'c0'), playerView(synchronous, a, 'c0'), `projection after tick ${tick}`);
+    }
+  } finally { disposePhysics(synchronous); if (cooperative) disposePhysics(cooperative); }
+});
+
+test('room shutdown during cooperative construction awaits and disposes the unadopted world', async () => {
+  let world;
+  const factory = (...args) => createPhysicsMatch(...args).then(match => {
+    world = physicsRuntime(match.diagnosticState).world;
+    return match;
+  });
+  const service = createRoomService({ content, matchFactory: factory,
+    replays: { start() { return { append() { return true; }, finish() { return {}; } }; } } });
+  const room = service.makeRoom(1, false, undefined, arena());
+  const messages = [];
+  const peer = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
+  service.receive(peer, { type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'contestant', name: 'Test' });
+  service.receive(peer, { type: 'start' });
+
+  const firstClose = service.close();
+  assert.equal(service.close(), firstClose, 'repeated close shares the pending shutdown');
+  await firstClose;
+  assert.ok(world, 'factory completed while close awaited initialization');
+  assert.equal(room.match, null, 'closing room never adopts the completed match');
+  assert.equal(room.started, false, 'deferred start is not run after close');
+  assert.equal(messages.some(message => message.type === 'ready'), false, 'no ready frame is sent for the unadopted match');
+  assert.throws(() => world.counts(), /disposed/);
+  await room.ready;
 });
 
 test('mask contact remains contained at a distant live-map corner without leaking private state', async () => {

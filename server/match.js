@@ -8,6 +8,7 @@ import { generateLiveMap } from '../map/live.ts';
 import { defaultContent, legacyContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { createPhysicsGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
+import { setImmediate as preparationPause } from 'node:timers/promises';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
@@ -91,7 +92,8 @@ export function createMatchFor(seed, size, map, content = defaultContent()) {
 
 /** Experimental explicit rules selection; not offered by the public room protocol. */
 export async function createPhysicsMatch(seed, size, map, content = defaultContent()) {
-  return matchOf(await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content), true);
+  return matchOf(await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content,
+    () => preparationPause()), true);
 }
 
 function matchOf(game, hasPhysics = false) {
