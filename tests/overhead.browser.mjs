@@ -153,7 +153,13 @@ try {
   const westOuterPixel = await page.evaluate(() => window.fixture.pixel(1988, 120));
   assert.deepEqual(westOfSeam.slice(0, 3), interiorPixel.slice(0, 3), 'west side of shared wall matches interior fill');
   assert.deepEqual(eastOfSeam.slice(0, 3), interiorPixel.slice(0, 3), 'east side of shared wall matches interior fill');
-  assert.ok(seamPixel[0] >= 65 && seamPixel[0] < 100 && seamPixel[1] < 110, 'shared seam has continuous fill and rejects bright stroke color');
+  // A seam pixel straddles two fills, so the GPU may round it a step or two off the fill (#818);
+  // a stroke or dark base seam sits tens of steps away. Judge it against the fill this run drew.
+  const assertFill = (pixel, claim) => {
+    const off = Math.max(...interiorPixel.slice(0, 3).map((c, i) => Math.abs(pixel[i] - c)));
+    assert.ok(off <= 8, `${claim}: got rgb ${pixel.slice(0, 3)}, roof fill rgb ${interiorPixel.slice(0, 3)}, stroke rgb 128,145,168 (${off} steps off the fill)`);
+  };
+  assertFill(seamPixel, 'shared seam has continuous fill, no stroke or dark seam');
   assert.deepEqual(westOuterPixel.slice(0, 3), [128, 145, 168], `outer exterior roof edge retains perimeter line stroke (got rgb ${westOuterPixel.slice(0,3)})`);
   await page.screenshot({ path: 'test-results/overhead-abutting-roofs.png' });
 
@@ -180,7 +186,7 @@ try {
   const stagEastExposedOverhang = await page.evaluate(() => window.fixture.pixel(3028, 145));
   assert.deepEqual(stagWestSide.slice(0, 3), interiorPixel.slice(0, 3), 'west side of contacted staggered edge matches interior fill');
   assert.deepEqual(stagEastSide.slice(0, 3), interiorPixel.slice(0, 3), 'east side of contacted staggered edge matches interior fill');
-  assert.ok(stagContactSeam[0] >= 65 && stagContactSeam[0] < 100, 'contacted portion of staggered edge rejects stroke color');
+  assertFill(stagContactSeam, 'contacted portion of staggered edge has continuous fill');
   assert.deepEqual(stagWestOuterStroke.slice(0, 3), [128, 145, 168], 'outer west perimeter of stag-w retains stroke');
   assert.deepEqual(stagEastExposedOverhang.slice(0, 3), [128, 145, 168], 'partially exposed west segment of stag-e retains overhang stroke');
 
@@ -207,7 +213,7 @@ try {
   const nsNorthExposedOverhang = await page.evaluate(() => window.fixture.pixel(3056, 112));
   assert.deepEqual(nsNorthSide.slice(0, 3), interiorPixel.slice(0, 3), 'north side of contacted NS edge matches interior fill');
   assert.deepEqual(nsSouthSide.slice(0, 3), interiorPixel.slice(0, 3), 'south side of contacted NS edge matches interior fill');
-  assert.ok(nsContactSeam[0] >= 65 && nsContactSeam[0] < 100, 'contacted portion of NS edge rejects stroke color');
+  assertFill(nsContactSeam, 'contacted portion of NS edge has continuous fill');
   assert.deepEqual(nsSouthExposedOverhang.slice(0, 3), [128, 145, 168], 'exposed north overhang of stag-s retains stroke');
   assert.deepEqual(nsNorthExposedOverhang.slice(0, 3), [128, 145, 168], 'exposed south overhang of stag-n retains stroke');
 
