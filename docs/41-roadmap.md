@@ -86,6 +86,21 @@ strategy built on the micro SDK ([50](50-map-generation.md)). What has shipped:
   adopters ([20.7](20.7-builder-delegation.md)). The large-compound siting
   investigation (#340) is closed.
 
+#### Navigation obstruction tracker #835
+
+From 2026-11-06, tracker #835 owns map-generation obstruction work. It quotes Corey's goal,
+recorded in [17.2.11](17.2.11-navigation-structure-direction.md#obstruction-goal-restated):
+more to navigate around, and geometry near or up to region perimeters that carry no passability
+guarantee, through SDK tools builders can opt into. The stages are:
+
+1. #836: measure what keeps unguaranteed edges clear, per builder. It absorbs #758's bay check and #762.
+2. #837: one cord-aware perimeter-reach helper. It absorbs #758's pocket growth and #707.
+3. #838: adoption in suitable builders as one content batch, starting from #716's prototype.
+4. #761: the map-scale lever, judged after #838.
+
+#706 and #743 are proposed to close as not needed for now. #535 stays parked. The #529 section below is
+history.
+
 #### Region population epic #529
 
 Checkpoint as of 2026-11-01; defer to newer direction and status on Forgejo
@@ -119,7 +134,7 @@ barely moves detour or dead-end area, and 36-wide generation went from 31 s to 5
 #767 profiled the cost and landed two exact savings (36 wide 50.4 s → 45.9 s, 42.32); fewer mesh
 builds would change content and waits for Corey. #787 (`types-63`, 42.33) moved cover, ruins,
 depot, hall and market onto a live cord with batched commits and two more exact search savings,
-at main's generation cost. Next: #762 as the detour candidate.
+at main's generation cost. Next: tracker #835 (above), which absorbed #762.
 #535 is parked until Corey gives authorship direction.
 
 Corey's 2026-10-28 direction is to advance the overall population goal in tiers
