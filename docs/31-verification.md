@@ -279,11 +279,12 @@ Run it when adding or growing a test file.
 
 The slow tier as a whole has a budget as well: its `tests/slow/` files, each timed alone on the
 development machine, total at most 900 s (Corey, 2026-11-05, #800 S5;
-`npm run test:times -- tests/slow/*.test.js`). #821 took 353 s of larger-size map builds out and put 42 s of layered checks in, so by the
-isolated times it is about 559 s (not re-measured as a whole). It was 871 s on 2026-11-05, and 870 s re-measured
+`npm run test:times -- tests/slow/*.test.js`). #821 took 353 s of larger-size map builds out and put 42 s of layered checks in,
+and #822 narrowed each remaining file to the cheapest witness of its claims: re-measured as a whole on a quiet machine
+on 2026-11-06, the 19 files total 235 s, the largest `micro-large-briefs` at 25 s. It was 871 s on 2026-11-05, and 870 s re-measured
 that evening on a quiet machine. A run alongside other work read 990 s, with the larger
 `map-library` files 10 to 15% slower (review 641 on #819), so the total is a duration and is
-measured with nothing else heavy running (#815). It is about 4 to 5 minutes of wall time at four
+measured with nothing else heavy running (#815). At 870 s it was about 4 to 5 minutes of wall time at four
 files at a time here, and 10 to 20 in CI at the 2.5 to 4 times above, inside the slow job's
 35 minutes ([below](#continuous-integration)). A change that would take the total past it
 cuts as much elsewhere or raises it with Corey. Splitting a file moves its time, not the total.
@@ -527,8 +528,8 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
 | Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too and refuses a defective map; `slow/map-library`'s diagnosis; for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves `slow/map-library` to the slow tier on `main` (below) | 170 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
-| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep`, `bot-objective` | 52 s |
-| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 54 s, 85 s with `map-sweep` |
+| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) | 31 s |
+| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `live-map`; `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 33 s, 64 s with `map-sweep` |
 | Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser` | 56 s beyond the fast set |
 | Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`, `room-sizes-physics`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |
 | The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-physics`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
@@ -585,13 +586,12 @@ the sweep and the physics equality scripts (the table above).
 | `overhead` | 25.0 s (its seam pixel check fails in some worktrees, #818) | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
 | `dev-view` | 23.0 s | a player tab, the dev tab it opens and what the dev tab does to the room | the dev view (client and server), room dev tools |
 
-**`simulation`** (slow 65 s, browser 17 s)
+**`simulation`** (slow 17 s, browser 17 s)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `characterization-bots` | 13.4 s | every tick's snapshot and three projections of four whole bot matches on the fixture's stored arenas; the fast tier has the map hashes and one scripted trace | simulation rules, bots, snapshot and projection shapes; not generation |
-| `bot-objective` | 20.8 s | bots complete the objective and fill all three pods on legacy maps, seeds 1, 9, 4217 | the legacy generator, bots, navigation, the objective rules |
-| `map-sweep` | 30.7 s | 200 legacy maps keep a no-key route for both body sizes, standing room and clearance | the legacy generator, movement, the navigation grid; not rules or bots |
+| `map-sweep` | 4.0 s | legacy maps, seeds 1 to 20 and the fixture's four, keep a no-key route for both body sizes and clearance sampled along every route; its loot and charger checks reuse the predicate that placed them, so a broken `canOccupy` passes them (review 658). `LEGACY_MAP_SEEDS=200` runs the full sweep (31 s) for a change to the legacy generator, movement or the navigation grid (#822) | the legacy generator, movement, the navigation grid; not rules or bots |
 | `hearing` (browser) | 10.1 s | a heard-gunfire cue reaches the player's frame and is drawn as a ring, an edge arrow and on the minimap | hearing, its projection, the HUD and minimap |
 | `transit` (browser) | 6.6 s | a gladiator at a station sees its rings on the minimap and a click transits | transit, its projection, minimap input |
 
@@ -644,7 +644,7 @@ output is not what they check: with hut's box changed from 4 to 5, `micro-hut` f
 contrast, pins some builder output by name, so a content change can fail it (#816).
 `npm run test:micro` is the `micro` set's fast files, four at a time, then these four scripts.
 
-A builder or strategy change does not run `test:all`. `characterization-bots`, `bot-objective`
+A builder or strategy change does not run `test:all`. `characterization-bots`
 and `map-sweep` never build a chain map. `map-library`, `live-map`, `physics-navigation` and
 `room-sizes` build one only to report its defects or play a match, so all they can see is a
 defect, a crash or a stalled bot, which the sweep's `built` and `report` hashes and
@@ -795,8 +795,8 @@ itself** — `createGame(seed, map)` takes the stored one — rather than agains
 whatever the generator currently emits. So a deliberate content change re-baselines
 four hashes and leaves every trace intact, instead of destroying the evidence that
 the simulation is unchanged along with the content it happened to run on. Map
-diversity stays covered by those hashes and by `slow/bot-objective.test.js`, which routes
-bots to completion over generated maps.
+diversity stays covered by those hashes and by `slow/live-map.test.js`, which routes
+bots to completion over generated chain maps.
 
 The frozen tests select legacy `content-1` through `contentById` while running under
 simulation version `last-exit-0.7`. `content-2` adds the third hunter, and the shipped
