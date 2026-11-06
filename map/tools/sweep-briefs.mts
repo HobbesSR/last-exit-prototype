@@ -78,7 +78,8 @@ interface ReplayReply {
 /** Runs in a worker: one seed's map, written to the cache as its briefs and what built them. */
 function captureMap({ unit, regions }: CaptureUnit): CaptureReply {
   const key = unitKey(unit), made = sweepMap(unit, unitSeed(unit));
-  if (!made.map) return { key, entry: made.entry, types: {} };
+  // A macro case built nothing, so it has no results to replay against.
+  if (!made.map || 'macro' in made) return { key, entry: made.entry, types: {} };
   const { map, entry } = made;
   const briefs = mapViews(map).briefs;
   // A cached brief must hash as the baseline's did, or a replay would build something else.
@@ -157,7 +158,7 @@ export async function captureBriefs(baseline: SweepBaseline, dir = DEFAULT_CACHE
     }
     const maps: Record<string, CachedMap> = {};
     for (const { key, entry, types } of replies) {
-      if ('error' in entry) continue;
+      if ('error' in entry || !('results' in entry)) continue;
       maps[key] = { briefs: entry.briefs, results: entry.results, types };
     }
     const index: CacheIndex = { format: FORMAT, baseline: { commit: baseline.provenance.commit, capturedAt: baseline.provenance.capturedAt }, build: REGION_TYPES_VERSION, maps };
@@ -181,7 +182,7 @@ function readIndex(baseline: SweepBaseline, dir: string): CacheIndex {
   for (const key of new Set([...Object.keys(baseline.entries), ...Object.keys(index.maps)])) {
     const pinned = baseline.entries[key], cached = index.maps[key];
     if (!pinned) stale.push(key);
-    else if ('error' in pinned) { if (cached) stale.push(key); }
+    else if ('error' in pinned || !('results' in pinned)) { if (cached) stale.push(key); }
     else if (!cached || cached.briefs !== pinned.briefs || cached.results !== pinned.results) stale.push(key);
   }
   if (stale.length) {

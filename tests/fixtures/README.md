@@ -193,3 +193,25 @@ The regression checks the actual previously reachable stand against final
 geometry; a bay with no safe pillar fit stays reserved. This is an input fixture,
 not the frozen gameplay characterization baseline. Gzip uses mtime 0; SHA-256
 `c0aeef58a9e5866b1ee1826bd1611a7f970a2ac9f09ed7cb03d127c065d69877`.
+
+## Larger-size briefs (#821)
+
+`large-briefs.json.gz` holds the briefs only the larger authored sizes hand a builder, for
+`tests/slow/micro-large-briefs.test.js`. `node tools/large-briefs.mjs` writes it, running macro
+alone (no builds): for each region type and each axis (portal count, owned cells), the largest
+brief over seeds `size-24-1` to `-5` and `size-36-1` to `-5` of the game-mode 24 × 12 and 36 × 18
+libraries is kept when it exceeds the largest that type gets in the full sweep's `sweep-1` to
+`sweep-120` game maps; a brief that wins both is kept once. Each entry records its seed and both
+values. Captured at `cbf302d` (macro version 3), which holds the tool and `generateMacro`: 15
+briefs over 13 types, up to 88 portals (market) and 11,484 cells (market). The first capture
+recorded `bff42fc`, a checkout with the tool not yet committed (review 646 on #826); its briefs
+are byte-identical to these. Gzip uses mtime 0; SHA-256
+`e8a9eae1d2a812effbc159e6954d5f7e0b78307df405e6791ad95bfab48cc822`.
+
+These are builder inputs, so they stay valid when macro moves on. Recapture them in the content
+change that moves the larger sizes' briefs, so they keep standing for what those sizes produce;
+a builder change never recaptures them. The sweep's `macro-*` entries pin seeds `size-24-1`,
+`-2` and `size-36-1`, `-2`, the first two of the five the tool reads, so a moved `briefs` hash
+there is the usual sign; it is not a witness for seeds 3 to 5. `node tools/large-briefs.mjs
+--check` is: it reselects from all ten and exits 1 when the stored briefs differ (about 90 s).
+Run it in any content change that moves macro.

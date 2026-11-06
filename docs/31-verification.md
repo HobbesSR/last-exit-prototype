@@ -91,7 +91,7 @@ own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
 test:browser` runs. A change to the chain or its inputs (macro's stages and
 library, the game's strategies, the kernel, `shared/`) also runs the chain's
 seed sweep from the repository root, `node map/tools/cli.mts sweep --check
-map/tools/fixtures/chain-baseline.json` (224 maps, two to three minutes, [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`
+map/tools/fixtures/chain-baseline.json` (224 whole maps, plus macro alone on two seeds at each larger authored size, two to three minutes, [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`
 pins its quick cases. It must show no drift unless the PR declares a content
 change and recaptures last ([53](53-map-artifacts-and-tools.md)). A change to one
 region type's builder iterates on `sweep --check ... --type <type>`, which rebuilds that
@@ -121,11 +121,18 @@ These are bounded samples, not a guarantee for every seed. `tests/map-container.
 saves and reloads this library's game-size map through JSON, BSON and Layout-only
 regeneration with the real strategy version (53).
 
-The larger authored-size report samples live in separate slow files
-(`map-library-24`, `map-library-36`, and `map-library-36-tail`) to stay under
-the 60-second file budget. They retain the original five seeds for each size;
-the 36-size sample is split into seeds 1–3 and 4–5 with the same bounds checked
-in both batches.
+The larger authored sizes (24 × 12 and 36 × 18) are checked a layer at a time, never as whole
+maps (Corey, 2026-11-05, #821). Macro's stages, layout through briefs, are pinned by the chain
+sweep's `macro-24x12` and `macro-36x18` cases (two seeds each, nothing built), which
+`tests/slow/map-macro-sizes.test.js` also runs on `main`'s slow tier; macro's own
+`tests/slow/chain-content.test.ts` checks their quotas, proof and set-piece share. What builders
+make of those sizes' briefs is `tests/slow/micro-large-briefs.test.js`: for each type whose larger-size briefs exceed the full
+sweep's 12 × 6 maximum (13 of 17), the stored brief with the most portals or cells
+(`tools/large-briefs.mjs`, tests/fixtures README), each built and checked for the claims the
+maps' reports made of a region (it builds, stays in its fill and counts every cell; none of these
+briefs asks for a core element, as the core element types are no larger there), not the thorough portal search, which costs up to 80 s on one of them. Composing
+and reporting are size-generic, so they run only at 12 × 6. The `map-library-24`, `-36` and
+`-36-tail` files this replaces built five whole maps a size, 353 s, about 85% of it builds.
 
 The tools in `map/tools/` are checked by `tests/map-tools.test.js`, which drives
 the CLI and MCP as subprocesses, and typechecked by `npm run typecheck` under
@@ -264,7 +271,8 @@ Run it when adding or growing a test file.
 
 The slow tier as a whole has a budget as well: its `tests/slow/` files, each timed alone on the
 development machine, total at most 900 s (Corey, 2026-11-05, #800 S5;
-`npm run test:times -- tests/slow/*.test.js`). It was 871 s on 2026-11-05, and 870 s re-measured
+`npm run test:times -- tests/slow/*.test.js`). #821 took 353 s of larger-size map builds out and put 42 s of layered checks in, so by the
+isolated times it is about 559 s (not re-measured as a whole). It was 871 s on 2026-11-05, and 870 s re-measured
 that evening on a quiet machine. A run alongside other work read 990 s, with the larger
 `map-library` files 10 to 15% slower (review 641 on #819), so the total is a duration and is
 measured with nothing else heavy running (#815). It is about 4 to 5 minutes of wall time at four
@@ -325,8 +333,8 @@ Placeholder values are not claims. Loot's spawn chance, tier gradient, density, 
 weights are stand-ins (Corey, 2026-11-05,
 [17.2.11](17.2.11-navigation-structure-direction.md#loot-placement-is-a-placeholder)): a test
 may assert that some loot spawns where its mechanic needs a pickup, never a value or a band.
-The loot-per-tile band in `tests/helpers/map-library-sizes.js` predates this and retires with
-those files.
+The loot-per-tile band the larger-size `map-library` files asserted predated this and retired with
+them (#821).
 
 Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 `cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
@@ -506,10 +514,10 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Changed area | Inner loop | Integration | Alone, 2026-11-05 |
 | --- | --- | --- | --- |
 | One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; the full chain sweep once, no drift. While iterating, `sweep --check FILE --type <type>` (adding `block` for a type block delegates to) is the inner loop (below) | the sweep 159 s, plus the type's own: hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
-| One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `map-library-24` and `-36*` when what a region holds moves (its loot, set-piece share) | about 9 to 10 min: the sweep 159 s and the larger sizes 353 s, plus the type's own |
+| One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `micro-large-briefs` | about 3 min: the sweep 159 s and `micro-large-briefs` 25 s, plus the type's own |
 | Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 264 s |
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
-| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep; every `map-library` slow file: the game-size report batch (`map-library`, `-8`, `-8-tail`) and `map-library-24`, `-36` and `-36-tail`, the sizes the sweep doesn't hold; the recapture for a content change. A behaviour-preserving change leaves the game-size batch to the slow tier on `main` (below) | 623 s; 512 s behaviour-preserving |
+| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too; the game-size report batch (`map-library`, `-8`, `-8-tail`); for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves the game-size batch to the slow tier on `main` (below) | 270 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep`, `bot-objective` | 52 s |
 | Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 82 s, 113 s with `map-sweep` |
@@ -599,17 +607,17 @@ the sweep and the physics equality scripts (the table above).
 | `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
 | `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
 
-**`macro`** (slow 464 s, browser at least 131 s; and the chain sweep, 159 s)
+**`macro`** (slow 128 s, browser at least 131 s; and the chain sweep, 159 s)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps, naming the stage; `npm test` pins only the quick cases | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
+| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps and the larger sizes' 4 macro layers, naming the stage; `npm test` pins only the quick cases | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
 | `map-library` | 31.3 s | five 24-contestant game maps report no defects; one 8-contestant map's full diagnosis | macro, the library, builders: as a defect |
 | `map-library-8`, `-8-tail` | 42.5 s, 37.5 s | twenty 8-contestant game maps report no defects | the same |
-| `map-library-24`, `-36`, `-36-tail` | 101.8 s, 148.0 s, 102.8 s | the larger authored sizes, which the sweep doesn't hold: no defects, set-piece share and loot per tile in bounds | macro, the library, what a builder puts in a region |
+| `map-macro-sizes` | 16.9 s | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
 | `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
 
-**`micro`** (slow 264 s, browser 41 s; and the replay, 3.5 to 35 s a type)
+**`micro`** (slow 289 s, browser 41 s; and the replay, 3.5 to 35 s a type)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
@@ -618,6 +626,7 @@ the sweep and the physics equality scripts (the table above).
 | `micro-block-promise`, `micro-block-scale` | 13.6 s, 4.3 s | the block's promise on every seed; a macro-sized block's structure counts | the block builder and its delegation |
 | `micro-compound-sweeps`, `-sweeps-tail`, `-determinism`, `-access`, `-siting-solution` | 38.4, 42.9, 14.0, 15.8, 46.5 s | compound's promise, ring and observer checks at every gate count on every mask, seeds 1 to 4; cell order over eight seeds; rooms and court reachable; the stored authored quarter builds | the compound builder and siting |
 | `micro-depot-sweeps`, `micro-depot-scale` | 13.9 s, 6.0 s | depot's promise and aisle access over its seeds; the stored witnesses' reach; the macro case's cord counts | the depot builder, the live cord |
+| `micro-large-briefs` | 25.3 s | the larger sizes' extreme briefs, for the 13 types they exceed 12 × 6 in (up to 88 portals, 11,484 cells), build and stay in their fill | any builder; macro only through a recapture |
 | `micro-hut-sweeps` | 4.9 s | small houses at sixteen seeds | the hut builder |
 | `micro-park-promise`, `micro-plant-promise` | 34.5 s, 15.3 s | each type's promise, spacing and kinds at every seed; park's 36-portal case; plant's forty #490 strips | that builder |
 | `micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo` (browser) | 18.0, 8.0, 5.8, 8.7 s | the micro labs in Chrome: controls, imports, downloads, walking, building views | the lab pages, `region-examples`, `brief-link`, building drawing; not builder output (below) |
@@ -632,10 +641,10 @@ A builder or strategy change does not run `test:all`. `characterization-bots`, `
 and `map-sweep` never build a chain map. `map-library`, `live-map`, `physics-navigation` and
 `room-sizes` build one only to report its defects or play a match, so all they can see is a
 defect, a crash or a stalled bot, which the sweep's `built` and `report` hashes and
-`diagnoseBuiltMap` show first. The exceptions are the type's own slow files and `map-library-24`
-and `map-library-36*`: the sweep's chain cases are 12 × 6 games and smaller playgrounds (53), so
-those files alone check the report at the larger authored sizes. They took 102 to 148 s each on
-2026-11-05, over the 60 s budget (#808 notes it as debt).
+`diagnoseBuiltMap` show first. The exceptions are the type's own slow files and `micro-large-briefs`:
+the sweep builds only 12 × 6 games and smaller playgrounds (53), so that file alone builds what
+the larger authored sizes hand a builder. It replaced `map-library-24` and `-36*`, which built
+whole maps at 102 to 148 s each (#821).
 
 **The game-size batch on a behaviour-preserving macro change** (Corey, 2026-11-05, #800 S5).
 The author does not run the game-size report batch (`map-library`, `-8`, `-8-tail`, 111 s) before

@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { generate } from '../map/tools/core.ts';
 import {
-  QUICK_CASES, VIEWS, compareSweep, positiveInteger, runCase, stableStringify, sweepCases, viewHashes,
+  MACRO_VIEWS, QUICK_CASES, VIEWS, compareSweep, macroHashes, positiveInteger, runCase, stableStringify, sweepCases, viewHashes,
 } from '../map/tools/sweep.mts';
+import { generateMacro } from '../map/chain.ts';
 
 /**
  * The chain's seed sweep (53, "Proving a change: the sweep"; #146). The quick cases are
@@ -38,6 +39,15 @@ test('a change to one object moves only the views that read it', () => {
   const results = map.results.map((result, i) => i ? result : { ...result, loot: [...result.loot, { x: 0, y: 0, tier: 1 }] });
   const moved = viewHashes({ ...map, results });
   assert.deepEqual(VIEWS.filter((view) => moved[view] !== base[view]), ['results', 'built', 'report']);
+});
+
+test('generateMacro gives the macro views generate does, and builds nothing (#821)', () => {
+  for (const sweepCase of QUICK_CASES) {
+    const seed = `${sweepCase.seedPrefix}-1`, whole = viewHashes(generate(seed, sweepCase.params));
+    const macro = generateMacro(seed, sweepCase.params);
+    assert.deepEqual(macroHashes(macro), Object.fromEntries(MACRO_VIEWS.map((view) => [view, whole[view]])), sweepCase.id);
+    assert.deepEqual(macro.results, [], sweepCase.id);
+  }
 });
 
 test('a map field the sweep does not pin is refused', () => {

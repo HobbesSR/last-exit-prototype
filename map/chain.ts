@@ -8,7 +8,7 @@ import districtSetPieces from './macro/content/district-set-pieces@4.json' with 
 import { resolveLibrary, validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
 import type { ChainLibrary, LibraryValidation } from './macro/src/chain/library.ts';
 import { generateChainMap } from './macro/src/chain/map.ts';
-import { DEFAULT_CHAIN_PARAMS } from './macro/src/chain/placement.ts';
+import { DEFAULT_CHAIN_PARAMS, placement } from './macro/src/chain/placement.ts';
 import type { ChainMap, ChainParams } from './macro/src/chain/types.ts';
 import type { RegionElement } from './micro/types.ts';
 import { DEFAULT_CELL_SIZE, GAME_ENGINES, GAME_REGION_TYPES } from './engines.ts';
@@ -95,4 +95,15 @@ export function generate(seed: unknown, params: object = {}, library?: unknown, 
   if (!isCellSize(cellSize)) throw new Error('cell size must be a positive whole number of world units');
   const resolved = chainParams(params);
   return generateChainMap(seedText(seed), resolved, checkedLibrary(library ?? bundledLibrary(resolved)), cellSize, GAME_ENGINES);
+}
+
+/**
+ * Macro's layer of `generate` alone (#821): the same Layout, with no region built. Its views
+ * through the briefs are those `generate` gives for the same arguments; it has no built map or
+ * report. A test of macro, or of what macro hands a builder, reads it without paying for the builds.
+ */
+export function generateMacro(seed: unknown, params: object = {}, library?: unknown, cellSize = DEFAULT_CELL_SIZE): GameChainMap {
+  if (!isCellSize(cellSize)) throw new Error('cell size must be a positive whole number of world units');
+  const resolved = chainParams(params), checked = checkedLibrary(library ?? bundledLibrary(resolved));
+  return { layout: placement(seedText(seed), resolved, checked), library: checked, cellSize, build: GAME_ENGINES.version, results: [] };
 }
