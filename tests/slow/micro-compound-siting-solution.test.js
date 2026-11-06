@@ -70,9 +70,13 @@ test('inward authored military-quarter keeps its original interface and builds a
     assert.ok(searches.get(from)(to), `hunter reaches ${label}`);
   }
 
-  // The portal promise over all 76 portals is not checked here: its 75 routes cost about 35 s of
-  // this file's 46 s (#822), where the ring stands on 576 of 11,232 cells. Compound's promise runs
-  // on the fast and slow sweep cases; `tools/compound-siting-solution-audit.mjs` checks this
-  // quarter's whole promise on purpose.
+  // The portal promise over all 76 portals is not checked per run: its 75 routes cost about 35 s of
+  // this file's 46 s (#822), where the ring stands on 576 of 11,232 cells, and no 36 × 18 region's
+  // promise is checked per run since #821. On real chain briefs, compound's promise runs on
+  // map-library's library-4 (fast, 34 portals) and library-0 (slow diagnosis, 24 portals), and on
+  // the sweep masks. To check this quarter's on purpose:
+  //   node tools/compound-siting-solution-audit.mjs --after-brief=tests/fixtures/compound-340-inward-brief.json.gz
+  // (#340 evidence, not maintained tooling; without --after-brief it regenerates the map, which has
+  // moved since, and fails its first assertion).
   assert.deepEqual(inwardBrief, original, 'diagnosis and production preserve caller input');
 });
