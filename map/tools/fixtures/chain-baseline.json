@@ -1,7 +1,7 @@
 {
   "provenance": {
     "commit": "eee62fff1c40585c87c6376a4735b0ff2b7e314c",
-    "capturedAt": "2026-11-06T04:53:30.568Z",
+    "capturedAt": "2026-11-06T05:28:27.346Z",
     "node": "v24.15.0",
     "cases": [
       {
@@ -80,7 +80,7 @@
           "zoneWidth": 24,
           "zoneHeight": 12
         },
-        "seedPrefix": "size",
+        "seedPrefix": "size-24",
         "count": 2,
         "stages": "macro"
       },
@@ -90,7 +90,7 @@
           "zoneWidth": 36,
           "zoneHeight": 18
         },
-        "seedPrefix": "size",
+        "seedPrefix": "size-36",
         "count": 2,
         "stages": "macro"
       }
@@ -2785,41 +2785,41 @@
       "built": "4a58a2c20347f87b",
       "report": "6b360d24cd72116e"
     },
-    "macro-24x12/size-1": {
-      "layout": "abbf93b5c61d15c6",
-      "declaredGrid": "eb7d0571084e25e3",
-      "resolved": "92b67b4eb5055ff0",
-      "regions": "3cf47ee6fdf63cae",
-      "proof": "868316eb3cdaf767",
+    "macro-24x12/size-24-1": {
+      "layout": "dbba88f8c255ae4d",
+      "declaredGrid": "d2b1412b60b6b636",
+      "resolved": "b51d767cd5b3993c",
+      "regions": "6564b0e2e51b717e",
+      "proof": "ab66b69d18c8d1a9",
       "zones": "6cd6d0a04a12fd4b",
-      "briefs": "70795197e92f895b"
+      "briefs": "7fdfbc2db92068c3"
     },
-    "macro-24x12/size-2": {
-      "layout": "00059b4656e637b5",
-      "declaredGrid": "764c0a75dd00dfde",
-      "resolved": "80208ba1c4c62a7e",
-      "regions": "658cd60d6276203e",
-      "proof": "6932f5a0b2f38f87",
+    "macro-24x12/size-24-2": {
+      "layout": "55f8ac1fcb7ceb47",
+      "declaredGrid": "484e4db2b506b338",
+      "resolved": "c0a6c659413607a8",
+      "regions": "b75ffdc52d4796a1",
+      "proof": "66495ec1df9f54d1",
       "zones": "6cd6d0a04a12fd4b",
-      "briefs": "c4da8505afe2aeef"
+      "briefs": "e646fca2bc59ad11"
     },
-    "macro-36x18/size-1": {
-      "layout": "95a616f6efc75a70",
-      "declaredGrid": "4f1f1cd2715957c1",
-      "resolved": "062c22f7ea8fb94d",
-      "regions": "8b43c54ebee1f26b",
-      "proof": "80f8d29985e11d91",
+    "macro-36x18/size-36-1": {
+      "layout": "880649adb0b40e42",
+      "declaredGrid": "7a8a82c390680b6c",
+      "resolved": "c134e70656bcfdcb",
+      "regions": "e66c4198b70c1bea",
+      "proof": "3a3df6a2a391aec2",
       "zones": "46a3a6164685f46a",
-      "briefs": "7b81a4a6236c7ff6"
+      "briefs": "f1908e24c1844671"
     },
-    "macro-36x18/size-2": {
-      "layout": "0f792367d3b8722d",
-      "declaredGrid": "36f145ca2518a66e",
-      "resolved": "940ce0bbf4688f76",
-      "regions": "342bb4fb6680cc32",
-      "proof": "1a0449c5b7be5df1",
+    "macro-36x18/size-36-2": {
+      "layout": "98a7c38694e6fe39",
+      "declaredGrid": "9e18fae865c42bfe",
+      "resolved": "7fddcce99bf0266e",
+      "regions": "506f89e8fd285a2c",
+      "proof": "fab60ad0637de9e4",
       "zones": "46a3a6164685f46a",
-      "briefs": "f73e828ea137bca8"
+      "briefs": "4e13301c05e62b39"
     }
   }
 }
