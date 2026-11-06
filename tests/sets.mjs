@@ -71,7 +71,7 @@ export const SETS = {
       'map-lab-draft-safety', 'map-lab-routes', 'map-library', 'map-navigation-structure', 'map-navigation-structure-cli',
       'map-passable-margins', 'map-portal-thorough', 'map-sweep-replay', 'map-sweep', 'map-tools', 'portal-graph',
       'macro-curtain', 'static-barrier-composition', 'static-barrier-routes', 'appearance-descriptor'],
-    slow: ['map-library', 'map-library-8', 'map-library-8-tail', 'map-macro-sizes'],
+    slow: ['map-library', 'map-macro-sizes'],
     browser: ['lab'],
     sources: ['map/macro/**', 'map/kernel/**', 'map/tools/**', 'map/*.ts'],
   },

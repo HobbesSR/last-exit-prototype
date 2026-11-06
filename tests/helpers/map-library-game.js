@@ -22,17 +22,6 @@ export const libraryMap = (seed, contestantCount = GAME.contestantCount) =>
   generateChainMap(seed, { ...GAME, contestantCount }, LIBRARY, 48, ENGINES);
 
 /**
- * The report batch (step 8): `library-<i>` for each i in `indices` reports no defects. About
- * 4 s a map, so the slow files split the 25 maps to stay under the 60 s budget (#807).
- */
-export function checkReportBatch(indices, contestantCount) {
-  for (const i of indices) {
-    const seed = `library-${i}`;
-    assert.deepEqual(mapViews(libraryMap(seed, contestantCount), ENGINES.compose).report.defects, [], `${seed} with ${contestantCount}`);
-  }
-}
-
-/**
  * A game-size map sites its core elements for `contestantCount`, built real content, and
  * reaches every core element from a portal. With `reach`, every non-open region also keeps
  * its portal promise under the thorough search; leave it off where `diagnoseBuiltMap` runs.

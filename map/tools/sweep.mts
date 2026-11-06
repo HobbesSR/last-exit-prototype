@@ -12,6 +12,9 @@
  *   stop-and-escalate.
  * - **A deliberate content change** says so in its PR, and recaptures the baseline last,
  *   after the report shows no defects and maps play acceptably.
+ *
+ * A map whose report has defects is refused outright, whether checking or capturing, so a
+ * recapture cannot pin one as one hash among many (#822).
  */
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -21,6 +24,7 @@ import { mapViews } from '../macro/src/chain/map.ts';
 import { generate, generateMacro } from './core.ts';
 import type { ToolMap } from './core.ts';
 import { GAME_ENGINES } from './engines.ts';
+import type { Defect } from '../macro/src/chain/types.ts';
 
 /** The objects first, then the views in stage order. */
 export const VIEWS = ['layout', 'results', 'declaredGrid', 'resolved', 'regions', 'proof', 'zones', 'briefs', 'built', 'report'] as const;
@@ -144,9 +148,11 @@ export function viewContent(map: ToolMap): Record<View, unknown> {
   };
 }
 
+const hashViews = (content: Record<View, unknown>) =>
+  Object.fromEntries(VIEWS.map((view) => [view, contentHash(content[view])])) as ViewHashes;
+
 export function viewHashes(map: ToolMap): ViewHashes {
-  const content = viewContent(map);
-  return Object.fromEntries(VIEWS.map((view) => [view, contentHash(content[view])])) as ViewHashes;
+  return hashViews(viewContent(map));
 }
 
 /** Macro's views of a map, hashed by content. Nothing built is read. */
@@ -157,30 +163,51 @@ export function macroHashes(map: ToolMap): MacroHashes {
 
 /**
  * A seed's map with its hashes, or, for a seed the chain refused, the message alone. A macro
- * case's map has no results, and its entry only macro's views.
+ * case's map has no results, and its entry only macro's views. A whole map also carries its
+ * report's defects, read from the views it hashed.
  */
 export function sweepMap(sweepCase: SweepCase, seed: string):
-  { entry: ViewHashes; map: ToolMap } | { entry: MacroHashes; map: ToolMap; macro: true } | { entry: { error: string }; map?: undefined } {
+  { entry: ViewHashes; map: ToolMap; defects: Defect[] } | { entry: MacroHashes; map: ToolMap; macro: true } | { entry: { error: string }; map?: undefined } {
   try {
     if (sweepCase.stages === 'macro') {
       const map = generateMacro(seed, sweepCase.params);
       return { entry: macroHashes(map), map, macro: true };
     }
-    const map = generate(seed, sweepCase.params);
-    return { entry: viewHashes(map), map };
+    const map = generate(seed, sweepCase.params), content = viewContent(map);
+    return { entry: hashViews(content), map, defects: (content.report as { defects: Defect[] }).defects };
   } catch (error) {
     return { entry: { error: error instanceof Error ? error.message : String(error) } };
   }
 }
 
-const sweepEntry = (sweepCase: SweepCase, seed: string): SweepEntry => sweepMap(sweepCase, seed).entry;
+/** Each defective map's defects, by entry key. */
+export type SweepDefects = Record<string, Defect[]>;
+
+/** One seed's entry, and its map's defects when it has any. */
+function sweepUnit(sweepCase: SweepCase, seed: string, key: string): { entries: SweepEntries; defects: SweepDefects } {
+  const made = sweepMap(sweepCase, seed);
+  return { entries: { [key]: made.entry }, defects: 'defects' in made && made.defects.length ? { [key]: made.defects } : {} };
+}
+
+/**
+ * Throws, naming every map and defect, when any map's report has defects (53, #822). The
+ * sweep pins content; a defect is a broken map, not a content choice, so neither a check nor
+ * a capture goes on past one.
+ */
+export function refuseDefects(defects: SweepDefects): void {
+  const keys = Object.keys(defects).sort();
+  if (!keys.length) return;
+  const lines = keys.flatMap((key) => defects[key]!.map((d) => `${key}: ${d.kind}: ${d.message}`));
+  throw new Error(`the sweep refuses ${keys.length} map${keys.length === 1 ? '' : 's'} whose report has defects:\n${lines.join('\n')}`);
+}
 
 export function runCase(sweepCase: SweepCase): SweepEntries {
-  const entries: SweepEntries = {};
+  const entries: SweepEntries = {}, defects: SweepDefects = {};
   for (let i = 1; i <= sweepCase.count; i += 1) {
-    const seed = `${sweepCase.seedPrefix}-${i}`;
-    entries[`${sweepCase.id}/${seed}`] = sweepEntry(sweepCase, seed);
+    const seed = `${sweepCase.seedPrefix}-${i}`, made = sweepUnit(sweepCase, seed, `${sweepCase.id}/${seed}`);
+    Object.assign(entries, made.entries); Object.assign(defects, made.defects);
   }
+  refuseDefects(defects);
   return entries;
 }
 
@@ -235,8 +262,9 @@ export async function runPool<Unit, Reply>(worker: URL, units: Unit[], jobs = de
  * seed order whatever order the workers finish in.
  */
 export async function runSweep(cases: SweepCase[], jobs = defaultJobs()): Promise<SweepEntries> {
-  const replies = await runPool<SweepUnit, SweepEntries>(new URL(import.meta.url), sweepUnits(cases), jobs);
-  return Object.assign({}, ...replies);
+  const replies = await runPool<SweepUnit, { entries: SweepEntries; defects: SweepDefects }>(new URL(import.meta.url), sweepUnits(cases), jobs);
+  refuseDefects(Object.assign({}, ...replies.map((reply) => reply.defects)));
+  return Object.assign({}, ...replies.map((reply) => reply.entries));
 }
 
 /** Half the cores, at most eight: other agents share this machine. */
@@ -283,5 +311,5 @@ export function compareSweep(baseline: SweepBaseline, current: SweepEntries): Dr
 // A worker generates one seed of one case at a time, as `runSweep` hands them out.
 if (!isMainThread && parentPort && workerData === import.meta.url) {
   const port = parentPort;
-  port.on('message', (unit: SweepUnit) => port.postMessage({ [unitKey(unit)]: sweepEntry(unit, unitSeed(unit)) }));
+  port.on('message', (unit: SweepUnit) => port.postMessage(sweepUnit(unit, unitSeed(unit), unitKey(unit))));
 }
