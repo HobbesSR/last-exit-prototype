@@ -113,7 +113,10 @@ same checks but the portal search, about 10 ms. `slow/map-library` runs the same
 contestants on the one map it diagnoses in full, the large open regions too.
 `tests/helpers/map-library-game.js` holds the checks they all share. A slow report batch of
 25 library seeds (20 with 8 contestants, 5 with 24, 111 s) retired in #822: the chain sweep
-refuses any map whose report has defects, over its 161 game-size maps (53). Until
+refuses any map whose report has defects, over its 161 game-size maps (53). The batch's 24-contestant
+maps kept the default 2 exits and 3 hunters; the sweep's `game-crowded` has 24 at 3 exits and 6 hunters,
+a different shape, so that combination went from five slow seeds and the fast `library-4` to
+`library-4` alone. Until
 #807 the fast file checked both counts with the portal search on each map (the search,
 not generation, was most of its 21.8 s isolated), and one slow file ran the whole batch
 (110 s).
@@ -651,9 +654,9 @@ whole maps at 102 to 148 s each (#821).
 the batch it held then). The author does not run it before the PR: with no drift the sweep shows
 its 161 game-size maps byte-identical, report included. The slow tier runs it on `main` after
 merge, and a failure there files an issue and is fixed forward. A content change, or any change
-that drifts, still runs it. The 25-map report batch S5 was about retired in #822, an agent's call
-that Corey left to judgement: its seeds were not the sweep's, but the sweep now refuses a defective
-map itself, and none of its 224 maps reported one.
+that drifts, still runs it. S5 was decided for the 25-map report batch, which was retired in
+#822, an agent's call that Corey left to judgement: its seeds were not the sweep's, but the sweep
+now refuses a defective map itself, and none of its 224 maps reported one.
 
 A new slow or browser member adds its row to its set's table here in the same change, and a
 member whose value is unclear is raised with Corey rather than dropped.
