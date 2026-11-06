@@ -9,6 +9,8 @@ export { boundaryBoxFilter, boxesAgainstHints, clipHints, hintedCells, hintError
 export type { CellBox, HintedRegion, HintStrength } from './hints.ts';
 export { wallHints } from './hint-walls.ts';
 export type { HintWallOptions, HintWalls } from './hint-walls.ts';
+export { perimeterWalls, commitPerimeterWalls, reachPerimeter } from './perimeter-reach.ts';
+export type { PerimeterReachOptions, PerimeterWalls } from './perimeter-reach.ts';
 export type { SpreadPointOptions, SpreadPointResult } from './placement.ts';
 export type { Cell, Hint, HintStated, RegionMask, RegionRandom, BuiltRegion, Portal, RegionBrief } from './types.ts';
 export { analyzeRegion, canonicalCells, cellKey, connectedComponents, findNeckCuts, growRegion, shortestCellPath } from './decomposition/analysis.ts';
