@@ -5,7 +5,7 @@
  * sweep from a quarter cell inside to a quarter cell outside at body clearance) and splits
  * them by side class, then attributes each walkable unguaranteed sample. Definitions: 51.10; results: 42.34.
  *
- *   node map/tools/edge-clearance.mts [--widths 12,24,36] [--seeds 1] [--out FILE] [--maps DIR]
+ *   node map/tools/edge-clearance.mts [--widths 12,24,36] [--seeds 1] [--out FILE [--replace]] [--maps DIR]
  *
  * `--maps DIR` reads `size-W-S.json` (or .json.gz) saved maps there instead of generating.
  */
@@ -15,6 +15,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { generate, readMap, type ToolMap } from './core.ts';
 import { chainMapToJson } from '../macro/src/chain/saving.ts';
+import { boundarySamplesOf } from './navigation-structure.ts';
 import { composeRegions } from '../micro/compose.ts';
 import { builtMapCollision, builtMapFrame } from '../micro/adapter.ts';
 import { hintStrength } from '../micro/hints.ts';
@@ -26,8 +27,9 @@ import type { Vec2 } from '../../shared/types.ts';
 const arg = (name: string, fallback: string) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]!; };
 const widths = arg('--widths', '12,24,36').split(',').map(Number), seeds = arg('--seeds', '1').split(',').map(Number);
 const out = arg('--out', ''), mapsDir = arg('--maps', '');
+// Retained reports are evidence: replacing one must be asked for (as navigation-baseline refuses to).
+if (out && existsSync(out) && !process.argv.includes('--replace')) throw new Error(`${out} exists; pass --replace to overwrite it`);
 const hash = (v: string | Buffer) => createHash('sha256').update(v).digest('hex');
-const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 /** A unit cell side, keyed by its lesser endpoint and axis: `h` runs along x, `v` along y. */
 const sideKey = (c: { x: number; y: number }, dx: number, dy: number) =>
   dx ? `v:${c.x + (dx > 0 ? 1 : 0)},${c.y}` : `h:${c.x},${c.y + (dy > 0 ? 1 : 0)}`;
@@ -74,42 +76,35 @@ function measure(map: ToolMap) {
   const guaranteed = new Set(built.regions.flatMap(r => [...r.brief.portals, ...(r.brief.internalGuaranteed ?? [])].flatMap(runKeys)));
   const alongLine = (key: string, d: number) => { const [axis, rest] = key.split(':'); const [x, y] = rest!.split(',').map(Number);
     return axis === 'h' ? `h:${x! + d},${y}` : `v:${x},${y! + d}`; };
-  const world = (x: number, y: number) => ({ x: x * size + origin.x, y: y * size + origin.y });
   const bodies = (['contestant', 'gladiator'] as const).map(role => ({ body: (role === 'gladiator' ? 'hunter' : role) as Body, clearance: navigationClearance(role) }));
 
   interface Sample { region: number; type: string; cls: Cls; hinted: '' | 'mutual' | 'one-sided'; key: string; across: number;
     fill: boolean; result: Record<Body, { blocked: boolean; own: boolean; other: boolean; why: Why | null }> }
   const samples: Sample[] = [];
   built.regions.forEach((r, region) => {
-    const cells = new Set(r.brief.cells.map(c => `${c.x},${c.y}`));
     const portal = new Set(r.brief.portals.flatMap(runKeys));
     const hinted = new Map<string, 'mutual' | 'one-sided'>();
     for (const h of r.brief.hints ?? []) for (const k of runKeys(h)) hinted.set(k, hintStrength(h));
     const fill = new Set((r.brief.fillCells ?? r.brief.cells).map(c => `${c.x},${c.y}`));
-    for (const c of r.brief.cells) for (const [dx, dy] of DIRS) {
+    for (const { cell: c, dx, dy, p, a, b } of boundarySamplesOf(r.brief.cells, size, origin)) {
       const acrossKey = `${c.x + dx},${c.y + dy}`;
-      if (cells.has(acrossKey)) continue;
       const key = sideKey(c, dx, dy), across = owner.get(acrossKey) ?? -1;
       const cls: Cls = across < 0 ? 'edge' : portal.has(key) ? 'guaranteed' : 'unguaranteed';
-      for (const offset of [-.25, .25]) {
-        const p = world(c.x + .5 + dx * .5 + (dy ? offset : 0), c.y + .5 + dy * .5 + (dx ? offset : 0));
-        const a = { x: p.x - dx * size / 4, y: p.y - dy * size / 4 }, b = { x: p.x + dx * size / 4, y: p.y + dy * size / 4 };
-        const deep = { x: p.x - dx * size, y: p.y - dy * size };
-        const result = {} as Sample['result'];
-        for (const { body, clearance } of bodies) {
-          const blocked = !sweptClear(nav, a, b, clearance);
-          const own = near(region, a, b) < clearance, other = across >= 0 && near(across, a, b) < clearance;
-          let why: Why | null = null;
-          if (cls === 'unguaranteed' && !blocked) {
-            // Distance from the boundary point to this owner's content, inward up to one cell.
-            const inward = near(region, p, deep);
-            // A clear cell is an end cap when a guaranteed run on this same line ends beside this side; otherwise a side strip.
-            why = !fill.has(`${c.x},${c.y}`) ? (guaranteed.has(alongLine(key, -1)) || guaranteed.has(alongLine(key, 1)) ? 'cap' : 'strip') : inward > size / 2 ? 'empty' : near(region, p, p) > size / 2 ? 'setback' : 'near';
-          }
-          result[body] = { blocked, own, other, why };
+      const deep = { x: p.x - dx * size, y: p.y - dy * size };
+      const result = {} as Sample['result'];
+      for (const { body, clearance } of bodies) {
+        const blocked = !sweptClear(nav, a, b, clearance);
+        const own = near(region, a, b) < clearance, other = across >= 0 && near(across, a, b) < clearance;
+        let why: Why | null = null;
+        if (cls === 'unguaranteed' && !blocked) {
+          // Distance from the boundary point to this owner's content, inward up to one cell.
+          const inward = near(region, p, deep);
+          // A clear cell is an end cap when a guaranteed run on this same line ends beside this side; otherwise a side strip.
+          why = !fill.has(`${c.x},${c.y}`) ? (guaranteed.has(alongLine(key, -1)) || guaranteed.has(alongLine(key, 1)) ? 'cap' : 'strip') : inward > size / 2 ? 'empty' : near(region, p, p) > size / 2 ? 'setback' : 'near';
         }
-        samples.push({ region, type: r.brief.type, cls, hinted: hinted.get(key) ?? '', key, across, fill: fill.has(`${c.x},${c.y}`), result });
+        result[body] = { blocked, own, other, why };
       }
+      samples.push({ region, type: r.brief.type, cls, hinted: hinted.get(key) ?? '', key, across, fill: fill.has(`${c.x},${c.y}`), result });
     }
   });
 
