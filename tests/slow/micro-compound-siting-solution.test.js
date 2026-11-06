@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { buildCompoundGeneration, diagnoseCompoundSiting } from '../../map/micro/strategies/compound.ts';
 import { flattenDelegationResult } from '../../map/micro/delegation-execute.ts';
-import { createAccessMask, elementShapes, findRegionRoute } from '../../map/micro/geometry.ts';
-import { hunterClearance, portalStands, validatePortalReach } from '../../map/micro/portals.ts';
+import { createAccessMask, createRegionRouteSearch, elementShapes } from '../../map/micro/geometry.ts';
+import { hunterClearance, portalStands } from '../../map/micro/portals.ts';
 
 const load = name => JSON.parse(gunzipSync(readFileSync(new URL(`../fixtures/${name}`, import.meta.url))));
 const oldBrief = load('compound-340-brief.json.gz');
@@ -40,12 +40,11 @@ test('inward authored military-quarter keeps its original interface and builds a
 
   const shapes = result.elements.flatMap(element => elementShapes(element));
   const access = createAccessMask(inwardBrief), hunter = hunterClearance(inwardBrief.cellSize);
-  // Portal reach joins the starts; choose the closest to avoid repeated long searches.
-  const starts = portalStands(inwardBrief).flatMap(portal => portal.points);
-  const route = (to, label) => {
-    const from = [...starts].sort((a, b) => Math.hypot(a.x - to.x, a.y - to.y) - Math.hypot(b.x - to.x, b.y - to.y))[0];
-    assert.ok(findRegionRoute(access, shapes, from, to, hunter), `hunter reaches ${label}`);
-  };
+  // Portal reach joins the starts; each target routes from its closest, and targets sharing a
+  // start share one search (the same routes as separate searches, #822).
+  const starts = portalStands(inwardBrief).flatMap(portal => portal.points), targets = [];
+  const route = (to, label) => targets.push({ to, label,
+    from: [...starts].sort((a, b) => Math.hypot(a.x - to.x, a.y - to.y) - Math.hypot(b.x - to.x, b.y - to.y))[0] });
   const rooms = node.retained.elements.filter(element => element.label.startsWith('compound-room'));
   assert.equal(rooms.length, 22);
   for (const room of rooms) route({ x: room.x + room.template.w / 2, y: room.y + room.template.h / 2 }, room.label);
@@ -65,9 +64,15 @@ test('inward authored military-quarter keeps its original interface and builds a
       route({ x: (x + 1) * inwardBrief.cellSize, y: (y + 1) * inwardBrief.cellSize }, `${gate.connectionId} yard stand`);
     }
   }
+  const searches = new Map();
+  for (const { from, to, label } of targets) {
+    if (!searches.has(from)) searches.set(from, createRegionRouteSearch(access, shapes, from, hunter));
+    assert.ok(searches.get(from)(to), `hunter reaches ${label}`);
+  }
 
-  const reach = validatePortalReach({ ...inwardBrief, blockers: shapes });
-  assert.deepEqual(reach.errors, []);
-  assert.equal(reach.routes.length, inwardBrief.portals.length - 1);
+  // The portal promise over all 76 portals is not checked here: its 75 routes cost about 35 s of
+  // this file's 46 s (#822), where the ring stands on 576 of 11,232 cells. Compound's promise runs
+  // on the fast and slow sweep cases; `tools/compound-siting-solution-audit.mjs` checks this
+  // quarter's whole promise on purpose.
   assert.deepEqual(inwardBrief, original, 'diagnosis and production preserve caller input');
 });

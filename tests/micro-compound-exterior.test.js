@@ -115,8 +115,9 @@ test('compact yard declines an exterior house', () => {
 });
 
 // The fast tier's order witness for buildRegion's compound: the field's ring, court and outbuilding
-// under reversed cells, portals and zones. All eight seeds of cell order run in
-// slow/micro-compound-determinism; micro-compound-delegation checks the delegation tree (#807).
+// under reversed cells, portals and zones. micro-compound-delegation checks the delegation tree, the
+// only test that sees the root brief's canonical cell order (#807); the eight-seed slow file retired
+// because it passed with that sort and the mask's both removed (#822).
 test('outbuilding is deterministic under reversed cells, portals and zones', () => {
   const input = make('field');
   input.zones = [{ tier: 1, bonus: 0, lootChance: 0.2, cells: input.cells.filter(c => c.x < 20) },

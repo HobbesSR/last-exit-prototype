@@ -25,7 +25,7 @@ test('a selector narrows a set by name, and an unknown set is refused', () => {
   const depot = resolve('micro:depot', 'fast');
   assert.ok(depot.length > 3 && depot.every(file => file.includes('micro-depot')), depot.join(' '));
   const compound = resolve('micro:compound', 'slow');
-  assert.ok(compound.length > 2 && compound.every(file => file.startsWith('tests/slow/micro-compound')), compound.join(' '));
+  assert.ok(compound.length > 1 && compound.every(file => file.startsWith('tests/slow/micro-compound')), compound.join(' '));
   assert.throws(() => resolve('nonsense', 'fast'), /Unknown test set "nonsense"/);
 });
 
