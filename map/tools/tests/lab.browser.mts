@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { CHAIN_LIBRARY, chainParams, checkMap, generate } from "../core.ts";
 import { libraryFingerprint } from "../../macro/src/coding.ts";
 import { planBlock } from "../../micro/strategies/block.ts";
+import { buildRegion } from "../../micro/region-types.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import { DEFAULT_CELL_SIZE, GAME_ENGINES } from "../engines.ts";
@@ -380,10 +381,14 @@ try {
   }, adoptionRegion.brief.id, { timeout: 30000 });
   const adoptionDrill = await snapshot();
   assert.equal(adoptionDrill.drill.difference, null, "compound ring and delegated cover rebuild equal to stored output");
-  // Eligible compounds may also take one exterior outbuilding (#691, 20.3.4).
-  const { buildings: drillBuildings } = adoptionDrill.drill;
-  assert.deepEqual(drillBuildings.filter((label: string) => label !== "compound-outbuilding"), ["compound", "compound-keep"]);
-  assert.ok(drillBuildings.length - 2 <= 1, "at most one compound outbuilding");
+  // The traces are the Node rebuild's, as for the block below (#816): the compound's
+  // buildings are content. Eligible compounds may take one exterior outbuilding (#691, 20.7).
+  const adoptionTraces: string[] = [];
+  buildRegion(adoptionRegion.brief, undefined, (trace) => adoptionTraces.push(trace.label));
+  assert.deepEqual(adoptionDrill.drill.buildings, adoptionTraces, "the drill shows the rebuild's traces");
+  assert.equal(new Set(adoptionTraces).size, adoptionTraces.length, "no building is traced twice");
+  assert.ok(adoptionTraces.includes("compound"), "the compound ring is traced");
+  assert.ok(adoptionTraces.filter(label => label === "compound-outbuilding").length <= 1, "at most one compound outbuilding");
   await page.screenshot({ path: `${OUT}/compound-delegation.png`, fullPage: true });
 
   // The diagnostic on a game map runs in a worker, so the page stays live and can cancel it.
@@ -2220,9 +2225,16 @@ try {
   const blockBrief = mapViews(blockFixture).briefs[0]!;
   const blockDrill = await drillInto(blockBrief);
   assert.equal(blockDrill.drill.difference, null, "the block rebuilds equal to the stored result");
-  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), planBlock(blockBrief).lots.map(lot => lot.type));
-  assert.deepEqual(blockDrill.drill.buildings, [`${blockBrief.id}/lot-2/depot-warehouse-1`, `${blockBrief.id}/lot-4/compound`, `${blockBrief.id}/lot-4/compound-keep`],
-    "the depot and compound are traced, labelled as their lot's elements");
+  const blockLots = planBlock(blockBrief).lots;
+  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), blockLots.map(lot => lot.type));
+  // Which lots fit a building is stand-in content (#816: the live cord let a second depot
+  // build), so the expected traces come from the same observed rebuild in Node.
+  const blockTraces: string[] = [];
+  buildRegion(blockBrief, undefined, (trace) => blockTraces.push(trace.label));
+  assert.deepEqual(blockDrill.drill.buildings, blockTraces, "the drill shows the rebuild's traces");
+  assert.equal(new Set(blockTraces).size, blockTraces.length, "no building is traced twice");
+  for (const type of ["depot", "compound"]) assert.ok(blockLots.some(lot => lot.type === type
+    && blockTraces.some(label => label.startsWith(`${lot.id}/${type}`))), `a ${type} is traced, labelled as its lot's element`);
   assert.equal(blockDrill.drill.drawn.lots.lots, 5);
   assert.ok(blockDrill.drill.drawn.graph.nodes > 0);
   assert.match(blockDrill.inspector, /5 lots/);
