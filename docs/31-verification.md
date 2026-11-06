@@ -50,9 +50,10 @@ spec reporter; `test:times` stays the isolated per-file measurement against the 
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`. Dated counts and timings are in
 [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). `npm run test:all` adds
-`tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
-fixture, and bots completing whole matches, and the builder sweeps below. Its 26 files took
-871 s timed one at a time on 2026-11-05 (#808; each set's share is in
+`tests/slow/`: the legacy route sweep, the bot-match traces against the frozen
+fixture, bots completing whole matches, and the builder sweeps below. Its 19 files took
+235 s timed one at a time on 2026-11-06, after #822 fitted each to its claim (26 files and 871 s on
+2026-11-05, #808; each set's share is in
 [Integration checks per set](#integration-checks-per-set)), and their evidence only moves when
 generation or simulation moves.
 `tests/slow/room-sizes.test.js` and `room-sizes-physics.test.js` run only the 12 × 6 room unless asked
@@ -615,13 +616,13 @@ the sweep and the physics equality scripts (the table above).
 | `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
 | `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
 
-**`macro`** (slow 28 s, browser at least 131 s; and the chain sweep, 159 s)
+**`macro`** (slow 33 s, browser at least 131 s; and the chain sweep, 159 s)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps and the larger sizes' 4 macro layers, naming the stage, and any map whose report has defects (refused when checking or capturing, #822); `npm test` pins only the quick cases | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
 | `map-library` | 11.3 s | one 8-contestant map's full diagnosis: every region's portal promise under the thorough search, open ones too | macro, the library, builders: as a defect |
-| `map-macro-sizes` | 16.9 s | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
+| `map-macro-sizes` | 21.3 s (three runs, 21.0 to 21.6 s, 2026-11-06; 16.9 s when #826 added it) | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
 | `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
 
 **`micro`** (slow 128 s, browser 41 s; and the replay, 3.5 to 35 s a type)
