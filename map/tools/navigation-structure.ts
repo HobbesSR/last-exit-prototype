@@ -141,6 +141,26 @@ export function measureMeshPockets(space: FreeSpace, minWidth: number, maxWidth:
     components: order.filter(t => parent[t] === -1).length };
 }
 
+/** One 51.10 boundary sample: a point on an exposed side of an owned cell and its perpendicular sweep. */
+export interface BoundarySample { cell: Vec2; dx: number; dy: number; p: Vec2; a: Vec2; b: Vec2 }
+
+/**
+ * 51.10's boundary samples, in world units: two quarter points on each exposed side of each owned
+ * cell, each swept from a quarter cell inside to a quarter cell outside. Cells in the given order,
+ * sides +x, -x, +y, -y. The navigation and edge-clearance (#836) reports share this one definition.
+ */
+export function boundarySamplesOf(cells: readonly Vec2[], size: number, origin: Vec2): BoundarySample[] {
+  const owned = new Set(cells.map(c => `${c.x},${c.y}`)), samples: BoundarySample[] = [];
+  for (const cell of cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+    if (owned.has(`${cell.x + dx},${cell.y + dy}`)) continue;
+    for (const offset of [-.25, .25]) {
+      const p = { x: (cell.x + .5 + dx * .5 + (dy ? offset : 0)) * size + origin.x, y: (cell.y + .5 + dy * .5 + (dx ? offset : 0)) * size + origin.y };
+      samples.push({ cell, dx, dy, p, a: { x: p.x - dx * size / 4, y: p.y - dy * size / 4 }, b: { x: p.x + dx * size / 4, y: p.y + dy * size / 4 } });
+    }
+  }
+  return samples;
+}
+
 /** Geometry only: claims, reserves, spots and decals never make an empty court nonempty. */
 function structureShapes(map: ToolMap, origin: Vec2): Shape[] {
   return map.results.flatMap(r => r.elements.flatMap(e => {
@@ -241,14 +261,8 @@ export function measureNavigationStructure(map: ToolMap) {
         const nearby = structureBuckets.get(`${Math.floor(p.x / size)},${Math.floor(p.y / size)}`) ?? [];
         if (!nearby.some(s => segmentShapeDistance(p, p, s) <= size / 2)) emptySamples++;
       }
-      const cells = new Set(built.regions[region.index]!.brief.cells.map(c => `${c.x},${c.y}`));
-      for (const c of built.regions[region.index]!.brief.cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (cells.has(`${c.x + dx!},${c.y + dy!}`)) continue;
-        for (const offset of [-.25, .25]) {
-          const p = world({ x: (c.x + .5 + dx! * .5 + (dy ? offset : 0)) * size, y: (c.y + .5 + dy! * .5 + (dx ? offset : 0)) * size });
-          const a = { x: p.x - dx! * size / 4, y: p.y - dy! * size / 4 }, b = { x: p.x + dx! * size / 4, y: p.y + dy! * size / 4 };
-          boundarySamples++; if (!sweptClear(nav, a, b, clearance)) blockedBoundarySamples++;
-        }
+      for (const { a, b } of boundarySamplesOf(built.regions[region.index]!.brief.cells, size, origin)) {
+        boundarySamples++; if (!sweptClear(nav, a, b, clearance)) blockedBoundarySamples++;
       }
       const { walkableArea, deadEndArea } = ownershipAreas[region.index]!;
       return { ...region, walkableArea, deadEndArea, deadEndShare: walkableArea ? deadEndArea / walkableArea : null,

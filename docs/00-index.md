@@ -133,6 +133,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.31-rubble-plant-live-cord.md](42.31-rubble-plant-live-cord.md) | Rubble and plant on a live cord witness instead of frozen protected routes: content, detour, dead ends, empty share, proofs and cost, and the reassessment before further rollout (#759) |
 | [42.32-cord-generation-cost.md](42.32-cord-generation-cost.md) | Live-cord generation cost split by work and builder, two exact savings (strictly simple screen, edge index) with zero drift, and what remains exact or inexact (#767) |
 | [42.33-live-cord-rollout.md](42.33-live-cord-rollout.md) | Cover, ruins, depot, hall and market on a live cord, batched commits for every cord builder, and two exact search savings (indexed sweeps, one corridor search): content, detour, dead ends, sweep replay and cost (#787) |
+| [42.34-edge-clearance.md](42.34-edge-clearance.md) | What keeps unguaranteed region edges clear: blocked share by side class, attribution per builder (20.6 end caps, fill left empty), seams, park bays and inward strips (#836) |
 
 ### 5x — Map generation
 
