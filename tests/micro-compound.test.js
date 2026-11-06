@@ -10,10 +10,10 @@ import { assertWithinBudget } from './helpers/budget.js';
 import { SIZE, brief, MASKS, build, blockers, compoundBox } from './helpers/compound-fixtures.js';
 import { FAST_CASES, assertPortalPromise, assertRoofedRing, assertObservedRing } from './helpers/compound-sweeps.js';
 
-// The fast tier runs each mask once and each gate count once (FAST_CASES); the slow sweeps run
-// every mask at every gate count over four seeds, and cell-order determinism over eight (31, #543,
-// #807). The portal and roofed-ring checks share one build per case through compound-fixtures'
-// cache; the observer check builds again with a trace and compares the two.
+// The fast tier runs each mask once and each gate count once (FAST_CASES); the slow sweep runs
+// every mask at every gate count once more at rotating seeds (SLOW_CASES; 31, #543, #807, #822).
+// Every check reads one observed build per case through compound-fixtures' cache; here the
+// observer check also builds unobserved and compares the two.
 
 test('a compound region keeps the portal promise on every mask and at every gate count', () => assertPortalPromise(FAST_CASES));
 

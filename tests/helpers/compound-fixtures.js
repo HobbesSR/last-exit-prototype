@@ -18,16 +18,22 @@ export const MASKS = {
   ring: [cellsOf(46, 46, (x, y) => x < 17 || x >= 29 || y < 17 || y >= 29), [{ id: 'north', axis: 'h', x: 20, y: 0, length: 4 },
     { id: 'hole', axis: 'v', x: 29, y: 20, length: 3 }, { id: 'west', axis: 'v', x: 0, y: 34, length: 3 }]],
 };
-export const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
+export const SEEDS = [1, 2, 3, 4];
 export const PARAMETERS = [undefined, { gates: 1 }, { gates: 3 }, { gates: 4 }];
 
-// Builds are shared across a process's sweeps: the portal, roofed and observer checks repeat these inputs.
+// Builds are shared across a process's sweeps, made once with the observer on: the portal, roofed,
+// observer and access checks read the same build of each input. Observing changes nothing, which
+// `assertObservedRing` checks against an unobserved build on the fast cases (#822).
 const built = new Map();
-export const build = input => {
+export const observed = input => {
   const key = JSON.stringify(input);
-  if (!built.has(key)) built.set(key, buildRegion(input));
+  if (!built.has(key)) {
+    const traces = [];
+    built.set(key, { result: buildRegion(input, undefined, trace => traces.push(trace)), traces });
+  }
   return built.get(key);
 };
+export const build = input => observed(input).result;
 export const blockers = result => result.elements.flatMap(element => elementShapes(element));
 export const ringElements = result => result.elements.filter(element => /^compound-(room|gate)/.test(element.label));
 /** An element's box in cells. */

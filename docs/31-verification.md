@@ -147,9 +147,9 @@ not a type, and a hut's thorough portal check costs about 0.05 s a region agains
 and round-trip cases, and samples hut seeds only until every decay tier and two
 distinct scorch and drain placements have appeared (#807).
 
-The compound's multi-mask room/court route sweep lives in
-`tests/slow/micro-compound-access.test.js`; the fast delegation file keeps the
-concave seed-1 and gate/crossing regression witnesses.
+The compound's multi-mask room/court routes run in `tests/slow/micro-compound-sweeps.test.js`
+on each mask's one-gate case, to open points rather than loot sites (#820, #822); the fast
+delegation file keeps the concave seed-1 and gate/crossing regression witnesses.
 
 A builder's portal-promise sweep is the same promise on the same masks and parameters
 at every seed, and most of its cost is the reach searches. The fast tier keeps a witness
@@ -166,14 +166,16 @@ sixteen seeds of its small-house sweep and `slow/micro-hut-sweeps` all sixteen; 
 portal, roofed-ring and observer checks on seven cases at the first seed (each mask at the
 default two gates, one and three gates on the small yard, and four on the ell, where the
 concave corner leaves no fourth gate stand until the ring steps down from 18×22 to 16×20, #807), and
-`slow/micro-compound-sweeps` and `slow/micro-compound-sweeps-tail` run every mask at every
-gate count over seeds 1-2 and 3-4. Compound cell order has a fast witness in
-`micro-compound-exterior` (elements and loot) and `micro-compound-delegation` (the whole
-delegation tree, the only one that sees the root brief's canonical order), and all eight
-original seeds in `slow/micro-compound-determinism` (#647). Each pair calls one function in
+`slow/micro-compound-sweeps` runs every mask at every gate count once more, the seed rotating
+over 2 to 4 so each mask and each gate count meets all three (`SLOW_CASES`, #822). It builds each
+case once with the observer on; whether observing changes the build is checked on the fast cases.
+Compound cell order has a fast witness in `micro-compound-exterior` (elements and loot) and
+`micro-compound-delegation` (the whole delegation tree, the only one that sees the root brief's
+canonical order). An eight-seed slow file retired: with the root sort and the region mask's sort
+removed it still passed every seed (#822). Each pair calls one function in
 `tests/helpers/` (`block-promise.js`, `plant-promise.js`, `park-fixtures.js`,
 `builder-contract.js`, `compound-sweeps.js`, `hut-fixtures.js`) with different inputs (a seed list, or for
-compound a case list: `FAST_CASES` fast, `sweepCases` slow), so the assertions cannot drift apart. `test:micro` runs only the fast
+compound a case list: `FAST_CASES` fast, `SLOW_CASES` slow), so the assertions cannot drift apart. `test:micro` runs only the fast
 files and the micro labs: a builder change that moves a type's output also runs that type's slow file, for
 example `node --test tests/slow/micro-plant-promise.test.js`. Narrow a sweep this way, by
 moving its seeds to the slow tier, only where the fast tier keeps a witness of the same
@@ -515,7 +517,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | --- | --- | --- | --- |
 | One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; the full chain sweep once, no drift. While iterating, `sweep --check FILE --type <type>` (adding `block` for a type block delegates to) is the inner loop (below) | the sweep 159 s, plus the type's own: hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
 | One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `micro-large-briefs` | about 3 min: the sweep 159 s and `micro-large-briefs` 25 s, plus the type's own |
-| Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 264 s |
+| Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 151 s |
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
 | Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too; the game-size report batch (`map-library`, `-8`, `-8-tail`); for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves the game-size batch to the slow tier on `main` (below) | 270 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
@@ -617,14 +619,14 @@ the sweep and the physics equality scripts (the table above).
 | `map-macro-sizes` | 16.9 s | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
 | `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
 
-**`micro`** (slow 289 s, browser 41 s; and the replay, 3.5 to 35 s a type)
+**`micro`** (slow 151 s, browser 41 s; and the replay, 3.5 to 35 s a type)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `sweep --check --type` | 3.5 s (block) to 35 s (park); all types 133 s | each cached region of the type rebuilt and compared, with its portal check where it drifted | that type's builder and the builders it delegates to |
 | `micro-builder-contract-sweeps` | 14.0 s | every type's builder contract at seed 2 | any builder |
 | `micro-block-promise`, `micro-block-scale` | 13.6 s, 4.3 s | the block's promise on every seed; a macro-sized block's structure counts | the block builder and its delegation |
-| `micro-compound-sweeps`, `-sweeps-tail`, `-determinism`, `-access`, `-siting-solution` | 38.4, 42.9, 14.0, 15.8, 46.5 s | compound's promise, ring and observer checks at every gate count on every mask, seeds 1 to 4; cell order over eight seeds; rooms and court reachable; the stored authored quarter builds | the compound builder and siting |
+| `micro-compound-sweeps`, `-siting-solution` | 11.4, 9.1 s | compound's promise, ring and observer checks at every gate count on every mask at rotating seeds; rooms and court reachable by bodies; the stored authored quarter sites, builds and is reachable to its rooms, court and gate yards (its whole portal promise is not checked per run, as no 36 × 18 region's is since #821; `tools/compound-siting-solution-audit.mjs --after-brief=tests/fixtures/compound-340-inward-brief.json.gz` runs it on purpose, #822) | the compound builder and siting |
 | `micro-depot-sweeps`, `micro-depot-scale` | 13.9 s, 6.0 s | depot's promise and aisle access over its seeds; the stored witnesses' reach; the macro case's cord counts | the depot builder, the live cord |
 | `micro-large-briefs` | 25.3 s | the larger sizes' extreme briefs, for the 13 types they exceed 12 × 6 in (up to 88 portals, 11,484 cells), build and stay in their fill | any builder; macro only through a recapture |
 | `micro-hut-sweeps` | 4.9 s | small houses at sixteen seeds | the hut builder |
