@@ -5,13 +5,14 @@ import { validatePortalReach } from '../map/micro/portals.ts';
 import { seeThrough } from '../shared/movement.ts';
 import { cellsOf } from './helpers/cells.js';
 import { SIZE, THOROUGH, brief, built, MASKS, SEEDS, DENSE, blockers, kind, boxOf, gapBetween, assertParkPromise, assertClumpSpacing,
-  assertParkKinds, assertPiecesAtSizes } from './helpers/park-fixtures.js';
+  assertParkKinds, assertPiecesAtSizes, casesAt, FAST_CASES, SIZE_CASES } from './helpers/park-fixtures.js';
 
-// The fast tier runs the first seed; tests/slow/micro-park-promise.test.js runs all eight.
-test('a park region keeps the portal promise over seeds, masks and parameters', () => assertParkPromise(SEEDS.slice(0, 1)));
+// The first seed on every mask and parameter set; tests/slow/micro-park-promise.test.js runs each once more at a rotating seed.
+test('a park region keeps the portal promise over seeds, masks and parameters', () => assertParkPromise(FAST_CASES));
 
-// Seeds 1 and 2 of the dense field, the builds the clump test reads; tests/slow/micro-park-promise.test.js all eight.
-test('a park is its own type, with trees and hedge fronts and no buildings', () => assertParkKinds(SEEDS.slice(0, 2)));
+// Seeds 1 and 2 of the dense field, the builds the clump test reads; tests/slow/micro-park-promise.test.js its sixteen cases.
+test('a park is its own type, with trees and hedge fronts and no buildings', () =>
+  assertParkKinds(casesAt(SEEDS.slice(0, 2), DENSE).filter(at => at.name === 'field')));
 
 // Order independence and determinism are the builder contract's (micro-builder-contract-cord), which
 // shuffles every cell list of six chain briefs (#807).
@@ -22,8 +23,8 @@ test('a tree is round, and a hedge blocks bodies but not sight', () => {
   assert.equal(seeThrough('tree'), false);
 });
 
-// The fast tier runs two seeds; tests/slow/micro-park-promise.test.js runs all eight.
-test('clumps keep an aisle from each other and respect portal margins', () => assertClumpSpacing(SEEDS.slice(0, 2)));
+// Every mask's dense park at two seeds; tests/slow/micro-park-promise.test.js its sixteen cases.
+test('clumps keep an aisle from each other and respect portal margins', () => assertClumpSpacing(casesAt(SEEDS.slice(0, 2), DENSE)));
 
 test('a region too small for a tree gets no tree, and with fronts off stays clear', () => {
   assert.equal(buildRegion(brief('speck', 1, cellsOf(3, 1), [], DENSE)).elements.some(kind('tree')), false);
@@ -57,8 +58,8 @@ test('parameters outside 0 to 1 are refused', () => {
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { hedges: -1 })), /hedges/);
 });
 
-// The fast tier runs the first seed; tests/slow/micro-park-promise.test.js all eight.
-test('pieces keep valid, in-footprint geometry at small and large cell sizes', () => assertPiecesAtSizes(SEEDS.slice(0, 1)));
+// Every size at the first seed; tests/slow/micro-park-promise.test.js each size once more at a rotating seed.
+test('pieces keep valid, in-footprint geometry at small and large cell sizes', () => assertPiecesAtSizes(SIZE_CASES.fast));
 
 test('park can place geometry against a hinted edge while protecting portals', () => {
   const cells = cellsOf(40, 30);

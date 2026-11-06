@@ -3,14 +3,15 @@ import assert from 'node:assert/strict';
 import { buildRegion } from '../../map/micro/region-types.ts';
 import { validatePortalReach } from '../../map/micro/portals.ts';
 import { cellsOf } from '../helpers/cells.js';
-import { SEEDS, THOROUGH, brief, blockers, assertParkPromise, assertClumpSpacing, assertParkKinds, assertPiecesAtSizes } from '../helpers/park-fixtures.js';
+import { THOROUGH, brief, blockers, assertParkPromise, assertClumpSpacing, assertParkKinds, assertPiecesAtSizes, SLOW_CASES, SIZE_CASES } from '../helpers/park-fixtures.js';
 
-// The fast tier's tests/micro-park.test.js runs the first seed of the promise and cell-size sweeps
-// and two of the clump and kind sweeps (31, #760, #807).
-test('a park region keeps the portal promise over seeds, masks and parameters', () => assertParkPromise(SEEDS));
-test('clumps keep an aisle from each other and respect portal margins', () => assertClumpSpacing(SEEDS));
-test('a park is its own type, with trees and hedge fronts and no buildings', () => assertParkKinds(SEEDS));
-test('pieces keep valid, in-footprint geometry at small and large cell sizes', () => assertPiecesAtSizes(SEEDS));
+// The fast tier's tests/micro-park.test.js runs the first seed; these run each mask under each
+// parameter set, and each cell size, once more at a rotating seed, and the three sweeps read the
+// same sixteen builds (31, #760, #807, #822).
+test('a park region keeps the portal promise over seeds, masks and parameters', () => assertParkPromise(SLOW_CASES));
+test('clumps keep an aisle from each other and respect portal margins', () => assertClumpSpacing(SLOW_CASES));
+test('a park is its own type, with trees and hedge fronts and no buildings', () => assertParkKinds(SLOW_CASES));
+test('pieces keep valid, in-footprint geometry at small and large cell sizes', () => assertPiecesAtSizes(SIZE_CASES.slow));
 
 // 36 portals with hedge fronts took about 13 s (types-62), so it runs in the slow tier.
 test('a rectangular park past 32 portals keeps every portal reachable', () => {

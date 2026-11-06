@@ -158,10 +158,13 @@ and the original seeds run in `tests/slow/` (#543, measured in
 `micro-block-promise` runs the first of four seeds on each mask and
 `slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds of its promise
 and spacing sweeps and `slow/micro-plant-promise` all eight, with #490's plant strips at
-three of forty seeds fast (in the builder contract) and all forty slow; `micro-park` runs one
-of eight seeds of its promise and cell-size sweeps and two of its clump-spacing and kind sweeps, and
-`slow/micro-park-promise` all eight, with the 36-portal park (#759, #760: cord-routed
-builders and park's hedge fronts cost several times more; #807); `micro-hut` runs one of
+three of forty seeds fast (in the builder contract) and all forty slow; `micro-park` runs its
+promise on every mask under every parameter set and its cell-size sweep at the first seed, and its
+clump-spacing and kind sweeps at two, and `slow/micro-park-promise` runs each mask under each
+parameter set once more, the seed rotating over 2 to 5, and each cell size at seeds 2 to 6, with the
+promise, spacing and kind checks reading the same sixteen builds (`SLOW_CASES`, #822; nine of them
+place trees, and the dense ones, one seed per mask, carry most of the spacing check), and the 36-portal park
+(#759, #760: cord-routed builders and park's hedge fronts cost several times more; #807); `micro-hut` runs one of
 sixteen seeds of its small-house sweep and `slow/micro-hut-sweeps` all sixteen; `micro-compound` runs its
 portal, roofed-ring and observer checks on seven cases at the first seed (each mask at the
 default two gates, one and three gates on the small yard, and four on the ell, where the
@@ -517,7 +520,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | --- | --- | --- | --- |
 | One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; the full chain sweep once, no drift. While iterating, `sweep --check FILE --type <type>` (adding `block` for a type block delegates to) is the inner loop (below) | the sweep 159 s, plus the type's own: hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
 | One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `micro-large-briefs` | about 3 min: the sweep 159 s and `micro-large-briefs` 25 s, plus the type's own |
-| Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 151 s |
+| Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 128 s |
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
 | Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too; the game-size report batch (`map-library`, `-8`, `-8-tail`); for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves the game-size batch to the slow tier on `main` (below) | 270 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
@@ -619,7 +622,7 @@ the sweep and the physics equality scripts (the table above).
 | `map-macro-sizes` | 16.9 s | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
 | `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
 
-**`micro`** (slow 151 s, browser 41 s; and the replay, 3.5 to 35 s a type)
+**`micro`** (slow 128 s, browser 41 s; and the replay, 3.5 to 35 s a type)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
@@ -630,7 +633,7 @@ the sweep and the physics equality scripts (the table above).
 | `micro-depot-sweeps`, `micro-depot-scale` | 13.9 s, 6.0 s | depot's promise and aisle access over its seeds; the stored witnesses' reach; the macro case's cord counts | the depot builder, the live cord |
 | `micro-large-briefs` | 25.3 s | the larger sizes' extreme briefs, for the 13 types they exceed 12 × 6 in (up to 88 portals, 11,484 cells), build and stay in their fill | any builder; macro only through a recapture |
 | `micro-hut-sweeps` | 4.9 s | small houses at sixteen seeds | the hut builder |
-| `micro-park-promise`, `micro-plant-promise` | 34.5 s, 15.3 s | each type's promise, spacing and kinds at every seed; park's 36-portal case; plant's forty #490 strips | that builder |
+| `micro-park-promise`, `micro-plant-promise` | 12.5 s, 15.3 s | park's promise, spacing and kinds on every mask and parameter set at rotating seeds, and its 36-portal case; plant's promise, spacing and kinds at every seed, and its forty #490 strips | that builder |
 | `micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo` (browser) | 18.0, 8.0, 5.8, 8.7 s | the micro labs in Chrome: controls, imports, downloads, walking, building views | the lab pages, `region-examples`, `brief-link`, building drawing; not builder output (below) |
 
 The micro labs compare what they show with a build in Node made by the same code, so a builder's
