@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { generate } from '../map/tools/core.ts';
 import {
-  MACRO_VIEWS, QUICK_CASES, VIEWS, compareSweep, macroHashes, positiveInteger, runCase, stableStringify, sweepCases, viewHashes,
+  MACRO_VIEWS, QUICK_CASES, VIEWS, compareSweep, macroHashes, positiveInteger, refuseDefects, runCase, stableStringify, sweepCases, sweepMap,
+  viewHashes,
 } from '../map/tools/sweep.mts';
 import { generateMacro } from '../map/chain.ts';
 
@@ -21,6 +22,24 @@ test('the quick cases match the committed baseline', () => {
     const pinned = Object.fromEntries(Object.keys(entries).map((key) => [key, BASELINE.entries[key]]));
     assert.deepEqual(compareSweep({ ...BASELINE, entries: pinned }, entries), [], sweepCase.id);
   }
+});
+
+// The sweep refuses a defective map rather than pinning it as one hash among many (#822); the
+// game-size report batch that once looked for defects on its own seeds retired for it.
+test('a map whose report has defects is refused, naming each map and defect', () => {
+  const made = sweepMap(SMALL, `${SMALL.seedPrefix}-1`);
+  assert.deepEqual(made.defects, [], "a whole map carries its report's defects");
+  assert.equal('defects' in sweepMap({ ...SMALL, stages: 'macro' }, `${SMALL.seedPrefix}-1`), false, 'a macro map has no report');
+  refuseDefects({});
+  assert.throws(() => refuseDefects({
+    'game/quick-2': [{ kind: 'missing-core-element', message: 'no exit' }],
+    'game/quick-1': [{ kind: 'stray-site', message: 'a spawn outside its region' }, { kind: 'broken-promise', message: 'portal w unreachable' }],
+  }), (error) => error.message === [
+    'the sweep refuses 2 maps whose report has defects:',
+    'game/quick-1: stray-site: a spawn outside its region',
+    'game/quick-1: broken-promise: portal w unreachable',
+    'game/quick-2: missing-core-element: no exit',
+  ].join('\n'));
 });
 
 test('the baseline pins the cases it names, and the full sweep includes the quick ones', () => {

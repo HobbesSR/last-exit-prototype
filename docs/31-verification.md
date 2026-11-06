@@ -109,11 +109,14 @@ region's first portal (the strategies' own siting rule in 54, not a contract), a
 portal promise within each non-open region under the thorough search. That map holds
 more region types than the default count's, and fails if the count is ignored. The
 default count's fast witness is the default game map `map-tools` already generates: the
-same checks but the portal search, about 10 ms. The slow report batch checks 20 seeds
-with 8 contestants (`map-library-8` and `map-library-8-tail`, ten each) and 5 with 24
-(`map-library`), at about 4 s a map; `slow/map-library` also runs the same checks with 8
+same checks but the portal search, about 10 ms. `slow/map-library` runs the same checks with 8
 contestants on the one map it diagnoses in full, the large open regions too.
-`tests/helpers/map-library-game.js` holds the checks and the batch they all share. Until
+`tests/helpers/map-library-game.js` holds the checks they all share. A slow report batch of
+25 library seeds (20 with 8 contestants, 5 with 24, 111 s) retired in #822: the chain sweep
+refuses any map whose report has defects, over its 161 game-size maps (53). The batch's 24-contestant
+maps kept the default 2 exits and 3 hunters; the sweep's `game-crowded` has 24 at 3 exits and 6 hunters,
+a different shape, so that combination went from five slow seeds and the fast `library-4` to
+`library-4` alone. Until
 #807 the fast file checked both counts with the portal search on each map (the search,
 not generation, was most of its 21.8 s isolated), and one slow file ran the whole batch
 (110 s).
@@ -346,7 +349,7 @@ Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
 a brief with the margins the chain applies, `chainFixtures`, the masks the builder
 contract runs, `reorderedBrief`), `block-masks.js`, the per-type `plant-fixtures.js`,
 `depot-fixtures.js` and `compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and
-slow files share), `map-library-game.js` (the game-size library map's checks and report batch, which the `map-library`
+slow files share), `map-library-game.js` (the game-size library map's checks, which the `map-library`
 files and `map-tools` share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
 (the bench and demo `--key=value` map), `room-harness.js` (which pins the legacy mover, `content-5` and
@@ -522,7 +525,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `micro-large-briefs` | about 3 min: the sweep 159 s and `micro-large-briefs` 25 s, plus the type's own |
 | Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 128 s |
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
-| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too; the game-size report batch (`map-library`, `-8`, `-8-tail`); for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves the game-size batch to the slow tier on `main` (below) | 270 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
+| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too and refuses a defective map; `slow/map-library`'s diagnosis; for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves `slow/map-library` to the slow tier on `main` (below) | 170 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep`, `bot-objective` | 52 s |
 | Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 54 s, 85 s with `map-sweep` |
@@ -612,13 +615,12 @@ the sweep and the physics equality scripts (the table above).
 | `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
 | `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
 
-**`macro`** (slow 128 s, browser at least 131 s; and the chain sweep, 159 s)
+**`macro`** (slow 28 s, browser at least 131 s; and the chain sweep, 159 s)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps and the larger sizes' 4 macro layers, naming the stage; `npm test` pins only the quick cases | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
-| `map-library` | 31.3 s | five 24-contestant game maps report no defects; one 8-contestant map's full diagnosis | macro, the library, builders: as a defect |
-| `map-library-8`, `-8-tail` | 42.5 s, 37.5 s | twenty 8-contestant game maps report no defects | the same |
+| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps and the larger sizes' 4 macro layers, naming the stage, and any map whose report has defects (refused when checking or capturing, #822); `npm test` pins only the quick cases | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
+| `map-library` | 11.3 s | one 8-contestant map's full diagnosis: every region's portal promise under the thorough search, open ones too | macro, the library, builders: as a defect |
 | `map-macro-sizes` | 16.9 s | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
 | `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
 
@@ -651,12 +653,13 @@ the sweep builds only 12 × 6 games and smaller playgrounds (53), so that file a
 the larger authored sizes hand a builder. It replaced `map-library-24` and `-36*`, which built
 whole maps at 102 to 148 s each (#821).
 
-**The game-size batch on a behaviour-preserving macro change** (Corey, 2026-11-05, #800 S5).
-The author does not run the game-size report batch (`map-library`, `-8`, `-8-tail`, 111 s) before
-the PR: with no drift the sweep shows its 161 game-size maps byte-identical, report included. The
-library's seeds are not the sweep's, so a seed-specific defect can still pass; the slow tier runs
-the batch on `main` after merge, and a failure there files an issue and is fixed forward. A
-content change, or any change that drifts, still runs it.
+**`slow/map-library` on a behaviour-preserving macro change** (Corey, 2026-11-05, #800 S5, for
+the batch it held then). The author does not run it before the PR: with no drift the sweep shows
+its 161 game-size maps byte-identical, report included. The slow tier runs it on `main` after
+merge, and a failure there files an issue and is fixed forward. A content change, or any change
+that drifts, still runs it. S5 was decided for the 25-map report batch, which was retired in
+#822, an agent's call that Corey left to judgement: its seeds were not the sweep's, but the sweep
+now refuses a defective map itself, and none of its 224 maps reported one.
 
 A new slow or browser member adds its row to its set's table here in the same change, and a
 member whose value is unclear is raised with Corey rather than dropped.

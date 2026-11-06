@@ -165,7 +165,9 @@ hashes are unchanged from the types-63 capture at `daf172bdf9e585e3f3c684e134242
   hash is a stop-and-escalate.
 - **A deliberate content change** says so in its PR, and recaptures the
   baseline last (`--out`), after the report shows no defects and maps play
-  acceptably. The capture refuses uncommitted changes to the chain's inputs
+  acceptably. The sweep refuses a map whose report has defects, whether
+  checking or capturing, and names each map and defect, so a capture cannot pin
+  one (#822). The capture refuses uncommitted changes to the chain's inputs
   and records the last commit that touched them. Content changes land switched
   off and are adopted in batches, one version bump and one recapture per batch
   ([31](31-verification.md#content-changes-one-bump-per-batch)).
