@@ -1,13 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveRecipeMismatch, LIVE_ZONE_SIZES } from '../../map/live.ts';
-import { generate } from '../../map/chain.ts';
-import { composeRegions } from '../../map/micro/compose.ts';
+import { generateLiveMap, liveChainParams, liveRecipeMismatch, LIVE_ZONE_SIZES } from '../../map/live.ts';
+import { generateMacro } from '../../map/chain.ts';
+import { mapViews } from '../../map/macro/src/chain/map.ts';
+import { builtMapFrame } from '../../map/micro/adapter.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { createGame, step } from '../../shared/simulation.ts';
 
+// Two maps: the claim is that the mechanism completes on a chain map, and more seeds only sample
+// for stalls. 4217, the third seed here until #822, is the one physics-navigation plays.
 test('combat-neutralized bots fill all three extraction slots on representative live chain maps', () => {
-  for (const seed of [1, 9, 4217]) {
+  for (const seed of [1, 9]) {
     const game = createGame(seed, generateLiveMap(seed));
     game.map.traps = [];
     for (const player of game.players) {
@@ -23,10 +26,13 @@ test('combat-neutralized bots fill all three extraction slots on representative 
   }
 });
 
+// Macro alone (#821): the recipe is all the map states, and the frame the adapter would give the
+// built map is its briefs' cell extent. Building the regions took 18 s and exercises the adapter
+// the 12 x 6 maps already run; what builders make of these briefs is micro-large-briefs' claim.
 test('a room can be generated at the larger authored size', () => {
   const size = LIVE_ZONE_SIZES[1];
-  const chain = generate('1', liveChainParams(defaultContent(), size));
+  const chain = generateMacro('1', liveChainParams(defaultContent(), size));
   assert.deepEqual(liveRecipeMismatch(chain), []);
-  const map = liveMapFromBuilt(1, composeRegions(chain.results), defaultContent());
-  assert.deepEqual([map.width, map.height], [34560, 17280]);
+  const { width, height } = builtMapFrame({ cellSize: chain.cellSize, regions: mapViews(chain).briefs.map(brief => ({ brief })) });
+  assert.deepEqual([width, height], [34560, 17280]);
 });

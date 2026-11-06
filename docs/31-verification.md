@@ -522,9 +522,9 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too; the game-size report batch (`map-library`, `-8`, `-8-tail`); for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves the game-size batch to the slow tier on `main` (below) | 270 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep`, `bot-objective` | 52 s |
-| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 82 s, 113 s with `map-sweep` |
+| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 54 s, 85 s with `map-sweep` |
 | Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser` | 56 s beyond the fast set |
-| Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`, `room-sizes-physics`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 48 s and 90 s |
+| Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`, `room-sizes-physics`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |
 | The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-physics`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
 | Shared geometry and math (`test:set geometry`) | the unit file | the full chain sweep (shapes reach every builder); the physics Node/Chrome equality scripts (`physics-world`, `-hook`, `-hook-live`, `-navigation`, 8 s), since simulation math must be bit-equal in Chrome | 167 s |
 | Tooling and docs | the unit file; `test:set tooling` | none; `npm run test:browser` when the browser runner changes | |
@@ -600,11 +600,11 @@ the sweep and the physics equality scripts (the table above).
 | `physics-playback`, `physics-geometry` | 1.6 s, 12.2 s | physics drawn from a retained frame without an engine; display circles only in an authorized dev view | the renderer's physics drawing, the projection |
 | `physics-ballistics`, `-jelly`, `-playtest` | 1.3 s, 2.2 s, 5.9 s | the physics labs replay their stored recordings and lay out without overflow | the labs (`public/dev/physics-lab*`), their report recordings |
 
-**`rooms`** (slow 65 s, browser 90 s)
+**`rooms`** (slow 37 s, browser 90 s)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| `live-map` (slow) | 47.8 s | legacy-mover bots fill all three extraction slots on three live chain maps; the larger authored size generates with a matching recipe | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
+| `live-map` (slow) | 19.9 s | legacy-mover bots fill all three extraction slots on two live chain maps; at the larger authored size macro states a room's recipe and the frame its briefs give is the room's size (the regions are not built: `micro-large-briefs` owns their builds, #822) | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
 | `room-sizes` (slow) | 6.8 s | a whole legacy room through the server loop: every tick recorded once in order, and the sparse replay timeline | rooms, recording, the replay timeline; size-dependent generation under `ROOM_SIZES` |
 | `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
 | `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
@@ -947,7 +947,7 @@ establishes nothing about the reported slowdown.
 loot, region/tier ownership, determinism and JSON prediction agreement. The
 boundary tests cover concave edges, holes and whole-body clearance while pinning
 legacy diamond movement. `tests/slow/live-map.test.js` plays combat-neutralized
-bots through all three extraction slots on seeds 1, 9 and 4217, each bounded by
+bots through all three extraction slots on seeds 1 and 9 (4217 is `physics-navigation`'s, #822), each bounded by
 the match duration so a stalled match fails rather than hangs. Transit strategy
 and macro library tests check hunter access, standing space, six separate owned
 regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bot
