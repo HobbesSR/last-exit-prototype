@@ -368,12 +368,21 @@ export class PhysicsWorld {
         this.native.getRigidBody(b.handle)!.wakeUp();
       }
     }
+    if (bodiesChanged) {
+      // Item drops commit one body at a time. Reuse the bounded dynamic list instead of
+      // scanning every map collider for each addition; native mutation order stays above.
+      this.sortedDynamic = this.sortedDynamic.filter(([id]) => !removed.has(id));
+      for (const spec of this.pendingAdd) {
+        if (spec.kind === 'static') continue;
+        const record = this.bodies.get(spec.id);
+        if (record) this.sortedDynamic.push([spec.id, record]);
+      }
+      this.sortedDynamic.sort(([a], [b]) => order(a, b));
+    }
     this.pendingRemove = []; this.pendingAdd = [];
     this.pendingRemoveConstraints = []; this.pendingAddConstraints = [];
     this.forces = this.forces.filter(entry => !removed.has(entry.id));
     this.impulses = this.impulses.filter(entry => !removed.has(entry.id));
-    if (bodiesChanged) this.sortedDynamic = [...this.bodies].filter(([, record]) => record.spec.kind !== 'static')
-      .sort(([a], [b]) => order(a, b));
   }
   hasBody(id: string): boolean { this.ensure(); return this.bodies.has(id); }
   hasConstraint(id: string): boolean { this.ensure(); return this.constraints.has(validId(id)); }

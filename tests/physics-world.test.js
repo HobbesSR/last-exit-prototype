@@ -187,6 +187,42 @@ test('compact snapshot omits static bodies but retains dynamic generation and pe
   } finally { world.dispose(); }
 });
 
+test('dynamic iteration stays sorted through mixed mutations without scanning map geometry', async () => {
+  const world = await createPhysicsWorld();
+  const wall = id => ({ id, kind: 'static', mapGeometry: true,
+    shape: { kind: 'box', hx: 2, hy: 2 }, x: 1000, y: 1000 });
+  // Catch an unbounded scan directly, without a timing threshold or a large map fixture.
+  const commit = () => {
+    world.bodies[Symbol.iterator] = () => { throw new Error('commit traversed all map bodies'); };
+    try { world.commitMutations(); } finally { delete world.bodies[Symbol.iterator]; }
+  };
+  const check = ids => {
+    const compact = world.snapshot({ includeStatic: false }).bodies;
+    assert.deepEqual(compact, world.snapshot().bodies.filter(body => body.spec.kind !== 'static'));
+    assert.deepEqual(compact.map(body => body.spec.id), ids);
+    assert.deepEqual(Object.keys(world.step().paths), ids);
+  };
+  try {
+    world.queueAddBody(circle('z', { x: 200 }));
+    world.queueAddBody(wall('b'));
+    world.queueAddBody(circle('a', { kind: 'actor' }));
+    commit(); check(['a', 'z']);
+    const generation = world.getGeneration('a');
+    world.queueRemoveBody('z'); world.queueAddBody(wall('z'));
+    world.queueRemoveBody('b'); world.queueAddBody(circle('b', { x: 100 }));
+    world.queueRemoveBody('a'); world.queueAddBody(circle('a', { x: -100 }));
+    world.queueAddBody(circle('cancelled')); world.queueRemoveBody('cancelled');
+    commit(); check(['a', 'b']);
+    assert.ok(world.getGeneration('a') > generation);
+    assert.equal(world.hasBody('cancelled'), false);
+    world.queueRemoveBody('z'); world.queueAddBody(wall('static-only'));
+    commit(); check(['a', 'b']);
+    world.queueRemoveBody('a'); world.queueRemoveBody('b');
+    commit(); check([]);
+    commit(); check([]);
+  } finally { world.dispose(); }
+});
+
 test('teleport detaches ropes and clears old motor, force, and impulse', async () => {
   const world = await createPhysicsWorld();
   try {
