@@ -66,8 +66,9 @@ test('inward authored military-quarter keeps its original interface and builds a
   }
   const searches = new Map();
   for (const { from, to, label } of targets) {
-    if (!searches.has(from)) searches.set(from, createRegionRouteSearch(access, shapes, from, hunter));
-    assert.ok(searches.get(from)(to), `hunter reaches ${label}`);
+    const key = `${from.x},${from.y}`;
+    if (!searches.has(key)) searches.set(key, createRegionRouteSearch(access, shapes, from, hunter));
+    assert.ok(searches.get(key)(to), `hunter reaches ${label}`);
   }
 
   // The portal promise over all 76 portals is not checked per run: its 75 routes cost about 35 s of
