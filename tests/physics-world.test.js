@@ -193,8 +193,11 @@ test('dynamic iteration stays sorted through mixed mutations without scanning ma
     shape: { kind: 'box', hx: 2, hy: 2 }, x: 1000, y: 1000 });
   // Catch an unbounded scan directly, without a timing threshold or a large map fixture.
   const commit = () => {
-    world.bodies[Symbol.iterator] = () => { throw new Error('commit traversed all map bodies'); };
-    try { world.commitMutations(); } finally { delete world.bodies[Symbol.iterator]; }
+    const scans = [Symbol.iterator, 'values', 'keys', 'entries', 'forEach'];
+    for (const method of scans) world.bodies[method] = () => { throw new Error('commit traversed all map bodies'); };
+    try { world.commitMutations(); } finally {
+      for (const method of scans) delete world.bodies[method];
+    }
   };
   const check = ids => {
     const compact = world.snapshot({ includeStatic: false }).bodies;
