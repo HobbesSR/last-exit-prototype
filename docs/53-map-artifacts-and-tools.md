@@ -170,8 +170,8 @@ and market on a live cord, batched cord commits, 42.33).
 A builder change can't move anything upstream of the briefs, yet the full sweep
 regenerates every map to find which `built` views moved. The replay (#541,
 `map/tools/sweep-briefs.mts`) is the check for a change to one region type's builder.
-It stands in for the full sweep when it replays every type the change reaches and finds no
-drift; the full sweep stays the check for anything upstream of the briefs, for code several
+Under a working rule pending Corey's decision (#800 S5), it stands in for the full sweep when it
+replays every type the change reaches and finds no drift; the full sweep stays the check for anything upstream of the briefs, for code several
 types share, for a content change, and the only way to recapture
 ([31](31-verification.md#the-replay-or-the-full-sweep)).
 

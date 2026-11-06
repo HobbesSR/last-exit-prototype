@@ -430,8 +430,9 @@ Every test file belongs to exactly one set, named for what it validates (#800). 
 holds the catalog: each set's fast, slow and browser members, and the source paths whose change
 should prompt it. `tests/sets.test.js` fails when a file is in no set or two, or when a member
 names no file, so a new test file names its set in the same change. A browser script is found by
-its name (`tests/*.browser.mjs`, `map/tools/tests/*.browser.mts` and `tests/browser.mjs`), so a
-new one cannot escape the catalog either.
+its name (`*.browser.mjs` or `.mts` in `tests/` or `map/tools/tests/`, and `tests/browser.mjs`), so a
+new one there cannot escape the catalog either; a browser script in another directory needs
+that directory added to `BROWSER_DIRS`.
 
 | Set | Validates |
 | --- | --- |
@@ -449,7 +450,7 @@ npm run brief -- test:set physics            # the set's fast files
 npm run brief -- test:set micro:depot        # the micro files whose name holds "depot"
 npm run brief -- test:set rooms --slow       # fast and slow files
 npm run brief -- test:set physics --browser  # then its browser scripts, one at a time
-node tests/sets.mjs browser micro           # browser scripts alone: these sets', or every set's with none named
+node tests/sets.mjs browser micro           # browser scripts alone: these sets' (or set:word), or every set's with none named
 node tests/sets.mjs list                     # sets, member counts and recorded time
 node tests/sets.mjs changed                  # the sets whose sources this branch touched
 ```
@@ -483,11 +484,11 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 
 | Changed area | Inner loop | Integration | Alone, 2026-11-05 |
 | --- | --- | --- | --- |
-| One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; `sweep --check FILE --type <type>`, adding `block` for a type block delegates to (below); no drift | hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
+| One region type's builder, behaviour-preserving | the type's files (`npm run brief -- test:set micro:plant`); its builder-contract row (`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`) | the type's slow files; `sweep --check FILE --type <type>`, adding `block` for a type block delegates to, under the working rule below; no drift | hut 18 s (`micro-hut-sweeps` 5 s, replays of hut and block 13 s); plant 22 s; depot 34 s; park 70 s |
 | One region type's builder, content change | the same | the type's slow files; the type's replay to see what moved; then the full chain sweep, recaptured last (53), and `validate --diagnose true` on the maps it names; `map-library-24` and `-36*` when what a region holds moves (its loot, set-piece share) | about 9 to 10 min: the sweep 159 s and the larger sizes 353 s, plus the type's own |
 | Builder machinery shared by several types (`scatter`, cover execution, the live cord, `map/kernel/`) | the builder contract (`test:set micro:builder-contract`) | every builder's slow files the change reaches; the full chain sweep, no drift unless declared | sweep 159 s; the micro slow files together 264 s |
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
-| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep; `map-library-24`, `-36` and `-36-tail`, the sizes the sweep doesn't hold; for a content change also the game-size report batch (`map-library`, `-8`, `-8-tail`) and the recapture | 512 s behaviour-preserving, 623 s for a content change |
+| Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep; every `map-library` slow file: the game-size report batch (`map-library`, `-8`, `-8-tail`) and `map-library-24`, `-36` and `-36-tail`, the sizes the sweep doesn't hold; the recapture for a content change. Leaving the game-size batch to content changes only is proposed, not decided (below) | 623 s |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep`, `bot-objective` | 52 s |
 | Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `bot-objective`, `live-map`; `map-sweep` too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 82 s, 113 s with `map-sweep` |
@@ -503,7 +504,9 @@ never regenerated to make a check pass (below), and timing comparisons run seque
 
 <a id="the-replay-or-the-full-sweep"></a>
 
-**The replay or the full sweep.** `sweep --check FILE --type <types>` rebuilds every cached
+**The replay or the full sweep.** This is the working rule until Corey decides it with the rest of
+#800 S5; before #808, 53 had the replay never stand in for the full sweep.
+`sweep --check FILE --type <types>` rebuilds every cached
 brief of those types with the current builders and compares each result's hash (53). A replay
 with no drift means those types' regions are byte-identical on every sweep map, so the full sweep
 would show no drift either, provided the list holds every type whose builder reaches the change:
@@ -541,7 +544,7 @@ the sweep and the physics equality scripts (the table above).
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `art-witness` | 8.1 s | the real arena renderer's pixels over six palettes, fog, roofs and LOD cutoffs; glass alpha; withheld entities stay undrawn | the renderer, appearance, palette, art assets |
-| `overhead` | 25.0 s | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
+| `overhead` | 25.0 s (its seam pixel check fails in some worktrees, #818) | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
 | `dev-view` | 23.0 s | a player tab, the dev tab it opens and what the dev tab does to the room | the dev view (client and server), room dev tools |
 
 **`simulation`** (slow 65 s, browser 17 s)
@@ -611,6 +614,12 @@ defect, a crash or a stalled bot, which the sweep's `built` and `report` hashes 
 and `map-library-36*`: the sweep's chain cases are 12 × 6 games and smaller playgrounds (53), so
 those files alone check the report at the larger authored sizes. They took 102 to 148 s each on
 2026-11-05, over the 60 s budget (#808 notes it as debt).
+
+**Pending a decision (#800 S5, #817).** For a behaviour-preserving macro change, the game-size
+report batch (`map-library`, `-8`, `-8-tail`, 111 s) may add little: with no drift the sweep has
+shown its 161 game-size maps byte-identical, report included. But the library's seeds are not the
+sweep's, so a seed-specific defect could pass, and no probe was found to show either way. Until
+Corey decides, the batch stays in the macro row.
 
 A new slow or browser member adds its row to its set's table here in the same change, and a
 member whose value is unclear is raised with Corey rather than dropped.
@@ -836,7 +845,8 @@ branch outside them can pass both and still change how saved maps regenerate.
 - A change meant to preserve behaviour, or an experiment switched off, needs a clean
   `sweep --check` before its PR. That is evidence for the covered corpus, not proof for every map;
   where a change could reach an uncovered case, add a focused test for that case too. A replay
-  stands in for it only on the terms of [The replay or the full sweep](#the-replay-or-the-full-sweep).
+  stands in for it only on the terms of [The replay or the full sweep](#the-replay-or-the-full-sweep),
+  a working rule pending #800 S5.
 - A change that alters default output anywhere is a content change, even if the sweep shows no
   drift: it joins a batch (step 3).
 - Drift in a change meant to preserve behaviour is a stop-and-escalate (53).

@@ -10,13 +10,13 @@ import { pathToFileURL } from 'node:url';
 //   npm run brief -- test:set micro:depot        the micro files whose name holds "depot"
 //   npm run brief -- test:set rooms --slow       fast and slow files
 //   npm run brief -- test:set physics --browser  then its browser scripts, one at a time
-//   node tests/sets.mjs browser [set ...]        browser scripts alone: every set's (npm run test:browser) or these
+//   node tests/sets.mjs browser [set|set:word ...]  browser scripts alone: every set's (npm run test:browser) or these
 //   node tests/sets.mjs list                     sets, member counts and recorded time
 //   node tests/sets.mjs changed [base]           sets whose sources this branch touched
 // Members are file stems (`physics-world` is tests/physics-world.test.js, tests/slow/…, or
 // tests/physics-world.browser.mjs), or a prefix ending in `*` for a family that shares one.
-// A browser script drives Chrome: tests/*.browser.mjs, map/tools/tests/*.browser.mts and
-// tests/browser.mjs. Why each set's slow and browser members exist is 31's per-set table.
+// A browser script drives Chrome: *.browser.mjs or .mts in BROWSER_DIRS, and tests/browser.mjs. A script
+// in another directory is found only once its directory joins BROWSER_DIRS. Why each set's slow and browser members exist is 31's per-set table.
 
 /** @type {Record<string, { about: string, fast: string[], slow?: string[], browser?: string[], sources: string[] }>} */
 export const SETS = {
@@ -130,7 +130,7 @@ export function setsFor(changed) {
   return Object.keys(SETS).filter(name => changed.some(file => SETS[name].sources.some(glob => path.matchesGlob(file, glob))));
 }
 
-const USAGE = 'usage: node tests/sets.mjs <set|set:word ...> [--slow] [--browser] | browser [set ...] | list | changed [base]';
+const USAGE = 'usage: node tests/sets.mjs <set|set:word ...> [--slow] [--browser] | browser [set|set:word ...] | list | changed [base]';
 
 const recordedMs = () => {
   try {
