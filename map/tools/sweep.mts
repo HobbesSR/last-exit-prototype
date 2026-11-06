@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { mapViews } from '../macro/src/chain/map.ts';
-import { generate } from './core.ts';
+import { generate, generateMacro } from './core.ts';
 import type { ToolMap } from './core.ts';
 import { GAME_ENGINES } from './engines.ts';
 
@@ -26,8 +26,11 @@ import { GAME_ENGINES } from './engines.ts';
 export const VIEWS = ['layout', 'results', 'declaredGrid', 'resolved', 'regions', 'proof', 'zones', 'briefs', 'built', 'report'] as const;
 export type View = (typeof VIEWS)[number];
 export type ViewHashes = Record<View, string>;
+/** What macro gives, placement through the briefs: all a `stages: 'macro'` case hashes. */
+export const MACRO_VIEWS = ['layout', 'declaredGrid', 'resolved', 'regions', 'proof', 'zones', 'briefs'] as const satisfies readonly View[];
+export type MacroHashes = Record<(typeof MACRO_VIEWS)[number], string>;
 /** A seed the chain refused is pinned by its message. */
-export type SweepEntry = ViewHashes | { error: string };
+export type SweepEntry = ViewHashes | MacroHashes | { error: string };
 export type SweepEntries = Record<string, SweepEntry>;
 
 /**
@@ -43,6 +46,12 @@ export interface SweepCase {
   params: Record<string, unknown>;
   seedPrefix: string;
   count: number;
+  /**
+   * `macro` stops at the briefs and builds nothing (#821). The larger authored sizes are swept
+   * this way: what a builder makes of their briefs is checked from stored briefs
+   * (`tests/slow/micro-large-briefs.test.js`), and composing and reporting only at 12 × 6.
+   */
+  stages?: 'macro';
 }
 export interface SweepBaseline {
   provenance: { commit: string; capturedAt: string; node: string; cases: SweepCase[] };
@@ -87,8 +96,19 @@ export function sweepCases(requested: unknown = 120): SweepCase[] {
     { id: 'playground-4x2', params: playground(4, 2), seedPrefix: 'sweep', count: spread },
     { id: 'playground-6x3', params: playground(6, 3), seedPrefix: 'sweep', count: spread },
     ...QUICK_CASES,
+    ...LARGER_CASES,
   ];
 }
+
+/**
+ * The larger authored sizes, macro only (#821): two seeds each, since a 36 × 18 layout holds
+ * about 2,000 regions. Their builds cost about 85% of a whole map and repeat what the stored
+ * briefs check.
+ */
+export const LARGER_CASES: SweepCase[] = [
+  { id: 'macro-24x12', params: { zoneWidth: 24, zoneHeight: 12 }, seedPrefix: 'size', count: 2, stages: 'macro' },
+  { id: 'macro-36x18', params: { zoneWidth: 36, zoneHeight: 18 }, seedPrefix: 'size', count: 2, stages: 'macro' },
+];
 
 /**
  * JSON with sorted keys, typed arrays as arrays, and non-finite numbers spelled out:
@@ -128,10 +148,23 @@ export function viewHashes(map: ToolMap): ViewHashes {
   return Object.fromEntries(VIEWS.map((view) => [view, contentHash(content[view])])) as ViewHashes;
 }
 
-/** A seed's map with its hashes, or, for a seed the chain refused, the message alone. */
+/** Macro's views of a map, hashed by content. Nothing built is read. */
+export function macroHashes(map: ToolMap): MacroHashes {
+  const views = mapViews(map);
+  return Object.fromEntries(MACRO_VIEWS.map((view) => [view, contentHash(view === 'layout' ? map.layout : views[view])])) as MacroHashes;
+}
+
+/**
+ * A seed's map with its hashes, or, for a seed the chain refused, the message alone. A macro
+ * case's map has no results, and its entry only macro's views.
+ */
 export function sweepMap(sweepCase: SweepCase, seed: string):
-  { entry: ViewHashes; map: ToolMap } | { entry: { error: string }; map?: undefined } {
+  { entry: ViewHashes; map: ToolMap } | { entry: MacroHashes; map: ToolMap; macro: true } | { entry: { error: string }; map?: undefined } {
   try {
+    if (sweepCase.stages === 'macro') {
+      const map = generateMacro(seed, sweepCase.params);
+      return { entry: macroHashes(map), map, macro: true };
+    }
     const map = generate(seed, sweepCase.params);
     return { entry: viewHashes(map), map };
   } catch (error) {
@@ -238,7 +271,8 @@ export function compareSweep(baseline: SweepBaseline, current: SweepEntries): Dr
     else if ('error' in was || 'error' in now) {
       if (stableStringify(was) !== stableStringify(now)) drift.push({ key, views: ['error'] });
     } else {
-      const views = VIEWS.filter((view) => was[view] !== now[view]);
+      // A macro entry has only macro's views; one that gains or loses the rest moves them.
+      const views = VIEWS.filter((view) => (was as Partial<ViewHashes>)[view] !== (now as Partial<ViewHashes>)[view]);
       if (views.length) drift.push({ key, views });
     }
   }

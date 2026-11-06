@@ -78,19 +78,24 @@ export function build(brief) {
   return { result, found: fill.length ? [`leaves the allowed fill area: ${fill.join(' ')}`] : [] };
 }
 
-/** The result, and the problems one build has: empty when it keeps every promise a builder owes. */
-function check(type, brief) {
+/**
+ * The result, and the problems one build has: empty when it keeps every promise a builder owes.
+ * The core elements asked for are the brief's own, so a stored chain brief checks the same way
+ * as a fixture (`tests/slow/micro-large-briefs.test.js`). That file turns off `reach` and
+ * `reorder`: on its largest briefs the thorough search costs up to 80 s where the build costs one.
+ */
+export function checkBrief(brief, { reach = true, reorder = true } = {}) {
   const { result, found } = build(brief);
   if (!result) return { found };
   // The promise as map diagnosis checks it: the thorough search, which retries only grid misses, so
   // cords a live witness finds between pieces off the grid count (20.10).
-  const reach = validatePortalReach({ ...result.brief, blockers: result.elements.flatMap(e => elementShapes(e)) }, { search: 'thorough' }).errors;
-  if (reach.length) found.push(`breaks the portal promise: ${reach.join(' ')}`);
+  const errors = reach ? validatePortalReach({ ...result.brief, blockers: result.elements.flatMap(e => elementShapes(e)) }, { search: 'thorough' }).errors : [];
+  if (errors.length) found.push(`breaks the portal promise: ${errors.join(' ')}`);
   if (result.manifest.cells !== brief.cells.length) found.push(`manifest counts ${result.manifest.cells} cells of ${brief.cells.length}`);
-  const asked = Object.values(CORE[type] ?? {}).reduce((sum, count) => sum + count, 0);
+  const asked = Object.values(brief.coreElements ?? {}).reduce((sum, count) => sum + count, 0);
   if (result.coreElements.length !== asked) found.push(`sites ${result.coreElements.length} of ${asked} core elements`);
   // The second build must equal the first. If it doesn't, a third on the original brief says why.
-  if (!found.length) {
+  if (reorder && !found.length) {
     try {
       if (content(buildRegion(reorderedBrief(brief, brief.seed))) !== content(result)) found.push(content(buildRegion(brief)) === content(result)
         ? 'builds differently when the brief lists its cells in another order' : 'builds differently each time from the same brief');
@@ -109,7 +114,7 @@ export function contractTests(types, seeds = fastSeeds) {
       let cases = 0;
       for (const fixture of chainFixtures()) for (const seed of seeds) {
         const brief = chainBrief({ ...fixture, id: `${type}-${fixture.name}`, seed, type, parameters: FORCED[type], coreElements: CORE[type] });
-        const checked = check(type, brief);
+        const checked = checkBrief(brief);
         for (const problem of checked.found) found.push(`${fixture.name}, seed ${seed}: ${problem}`);
         if (checked.result?.elements.length) built.add(fixture.name);
         cases++;

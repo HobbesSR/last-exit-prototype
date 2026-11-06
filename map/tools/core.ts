@@ -12,7 +12,7 @@ import { diagnoseBuiltMap } from '../micro/diagnose.ts';
 import type { BrokenPromise } from '../micro/diagnose.ts';
 import { GAME_ENGINES } from './engines.ts';
 
-export { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary, chainParams, generate, validateLibrary } from '../chain.ts';
+export { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary, chainParams, generate, generateMacro, validateLibrary } from '../chain.ts';
 export type ToolMap = GameChainMap;
 
 
