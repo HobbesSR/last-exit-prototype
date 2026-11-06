@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "commit": "daf172bdf9e585e3f3c684e13424287bf3fd2ac1",
-    "capturedAt": "2026-11-02T01:31:46.740Z",
+    "commit": "eee62fff1c40585c87c6376a4735b0ff2b7e314c",
+    "capturedAt": "2026-11-06T04:53:30.568Z",
     "node": "v24.15.0",
     "cases": [
       {
@@ -73,6 +73,26 @@
         "params": {},
         "seedPrefix": "quick",
         "count": 1
+      },
+      {
+        "id": "macro-24x12",
+        "params": {
+          "zoneWidth": 24,
+          "zoneHeight": 12
+        },
+        "seedPrefix": "size",
+        "count": 2,
+        "stages": "macro"
+      },
+      {
+        "id": "macro-36x18",
+        "params": {
+          "zoneWidth": 36,
+          "zoneHeight": 18
+        },
+        "seedPrefix": "size",
+        "count": 2,
+        "stages": "macro"
       }
     ]
   },
@@ -2764,6 +2784,42 @@
       "briefs": "6e4b7b19df8314e2",
       "built": "4a58a2c20347f87b",
       "report": "6b360d24cd72116e"
+    },
+    "macro-24x12/size-1": {
+      "layout": "abbf93b5c61d15c6",
+      "declaredGrid": "eb7d0571084e25e3",
+      "resolved": "92b67b4eb5055ff0",
+      "regions": "3cf47ee6fdf63cae",
+      "proof": "868316eb3cdaf767",
+      "zones": "6cd6d0a04a12fd4b",
+      "briefs": "70795197e92f895b"
+    },
+    "macro-24x12/size-2": {
+      "layout": "00059b4656e637b5",
+      "declaredGrid": "764c0a75dd00dfde",
+      "resolved": "80208ba1c4c62a7e",
+      "regions": "658cd60d6276203e",
+      "proof": "6932f5a0b2f38f87",
+      "zones": "6cd6d0a04a12fd4b",
+      "briefs": "c4da8505afe2aeef"
+    },
+    "macro-36x18/size-1": {
+      "layout": "95a616f6efc75a70",
+      "declaredGrid": "4f1f1cd2715957c1",
+      "resolved": "062c22f7ea8fb94d",
+      "regions": "8b43c54ebee1f26b",
+      "proof": "80f8d29985e11d91",
+      "zones": "46a3a6164685f46a",
+      "briefs": "7b81a4a6236c7ff6"
+    },
+    "macro-36x18/size-2": {
+      "layout": "0f792367d3b8722d",
+      "declaredGrid": "36f145ca2518a66e",
+      "resolved": "940ce0bbf4688f76",
+      "regions": "342bb4fb6680cc32",
+      "proof": "1a0449c5b7be5df1",
+      "zones": "46a3a6164685f46a",
+      "briefs": "f73e828ea137bca8"
     }
   }
 }
