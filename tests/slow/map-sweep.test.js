@@ -4,9 +4,25 @@ import { createGame, TILE } from '../../shared/simulation.ts';
 import { canOccupy } from '../../shared/movement.ts';
 import { navigationGrid } from '../../shared/map.ts';
 import PF from 'pathfinding';
+import { seeds as FIXTURE_SEEDS } from '../characterization-scenarios.js';
 
-test('200 generated maps have a no-key route for both body sizes', () => {
-  for (let seed = 1; seed <= 200; seed++) {
+/**
+ * The legacy generator (`shared/map/generate.ts`) makes the arenas tests play on; no room is
+ * served one. Its output is pinned by the characterization map hashes on the fixture's four
+ * seeds, so a sweep over unchanged code repeats one answer. Seeds 1 to 20 and the fixture's own
+ * are the per-run witness (about 3 s). A change to the generator, `canOccupy` or the navigation
+ * grid runs the full sweep with `LEGACY_MAP_SEEDS=200` (31; 200 seeds took 31 s, #822).
+ */
+const count = (() => {
+  const text = process.env.LEGACY_MAP_SEEDS;
+  if (text === undefined) return 20;
+  if (!/^[1-9]\d{0,3}$/.test(text)) throw new RangeError(`LEGACY_MAP_SEEDS must be a whole number from 1 to 9999, not "${text}".`);
+  return Number(text);
+})();
+const SEEDS = [...new Set([...Array.from({ length: count }, (_, i) => i + 1), ...FIXTURE_SEEDS])];
+
+test(`legacy maps have a no-key route for both body sizes: seeds 1 to ${count} and the fixture's`, () => {
+  for (const seed of SEEDS) {
     const s = createGame(seed);
     for (const role of ['contestant', 'gladiator']) {
       const matrix = navigationGrid(s.map, role);
