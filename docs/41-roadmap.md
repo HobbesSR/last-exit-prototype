@@ -94,6 +94,8 @@ more to navigate around, and geometry near or up to region perimeters that carry
 guarantee, through SDK tools builders can opt into. The stages are:
 
 1. #836: measure what keeps unguaranteed edges clear, per builder. It absorbs #758's bay check and #762.
+   Measured in [42.34](42.34-edge-clearance.md): portal pitch and 20.6 end caps leave one fillable cell
+   in a typical unguaranteed run, so builders reach little of their edge.
 2. #837: one cord-aware perimeter-reach helper. It absorbs #758's pocket growth and #707.
 3. #838: adoption in suitable builders as one content batch, starting from #716's prototype.
 4. #761: the map-scale lever, judged after #838.

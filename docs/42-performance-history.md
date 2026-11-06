@@ -41,6 +41,8 @@ Where live-cord generation time goes, and two exact savings (36 wide 50.4 s → 
 [42.32](42.32-cord-generation-cost.md) (#767).
 Cover, ruins, depot, hall and market moved to a live cord, with batched commits and two more exact
 search savings (36 wide at main's cost, 46.3 s), are in [42.33](42.33-live-cord-rollout.md) (#787).
+What keeps region edges without a passability guarantee clear, per side class and builder, with seams,
+#758's park bays and #762's inward strips, is in [42.34](42.34-edge-clearance.md) (#836).
 
 The current unresolved slowdown is recorded below. Historical runtime measurements are in [42.2](42.2-runtime-performance.md), generation and delegation measurements in [42.3](42.3-generation-and-delegation-evidence.md), and map chain captures in [42.4](42.4-chain-checkpoint-history.md). The navigation experiment remains in [42.1](42.1-navigation-experiment.md), the portal graph's first measurements are in [42.5](42.5-portal-graph.md), its free-space mesh bottom level in [42.7](42.7-navigation-mesh.md), bots' adoption of the tile planner in [42.8](42.8-bot-adoption.md), replanning spread over ticks in [42.10](42.10-sliced-replanning.md), and local repair in [42.13](42.13-local-repair.md).
 

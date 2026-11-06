@@ -1,0 +1,7241 @@
+{
+ "version": "edge-clearance-1",
+ "definitions": "docs/51.10-measurement.md",
+ "results": "docs/42.34-edge-clearance.md",
+ "revision": "6ac2b5c0d910efb700f50ce451e02d4536b55e4f",
+ "node": "v24.15.0",
+ "maps": [
+  {
+   "source": "generated 2c3b97b9e81c808495d1e8e92f5f948e308268b083b0eb52d7a593af7746052e",
+   "seed": "size-12-1",
+   "cellSize": 48,
+   "regions": 287,
+   "byClass": {
+    "contestant": {
+     "edge": {
+      "samples": 2160,
+      "blocked": 2160,
+      "ownBlocked": 264,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "guaranteed": {
+      "samples": 12616,
+      "blocked": 160,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 12456,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "unguaranteed": {
+      "samples": 8616,
+      "blocked": 1692,
+      "ownBlocked": 874,
+      "otherOnlyBlocked": 776,
+      "walkable": 6924,
+      "why": {
+       "cap": 3934,
+       "strip": 946,
+       "empty": 1899,
+       "setback": 144,
+       "near": 1
+      }
+     }
+    },
+    "hunter": {
+     "edge": {
+      "samples": 2160,
+      "blocked": 2160,
+      "ownBlocked": 318,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "guaranteed": {
+      "samples": 12616,
+      "blocked": 160,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 12456,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "unguaranteed": {
+      "samples": 8616,
+      "blocked": 1842,
+      "ownBlocked": 962,
+      "otherOnlyBlocked": 840,
+      "walkable": 6774,
+      "why": {
+       "cap": 3856,
+       "strip": 891,
+       "empty": 1892,
+       "setback": 135,
+       "near": 0
+      }
+     }
+    }
+   },
+   "all": {
+    "contestant": {
+     "samples": 23392,
+     "blocked": 4012,
+     "ownBlocked": 1138,
+     "otherOnlyBlocked": 776,
+     "walkable": 19380,
+     "why": {
+      "cap": 3934,
+      "strip": 946,
+      "empty": 1899,
+      "setback": 144,
+      "near": 1
+     }
+    },
+    "hunter": {
+     "samples": 23392,
+     "blocked": 4162,
+     "ownBlocked": 1280,
+     "otherOnlyBlocked": 840,
+     "walkable": 19230,
+     "why": {
+      "cap": 3856,
+      "strip": 891,
+      "empty": 1892,
+      "setback": 135,
+      "near": 0
+     }
+    }
+   },
+   "unguaranteedByType": {
+    "contestant": {
+     "arrival": {
+      "samples": 42,
+      "blocked": 7,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 6,
+      "walkable": 35,
+      "why": {
+       "cap": 22,
+       "strip": 0,
+       "empty": 12,
+       "setback": 1,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 7,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 6,
+       "walkable": 35,
+       "why": {
+        "cap": 22,
+        "strip": 0,
+        "empty": 12,
+        "setback": 1,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 192,
+      "blocked": 28,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 28,
+      "walkable": 164,
+      "why": {
+       "cap": 112,
+       "strip": 2,
+       "empty": 50,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 192,
+       "blocked": 28,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 28,
+       "walkable": 164,
+       "why": {
+        "cap": 112,
+        "strip": 2,
+        "empty": 50,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "charging": {
+      "samples": 144,
+      "blocked": 33,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 32,
+      "walkable": 111,
+      "why": {
+       "cap": 69,
+       "strip": 12,
+       "empty": 30,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 33,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 32,
+       "walkable": 111,
+       "why": {
+        "cap": 69,
+        "strip": 12,
+        "empty": 30,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 360,
+      "blocked": 36,
+      "ownBlocked": 4,
+      "otherOnlyBlocked": 32,
+      "walkable": 324,
+      "why": {
+       "cap": 222,
+       "strip": 2,
+       "empty": 98,
+       "setback": 2,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 360,
+       "blocked": 36,
+       "ownBlocked": 4,
+       "otherOnlyBlocked": 32,
+       "walkable": 324,
+       "why": {
+        "cap": 222,
+        "strip": 2,
+        "empty": 98,
+        "setback": 2,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 690,
+      "blocked": 159,
+      "ownBlocked": 46,
+      "otherOnlyBlocked": 110,
+      "walkable": 531,
+      "why": {
+       "cap": 351,
+       "strip": 31,
+       "empty": 126,
+       "setback": 23,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 690,
+       "blocked": 159,
+       "ownBlocked": 46,
+       "otherOnlyBlocked": 110,
+       "walkable": 531,
+       "why": {
+        "cap": 351,
+        "strip": 31,
+        "empty": 126,
+        "setback": 23,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 42,
+      "blocked": 4,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 4,
+      "walkable": 38,
+      "why": {
+       "cap": 26,
+       "strip": 0,
+       "empty": 12,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 4,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 4,
+       "walkable": 38,
+       "why": {
+        "cap": 26,
+        "strip": 0,
+        "empty": 12,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 234,
+      "blocked": 10,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 10,
+      "walkable": 224,
+      "why": {
+       "cap": 148,
+       "strip": 4,
+       "empty": 72,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 234,
+       "blocked": 10,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 10,
+       "walkable": 224,
+       "why": {
+        "cap": 148,
+        "strip": 4,
+        "empty": 72,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 264,
+      "blocked": 178,
+      "ownBlocked": 178,
+      "otherOnlyBlocked": 0,
+      "walkable": 86,
+      "why": {
+       "cap": 85,
+       "strip": 1,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 264,
+       "blocked": 178,
+       "ownBlocked": 178,
+       "otherOnlyBlocked": 0,
+       "walkable": 86,
+       "why": {
+        "cap": 85,
+        "strip": 1,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 216,
+      "blocked": 30,
+      "ownBlocked": 6,
+      "otherOnlyBlocked": 21,
+      "walkable": 186,
+      "why": {
+       "cap": 67,
+       "strip": 56,
+       "empty": 54,
+       "setback": 8,
+       "near": 1
+      },
+      "hinted": {
+       "samples": 216,
+       "blocked": 30,
+       "ownBlocked": 6,
+       "otherOnlyBlocked": 21,
+       "walkable": 186,
+       "why": {
+        "cap": 67,
+        "strip": 56,
+        "empty": 54,
+        "setback": 8,
+        "near": 1
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 144,
+      "blocked": 12,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 12,
+      "walkable": 132,
+      "why": {
+       "cap": 90,
+       "strip": 0,
+       "empty": 42,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 12,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 12,
+       "walkable": 132,
+       "why": {
+        "cap": 90,
+        "strip": 0,
+        "empty": 42,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 2958,
+      "blocked": 290,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 269,
+      "walkable": 2668,
+      "why": {
+       "cap": 1378,
+       "strip": 445,
+       "empty": 845,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2022,
+       "blocked": 209,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 199,
+       "walkable": 1813,
+       "why": {
+        "cap": 1124,
+        "strip": 105,
+        "empty": 584,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 936,
+       "blocked": 81,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 70,
+       "walkable": 855,
+       "why": {
+        "cap": 254,
+        "strip": 340,
+        "empty": 261,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 1050,
+      "blocked": 288,
+      "ownBlocked": 128,
+      "otherOnlyBlocked": 159,
+      "walkable": 762,
+      "why": {
+       "cap": 511,
+       "strip": 40,
+       "empty": 189,
+       "setback": 22,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1050,
+       "blocked": 288,
+       "ownBlocked": 128,
+       "otherOnlyBlocked": 159,
+       "walkable": 762,
+       "why": {
+        "cap": 511,
+        "strip": 40,
+        "empty": 189,
+        "setback": 22,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 456,
+      "blocked": 77,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 76,
+      "walkable": 379,
+      "why": {
+       "cap": 261,
+       "strip": 3,
+       "empty": 115,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 456,
+       "blocked": 77,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 76,
+       "walkable": 379,
+       "why": {
+        "cap": 261,
+        "strip": 3,
+        "empty": 115,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 1584,
+      "blocked": 519,
+      "ownBlocked": 508,
+      "otherOnlyBlocked": 0,
+      "walkable": 1065,
+      "why": {
+       "cap": 452,
+       "strip": 340,
+       "empty": 185,
+       "setback": 88,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 648,
+       "blocked": 438,
+       "ownBlocked": 438,
+       "otherOnlyBlocked": 0,
+       "walkable": 210,
+       "why": {
+        "cap": 198,
+        "strip": 12,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 936,
+       "blocked": 81,
+       "ownBlocked": 70,
+       "otherOnlyBlocked": 0,
+       "walkable": 855,
+       "why": {
+        "cap": 254,
+        "strip": 328,
+        "empty": 185,
+        "setback": 88,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 240,
+      "blocked": 21,
+      "ownBlocked": 4,
+      "otherOnlyBlocked": 17,
+      "walkable": 219,
+      "why": {
+       "cap": 140,
+       "strip": 10,
+       "empty": 69,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 240,
+       "blocked": 21,
+       "ownBlocked": 4,
+       "otherOnlyBlocked": 17,
+       "walkable": 219,
+       "why": {
+        "cap": 140,
+        "strip": 10,
+        "empty": 69,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    },
+    "hunter": {
+     "arrival": {
+      "samples": 42,
+      "blocked": 8,
+      "ownBlocked": 2,
+      "otherOnlyBlocked": 6,
+      "walkable": 34,
+      "why": {
+       "cap": 22,
+       "strip": 0,
+       "empty": 12,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 8,
+       "ownBlocked": 2,
+       "otherOnlyBlocked": 6,
+       "walkable": 34,
+       "why": {
+        "cap": 22,
+        "strip": 0,
+        "empty": 12,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 192,
+      "blocked": 28,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 28,
+      "walkable": 164,
+      "why": {
+       "cap": 112,
+       "strip": 2,
+       "empty": 50,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 192,
+       "blocked": 28,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 28,
+       "walkable": 164,
+       "why": {
+        "cap": 112,
+        "strip": 2,
+        "empty": 50,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "charging": {
+      "samples": 144,
+      "blocked": 37,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 36,
+      "walkable": 107,
+      "why": {
+       "cap": 66,
+       "strip": 11,
+       "empty": 30,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 37,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 36,
+       "walkable": 107,
+       "why": {
+        "cap": 66,
+        "strip": 11,
+        "empty": 30,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 360,
+      "blocked": 40,
+      "ownBlocked": 8,
+      "otherOnlyBlocked": 32,
+      "walkable": 320,
+      "why": {
+       "cap": 218,
+       "strip": 2,
+       "empty": 98,
+       "setback": 2,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 360,
+       "blocked": 40,
+       "ownBlocked": 8,
+       "otherOnlyBlocked": 32,
+       "walkable": 320,
+       "why": {
+        "cap": 218,
+        "strip": 2,
+        "empty": 98,
+        "setback": 2,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 690,
+      "blocked": 176,
+      "ownBlocked": 75,
+      "otherOnlyBlocked": 98,
+      "walkable": 514,
+      "why": {
+       "cap": 336,
+       "strip": 29,
+       "empty": 126,
+       "setback": 23,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 690,
+       "blocked": 176,
+       "ownBlocked": 75,
+       "otherOnlyBlocked": 98,
+       "walkable": 514,
+       "why": {
+        "cap": 336,
+        "strip": 29,
+        "empty": 126,
+        "setback": 23,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 42,
+      "blocked": 4,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 4,
+      "walkable": 38,
+      "why": {
+       "cap": 26,
+       "strip": 0,
+       "empty": 12,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 4,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 4,
+       "walkable": 38,
+       "why": {
+        "cap": 26,
+        "strip": 0,
+        "empty": 12,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 234,
+      "blocked": 12,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 12,
+      "walkable": 222,
+      "why": {
+       "cap": 146,
+       "strip": 4,
+       "empty": 72,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 234,
+       "blocked": 12,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 12,
+       "walkable": 222,
+       "why": {
+        "cap": 146,
+        "strip": 4,
+        "empty": 72,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 264,
+      "blocked": 178,
+      "ownBlocked": 178,
+      "otherOnlyBlocked": 0,
+      "walkable": 86,
+      "why": {
+       "cap": 85,
+       "strip": 1,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 264,
+       "blocked": 178,
+       "ownBlocked": 178,
+       "otherOnlyBlocked": 0,
+       "walkable": 86,
+       "why": {
+        "cap": 85,
+        "strip": 1,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 216,
+      "blocked": 32,
+      "ownBlocked": 8,
+      "otherOnlyBlocked": 21,
+      "walkable": 184,
+      "why": {
+       "cap": 66,
+       "strip": 56,
+       "empty": 54,
+       "setback": 8,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 216,
+       "blocked": 32,
+       "ownBlocked": 8,
+       "otherOnlyBlocked": 21,
+       "walkable": 184,
+       "why": {
+        "cap": 66,
+        "strip": 56,
+        "empty": 54,
+        "setback": 8,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 144,
+      "blocked": 12,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 12,
+      "walkable": 132,
+      "why": {
+       "cap": 90,
+       "strip": 0,
+       "empty": 42,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 12,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 12,
+       "walkable": 132,
+       "why": {
+        "cap": 90,
+        "strip": 0,
+        "empty": 42,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 2958,
+      "blocked": 353,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 333,
+      "walkable": 2605,
+      "why": {
+       "cap": 1349,
+       "strip": 418,
+       "empty": 838,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2022,
+       "blocked": 221,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 212,
+       "walkable": 1801,
+       "why": {
+        "cap": 1114,
+        "strip": 105,
+        "empty": 582,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 936,
+       "blocked": 132,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 121,
+       "walkable": 804,
+       "why": {
+        "cap": 235,
+        "strip": 313,
+        "empty": 256,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 1050,
+      "blocked": 292,
+      "ownBlocked": 128,
+      "otherOnlyBlocked": 163,
+      "walkable": 758,
+      "why": {
+       "cap": 508,
+       "strip": 39,
+       "empty": 189,
+       "setback": 22,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1050,
+       "blocked": 292,
+       "ownBlocked": 128,
+       "otherOnlyBlocked": 163,
+       "walkable": 758,
+       "why": {
+        "cap": 508,
+        "strip": 39,
+        "empty": 189,
+        "setback": 22,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 456,
+      "blocked": 77,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 76,
+      "walkable": 379,
+      "why": {
+       "cap": 261,
+       "strip": 3,
+       "empty": 115,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 456,
+       "blocked": 77,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 76,
+       "walkable": 379,
+       "why": {
+        "cap": 261,
+        "strip": 3,
+        "empty": 115,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 1584,
+      "blocked": 570,
+      "ownBlocked": 559,
+      "otherOnlyBlocked": 0,
+      "walkable": 1014,
+      "why": {
+       "cap": 433,
+       "strip": 316,
+       "empty": 185,
+       "setback": 80,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 648,
+       "blocked": 438,
+       "ownBlocked": 438,
+       "otherOnlyBlocked": 0,
+       "walkable": 210,
+       "why": {
+        "cap": 198,
+        "strip": 12,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 936,
+       "blocked": 132,
+       "ownBlocked": 121,
+       "otherOnlyBlocked": 0,
+       "walkable": 804,
+       "why": {
+        "cap": 235,
+        "strip": 304,
+        "empty": 185,
+        "setback": 80,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 240,
+      "blocked": 23,
+      "ownBlocked": 4,
+      "otherOnlyBlocked": 19,
+      "walkable": 217,
+      "why": {
+       "cap": 138,
+       "strip": 10,
+       "empty": 69,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 240,
+       "blocked": 23,
+       "ownBlocked": 4,
+       "otherOnlyBlocked": 19,
+       "walkable": 217,
+       "why": {
+        "cap": 138,
+        "strip": 10,
+        "empty": 69,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    }
+   },
+   "edgeByType": {
+    "contestant": {
+     "arrival": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 8,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 6,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 204,
+      "blocked": 204,
+      "ownBlocked": 17,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 102,
+       "blocked": 102,
+       "ownBlocked": 13,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 144,
+      "blocked": 144,
+      "ownBlocked": 56,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 36,
+       "blocked": 36,
+       "ownBlocked": 10,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 48,
+      "blocked": 48,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 24,
+       "blocked": 24,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 936,
+      "blocked": 936,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 156,
+      "blocked": 156,
+      "ownBlocked": 102,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 78,
+       "blocked": 78,
+       "ownBlocked": 54,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 192,
+      "blocked": 192,
+      "ownBlocked": 24,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 96,
+       "blocked": 96,
+       "ownBlocked": 10,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 276,
+      "blocked": 276,
+      "ownBlocked": 53,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 96,
+      "blocked": 96,
+      "ownBlocked": 4,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 48,
+       "blocked": 48,
+       "ownBlocked": 4,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    },
+    "hunter": {
+     "arrival": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 13,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 9,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 204,
+      "blocked": 204,
+      "ownBlocked": 20,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 102,
+       "blocked": 102,
+       "ownBlocked": 15,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 144,
+      "blocked": 144,
+      "ownBlocked": 57,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 36,
+       "blocked": 36,
+       "ownBlocked": 10,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 48,
+      "blocked": 48,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 24,
+       "blocked": 24,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 936,
+      "blocked": 936,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 156,
+      "blocked": 156,
+      "ownBlocked": 102,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 78,
+       "blocked": 78,
+       "ownBlocked": 54,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 192,
+      "blocked": 192,
+      "ownBlocked": 30,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 96,
+       "blocked": 96,
+       "ownBlocked": 14,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 276,
+      "blocked": 276,
+      "ownBlocked": 90,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 96,
+      "blocked": 96,
+      "ownBlocked": 6,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 48,
+       "blocked": 48,
+       "ownBlocked": 5,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    }
+   },
+   "hintedShare": {
+    "unguaranteed": 0.7827298050139275,
+    "mutual": 1404,
+    "oneSided": 5340
+   },
+   "seams": {
+    "contestant": {
+     "units": 2154,
+     "unitClasses": {
+      "both-walkable": 1573,
+      "one-blocked": 549,
+      "both-blocked": 32
+     },
+     "eligibleUnits": 760,
+     "runs": 703,
+     "runLengths": {
+      "3": 686,
+      "4": 3,
+      "6+": 14
+     },
+     "eligibleStretchLengths": {
+      "1": 668,
+      "2": 46
+     },
+     "runsWithBothBlockedUnit": 16,
+     "runsAllBothWalkable": 477,
+     "unitsByRunLength": {
+      "1": 0,
+      "2": 0,
+      "3": 2058,
+      "4": 12,
+      "5": 0,
+      "6+": 84
+     },
+     "runsByFlankedEnds": [
+      34,
+      194,
+      475
+     ],
+     "threeCellRunsFlankedBoth": 463
+    },
+    "hunter": {
+     "units": 2154,
+     "unitClasses": {
+      "both-walkable": 1499,
+      "one-blocked": 611,
+      "both-blocked": 44
+     },
+     "eligibleUnits": 760,
+     "runs": 703,
+     "runLengths": {
+      "3": 686,
+      "4": 3,
+      "6+": 14
+     },
+     "eligibleStretchLengths": {
+      "1": 668,
+      "2": 46
+     },
+     "runsWithBothBlockedUnit": 16,
+     "runsAllBothWalkable": 476,
+     "unitsByRunLength": {
+      "1": 0,
+      "2": 0,
+      "3": 2058,
+      "4": 12,
+      "5": 0,
+      "6+": 84
+     },
+     "runsByFlankedEnds": [
+      34,
+      194,
+      475
+     ],
+     "threeCellRunsFlankedBoth": 463
+    }
+   },
+   "internalGuaranteedByType": {
+    "arrival": {
+     "regions": 1,
+     "withRuns": 1,
+     "runs": 7,
+     "runLength": 21,
+     "cells": 216,
+     "fillCells": 135,
+     "internalClear": 56
+    },
+    "block": {
+     "regions": 1,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 1728,
+     "fillCells": 1572,
+     "internalClear": 0
+    },
+    "charging": {
+     "regions": 3,
+     "withRuns": 3,
+     "runs": 12,
+     "runLength": 36,
+     "cells": 432,
+     "fillCells": 240,
+     "internalClear": 96
+    },
+    "checkpoint": {
+     "regions": 2,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 2592,
+     "fillCells": 2300,
+     "internalClear": 0
+    },
+    "cover": {
+     "regions": 21,
+     "withRuns": 6,
+     "runs": 76,
+     "runLength": 228,
+     "cells": 2592,
+     "fillCells": 1503,
+     "internalClear": 611
+    },
+    "departure": {
+     "regions": 1,
+     "withRuns": 1,
+     "runs": 7,
+     "runLength": 21,
+     "cells": 216,
+     "fillCells": 129,
+     "internalClear": 56
+    },
+    "depot": {
+     "regions": 2,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 1404,
+     "fillCells": 1215,
+     "internalClear": 0
+    },
+    "hall": {
+     "regions": 2,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 1836,
+     "fillCells": 1627,
+     "internalClear": 0
+    },
+    "hut": {
+     "regions": 7,
+     "withRuns": 6,
+     "runs": 10,
+     "runLength": 108,
+     "cells": 756,
+     "fillCells": 427,
+     "internalClear": 200
+    },
+    "market": {
+     "regions": 1,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 1764,
+     "fillCells": 1646,
+     "internalClear": 0
+    },
+    "open": {
+     "regions": 87,
+     "withRuns": 43,
+     "runs": 235,
+     "runLength": 1365,
+     "cells": 9317,
+     "fillCells": 4380,
+     "internalClear": 2647
+    },
+    "park": {
+     "regions": 38,
+     "withRuns": 7,
+     "runs": 10,
+     "runLength": 30,
+     "cells": 2556,
+     "fillCells": 1759,
+     "internalClear": 83
+    },
+    "plant": {
+     "regions": 4,
+     "withRuns": 1,
+     "runs": 4,
+     "runLength": 12,
+     "cells": 4320,
+     "fillCells": 3916,
+     "internalClear": 39
+    },
+    "rubble": {
+     "regions": 111,
+     "withRuns": 28,
+     "runs": 42,
+     "runLength": 141,
+     "cells": 3103,
+     "fillCells": 1085,
+     "internalClear": 307
+    },
+    "transit": {
+     "regions": 6,
+     "withRuns": 6,
+     "runs": 24,
+     "runLength": 72,
+     "cells": 864,
+     "fillCells": 508,
+     "internalClear": 192
+    }
+   }
+  },
+  {
+   "source": "generated b458b1b954a2dffa02f7c5dc0e8063563950f0a78b3adc53675231cabc92a78f",
+   "seed": "size-24-1",
+   "cellSize": 48,
+   "regions": 1034,
+   "byClass": {
+    "contestant": {
+     "edge": {
+      "samples": 4320,
+      "blocked": 4320,
+      "ownBlocked": 748,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "guaranteed": {
+      "samples": 52004,
+      "blocked": 270,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 51734,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "unguaranteed": {
+      "samples": 33552,
+      "blocked": 6808,
+      "ownBlocked": 3688,
+      "otherOnlyBlocked": 3018,
+      "walkable": 26744,
+      "why": {
+       "cap": 15162,
+       "strip": 4087,
+       "empty": 6968,
+       "setback": 525,
+       "near": 2
+      }
+     }
+    },
+    "hunter": {
+     "edge": {
+      "samples": 4320,
+      "blocked": 4320,
+      "ownBlocked": 855,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "guaranteed": {
+      "samples": 52004,
+      "blocked": 270,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 51734,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "unguaranteed": {
+      "samples": 33552,
+      "blocked": 7624,
+      "ownBlocked": 4151,
+      "otherOnlyBlocked": 3371,
+      "walkable": 25928,
+      "why": {
+       "cap": 14664,
+       "strip": 3803,
+       "empty": 6952,
+       "setback": 509,
+       "near": 0
+      }
+     }
+    }
+   },
+   "all": {
+    "contestant": {
+     "samples": 89876,
+     "blocked": 11398,
+     "ownBlocked": 4436,
+     "otherOnlyBlocked": 3018,
+     "walkable": 78478,
+     "why": {
+      "cap": 15162,
+      "strip": 4087,
+      "empty": 6968,
+      "setback": 525,
+      "near": 2
+     }
+    },
+    "hunter": {
+     "samples": 89876,
+     "blocked": 12214,
+     "ownBlocked": 5006,
+     "otherOnlyBlocked": 3371,
+     "walkable": 77662,
+     "why": {
+      "cap": 14664,
+      "strip": 3803,
+      "empty": 6952,
+      "setback": 509,
+      "near": 0
+     }
+    }
+   },
+   "unguaranteedByType": {
+    "contestant": {
+     "arrival": {
+      "samples": 42,
+      "blocked": 6,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 5,
+      "walkable": 36,
+      "why": {
+       "cap": 23,
+       "strip": 0,
+       "empty": 13,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 6,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 5,
+       "walkable": 36,
+       "why": {
+        "cap": 23,
+        "strip": 0,
+        "empty": 13,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 120,
+      "blocked": 26,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 25,
+      "walkable": 94,
+      "why": {
+       "cap": 65,
+       "strip": 0,
+       "empty": 29,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 120,
+       "blocked": 26,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 25,
+       "walkable": 94,
+       "why": {
+        "cap": 65,
+        "strip": 0,
+        "empty": 29,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "charging": {
+      "samples": 144,
+      "blocked": 20,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 20,
+      "walkable": 124,
+      "why": {
+       "cap": 84,
+       "strip": 2,
+       "empty": 38,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 20,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 20,
+       "walkable": 124,
+       "why": {
+        "cap": 84,
+        "strip": 2,
+        "empty": 38,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 516,
+      "blocked": 85,
+      "ownBlocked": 4,
+      "otherOnlyBlocked": 78,
+      "walkable": 431,
+      "why": {
+       "cap": 299,
+       "strip": 2,
+       "empty": 125,
+       "setback": 5,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 516,
+       "blocked": 85,
+       "ownBlocked": 4,
+       "otherOnlyBlocked": 78,
+       "walkable": 431,
+       "why": {
+        "cap": 299,
+        "strip": 2,
+        "empty": 125,
+        "setback": 5,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "compound": {
+      "samples": 522,
+      "blocked": 58,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 56,
+      "walkable": 464,
+      "why": {
+       "cap": 317,
+       "strip": 1,
+       "empty": 146,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 522,
+       "blocked": 58,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 56,
+       "walkable": 464,
+       "why": {
+        "cap": 317,
+        "strip": 1,
+        "empty": 146,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 2868,
+      "blocked": 691,
+      "ownBlocked": 235,
+      "otherOnlyBlocked": 453,
+      "walkable": 2177,
+      "why": {
+       "cap": 1550,
+       "strip": 86,
+       "empty": 386,
+       "setback": 154,
+       "near": 1
+      },
+      "hinted": {
+       "samples": 2868,
+       "blocked": 691,
+       "ownBlocked": 235,
+       "otherOnlyBlocked": 453,
+       "walkable": 2177,
+       "why": {
+        "cap": 1550,
+        "strip": 86,
+        "empty": 386,
+        "setback": 154,
+        "near": 1
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 30,
+      "blocked": 13,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 13,
+      "walkable": 17,
+      "why": {
+       "cap": 13,
+       "strip": 0,
+       "empty": 4,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 30,
+       "blocked": 13,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 13,
+       "walkable": 17,
+       "why": {
+        "cap": 13,
+        "strip": 0,
+        "empty": 4,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 504,
+      "blocked": 70,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 68,
+      "walkable": 434,
+      "why": {
+       "cap": 296,
+       "strip": 2,
+       "empty": 136,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 504,
+       "blocked": 70,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 68,
+       "walkable": 434,
+       "why": {
+        "cap": 296,
+        "strip": 2,
+        "empty": 136,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 690,
+      "blocked": 464,
+      "ownBlocked": 464,
+      "otherOnlyBlocked": 0,
+      "walkable": 226,
+      "why": {
+       "cap": 225,
+       "strip": 1,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 690,
+       "blocked": 464,
+       "ownBlocked": 464,
+       "otherOnlyBlocked": 0,
+       "walkable": 226,
+       "why": {
+        "cap": 225,
+        "strip": 1,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 846,
+      "blocked": 119,
+      "ownBlocked": 20,
+      "otherOnlyBlocked": 78,
+      "walkable": 727,
+      "why": {
+       "cap": 241,
+       "strip": 254,
+       "empty": 191,
+       "setback": 40,
+       "near": 1
+      },
+      "hinted": {
+       "samples": 786,
+       "blocked": 116,
+       "ownBlocked": 20,
+       "otherOnlyBlocked": 78,
+       "walkable": 670,
+       "why": {
+        "cap": 241,
+        "strip": 197,
+        "empty": 191,
+        "setback": 40,
+        "near": 1
+       }
+      },
+      "unhinted": {
+       "samples": 60,
+       "blocked": 3,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 57,
+       "why": {
+        "cap": 0,
+        "strip": 57,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 2100,
+      "blocked": 382,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 382,
+      "walkable": 1718,
+      "why": {
+       "cap": 1211,
+       "strip": 3,
+       "empty": 504,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2100,
+       "blocked": 382,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 382,
+       "walkable": 1718,
+       "why": {
+        "cap": 1211,
+        "strip": 3,
+        "empty": 504,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 12270,
+      "blocked": 1132,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 1084,
+      "walkable": 11138,
+      "why": {
+       "cap": 5766,
+       "strip": 1977,
+       "empty": 3395,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 7620,
+       "blocked": 751,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 726,
+       "walkable": 6869,
+       "why": {
+        "cap": 4376,
+        "strip": 343,
+        "empty": 2150,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 4650,
+       "blocked": 381,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 358,
+       "walkable": 4269,
+       "why": {
+        "cap": 1390,
+        "strip": 1634,
+        "empty": 1245,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 3990,
+      "blocked": 1042,
+      "ownBlocked": 448,
+      "otherOnlyBlocked": 594,
+      "walkable": 2948,
+      "why": {
+       "cap": 2019,
+       "strip": 116,
+       "empty": 771,
+       "setback": 42,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 3990,
+       "blocked": 1042,
+       "ownBlocked": 448,
+       "otherOnlyBlocked": 594,
+       "walkable": 2948,
+       "why": {
+        "cap": 2019,
+        "strip": 116,
+        "empty": 771,
+        "setback": 42,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 822,
+      "blocked": 120,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 120,
+      "walkable": 702,
+      "why": {
+       "cap": 488,
+       "strip": 2,
+       "empty": 212,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 822,
+       "blocked": 120,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 120,
+       "walkable": 702,
+       "why": {
+        "cap": 488,
+        "strip": 2,
+        "empty": 212,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 7446,
+      "blocked": 2299,
+      "ownBlocked": 2278,
+      "otherOnlyBlocked": 0,
+      "walkable": 5147,
+      "why": {
+       "cap": 2279,
+       "strip": 1638,
+       "empty": 950,
+       "setback": 280,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2856,
+       "blocked": 1921,
+       "ownBlocked": 1920,
+       "otherOnlyBlocked": 0,
+       "walkable": 935,
+       "why": {
+        "cap": 889,
+        "strip": 46,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 4590,
+       "blocked": 378,
+       "ownBlocked": 358,
+       "otherOnlyBlocked": 0,
+       "walkable": 4212,
+       "why": {
+        "cap": 1390,
+        "strip": 1592,
+        "empty": 950,
+        "setback": 280,
+        "near": 0
+       }
+      }
+     },
+     "ruins": {
+      "samples": 354,
+      "blocked": 237,
+      "ownBlocked": 237,
+      "otherOnlyBlocked": 0,
+      "walkable": 117,
+      "why": {
+       "cap": 116,
+       "strip": 1,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 354,
+       "blocked": 237,
+       "ownBlocked": 237,
+       "otherOnlyBlocked": 0,
+       "walkable": 117,
+       "why": {
+        "cap": 116,
+        "strip": 1,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 288,
+      "blocked": 44,
+      "ownBlocked": 2,
+      "otherOnlyBlocked": 42,
+      "walkable": 244,
+      "why": {
+       "cap": 170,
+       "strip": 2,
+       "empty": 68,
+       "setback": 4,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 288,
+       "blocked": 44,
+       "ownBlocked": 2,
+       "otherOnlyBlocked": 42,
+       "walkable": 244,
+       "why": {
+        "cap": 170,
+        "strip": 2,
+        "empty": 68,
+        "setback": 4,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    },
+    "hunter": {
+     "arrival": {
+      "samples": 42,
+      "blocked": 6,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 5,
+      "walkable": 36,
+      "why": {
+       "cap": 23,
+       "strip": 0,
+       "empty": 13,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 6,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 5,
+       "walkable": 36,
+       "why": {
+        "cap": 23,
+        "strip": 0,
+        "empty": 13,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 120,
+      "blocked": 26,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 25,
+      "walkable": 94,
+      "why": {
+       "cap": 65,
+       "strip": 0,
+       "empty": 29,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 120,
+       "blocked": 26,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 25,
+       "walkable": 94,
+       "why": {
+        "cap": 65,
+        "strip": 0,
+        "empty": 29,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "charging": {
+      "samples": 144,
+      "blocked": 20,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 20,
+      "walkable": 124,
+      "why": {
+       "cap": 84,
+       "strip": 2,
+       "empty": 38,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 20,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 20,
+       "walkable": 124,
+       "why": {
+        "cap": 84,
+        "strip": 2,
+        "empty": 38,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 516,
+      "blocked": 91,
+      "ownBlocked": 8,
+      "otherOnlyBlocked": 80,
+      "walkable": 425,
+      "why": {
+       "cap": 293,
+       "strip": 2,
+       "empty": 125,
+       "setback": 5,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 516,
+       "blocked": 91,
+       "ownBlocked": 8,
+       "otherOnlyBlocked": 80,
+       "walkable": 425,
+       "why": {
+        "cap": 293,
+        "strip": 2,
+        "empty": 125,
+        "setback": 5,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "compound": {
+      "samples": 522,
+      "blocked": 62,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 60,
+      "walkable": 460,
+      "why": {
+       "cap": 313,
+       "strip": 1,
+       "empty": 146,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 522,
+       "blocked": 62,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 60,
+       "walkable": 460,
+       "why": {
+        "cap": 313,
+        "strip": 1,
+        "empty": 146,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 2868,
+      "blocked": 827,
+      "ownBlocked": 425,
+      "otherOnlyBlocked": 399,
+      "walkable": 2041,
+      "why": {
+       "cap": 1425,
+       "strip": 78,
+       "empty": 386,
+       "setback": 152,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2868,
+       "blocked": 827,
+       "ownBlocked": 425,
+       "otherOnlyBlocked": 399,
+       "walkable": 2041,
+       "why": {
+        "cap": 1425,
+        "strip": 78,
+        "empty": 386,
+        "setback": 152,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 30,
+      "blocked": 13,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 13,
+      "walkable": 17,
+      "why": {
+       "cap": 13,
+       "strip": 0,
+       "empty": 4,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 30,
+       "blocked": 13,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 13,
+       "walkable": 17,
+       "why": {
+        "cap": 13,
+        "strip": 0,
+        "empty": 4,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 504,
+      "blocked": 70,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 68,
+      "walkable": 434,
+      "why": {
+       "cap": 296,
+       "strip": 2,
+       "empty": 136,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 504,
+       "blocked": 70,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 68,
+       "walkable": 434,
+       "why": {
+        "cap": 296,
+        "strip": 2,
+        "empty": 136,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 690,
+      "blocked": 464,
+      "ownBlocked": 464,
+      "otherOnlyBlocked": 0,
+      "walkable": 226,
+      "why": {
+       "cap": 225,
+       "strip": 1,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 690,
+       "blocked": 464,
+       "ownBlocked": 464,
+       "otherOnlyBlocked": 0,
+       "walkable": 226,
+       "why": {
+        "cap": 225,
+        "strip": 1,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 846,
+      "blocked": 125,
+      "ownBlocked": 27,
+      "otherOnlyBlocked": 77,
+      "walkable": 721,
+      "why": {
+       "cap": 237,
+       "strip": 254,
+       "empty": 191,
+       "setback": 39,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 786,
+       "blocked": 122,
+       "ownBlocked": 27,
+       "otherOnlyBlocked": 77,
+       "walkable": 664,
+       "why": {
+        "cap": 237,
+        "strip": 197,
+        "empty": 191,
+        "setback": 39,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 60,
+       "blocked": 3,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 57,
+       "why": {
+        "cap": 0,
+        "strip": 57,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 2100,
+      "blocked": 387,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 387,
+      "walkable": 1713,
+      "why": {
+       "cap": 1206,
+       "strip": 3,
+       "empty": 504,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2100,
+       "blocked": 387,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 387,
+       "walkable": 1713,
+       "why": {
+        "cap": 1206,
+        "strip": 3,
+        "empty": 504,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 12270,
+      "blocked": 1515,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 1467,
+      "walkable": 10755,
+      "why": {
+       "cap": 5542,
+       "strip": 1834,
+       "empty": 3379,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 7620,
+       "blocked": 874,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 849,
+       "walkable": 6746,
+       "why": {
+        "cap": 4266,
+        "strip": 335,
+        "empty": 2145,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 4650,
+       "blocked": 641,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 618,
+       "walkable": 4009,
+       "why": {
+        "cap": 1276,
+        "strip": 1499,
+        "empty": 1234,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 3990,
+      "blocked": 1052,
+      "ownBlocked": 448,
+      "otherOnlyBlocked": 604,
+      "walkable": 2938,
+      "why": {
+       "cap": 2009,
+       "strip": 116,
+       "empty": 771,
+       "setback": 42,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 3990,
+       "blocked": 1052,
+       "ownBlocked": 448,
+       "otherOnlyBlocked": 604,
+       "walkable": 2938,
+       "why": {
+        "cap": 2009,
+        "strip": 116,
+        "empty": 771,
+        "setback": 42,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 822,
+      "blocked": 122,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 122,
+      "walkable": 700,
+      "why": {
+       "cap": 486,
+       "strip": 2,
+       "empty": 212,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 822,
+       "blocked": 122,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 122,
+       "walkable": 700,
+       "why": {
+        "cap": 486,
+        "strip": 2,
+        "empty": 212,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 7446,
+      "blocked": 2559,
+      "ownBlocked": 2538,
+      "otherOnlyBlocked": 0,
+      "walkable": 4887,
+      "why": {
+       "cap": 2165,
+       "strip": 1505,
+       "empty": 950,
+       "setback": 267,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2856,
+       "blocked": 1921,
+       "ownBlocked": 1920,
+       "otherOnlyBlocked": 0,
+       "walkable": 935,
+       "why": {
+        "cap": 889,
+        "strip": 46,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 4590,
+       "blocked": 638,
+       "ownBlocked": 618,
+       "otherOnlyBlocked": 0,
+       "walkable": 3952,
+       "why": {
+        "cap": 1276,
+        "strip": 1459,
+        "empty": 950,
+        "setback": 267,
+        "near": 0
+       }
+      }
+     },
+     "ruins": {
+      "samples": 354,
+      "blocked": 237,
+      "ownBlocked": 237,
+      "otherOnlyBlocked": 0,
+      "walkable": 117,
+      "why": {
+       "cap": 116,
+       "strip": 1,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 354,
+       "blocked": 237,
+       "ownBlocked": 237,
+       "otherOnlyBlocked": 0,
+       "walkable": 117,
+       "why": {
+        "cap": 116,
+        "strip": 1,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 288,
+      "blocked": 48,
+      "ownBlocked": 4,
+      "otherOnlyBlocked": 44,
+      "walkable": 240,
+      "why": {
+       "cap": 166,
+       "strip": 2,
+       "empty": 68,
+       "setback": 4,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 288,
+       "blocked": 48,
+       "ownBlocked": 4,
+       "otherOnlyBlocked": 44,
+       "walkable": 240,
+       "why": {
+        "cap": 166,
+        "strip": 2,
+        "empty": 68,
+        "setback": 4,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    }
+   },
+   "edgeByType": {
+    "contestant": {
+     "arrival": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 6,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 6,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 144,
+      "blocked": 144,
+      "ownBlocked": 96,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 72,
+       "blocked": 72,
+       "ownBlocked": 62,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 144,
+      "blocked": 144,
+      "ownBlocked": 26,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 72,
+       "blocked": 72,
+       "ownBlocked": 14,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "compound": {
+      "samples": 84,
+      "blocked": 84,
+      "ownBlocked": 50,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 42,
+       "ownBlocked": 24,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 216,
+      "blocked": 216,
+      "ownBlocked": 28,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 108,
+       "blocked": 108,
+       "ownBlocked": 20,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 60,
+      "blocked": 60,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 30,
+       "blocked": 30,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 72,
+      "blocked": 72,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 36,
+       "blocked": 36,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 60,
+      "blocked": 60,
+      "ownBlocked": 38,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 30,
+       "blocked": 30,
+       "ownBlocked": 29,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 498,
+      "blocked": 498,
+      "ownBlocked": 159,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 72,
+       "blocked": 72,
+       "ownBlocked": 25,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 96,
+      "blocked": 96,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 48,
+       "blocked": 48,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 1824,
+      "blocked": 1824,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 228,
+      "blocked": 228,
+      "ownBlocked": 144,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 114,
+       "blocked": 114,
+       "ownBlocked": 78,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 714,
+      "blocked": 714,
+      "ownBlocked": 119,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "ruins": {
+      "samples": 108,
+      "blocked": 108,
+      "ownBlocked": 82,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 54,
+       "blocked": 54,
+       "ownBlocked": 54,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    },
+    "hunter": {
+     "arrival": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 9,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 8,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 144,
+      "blocked": 144,
+      "ownBlocked": 96,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 72,
+       "blocked": 72,
+       "ownBlocked": 62,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 144,
+      "blocked": 144,
+      "ownBlocked": 26,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 72,
+       "blocked": 72,
+       "ownBlocked": 14,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "compound": {
+      "samples": 84,
+      "blocked": 84,
+      "ownBlocked": 50,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 42,
+       "ownBlocked": 24,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 216,
+      "blocked": 216,
+      "ownBlocked": 44,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 108,
+       "blocked": 108,
+       "ownBlocked": 30,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 60,
+      "blocked": 60,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 30,
+       "blocked": 30,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 72,
+      "blocked": 72,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 36,
+       "blocked": 36,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 60,
+      "blocked": 60,
+      "ownBlocked": 38,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 30,
+       "blocked": 30,
+       "ownBlocked": 29,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 498,
+      "blocked": 498,
+      "ownBlocked": 172,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 72,
+       "blocked": 72,
+       "ownBlocked": 25,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 96,
+      "blocked": 96,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 48,
+       "blocked": 48,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 1824,
+      "blocked": 1824,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 228,
+      "blocked": 228,
+      "ownBlocked": 144,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 114,
+       "blocked": 114,
+       "ownBlocked": 78,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 714,
+      "blocked": 714,
+      "ownBlocked": 190,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "ruins": {
+      "samples": 108,
+      "blocked": 108,
+      "ownBlocked": 86,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 54,
+       "blocked": 54,
+       "ownBlocked": 54,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    }
+   },
+   "hintedShare": {
+    "unguaranteed": 0.7228183118741058,
+    "mutual": 3288,
+    "oneSided": 20964
+   },
+   "seams": {
+    "contestant": {
+     "units": 8388,
+     "unitClasses": {
+      "both-walkable": 6031,
+      "one-blocked": 2123,
+      "both-blocked": 234
+     },
+     "eligibleUnits": 2873,
+     "runs": 2743,
+     "runLengths": {
+      "1": 3,
+      "2": 3,
+      "3": 2681,
+      "4": 6,
+      "6+": 50
+     },
+     "eligibleStretchLengths": {
+      "1": 2683,
+      "2": 95
+     },
+     "runsWithBothBlockedUnit": 99,
+     "runsAllBothWalkable": 1779,
+     "unitsByRunLength": {
+      "1": 3,
+      "2": 6,
+      "3": 8043,
+      "4": 24,
+      "5": 0,
+      "6+": 312
+     },
+     "runsByFlankedEnds": [
+      166,
+      712,
+      1865
+     ],
+     "threeCellRunsFlankedBoth": 1826
+    },
+    "hunter": {
+     "units": 8388,
+     "unitClasses": {
+      "both-walkable": 5624,
+      "one-blocked": 2476,
+      "both-blocked": 288
+     },
+     "eligibleUnits": 2873,
+     "runs": 2743,
+     "runLengths": {
+      "1": 3,
+      "2": 3,
+      "3": 2681,
+      "4": 6,
+      "6+": 50
+     },
+     "eligibleStretchLengths": {
+      "1": 2683,
+      "2": 95
+     },
+     "runsWithBothBlockedUnit": 100,
+     "runsAllBothWalkable": 1778,
+     "unitsByRunLength": {
+      "1": 3,
+      "2": 6,
+      "3": 8043,
+      "4": 24,
+      "5": 0,
+      "6+": 312
+     },
+     "runsByFlankedEnds": [
+      166,
+      712,
+      1865
+     ],
+     "threeCellRunsFlankedBoth": 1826
+    }
+   },
+   "internalGuaranteedByType": {
+    "arrival": {
+     "regions": 1,
+     "withRuns": 1,
+     "runs": 7,
+     "runLength": 21,
+     "cells": 216,
+     "fillCells": 135,
+     "internalClear": 56
+    },
+    "block": {
+     "regions": 1,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 1728,
+     "fillCells": 1632,
+     "internalClear": 0
+    },
+    "charging": {
+     "regions": 3,
+     "withRuns": 3,
+     "runs": 12,
+     "runLength": 36,
+     "cells": 432,
+     "fillCells": 240,
+     "internalClear": 96
+    },
+    "checkpoint": {
+     "regions": 3,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 4320,
+     "fillCells": 3901,
+     "internalClear": 0
+    },
+    "compound": {
+     "regions": 3,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 6480,
+     "fillCells": 6057,
+     "internalClear": 0
+    },
+    "cover": {
+     "regions": 102,
+     "withRuns": 13,
+     "runs": 124,
+     "runLength": 372,
+     "cells": 6768,
+     "fillCells": 3816,
+     "internalClear": 997
+    },
+    "departure": {
+     "regions": 1,
+     "withRuns": 1,
+     "runs": 7,
+     "runLength": 21,
+     "cells": 216,
+     "fillCells": 139,
+     "internalClear": 56
+    },
+    "depot": {
+     "regions": 3,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 5832,
+     "fillCells": 5424,
+     "internalClear": 0
+    },
+    "hall": {
+     "regions": 5,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 5832,
+     "fillCells": 5281,
+     "internalClear": 0
+    },
+    "hut": {
+     "regions": 27,
+     "withRuns": 25,
+     "runs": 37,
+     "runLength": 356,
+     "cells": 2586,
+     "fillCells": 1461,
+     "internalClear": 664
+    },
+    "market": {
+     "regions": 11,
+     "withRuns": 2,
+     "runs": 10,
+     "runLength": 30,
+     "cells": 23508,
+     "fillCells": 21709,
+     "internalClear": 97
+    },
+    "open": {
+     "regions": 257,
+     "withRuns": 133,
+     "runs": 1115,
+     "runLength": 6322,
+     "cells": 38998,
+     "fillCells": 17132,
+     "internalClear": 12240
+    },
+    "park": {
+     "regions": 134,
+     "withRuns": 21,
+     "runs": 34,
+     "runLength": 102,
+     "cells": 11880,
+     "fillCells": 8859,
+     "internalClear": 278
+    },
+    "plant": {
+     "regions": 7,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 6372,
+     "fillCells": 5713,
+     "internalClear": 0
+    },
+    "rubble": {
+     "regions": 467,
+     "withRuns": 150,
+     "runs": 261,
+     "runLength": 1209,
+     "cells": 15152,
+     "fillCells": 5020,
+     "internalClear": 2387
+    },
+    "ruins": {
+     "regions": 3,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 3600,
+     "fillCells": 3315,
+     "internalClear": 0
+    },
+    "transit": {
+     "regions": 6,
+     "withRuns": 6,
+     "runs": 24,
+     "runLength": 72,
+     "cells": 864,
+     "fillCells": 480,
+     "internalClear": 192
+    }
+   }
+  },
+  {
+   "source": "generated 972aa2107fa0c3cc2ca909072e4f18da13ad7d050053a523b0acbe76f1b9794c",
+   "seed": "size-36-1",
+   "cellSize": 48,
+   "regions": 2094,
+   "byClass": {
+    "contestant": {
+     "edge": {
+      "samples": 6480,
+      "blocked": 6480,
+      "ownBlocked": 827,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "guaranteed": {
+      "samples": 107840,
+      "blocked": 440,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 107400,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "unguaranteed": {
+      "samples": 67524,
+      "blocked": 12218,
+      "ownBlocked": 6538,
+      "otherOnlyBlocked": 5552,
+      "walkable": 55306,
+      "why": {
+       "cap": 31022,
+       "strip": 8583,
+       "empty": 14516,
+       "setback": 1179,
+       "near": 6
+      }
+     }
+    },
+    "hunter": {
+     "edge": {
+      "samples": 6480,
+      "blocked": 6480,
+      "ownBlocked": 996,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "guaranteed": {
+      "samples": 107840,
+      "blocked": 440,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 107400,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      }
+     },
+     "unguaranteed": {
+      "samples": 67524,
+      "blocked": 13858,
+      "ownBlocked": 7450,
+      "otherOnlyBlocked": 6280,
+      "walkable": 53666,
+      "why": {
+       "cap": 30014,
+       "strip": 7987,
+       "empty": 14499,
+       "setback": 1166,
+       "near": 0
+      }
+     }
+    }
+   },
+   "all": {
+    "contestant": {
+     "samples": 181844,
+     "blocked": 19138,
+     "ownBlocked": 7365,
+     "otherOnlyBlocked": 5552,
+     "walkable": 162706,
+     "why": {
+      "cap": 31022,
+      "strip": 8583,
+      "empty": 14516,
+      "setback": 1179,
+      "near": 6
+     }
+    },
+    "hunter": {
+     "samples": 181844,
+     "blocked": 20778,
+     "ownBlocked": 8446,
+     "otherOnlyBlocked": 6280,
+     "walkable": 161066,
+     "why": {
+      "cap": 30014,
+      "strip": 7987,
+      "empty": 14499,
+      "setback": 1166,
+      "near": 0
+     }
+    }
+   },
+   "unguaranteedByType": {
+    "contestant": {
+     "arrival": {
+      "samples": 42,
+      "blocked": 9,
+      "ownBlocked": 2,
+      "otherOnlyBlocked": 7,
+      "walkable": 33,
+      "why": {
+       "cap": 22,
+       "strip": 0,
+       "empty": 10,
+       "setback": 0,
+       "near": 1
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 9,
+       "ownBlocked": 2,
+       "otherOnlyBlocked": 7,
+       "walkable": 33,
+       "why": {
+        "cap": 22,
+        "strip": 0,
+        "empty": 10,
+        "setback": 0,
+        "near": 1
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 624,
+      "blocked": 72,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 72,
+      "walkable": 552,
+      "why": {
+       "cap": 377,
+       "strip": 3,
+       "empty": 172,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 624,
+       "blocked": 72,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 72,
+       "walkable": 552,
+       "why": {
+        "cap": 377,
+        "strip": 3,
+        "empty": 172,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "charging": {
+      "samples": 144,
+      "blocked": 34,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 34,
+      "walkable": 110,
+      "why": {
+       "cap": 80,
+       "strip": 0,
+       "empty": 30,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 34,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 34,
+       "walkable": 110,
+       "why": {
+        "cap": 80,
+        "strip": 0,
+        "empty": 30,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 1788,
+      "blocked": 211,
+      "ownBlocked": 12,
+      "otherOnlyBlocked": 199,
+      "walkable": 1577,
+      "why": {
+       "cap": 1089,
+       "strip": 6,
+       "empty": 463,
+       "setback": 19,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1788,
+       "blocked": 211,
+       "ownBlocked": 12,
+       "otherOnlyBlocked": 199,
+       "walkable": 1577,
+       "why": {
+        "cap": 1089,
+        "strip": 6,
+        "empty": 463,
+        "setback": 19,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "compound": {
+      "samples": 1176,
+      "blocked": 128,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 128,
+      "walkable": 1048,
+      "why": {
+       "cap": 720,
+       "strip": 2,
+       "empty": 326,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1176,
+       "blocked": 128,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 128,
+       "walkable": 1048,
+       "why": {
+        "cap": 720,
+        "strip": 2,
+        "empty": 326,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 5712,
+      "blocked": 1385,
+      "ownBlocked": 516,
+      "otherOnlyBlocked": 863,
+      "walkable": 4327,
+      "why": {
+       "cap": 3106,
+       "strip": 161,
+       "empty": 743,
+       "setback": 315,
+       "near": 2
+      },
+      "hinted": {
+       "samples": 5712,
+       "blocked": 1385,
+       "ownBlocked": 516,
+       "otherOnlyBlocked": 863,
+       "walkable": 4327,
+       "why": {
+        "cap": 3106,
+        "strip": 161,
+        "empty": 743,
+        "setback": 315,
+        "near": 2
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 42,
+      "blocked": 4,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 4,
+      "walkable": 38,
+      "why": {
+       "cap": 26,
+       "strip": 0,
+       "empty": 12,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 4,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 4,
+       "walkable": 38,
+       "why": {
+        "cap": 26,
+        "strip": 0,
+        "empty": 12,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 1476,
+      "blocked": 170,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 170,
+      "walkable": 1306,
+      "why": {
+       "cap": 899,
+       "strip": 3,
+       "empty": 404,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1476,
+       "blocked": 170,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 170,
+       "walkable": 1306,
+       "why": {
+        "cap": 899,
+        "strip": 3,
+        "empty": 404,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 846,
+      "blocked": 567,
+      "ownBlocked": 567,
+      "otherOnlyBlocked": 0,
+      "walkable": 279,
+      "why": {
+       "cap": 276,
+       "strip": 3,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 846,
+       "blocked": 567,
+       "ownBlocked": 567,
+       "otherOnlyBlocked": 0,
+       "walkable": 279,
+       "why": {
+        "cap": 276,
+        "strip": 3,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 2110,
+      "blocked": 290,
+      "ownBlocked": 16,
+      "otherOnlyBlocked": 245,
+      "walkable": 1820,
+      "why": {
+       "cap": 619,
+       "strip": 621,
+       "empty": 486,
+       "setback": 91,
+       "near": 3
+      },
+      "hinted": {
+       "samples": 2050,
+       "blocked": 289,
+       "ownBlocked": 16,
+       "otherOnlyBlocked": 245,
+       "walkable": 1761,
+       "why": {
+        "cap": 619,
+        "strip": 562,
+        "empty": 486,
+        "setback": 91,
+        "near": 3
+       }
+      },
+      "unhinted": {
+       "samples": 60,
+       "blocked": 1,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 59,
+       "why": {
+        "cap": 0,
+        "strip": 59,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 3756,
+      "blocked": 588,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 588,
+      "walkable": 3168,
+      "why": {
+       "cap": 2208,
+       "strip": 11,
+       "empty": 949,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 3756,
+       "blocked": 588,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 588,
+       "walkable": 3168,
+       "why": {
+        "cap": 2208,
+        "strip": 11,
+        "empty": 949,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 24632,
+      "blocked": 1884,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 1821,
+      "walkable": 22748,
+      "why": {
+       "cap": 11661,
+       "strip": 4133,
+       "empty": 6954,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 15860,
+       "blocked": 1216,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 1181,
+       "walkable": 14644,
+       "why": {
+        "cap": 9231,
+        "strip": 797,
+        "empty": 4616,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 8772,
+       "blocked": 668,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 640,
+       "walkable": 8104,
+       "why": {
+        "cap": 2430,
+        "strip": 3336,
+        "empty": 2338,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 8892,
+      "blocked": 2084,
+      "ownBlocked": 910,
+      "otherOnlyBlocked": 1172,
+      "walkable": 6808,
+      "why": {
+       "cap": 4649,
+       "strip": 233,
+       "empty": 1771,
+       "setback": 155,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 8892,
+       "blocked": 2084,
+       "ownBlocked": 910,
+       "otherOnlyBlocked": 1172,
+       "walkable": 6808,
+       "why": {
+        "cap": 4649,
+        "strip": 233,
+        "empty": 1771,
+        "setback": 155,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 1524,
+      "blocked": 209,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 209,
+      "walkable": 1315,
+      "why": {
+       "cap": 913,
+       "strip": 2,
+       "empty": 400,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1524,
+       "blocked": 209,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 209,
+       "walkable": 1315,
+       "why": {
+        "cap": 913,
+        "strip": 2,
+        "empty": 400,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 13932,
+      "blocked": 4177,
+      "ownBlocked": 4149,
+      "otherOnlyBlocked": 0,
+      "walkable": 9755,
+      "why": {
+       "cap": 4032,
+       "strip": 3400,
+       "empty": 1727,
+       "setback": 596,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 5220,
+       "blocked": 3510,
+       "ownBlocked": 3509,
+       "otherOnlyBlocked": 0,
+       "walkable": 1710,
+       "why": {
+        "cap": 1602,
+        "strip": 108,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 8712,
+       "blocked": 667,
+       "ownBlocked": 640,
+       "otherOnlyBlocked": 0,
+       "walkable": 8045,
+       "why": {
+        "cap": 2430,
+        "strip": 3292,
+        "empty": 1727,
+        "setback": 596,
+        "near": 0
+       }
+      }
+     },
+     "ruins": {
+      "samples": 552,
+      "blocked": 368,
+      "ownBlocked": 364,
+      "otherOnlyBlocked": 4,
+      "walkable": 184,
+      "why": {
+       "cap": 182,
+       "strip": 2,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 552,
+       "blocked": 368,
+       "ownBlocked": 364,
+       "otherOnlyBlocked": 4,
+       "walkable": 184,
+       "why": {
+        "cap": 182,
+        "strip": 2,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 276,
+      "blocked": 38,
+      "ownBlocked": 2,
+      "otherOnlyBlocked": 36,
+      "walkable": 238,
+      "why": {
+       "cap": 163,
+       "strip": 3,
+       "empty": 69,
+       "setback": 3,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 276,
+       "blocked": 38,
+       "ownBlocked": 2,
+       "otherOnlyBlocked": 36,
+       "walkable": 238,
+       "why": {
+        "cap": 163,
+        "strip": 3,
+        "empty": 69,
+        "setback": 3,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    },
+    "hunter": {
+     "arrival": {
+      "samples": 42,
+      "blocked": 10,
+      "ownBlocked": 3,
+      "otherOnlyBlocked": 7,
+      "walkable": 32,
+      "why": {
+       "cap": 22,
+       "strip": 0,
+       "empty": 10,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 10,
+       "ownBlocked": 3,
+       "otherOnlyBlocked": 7,
+       "walkable": 32,
+       "why": {
+        "cap": 22,
+        "strip": 0,
+        "empty": 10,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "block": {
+      "samples": 624,
+      "blocked": 72,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 72,
+      "walkable": 552,
+      "why": {
+       "cap": 377,
+       "strip": 3,
+       "empty": 172,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 624,
+       "blocked": 72,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 72,
+       "walkable": 552,
+       "why": {
+        "cap": 377,
+        "strip": 3,
+        "empty": 172,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "charging": {
+      "samples": 144,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 36,
+      "walkable": 108,
+      "why": {
+       "cap": 78,
+       "strip": 0,
+       "empty": 30,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 36,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 36,
+       "walkable": 108,
+       "why": {
+        "cap": 78,
+        "strip": 0,
+        "empty": 30,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "checkpoint": {
+      "samples": 1788,
+      "blocked": 228,
+      "ownBlocked": 24,
+      "otherOnlyBlocked": 204,
+      "walkable": 1560,
+      "why": {
+       "cap": 1072,
+       "strip": 6,
+       "empty": 463,
+       "setback": 19,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1788,
+       "blocked": 228,
+       "ownBlocked": 24,
+       "otherOnlyBlocked": 204,
+       "walkable": 1560,
+       "why": {
+        "cap": 1072,
+        "strip": 6,
+        "empty": 463,
+        "setback": 19,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "compound": {
+      "samples": 1176,
+      "blocked": 132,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 132,
+      "walkable": 1044,
+      "why": {
+       "cap": 716,
+       "strip": 2,
+       "empty": 326,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1176,
+       "blocked": 132,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 132,
+       "walkable": 1044,
+       "why": {
+        "cap": 716,
+        "strip": 2,
+        "empty": 326,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 5712,
+      "blocked": 1683,
+      "ownBlocked": 904,
+      "otherOnlyBlocked": 773,
+      "walkable": 4029,
+      "why": {
+       "cap": 2828,
+       "strip": 147,
+       "empty": 743,
+       "setback": 311,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 5712,
+       "blocked": 1683,
+       "ownBlocked": 904,
+       "otherOnlyBlocked": 773,
+       "walkable": 4029,
+       "why": {
+        "cap": 2828,
+        "strip": 147,
+        "empty": 743,
+        "setback": 311,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 42,
+      "blocked": 4,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 4,
+      "walkable": 38,
+      "why": {
+       "cap": 26,
+       "strip": 0,
+       "empty": 12,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 42,
+       "blocked": 4,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 4,
+       "walkable": 38,
+       "why": {
+        "cap": 26,
+        "strip": 0,
+        "empty": 12,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "depot": {
+      "samples": 1476,
+      "blocked": 172,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 172,
+      "walkable": 1304,
+      "why": {
+       "cap": 897,
+       "strip": 3,
+       "empty": 404,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1476,
+       "blocked": 172,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 172,
+       "walkable": 1304,
+       "why": {
+        "cap": 897,
+        "strip": 3,
+        "empty": 404,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 846,
+      "blocked": 567,
+      "ownBlocked": 567,
+      "otherOnlyBlocked": 0,
+      "walkable": 279,
+      "why": {
+       "cap": 276,
+       "strip": 3,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 846,
+       "blocked": 567,
+       "ownBlocked": 567,
+       "otherOnlyBlocked": 0,
+       "walkable": 279,
+       "why": {
+        "cap": 276,
+        "strip": 3,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 2110,
+      "blocked": 296,
+      "ownBlocked": 24,
+      "otherOnlyBlocked": 243,
+      "walkable": 1814,
+      "why": {
+       "cap": 616,
+       "strip": 621,
+       "empty": 486,
+       "setback": 91,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 2050,
+       "blocked": 295,
+       "ownBlocked": 24,
+       "otherOnlyBlocked": 243,
+       "walkable": 1755,
+       "why": {
+        "cap": 616,
+        "strip": 562,
+        "empty": 486,
+        "setback": 91,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 60,
+       "blocked": 1,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 59,
+       "why": {
+        "cap": 0,
+        "strip": 59,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 3756,
+      "blocked": 607,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 607,
+      "walkable": 3149,
+      "why": {
+       "cap": 2189,
+       "strip": 11,
+       "empty": 949,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 3756,
+       "blocked": 607,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 607,
+       "walkable": 3149,
+       "why": {
+        "cap": 2189,
+        "strip": 11,
+        "empty": 949,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 24632,
+      "blocked": 2633,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 2570,
+      "walkable": 21999,
+      "why": {
+       "cap": 11226,
+       "strip": 3836,
+       "empty": 6937,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 15860,
+       "blocked": 1464,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 1429,
+       "walkable": 14396,
+       "why": {
+        "cap": 9005,
+        "strip": 785,
+        "empty": 4606,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 8772,
+       "blocked": 1169,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 1141,
+       "walkable": 7603,
+       "why": {
+        "cap": 2221,
+        "strip": 3051,
+        "empty": 2331,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 8892,
+      "blocked": 2117,
+      "ownBlocked": 910,
+      "otherOnlyBlocked": 1205,
+      "walkable": 6775,
+      "why": {
+       "cap": 4618,
+       "strip": 231,
+       "empty": 1771,
+       "setback": 155,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 8892,
+       "blocked": 2117,
+       "ownBlocked": 910,
+       "otherOnlyBlocked": 1205,
+       "walkable": 6775,
+       "why": {
+        "cap": 4618,
+        "strip": 231,
+        "empty": 1771,
+        "setback": 155,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "plant": {
+      "samples": 1524,
+      "blocked": 215,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 215,
+      "walkable": 1309,
+      "why": {
+       "cap": 907,
+       "strip": 2,
+       "empty": 400,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 1524,
+       "blocked": 215,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 215,
+       "walkable": 1309,
+       "why": {
+        "cap": 907,
+        "strip": 2,
+        "empty": 400,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 13932,
+      "blocked": 4678,
+      "ownBlocked": 4650,
+      "otherOnlyBlocked": 0,
+      "walkable": 9254,
+      "why": {
+       "cap": 3823,
+       "strip": 3117,
+       "empty": 1727,
+       "setback": 587,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 5220,
+       "blocked": 3510,
+       "ownBlocked": 3509,
+       "otherOnlyBlocked": 0,
+       "walkable": 1710,
+       "why": {
+        "cap": 1602,
+        "strip": 108,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 8712,
+       "blocked": 1168,
+       "ownBlocked": 1141,
+       "otherOnlyBlocked": 0,
+       "walkable": 7544,
+       "why": {
+        "cap": 2221,
+        "strip": 3009,
+        "empty": 1727,
+        "setback": 587,
+        "near": 0
+       }
+      }
+     },
+     "ruins": {
+      "samples": 552,
+      "blocked": 368,
+      "ownBlocked": 364,
+      "otherOnlyBlocked": 4,
+      "walkable": 184,
+      "why": {
+       "cap": 182,
+       "strip": 2,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 552,
+       "blocked": 368,
+       "ownBlocked": 364,
+       "otherOnlyBlocked": 4,
+       "walkable": 184,
+       "why": {
+        "cap": 182,
+        "strip": 2,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 276,
+      "blocked": 40,
+      "ownBlocked": 4,
+      "otherOnlyBlocked": 36,
+      "walkable": 236,
+      "why": {
+       "cap": 161,
+       "strip": 3,
+       "empty": 69,
+       "setback": 3,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 276,
+       "blocked": 40,
+       "ownBlocked": 4,
+       "otherOnlyBlocked": 36,
+       "walkable": 236,
+       "why": {
+        "cap": 161,
+        "strip": 3,
+        "empty": 69,
+        "setback": 3,
+        "near": 0
+       }
+      },
+      "unhinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    }
+   },
+   "edgeByType": {
+    "contestant": {
+     "arrival": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 6,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 6,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 288,
+      "blocked": 288,
+      "ownBlocked": 54,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 144,
+       "ownBlocked": 37,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 12,
+      "blocked": 12,
+      "ownBlocked": 7,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 6,
+       "blocked": 6,
+       "ownBlocked": 5,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 686,
+      "blocked": 686,
+      "ownBlocked": 176,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 120,
+       "blocked": 120,
+       "ownBlocked": 15,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 408,
+      "blocked": 408,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 204,
+       "blocked": 204,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 3388,
+      "blocked": 3388,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 552,
+      "blocked": 552,
+      "ownBlocked": 400,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 276,
+       "blocked": 276,
+       "ownBlocked": 223,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 1050,
+      "blocked": 1050,
+      "ownBlocked": 184,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 24,
+      "blocked": 24,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 12,
+       "blocked": 12,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    },
+    "hunter": {
+     "arrival": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 9,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 8,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "cover": {
+      "samples": 288,
+      "blocked": 288,
+      "ownBlocked": 75,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 144,
+       "blocked": 144,
+       "ownBlocked": 51,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "departure": {
+      "samples": 36,
+      "blocked": 36,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 18,
+       "blocked": 18,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hall": {
+      "samples": 12,
+      "blocked": 12,
+      "ownBlocked": 7,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 6,
+       "blocked": 6,
+       "ownBlocked": 5,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "hut": {
+      "samples": 686,
+      "blocked": 686,
+      "ownBlocked": 187,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 120,
+       "blocked": 120,
+       "ownBlocked": 15,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "market": {
+      "samples": 408,
+      "blocked": 408,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 204,
+       "blocked": 204,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "open": {
+      "samples": 3388,
+      "blocked": 3388,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "park": {
+      "samples": 552,
+      "blocked": 552,
+      "ownBlocked": 400,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 276,
+       "blocked": 276,
+       "ownBlocked": 223,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "rubble": {
+      "samples": 1050,
+      "blocked": 1050,
+      "ownBlocked": 318,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 0,
+       "blocked": 0,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     },
+     "transit": {
+      "samples": 24,
+      "blocked": 24,
+      "ownBlocked": 0,
+      "otherOnlyBlocked": 0,
+      "walkable": 0,
+      "why": {
+       "cap": 0,
+       "strip": 0,
+       "empty": 0,
+       "setback": 0,
+       "near": 0
+      },
+      "hinted": {
+       "samples": 12,
+       "blocked": 12,
+       "ownBlocked": 0,
+       "otherOnlyBlocked": 0,
+       "walkable": 0,
+       "why": {
+        "cap": 0,
+        "strip": 0,
+        "empty": 0,
+        "setback": 0,
+        "near": 0
+       }
+      }
+     }
+    }
+   },
+   "hintedShare": {
+    "unguaranteed": 0.7401812688821753,
+    "mutual": 7800,
+    "oneSided": 42180
+   },
+   "seams": {
+    "contestant": {
+     "units": 16881,
+     "unitClasses": {
+      "both-walkable": 12642,
+      "one-blocked": 3903,
+      "both-blocked": 336
+     },
+     "eligibleUnits": 5747,
+     "runs": 5489,
+     "runLengths": {
+      "1": 5,
+      "2": 5,
+      "3": 5336,
+      "4": 6,
+      "6+": 137
+     },
+     "eligibleStretchLengths": {
+      "1": 5471,
+      "2": 138
+     },
+     "runsWithBothBlockedUnit": 152,
+     "runsAllBothWalkable": 3738,
+     "unitsByRunLength": {
+      "1": 5,
+      "2": 10,
+      "3": 16008,
+      "4": 24,
+      "5": 0,
+      "6+": 834
+     },
+     "runsByFlankedEnds": [
+      327,
+      1422,
+      3740
+     ],
+     "threeCellRunsFlankedBoth": 3619
+    },
+    "hunter": {
+     "units": 16881,
+     "unitClasses": {
+      "both-walkable": 11824,
+      "one-blocked": 4630,
+      "both-blocked": 427
+     },
+     "eligibleUnits": 5747,
+     "runs": 5489,
+     "runLengths": {
+      "1": 5,
+      "2": 5,
+      "3": 5336,
+      "4": 6,
+      "6+": 137
+     },
+     "eligibleStretchLengths": {
+      "1": 5471,
+      "2": 138
+     },
+     "runsWithBothBlockedUnit": 153,
+     "runsAllBothWalkable": 3736,
+     "unitsByRunLength": {
+      "1": 5,
+      "2": 10,
+      "3": 16008,
+      "4": 24,
+      "5": 0,
+      "6+": 834
+     },
+     "runsByFlankedEnds": [
+      327,
+      1422,
+      3740
+     ],
+     "threeCellRunsFlankedBoth": 3619
+    }
+   },
+   "internalGuaranteedByType": {
+    "arrival": {
+     "regions": 1,
+     "withRuns": 1,
+     "runs": 7,
+     "runLength": 21,
+     "cells": 216,
+     "fillCells": 135,
+     "internalClear": 56
+    },
+    "block": {
+     "regions": 2,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 8640,
+     "fillCells": 8128,
+     "internalClear": 0
+    },
+    "charging": {
+     "regions": 3,
+     "withRuns": 3,
+     "runs": 12,
+     "runLength": 36,
+     "cells": 432,
+     "fillCells": 240,
+     "internalClear": 96
+    },
+    "checkpoint": {
+     "regions": 9,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 13176,
+     "fillCells": 11722,
+     "internalClear": 0
+    },
+    "compound": {
+     "regions": 6,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 17280,
+     "fillCells": 16324,
+     "internalClear": 0
+    },
+    "cover": {
+     "regions": 213,
+     "withRuns": 27,
+     "runs": 200,
+     "runLength": 600,
+     "cells": 12456,
+     "fillCells": 7010,
+     "internalClear": 1606
+    },
+    "departure": {
+     "regions": 1,
+     "withRuns": 1,
+     "runs": 7,
+     "runLength": 21,
+     "cells": 216,
+     "fillCells": 129,
+     "internalClear": 56
+    },
+    "depot": {
+     "regions": 7,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 20016,
+     "fillCells": 18814,
+     "internalClear": 0
+    },
+    "hall": {
+     "regions": 6,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 7236,
+     "fillCells": 6558,
+     "internalClear": 0
+    },
+    "hut": {
+     "regions": 56,
+     "withRuns": 55,
+     "runs": 92,
+     "runLength": 986,
+     "cells": 6510,
+     "fillCells": 3487,
+     "internalClear": 1824
+    },
+    "market": {
+     "regions": 19,
+     "withRuns": 2,
+     "runs": 11,
+     "runLength": 33,
+     "cells": 45468,
+     "fillCells": 42306,
+     "internalClear": 108
+    },
+    "open": {
+     "regions": 514,
+     "withRuns": 283,
+     "runs": 2337,
+     "runLength": 13870,
+     "cells": 83179,
+     "fillCells": 36805,
+     "internalClear": 26707
+    },
+    "park": {
+     "regions": 305,
+     "withRuns": 54,
+     "runs": 82,
+     "runLength": 246,
+     "cells": 25380,
+     "fillCells": 18655,
+     "internalClear": 674
+    },
+    "plant": {
+     "regions": 7,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 22752,
+     "fillCells": 21510,
+     "internalClear": 0
+    },
+    "rubble": {
+     "regions": 937,
+     "withRuns": 282,
+     "runs": 499,
+     "runLength": 1833,
+     "cells": 29219,
+     "fillCells": 9527,
+     "internalClear": 3848
+    },
+    "ruins": {
+     "regions": 2,
+     "withRuns": 0,
+     "runs": 0,
+     "runLength": 0,
+     "cells": 10224,
+     "fillCells": 9772,
+     "internalClear": 0
+    },
+    "transit": {
+     "regions": 6,
+     "withRuns": 6,
+     "runs": 24,
+     "runLength": 72,
+     "cells": 864,
+     "fillCells": 486,
+     "internalClear": 192
+    }
+   }
+  }
+ ]
+}
