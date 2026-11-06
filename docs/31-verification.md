@@ -591,7 +591,7 @@ the sweep and the physics equality scripts (the table above).
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `characterization-bots` | 13.4 s | every tick's snapshot and three projections of four whole bot matches on the fixture's stored arenas; the fast tier has the map hashes and one scripted trace | simulation rules, bots, snapshot and projection shapes; not generation |
-| `map-sweep` | 4.0 s | legacy maps, seeds 1 to 20 and the fixture's four, keep a no-key route for both body sizes, standing room and clearance; `LEGACY_MAP_SEEDS=200` runs the full sweep (31 s) for a change to the legacy generator, movement or the navigation grid (#822) | the legacy generator, movement, the navigation grid; not rules or bots |
+| `map-sweep` | 4.0 s | legacy maps, seeds 1 to 20 and the fixture's four, keep a no-key route for both body sizes and clearance sampled along every route; its loot and charger checks reuse the predicate that placed them, so a broken `canOccupy` passes them (review 658). `LEGACY_MAP_SEEDS=200` runs the full sweep (31 s) for a change to the legacy generator, movement or the navigation grid (#822) | the legacy generator, movement, the navigation grid; not rules or bots |
 | `hearing` (browser) | 10.1 s | a heard-gunfire cue reaches the player's frame and is drawn as a ring, an edge arrow and on the minimap | hearing, its projection, the HUD and minimap |
 | `transit` (browser) | 6.6 s | a gladiator at a station sees its rings on the minimap and a click transits | transit, its projection, minimap input |
 
