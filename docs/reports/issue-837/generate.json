@@ -1,0 +1,14 @@
+{
+  "checkpoint": "c96e24fb776c274b0b715aed8376660234c3a208",
+  "node": "v24.15.0",
+  "seed": "size-36-1",
+  "params": {
+    "mode": "game",
+    "zoneWidth": 36,
+    "zoneHeight": 18
+  },
+  "cellSize": 48,
+  "generateMs": 44972.112199999996,
+  "sha256": "f886b0b18a8632031c11b99e07bfc5d8c1a91610d231a8c4674cd55b1d642d6c",
+  "note": "SDK expansion switched off; one cold whole-map sample, not an adoption-cost estimate."
+}

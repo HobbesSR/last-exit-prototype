@@ -1,0 +1,886 @@
+{
+  "version": "seam-pitch-probe-1",
+  "revision": "c96e24fb776c274b0b715aed8376660234c3a208",
+  "node": "v24.15.0",
+  "sourceSha256LF": "dd190a0498b849ab51a56d12a498cb98fa8633674e3cf0091824840f9ca109fe",
+  "interpretation": "Fixed layout and owners; resolved guarantees changed in memory. No re-placement, builder output, physical blockage or detour claim. Proof uses the source library spawn class.",
+  "turning": [
+    {
+      "cellSize": 40,
+      "diagonalPinchWidthCells": 1.4142135623730951,
+      "hunterClearanceDiameterCells": 1.85,
+      "results": [
+        {
+          "caps": "baseline",
+          "radiusCells": 0.925,
+          "cornerCellClear": true,
+          "routeFound": true,
+          "movementReached": true,
+          "viaCornerSweptClear": true
+        },
+        {
+          "caps": "stop-at-hints",
+          "radiusCells": 0.925,
+          "cornerCellClear": false,
+          "routeFound": false,
+          "movementReached": false,
+          "viaCornerSweptClear": false
+        }
+      ]
+    },
+    {
+      "cellSize": 48,
+      "diagonalPinchWidthCells": 1.4142135623730951,
+      "hunterClearanceDiameterCells": 1.8499999999999999,
+      "results": [
+        {
+          "caps": "baseline",
+          "radiusCells": 0.9249999999999999,
+          "cornerCellClear": true,
+          "routeFound": true,
+          "movementReached": true,
+          "viaCornerSweptClear": true
+        },
+        {
+          "caps": "stop-at-hints",
+          "radiusCells": 0.9249999999999999,
+          "cornerCellClear": false,
+          "routeFound": false,
+          "movementReached": false,
+          "viaCornerSweptClear": false
+        }
+      ]
+    }
+  ],
+  "maps": [
+    {
+      "seed": "size-12-1",
+      "params": {
+        "zoneWidth": 12,
+        "zoneHeight": 6,
+        "exitCount": 2,
+        "contestantCount": 8,
+        "hunterCount": 3,
+        "lootChance": 0.04,
+        "lootTierStep": 0.09
+      },
+      "cellSize": 48,
+      "layoutSha256": "01b0090e14538062e31933755d2ea6bdad592c69aaf2b110b7e007762f5d34c4",
+      "libraryFingerprint": "a786b49c715717e9",
+      "resolvedSha256": "43140252c635680bc6d2e3d36d0e2ffcc8af296cd52da918276bfe3e49666854",
+      "variants": [
+        {
+          "id": "baseline",
+          "removedUnits": 0,
+          "removedTileSides": 0,
+          "regions": 287,
+          "portals": 939,
+          "guaranteedUnits": 5188,
+          "graphComponents": 1,
+          "proofViolations": 0,
+          "shortPortalViolations": 0,
+          "clearCells": 11254,
+          "hintedUnguaranteedUnits": 1686,
+          "authoredUnguaranteed": {
+            "units": 2154,
+            "runs": 703,
+            "unitsInRuns6Plus": 84,
+            "shareInRuns6Plus": 0.03899721448467967,
+            "histogram": {
+              "3": 686,
+              "4": 3,
+              "6": 14
+            }
+          },
+          "fillable": {
+            "units": 760,
+            "runs": 714,
+            "unitsInRuns6Plus": 0,
+            "shareInRuns6Plus": 0,
+            "histogram": {
+              "1": 668,
+              "2": 46
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.3528319405756732,
+          "fillable6PlusShareOfUnguaranteed": 0
+        },
+        {
+          "id": "caps-stop-at-hints",
+          "removedUnits": 0,
+          "removedTileSides": 0,
+          "regions": 287,
+          "portals": 939,
+          "guaranteedUnits": 5188,
+          "graphComponents": 1,
+          "proofViolations": 0,
+          "shortPortalViolations": 0,
+          "clearCells": 9521,
+          "hintedUnguaranteedUnits": 1686,
+          "authoredUnguaranteed": {
+            "units": 2154,
+            "runs": 703,
+            "unitsInRuns6Plus": 84,
+            "shareInRuns6Plus": 0.03899721448467967,
+            "histogram": {
+              "3": 686,
+              "4": 3,
+              "6": 14
+            }
+          },
+          "fillable": {
+            "units": 1344,
+            "runs": 714,
+            "unitsInRuns6Plus": 0,
+            "shareInRuns6Plus": 0,
+            "histogram": {
+              "1": 181,
+              "2": 436,
+              "3": 97
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.6239554317548747,
+          "fillable6PlusShareOfUnguaranteed": 0
+        },
+        {
+          "id": "remove-side-parity-0",
+          "removedUnits": 2361,
+          "removedTileSides": 571,
+          "regions": 287,
+          "portals": 541,
+          "guaranteedUnits": 2827,
+          "graphComponents": 3,
+          "proofViolations": 2,
+          "shortPortalViolations": 0,
+          "clearCells": 6931,
+          "hintedUnguaranteedUnits": 3084,
+          "authoredUnguaranteed": {
+            "units": 3552,
+            "runs": 828,
+            "unitsInRuns6Plus": 1959,
+            "shareInRuns6Plus": 0.5515202702702703,
+            "histogram": {
+              "3": 527,
+              "4": 3,
+              "6": 241,
+              "9": 57
+            }
+          },
+          "fillable": {
+            "units": 2357,
+            "runs": 858,
+            "unitsInRuns6Plus": 260,
+            "shareInRuns6Plus": 0.1103097157403479,
+            "histogram": {
+              "1": 216,
+              "2": 331,
+              "3": 23,
+              "4": 100,
+              "5": 150,
+              "6": 6,
+              "7": 32
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.6635698198198198,
+          "fillable6PlusShareOfUnguaranteed": 0.0731981981981982
+        },
+        {
+          "id": "remove-side-parity-0-caps-stop-at-hints",
+          "removedUnits": 2361,
+          "removedTileSides": 571,
+          "regions": 287,
+          "portals": 541,
+          "guaranteedUnits": 2827,
+          "graphComponents": 3,
+          "proofViolations": 2,
+          "shortPortalViolations": 0,
+          "clearCells": 5718,
+          "hintedUnguaranteedUnits": 3084,
+          "authoredUnguaranteed": {
+            "units": 3552,
+            "runs": 828,
+            "unitsInRuns6Plus": 1959,
+            "shareInRuns6Plus": 0.5515202702702703,
+            "histogram": {
+              "3": 527,
+              "4": 3,
+              "6": 241,
+              "9": 57
+            }
+          },
+          "fillable": {
+            "units": 2694,
+            "runs": 858,
+            "unitsInRuns6Plus": 473,
+            "shareInRuns6Plus": 0.17557535263548626,
+            "histogram": {
+              "1": 139,
+              "2": 261,
+              "3": 170,
+              "4": 60,
+              "5": 162,
+              "6": 34,
+              "7": 1,
+              "8": 17,
+              "9": 14
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.7584459459459459,
+          "fillable6PlusShareOfUnguaranteed": 0.13316441441441443
+        },
+        {
+          "id": "remove-side-parity-1",
+          "removedUnits": 2367,
+          "removedTileSides": 568,
+          "regions": 287,
+          "portals": 568,
+          "guaranteedUnits": 2821,
+          "graphComponents": 3,
+          "proofViolations": 2,
+          "shortPortalViolations": 0,
+          "clearCells": 6941,
+          "hintedUnguaranteedUnits": 2982,
+          "authoredUnguaranteed": {
+            "units": 3450,
+            "runs": 804,
+            "unitsInRuns6Plus": 1857,
+            "shareInRuns6Plus": 0.5382608695652173,
+            "histogram": {
+              "3": 527,
+              "4": 3,
+              "6": 203,
+              "9": 71
+            }
+          },
+          "fillable": {
+            "units": 2260,
+            "runs": 837,
+            "unitsInRuns6Plus": 330,
+            "shareInRuns6Plus": 0.14601769911504425,
+            "histogram": {
+              "1": 230,
+              "2": 316,
+              "3": 20,
+              "4": 107,
+              "5": 116,
+              "6": 7,
+              "7": 40,
+              "8": 1
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.6550724637681159,
+          "fillable6PlusShareOfUnguaranteed": 0.09565217391304348
+        },
+        {
+          "id": "remove-side-parity-1-caps-stop-at-hints",
+          "removedUnits": 2367,
+          "removedTileSides": 568,
+          "regions": 287,
+          "portals": 568,
+          "guaranteedUnits": 2821,
+          "graphComponents": 3,
+          "proofViolations": 2,
+          "shortPortalViolations": 0,
+          "clearCells": 5698,
+          "hintedUnguaranteedUnits": 2982,
+          "authoredUnguaranteed": {
+            "units": 3450,
+            "runs": 804,
+            "unitsInRuns6Plus": 1857,
+            "shareInRuns6Plus": 0.5382608695652173,
+            "histogram": {
+              "3": 527,
+              "4": 3,
+              "6": 203,
+              "9": 71
+            }
+          },
+          "fillable": {
+            "units": 2621,
+            "runs": 837,
+            "unitsInRuns6Plus": 529,
+            "shareInRuns6Plus": 0.2018313620755437,
+            "histogram": {
+              "1": 146,
+              "2": 248,
+              "3": 172,
+              "4": 61,
+              "5": 138,
+              "6": 31,
+              "7": 2,
+              "8": 22,
+              "9": 17
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.7597101449275362,
+          "fillable6PlusShareOfUnguaranteed": 0.15333333333333332
+        }
+      ]
+    },
+    {
+      "seed": "size-24-1",
+      "params": {
+        "zoneWidth": 24,
+        "zoneHeight": 12,
+        "exitCount": 2,
+        "contestantCount": 8,
+        "hunterCount": 3,
+        "lootChance": 0.04,
+        "lootTierStep": 0.09
+      },
+      "cellSize": 48,
+      "layoutSha256": "bf305220fb26c50e257dfb1bb3531961687aa4140938423154642a1b4d4280ff",
+      "libraryFingerprint": "7f2a98774b77a15c",
+      "resolvedSha256": "31de1e44354fd23e3c50eb71985902b2e547fe4a14baa0a5464438d2fb14a7f4",
+      "variants": [
+        {
+          "id": "baseline",
+          "removedUnits": 0,
+          "removedTileSides": 0,
+          "regions": 1034,
+          "portals": 3877,
+          "guaranteedUnits": 21542,
+          "graphComponents": 1,
+          "proofViolations": 0,
+          "shortPortalViolations": 0,
+          "clearCells": 44470,
+          "hintedUnguaranteedUnits": 6063,
+          "authoredUnguaranteed": {
+            "units": 8388,
+            "runs": 2743,
+            "unitsInRuns6Plus": 312,
+            "shareInRuns6Plus": 0.03719599427753934,
+            "histogram": {
+              "1": 3,
+              "2": 3,
+              "3": 2681,
+              "4": 6,
+              "6": 48,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 2873,
+            "runs": 2778,
+            "unitsInRuns6Plus": 0,
+            "shareInRuns6Plus": 0,
+            "histogram": {
+              "1": 2683,
+              "2": 95
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.34251311397234147,
+          "fillable6PlusShareOfUnguaranteed": 0
+        },
+        {
+          "id": "caps-stop-at-hints",
+          "removedUnits": 0,
+          "removedTileSides": 0,
+          "regions": 1034,
+          "portals": 3877,
+          "guaranteedUnits": 21542,
+          "graphComponents": 1,
+          "proofViolations": 0,
+          "shortPortalViolations": 0,
+          "clearCells": 39002,
+          "hintedUnguaranteedUnits": 6063,
+          "authoredUnguaranteed": {
+            "units": 8388,
+            "runs": 2743,
+            "unitsInRuns6Plus": 312,
+            "shareInRuns6Plus": 0.03719599427753934,
+            "histogram": {
+              "1": 3,
+              "2": 3,
+              "3": 2681,
+              "4": 6,
+              "6": 48,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 4874,
+            "runs": 2778,
+            "unitsInRuns6Plus": 0,
+            "shareInRuns6Plus": 0,
+            "histogram": {
+              "1": 927,
+              "2": 1606,
+              "3": 245
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.5810681926561755,
+          "fillable6PlusShareOfUnguaranteed": 0
+        },
+        {
+          "id": "remove-side-parity-0",
+          "removedUnits": 9618,
+          "removedTileSides": 2163,
+          "regions": 1034,
+          "portals": 2337,
+          "guaranteedUnits": 11924,
+          "graphComponents": 5,
+          "proofViolations": 4,
+          "shortPortalViolations": 0,
+          "clearCells": 28664,
+          "hintedUnguaranteedUnits": 11514,
+          "authoredUnguaranteed": {
+            "units": 13839,
+            "runs": 3340,
+            "unitsInRuns6Plus": 6972,
+            "shareInRuns6Plus": 0.503793626707132,
+            "histogram": {
+              "1": 3,
+              "2": 3,
+              "3": 2278,
+              "4": 6,
+              "6": 828,
+              "9": 220,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 8726,
+            "runs": 3474,
+            "unitsInRuns6Plus": 807,
+            "shareInRuns6Plus": 0.0924822369928948,
+            "histogram": {
+              "1": 1078,
+              "2": 1302,
+              "3": 81,
+              "4": 491,
+              "5": 406,
+              "6": 8,
+              "7": 105,
+              "8": 3
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.6305368885035045,
+          "fillable6PlusShareOfUnguaranteed": 0.05831346195534359
+        },
+        {
+          "id": "remove-side-parity-0-caps-stop-at-hints",
+          "removedUnits": 9618,
+          "removedTileSides": 2163,
+          "regions": 1034,
+          "portals": 2337,
+          "guaranteedUnits": 11924,
+          "graphComponents": 5,
+          "proofViolations": 4,
+          "shortPortalViolations": 0,
+          "clearCells": 24225,
+          "hintedUnguaranteedUnits": 11514,
+          "authoredUnguaranteed": {
+            "units": 13839,
+            "runs": 3340,
+            "unitsInRuns6Plus": 6972,
+            "shareInRuns6Plus": 0.503793626707132,
+            "histogram": {
+              "1": 3,
+              "2": 3,
+              "3": 2278,
+              "4": 6,
+              "6": 828,
+              "9": 220,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 10013,
+            "runs": 3474,
+            "unitsInRuns6Plus": 1384,
+            "shareInRuns6Plus": 0.13822031359232997,
+            "histogram": {
+              "1": 731,
+              "2": 1135,
+              "3": 595,
+              "4": 272,
+              "5": 551,
+              "6": 82,
+              "7": 7,
+              "8": 66,
+              "9": 35
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.7235349374954838,
+          "fillable6PlusShareOfUnguaranteed": 0.10000722595563263
+        },
+        {
+          "id": "remove-side-parity-1",
+          "removedUnits": 9645,
+          "removedTileSides": 2167,
+          "regions": 1034,
+          "portals": 2368,
+          "guaranteedUnits": 11897,
+          "graphComponents": 2,
+          "proofViolations": 1,
+          "shortPortalViolations": 0,
+          "clearCells": 28675,
+          "hintedUnguaranteedUnits": 11334,
+          "authoredUnguaranteed": {
+            "units": 13659,
+            "runs": 3314,
+            "unitsInRuns6Plus": 6780,
+            "shareInRuns6Plus": 0.4963760158137492,
+            "histogram": {
+              "1": 3,
+              "2": 3,
+              "3": 2282,
+              "4": 6,
+              "6": 802,
+              "9": 216,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 8573,
+            "runs": 3447,
+            "unitsInRuns6Plus": 793,
+            "shareInRuns6Plus": 0.09249970838679575,
+            "histogram": {
+              "1": 1118,
+              "2": 1262,
+              "3": 74,
+              "4": 479,
+              "5": 400,
+              "6": 6,
+              "7": 107,
+              "8": 1
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.6276447763379457,
+          "fillable6PlusShareOfUnguaranteed": 0.05805695878175562
+        },
+        {
+          "id": "remove-side-parity-1-caps-stop-at-hints",
+          "removedUnits": 9645,
+          "removedTileSides": 2167,
+          "regions": 1034,
+          "portals": 2368,
+          "guaranteedUnits": 11897,
+          "graphComponents": 2,
+          "proofViolations": 1,
+          "shortPortalViolations": 0,
+          "clearCells": 24229,
+          "hintedUnguaranteedUnits": 11334,
+          "authoredUnguaranteed": {
+            "units": 13659,
+            "runs": 3314,
+            "unitsInRuns6Plus": 6780,
+            "shareInRuns6Plus": 0.4963760158137492,
+            "histogram": {
+              "1": 3,
+              "2": 3,
+              "3": 2282,
+              "4": 6,
+              "6": 802,
+              "9": 216,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 9847,
+            "runs": 3447,
+            "unitsInRuns6Plus": 1378,
+            "shareInRuns6Plus": 0.13994109881182085,
+            "histogram": {
+              "1": 768,
+              "2": 1093,
+              "3": 593,
+              "4": 279,
+              "5": 524,
+              "6": 82,
+              "7": 11,
+              "8": 64,
+              "9": 33
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.7209166117578154,
+          "fillable6PlusShareOfUnguaranteed": 0.10088586280108354
+        }
+      ]
+    },
+    {
+      "seed": "size-36-1",
+      "params": {
+        "zoneWidth": 36,
+        "zoneHeight": 18,
+        "exitCount": 2,
+        "contestantCount": 8,
+        "hunterCount": 3,
+        "lootChance": 0.04,
+        "lootTierStep": 0.09
+      },
+      "cellSize": 48,
+      "layoutSha256": "6878520938e8b2f4d1fc5ceedc40929d956e9158589f63ba56cdb03f6d3e7dfe",
+      "libraryFingerprint": "88e41af01e8b6c71",
+      "resolvedSha256": "3afb813b15088f75b60b3b438c1f5fd0dd8ebb788116822c869915f3e30126a3",
+      "variants": [
+        {
+          "id": "baseline",
+          "removedUnits": 0,
+          "removedTileSides": 0,
+          "regions": 2094,
+          "portals": 7996,
+          "guaranteedUnits": 44678,
+          "graphComponents": 1,
+          "proofViolations": 0,
+          "shortPortalViolations": 0,
+          "clearCells": 91656,
+          "hintedUnguaranteedUnits": 12495,
+          "authoredUnguaranteed": {
+            "units": 16881,
+            "runs": 5489,
+            "unitsInRuns6Plus": 834,
+            "shareInRuns6Plus": 0.04940465612226764,
+            "histogram": {
+              "1": 5,
+              "2": 5,
+              "3": 5336,
+              "4": 6,
+              "6": 135,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 5747,
+            "runs": 5609,
+            "unitsInRuns6Plus": 0,
+            "shareInRuns6Plus": 0,
+            "histogram": {
+              "1": 5471,
+              "2": 138
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.3404419169480481,
+          "fillable6PlusShareOfUnguaranteed": 0
+        },
+        {
+          "id": "caps-stop-at-hints",
+          "removedUnits": 0,
+          "removedTileSides": 0,
+          "regions": 2094,
+          "portals": 7996,
+          "guaranteedUnits": 44678,
+          "graphComponents": 1,
+          "proofViolations": 0,
+          "shortPortalViolations": 0,
+          "clearCells": 80621,
+          "hintedUnguaranteedUnits": 12495,
+          "authoredUnguaranteed": {
+            "units": 16881,
+            "runs": 5489,
+            "unitsInRuns6Plus": 834,
+            "shareInRuns6Plus": 0.04940465612226764,
+            "histogram": {
+              "1": 5,
+              "2": 5,
+              "3": 5336,
+              "4": 6,
+              "6": 135,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 9936,
+            "runs": 5609,
+            "unitsInRuns6Plus": 0,
+            "shareInRuns6Plus": 0,
+            "histogram": {
+              "1": 1816,
+              "2": 3259,
+              "3": 534
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.5885907232983828,
+          "fillable6PlusShareOfUnguaranteed": 0
+        },
+        {
+          "id": "remove-side-parity-0",
+          "removedUnits": 20196,
+          "removedTileSides": 4490,
+          "regions": 2094,
+          "portals": 4821,
+          "guaranteedUnits": 24482,
+          "graphComponents": 2,
+          "proofViolations": 1,
+          "shortPortalViolations": 0,
+          "clearCells": 58581,
+          "hintedUnguaranteedUnits": 23739,
+          "authoredUnguaranteed": {
+            "units": 28125,
+            "runs": 6731,
+            "unitsInRuns6Plus": 14403,
+            "shareInRuns6Plus": 0.5121066666666667,
+            "histogram": {
+              "1": 5,
+              "2": 5,
+              "3": 4561,
+              "4": 6,
+              "6": 1663,
+              "9": 489,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 17774,
+            "runs": 6988,
+            "unitsInRuns6Plus": 1977,
+            "shareInRuns6Plus": 0.11122988635084956,
+            "histogram": {
+              "1": 2167,
+              "2": 2550,
+              "3": 161,
+              "4": 1078,
+              "5": 747,
+              "6": 18,
+              "7": 267
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.6319644444444444,
+          "fillable6PlusShareOfUnguaranteed": 0.07029333333333333
+        },
+        {
+          "id": "remove-side-parity-0-caps-stop-at-hints",
+          "removedUnits": 20196,
+          "removedTileSides": 4490,
+          "regions": 2094,
+          "portals": 4821,
+          "guaranteedUnits": 24482,
+          "graphComponents": 2,
+          "proofViolations": 1,
+          "shortPortalViolations": 0,
+          "clearCells": 49448,
+          "hintedUnguaranteedUnits": 23739,
+          "authoredUnguaranteed": {
+            "units": 28125,
+            "runs": 6731,
+            "unitsInRuns6Plus": 14403,
+            "shareInRuns6Plus": 0.5121066666666667,
+            "histogram": {
+              "1": 5,
+              "2": 5,
+              "3": 4561,
+              "4": 6,
+              "6": 1663,
+              "9": 489,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 20446,
+            "runs": 6988,
+            "unitsInRuns6Plus": 3208,
+            "shareInRuns6Plus": 0.15690110535067983,
+            "histogram": {
+              "1": 1458,
+              "2": 2244,
+              "3": 1176,
+              "4": 636,
+              "5": 1044,
+              "6": 163,
+              "7": 10,
+              "8": 153,
+              "9": 104
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.7269688888888889,
+          "fillable6PlusShareOfUnguaranteed": 0.11406222222222222
+        },
+        {
+          "id": "remove-side-parity-1",
+          "removedUnits": 20142,
+          "removedTileSides": 4487,
+          "regions": 2094,
+          "portals": 4777,
+          "guaranteedUnits": 24536,
+          "graphComponents": 3,
+          "proofViolations": 2,
+          "shortPortalViolations": 0,
+          "clearCells": 58782,
+          "hintedUnguaranteedUnits": 23871,
+          "authoredUnguaranteed": {
+            "units": 28257,
+            "runs": 6704,
+            "unitsInRuns6Plus": 14721,
+            "shareInRuns6Plus": 0.5209682556534664,
+            "histogram": {
+              "1": 5,
+              "2": 5,
+              "3": 4499,
+              "4": 6,
+              "6": 1662,
+              "9": 525,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 17724,
+            "runs": 7007,
+            "unitsInRuns6Plus": 1997,
+            "shareInRuns6Plus": 0.11267208305122997,
+            "histogram": {
+              "1": 2280,
+              "2": 2462,
+              "3": 134,
+              "4": 1094,
+              "5": 749,
+              "6": 20,
+              "7": 267,
+              "8": 1
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.6272428070920479,
+          "fillable6PlusShareOfUnguaranteed": 0.07067275365396185
+        },
+        {
+          "id": "remove-side-parity-1-caps-stop-at-hints",
+          "removedUnits": 20142,
+          "removedTileSides": 4487,
+          "regions": 2094,
+          "portals": 4777,
+          "guaranteedUnits": 24536,
+          "graphComponents": 3,
+          "proofViolations": 2,
+          "shortPortalViolations": 0,
+          "clearCells": 49650,
+          "hintedUnguaranteedUnits": 23871,
+          "authoredUnguaranteed": {
+            "units": 28257,
+            "runs": 6704,
+            "unitsInRuns6Plus": 14721,
+            "shareInRuns6Plus": 0.5209682556534664,
+            "histogram": {
+              "1": 5,
+              "2": 5,
+              "3": 4499,
+              "4": 6,
+              "6": 1662,
+              "9": 525,
+              "12": 2
+            }
+          },
+          "fillable": {
+            "units": 20368,
+            "runs": 7007,
+            "unitsInRuns6Plus": 3143,
+            "shareInRuns6Plus": 0.15431068342498036,
+            "histogram": {
+              "1": 1563,
+              "2": 2187,
+              "3": 1126,
+              "4": 650,
+              "5": 1062,
+              "6": 151,
+              "7": 15,
+              "8": 145,
+              "9": 108
+            }
+          },
+          "fillableShareOfUnguaranteed": 0.720812542024985,
+          "fillable6PlusShareOfUnguaranteed": 0.1112290759811728
+        }
+      ]
+    }
+  ]
+}
