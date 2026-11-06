@@ -94,10 +94,10 @@ seed sweep from the repository root, `node map/tools/cli.mts sweep --check
 map/tools/fixtures/chain-baseline.json` (224 maps, two to three minutes, [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`
 pins its quick cases. It must show no drift unless the PR declares a content
 change and recaptures last ([53](53-map-artifacts-and-tools.md)). A change to one
-region type's builder replays `sweep --check ... --type <type>` instead, which rebuilds that
+region type's builder iterates on `sweep --check ... --type <type>`, which rebuilds that
 type's cached briefs per region rather than regenerating every map
-([53](53-map-artifacts-and-tools.md#replaying-one-region-type)); when the replay is enough and
-when the full sweep is needed is [The replay or the full sweep](#the-replay-or-the-full-sweep).
+([53](53-map-artifacts-and-tools.md#replaying-one-region-type)), and still runs the full sweep
+once before its PR ([The replay or the full sweep](#the-replay-or-the-full-sweep)).
 Do not resize test grids or relax generation to make a check pass.
 
 The chain's authored library (52) is checked against the actual region strategies.
@@ -264,9 +264,12 @@ Run it when adding or growing a test file.
 
 The slow tier as a whole has a budget as well: its `tests/slow/` files, each timed alone on the
 development machine, total at most 900 s (Corey, 2026-11-05, #800 S5;
-`npm run test:times -- tests/slow/*.test.js`). It was 871 s on 2026-11-05. That is about 4 to 5
-minutes of wall time at four files at a time here and roughly 11 to 15 in CI, inside the slow
-job's 35 minutes ([below](#continuous-integration)). A change that would take the total past it
+`npm run test:times -- tests/slow/*.test.js`). It was 871 s on 2026-11-05, and 870 s re-measured
+that evening on a quiet machine. A run alongside other work read 990 s, with the larger
+`map-library` files 10 to 15% slower (review 641 on #819), so the total is a duration and is
+measured with nothing else heavy running (#815). It is about 4 to 5 minutes of wall time at four
+files at a time here, and 10 to 20 in CI at the 2.5 to 4 times above, inside the slow job's
+35 minutes ([below](#continuous-integration)). A change that would take the total past it
 cuts as much elsewhere or raises it with Corey. Splitting a file moves its time, not the total.
 The fast tier has no whole-tier budget; its per-file budget and the cost statement below govern it.
 
@@ -678,7 +681,7 @@ the npm that `packageManager` names, as two jobs on separate runner queues:
   `npm run check`, `npm run typecheck`, `npm test` (through `brief`, so the log gives each
   file's wall time and the slowest files) and `npm run test:mapgen`. It runs the whole fast
   tier on every pull request, not only the sets a branch reaches (Corey, 2026-11-05, #800 S5);
-  a slow `verify` is answered by cutting slow files, not by narrowing it. It is the pull request's
+  a slow `verify` is answered by cutting the slowest fast-tier files' cost, not by narrowing it. It is the pull request's
   check. The runner is several times slower than the development machine (42.3, 2026-11-04).
 - **`slow`** (label `slow`) runs `npm run test:slow` on every push to `main`, after
   merge, so pull requests never wait for it. When it fails,
