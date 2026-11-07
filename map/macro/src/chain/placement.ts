@@ -59,6 +59,15 @@ function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>
 /** Whether the fill may place a design: not stated `fillable: false`, nor weighted 0 as older content says it (52). */
 const fillable = (tile: ChainTileDesign): boolean => tile.fillable !== false && tile.weight !== 0;
 
+/**
+ * One orientation's fill weight. Under `matched` rules a design's weight is its total, shared
+ * evenly by the orientations it allows, so a rotatable tile is drawn as often as a fixed one
+ * (Corey, 2026-11-06, 17.2.2: "the least surprising and most uniform way"). Otherwise each
+ * orientation carries the whole weight, as before.
+ */
+const optionWeight = (design: ChainTileDesign, library: ChainLibrary): number =>
+  (design.weight ?? 1) / (library.passabilityRules === "matched" ? design.orientations.length : 1);
+
 /** A design's own eligibility (52), wherever it is placed: by the fill or in a set piece slot. */
 const eligibleIn = (tile: ChainTileDesign, zone: MapZone): boolean =>
   (!tile.eligibleTiers || tile.eligibleTiers.includes(zone.tier)) &&
@@ -261,7 +270,7 @@ function sample(
   const optionsFor = (zone: MapZone): TileOption[] => {
     let list = options.get(zone.id);
     if (!list) options.set(zone.id, list = fill(zone).flatMap((design) => design.orientations.map((orientation) => ({
-      templateId: design.id, orientation: orientation as Orientation, difficulty: difficulty(design, library.passabilityRules === "matched"), weight: design.weight ?? 1,
+      templateId: design.id, orientation: orientation as Orientation, difficulty: difficulty(design, library.passabilityRules === "matched"), weight: optionWeight(design, library),
     }))));
     return list;
   };
