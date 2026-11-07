@@ -66,6 +66,14 @@ seeds or plays whole matches. The fast tier keeps a cheap witness of the same
 contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
 
+**A test that generates a map down to building is slow-tier work** (Corey, 2026-11-07, on review 672
+of #853). Under the matched libraries a 12 × 6 game map takes about 10 s to build (42.37), so the fast
+tier keeps macro, brief and synthetic-brief tests, and building ones move to `tests/slow/`, whole
+files or the tests that build. A test that needs a map only as a place to play uses an arena sized
+to the task ([Test arenas](#test-arenas)): room and networking tests read the pregenerated room
+arena. The playground quick cases stay pinned in `map-sweep`; the game quick case is in
+`slow/map-chain-sweep`.
+
 Large end-to-end builder timing witnesses also belong in the slow tier when
 they include decomposition and full child micro-generation. The 200 x 150
 macro-block witness is `tests/slow/micro-block-scale.test.js` (#610), following
@@ -618,6 +626,7 @@ the sweep and the physics equality scripts (the table above).
 | --- | --- | --- | --- |
 | `characterization-bots` | 13.4 s | every tick's snapshot and three projections of four whole bot matches on the fixture's stored arenas; the fast tier has the map hashes and one scripted trace | simulation rules, bots, snapshot and projection shapes; not generation |
 | `map-sweep` | 4.0 s | legacy maps, seeds 1 to 20 and the fixture's four, keep a no-key route for both body sizes and clearance sampled along every route; its loot and charger checks reuse the predicate that placed them, so a broken `canOccupy` passes them (review 658). `LEGACY_MAP_SEEDS=200` runs the full sweep (31 s) for a change to the legacy generator, movement or the navigation grid (#822) | the legacy generator, movement, the navigation grid; not rules or bots |
+| `view-live-map` | 20.8 s | roof, gate and item ids stay pinned on live maps 1 and 2, and their roofs are distinct and conceal (#343); moved from `view` (#849) | the live adapter, builders' element order, roofs |
 | `hearing` (browser) | 10.1 s | a heard-gunfire cue reaches the player's frame and is drawn as a ring, an edge arrow and on the minimap | hearing, its projection, the HUD and minimap |
 | `transit` (browser) | 6.6 s | a gladiator at a station sees its rings on the minimap and a click transits | transit, its projection, minimap input |
 
@@ -637,6 +646,10 @@ the sweep and the physics equality scripts (the table above).
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `live-map` (slow) | 19.9 s | legacy-mover bots fill all three extraction slots on two live chain maps; at the larger authored size macro states a room's recipe and the frame its briefs give is the room's size (the regions are not built, so no per-run test converts a composed 24 × 12 map; `micro-large-briefs` builds each type's extreme stored brief at that size, not these, #822) | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
+| `live-map-adapter` (slow) | 29.9 s | a room's match map is seed 1's chain map, the adapter is deterministic, and a content's roster sizes its sites (#849) | the live adapter, generation |
+| `live-recipe` (slow) | 29.7 s | the Map Lab's live-recipe check: only a seed's own map is a room's, refusing an edited layout or result (#822, #849) | `map/live.ts`, generation |
+| `map-generator` (slow) | 18.9 s | the map worker's answer is exactly the inline map, graph and packed tiles included, and each request gets its own seed's (#849) | the worker, the live adapter |
+| `room-arena` (slow) | 8.9 s | the pregenerated room arena is still seed 9's live map and graph (#849) | anything that moves seed 9's live map: then recapture it |
 | `room-sizes` (slow) | 6.8 s | a whole legacy room through the server loop: every tick recorded once in order, and the sparse replay timeline | rooms, recording, the replay timeline; size-dependent generation under `ROOM_SIZES` |
 | `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
 | `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
@@ -645,8 +658,14 @@ the sweep and the physics equality scripts (the table above).
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps and the larger sizes' 4 macro layers, naming the stage, and any map whose report has defects (refused when checking or capturing, #822); `npm test` pins only the quick cases | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
+| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps and the larger sizes' 4 macro layers, naming the stage, and any map whose report has defects (refused when checking or capturing, #822); `npm test` pins only the playground quick cases (`slow/map-chain-sweep` the game one) | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
 | `map-library` | 11.3 s | one 8-contestant map's full diagnosis: every region's portal promise under the thorough search, open ones too | macro, the library, builders: as a defect |
+| `map-chain-sweep` | 18.6 s | the game quick case's hashes, and its macro views from `generateMacro`; the fast `map-sweep` pins the playground cases (#849) | as the sweep |
+| `map-container` | 24.7 s | a game map round-trips whole and from its Layout alone with the game's engines, and reports clean (#849) | macro, builders, saving |
+| `map-sweep-replay` | 20.2 s | the brief replay's machinery on the quick cases: capture, drift, throws and refusals (#541, #849) | `sweep-briefs.mts`, builders |
+| `map-lab-routes` | 22.4 s | both bodies' routes on a game map, and a built map's collision bounded by its regions' cells (#849) | `map/tools/routes.ts`, builders |
+| `map-tools` | 10.2 s | the tools' default game map with the game's registry, its library witness and saves (#849) | `map/tools/`, builders |
+| `portal-graph` (slow) | 22.6 s | on a live map every promised pair connects over the mesh, and the graph travels beside the map (#849) | the portal graph, the live adapter, builders |
 | `map-macro-sizes` | 21.3 s (three runs, 21.0 to 21.6 s, 2026-11-06; 16.9 s when #826 added it) | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
 | `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
 
@@ -659,7 +678,7 @@ the sweep and the physics equality scripts (the table above).
 | `micro-block-promise`, `micro-block-scale` | 13.6 s, 4.3 s | the block's promise on every seed; a macro-sized block's structure counts | the block builder and its delegation |
 | `micro-compound-sweeps`, `-siting-solution` | 11.4, 9.1 s | compound's promise, ring and observer checks at every gate count on every mask at rotating seeds; rooms and court reachable by bodies; the stored authored quarter sites, builds and is reachable to its rooms, court and gate yards (its whole portal promise is not checked per run, as no 36 × 18 region's is since #821; `tools/compound-siting-solution-audit.mjs --after-brief=tests/fixtures/compound-340-inward-brief.json.gz` runs it on purpose, #822) | the compound builder and siting |
 | `micro-depot-sweeps`, `micro-depot-scale` | 13.9 s, 6.0 s | depot's promise and aisle access over its seeds; the stored witnesses' reach; the macro case's cord counts | the depot builder, the live cord |
-| `micro-large-briefs` | 25.3 s | the larger sizes' extreme briefs, for the 13 types they exceed 12 × 6 in (up to 88 portals, 11,484 cells), build and stay in their fill | any builder; macro only through a recapture |
+| `micro-large-briefs`, `-park` | 24.2 s, 39.2 s | the larger sizes' extreme briefs, for the 12 types they exceed 12 × 6 in (up to 87 portals, 11,484 cells), build and stay in their fill; park's brief alone takes about 40 s since #849, so it has its own file | any builder; macro only through a recapture |
 | `micro-hut-sweeps` | 4.9 s | small houses at sixteen seeds | the hut builder |
 | `micro-park-promise`, `micro-plant-promise` | 12.5 s, 15.3 s | park's promise, spacing and kinds on every mask and parameter set at rotating seeds, and its 36-portal case; plant's promise, spacing and kinds at every seed, and its forty #490 strips | that builder |
 | `micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo` (browser) | 18.0, 8.0, 5.8, 8.7 s | the micro labs in Chrome: controls, imports, downloads, walking, building views | the lab pages, `region-examples`, `brief-link`, building drawing; not builder output (below) |
@@ -701,6 +720,11 @@ A behaviour question is answered in the smallest scene that still shows it (#697
 - **A generated region** (a real region type in a small frame) when the test depends on what generation produces.
 - **A whole live match** only when nothing smaller shows it. Live matches stay the integration check, for example
   `tools/navigation/hunter-report.mjs`; arenas do not replace them.
+- **The pregenerated room arena** when a test needs a real live map but not a particular one: seed 9's live map
+  and portal graph at 12 × 6, stored in `tests/fixtures/room-arena-9.v8.gz` by `tools/room-arena.mjs` (#849).
+  `generatedMap(9)` in `tests/helpers/room-harness.js` reads it, so `reuseMaps` rooms and `createMatch(9, …,
+  generatedMap(9))` cost no generation. `tests/slow/room-arena.test.js` fails when it is no longer seed 9's map;
+  recapture it in the change that moved the map.
 
 `tests/helpers/arena.js` is the one builder for hand-made arenas. `arena()` returns a valid `GameMap` from
 parameters: size and cell size; a playable area covering the whole map, because a map without one is a diamond

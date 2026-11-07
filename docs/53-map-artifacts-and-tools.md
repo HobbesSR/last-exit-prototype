@@ -150,10 +150,10 @@ Four more entries are macro alone at the larger authored sizes (`macro-24x12` an
 `macro-36x18`, seeds `size-24-1`, `size-24-2`, `size-36-1` and `size-36-2`, `stages: 'macro'`): the Layout and macro's views
 through the briefs, with nothing built (`generateMacro` in `map/chain.ts`; #821). What builders
 make of those sizes is checked from stored briefs instead (31).
-The current baseline provenance is content commit `2fb96f9632da3cb43203d5269cd9406fab85d795`,
-captured 2026-11-07 under Node v24.15.0: the matched libraries (`common-primitives@6`,
-`types-64`, #849, 42.37), every map moved. A full `sweep --check` took 595 s on the development
-machine at that commit.
+The current baseline provenance is content commit `6969a05b85034ea5ae8354dc10980e41d42d5dfd`,
+captured 2026-11-07 under Node v24.15.0: the matched libraries (`common-primitives@6`, `types-64`,
+#849, 42.37) with placement's stall limit (#854), every map moved. A full `sweep --check` took
+540–595 s on the development machine, against 199 s for the content before.
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash

@@ -1,5 +1,14 @@
 # Frozen behavior baseline
 
+## Pregenerated room arena (#849)
+
+`room-arena-9.v8.gz` is seed 9's live map at 12 × 6 with the legacy content, and its portal graph,
+as `v8.serialize({ map, graph })` gzipped (the graph holds typed arrays). Room and networking tests
+play on it through `generatedMap(9)` (`tests/helpers/room-harness.js`) instead of building a map
+(31, "Test arenas"). It is not a behaviour baseline: `tests/slow/room-arena.test.js` fails when it
+is no longer seed 9's map, and the change that moved the map recaptures it with
+`node tools/room-arena.mjs` (`--check` compares without writing).
+
 ## Focused compound siting input (#340)
 
 `compound-340-brief.json.gz` is a separate diagnostic input, not a behavior
@@ -202,11 +211,12 @@ alone (no builds): for each region type and each axis (portal count, owned cells
 brief over seeds `size-24-1` to `-5` and `size-36-1` to `-5` of the game-mode 24 × 12 and 36 × 18
 libraries is kept when it exceeds the largest that type gets in the full sweep's `sweep-1` to
 `sweep-120` game maps; a brief that wins both is kept once. Each entry records its seed and both
-values. Captured at `cbf302d` (macro version 3), which holds the tool and `generateMacro`: 15
-briefs over 13 types, up to 88 portals (market) and 11,484 cells (market). The first capture
-recorded `bff42fc`, a checkout with the tool not yet committed (review 646 on #826); its briefs
-are byte-identical to these. Gzip uses mtime 0; SHA-256
-`e8a9eae1d2a812effbc159e6954d5f7e0b78307df405e6791ad95bfab48cc822`.
+values. Recaptured for the matched libraries (#849, `common-primitives@6`, with the placement stall
+limit) at `e5058c8` (macro version 3): 13 briefs over 12 types, up to 87 portals (park) and 11,484
+cells (market). Gzip uses mtime 0; SHA-256
+`8341463f8a4474e8e79a303885f7484b41d5d9ab4f67b6fd5de1ed60945e6f21`. Park's brief, which takes about
+40 s to build, is checked in `tests/slow/micro-large-briefs-park.test.js`. The previous capture, at
+`cbf302d` for `common-primitives@5`, held 15 briefs over 13 types.
 
 These are builder inputs, so they stay valid when macro moves on. Recapture them in the content
 change that moves the larger sizes' briefs, so they keep standing for what those sizes produce;
