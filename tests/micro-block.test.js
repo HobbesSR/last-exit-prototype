@@ -62,7 +62,7 @@ test('every lot suits its type and keeps the three-cell alley between lots', () 
       }
     }
   }
-  assert.deepEqual([...types].sort(), ['compound', 'cover', 'depot', 'hut', 'ruins']);
+  assert.deepEqual([...types].sort(), ['compound', 'cover', 'depot', 'hut', 'landmark', 'ruins']);
 });
 
 test('lots use hinted edges and inherit only their own hinted segments', () => {
@@ -126,7 +126,7 @@ test('a block passes its lots\' buildings to an observer, labelled as their elem
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
     const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
     for (const trace of traces) {
-      assert.match(trace.label, new RegExp(`^${name}\\/lot-\\d+\\/(hut-building|compound(?:-keep)?|depot-warehouse-\\d+)$`));
+      assert.match(trace.label, new RegExp(`^${name}\\/lot-\\d+\\/(hut-building|compound(?:-keep)?|depot-warehouse-\\d+|landmark-(?:gas-station|collapsed-parking|ruined-restaurant))$`));
       if (trace.label.endsWith('/compound')) {
         // A compound's ring is split into one element per space, each labelled after the trace.
         const pieces = result.elements.filter(e => e.label.startsWith(`${trace.label}-room-`) || e.label.startsWith(`${trace.label}-gate-`));

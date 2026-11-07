@@ -6,6 +6,7 @@ import type { CandidatePiece, DecompositionPlan } from '../decomposition/types.t
 import { buildCompound } from './compound.ts';
 import { buildCover } from './cover.ts';
 import { buildDepot } from './depot.ts';
+import { buildLandmark } from './landmark.ts';
 import { largestRectangle } from './hall.ts';
 import { buildHut } from './hut.ts';
 import type { BuildingObserver } from '../building/trace.ts';
@@ -30,7 +31,7 @@ const MIN_LOT = 6;
 const MAX_LOT = 24;
 
 /** Per-place draw channels, so no choice shifts another. */
-const CHANNEL = { split: 1, type: 2, frontage: 3, seed: 4 };
+const CHANNEL = { split: 1, type: 2, frontage: 3, seed: 4, landmark: 5 };
 
 type Box = { x: number; y: number; w: number; h: number };
 type Side = 'N' | 'E' | 'S' | 'W';
@@ -50,7 +51,15 @@ const LOT_TYPES: ReadonlyArray<{ type: string; build: (brief: RegionBrief, obser
   { type: 'compound', build: buildCompound, fits: short => short >= 16 },
   { type: 'ruins', build: buildRuins, fits: () => true },
   { type: 'cover', build: buildCover, fits: short => short >= 9 },
+  // A landmark is chosen separately, by size and its own draw (below), so adding it never
+  // shifts another lot's type. `landmark-site`'s largest envelope needs 11 × 6 plus a doorstep.
+  { type: 'landmark', build: buildLandmark, fits: () => false },
 ];
+
+/** A lot this short and long can hold a landmark, with the doorstep its door demands. */
+const LANDMARK_LOT = (short: number, long: number) => short >= 8 && long >= 13;
+/** The share of eligible lots a seeded draw gives to a landmark. */
+const LANDMARK_CHANCE = 0.35;
 
 /** The block's children: briefs for its lots, and its alleys, which hold every one of the block's own portals. */
 export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief; allocation?: DecompositionPlan;
@@ -338,7 +347,11 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
     const cells: Cell[] = [];
     for (let y = lot.y; y < lot.y + lot.h; y++) for (let x = lot.x; x < lot.x + lot.w; x++) { cells.push({ x, y }); claimed.add(`${x},${y}`); }
     const short = Math.min(lot.w, lot.h), long = Math.max(lot.w, lot.h), suited = LOT_TYPES.filter(t => t.fits(short, long));
-    const type = suited[Math.floor(draw(brief.seed, lot.x, lot.y, CHANNEL.type) * suited.length)]!.type;
+    const landmarks = brief.parameters?.landmarks ?? true;
+    if (typeof landmarks !== 'boolean') throw new TypeError('Block landmarks must be true or false.');
+    const useLandmark = landmarks && LANDMARK_LOT(short, long)
+      && draw(brief.seed, lot.x, lot.y, CHANNEL.landmark) < LANDMARK_CHANCE;
+    const type = useLandmark ? 'landmark' : suited[Math.floor(draw(brief.seed, lot.x, lot.y, CHANNEL.type) * suited.length)]!.type;
     const choices = corners(lot);
     const corner = choices[Math.floor(draw(brief.seed, lot.x, lot.y, CHANNEL.frontage) * choices.length)]!;
     const portals = corner.map((side): Portal => ({ id: unique(`lot-${k + 1}-${side}`), ...run(lot, side) }));
