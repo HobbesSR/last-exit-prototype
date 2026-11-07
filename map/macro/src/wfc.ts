@@ -190,7 +190,7 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
 export const DIFFICULTY_OFFSET = 12;
 
 function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
-  stall: { limit: number; record?: { most: number } } = { limit: Infinity }): WfcGrid | null {
+  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }): WfcGrid | null {
   // Refusals since the search last reached a new depth (`stallLimit`).
   let deepest = -1, refusals = 0;
   const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
