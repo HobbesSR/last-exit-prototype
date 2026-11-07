@@ -92,7 +92,7 @@ own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
 test:browser` runs. A change to the chain or its inputs (macro's stages and
 library, the game's strategies, the kernel, `shared/`) also runs the chain's
 seed sweep from the repository root, `node map/tools/cli.mts sweep --check
-map/tools/fixtures/chain-baseline.json` (224 whole maps, plus macro alone on two seeds at each larger authored size, two to three minutes, [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`
+map/tools/fixtures/chain-baseline.json` (224 whole maps, plus macro alone on two seeds at each larger authored size, about ten minutes since the matched libraries (595 s, 42.37), [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`
 pins its quick cases. It must show no drift unless the PR declares a content
 change and recaptures last ([53](53-map-artifacts-and-tools.md)). A change to one
 region type's builder iterates on `sweep --check ... --type <type>`, which rebuilds that
@@ -841,7 +841,7 @@ sweep, `map/tools/fixtures/chain-baseline.json`, and `REGION_TYPES_VERSION`
 behaviour, state added to a player, or a field added to a live projection) move the traces.
 
 **Batching baseline-moving work.** The sweep is a drift diagnostic for any change that
-touches the chain (two to three minutes; a builder change iterates on the replay
+touches the chain (about ten minutes, 42.37; a builder change iterates on the replay
 first). A deliberate content change recaptures it once, last, and content changes land in
 batches with one version bump each: see [Content changes](#content-changes-one-bump-per-batch)
 below. A change that is meant to be behaviour-preserving never recaptures.

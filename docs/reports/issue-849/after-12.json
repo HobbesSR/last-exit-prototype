@@ -1,0 +1,232 @@
+{
+ "version": "library-comparison-1",
+ "definitions": "docs/51.10-measurement.md",
+ "results": "docs/42.37-matched-adoption.md",
+ "revision": "0a917baba3a09d3eaadd22179b4ce517f95d933a",
+ "library": "bundled",
+ "node": "v24.15.0",
+ "maps": [
+  {
+   "seed": "size-12-1",
+   "digest": "c3c5cca378ce9a93540074284b224397409ec4031b54d4222f496d6cc729155c",
+   "seconds": 10.01,
+   "library": "diamond-12x6",
+   "fingerprint": "41d128769570d8ed",
+   "regions": 337,
+   "portals": 686,
+   "portalLength": 2200,
+   "onePortalRegions": 52,
+   "fillSlots": 427,
+   "fill": {
+    "cover-ground": 52,
+    "park-ground": 49,
+    "rubble-bank": 38,
+    "clear-rubble-bank": 36,
+    "park-corner": 32,
+    "clear-rubble-bend": 31,
+    "cover-corner": 22,
+    "rubble-corner": 22,
+    "rubble-through": 16,
+    "park-through": 15,
+    "cover-through": 14,
+    "park-edge": 14,
+    "rubble-edge": 11,
+    "cover-edge": 10,
+    "park-ground-closed-s": 7,
+    "cover-ground-closed-n": 6,
+    "cover-ground-closed-ns": 6,
+    "park-ground-closed-e": 5,
+    "cover-ground-closed-s": 4,
+    "cover-ground-closed-se": 4,
+    "cover-ground-closed-e": 3,
+    "cover-ground-closed-ne": 3,
+    "cover-ground-closed-nw": 3,
+    "field": 3,
+    "park-ground-closed-ne": 3,
+    "park-ground-closed-we": 3,
+    "cover-ground-closed-w": 2,
+    "cover-ground-closed-we": 2,
+    "park-ground-closed-nw": 2,
+    "park-ground-closed-se": 2,
+    "park-ground-closed-sw": 2,
+    "park-ground-closed-w": 2,
+    "cover-ground-closed-sw": 1,
+    "park-ground-closed-n": 1,
+    "park-ground-closed-ns": 1
+   },
+   "bodies": {
+    "contestant": {
+     "longAcrossMap": {
+      "median": 1.0354998798091812,
+      "p90": 1.067297135656907,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 63608107.323135376,
+     "deadEndArea": 435132.852935791,
+     "deadEndShare": 0.006840839497475908,
+     "pocketCuts": 130
+    },
+    "hunter": {
+     "longAcrossMap": {
+      "median": 1.0243935899684613,
+      "p90": 1.065686487749613,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 56717570.26247406,
+     "deadEndArea": 434786.3013000488,
+     "deadEndShare": 0.007665813244255205,
+     "pocketCuts": 156
+    }
+   }
+  },
+  {
+   "seed": "size-12-2",
+   "digest": "35ac3a0dbffc5debba0cd41cb1c753916447ad516ec33dc62d2f84bd369a8ede",
+   "seconds": 10.29,
+   "library": "diamond-12x6",
+   "fingerprint": "41d128769570d8ed",
+   "regions": 313,
+   "portals": 663,
+   "portalLength": 2112,
+   "onePortalRegions": 41,
+   "fillSlots": 419,
+   "fill": {
+    "park-ground": 54,
+    "cover-ground": 53,
+    "rubble-corner": 36,
+    "clear-rubble-bend": 30,
+    "clear-rubble-bank": 24,
+    "park-corner": 24,
+    "cover-corner": 23,
+    "rubble-bank": 21,
+    "park-edge": 19,
+    "cover-through": 15,
+    "park-through": 15,
+    "rubble-edge": 15,
+    "rubble-through": 15,
+    "cover-edge": 11,
+    "park-ground-closed-w": 7,
+    "cover-ground-closed-s": 6,
+    "cover-ground-closed-sw": 6,
+    "cover-ground-closed-n": 5,
+    "field": 5,
+    "park-ground-closed-s": 5,
+    "park-ground-closed-e": 4,
+    "park-ground-closed-sw": 4,
+    "cover-ground-closed-se": 3,
+    "park-ground-closed-nw": 3,
+    "park-ground-closed-we": 3,
+    "cover-ground-closed-ne": 2,
+    "cover-ground-closed-nw": 2,
+    "cover-ground-closed-w": 2,
+    "park-ground-closed-ne": 2,
+    "park-ground-closed-se": 2,
+    "cover-ground-closed-e": 1,
+    "cover-ground-closed-we": 1,
+    "park-ground-closed-n": 1
+   },
+   "bodies": {
+    "contestant": {
+     "longAcrossMap": {
+      "median": 1.0385240883310976,
+      "p90": 1.0862155185013347,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 62395623.25666809,
+     "deadEndArea": 1122160.513458252,
+     "deadEndShare": 0.017984603003998827,
+     "pocketCuts": 202
+    },
+    "hunter": {
+     "longAcrossMap": {
+      "median": 1.025050621860042,
+      "p90": 1.0893482354592792,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 54885082.88983917,
+     "deadEndArea": 1289959.9274139404,
+     "deadEndShare": 0.023502923918381283,
+     "pocketCuts": 384
+    }
+   }
+  },
+  {
+   "seed": "size-12-3",
+   "digest": "383662655ac4b2f9686ce00d353737839193f2b0e31403d5eb0f8a4365a39009",
+   "seconds": 10.15,
+   "library": "diamond-12x6",
+   "fingerprint": "41d128769570d8ed",
+   "regions": 325,
+   "portals": 652,
+   "portalLength": 2109,
+   "onePortalRegions": 61,
+   "fillSlots": 451,
+   "fill": {
+    "cover-ground": 61,
+    "park-ground": 44,
+    "clear-rubble-bend": 40,
+    "cover-corner": 38,
+    "park-corner": 36,
+    "rubble-bank": 29,
+    "rubble-corner": 29,
+    "clear-rubble-bank": 23,
+    "rubble-through": 19,
+    "rubble-edge": 13,
+    "cover-edge": 12,
+    "park-ground-closed-s": 11,
+    "park-edge": 8,
+    "park-ground-closed-we": 8,
+    "park-through": 8,
+    "cover-ground-closed-s": 7,
+    "cover-through": 7,
+    "field": 6,
+    "park-ground-closed-ne": 6,
+    "park-ground-closed-ns": 6,
+    "park-ground-closed-sw": 6,
+    "cover-ground-closed-n": 5,
+    "park-ground-closed-e": 4,
+    "park-ground-closed-n": 4,
+    "park-ground-closed-se": 4,
+    "cover-ground-closed-ns": 3,
+    "cover-ground-closed-w": 3,
+    "cover-ground-closed-e": 2,
+    "cover-ground-closed-ne": 2,
+    "cover-ground-closed-nw": 2,
+    "cover-ground-closed-we": 2,
+    "cover-ground-closed-se": 1,
+    "park-ground-closed-nw": 1,
+    "park-ground-closed-w": 1
+   },
+   "bodies": {
+    "contestant": {
+     "longAcrossMap": {
+      "median": 1.0377734047982528,
+      "p90": 1.070661654069319,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 62252577.50537872,
+     "deadEndArea": 982455.1049346924,
+     "deadEndShare": 0.015781757869379895,
+     "pocketCuts": 233
+    },
+    "hunter": {
+     "longAcrossMap": {
+      "median": 1.0386855690891454,
+      "p90": 1.0721410582649684,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 54983873.72708893,
+     "deadEndArea": 1041682.6821136475,
+     "deadEndShare": 0.018945239967704225,
+     "pocketCuts": 507
+    }
+   }
+  }
+ ]
+}

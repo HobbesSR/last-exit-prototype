@@ -1,0 +1,151 @@
+{
+ "version": "library-comparison-1",
+ "definitions": "docs/51.10-measurement.md",
+ "results": "docs/42.37-matched-adoption.md",
+ "revision": "0a917baba3a09d3eaadd22179b4ce517f95d933a",
+ "library": "C:\\Users\\Corey\\AppData\\Local\\Temp/claude/db46dcf2a0666a29/6f1cf2a9-f0ff-4899-a39b-7d6a43c7f56e/scratchpad/before/diamond-12x6.json",
+ "node": "v24.15.0",
+ "maps": [
+  {
+   "seed": "size-12-1",
+   "digest": "14772effba31904518cd3f27247e7eab1e7457932e3db867e4df9a419447f9b7",
+   "seconds": 3.75,
+   "library": "diamond-12x6",
+   "fingerprint": "a786b49c715717e9",
+   "regions": 287,
+   "portals": 939,
+   "portalLength": 3154,
+   "onePortalRegions": 5,
+   "fillSlots": 427,
+   "fill": {
+    "field": 183,
+    "rubble-bank": 80,
+    "park-ground": 47,
+    "clear-rubble-bend": 39,
+    "clear-rubble-bank": 33,
+    "cover-ground": 24,
+    "hut-quarter": 21
+   },
+   "bodies": {
+    "contestant": {
+     "longAcrossMap": {
+      "median": 1.0172064527006497,
+      "p90": 1.0828444341481513,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 70369166.84967804,
+     "deadEndArea": 347890.5430831909,
+     "deadEndShare": 0.004943792269508483,
+     "pocketCuts": 38
+    },
+    "hunter": {
+     "longAcrossMap": {
+      "median": 1.0305732589153387,
+      "p90": 1.076579285650339,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 66323428.397987366,
+     "deadEndArea": 328041.263923645,
+     "deadEndShare": 0.00494608423972244,
+     "pocketCuts": 112
+    }
+   }
+  },
+  {
+   "seed": "size-12-2",
+   "digest": "c291578b89a738cb61153cb4c824ba4689b21b810f4f7e31305debe7b3691338",
+   "seconds": 3.02,
+   "library": "diamond-12x6",
+   "fingerprint": "a786b49c715717e9",
+   "regions": 296,
+   "portals": 1080,
+   "portalLength": 3556,
+   "onePortalRegions": 6,
+   "fillSlots": 454,
+   "fill": {
+    "field": 181,
+    "rubble-bank": 92,
+    "clear-rubble-bank": 55,
+    "park-ground": 42,
+    "clear-rubble-bend": 40,
+    "cover-ground": 36,
+    "hut-quarter": 8
+   },
+   "bodies": {
+    "contestant": {
+     "longAcrossMap": {
+      "median": 1.0158279862088626,
+      "p90": 1.0564919209645163,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 70765080.5959549,
+     "deadEndArea": 440927.8298339844,
+     "deadEndShare": 0.0062308673447506666,
+     "pocketCuts": 128
+    },
+    "hunter": {
+     "longAcrossMap": {
+      "median": 1.01978008353282,
+      "p90": 1.0462389546392181,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 66675608.858436584,
+     "deadEndArea": 436517.3293914795,
+     "deadEndShare": 0.006546881788785438,
+     "pocketCuts": 247
+    }
+   }
+  },
+  {
+   "seed": "size-12-3",
+   "digest": "3026af153202251095dae1e4b26868e279b47de9c8f532d197c31cedc85025a1",
+   "seconds": 4.31,
+   "library": "diamond-12x6",
+   "fingerprint": "a786b49c715717e9",
+   "regions": 312,
+   "portals": 1036,
+   "portalLength": 3379,
+   "onePortalRegions": 6,
+   "fillSlots": 436,
+   "fill": {
+    "field": 173,
+    "rubble-bank": 92,
+    "clear-rubble-bend": 45,
+    "park-ground": 45,
+    "cover-ground": 38,
+    "clear-rubble-bank": 36,
+    "hut-quarter": 7
+   },
+   "bodies": {
+    "contestant": {
+     "longAcrossMap": {
+      "median": 1.016601000196605,
+      "p90": 1.0456310894553507,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 69416967.53611755,
+     "deadEndArea": 875913.5590820312,
+     "deadEndShare": 0.012618147841538809,
+     "pocketCuts": 450
+    },
+    "hunter": {
+     "longAcrossMap": {
+      "median": 1.0258328518282547,
+      "p90": 1.0507474273378352,
+      "shareAbove1_5": 0,
+      "routes": 24
+     },
+     "walkableArea": 64685455.91191864,
+     "deadEndArea": 802572.8468017578,
+     "deadEndShare": 0.012407315299665059,
+     "pocketCuts": 719
+    }
+   }
+  }
+ ]
+}

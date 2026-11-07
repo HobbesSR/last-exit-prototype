@@ -140,7 +140,7 @@ things stay documents.
 ## Proving a change: the sweep
 
 `node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
-(from the repository root, two to three minutes, 42.3) reruns the pinned seed set and compares
+(from the repository root, about ten minutes since the matched libraries: 595 s, 42.37) reruns the pinned seed set and compares
 per-view content hashes: 224 entries, including 161 game-mode cases (120
 default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
@@ -150,10 +150,10 @@ Four more entries are macro alone at the larger authored sizes (`macro-24x12` an
 `macro-36x18`, seeds `size-24-1`, `size-24-2`, `size-36-1` and `size-36-2`, `stages: 'macro'`): the Layout and macro's views
 through the briefs, with nothing built (`generateMacro` in `map/chain.ts`; #821). What builders
 make of those sizes is checked from stored briefs instead (31).
-The current baseline provenance is content commit `eee62fff1c40585c87c6376a4735b0ff2b7e314c`,
-captured 2026-11-05 under Node v24.15.0, which added the four macro entries; the 224 whole maps'
-hashes are unchanged from the types-63 capture at `daf172bdf9e585e3f3c684e13424287bf3fd2ac1`
-(#787 cover, ruins, depot, hall and market on a live cord, batched cord commits, 42.33).
+The current baseline provenance is content commit `2fb96f9632da3cb43203d5269cd9406fab85d795`,
+captured 2026-11-07 under Node v24.15.0: the matched libraries (`common-primitives@6`,
+`types-64`, #849, 42.37), every map moved. A full `sweep --check` took 595 s on the development
+machine at that commit.
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash
