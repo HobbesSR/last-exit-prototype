@@ -25,6 +25,7 @@ import {
 } from '../map/micro/strategies/hut.ts';
 import {
   resolveBuildingAppearance,
+  resolveDeclaredRoofs,
   resolveObstacleAppearance,
   resolveGroundAppearance,
 } from '../public/appearance.js';
@@ -228,22 +229,19 @@ test('existing depot region strategy adopts DEPOT_WAREHOUSE_APPEARANCE on all pl
 
   // Declared roofs emitted by stamped depot warehouses resolve building appearance
   assert.ok(ctx.map.roofs && ctx.map.roofs.length > 0, 'stamped warehouse emits declared roofs');
-  const buildingsById = new Map(ctx.map.buildings.map(b => [b.id, b]));
-  for (const roof of ctx.map.roofs) {
-    const b = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
-    assert.ok(b, 'declared roof has owning building');
-    const resolvedRoof = resolveBuildingAppearance(
-      { id: roof.buildingId || roof.id, ...roof.bounds, appearance: b?.appearance },
-      ctx.map.appearance,
-      { palette: 'signature', wear: true }
-    );
-    const neutralRoof = resolveBuildingAppearance(
-      { id: roof.buildingId || roof.id, ...roof.bounds, appearance: null },
-      null,
-      { palette: 'signature', wear: true }
-    );
-    assert.notEqual(resolvedRoof.roofFill, neutralRoof.roofFill, 'declared roof resolves non-neutral authored roofFill');
-    assert.ok(resolvedRoof.roofMarks.length > 0, 'declared roof resolves non-empty roofMarks');
+  // Resolved through the same function the scene draws roofs with (#725).
+  const opts = { palette: 'signature', wear: true };
+  const declared = resolveDeclaredRoofs(ctx.map, opts);
+  assert.equal(declared.length, ctx.map.roofs.length);
+  const buildingIds = new Set(ctx.map.buildings.map(b => b.id));
+  for (const { roof, resolved } of declared) {
+    assert.ok(buildingIds.has(roof.buildingId), 'declared roof has owning building');
+    const neutralRoof = resolveBuildingAppearance({ id: roof.buildingId, ...roof.bounds, appearance: null }, null, opts);
+    assert.notEqual(resolved.roofFill, neutralRoof.roofFill, 'declared roof resolves non-neutral authored roofFill');
+    assert.ok(resolved.roofMarks.length > 0, 'declared roof resolves non-empty roofMarks');
+  }
+  for (const id of new Set(ctx.map.roofs.map(r => r.buildingId))) {
+    assert.equal(declared.filter(d => d.roof.buildingId === id && d.primary).length, 1, 'each building has one primary roof');
   }
 
   // Shelf container obstacles inside warehouse carry obstacle appearance
@@ -707,4 +705,39 @@ test('plant region strategy adopts industrial shed appearance, cooling towers, a
     const res = resolveObstacleAppearance(o, ctx.map.appearance, { palette: 'signature' });
     assert.ok(res.fill > 0, 'machine obstacle resolves non-zero fill');
   }
+});
+
+test('declared roofs: primary roof per building and appearance fallback (#725)', () => {
+  const appearance = DEPOT_WAREHOUSE_APPEARANCE;
+  const cell = { origin: { x: 0, y: 0 }, cellSize: 24, cells: [{ x: 0, y: 0 }] };
+  const building = { id: 'b1', x: 100, y: 100, w: 96, h: 96, appearance };
+  const map = {
+    buildings: [building],
+    roofs: [
+      { id: 'far', buildingId: 'b1', bounds: { x: 300, y: 300, w: 48, h: 48 }, ...cell },
+      { id: 'covering', buildingId: 'b1', bounds: { x: 96, y: 96, w: 48, h: 48 }, ...cell },
+      { id: 'tie', buildingId: 'b1', bounds: { x: 90, y: 90, w: 48, h: 48 }, ...cell },
+      { id: 'own', bounds: { x: 0, y: 0, w: 48, h: 48 }, appearance, ...cell },
+      { id: 'orphan', buildingId: 'missing', bounds: { x: 0, y: 200, w: 48, h: 48 }, appearance, ...cell },
+    ],
+  };
+  const opts = { palette: 'signature', wear: true };
+  const byId = new Map(resolveDeclaredRoofs(map, opts).map(d => [d.roof.id, d]));
+  assert.deepEqual([...byId.keys()], ['far', 'covering', 'tie', 'own', 'orphan'], 'map.roofs order');
+  assert.equal(byId.get('covering').primary, true, 'covering roof is primary');
+  assert.equal(byId.get('tie').primary, false, 'first covering roof wins a tie');
+  assert.equal(byId.get('far').primary, false, 'distant roof is not primary');
+  assert.equal(byId.get('own').primary, true, 'roof without a building is its own primary');
+  assert.equal(byId.get('orphan').primary, false, 'roof of a missing building carries no marks');
+
+  const neutral = resolveBuildingAppearance({ id: 'n', x: 0, y: 0, w: 48, h: 48, appearance: null }, null, opts);
+  for (const id of ['far', 'own', 'orphan']) {
+    assert.notEqual(byId.get(id).resolved.roofFill, neutral.roofFill, `${id} resolves an authored roofFill`);
+  }
+  // A building's appearance outranks the roof's own.
+  const plain = { ...map, roofs: [{ ...map.roofs[1], appearance: null }] };
+  assert.equal(resolveDeclaredRoofs(plain, opts)[0].resolved.roofFill, byId.get('covering').resolved.roofFill);
+  const unstyled = { buildings: [{ ...building, appearance: null }], roofs: [map.roofs[1]] };
+  assert.equal(resolveDeclaredRoofs(unstyled, opts)[0].resolved.roofFill, neutral.roofFill, 'no appearance anywhere stays neutral');
+  assert.deepEqual(resolveDeclaredRoofs({ buildings: [] }, opts), []);
 });
