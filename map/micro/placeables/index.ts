@@ -16,6 +16,7 @@ import { PARK_HEDGE_BLOCK } from './park-hedge-block.ts';
 import { PLANT_MACHINE } from './plant-machine.ts';
 import { PLANT_PIPE_RUN } from './plant-pipe-run.ts';
 import { MARKET_STALL } from './market-stall.ts';
+import { LANDMARK_SITE } from './landmark-site.ts';
 import { placeableErrors } from './placeable.ts';
 import type { Placeable, Placed, Refusal } from './placeable.ts';
 
@@ -43,6 +44,7 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [PLANT_MACHINE.id]: PLANT_MACHINE,
   [PLANT_PIPE_RUN.id]: PLANT_PIPE_RUN,
   [MARKET_STALL.id]: MARKET_STALL,
+  [LANDMARK_SITE.id]: LANDMARK_SITE,
 });
 
 
