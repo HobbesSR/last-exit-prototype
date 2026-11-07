@@ -23,7 +23,7 @@ it restates something in another numbered file; if it does, link the number inst
 | What to build next | [41](41-roadmap.md) |
 | Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |
 | A dependency added, upgraded or newly served to browsers; a third-party asset | [21.1](21.1-third-party-licenses.md), `tools/third-party/components.json`, then `npm run notices` |
-| A superseded verbatim capture, retired guidance, explored paths, or history taken out of code comments | `docs/archive/<YYYY-MM-DD>-<topic>/`, as below |
+| A superseded verbatim capture, retired guidance, or an explored path worth guarding against, including one taken out of a code comment | `docs/archive/<YYYY-MM-DD>-<topic>/`, as below |
 | Hosting, CI runners, network access, credentials, machine paths | The private `corey/studio-ops` repository on Forgejo, never this one ([34](34-forgejo-workflow.md#hosting)) |
 
 When a requirement changes, update its row first, then the explanation in a 2x file
@@ -107,7 +107,8 @@ locations and explicit input flags or a non-destructive setup recipe.
 
 `docs/archive/` holds what no longer belongs in active guidance but is still worth
 keeping. That includes superseded verbatim captures, retired documents, explored and
-rejected paths, and history taken out of code comments. It keeps active context
+rejected paths, including a ruled-out path taken out of a code comment when it is
+worth guarding against. Other comment history is deleted. The archive keeps active context
 small, and it makes reopening a settled choice a deliberate act.
 
 - Archive in a dated folder, `docs/archive/<YYYY-MM-DD>-<topic>/`, whose `README.md`
@@ -117,7 +118,11 @@ small, and it makes reopening a settled choice a deliberate act.
   file keeps its name; its number is retired, never reused.
 - Whether to leave a pointer at the original location is a judgment call. Ask the
   human if unsure.
-- Active documents do not cite the archive as a current source.
+- Active documents do not cite the archive as a current source. Before archiving a
+  capture, check what links to it. If an active document still relies on it as the
+  rationale for a decision, either state that rationale in the owning document
+  first, or leave the capture in place. Redirect inbound links to the current owner
+  in the same change.
 
 ## Hierarchical documents
 
