@@ -377,7 +377,15 @@ would fail on contention or on known debt rather than on the change under review
 for checking the files a change adds or grows, run in isolation.
 
 Run timing comparisons sequentially, with no competing tests or benchmarks, and
-repeat a suspected regression three times before believing it. Do not claim the
+repeat a suspected regression three times before believing it. Other agents share this
+machine and their load comes and goes, so compare two versions in alternated pairs (A, B, A,
+B…) rather than in blocks, and judge the change by each pair's ratio. Report process CPU time
+(`process.cpuUsage()`) beside wall time where a tool can. Neither is steady here alone: on
+#868, three runs of the same 36-wide `generate` read 152 to 217 s of CPU and 122 to 177 s of
+wall time, while each pair's ratio stayed within 0.69 to 0.80. CPU time also counts V8's
+helper threads and any worker, so it measures a worker benchmark's total work, not its
+latency. Latency claims, such as a player's wait or a tick budget, stay on wall time, on a
+quiet machine. Do not claim the
 reported slowdown fixed without a captured slow run; see
 [42](42-performance-history.md).
 

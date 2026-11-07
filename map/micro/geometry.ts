@@ -38,11 +38,18 @@ export function validShape(shape: Shape): boolean {
 
 export function createRegionMask(spec: Pick<RegionBrief, 'cells' | 'cellSize'>): RegionMask {
   const cells = [...spec.cells].sort(compareCells);
-  const size = spec.cellSize, owned = new Set(cells.map(c => `${c.x},${c.y}`));
+  const size = spec.cellSize;
   // A loop, not spread arguments, which a macro-sized region's cells can outgrow.
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const c of cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x); maxY = Math.max(maxY, c.y); }
-  const has = (x: number, y: number) => owned.has(`${x},${y}`);
+  // Cells keyed by their row-major index in the bounds: a sweep reads this for every cell its
+  // capsule's box touches, and building a string key per read was most of the mask's cost
+  // (#868). Cells that aren't whole numbers keep string keys.
+  const span = maxX - minX + 1, whole = cells.every(c => Number.isSafeInteger(c.x) && Number.isSafeInteger(c.y));
+  const has: (x: number, y: number) => boolean = whole
+    ? (indexed => (x: number, y: number) => x >= minX && x <= maxX && y >= minY && y <= maxY && Number.isInteger(x) && Number.isInteger(y)
+      && indexed.has((y - minY) * span + (x - minX)))(new Set(cells.map(c => (c.y - minY) * span + (c.x - minX))))
+    : (owned => (x: number, y: number) => owned.has(`${x},${y}`))(new Set(cells.map(c => `${c.x},${c.y}`)));
   const contains = (shape: Shape): boolean => {
     if (!validShape(shape)) return false;
     const b = bounds(shape);

@@ -3,7 +3,8 @@
  * #767: whole-map `generate` time on 42.31's panel, size-{12,24,36}-1 with #688's parameters,
  * three sequential runs each under the `bench` machine lock. Prints one line per run and a JSON
  * summary with each map's mean and a digest of its output, so a timing change can be checked
- * for identical maps in the same run.
+ * for identical maps in the same run. Each run reports the process's CPU time beside wall time;
+ * on a shared machine, compare versions in alternated pairs (31, #868).
  * Usage: node tools/generation-time.mjs [--maps 12,24,36] [--runs 3] [--library FILE]
  * `--library` is a top-level library file for one zone size, its modules beside it (#849).
  */
@@ -24,19 +25,20 @@ try {
   for (const width of widths) {
     const seed = `size-${width}-1`;
     const params = { zoneWidth: width, zoneHeight: width / 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: .04, lootTierStep: .09 };
-    const times = [];
+    const times = [], cpus = [];
     let digest;
     for (let run = 0; run < runs; run++) {
-      const start = performance.now();
+      const start = performance.now(), cpuStart = process.cpuUsage();
       const map = generate(seed, params, library, 48);
-      const seconds = (performance.now() - start) / 1000;
-      times.push(seconds);
+      const seconds = (performance.now() - start) / 1000, used = process.cpuUsage(cpuStart), cpu = (used.user + used.system) / 1e6;
+      times.push(seconds); cpus.push(cpu);
       const d = createHash('sha256').update(JSON.stringify(map.results)).digest('hex').slice(0, 16);
       if (digest && d !== digest) throw new Error(`${seed} output differs between runs`);
       digest = d;
-      console.error(`${seed} run ${run + 1}: ${seconds.toFixed(2)} s`);
+      console.error(`${seed} run ${run + 1}: ${seconds.toFixed(2)} s, CPU ${cpu.toFixed(2)} s`);
     }
-    summary.push({ seed, runs: times.map(t => +t.toFixed(2)), mean: +(times.reduce((a, b) => a + b) / times.length).toFixed(2), digest });
+    const mean = list => +(list.reduce((a, b) => a + b) / list.length).toFixed(2);
+    summary.push({ seed, runs: times.map(t => +t.toFixed(2)), mean: mean(times), cpu: cpus.map(t => +t.toFixed(2)), cpuMean: mean(cpus), digest });
   }
 } finally { release(); }
 console.log(JSON.stringify(summary, null, 2));

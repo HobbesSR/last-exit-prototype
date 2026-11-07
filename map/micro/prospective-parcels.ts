@@ -4,7 +4,7 @@ import { construct } from '../../shared/shape-construction.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import { createAddressedArea } from './addressed.ts';
 import { assemblyBlockers, assemblyFootprints, commitEach, createBuilderCanvas, type CanvasAssembly } from './canvas.ts';
-import { discoverCordWitness, type CordWitness } from './cord-witness.ts';
+import { cordRegionCache, discoverCordWitness, type CordWitness } from './cord-witness.ts';
 import { capsule, createFillMask, createAccessMask, shapesOverlap, shapesShareArea, validShape } from './geometry.ts';
 import { hunterClearance } from './portals.ts';
 import { areaContains, parcelArea } from './parcel-area.ts';
@@ -40,6 +40,17 @@ function maskView(mask: RegionMask): RegionMask {
 }
 
 /** Check expansion work before materializing roofs or replaying assemblies. */
+/**
+ * `fields` with a `witness` property that is a copy of `live`, made on its first read and then
+ * kept, so each read sees the same object, as a copy made up front would be. Most proposals are
+ * probes nobody reads the witness of, and copying a many-portal witness on each was a large
+ * share of a front's cost (#868). `live` is never changed in place, so a later copy equals an
+ * immediate one.
+ */
+function withWitnessCopy<T extends object>(fields: T, live: CordWitness): T & { readonly witness: CordWitness } {
+  let copy: CordWitness | undefined;
+  return Object.defineProperty(fields, 'witness', { enumerable: true, get: () => copy ??= structuredClone(live) }) as T & { readonly witness: CordWitness };
+}
 function assemblyWithinBudget(assembly: CanvasAssembly): boolean {
   if (assembly.elements.length > 4096) return false;
   let size = assembly.elements.length + (assembly.areas?.length ?? 0) + (assembly.access?.length ?? 0) + (assembly.extents?.length ?? 0);
@@ -71,7 +82,10 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   const proposals = new WeakMap<ParcelProposal, { revision: number; area: Shape[]; witness: CordWitness; extend: ParcelHandle | undefined }>();
   if (fixed.length > 16384) return { ok: false as const, reason: 'budget' as const, counters: { meshBuilds: 0, sweeps: 0, paths: 0 } };
   if (fixed.some(s => !validShape(s))) throw new TypeError('Fixed access must contain valid convex shapes');
-  const initial = discoverCordWitness(brief, [], terminals, undefined, budget);
+  // The routing brief is private and never changed in place, so discoveries on it share its
+  // checked cells and access mask until a handoff replaces it (#868).
+  let routingCache = cordRegionCache(brief);
+  const initial = discoverCordWitness(brief, [], terminals, undefined, budget, undefined, routingCache);
   if (!initial.ok) return { ok: false as const, reason: initial.reason, counters: initial.counters };
   let canvas = createBuilderCanvas(brief, fixed);
   if (fixed.some(s => !canvas.access.contains(s))) return { ok: false as const, reason: 'canvas' as const };
@@ -173,7 +187,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if (!retainsAccess(prepared, proofBrief)) return fail('canvas');
       const found = discoverCordWitness(proofBrief, blockers(parcels, policy), terminals, witness, budget);
       if (!found.ok) return { ...fail(found.reason), counters: found.counters };
-      const proposal: HandoffProposal = { revision, prepared: structuredClone(prepared), witness: structuredClone(found.witness) };
+      const proposal: HandoffProposal = withWitnessCopy({ revision, prepared: structuredClone(prepared) }, found.witness);
       handoffs.set(proposal, { revision, offers, policy, prepared, witness: found.witness });
       return { ok: true as const, proposal, counters: found.counters };
     },
@@ -184,6 +198,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       if (!trial) return fail('canvas');
       brief = structuredClone(saved.prepared.retained);
       routingBrief = retainedProof(saved.prepared);
+      routingCache = cordRegionCache(routingBrief);
       acceptedOffers = saved.offers; acceptedPolicy = saved.policy; acceptedPlan = saved.prepared;
       publish(parcels, operations, trial, saved.witness);
       handoffs.delete(proposal);
@@ -246,9 +261,9 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       // area clear of its capsules keeps it, and otherwise only the segments it touches are re-proved.
       const found = witnessStandsClear(prior ? construct(area).subtract(prior.area).pieces() : area)
         ? { ok: true as const, witness, counters: { meshBuilds: 0, sweeps: 0, paths: 0 } }
-        : discoverCordWitness(routingBrief, blockers(ps), terminals, witness, budget, area);
+        : discoverCordWitness(routingBrief, blockers(ps), terminals, witness, budget, area, routingCache);
       if (!found.ok) return { ...fail(found.reason), counters: found.counters };
-      const proposal: ParcelProposal = { revision, area: structuredClone(area), witness: structuredClone(found.witness) };
+      const proposal: ParcelProposal = withWitnessCopy({ revision, area: structuredClone(area) }, found.witness);
       proposals.set(proposal, { revision, area, witness: found.witness, extend });
       return { ok: true, proposal, counters: found.counters };
     },
@@ -320,7 +335,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
       const ops: Operation[] = [...operations, { kind: 'assembly', assembly: owned }];
       const addedBlockers = assemblyBlockers(owned);
       const found = witnessStandsClear(addedBlockers) ? { ok: true as const, witness }
-        : discoverCordWitness(routingBrief, [...blockers(parcels), ...addedBlockers], terminals, witness, budget, addedBlockers);
+        : discoverCordWitness(routingBrief, [...blockers(parcels), ...addedBlockers], terminals, witness, budget, addedBlockers, routingCache);
       if (!found.ok) return false;
       // Search first; canvas.commit itself is atomic. No live write occurs on either refusal.
       if (!canvas.commit(owned)) return false;
@@ -343,7 +358,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
     admits(assembly: CanvasAssembly): boolean {
       const added = assemblyBlockers(structuredClone(assembly));
       return witnessStandsClear(added)
-        || discoverCordWitness(routingBrief, [...blockers(parcels), ...added], terminals, witness, budget, added).ok;
+        || discoverCordWitness(routingBrief, [...blockers(parcels), ...added], terminals, witness, budget, added, routingCache).ok;
     },
     /**
      * Commit items of `count`, greedily in index order, that one assembly can hold and keep a cord:
