@@ -132,3 +132,28 @@ test("a refusal backjumps to the choice that caused it, past every later one", (
   assert.equal(solved?.[0]!.domain[0]!.templateId, "b");
   assert.ok(state.iterations <= 2 * cells + 2, `${state.iterations} iterations`);
 });
+
+test("a solve that stops gaining depth while every check refuses gives up after its stall limit", () => {
+  // Every full grid is refused, naming only the last cell, so the search keeps trying the
+  // last cells' options without getting deeper: the churn the stall limit ends (#849).
+  const cells = 12;
+  const options = () => ["a", "b", "c"].map((templateId) => ({ templateId, orientation: 0 as const, difficulty: 0, weight: 1 }));
+  const solve = (stallLimit?: number) => {
+    const grid: WfcGrid = Array.from({ length: cells }, (_, x) => ({ x, y: 0, domain: options(), links: [] }));
+    const state = { iterations: 0, maxIterations: 10000 }, stall = { most: 0 };
+    let refusals = 0;
+    const solved = solveWfc(grid, () => true, () => 0.5, {
+      state, stall, ...(stallLimit === undefined ? {} : { stallLimit }),
+      accept: (solving) => solving.every((cell) => cell.domain.length === 1) ? (refusals++, [cells - 1]) : true,
+    });
+    return { solved, refusals, iterations: state.iterations, most: stall.most };
+  };
+  const limited = solve(5);
+  assert.equal(limited.solved, null);
+  assert.equal(limited.refusals, 6, "it gives up on the refusal past the limit");
+  assert.equal(limited.most, 6);
+  const unlimited = solve();
+  assert.equal(unlimited.solved, null);
+  // Without a limit only the iteration cap ends it, after thousands of refusals.
+  assert.ok(unlimited.refusals > 1000 && unlimited.iterations > 10000, `${unlimited.refusals} refusals`);
+});

@@ -25,6 +25,14 @@ import type { MapZone, MaskCell } from "./zones.ts";
 
 export const PLACEMENT_ATTEMPTS = 50;
 /**
+ * Open-face refusals an attempt may make since it last reached a new depth before it gives up
+ * and the next attempt starts on its own stream (#849, 42.37). Under the matched libraries some
+ * attempts churn among their last few slots until the iteration cap, an hour at 36 x 18; this
+ * ends them in seconds. It changes no rule: a layout is valid or not as before, and only an
+ * attempt that stalls this long is abandoned. Chosen from 12 x 6 to 36 x 18 seed batches.
+ */
+export const PLACEMENT_STALL_LIMIT = 500;
+/**
  * A game map's params, as the chain's tests have used them, with the old generator's
  * exits. S5 scaled the old loot gradient by 0.37 for bigger set pieces (#170);
  * #214 reduces it by about another fifth for the more varied fill (14, 52).
@@ -287,7 +295,7 @@ function sample(
   adjacencyLinks(grid);
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
     { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {}),
-      ...(library.difficultyOffset !== undefined ? { difficultyOffset: library.difficultyOffset } : {}) });
+      ...(library.difficultyOffset !== undefined ? { difficultyOffset: library.difficultyOffset } : {}), stallLimit: PLACEMENT_STALL_LIMIT });
   if (!solved) return "wfc";
 
   const slots: PlacedSlot[] = mask
