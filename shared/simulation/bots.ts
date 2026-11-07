@@ -17,7 +17,7 @@ import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment, dropInventorySlot } from './loot.ts';
 import { reloadableRounds, reserveRoom } from './ammo.ts';
 import { heardBy } from './hearing.ts';
-import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, StationId, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
+import type { BuildingId, CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, StationId, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
 import { atan2, cos, hypot, sin } from '../math.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
@@ -280,12 +280,33 @@ function plannerOf(map: CollisionMap, role: Role) {
   return planner;
 }
 
-const gateIndex = new WeakMap<Gate[], { count: number; byId: Map<GateId, Gate> }>();
+interface BotGateIndex {
+  count: number;
+  byId: Map<GateId, Gate>;
+  byBuilding: Map<BuildingId, Gate[]>;
+}
+const gateIndex = new WeakMap<Gate[], BotGateIndex>();
+function botGates(map: CollisionMap): BotGateIndex {
+  let index = gateIndex.get(map.gates);
+  if (index?.count !== map.gates.length) {
+    const byId = new Map<GateId, Gate>();
+    const byBuilding = new Map<BuildingId, Gate[]>();
+    for (const g of map.gates) {
+      byId.set(g.id, g);
+      if (g.buildingId !== undefined) {
+        let list = byBuilding.get(g.buildingId);
+        if (!list) byBuilding.set(g.buildingId, list = []);
+        list.push(g);
+      }
+    }
+    gateIndex.set(map.gates, index = { count: map.gates.length, byId, byBuilding });
+  }
+  return index;
+}
+
 /** The map's gates by id. Gates are only ever added, so the list's identity and length key it; each is read as it stands. */
 function gatesById(map: CollisionMap): Map<GateId, Gate> {
-  let index = gateIndex.get(map.gates);
-  if (index?.count !== map.gates.length) gateIndex.set(map.gates, index = { count: map.gates.length, byId: new Map(map.gates.map(g => [g.id, g])) });
-  return index.byId;
+  return botGates(map).byId;
 }
 
 /** The whole map as it stands: what a gladiator plans with. */
@@ -636,7 +657,8 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     const items = memory ? [...memory.items?.values() ?? []].filter(i => !(pursuit!.ignored.get(i.id)! > s.tick)) : s.map.items;
     // Over tiles, a door is locked when the bot last saw it locked; the grid planner reads the doors as they stand.
     const locked = (g: Gate) => { const seen = tiles ? memory?.gates?.get(g.id) : g; return !!seen && !!seen.locked && !seen.open; };
-    const accessible = (i: GroundItem) => p.keys > 0 || !i.buildingId || !s.map.gates.some(g => g.buildingId === i.buildingId && locked(g));
+    const buildingGates = botGates(s.map).byBuilding;
+    const accessible = (i: GroundItem) => p.keys > 0 || !i.buildingId || !(buildingGates.get(i.buildingId)?.some(locked));
     const charged = !!cell && cell.charge >= s.content.cellChargeTicks;
     const objective: Vec2[] = !cell ? items.filter(i => i.kind === 'cell' && i.x > s.hazardX + 100 && accessible(i))
       : !charged ? s.map.chargers.filter(st => st.x > s.hazardX + 100 && known(st)) : [];
