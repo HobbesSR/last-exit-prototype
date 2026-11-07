@@ -70,6 +70,24 @@ Reusable epic kickoff (replace `#N` with the epic number):
 | Computer and browser use: driving and testing tools, labs, HUD and other GUI elements through screenshots; reading images, art references and documents | GPT-6.1 Terra (`gpt-6.1-terra`); it reports findings, and fixes route by the rows above. Not for live game playing |
 | Integration review and decisions affecting multiple tasks | Lead |
 
+### Claude Code workers
+
+A Claude subagent inherits the lead's model unless the spawn names one, so an
+unspecified routine worker runs at flagship price. Name the model on every spawn,
+or use a project agent type that fixes it:
+
+| Work (rows above) | Claude Code worker |
+| --- | --- |
+| Lead rows: ownership, compatibility, conflicting requirements, creative direction, integration review | Lead (Opus); not delegated |
+| Bounded implementation, algorithmic logic, complex refactors and meaningful tests within defined contracts | `implementer` agent (`.claude/agents/`, Sonnet) |
+| Inventories, read-only searches, mechanical edits, settled documentation, fully specified tests | `mechanical` agent (Haiku); `Explore` with `model: haiku` for a search with no edits |
+| Computer and browser use | Lead or a Sonnet worker with the browser tools; it reports findings, fixes route as above |
+
+Choose by what the task needs, not by its size: a short task with an unsettled
+decision stays with the lead, and a long fully specified one can go to Haiku.
+Forks always run on the lead's model, so reserve them for work that needs the
+lead's context. Both agent types take the brief below.
+
 These are routing preferences, not guaranteed price or availability claims. Use
 the current tool's actual model identifiers. Avoid copying the whole chat into a
 worker; reread the necessary sources and write a small complete brief. A task that
