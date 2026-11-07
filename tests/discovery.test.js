@@ -356,3 +356,60 @@ test('a landmark is discovered from its beacon radius, through walls, and the fo
   const folded = foldDiscovery(map, [{ tick: 0, players: [{ id: 'c0', ...eye, role: 'contestant', status: 'active' }] }], 'c0');
   assert.deepEqual([...folded.discovered].sort(), [...memory.discovered].sort());
 });
+
+test('nearby items and gates within discovery radius are indexed and remembered (#669)', () => {
+  const eye = { x: 500, y: 500 };
+  const itemNear = { id: 'item-near', kind: 'cell', x: 500 + 700, y: 500 };
+  const itemFar = { id: 'item-far', kind: 'cell', x: 500 + DISCOVERY_RADIUS + 200, y: 500 };
+  const gateNear = { id: 'gate-near', x: 500, y: 500 + 700, w: 26, h: 54, open: false, locked: true, kind: 'door' };
+  const gateFar = { id: 'gate-far', x: 500, y: 500 + DISCOVERY_RADIUS + 200, w: 26, h: 54, open: false, locked: true, kind: 'door' };
+  const map = {
+    width: 3000,
+    height: 3000,
+    obstacles: [],
+    buildings: [],
+    items: [itemNear, itemFar],
+    gates: [gateNear, gateFar],
+  };
+
+  // 1. Unfrozen / loose items
+  const memory = createDiscovery();
+  discover(memory, map, eye, undefined, true);
+  assert.ok(memory.items?.has('item-near'), 'loose item at 700 units (inside radius) is remembered');
+  assert.equal(memory.items?.has('item-far'), false, 'item beyond radius is not remembered');
+  assert.ok(memory.gates?.has('gate-near'), 'gate at 700 units (inside radius) is observed');
+  assert.equal(memory.gates?.has('gate-far'), false, 'gate beyond radius is not observed');
+
+  // 2. Frozen items (which populate ground-items spatial cells)
+  for (const item of map.items) Object.freeze(item);
+  const memoryFrozen = createDiscovery();
+  discover(memoryFrozen, map, eye, undefined, true);
+  assert.ok(memoryFrozen.items?.has('item-near'), 'frozen item at 700 units is remembered');
+  assert.equal(memoryFrozen.items?.has('item-far'), false, 'frozen item beyond radius is not remembered');
+});
+
+test('discovery memory items match whole-list filter and preserve ground order (#669)', () => {
+  const eye = { x: 1000, y: 1000 };
+  const items = [];
+  for (let k = 0; k < 36; k++) {
+    const angle = (k * Math.PI) / 18;
+    const r = [100, 400, 700, 1100, 1300, 1600][k % 6];
+    items.push({ id: `item-${k}`, kind: 'cell', x: eye.x + r * Math.cos(angle), y: eye.y + r * Math.sin(angle) });
+  }
+  for (let i = 0; i < items.length; i += 2) Object.freeze(items[i]);
+  const map = {
+    width: 3000,
+    height: 3000,
+    obstacles: [],
+    buildings: [],
+    items,
+    gates: [],
+  };
+  const memory = createDiscovery();
+  discover(memory, map, eye, undefined, true);
+
+  const expectedIds = items.filter(i => Math.hypot(i.x - eye.x, i.y - eye.y) <= DISCOVERY_RADIUS).map(i => i.id);
+  const rememberedIds = [...memory.items.keys()];
+  assert.deepEqual(rememberedIds, expectedIds, 'memory.items matches whole-list candidates in list order');
+});
+
