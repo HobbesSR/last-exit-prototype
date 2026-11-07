@@ -13,9 +13,96 @@ import { portalStands } from '../portals.ts';
 import { PARK_HEDGE_BLOCK } from '../placeables/park-hedge-block.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
+import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import type { BuiltRegion, Cell, RegionBrief, RegionElement } from '../types.ts';
 import { builtRegion } from '../result.ts';
 import { siteParkPocket } from './park-pocket.ts';
+
+/**
+ * Authored minimal appearance descriptors for municipal parks (`park`): hedges, trees, and civic
+ * park pavilions/grounds (11.1 §5.2, §5.5, 54).
+ * Hedge obstacles use high-value `fadedMint` foliage and optional directional rims so Tier 2
+ * movement blockers stay separated from dark asphalt/earth (`>= 1.50` contrast across all palettes).
+ */
+export const PARK_HEDGE_INTACT: ObstacleAppearance = Object.freeze({
+  material: 'fadedMint',
+  focalRim: { side: 'N' as const, color: 'storefrontTeal' },
+});
+
+export const PARK_HEDGE_WEATHERED: ObstacleAppearance = Object.freeze({
+  material: 'fadedMint',
+  weathered: true,
+  focalRim: { side: 'N' as const, color: 'awningsYellow' },
+});
+
+export const PARK_HEDGE_DAMAGED: ObstacleAppearance = Object.freeze({
+  material: 'fadedMint',
+  weathered: true,
+  focalRim: { side: 'S' as const, color: 'weatheredCoral' },
+});
+
+export const PARK_HEDGE_PRESETS: readonly [ObstacleAppearance, ObstacleAppearance, ObstacleAppearance] = Object.freeze([
+  PARK_HEDGE_INTACT,
+  PARK_HEDGE_WEATHERED,
+  PARK_HEDGE_DAMAGED,
+]);
+
+export const PARK_TREE_APPEARANCE: ObstacleAppearance = Object.freeze({
+  material: 'weatheredBrick',
+  weathered: true,
+});
+
+export const PARK_PAVILION_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'warmMasonry',
+  roofPaint: 'fadedMint',
+  roofRim: 'storefrontTeal',
+  interiorTrim: 'fadedMint',
+});
+
+export const PARK_PAVILION_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'dustyStucco',
+  roofPaint: 'storefrontTeal',
+  roofRim: 'awningsYellow',
+  interiorTrim: 'fadedMint',
+  neglect: {
+    roofDrainStain: { dx: 18, dy: 12, w: 26, h: 16 },
+  },
+});
+
+export const PARK_PAVILION_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'coolConcrete',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'dirtyCream',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'weatheredCoral',
+  neglect: {
+    roofDrainStain: { dx: 18, dy: 12, w: 28, h: 18 },
+    floorStain: { dx: 24, dy: 18, w: 30, h: 20 },
+    scorchMark: { dx: 20, dy: 16, w: 34, h: 22 },
+  },
+});
+
+export const PARK_PAVILION_PRESETS: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance] = Object.freeze([
+  PARK_PAVILION_INTACT,
+  PARK_PAVILION_WEATHERED,
+  PARK_PAVILION_DAMAGED,
+]);
+
+export function selectParkHedgeAppearance(roll: number): ObstacleAppearance {
+  const index = roll < 0.35 ? 0 : roll < 0.75 ? 1 : 2;
+  return PARK_HEDGE_PRESETS[index]!;
+}
+
+export function createParkPavilionAppearance(options: TieredAppearanceOptions = {}): BuildingAppearance {
+  return createTieredBuildingAppearance(options, {
+    presets: PARK_PAVILION_PRESETS,
+    thresholds: [0.35, 0.75],
+    tierChannel: 'park-pavilion-tier',
+  });
+}
 
 /**
  * Clear cells between pieces and across each hedge gap: a doorway (52), so a hunter fits each.
@@ -81,7 +168,8 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     ...(frontChance > 0 ? { budget: SCATTER_CORD_BUDGET } : {}) });
   if (!parcels.ok) throw new Error(`Park region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
   const canvas = parcels.coordinator;
-  const pocket = hedgeChance > 0 ? siteParkPocket(brief, canvas) : { envelope: null };
+  const pocketRoll = rng(brief.seed, `${brief.id}:park-pocket-appearance`).next();
+  const pocket = hedgeChance > 0 ? siteParkPocket(brief, canvas, selectParkHedgeAppearance(pocketRoll)) : { envelope: null };
   // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
   const clear = ({ x, y, w, h }: Box) => {
     const box = rect(x * size, y * size, w * size, h * size);
@@ -119,7 +207,7 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     if (!clear(box)) continue;
     // A clump commits as one assembly.
     if (!place(footprints.flatMap((f, n) =>
-      placedElements(expectPlaced(PARK_TREE.build({}, size)), `park-tree-${trees + n + 1}`, f.x, f.y, size)))) continue;
+      placedElements(expectPlaced(PARK_TREE.build({ appearance: PARK_TREE_APPEARANCE }, size)), `park-tree-${trees + n + 1}`, f.x, f.y, size)))) continue;
     trees += footprints.length;
     taken.add(key(slot.x, slot.y));
     clumps++;
@@ -128,7 +216,7 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   // When the lattice places nothing, as in a one-tile park, single trees are sited cell by cell.
   if (!canvas.elements.length && density > 0)
     trees += sitePiecesPerCell(canvas, rng(brief.seed, `${brief.id}:park-fallback`), density, AISLE, 'park',
-      () => [{ name: 'tree', place: () => expectPlaced(PARK_TREE.build({}, size)) }]);
+      () => [{ name: 'tree', place: () => expectPlaced(PARK_TREE.build({ appearance: PARK_TREE_APPEARANCE }, size)) }]);
 
   perimeterWallsIfAsked(brief, canvas, 'Park');
   const elements = [...canvas.elements];
@@ -164,7 +252,8 @@ function growHedgeFronts(brief: RegionBrief, canvas: ProspectiveParcels, chance:
     const front = growFront(canvas, start.cell, start.inward, { admit, depth: Math.max(1, Math.round(reach * share)) });
     if (!front.handle) continue;
     const x = Math.min(...front.cells.map(c => c.x)), y = Math.min(...front.cells.map(c => c.y));
-    const built = expectPlaced(PARK_HEDGE_BLOCK.build({ w: Math.max(...front.cells.map(c => c.x)) - x + 1, h: Math.max(...front.cells.map(c => c.y)) - y + 1 }, size));
+    const frontApp = selectParkHedgeAppearance(rng(brief.seed, `${brief.id}:park-front:${x}:${y}`).next());
+    const built = expectPlaced(PARK_HEDGE_BLOCK.build({ w: Math.max(...front.cells.map(c => c.x)) - x + 1, h: Math.max(...front.cells.map(c => c.y)) - y + 1, appearance: frontApp }, size));
     const populated = canvas.populate(front.handle, { elements: placedElements(built, `park-front-${fronts + 1}`, x, y, size) });
     if (!populated.ok) throw new Error(`Park region ${brief.id} could not populate its own front (${populated.reason}).`);
     canvas.settle(front.handle, 'populated');
@@ -206,7 +295,8 @@ function fillSealed(brief: RegionBrief, canvas: ProspectiveParcels, fronts: read
     for (let i = 0; i < rows.length;) {
       let j = i + 1;
       while (j < rows.length && rows[j]!.y === rows[i]!.y && rows[j]!.x === rows[j - 1]!.x + 1) j++;
-      const built = expectPlaced(PARK_HEDGE_BLOCK.build({ w: j - i, h: 1 }, size));
+      const sealedApp = selectParkHedgeAppearance(rng(brief.seed, `${brief.id}:park-sealed:${rows[i]!.x}:${rows[i]!.y}`).next());
+      const built = expectPlaced(PARK_HEDGE_BLOCK.build({ w: j - i, h: 1, appearance: sealedApp }, size));
       elements.push(...placedElements(built, `park-sealed-${patches + 1}-${elements.length + 1}`, rows[i]!.x, rows[i]!.y, size));
       i = j;
     }

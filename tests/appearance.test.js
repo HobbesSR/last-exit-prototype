@@ -580,3 +580,52 @@ test('reusable cosmetic destruction and material vocabulary (#585): impact crate
   assert.ok(!bNoWear.roofMarks.some(m => m.layer.startsWith('wear-')), 'wear: false strips all crater and vegetation marks');
   assert.equal(bNoWear.floorMarks.length, 0);
 });
+
+test('hedge and ruin-wall obstacles satisfy Tier 2 contrast separation across all authored palettes (#770)', () => {
+  for (const [themeId, theme] of Object.entries(THEMES)) {
+    const c = theme.colors;
+    const substrates = [
+      { name: 'ground', hex: c.ground },
+      { name: 'street', hex: c.street },
+      { name: 'floor', hex: c.floor },
+    ];
+
+    // 1. Unstyled and styled hedge obstacle:
+    for (const appearance of [undefined, { material: 'fadedMint' }]) {
+      const hedgeObs = { id: 'h-test', kind: 'hedge', x: 100, y: 100, w: 52, h: 28, appearance };
+      const res = resolveObstacleAppearance(hedgeObs, null, { palette: themeId, lighting: false, wear: true });
+      for (const sub of substrates) {
+        const fillRatio = Number(contrast(res.fill, sub.hex).toFixed(2));
+        const edgeRatio = Number(contrast(res.hedgeEdge, sub.hex).toFixed(2));
+        const bestRatio = Math.max(fillRatio, edgeRatio);
+        // Prototype theme defines its own historical baseline (~1.08 on floor); all 5 night palettes satisfy Tier 2 (>= 1.50 fill or composite).
+        if (themeId !== 'prototype') {
+          assert.ok(
+            fillRatio >= 1.50 || (fillRatio >= 1.35 && edgeRatio >= 2.00),
+            `${themeId} hedge (${appearance ? 'styled' : 'unstyled'}) on ${sub.name}: fill=${fillRatio}, edge=${edgeRatio} must satisfy Tier 2 separation`
+          );
+        } else {
+          assert.ok(bestRatio >= 1.08, `prototype hedge on ${sub.name} preserves baseline separation`);
+        }
+      }
+    }
+
+    // 2. Unstyled and styled ruin-wall obstacle:
+    for (const appearance of [undefined, { material: 'warmSandstone' }, { material: 'coolConcrete' }]) {
+      const ruinObs = { id: 'r-test', kind: 'ruin-wall', x: 200, y: 100, w: 52, h: 24, appearance };
+      const res = resolveObstacleAppearance(ruinObs, null, { palette: themeId, lighting: false, wear: true });
+      for (const sub of substrates) {
+        const fillRatio = Number(contrast(res.fill, sub.hex).toFixed(2));
+        const edgeRatio = Number(contrast(res.ruinEdge, sub.hex).toFixed(2));
+        if (themeId !== 'prototype') {
+          assert.ok(
+            fillRatio >= 1.50 || (fillRatio >= 1.35 && edgeRatio >= 2.00),
+            `${themeId} ruin-wall (${appearance?.material ?? 'unstyled'}) on ${sub.name}: fill=${fillRatio}, edge=${edgeRatio} must satisfy Tier 2 separation`
+          );
+        } else {
+          assert.ok(Math.max(fillRatio, edgeRatio) >= 1.20, `prototype ruin-wall on ${sub.name} preserves baseline separation`);
+        }
+      }
+    }
+  }
+});

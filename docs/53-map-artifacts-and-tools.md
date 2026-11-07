@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-65` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results; `landmark` and block landmark lots (#769) over the matched libraries of #849 |
+| Region strategy content | `types-66` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results; architectural appearance kits for remaining region catalogue types (#770) over `landmark` (#769) and the matched libraries of #849 |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |

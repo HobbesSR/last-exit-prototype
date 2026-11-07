@@ -28,9 +28,9 @@ function eligible(input) {
 }
 
 test('infill retains pinned primary geometry and traces, with deterministic cell order', () => {
-  for (const [seed, hash, trace] of [[1,'464686bc3baff8f6dbc4d233d5645328f6ee344fd7391292db92ca6ec6ed2fa5',[9,65,15,1]],
-    [7,'f69714ae4c8a0973a314bdac8118843d95ebdb09c5b75e732cc1f2467703229c',[11,85,22,4]],
-    [11,'2b9efa654f76b2284a7fa164e71f5257080cab4a337be292c656a29e0a93f059',[11,79,24,1]]]) {
+  for (const [seed, hash, trace] of [[1,'e7cb75bcc43cf35ba4a3c626920c96907ce6a7cfec72b6538ccef099c16e4bac',[9,65,15,1]],
+    [7,'8080062d2f59aeabab85dabbe9571daafa48451406a30d184b8b8eb0b003b747',[11,85,22,4]],
+    [11,'623224c0e36ef6cebf5c919f8121f3e45f0427820b8e3c1961647735606002c0',[11,79,24,1]]]) {
     const input = brief(seed), result = buildRegion(input);
     assert.equal(digest(primary(result)), hash);
     assert.deepEqual(['rooms','walls','debris','hintWalls'].map(k => result.manifest[k]), trace);

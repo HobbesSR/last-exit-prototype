@@ -22,8 +22,8 @@ const gap = (a, b) => Math.max(b.x - a.x - a.w, a.x - b.x - b.w, b.y - a.y - a.h
 const box = (e, s) => ({ x: e.x / s, y: e.y / s, w: e.template.w / s, h: e.template.h / s });
 
 test('residual hall infill preserves the original primary elements and roof', () => {
-  for (const [roofed, hash] of [[false, '9f7cce7f5c5ab7289f1d787c25ece5aebad4e58b4d8253ac45f3dc1dcf259b6c'],
-    [true, '7e2fa6824bcc432c8baa2f62d4d60f39563618850b7f4591f5e8f62f40acac02']]) {
+  for (const [roofed, hash] of [[false, '77c523f0ef9ae710201d5860d1190705c34bbfb68930dd93f3d97581c9652819'],
+    [true, '4055e1a5c8e0c8380ff0db4be0994de68a9374a4d5d737f2139c592c6123022a']]) {
     const input = brief(cells, { parameters: { roofed } }), result = buildRegion(input);
     assert.equal(digest(primary(result)), hash);
     assert.equal(result.manifest.infillCrates, crates(result).length);

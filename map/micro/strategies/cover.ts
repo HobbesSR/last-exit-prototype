@@ -1,19 +1,59 @@
 import { compareCells } from '../../kernel/cell.ts';
 import { circle, rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
+import type { ElementAppearance, ObstacleAppearance } from '../../../shared/types.ts';
 import { elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../random.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { liveCord, portalApproaches, sitePiecesPerCell, withPerimeterWalls } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import { COVER_PIECE, COVER_PIECES } from '../placeables/cover-piece.ts';
+import { COVER_PIECE, COVER_PIECES, type CoverPieceName } from '../placeables/cover-piece.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import type { ExecutionBuilder } from '../delegation-execute.ts';
 import { commitEach, createBuilderCanvas, mergeAssemblies } from '../canvas.ts';
 import type { BuilderCanvas, SitingCanvas } from '../canvas.ts';
 import { builtRegion } from '../result.ts';
+
+/**
+ * Authored minimal appearance descriptors for tactical cover pockets (`cover`, 11.1 §5.5, 54).
+ * Crates, low masonry barriers, and steel containers carry distinct material and wear identities.
+ */
+export const COVER_CRATE_APPEARANCE: ObstacleAppearance = Object.freeze({
+  material: 'awningsYellow',
+  weathered: true,
+});
+
+export const COVER_BARRIER_APPEARANCE: ObstacleAppearance = Object.freeze({
+  material: 'dirtyCream',
+  weathered: true,
+  focalRim: { side: 'N' as const, color: 'weatheredCoral' },
+});
+
+export const COVER_CONTAINER_APPEARANCE: ObstacleAppearance = Object.freeze({
+  material: 'storefrontTeal',
+  weathered: true,
+  focalRim: { side: 'N' as const, color: 'sodiumAmber' },
+});
+
+export function selectCoverPieceAppearance(piece: CoverPieceName, roll = 0): ObstacleAppearance {
+  if (piece === 'barrier') {
+    return roll < 0.5
+      ? COVER_BARRIER_APPEARANCE
+      : { material: 'dustyStucco', weathered: true, focalRim: { side: 'S', color: 'sodiumAmber' } };
+  }
+  if (piece === 'container') {
+    return roll < 0.5
+      ? COVER_CONTAINER_APPEARANCE
+      : { material: 'oxidizedMetal', weathered: true, focalRim: { side: 'E', color: 'weatheredCoral' } };
+  }
+  return roll < 0.34
+    ? COVER_CRATE_APPEARANCE
+    : roll < 0.67
+      ? { material: 'storefrontTeal', weathered: true }
+      : { material: 'oldSignRed', weathered: true };
+}
 
 /**
  * The cover receiver implementation (20.7); bump it when receiver output changes. The aggregate
@@ -66,7 +106,7 @@ function fallbackCover(brief: RegionBrief, lattice: BuiltRegion, density: number
     let first = PIECES[0]!;
     for (let sum = 0, i = 0; i < PIECES.length; i++) if (pick < (sum += PIECES[i]!.weight)) { first = PIECES[i]!; break; }
     return [first, ...PIECES.filter(other => other !== first)].map(piece => ({ name: piece.name,
-      place: () => expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)) }));
+      place: () => expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset, appearance: selectCoverPieceAppearance(piece.name, pick) }, size)) }));
   });
   staged.flush();
   const canvas = coordinator;
@@ -162,7 +202,7 @@ export function sitedCover(brief: RegionBrief): { region: BuiltRegion } {
       const y = hint?.y ?? slot.y + Math.floor(jy * (PERIOD - AISLE - h + 1));
       const grown = box ? { x0: Math.min(box.x0, x), y0: Math.min(box.y0, y), x1: Math.max(box.x1, x + w), y1: Math.max(box.y1, y + h) } : { x0: x, y0: y, x1: x + w, y1: y + h };
       if (!canvas.spaced(cellBox(x, y, w, h)) || !clear(grown.x0, grown.y0, grown.x1 - grown.x0, grown.y1 - grown.y0)) continue;
-      const assembly = placedElements(expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)), `cover-${piece.name}-${canvas.elements.length + 1}`, x, y, size);
+      const assembly = placedElements(expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset, appearance: selectCoverPieceAppearance(piece.name, jx) }, size)), `cover-${piece.name}-${canvas.elements.length + 1}`, x, y, size);
       if (!canvas.commit({ elements: assembly })) continue;
       box = grown;
     }
@@ -207,12 +247,20 @@ function commitPieces(brief: RegionBrief, canvas: BuilderCanvas, elements: reado
  */
 export interface ClearSite { x: number; y: number; radius: number; reach?: number }
 
+export interface CoverFacilityOptions {
+  pieceAppearance?: ((piece: RegionElement, index: number) => ObstacleAppearance | undefined) | undefined;
+  firstElementAppearance?: ((piece: RegionElement) => ElementAppearance | undefined) | undefined;
+  guardAppearance?: ObstacleAppearance | undefined;
+  guardElementAppearance?: ((piece: RegionElement) => ElementAppearance | undefined) | undefined;
+}
+
 /**
  * `buildCover`'s pieces and loot, less any that would claim a site's standing room. A piece
  * that would cut a site's route from `root` is dropped too, so a core element region keeps
  * its sites reachable from its first portal. Dropping cover can't break a portal route.
  */
-export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], root?: { x: number; y: number }): Pick<BuiltRegion, 'elements' | 'loot'> {
+export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], root?: { x: number; y: number },
+  facility?: CoverFacilityOptions): Pick<BuiltRegion, 'elements' | 'loot'> {
   const lootRadius = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' }).lootRadius;
   const discs = sites.map(site => circle(site.x, site.y, site.radius));
   const { region: cover } = sitedCover(brief);
@@ -225,8 +273,21 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
     commitPieces(brief, canvas, [element]);
     blockers.push(...shapes);
   }
+  const elements = [...canvas.elements].map((element, index) => {
+    const obsApp = facility?.pieceAppearance?.(element, index);
+    const elemApp = index === 0 ? facility?.firstElementAppearance?.(element) : undefined;
+    if (!obsApp && !elemApp) return element;
+    return {
+      ...element,
+      template: {
+        ...element.template,
+        ...(elemApp ? { appearance: { ...element.template.appearance, ...elemApp } } : {}),
+        ...(obsApp ? { parts: element.template.parts.map(p => p.part === 'obstacle' ? { ...p, appearance: obsApp } : p) } : {}),
+      },
+    };
+  });
   const loot = cover.loot.filter(site => !discs.some(disc => shapesOverlap(circle(site.x, site.y, lootRadius), disc)));
-  return { elements: [...canvas.elements], loot };
+  return { elements, loot };
 }
 
 /**
@@ -242,7 +303,7 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
  */
 export type NearCover = Pick<BuiltRegion, 'elements' | 'loot'> & { readonly guardsSkipped?: number };
 export function coverNear(brief: RegionBrief, cover: NearCover, site: ClearSite, within: number,
-  root?: { x: number; y: number }): NearCover {
+  root?: { x: number; y: number }, facility?: Pick<CoverFacilityOptions, 'guardAppearance' | 'guardElementAppearance'>): NearCover {
   const size = brief.cellSize, disc = circle(site.x, site.y, site.radius), near = circle(site.x, site.y, site.radius + within);
   const blockers = cover.elements.flatMap(element => elementShapes(element));
   if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
@@ -269,11 +330,16 @@ export function coverNear(brief: RegionBrief, cover: NearCover, site: ClearSite,
   };
   const places: RegionElement[] = [];
   for (const cell of [...fill].sort(compareCells)) for (const turned of [false, true]) {
-    const guard = expectPlaced(COVER_PIECE.build({ piece: 'container', turned, length: 1, offset: 0.5 }, size)), { w, h } = guard.demand.body;
+    const guard = expectPlaced(COVER_PIECE.build({
+      piece: 'container', turned, length: 1, offset: 0.5,
+      appearance: facility?.guardAppearance ?? COVER_CONTAINER_APPEARANCE,
+    }, size)), { w, h } = guard.demand.body;
     if (!clear(cell.x, cell.y, w, h)) continue;
     const [element] = placedElements(guard, 'cover-guard', cell.x, cell.y, size) as [RegionElement];
-    const shapes = elementShapes(element);
-    if (shapes.some(shape => shapesOverlap(shape, near)) && !shapes.some(shape => shapesOverlap(shape, disc))) places.push(element);
+    const elemApp = facility?.guardElementAppearance?.(element);
+    const styled = elemApp ? { ...element, template: { ...element.template, appearance: { ...element.template.appearance, ...elemApp } } } : element;
+    const shapes = elementShapes(styled);
+    if (shapes.some(shape => shapesOverlap(shape, near)) && !shapes.some(shape => shapesOverlap(shape, disc))) places.push(styled);
   }
   for (const element of rng(brief.seed, `${brief.id}:cover-near`).shuffle(places)) {
     const shapes = elementShapes(element);
