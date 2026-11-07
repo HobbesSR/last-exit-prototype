@@ -3,6 +3,7 @@
 | Child | Load for |
 | --- | --- |
 | [33.1](33.1-foundation-pass.md) | The Foundation Pass: what a periodic quality and maintainability review covers and where its decisions stop |
+| [33.2](33.2-readme-design.md) | The README and audience-guide design: primary audience, its contents, dedicated guides, secondary audiences |
 
 ## Where a fact belongs
 
@@ -47,7 +48,7 @@ The #380 ownership decision separates current contracts from dated observations:
 | Runtime measurements | [42.2](42.2-runtime-performance.md) |
 | Generation, delegation and verification-cost evidence | [42.3](42.3-generation-and-delegation-evidence.md) |
 | Dated chain captures | [42.4](42.4-chain-checkpoint-history.md) |
-| Player, host and operator entry; developer labs; agent setup | [README](../README.md), with audience guides beside it as `README.<subject>.md`; [20.5](20.5-tools-and-next-boundaries.md); [34](34-forgejo-workflow.md) respectively |
+| Player, host and operator entry; developer labs; agent setup | [README](../README.md) and its audience guides, designed in [33.2](33.2-readme-design.md); [20.5](20.5-tools-and-next-boundaries.md); [34](34-forgejo-workflow.md) respectively |
 
 Retain historical evidence in the repository. Keep witness scripts at their
 existing paths; moving documentation does not authorize deleting or adapting them.

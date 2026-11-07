@@ -90,6 +90,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [32-delegation.md](32-delegation.md) | Cost-aware delegation, the worker brief, manual model switches |
 | [33-maintenance.md](33-maintenance.md) | How to keep these documents true, and where a new fact belongs, including the archive |
 | [33.1-foundation-pass.md](33.1-foundation-pass.md) | The Foundation Pass: a periodic project-wide quality and maintainability review under a freeze; its conditions, six concern tracks and how a pass ends |
+| [33.2-readme-design.md](33.2-readme-design.md) | The README and audience-guide design: host/client players first, what the README holds, what moves to dedicated guides, secondary audiences |
 | [34-forgejo-workflow.md](34-forgejo-workflow.md) | Forgejo as source of truth, agent accounts and worktrees, the issue-to-PR loop |
 
 ### 4x — Plan and history
