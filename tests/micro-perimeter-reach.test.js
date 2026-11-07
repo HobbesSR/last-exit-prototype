@@ -92,3 +92,23 @@ test('cover and park wall their hinted edges only when their class asks (#849), 
     assert.deepEqual(validatePortalReach({ ...walled.brief, blockers }, { search: 'thorough' }).errors, [], type);
   }
 });
+
+test('cover\'s fallback still sites pieces in a small region when walls are asked for (#852 review 669)', async () => {
+  const { buildRegion } = await import('../map/micro/region-types.ts');
+  const { elementShapes } = await import('../map/micro/geometry.ts');
+  const cells = cellsOf(6, 6);
+  let walls = 0;
+  for (const seed of [3, 5, 8]) {
+    const brief = parameters => ({ id: 'cover', seed, type: 'cover', cellSize: 40, cells, parameters,
+      zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals: [], hints: [{ axis: 'h', x: 0, y: 0, length: 6 }] });
+    const plain = buildRegion(brief()), walled = buildRegion(brief({ perimeterWalls: true }));
+    const pieces = region => region.elements.filter(e => !e.label.includes('-edge-wall-')).map(e => e.label);
+    assert.ok(pieces(plain).length > 0, `seed ${seed}: the fallback places cover`);
+    assert.deepEqual(pieces(walled), pieces(plain), `seed ${seed}: walls leave the fallback's pieces`);
+    // A wall is passed over where the fallback's pieces already stand against the hint.
+    walls += walled.elements.filter(e => e.label.startsWith('cover-edge-wall-')).length;
+    const blockers = walled.elements.flatMap(e => elementShapes(e));
+    assert.deepEqual(validatePortalReach({ ...walled.brief, blockers }, { search: 'thorough' }).errors, [], `seed ${seed}`);
+  }
+  assert.ok(walls > 0, 'walls stand beside the fallback cover');
+});

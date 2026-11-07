@@ -4,7 +4,7 @@ import type { Shape } from '../../../shared/shape.ts';
 import { elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../random.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
-import { liveCord, perimeterWallsIfAsked, portalApproaches, sitePiecesPerCell } from './scatter.ts';
+import { liveCord, portalApproaches, sitePiecesPerCell, withPerimeterWalls } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { COVER_PIECE, COVER_PIECES } from '../placeables/cover-piece.ts';
@@ -117,7 +117,8 @@ function densityOf(brief: RegionBrief): number {
  * no core elements; any the brief lists are left for the report to name (51 stage 8).
  */
 export function buildCover(brief: RegionBrief): BuiltRegion {
-  return fallbackCover(brief, sitedCover(brief).region, densityOf(brief));
+  // Walls go last, so the fallback still runs when the lattice placed nothing (#852).
+  return withPerimeterWalls(brief, fallbackCover(brief, sitedCover(brief).region, densityOf(brief)), 'Cover');
 }
 
 /**
@@ -167,7 +168,6 @@ export function sitedCover(brief: RegionBrief): { region: BuiltRegion } {
     }
   }
   staged?.flush();
-  if (coordinator) perimeterWallsIfAsked(brief, coordinator, 'Cover');
   // Loot and the result read what the cord kept.
   const placed: SitingCanvas = coordinator ?? canvas;
 

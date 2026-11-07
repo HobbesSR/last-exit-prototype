@@ -7,12 +7,13 @@ import { hunterClearance, portalStands } from '../portals.ts';
 import { microMetrics } from '../metrics.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionMask, RegionRandom } from '../types.ts';
-import type { SitingCanvas } from '../canvas.ts';
+import { mergeAssemblies, type SitingCanvas } from '../canvas.ts';
 import { placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import { compareCells } from '../../kernel/cell.ts';
 import { buildOpen } from './open.ts';
 import { draw } from '../random.ts';
+import { builtRegion } from '../result.ts';
 export { draw } from '../random.ts';
 
 /** A piece `sitePiecesPerCell` may try at a cell: its name for the label, and how to place it at the origin. */
@@ -111,6 +112,25 @@ export function perimeterWallsIfAsked(brief: RegionBrief, coordinator: Prospecti
   if (brief.parameters?.perimeterWalls !== true) return 0;
   const avoid = [...portalApproaches(brief, type), ...coordinator.elements.flatMap(element => elementShapes(element))];
   return reachPerimeter(coordinator, brief, { kind: 'building', avoid, label: `${type.toLowerCase()}-edge-wall` }).elements.length;
+}
+
+/**
+ * `region`, finished, with `perimeterWallsIfAsked`'s walls added last, for a builder whose
+ * own steps (such as a fallback that runs only when nothing was placed) must not see them
+ * (#852 review 669). Its pieces are recommitted through a fresh live cord as one assembly,
+ * then the walls are offered; loot a wall now covers is dropped. Past 32 portals, where
+ * such builders keep no cord, or if the cord refuses the pieces, the region is unchanged.
+ */
+export function withPerimeterWalls(brief: RegionBrief, region: BuiltRegion, type: string): BuiltRegion {
+  if (brief.parameters?.perimeterWalls !== true || brief.portals.length > 32) return region;
+  const coordinator = liveCord(brief, type), pieces = region.elements.map(element => ({ elements: [element] }));
+  if (pieces.length && !coordinator.commit(mergeAssemblies(pieces))) return region;
+  if (!perimeterWallsIfAsked(brief, coordinator, type)) return region;
+  const walls = coordinator.elements.slice(region.elements.length).flatMap(element => elementShapes(element));
+  const radius = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' }).lootRadius;
+  const loot = region.loot.filter(site => !walls.some(wall => shapesOverlap(wall, circle(site.x, site.y, radius))));
+  const rebuilt = builtRegion(brief, [...coordinator.elements], loot, region.coreElements);
+  return { ...rebuilt, manifest: { ...region.manifest, ...rebuilt.manifest } };
 }
 
 /**
