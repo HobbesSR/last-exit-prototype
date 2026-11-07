@@ -80,7 +80,7 @@ or use a project agent type that fixes it:
 | --- | --- |
 | Lead rows: ownership, compatibility, conflicting requirements, creative direction, integration review | Lead (Opus); not delegated |
 | Bounded implementation, algorithmic logic, complex refactors and meaningful tests within defined contracts | `implementer` agent (`.claude/agents/`, Sonnet) |
-| Inventories, read-only searches, mechanical edits, settled documentation, fully specified tests | `mechanical` agent (Haiku); `Explore` with `model: haiku` for a search with no edits |
+| Inventories, read-only searches, mechanical edits, settled documentation, fully specified tests | `mechanical` agent (Haiku); `Explore` (project override, Haiku, read-only) for a search with no edits |
 | Computer and browser use | Lead or a Sonnet worker with the browser tools; it reports findings, fixes route as above |
 
 Choose by what the task needs, not by its size: a short task with an unsettled
