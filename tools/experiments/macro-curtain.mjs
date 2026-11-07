@@ -37,6 +37,9 @@ export function experimentCurtain(before) {
   if (rows.some(y => Array.from({length:4},(_,i) => before.library.cellClasses[cells[y*width+x+i]]?.coreElements).some(Boolean))) return refusal('core-class-intersection');
   if (before.library.cellClasses[WEST] || before.library.cellClasses[EAST]) return refusal('class-name-collision');
   const library = structuredClone(before.library), layout = structuredClone(before.layout);
+  // The experiment removes a stated passability to mean "no promise", which holds only under the
+  // default rules: under `matched` an unstated class boundary inside a tile is passable (51.4, #849).
+  delete library.passabilityRules;
   for (const name of ['tiles','tileSets','setPieces','setPieceClasses']) library[name].sort(byId);
   library.tileSets.forEach(s => s.members.sort());
   library.setPieceClasses.forEach(s => s.setPieces.sort());

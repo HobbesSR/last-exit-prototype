@@ -34,11 +34,15 @@ test('clear opposite portal approaches do not excuse a separating wall', () => {
 // This is a diagnostic witness, not permission for a builder to rely on unknown neighbours.
 test('region-local hunter checks can reject clear movement through the assembled map', () => {
   const library = structuredClone(CHAIN_LIBRARY), field = library.tiles.find(tile => tile.id === 'field');
+  const hintedSides = Object.fromEntries([1, 2, 3, 4].flatMap(i => ['h:1', 'h:5', 'v:1', 'v:5'].map(line =>
+    [`${line},${i}`, { passability: 'not-passable-hint' }])));
   library.tiles.push({
     id: 'centered-rubble-probe', defaultCellClass: 'any',
     cells: ['......', '.rrrr.', '.rrrr.', '.rrrr.', '.rrrr.', '......'],
     legend: { r: 'rubble' }, orientations: [0], weight: 0,
-    segments: { ...field.segments, 'h:1,2': { passability: 'passable' }, 'h:1,3': { passability: 'passable' } },
+    // Under matched passability (#849) an unstated class boundary inside a tile is passable, so
+    // the feature hints its sides and keeps the one authored crossing, as bundled tiles do (52.1).
+    segments: { ...field.segments, ...hintedSides, 'h:1,2': { passability: 'passable' }, 'h:1,3': { passability: 'passable' } },
   });
   const params = chainParams({ mode: 'playground', zoneWidth: 2, zoneHeight: 2 }), slots = [];
   for (let row = 3; row <= 5; row++) for (let col = 3; col <= 5; col++)

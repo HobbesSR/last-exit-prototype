@@ -33,8 +33,10 @@ export function checkLibraryMap(map, seed, contestantCount, { reach = true } = {
   assert.deepEqual([count('spawn'), count('exit'), count('hunter-spawn'), count('charger'), count('warp')],
     [contestantCount, GAME.exitCount, GAME.hunterCount, 3, 6]);
   // Exercise built content, not just class names or manifest counts (54).
+  // Under the matched libraries (#849) the fill rarely places hut-quarter, so a map may have no
+  // hut region; a hut that is placed must still build its house (micro-hut covers the builder).
   const huts = map.results.filter(result => result.brief.type === 'hut');
-  assert.ok(huts.length && huts.every(hut => hut.elements.some(element =>
+  assert.ok(huts.every(hut => hut.elements.some(element =>
     element.template.encloses && element.template.parts.some(part => part.part === 'gate'))), 'every hut region built a house with a door');
   for (const type of ['cover', 'rubble']) assert.ok(map.results.some(result =>
     result.brief.type === type && result.elements.length), `${type} places actual geometry`);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateLibrary } from '../map/macro/src/chain/library.ts';
 import { REGION_TYPES } from '../map/micro/region-types.ts';
-import { CHAIN_LIBRARIES, MATCHED_LIBRARIES, generateMacro, validateLibrary as validateGameLibrary } from '../map/chain.ts';
+import { CHAIN_LIBRARIES, validateLibrary as validateGameLibrary } from '../map/chain.ts';
 import { checkLibraryMap, libraryMap } from './helpers/map-library-game.js';
 
 /**
@@ -22,14 +22,11 @@ test('game-size library-4 sites and reaches every core element for 24 contestant
   checkLibraryMap(libraryMap('library-4', 24), 'library-4', 24);
 });
 
-test('each experimental matched library (#849) is valid for the game and places its smallest map', () => {
-  for (const library of MATCHED_LIBRARIES) {
+test('each bundled library is valid for the game under matched passability (#849)', () => {
+  for (const library of CHAIN_LIBRARIES) {
     assert.deepEqual(validateGameLibrary(library).errors, [], library.name);
-    assert.equal(library.passabilityRules, 'matched');
+    assert.equal(library.passabilityRules, 'matched', library.name);
+    // Weight 0 is retired in bundled content: `fillable: false` keeps a tile to set pieces (17.2.2).
+    assert.deepEqual(library.tiles.filter(tile => !(tile.weight > 0)).map(tile => tile.id), [], library.name);
   }
-  const [small] = MATCHED_LIBRARIES;
-  const map = generateMacro('matched-1', { zoneWidth: small.zoneWidth, zoneHeight: small.zoneHeight }, small);
-  assert.ok(map.layout.slots.length > 0);
-  // Bundled libraries are untouched by the experiment.
-  assert.equal(CHAIN_LIBRARIES.some(library => library.passabilityRules !== undefined), false);
 });

@@ -4,16 +4,20 @@
  * three sequential runs each under the `bench` machine lock. Prints one line per run and a JSON
  * summary with each map's mean and a digest of its output, so a timing change can be checked
  * for identical maps in the same run.
- * Usage: node tools/generation-time.mjs [--maps 12,24,36] [--runs 3]
+ * Usage: node tools/generation-time.mjs [--maps 12,24,36] [--runs 3] [--library FILE]
+ * `--library` is a top-level library file for one zone size, its modules beside it (#849).
  */
 import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { generate } from '../map/tools/core.ts';
+import { readLibraryFile } from '../map/tools/library-files.mts';
 import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
 const widths = arg('--maps', '12,24,36').split(',').map(Number);
 const runs = Number(arg('--runs', '3'));
+const library = process.argv.includes('--library') ? readLibraryFile(arg('--library')) : undefined;
+if (library && widths.some(w => w !== library.zoneWidth)) throw new Error(`the library is authored for width ${library.zoneWidth} only`);
 const { release } = await acquireMachineLock('bench');
 const summary = [];
 try {
@@ -24,7 +28,7 @@ try {
     let digest;
     for (let run = 0; run < runs; run++) {
       const start = performance.now();
-      const map = generate(seed, params, undefined, 48);
+      const map = generate(seed, params, library, 48);
       const seconds = (performance.now() - start) / 1000;
       times.push(seconds);
       const d = createHash('sha256').update(JSON.stringify(map.results)).digest('hex').slice(0, 16);

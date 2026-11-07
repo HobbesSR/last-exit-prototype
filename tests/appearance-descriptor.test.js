@@ -553,12 +553,14 @@ test('chain map export/load round-trips via JSON and BSON and legacy maps load c
   for (const b of depotBuildings) {
     assert.deepEqual(b.appearance, DEPOT_WAREHOUSE_APPEARANCE);
   }
-  const hutResult = chain.results.find(r => r.brief.type === 'hut');
-  assert.ok(hutResult, 'chain map contains hut region');
-  const hutBuildings = buildingsWithApp.filter(b => b.nodeId === hutResult.brief.id);
-  assert.ok(hutBuildings.length > 0, 'hut buildings have appearance');
-  for (const b of hutBuildings) {
-    assert.ok(b.appearance.roofSign, 'hut building carries storefront appearance with roofSign');
+  // The matched libraries (#849) rarely place a hut region; when one is placed its storefronts
+  // must survive the round trip too. The hut presets themselves are covered above.
+  for (const hutResult of chain.results.filter(r => r.brief.type === 'hut')) {
+    const hutBuildings = buildingsWithApp.filter(b => b.nodeId === hutResult.brief.id);
+    assert.ok(hutBuildings.length > 0, 'hut buildings have appearance');
+    for (const b of hutBuildings) {
+      assert.ok(b.appearance.roofSign, 'hut building carries storefront appearance with roofSign');
+    }
   }
 
 

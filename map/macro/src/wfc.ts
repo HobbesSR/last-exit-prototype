@@ -91,8 +91,6 @@ export interface WfcOptions {
   /** Counts calls across the whole search; the solve gives up past `maxIterations`. */
   state?: { iterations: number; maxIterations: number };
   accept?: WfcAccept;
-  /** Added to each option's difficulty before its weighted draw. Default 12. */
-  difficultyOffset?: number;
 }
 
 /**
@@ -103,8 +101,7 @@ export interface WfcOptions {
 export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * cells);
 
 export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
-  return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept,
-    options.difficultyOffset ?? DIFFICULTY_OFFSET);
+  return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept);
 }
 
 /**
@@ -179,11 +176,10 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
  * bounded by the call stack. Choices, `random()` calls and iteration counts follow the
  * recursive search this replaced, node for node.
  */
-/** The default `difficultyOffset`: it keeps an unconstrained option's score above zero. */
+/** Added to each option's difficulty before its weighted draw, so an unconstrained option's score stays above zero. */
 export const DIFFICULTY_OFFSET = 12;
 
-function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
-  offset = DIFFICULTY_OFFSET): WfcGrid | null {
+function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept): WfcGrid | null {
   const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
   const undoTo = (mark: number) => {
     while (trail.cells.length > mark) grid[trail.cells.pop()!]!.domain = trail.domains.pop()!;
@@ -230,7 +226,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
 
     const options = [...grid[bestCellIndex]!.domain].map(opt => ({
       opt,
-      score: (opt.difficulty + offset) * Math.pow(random(), 1 / (opt.weight || 1))
+      score: (opt.difficulty + DIFFICULTY_OFFSET) * Math.pow(random(), 1 / (opt.weight || 1))
     })).sort((a, b) => b.score - a.score).map(x => x.opt);
 
     return { depth, cell: bestCellIndex, options, next: 0, mark: trail.cells.length, placed, depths: new Set<number>(), unknown: false };

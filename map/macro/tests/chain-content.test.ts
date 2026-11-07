@@ -72,8 +72,19 @@ test("perimeter authorship distinguishes deferral, opening guarantees, and occup
   ];
   const values = (id: string, side: (i: number) => string) =>
     Array.from({ length: 6 }, (_, i) => tiles.get(id)!.segments?.[side(i)]?.passability);
-  for (const id of ["field", "rubble-bank", "clear-rubble-bank", "clear-rubble-bend"])
-    for (const side of sideKeys) assert.deepEqual(values(id, side), Array(6).fill("any"), `${id} defers explicitly`);
+  for (const side of sideKeys) assert.deepEqual(values("field", side), Array(6).fill("any"), "field defers explicitly");
+  // Rubble tiles hint each edge segment beside a rubble cell and defer the rest (#849, 52.1):
+  // under matched passability an `any` side there would open the whole rubble edge.
+  const edgeCells = [(i: number) => [i, 0], (i: number) => [5, i], (i: number) => [i, 5], (i: number) => [0, i]];
+  for (const id of ["rubble-bank", "clear-rubble-bank", "clear-rubble-bend"]) {
+    const tile = tiles.get(id)!;
+    const classAt = ([x, y]: number[]) => {
+      const mark = tile.cells?.[y!]?.[x!] ?? ".";
+      return mark === "." ? tile.defaultCellClass : tile.legend?.[mark] ?? tile.defaultCellClass;
+    };
+    sideKeys.forEach((side, s) => assert.deepEqual(values(id, side),
+      Array.from({ length: 6 }, (_, i) => classAt(edgeCells[s]!(i)) === "rubble" ? "not-passable-hint" : "any"), `${id} hints its rubble edges`));
+  }
   for (const id of ["cover-ground", "ruins-ground", "hall-ground", "depot-ground", "compound-ground",
     "block-ground", "market-ground", "plant-ground", "checkpoint-ground", "park-ground",
     "arrival-ground", "departure-ground", "charging-ground", "transit-ground"])

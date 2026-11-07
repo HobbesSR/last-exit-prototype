@@ -286,8 +286,7 @@ function sample(
   });
   adjacencyLinks(grid);
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
-    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {}),
-      ...(library.difficultyOffset !== undefined ? { difficultyOffset: library.difficultyOffset } : {}) });
+    openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {});
   if (!solved) return "wfc";
 
   const slots: PlacedSlot[] = mask

@@ -4,12 +4,13 @@ import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { INWARD_MODULES, inwardSourceLibrary } from './helpers/inward-source.js';
 
 const tool = resolve('map/tools/author-inward-grounds.mts');
-const names = ['common-primitives@5.json', 'common-set-pieces@5.json', 'district-set-pieces@4.json'];
+const names = INWARD_MODULES;
 const source = names.map(name => resolve('map/macro/content', name));
 const localName = 'diamond-36x18.json';
-const localSource = resolve('map/macro/content', localName);
+const localSource = inwardSourceLibrary(localName);
 const args = files => ['--primitives', files[0], '--common', files[1], '--district', files[2]];
 const invoke = (files, extra = []) => spawnSync(process.execPath, [tool, ...args(files), ...extra], { encoding: 'utf8' });
 const json = file => JSON.parse(readFileSync(file, 'utf8'));

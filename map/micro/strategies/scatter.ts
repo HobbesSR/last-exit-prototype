@@ -104,7 +104,7 @@ export function liveCord(brief: RegionBrief, type: string): ProspectiveParcels {
 }
 
 /**
- * #849 experiment, off unless a library asks: with the class param `perimeterWalls`, walls the
+ * With the class param `perimeterWalls` (the bundled cover and park classes state it, #838, #849), walls the
  * brief's hinted perimeter through the live cord (`reachPerimeter`, 20.10; 52.1), clear of the
  * portal approaches and the pieces already committed. Returns how many walls stood.
  */

@@ -989,6 +989,20 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
       "number",
     ),
   );
+  // `fillable: false` leaves the tile to set pieces; absent means fillable (17.2.2, #849).
+  const fillable = document.createElement("label");
+  fillable.className = "chain-checks";
+  const fillableInput = document.createElement("input");
+  fillableInput.type = "checkbox";
+  fillableInput.id = "chainFillable";
+  fillableInput.checked = tile.fillable !== false;
+  fillableInput.onchange = () => {
+    if (fillableInput.checked) delete tile.fillable;
+    else tile.fillable = false;
+    edited();
+  };
+  fillable.append(fillableInput, "Fillable (the fill may place it; unchecked leaves it to set pieces)");
+  properties.append(fillable);
   const palette = document.createElement("div");
   palette.className = "chain-paint-palette";
 
