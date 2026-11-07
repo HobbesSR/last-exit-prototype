@@ -81,7 +81,18 @@
             <label
               >Library<select id="librarySource">
                 <option value="bundled">Bundled library for the size</option>
+                <option value="matched">Bundled, matched passability (experimental, #849)</option>
                 <option value="draft">The Chain Library tab's draft</option>
+              </select></label
+            >
+            <label title="Matched library only (#849): added to each tile's difficulty before the weighted draw. Higher means difficulty matters less. Default 12; a saved map won't regenerate the same with another value."
+              >Difficulty offset<input id="difficultyOffset" type="number" min="1" step="1" value="12" /></label
+            >
+            <label title="Matched library only (#849): which tiles the fill may place. Core-element tiles stay in their set pieces either way."
+              >Fill places<select id="fillScope">
+                <option value="fillable">Fillable tiles only</option>
+                <option value="grounds">Themed grounds too</option>
+                <option value="every">Every tile (slow: a minute or more)</option>
               </select></label
             >
             <div class="pair">

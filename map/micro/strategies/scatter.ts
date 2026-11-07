@@ -1,5 +1,6 @@
 import { bounds, circle, rect } from '../../../shared/shape.ts';
-import { createFillMask, shapesOverlap } from '../geometry.ts';
+import { createFillMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { reachPerimeter } from '../perimeter-reach.ts';
 import { createProspectiveParcels, type ProspectiveParcels } from '../prospective-parcels.ts';
 import { SCATTER_CORD_BUDGET } from '../cord-witness.ts';
 import { hunterClearance, portalStands } from '../portals.ts';
@@ -99,6 +100,17 @@ export function liveCord(brief: RegionBrief, type: string): ProspectiveParcels {
   const parcels = createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, type), budget: SCATTER_CORD_BUDGET });
   if (!parcels.ok) throw new Error(`${type} region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);
   return parcels.coordinator;
+}
+
+/**
+ * #849 experiment, off unless a library asks: with the class param `perimeterWalls`, walls the
+ * brief's hinted perimeter through the live cord (`reachPerimeter`, 20.10; 52.1), clear of the
+ * portal approaches and the pieces already committed. Returns how many walls stood.
+ */
+export function perimeterWallsIfAsked(brief: RegionBrief, coordinator: ProspectiveParcels, type: string): number {
+  if (brief.parameters?.perimeterWalls !== true) return 0;
+  const avoid = [...portalApproaches(brief, type), ...coordinator.elements.flatMap(element => elementShapes(element))];
+  return reachPerimeter(coordinator, brief, { kind: 'building', avoid, label: `${type.toLowerCase()}-edge-wall` }).elements.length;
 }
 
 /**

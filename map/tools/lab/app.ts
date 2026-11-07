@@ -3,7 +3,7 @@
  * `mapViews` (51.12), with the report beside the game's `diagnoseBuiltMap`. It generates, saves and
  * loads through the same core as the CLI and MCP, so all three agree on a map.
  */
-import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, validateLibrary } from "../core.ts";
+import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, matchedLibrary, validateLibrary } from "../core.ts";
 import type { MapCheck, ToolMap } from "../core.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
@@ -149,6 +149,16 @@ function recipeParams(): ChainParams {
 
 function chosenLibrary(): unknown {
   if (select("librarySource").value === "bundled") return bundledLibrary(recipeParams());
+  if (select("librarySource").value === "matched") {
+    // Experimental (#849): a stated offset changes the library, and so its fingerprint.
+    const offset = Number(input("difficultyOffset").value);
+    let library = matchedLibrary(recipeParams());
+    // Experimental (#849): let set-piece tiles into the fill too.
+    const fill = select("fillScope").value;
+    if (fill !== "fillable") library = { ...library, tiles: library.tiles.map((tile) =>
+      fill === "every" || !tile.id.includes("-inward-") ? { ...tile, fillable: true } : tile) };
+    return input("difficultyOffset").value !== "" && offset !== 12 ? { ...library, difficultyOffset: offset } : library;
+  }
   const draft = chainDraft();
   const checked = validateLibrary(draft);
   if (!checked.valid) throw new Error(`the Chain Library tab's draft isn't valid for the game: ${checked.errors.join("; ")}`);

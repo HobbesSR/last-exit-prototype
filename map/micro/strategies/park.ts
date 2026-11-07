@@ -1,7 +1,7 @@
 import { rect } from '../../../shared/shape.ts';
 import { PARK_TREE } from '../placeables/park-tree.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
-import { unfilledRegion, cellLoot, fraction, portalApproaches, sitePiecesPerCell } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, perimeterWallsIfAsked, portalApproaches, sitePiecesPerCell } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
@@ -130,6 +130,7 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     trees += sitePiecesPerCell(canvas, rng(brief.seed, `${brief.id}:park-fallback`), density, AISLE, 'park',
       () => [{ name: 'tree', place: () => expectPlaced(PARK_TREE.build({}, size)) }]);
 
+  perimeterWallsIfAsked(brief, canvas, 'Park');
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);

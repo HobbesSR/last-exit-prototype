@@ -74,3 +74,21 @@ test('perimeterRuns lists the hints, then every stretch no portal or hint holds,
   // A concave region's notch is perimeter too: an L of three cells has six runs.
   assert.equal(perimeterRuns({ cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] }, 'unguaranteed').length, 6);
 });
+
+test('cover and park wall their hinted edges only when their class asks (#849), keeping the portal promise', async () => {
+  const { buildRegion } = await import('../map/micro/region-types.ts');
+  const { elementShapes } = await import('../map/micro/geometry.ts');
+  const cells = cellsOf(18, 12);
+  const brief = (type, parameters) => ({ id: type, seed: 3, type, cellSize: 40, cells, parameters,
+    zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }],
+    portals: [{ id: 'w', axis: 'v', x: 0, y: 5, length: 3 }, { id: 'e', axis: 'v', x: 18, y: 5, length: 3 }],
+    hints: [{ axis: 'h', x: 0, y: 0, length: 18 }, { axis: 'h', x: 0, y: 12, length: 18 }] });
+  for (const type of ['cover', 'park']) {
+    const walled = buildRegion(brief(type, { perimeterWalls: true })), plain = buildRegion(brief(type));
+    const walls = walled.elements.filter(e => e.label.startsWith(`${type}-edge-wall-`));
+    assert.ok(walls.length > 0, `${type} stood edge walls`);
+    assert.equal(plain.elements.some(e => e.label.includes('-edge-wall-')), false, `${type} without the parameter`);
+    const blockers = walled.elements.flatMap(e => elementShapes(e));
+    assert.deepEqual(validatePortalReach({ ...walled.brief, blockers }, { search: 'thorough' }).errors, [], type);
+  }
+});

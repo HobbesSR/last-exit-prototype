@@ -45,6 +45,8 @@ What keeps region edges without a passability guarantee clear, per side class an
 #758's park bays and #762's inward strips, is in [42.34](42.34-edge-clearance.md) (#836).
 The macro-only portal-pitch and hinted cap clipping probe, including graph connectivity
 and hunter turning limits, is in [42.35](42.35-seam-pitch-probe.md) (#761).
+Matched passability with experimental tiles, step by step (difficulty, weights, rubble edges,
+corner families, fill scope), is in [42.36](42.36-matched-library-experiment.md) (#849).
 
 The current unresolved slowdown is recorded below. Historical runtime measurements are in [42.2](42.2-runtime-performance.md), generation and delegation measurements in [42.3](42.3-generation-and-delegation-evidence.md), and map chain captures in [42.4](42.4-chain-checkpoint-history.md). The navigation experiment remains in [42.1](42.1-navigation-experiment.md), the portal graph's first measurements are in [42.5](42.5-portal-graph.md), its free-space mesh bottom level in [42.7](42.7-navigation-mesh.md), bots' adoption of the tile planner in [42.8](42.8-bot-adoption.md), replanning spread over ticks in [42.10](42.10-sliced-replanning.md), and local repair in [42.13](42.13-local-repair.md).
 
