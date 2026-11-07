@@ -100,6 +100,18 @@ guarantee, through SDK tools builders can opt into. The stages are:
 3. #838: adoption in suitable builders as one content batch, starting from #716's prototype.
 4. #761: the map-scale lever, judged after #838.
 
+**Outcome (2026-11-07).** Stages 2 and 3 converged into #849's matched libraries, adopted in
+#853 ([42.37](42.37-matched-adoption.md)). That closed about three quarters of the unguaranteed
+boundary, but long crossings stayed nearly as straight, because tile sides' half-and-half
+pattern still leaves a guaranteed portal about every 6 cells. #835, #849 and #761 are closed.
+Next, in order:
+1. #857: placement refuses sealed pockets as soon as they are certain.
+2. #851: tile sides with fewer passable halves, so regions have fewer portals
+   ([17.2.11](17.2.11-navigation-structure-direction.md#fewer-portals-per-region)).
+
+Alongside them, #868 cuts generation cost, which the adoption raised 2.3 times at 36 wide. #855
+(a Lab view of the solve) and #856 (unfitting set-piece seams) are placement follow-ups.
+
 #706 and #743 are proposed to close as not needed for now. #535 stays parked. The #529 section below is
 history.
 
