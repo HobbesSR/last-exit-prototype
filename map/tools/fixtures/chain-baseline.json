@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "commit": "2fb96f9632da3cb43203d5269cd9406fab85d795",
-    "capturedAt": "2026-11-07T05:23:38.758Z",
+    "commit": "6969a05b85034ea5ae8354dc10980e41d42d5dfd",
+    "capturedAt": "2026-11-07T08:28:41.958Z",
     "node": "v24.15.0",
     "cases": [
       {
@@ -878,16 +878,16 @@
       "report": "e71e734bfa9c6e3d"
     },
     "game/sweep-66": {
-      "layout": "581c7a82a6afd909",
-      "results": "fd5729d6f5f3681a",
-      "declaredGrid": "1bf98d179e835672",
-      "resolved": "ac175a8aa262d19f",
-      "regions": "17aae0f5dec23df4",
-      "proof": "ae7f953cdffd0ca4",
+      "layout": "b86a2216645b1a69",
+      "results": "8711b61252d861bc",
+      "declaredGrid": "6232fef48dc4e6c0",
+      "resolved": "4590c27492c318c0",
+      "regions": "11accd550b271039",
+      "proof": "61a9a85a369a5a03",
       "zones": "1bd75c2172fbc370",
-      "briefs": "cbac3da2f0e77c6a",
-      "built": "55e3f7375b2d48cd",
-      "report": "b8b2d4a36932c712"
+      "briefs": "8a90d0e70ef20d0a",
+      "built": "3f256a90148c80f4",
+      "report": "b202f1e10c27a4c3"
     },
     "game/sweep-67": {
       "layout": "d46fd70231e6372c",
@@ -2438,16 +2438,16 @@
       "report": "bc7cdff8464fa08f"
     },
     "playground-4x2/sweep-16": {
-      "layout": "145295fe10b88c8e",
-      "results": "0eaf0fe265e0290d",
-      "declaredGrid": "9165714b965b23f2",
-      "resolved": "7b63950b314fe912",
-      "regions": "231284999358cbf1",
-      "proof": "ebae48e10a21cca4",
+      "layout": "8dafc8a1d4f3e6dc",
+      "results": "c8388c95845ced39",
+      "declaredGrid": "987fa7b01ac7974e",
+      "resolved": "e332b42b1af26819",
+      "regions": "04998756def99b79",
+      "proof": "d26c087a77a1ddae",
       "zones": "d64673d0ef682503",
-      "briefs": "66ec044920ef44db",
-      "built": "2627b31d97dd5028",
-      "report": "268cd6eab9a5ad4c"
+      "briefs": "3f502262ed91b505",
+      "built": "992217ac0718a45a",
+      "report": "1f4bd5f43db9df48"
     },
     "playground-4x2/sweep-17": {
       "layout": "558024d9f6ad131d",
@@ -2606,28 +2606,28 @@
       "report": "c509f7fc9616d16a"
     },
     "playground-6x3/sweep-10": {
-      "layout": "d72e7087dffef349",
-      "results": "3d2f2b70833cd090",
-      "declaredGrid": "bc7dc0680473a18e",
-      "resolved": "2f8125bd544ad39c",
-      "regions": "a03688beddebdbfb",
-      "proof": "5bc06f355f67b418",
+      "layout": "b827231752dcaa0d",
+      "results": "7422ce8129d2f8b2",
+      "declaredGrid": "f22ef1d2c83ab3e0",
+      "resolved": "02b424fac37dc1a4",
+      "regions": "5fe8040f9ad07195",
+      "proof": "7a71c3234672272b",
       "zones": "c75d3daca1b7cece",
-      "briefs": "7beeeca34372cace",
-      "built": "31b3b4b5b6ffaf23",
-      "report": "17f6259f42f95a18"
+      "briefs": "9b17969ebec6f3cc",
+      "built": "5e76782eb77b5077",
+      "report": "3d82ae8f8fa8ad92"
     },
     "playground-6x3/sweep-11": {
-      "layout": "70b17556ab79c833",
-      "results": "e9a7abe34974fbf9",
-      "declaredGrid": "cc72d9a5199bc722",
-      "resolved": "a8c0616e024822b7",
-      "regions": "6a23dac4314bf8ab",
-      "proof": "60b5e377e3e21c0a",
+      "layout": "d091c9440b1daffa",
+      "results": "ff43ee11272c0ba4",
+      "declaredGrid": "d50ff0cf6a184b9c",
+      "resolved": "06e4ca6b531eece6",
+      "regions": "9b541acec2872477",
+      "proof": "3f44601c24defce4",
       "zones": "c75d3daca1b7cece",
-      "briefs": "217f89663c65709f",
-      "built": "1471d4890d7cc5a1",
-      "report": "fe8d4ffd1af7d766"
+      "briefs": "b09e976ef300a9c4",
+      "built": "4a2fef89279c2e88",
+      "report": "6ffc65c76a430adf"
     },
     "playground-6x3/sweep-12": {
       "layout": "d42bc0db708e98cc",
