@@ -5,7 +5,7 @@ import type { Vec2 } from '../../shared/types.ts';
 import { capsule, createAccessMask, shapesOverlap, travelClear, validShape } from './geometry.ts';
 import { checkedRegionCells } from './limits.ts';
 import { hunterClearance, portalStands } from './portals.ts';
-import type { RegionBrief } from './types.ts';
+import type { RegionBrief, RegionMask } from './types.ts';
 
 /** Undirected geometric edge, ordered by (x,y). Overlapping collinear edges are split. */
 export interface CordEdge { from: Vec2; to: Vec2 }
@@ -25,6 +25,13 @@ export interface CordBudget { maxMeshBuilds?: number; maxSweeps?: number; maxPat
  * call, which holds because a test file's tests run one at a time. A worker thread keeps its own.
  */
 export const cordWork = { calls: 0, meshBuilds: 0 };
+/**
+ * A brief's checked cells and access mask, kept across discoveries on that brief by a caller that
+ * never changes it, such as a coordinator's private routing brief (#868). Without one, each call
+ * checks the cells and builds the mask again. Make one per brief with `cordRegionCache`.
+ */
+export interface CordRegionCache { readonly brief: RegionBrief; mask?: RegionMask }
+export const cordRegionCache = (brief: RegionBrief): CordRegionCache => ({ brief });
 export type CordWitnessResult = { ok: true; witness: CordWitness; counters: CordCounters }
   | { ok: false; reason: 'budget' | 'external' | 'interior'; counters: CordCounters };
 
@@ -66,7 +73,7 @@ const pointValid = (p: Vec2): boolean => !!p && Number.isFinite(p.x) && Number.i
  * re-proof would find, at less cost and with fewer sweeps counted.
  */
 export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape[], terminals: readonly Vec2[] = [],
-  previous?: CordWitness, budget: CordBudget = {}, added?: readonly Shape[]): CordWitnessResult {
+  previous?: CordWitness, budget: CordBudget = {}, added?: readonly Shape[], cache?: CordRegionCache): CordWitnessResult {
   const counters: CordCounters = { meshBuilds: 0, sweeps: 0, paths: 0 };
   cordWork.calls++;
   const limits = { maxMeshBuilds: budget.maxMeshBuilds ?? 1, maxSweeps: budget.maxSweeps ?? 65_536, maxPaths: budget.maxPaths ?? 8_192,
@@ -78,8 +85,11 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
   if (previous && (!Array.isArray(previous.paths) || previous.paths.some(path => !Array.isArray(path) || !path.length || path.some(p => !pointValid(p)))
     || !Array.isArray(previous.edges) || previous.edges.some(edge => !edge || !pointValid(edge.from) || !pointValid(edge.to))))
     throw new Error('Previous cord paths must be nonempty lists of finite points.');
-  checkedRegionCells(brief.cells);
-  const radius = hunterClearance(brief.cellSize), mask = createAccessMask(brief);
+  const cached = cache?.brief === brief ? cache : undefined;
+  if (!cached?.mask) checkedRegionCells(brief.cells);
+  const mask = cached?.mask ?? createAccessMask(brief);
+  if (cached) cached.mask = mask;
+  const radius = hunterClearance(brief.cellSize);
   const fail = (reason: 'budget' | 'external' | 'interior'): CordWitnessResult => ({ ok: false, reason, counters });
   // Bound preprocessing, mesh complexity and graph normalization independently of caller budgets.
   if (blockers.length > MAX_INPUTS || terminals.length > MAX_INPUTS || (previous?.paths.length ?? 0) > MAX_INPUTS
@@ -213,10 +223,19 @@ export function discoverCordWitness(brief: RegionBrief, blockers: readonly Shape
 
 /** Exact coincidence only: capsule overlap does not introduce a graph junction. */
 function geometricEdges(paths: readonly Vec2[][]): CordEdge[] {
-  const segments = paths.flatMap(path => path.slice(1).map((to, i) => ({ from: path[i]!, to }))).filter(s => !same(s.from, s.to));
-  const endpoints = new Map<string, Vec2>();
   const pointKey = (p: Vec2): string => `${p.x},${p.y}`;
-  for (const { from, to } of segments) { endpoints.set(pointKey(from), from); endpoints.set(pointKey(to), to); }
+  // Paths repeat each shared prefix once per stand, so most segments recur, some reversed. A
+  // segment's edges depend only on its two ends and the endpoint set, so each is read once (#868).
+  const segments: CordEdge[] = [], endpoints = new Map<string, Vec2>(), seen = new Set<string>();
+  for (const path of paths) for (let i = 1; i < path.length; i++) {
+    const from = path[i - 1]!, to = path[i]!;
+    if (same(from, to)) continue;
+    const a = pointKey(from), b = pointKey(to), key = compare(from, to) < 0 ? `${a}:${b}` : `${b}:${a}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    segments.push({ from, to });
+    endpoints.set(a, from); endpoints.set(b, to);
+  }
   // Sorted by x and by y, so each segment reads only the endpoints within the narrower of its two
   // spans: a long horizontal run reads one row, not every endpoint across its width (#767).
   const byX = [...endpoints.values()].sort(compare);

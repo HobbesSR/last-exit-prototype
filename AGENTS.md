@@ -71,7 +71,8 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   area's inner-loop, pre-PR and integration checks and what each `tests/slow/` file
   can move. Do not default to `test:all`, `test:browser` or the benchmarks. Run timing
   comparisons sequentially without competing tests/benchmarks; repeat suspected
-  regressions three times. Do not claim the reported slowdown fixed without evidence.
+  regressions three times. Compare versions in alternated pairs and report CPU time beside
+  wall time ([31](docs/31-verification.md)). Do not claim the reported slowdown fixed without evidence.
   Forgejo CI runs the fast gates on each PR and the slow tier after merge, filing an
   issue per slow failure (`docs/31`), so a PR may be opened on `npm test` alone; it
   does not replace the other checks your change needs. Fix a failed PR run before the
