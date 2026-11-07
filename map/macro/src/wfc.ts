@@ -91,6 +91,15 @@ export interface WfcOptions {
   /** Counts calls across the whole search; the solve gives up past `maxIterations`. */
   state?: { iterations: number; maxIterations: number };
   accept?: WfcAccept;
+  /**
+   * How many times `accept` may refuse since the search last reached a depth it hadn't, before
+   * the solve gives up (`null`), so that a caller can restart it on a fresh stream. A solve that
+   * stops gaining depth while `accept` keeps refusing is churning among its last few cells,
+   * which the iteration cap alone bounds only after a very long time (#849). Unbounded by default.
+   */
+  stallLimit?: number;
+  /** When given, the most refusals the search made between two new depths is recorded here. */
+  stall?: { most: number };
 }
 
 /**
@@ -101,7 +110,8 @@ export interface WfcOptions {
 export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * cells);
 
 export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
-  return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept);
+  return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept,
+    { limit: options.stallLimit ?? Infinity, record: options.stall });
 }
 
 /**
@@ -179,7 +189,10 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
 /** Added to each option's difficulty before its weighted draw, so an unconstrained option's score stays above zero. */
 export const DIFFICULTY_OFFSET = 12;
 
-function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept): WfcGrid | null {
+function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
+  stall: { limit: number; record?: { most: number } } = { limit: Infinity }): WfcGrid | null {
+  // Refusals since the search last reached a new depth (`stallLimit`).
+  let deepest = -1, refusals = 0;
   const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
   const undoTo = (mark: number) => {
     while (trail.cells.length > mark) grid[trail.cells.pop()!]!.domain = trail.domains.pop()!;
@@ -193,6 +206,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
   // cell's options, true when every cell is collapsed, or the node's failure.
   const enter = (depth: number, startQueue?: number): Frame | true | Conflict => {
     if (state.iterations++ > state.maxIterations) return null;
+    if (depth > deepest) { deepest = depth; refusals = 0; }
     if (depth === 0) prepare(grid, compatible);
     if (!propagate(grid, startQueue, trail)) return null;
 
@@ -204,6 +218,10 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
     if (accept && placed.length) {
       const refused = accept(grid, placed);
       if (refused !== true) {
+        refusals++;
+        if (stall.record && refusals > stall.record.most) stall.record.most = refusals;
+        // Past the limit every later node fails at once, as past the cap, so the search unwinds.
+        if (refusals > stall.limit) state.iterations = state.maxIterations + 1;
         const depths = new Set(refused.map((i) => now[i]! - 1));
         for (const i of placed) now[i] = 0;
         return { depths };
