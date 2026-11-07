@@ -29,7 +29,10 @@ high-invariant ones, and `gpt-6-luna` with low/medium reasoning for mechanical
 edits, focused inventories and simple, fully specified tests. Use `gpt-6.1-terra`
 for computer and browser use and visual work: driving and testing tools, labs
 and other GUI elements through screenshots, and ingesting images and documents.
-Not for live game playing. Check
+Not for live game playing. Claude Code leads route delegated work to the
+`implementer` (Sonnet), `mechanical` and `Explore` (Haiku) agents in `.claude/agents/` and
+name a model on every spawn, since an unnamed one inherits the lead's
+([32](docs/32-delegation.md#claude-code-workers)). Check
 actual available models; do not silently spawn flagship workers for routine tasks.
 
 Delegate only when the task is independently actionable and the lead has useful
