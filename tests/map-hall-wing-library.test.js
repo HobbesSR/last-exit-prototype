@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { readLibraryFile } from '../map/tools/library-files.mts';
+import { inwardSourceLibrary } from './helpers/inward-source.js';
 import { resolution } from '../map/macro/src/chain/resolution.ts';
 import { regions } from '../map/macro/src/chain/regions.ts';
 import { briefs, chainZones } from '../map/macro/src/chain/briefs.ts';
@@ -44,7 +45,7 @@ test('all resolved libraries contain the L variant alongside their rectangular h
     }
     const tool = resolve('map/tools/author-inward-grounds.mts');
     const content = resolve('map/macro/content');
-    const result = spawnSync(process.execPath, [tool, '--primitives', `${content}/common-primitives@5.json`, '--common', `${content}/common-set-pieces@5.json`, '--district', `${content}/district-set-pieces@4.json`, '--local-library', paths[i], '--check'], { encoding:'utf8' });
+    const result = spawnSync(process.execPath, [tool, '--primitives', `${content}/common-primitives@5.json`, '--common', `${content}/common-set-pieces@5.json`, '--district', `${content}/district-set-pieces@4.json`, '--local-library', inwardSourceLibrary(`${names[i]}.json`), '--check'], { encoding:'utf8' });
     assert.equal(result.status, 0, result.stderr);
   }
 });

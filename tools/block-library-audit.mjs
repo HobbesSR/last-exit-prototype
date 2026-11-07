@@ -19,7 +19,7 @@ for (const library of CHAIN_LIBRARIES) {
     const legend = Object.entries(tile.legend ?? {}).filter(([, cls]) => isBlock(cls));
     const adjacency = Object.entries(tile.segments ?? {}).filter(([, p]) => isBlock(p.adjacency)).map(([segment, p]) => ({ segment, class: p.adjacency }));
     const blockCells = cells.filter(isBlock).length;
-    return { id: tile.id, defaultClass: tile.defaultCellClass, fillWeight: tile.weight ?? 1,
+    return { id: tile.id, defaultClass: tile.defaultCellClass, fillWeight: tile.weight ?? 1, fillable: tile.fillable !== false && tile.weight !== 0,
       blockCells, explicitBlockLegend: legend, blockAdjacency: adjacency };
   });
   const byId = new Map(tiles.map(tile => [tile.id, tile]));
@@ -27,7 +27,7 @@ for (const library of CHAIN_LIBRARIES) {
   if (tiles.some(tile => tile.blockAdjacency.length)) failures.push('A segment asks an any cell for a block class.');
   if (sources.some(tile => tile.explicitBlockLegend.length)) failures.push('A legend explicitly maps a mark to a block class.');
   if (tiles.some(tile => tile.blockCells > 0 && tile.blockCells < CHAIN_TILE_SIZE ** 2)) failures.push('A tile contains a partial block footprint.');
-  if (tiles.some(tile => tile.blockCells > 0 && tile.fillWeight !== 0)) failures.push('A block tile is eligible for ordinary fill.');
+  if (tiles.some(tile => tile.blockCells > 0 && tile.fillable)) failures.push('A block tile is eligible for ordinary fill.');
   const sets = library.tileSets.map(set => ({ id: set.id, members: set.members,
     blockMembers: set.members.filter(id => byId.get(id)?.blockCells > 0),
     allBlock: set.members.length > 0 && set.members.every(id => byId.get(id)?.blockCells === CHAIN_TILE_SIZE ** 2) }));

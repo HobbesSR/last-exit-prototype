@@ -15,9 +15,13 @@ import { generateMacro } from '../map/chain.ts';
  */
 const BASELINE = JSON.parse(readFileSync(new URL('../map/tools/fixtures/chain-baseline.json', import.meta.url), 'utf8'));
 const SMALL = QUICK_CASES[0];
+// The quick cases that build in seconds stay here; the game-size case is slow-tier work (31, #849):
+// tests/slow/map-chain-sweep.test.js pins it and checks its macro views.
+const FAST_CASES = QUICK_CASES.filter((sweepCase) => sweepCase.id !== 'game');
 
-test('the quick cases match the committed baseline', () => {
-  for (const sweepCase of QUICK_CASES) {
+test('the quick playground cases match the committed baseline', () => {
+  assert.ok(FAST_CASES.length && FAST_CASES.length === QUICK_CASES.length - 1);
+  for (const sweepCase of FAST_CASES) {
     const entries = runCase(sweepCase);
     const pinned = Object.fromEntries(Object.keys(entries).map((key) => [key, BASELINE.entries[key]]));
     assert.deepEqual(compareSweep({ ...BASELINE, entries: pinned }, entries), [], sweepCase.id);
@@ -61,7 +65,7 @@ test('a change to one object moves only the views that read it', () => {
 });
 
 test('generateMacro gives the macro views generate does, and builds nothing (#821)', () => {
-  for (const sweepCase of QUICK_CASES) {
+  for (const sweepCase of FAST_CASES) {
     const seed = `${sweepCase.seedPrefix}-1`, whole = viewHashes(generate(seed, sweepCase.params));
     const macro = generateMacro(seed, sweepCase.params);
     assert.deepEqual(macroHashes(macro), Object.fromEntries(MACRO_VIEWS.map((view) => [view, whole[view]])), sweepCase.id);

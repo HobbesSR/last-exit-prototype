@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLayerEncoder, createLayerDecoder } from '../shared/frame-layers.ts';
 import { createMatch } from '../server/match.js';
-import { roomHarness } from './helpers/room-harness.js';
+import { generatedMap, roomHarness } from './helpers/room-harness.js';
 
 // What one session is sent of an encoded frame: the keyframe when it lacks it, else the changes.
 function wire(encoded, frame, held) {
@@ -16,7 +16,8 @@ function wire(encoded, frame, held) {
 }
 
 test('a directed view rebuilds exactly from keyframes and changes, at a fraction of its size (#250)', () => {
-  const match = createMatch(4217), encoder = createLayerEncoder(), decoder = createLayerDecoder(), held = {};
+  // On the pregenerated arena (#849): the encoding, not the map, is under test.
+  const match = createMatch(9, undefined, generatedMap(9)), encoder = createLayerEncoder(), decoder = createLayerDecoder(), held = {};
   let whole = 0, sent = 0, keyframes = 0;
   for (let tick = 0; tick < 300; tick++) {
     const view = match.project(match.advance(), null), encoded = encoder.encode(view);
@@ -73,7 +74,7 @@ test('changes against a keyframe the decoder lacks keep the last list and say wh
 });
 
 test('a session is sent the keyframe after a skipped frame, while others keep sharing changes', async () => {
-  const h = roomHarness({ devTools: 'all' }), { room } = h.live();
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room } = h.live();
   try {
     const watcher = () => {
       const sizes = [], frames = [], decoder = createLayerDecoder(); let skip = false;

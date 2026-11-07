@@ -3,24 +3,14 @@ import assert from 'node:assert/strict';
 import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveRecipeMismatch, liveZoneSize, DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES } from '../map/live.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
-import { defaultContent, contentById } from '../shared/simulation/content.ts';
-import { createMatch } from '../server/match.js';
+import { defaultContent } from '../shared/simulation/content.ts';
 
-// One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is held
-// here, by the first test's createMatch(1).map(), a generation of its own; live-map.test.js leans on it.
+// One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
+// tests/slow/live-map-adapter.test.js's claim (#849).
 let defaultMap, defaultChain, defaultBuilt;
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());
 const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);
 const live = () => defaultMap ??= liveMapFromBuilt(1, liveBuilt());
-
-test('the adapter is deterministic, content-sized, and is the default match map', () => {
-  // The match generates its own map, a second generation from the seed: equal, so deterministic and the default.
-  assert.deepEqual(createMatch(1).map(), live());
-  const twoHunters = contentById('content-1');
-  const earlier = generateLiveMap(1, twoHunters);
-  assert.equal(earlier.hunterSpawns.length, twoHunters.roster.gladiators.length);
-  assert.equal(earlier.spawns.length, twoHunters.roster.contestants.length);
-});
 
 test('the adapter rejects missing and extra required core sites', () => {
   const built = liveBuilt();

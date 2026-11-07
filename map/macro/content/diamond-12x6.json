@@ -4,14 +4,15 @@
   "zonePlan": "diamond",
   "zoneWidth": 12,
   "zoneHeight": 6,
+  "passabilityRules": "matched",
   "includes": [
     {
       "name": "common-primitives",
-      "version": 5
+      "version": 6
     },
     {
       "name": "common-set-pieces",
-      "version": 5
+      "version": 6
     }
   ],
   "setPieceClasses": [

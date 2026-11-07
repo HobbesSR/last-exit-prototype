@@ -134,6 +134,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.32-cord-generation-cost.md](42.32-cord-generation-cost.md) | Live-cord generation cost split by work and builder, two exact savings (strictly simple screen, edge index) with zero drift, and what remains exact or inexact (#767) |
 | [42.33-live-cord-rollout.md](42.33-live-cord-rollout.md) | Cover, ruins, depot, hall and market on a live cord, batched commits for every cord builder, and two exact search savings (indexed sweeps, one corridor search): content, detour, dead ends, sweep replay and cost (#787) |
 | [42.34-edge-clearance.md](42.34-edge-clearance.md) | What keeps unguaranteed region edges clear: blocked share by side class, attribution per builder (20.6 end caps, fill left empty), seams, park bays and inward strips (#836) |
+| [42.37-matched-adoption.md](42.37-matched-adoption.md) | The matched libraries adopted: before/after structure, physical blocking, detour, dead ends, fill shares and generation cost, the rubble-court fix, and placement's heavy tail (#849) |
 | [42.36-matched-library-experiment.md](42.36-matched-library-experiment.md) | Matched passability and the experimental library, step by step: portals, one-portal regions, closed runs, fill shares, set pieces and builder walls (#849) |
 | [42.35-seam-pitch-probe.md](42.35-seam-pitch-probe.md) | Macro-only fixed-layout probe: longer unguaranteed and fillable seams, guarantee-thinning connectivity failures and hinted cap clipping's hunter turning failure (#761) |
 

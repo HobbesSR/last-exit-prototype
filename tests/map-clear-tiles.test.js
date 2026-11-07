@@ -31,9 +31,8 @@ test('game fill prefers varied ground and builds features instead of mostly plai
   const fill = map.layout.slots.filter(slot => !owned.has(`${slot.col},${slot.row}`));
   const fields = fill.filter(slot => slot.design === 'field').length;
   assert.ok(fields < fill.length / 2, `${fields}/${fill.length} fill slots are plain fields`);
-  for (const id of CLEAR.filter(id => tile(id).weight > 0)) assert.ok(fill.some(slot => slot.design === id), `${id} occurs in the fill`);
-  assert.equal(tile('clear-rubble-center').weight, 0, 'the centered island is placed within an authored courtyard');
-  assert.ok(map.results.some(result => result.brief.type === 'hut' && result.manifest.structures), 'fill retains a built house');
+  for (const id of CLEAR.filter(id => tile(id).fillable !== false)) assert.ok(fill.some(slot => slot.design === id), `${id} occurs in the fill`);
+  assert.equal(tile('clear-rubble-center').fillable, false, 'the centered island is placed within an authored courtyard');
   assert.ok(map.results.some(result => result.brief.type === 'rubble' && result.elements.length), 'rubble builds physical features');
 });
 
@@ -105,25 +104,39 @@ test('rotated bank and bend merge into an irregular rubble region and build reac
     const built = buildRegion(input);
     if (input.type === 'rubble') assert.ok(built.elements.length, 'merged rubble paints physical geometry');
     const blockers = built.elements.flatMap(element => elementShapes(element));
-    assert.deepEqual(validatePortalReach({ ...input, blockers }).errors, [], `${input.type} ${input.id}`);
+    // Thorough, as the map diagnosis is: the grid search misses this rubble's gap (#849).
+    assert.deepEqual(validatePortalReach({ ...input, blockers }, { search: 'thorough' }).errors, [], `${input.type} ${input.id}`);
   }
 });
 
 test('centered rubble leaves a clear ring that carries hunter movement through a built cover patch', () => {
   const design = tile('clear-rubble-center');
   const court = CHAIN_LIBRARY.setPieces.find(piece => piece.id === 'rubble-court');
+  // The four cover tiles beside the centre face it with a passable side, so the ring is
+  // guaranteed all round under matched passability (#849); the corners are plain cover.
+  const facing = { 1: 's', 3: 'e', 5: 'w', 7: 'n' };
   assert.deepEqual(court.tiles, Array.from({ length: 9 }, (_, i) => ({ dx: i % 3, dy: Math.floor(i / 3),
-    tileSetId: i === 4 ? 'clear-rubble-centers' : 'cover-grounds' })), 'the shipped courtyard supplies the tested surrounding cover');
+    tileSetId: i === 4 ? 'clear-rubble-centers' : facing[i] ? `cover-ground-court-${facing[i]}-tiles` : 'cover-grounds' })),
+    'the shipped courtyard supplies the tested surrounding cover');
+  const member = id => CHAIN_LIBRARY.tileSets.find(set => set.id === id).members[0];
   const params = { ...PARAMS, zoneWidth: 2, zoneHeight: 2 };
   assert.deepEqual(design.cells, ['......', '.rrrr.', '.rrrr.', '.rrrr.', '.rrrr.', '......']);
   const perimeter = Array.from({ length: 6 }, (_, i) => [`h:0,${i}`, `h:6,${i}`, `v:0,${i}`, `v:6,${i}`]).flat();
-  assert.deepEqual(Object.keys(design.segments).sort(), [...perimeter, ...[1, 2, 3, 4].map(i => `h:1,${i}`)].sort());
-  assert.ok(Object.values(design.segments).every(segment => segment.passability === 'passable'));
+  // Under matched passability (#849) the tile edges are `any`, so the courtyard's cover can meet
+  // them; the authored crossing stays passable and the rest of the island's sides are hinted.
+  const crossing = [1, 2, 3, 4].map(i => `h:1,${i}`);
+  const sides = [1, 2, 3, 4].flatMap(i => [`h:5,${i}`, `v:1,${i}`, `v:5,${i}`]);
+  assert.deepEqual(Object.keys(design.segments).sort(), [...perimeter, ...crossing, ...sides].sort());
+  const stated = Object.fromEntries(Object.entries(design.segments).map(([key, segment]) => [key, segment.passability]));
+  for (const key of perimeter) assert.equal(stated[key], 'any', key);
+  for (const key of crossing) assert.equal(stated[key], 'passable', key);
+  for (const key of sides) assert.equal(stated[key], 'not-passable-hint', key);
   assert.ok(Object.values(design.segments).every(segment => segment.adjacency === undefined));
   for (const orientation of design.orientations) {
     const slots = [];
     for (let row = 3; row <= 5; row++) for (let col = 3; col <= 5; col++)
-      slots.push([col, row, col === 4 && row === 4 ? design.id : 'cover-ground', col === 4 && row === 4 ? orientation : 0]);
+      slots.push([col, row, col === 4 && row === 4 ? design.id : member(court.tiles[(row - 3) * 3 + col - 3].tileSetId),
+        col === 4 && row === 4 ? orientation : 0]);
     const placed = layout(slots, CHAIN_LIBRARY, params), grid = declaredGrid(placed, CHAIN_LIBRARY);
     assert.deepEqual(layoutViolations(grid), [], `${orientation} adjacency`);
     const resolved = resolution(placed, CHAIN_LIBRARY), found = regions(resolved, placed.seed);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed } from '../map/live.ts';
+import { liveChainParams, liveMapFromBuilt } from '../map/live.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapFrame } from '../map/micro/adapter.ts';
@@ -10,10 +10,8 @@ import { createGame, setInput, step } from '../shared/simulation.ts';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
-// live-map-adapter.test.js's claim (createMatch(1).map() against this same chain), so it is not paid twice.
-// liveMismatch regenerates the chain on each call without `fresh`. The seed's own map and the moved core
-// element keep that path, so the regenerated map matches its own seed's and a stored map that differs is
-// refused unaided; the turned slot is compared with this chain, passed as `fresh` (#822).
+// tests/slow/live-map-adapter.test.js's claim (createMatch(1).map() against this same chain). The Map Lab's
+// live-recipe check, which regenerates the chain, is in tests/slow/live-map.test.js (#849).
 let defaultMap, defaultChain, defaultBuilt;
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());
 const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);
@@ -39,27 +37,6 @@ test('a chain live map supplies usable authored sites and retained loot metadata
   const owned = [...map.chargers, ...map.stations, ...map.items.filter(item => item.nodeId)];
   assert.ok(new Set(owned.map(site => site.nodeId)).size > 1, 'sites retain distinct region ownership');
   assert.ok(map.items.some(item => Number.isInteger(item.tier) && item.tier >= 1), 'micro loot tier survives runtime conversion');
-});
-
-test("a chain map the Map Lab calls live names a room seed and recipe, and only the seed's own map passes", () => {
-  const chain = liveChain();
-  assert.deepEqual(liveMismatch(chain), []);
-  assert.equal(liveSeed(chain.layout.seed), 1, "the chain's seed text names the room seed whose map it is");
-  const other = { ...chain, layout: { ...chain.layout, seed: '01', params: { ...chain.layout.params, exitCount: 2 } },
-    library: { ...chain.library, name: 'draft' }, cellSize: 32, build: 'older' };
-  assert.deepEqual(liveMismatch(other).map(reason => reason.split(' ').slice(0, 2).join(' ')),
-    ['the seed', 'exitCount is', 'the library', 'the cell', 'the regions']);
-  // A loaded save can keep its seed and recipe and still be edited: only the seed's own map is a room's.
-  const turned = structuredClone(chain), slot = turned.layout.slots[0];
-  slot.orientation = slot.orientation === 0 ? 90 : 0;
-  assert.deepEqual(liveRecipeMismatch(turned), []);
-  assert.match(liveMismatch(turned, undefined, chain).join(), /^the map isn't the one its seed generates \(layout\.slots\[0\]\.orientation: /);
-  const moved = structuredClone(chain);
-  moved.results[0].coreElements.push({ kind: 'charger', x: 0, y: 0 });
-  // Without `fresh`: an edited map is refused by the path the Lab runs.
-  assert.match(liveMismatch(moved).join(), /\(results\[0\]\.coreElements/);
-  for (const seed of ['0', '1e3', '2147483648', '1.5', ' 7', 'last-exit-001']) assert.equal(liveSeed(seed), null, seed);
-  assert.equal(liveSeed('2147483647'), 2147483647);
 });
 
 test('JSON map transfer keeps the mask and both roles can move from authored starts', () => {

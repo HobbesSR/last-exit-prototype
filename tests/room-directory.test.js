@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { MAX_ROOMS } from '../server/room-directory.js';
 import { roomName, MAX_ROOM_NAME } from '../server/protocol.js';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
-import { generateLiveMap } from '../map/live.ts';
+import { readArena } from '../tools/room-arena.mjs';
 
 // Listing, capacity and naming are about rooms, not maps, so these rooms reuse one generated map
 // (`reuseMaps`); room-service, map-generator and map-pool tests generate theirs.
@@ -88,7 +88,8 @@ test('rooms that reuse a generated map each hold their own copy of it', async ()
   try {
     const first = h.directory.createRoom(9), second = h.directory.createRoom(9), pooled = h.directory.createRoom();
     assert.equal(pooled.seed, 9, 'an unseeded room takes the reused map with its own seed');
-    const maps = [first, second, pooled].map(room => room.game.map), inline = generateLiveMap(9);
+    // The pregenerated arena, which tests/slow/room-arena keeps equal to inline generation (#849).
+    const maps = [first, second, pooled].map(room => room.game.map), inline = readArena().map;
     assert.deepEqual(maps[0], inline, 'the map inline generation would have made');
     assert.equal(new Set(maps).size, 3);
     maps[0].spawns[0].x += 1; maps[0].obstacles.length = 0;

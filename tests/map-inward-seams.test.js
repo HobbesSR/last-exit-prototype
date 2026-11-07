@@ -55,16 +55,18 @@ test('new inward ground families remove resolved internal guarantees and expand 
   }
 });
 
-// New revisions must not retune existing fill options or alter prior authored tiles.
-test('the new primitives preserve every previous tile and tile set', () => {
-  const previous = JSON.parse(readFileSync(new URL('../map/macro/content/common-primitives@4.json', import.meta.url), 'utf8'));
+// #530's revision added the inward variants without retuning fill options or altering prior
+// authored tiles. #849's adoption (common-primitives@6) migrated them on purpose (52, 42.37).
+test('the inward revision preserves every previous tile and tile set, and its variants stay out of the fill', () => {
+  const content = name => JSON.parse(readFileSync(new URL(`../map/macro/content/${name}.json`, import.meta.url), 'utf8'));
+  const previous = content('common-primitives@4'), inward = content('common-primitives@5');
   for (const tile of previous.tiles)
-    assert.deepEqual(CHAIN_LIBRARY.tiles.find(current => current.id === tile.id), tile, tile.id);
+    assert.deepEqual(inward.tiles.find(current => current.id === tile.id), tile, tile.id);
   for (const set of previous.tileSets)
-    assert.deepEqual(CHAIN_LIBRARY.tileSets.find(current => current.id === set.id), set, set.id);
+    assert.deepEqual(inward.tileSets.find(current => current.id === set.id), set, set.id);
   for (const kind of KINDS) {
     const variants = CHAIN_LIBRARY.tiles.filter(tile => tile.id.startsWith(`${kind}-ground-inward-`));
     assert.ok(variants.length, `${kind} has inward variants`);
-    assert.ok(variants.every(tile => tile.weight === 0), `${kind} variants never enter random fill`);
+    assert.ok(variants.every(tile => tile.fillable === false), `${kind} variants never enter random fill`);
   }
 });

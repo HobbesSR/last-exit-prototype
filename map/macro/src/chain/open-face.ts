@@ -21,7 +21,8 @@
  * A refusal names the placed slots that settle what it refuses: each cell's class, the
  * classes beside it and the guarantees between them, and the placed neighbours of each
  * closed slot, whose propagation narrowed its options. The solver backjumps to the
- * latest of them (`solveWfc`).
+ * latest of them (`solveWfc`). A sealed component is named by its cut, the faces between
+ * it and the cells outside it, since every path out crosses them.
  */
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 import type { TileOption, WfcAccept, WfcGrid } from "../wfc.ts";
@@ -247,6 +248,10 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
       stack.push(start);
       let open = false, lowest = start;
       const component: number[] = [];
+      // Its cells facing an unplaced slot that can't join, and each closed face toward a
+      // settled cell, as [cell, across]; those whose cell across lies outside it are its cut.
+      const cut = new Set<number>();
+      const faces: number[] = [];
       // Unplaced slots the component faces, but that have no option left to join it.
       const closed = new Set<number>();
       while (stack.length && !open) {
@@ -263,9 +268,10 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
             // derived guarantee. A hint doesn't turn an unsettled class into passage.
             if (couldJoin(x, y, dx, dy, own)) { open = true; break; }
             closed.add(beside);
+            cut.add(cell);
             continue;
           }
-          if (across !== own && !guaranteed(x, y, dx, dy)) continue;
+          if (across !== own && !guaranteed(x, y, dx, dy)) { faces.push(cell, (y + dy) * width + x + dx); continue; }
           const next = (y + dy) * width + x + dx;
           if (mark[next] === id) continue;
           // An earlier flood of this check stopped at an open face, so its cells are open.
@@ -275,10 +281,15 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
         }
       }
       if (open || (unplaced === 0 && component.length === grid.length * S * S)) continue;
+      for (let f = 0; f < faces.length; f += 2) if (mark[faces[f + 1]!] !== id) cut.add(faces[f]!);
       const lx = lowest % width, ly = (lowest - lx) / width;
       refused(`the component from ${classAt(lx, ly)}@${lx},${ly} (${component.length} cells) has no portal path out`);
-      // A closed slot's domain was narrowed by its placed neighbours' propagation.
-      const slots = new Set(cause(component));
+      // Every path out crosses the cut, so the slots that settle its faces seal the component
+      // whatever lies inside it: they are the cause, not the component's every slot. A sealed
+      // map-sized component named nearly every slot, and the solver then backtracked one slot
+      // at a time to its iteration cap (#849). A closed slot's domain was narrowed by its
+      // placed neighbours' propagation.
+      const slots = new Set(cause(cut.size ? cut : component));
       for (const slot of closed) for (const { cell } of solving[slot]!.links) if (design(cell)) slots.add(cell);
       return [...slots];
     }

@@ -107,6 +107,20 @@ test("a component is refused as soon as no option left beside it could join it",
   assert.deepEqual(early.refusals, ["the component from hut@5,6 (12 cells) has no portal path out"]);
 });
 
+test("a sealed component is refused by its cut, not by every slot inside it", () => {
+  // Three fields, then a hut column against the map's east edge. The open ground is checked
+  // first and is sealed from the hut; only the slot holding the faces between them settles
+  // that, so a solver backjumps there rather than to the latest field (#849: a sealed
+  // map-sized component once named every slot, and placement backtracked one slot at a time).
+  const grid: WfcGrid = ["field", "field", "field", "annex"].map((templateId, x) =>
+    ({ x, y: 0, domain: [{ templateId, orientation: 0 as const, difficulty: 0, weight: 1 }], links: [] }));
+  adjacencyLinks(grid);
+  const refusals: string[] = [];
+  const cause = openFaceRule(HAND, grid, 4, 1, (reason) => refusals.push(reason))(grid, [0, 1, 2, 3]);
+  assert.deepEqual(refusals, ["the component from open@0,0 (138 cells) has no portal path out"]);
+  assert.deepEqual(cause, [3]);
+});
+
 test("a portal shorter than a hunter is refused once its ends are settled, and a seam can lengthen it", () => {
   // One passable segment at the foot of a column, continued, or not, by the column below.
   assert.deepEqual(solve({ "0,0": ["door-foot"], "0,1": ["plain-column", "door-head"] }, 1, 2).placed, ["door-foot@0", "door-head@0"]);
@@ -131,4 +145,29 @@ test("a refusal backjumps to the choice that caused it, past every later one", (
   });
   assert.equal(solved?.[0]!.domain[0]!.templateId, "b");
   assert.ok(state.iterations <= 2 * cells + 2, `${state.iterations} iterations`);
+});
+
+test("a solve that stops gaining depth while every check refuses gives up after its stall limit", () => {
+  // Every full grid is refused, naming only the last cell, so the search keeps trying the
+  // last cells' options without getting deeper: the churn the stall limit ends (#849).
+  const cells = 12;
+  const options = () => ["a", "b", "c"].map((templateId) => ({ templateId, orientation: 0 as const, difficulty: 0, weight: 1 }));
+  const solve = (stallLimit?: number) => {
+    const grid: WfcGrid = Array.from({ length: cells }, (_, x) => ({ x, y: 0, domain: options(), links: [] }));
+    const state = { iterations: 0, maxIterations: 10000 }, stall = { most: 0 };
+    let refusals = 0;
+    const solved = solveWfc(grid, () => true, () => 0.5, {
+      state, stall, ...(stallLimit === undefined ? {} : { stallLimit }),
+      accept: (solving) => solving.every((cell) => cell.domain.length === 1) ? (refusals++, [cells - 1]) : true,
+    });
+    return { solved, refusals, iterations: state.iterations, most: stall.most };
+  };
+  const limited = solve(5);
+  assert.equal(limited.solved, null);
+  assert.equal(limited.refusals, 6, "it gives up on the refusal past the limit");
+  assert.equal(limited.most, 6);
+  const unlimited = solve();
+  assert.equal(unlimited.solved, null);
+  // Without a limit only the iteration cap ends it, after thousands of refusals.
+  assert.ok(unlimited.refusals > 1000 && unlimited.iterations > 10000, `${unlimited.refusals} refusals`);
 });

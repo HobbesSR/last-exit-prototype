@@ -476,10 +476,14 @@ catalogue, and it grows from here. The fixture libraries in
 `map/tools/author-inward-grounds.mts` checks or regenerates these explicit
 structure variants and their blueprint references from the original grounds
 and same-class slot adjacency. It is an offline authoring tool; library loading
-does not rewrite prescriptions. For the current modules, run:
+does not rewrite prescriptions. It authors the `common-primitives@5` module set, which the
+#849 adoption then migrated by hand into `@6` (below); it neither reads nor writes `@6`, and
+a later inward revision would first teach it the migration. For the set it authored, with a
+top-level library whose includes name that set (the committed tops now name `@6`, so the
+tests pin a copy back, `tests/helpers/inward-source.js`), run:
 
 ```sh
-node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@5.json --common map/macro/content/common-set-pieces@5.json --district map/macro/content/district-set-pieces@4.json --local-library map/macro/content/diamond-36x18.json --check
+node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@5.json --common map/macro/content/common-set-pieces@5.json --district map/macro/content/district-set-pieces@4.json --local-library <top-level library including that set> --check
 ```
 
 To regenerate, replace `--check` with `--out-dir <new-directory>`. Inputs and
@@ -494,6 +498,24 @@ saved maps retain their embedded library. This authored content change needs
 no strategy, macro algorithm or wire version bump (53). Future content changes
 still require reviewed module versions; the tool supports authored copies with
 matching includes.
+
+**Matched adoption (#849, `common-primitives@6`).** `common-primitives@6`,
+`common-set-pieces@6` and `district-set-pieces@5` carry the content Corey approved in the
+Map Lab (42.36, step 7), and every authored-size top-level library states
+`passabilityRules: "matched"` (51.4). Against `@5`:
+- every authored weight is 1, and `fillable: false` replaces weight 0 (17.2.2);
+- unstated segments between two classes inside a tile are hinted, so each authored crossing
+  keeps its meaning under the matched default (52.1);
+- rubble tile edges beside rubble cells are hinted where they stated `any` or nothing;
+- `clear-rubble-center` states `any` on its edges, and `rubble-court`'s four cover tiles
+  beside it (`cover-ground-court-{n,e,s,w}`, not fillable) face it with a passable side,
+  so the court's one-cell ring stays guaranteed all round;
+- rotatable `-corner`, `-edge` and `-through` tiles for cover, park and rubble;
+- ten closed-side variants each of `cover-ground` and `park-ground` (one or two fully
+  hinted sides), sharing half the parent's weight;
+- the cover and park classes state `perimeterWalls: true` (#838, 20.10).
+
+Placement shares a tile's weight among its orientations (#850). The measurements are in 42.37.
 
 Larger fill areas do not ensure a warehouse in every depot. The #325
 route-reservation diagnosis and bounded sample are in [42.3](42.3-generation-and-delegation-evidence.md#depot-route-reservation-sample).

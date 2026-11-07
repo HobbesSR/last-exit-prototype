@@ -83,10 +83,6 @@ test("the switch is opt-in: absent keeps a library's fingerprint, and an unknown
   assert.throws(() => resolveLibrary({ ...top, passabilityRules: "loose" }, {}), /unknown passabilityRules/);
   assert.deepEqual(validateLibrary({ ...BASE, passabilityRules: "matched" }, TYPES).errors, []);
   assert.match(validateLibrary({ ...BASE, passabilityRules: "loose" }, TYPES).errors.join(), /unknown passabilityRules loose/);
-  // The experimental difficulty offset: a positive number, stated or absent.
-  assert.equal(resolveLibrary({ ...top, difficultyOffset: 36 }, {}).difficultyOffset, 36);
-  assert.throws(() => resolveLibrary({ ...top, difficultyOffset: 0 }, {}), /difficultyOffset/);
-  assert.match(validateLibrary({ ...BASE, difficultyOffset: -1 }, TYPES).errors.join(), /difficultyOffset/);
 });
 
 test("a set piece whose own slots can't meet is reported before placement", () => {

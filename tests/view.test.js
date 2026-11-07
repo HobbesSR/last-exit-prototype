@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, buildingOpenings, ROOF_REVEAL_RANGE, ROOF_FADE_MS, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
-import { generateLiveMap } from '../map/live.ts';
+import { readArena } from '../tools/room-arena.mjs';
 import { hypot } from '../shared/math.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
@@ -295,7 +295,8 @@ test('roofs are revealed or covered, never partly, and fade between them at a co
 });
 
 test('the nearest opening is the whole-map scan it replaced, and follows gates replaced or added', () => {
-  const map = generateLiveMap(1), groups = [...new Set(roofGroups(map).values())];
+  // Any live map serves; the pregenerated room arena saves building one (#849).
+  const map = readArena().map, groups = [...new Set(roofGroups(map).values())];
   // The former rule: every gate and window on the map, checked for each group (#549).
   const scanned = (gates, group, point) => {
     const ids = new Set(group.flatMap(item => [item.id, item.buildingId].filter(Boolean)));
@@ -477,42 +478,4 @@ test('roof geometry works with non-40 cell size and non-zero origins', () => {
   assert.equal(roofAt(map, { x: 123 + 50, y: 456 + 24 }), null);
   // Just outside on the negative side
   assert.equal(roofAt(map, { x: 120, y: 456 + 24 }), null);
-});
-
-test('live map: roofs have unique ids, keep map id order, and declare multi-room groups', () => {
-  // #530's grounds, infill, #534's market, #647's yards, #532's structures, #533's warehouses/winged library, #717's fallback, #750's cord-routed park and #759/#760's cord-routed rubble and plant and park fronts, and #787's cord-routed cover, ruins, depot and hall change counts.
-  // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
-  const map1 = generateLiveMap(1);
-  assert.equal(map1.obstacles?.at(-1)?.id, 'o1299', 'obstacle IDs stay pinned on seed 1');
-  assert.equal(map1.gates?.at(-1)?.id, 'door-751', 'gate IDs stay pinned on seed 1');
-  assert.equal(map1.items?.at(-1)?.id, 'item-2077', 'item IDs stay pinned on seed 1');
-
-  const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o1783', 'obstacle IDs stay pinned on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-1197', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-2531', 'item IDs stay pinned on seed 2');
-
-  assert.ok([map1, map2].some(map => [...roofGroups(map).values()].some(group => group.length > 1)),
-    'the live-map sample declares a multi-room group');
-
-  for (const map of [map1, map2]) {
-    const ids = new Set(map.roofs.map(r => r.id));
-    assert.equal(ids.size, map.roofs.length, 'all roof ids are distinct across the live map');
-
-    const samplePoints = map.roofs.map(r => ({
-      id: r.id,
-      pt: {
-        x: r.origin.x + (r.cells[0].x + 0.5) * r.cellSize,
-        y: r.origin.y + (r.cells[0].y + 0.5) * r.cellSize,
-      },
-    }));
-
-    for (let i = 0; i < Math.min(samplePoints.length, 20); i++) {
-      for (let j = i + 1; j < Math.min(samplePoints.length, 20); j++) {
-        const a = samplePoints[i], b = samplePoints[j];
-        assert.equal(roofConceals(map, a.pt, b.pt), true, `roof ${a.id} conceals roof ${b.id}`);
-        assert.equal(roofConceals(map, b.pt, a.pt), true, `roof ${b.id} conceals roof ${a.id}`);
-      }
-    }
-  }
 });

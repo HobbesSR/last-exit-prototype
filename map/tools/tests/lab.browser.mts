@@ -2175,7 +2175,8 @@ try {
   assert.match(await page.locator("#status").innerText(), /isn't valid for the game/);
 
   // Drilling into a region rebuilds it in the worker with an observer (53 "Region drill-down").
-  // A hut on the default seed shows its house; a block on last-exit-009 its lots, and the
+  // A hut on last-exit-006 shows its house (the matched libraries rarely place huts, #849, so the
+  // default seed has none); a block on last-exit-009 its lots, and the
   // compound one of them holds. Each rebuild equals the stored result, so its traces are drawn.
   const drillPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   drillPage.on("pageerror", (error: Error) => errors.push(error.message));
@@ -2195,7 +2196,10 @@ try {
     return drillSnapshot();
   };
   await drillShown("last-exit-001");
-  const hutBrief = mapViews(reference).briefs.find((brief) => brief.type === "hut")!;
+  await drillPage.locator("#seed").fill("last-exit-006");
+  await drillPage.locator("#generate").click();
+  await drillShown("last-exit-006");
+  const hutBrief = mapViews(generate("last-exit-006")).briefs.find((brief) => brief.type === "hut")!;
   for (const id of ["allocation", "spans", "openings", "graph"]) await drillPage.locator(`#layer-${id}`).check();
   const hutDrill = await drillInto(hutBrief);
   assert.equal(hutDrill.drill.difference, null, "the hut rebuilds equal to the stored result");
@@ -2373,17 +2377,26 @@ try {
   }, null, { timeout: 60000 });
   // A save keeps its seed and recipe when its layout is edited, but a room with that seed
   // would generate the original, so the lab compares a loaded map with its seed's.
-  const turned = generate("4217", liveChainParams()), slot = turned.layout.slots[0]!;
+  // Under matched passability (#849) turning a slot can misalign its sides with its neighbours',
+  // which a load refuses, so the edit turns a slot whose design states only `any`.
+  const turned = generate("4217", liveChainParams());
+  const anySided = (id: string) => Object.values(turned.library.tiles.find((tile) => tile.id === id)!.segments ?? {})
+    .every((segment) => (segment.passability ?? "any") === "any" && segment.adjacency === undefined);
+  const turnedIndex = turned.layout.slots.findIndex((candidate) => anySided(candidate.design));
+  assert.ok(turnedIndex >= 0, "the map has a slot whose design states only any");
+  const slot = turned.layout.slots[turnedIndex]!;
   slot.orientation = slot.orientation === 0 ? 90 : 0;
   await writeFile(`${OUT}/edited-layout.json`, chainMapToJson(turned, { results: false }));
   await playPage.locator("#load").setInputFiles(`${OUT}/edited-layout.json`);
   await playPage.waitForFunction(() => {
     const lab = (window as any).mapLab.snapshot();
     return !lab.busy && /its seed generates/.test(lab.play.note);
-  }, null, { timeout: 60000 });
+    // Loading builds the map and generates its seed's to compare: two 12 x 6 maps, which take
+    // about 2.5 times as long under the matched libraries (42.37).
+  }, null, { timeout: 120000 });
   const edited = (await playPage.evaluate(() => (window as any).mapLab.snapshot())).play;
   assert.equal(edited.href, null);
-  assert.match(edited.note, /layout\.slots\[0\]\.orientation/);
+  assert.match(edited.note, new RegExp(`layout\\.slots\\[${turnedIndex}\\]\\.orientation`));
   await playPage.close();
 
   // The Placeables tab (#433, 20.8): every registered placeable, each example previewed, and

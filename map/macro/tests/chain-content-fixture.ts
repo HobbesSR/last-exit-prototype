@@ -10,8 +10,8 @@ import type { ChainParams } from "../src/chain/types.ts";
 
 const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
 const MODULES = {
-  "common-primitives@5": content("common-primitives@5"), "common-set-pieces@5": content("common-set-pieces@5"),
-  "district-set-pieces@4": content("district-set-pieces@4"),
+  "common-primitives@6": content("common-primitives@6"), "common-set-pieces@6": content("common-set-pieces@6"),
+  "district-set-pieces@5": content("district-set-pieces@5"),
 };
 const OWNERS = { arrival: "start", departure: "end" };
 /** Each size's distribution from 52 and 55, and the original number of placement seeds. */
