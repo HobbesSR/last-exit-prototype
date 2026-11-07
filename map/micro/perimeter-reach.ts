@@ -1,5 +1,6 @@
 import { createFillMask, elementShapes, shapesOverlap } from './geometry.ts';
-import { ownedOf, stretchesOf } from './hints.ts';
+import { ownedOf, stretchesOf, type HintedRegion } from './hints.ts';
+import { LIMITS } from './limits.ts';
 import { expectPlaced, placedElements } from './placeables/placeable.ts';
 import { WALL_RUN } from './placeables/wall-run.ts';
 import type { WallRunParams } from './placeables/wall-run.ts';
@@ -11,8 +12,60 @@ import type { Cell, RegionBrief, RegionElement } from './types.ts';
 import type { Run } from '../kernel/run.ts';
 import type { ProspectiveParcels } from './prospective-parcels.ts';
 
+/**
+ * Which perimeter runs a builder selects (17.2.11: "hinted or not", #835). `hinted` is the
+ * brief's hints. `unguaranteed` adds every other perimeter stretch no portal holds. A brief
+ * does not say what is across an unhinted stretch, so that includes the map's edge.
+ */
+export type PerimeterEdges = 'hinted' | 'unguaranteed';
+
+const segmentKey = (axis: 'h' | 'v', x: number, y: number): string => `${axis}:${x},${y}`;
+
+/**
+ * The region's perimeter runs without a passability guarantee, for `runs`: its hints in hint
+ * order, then with `unguaranteed` each maximal straight unhinted stretch no portal holds, with
+ * the region on one side, horizontal before vertical, each in row order. Those stop at
+ * corners, hints, portals and `LIMITS.run`. Portal margins are not taken out here; the fill
+ * mask does that wherever the runs are walled.
+ */
+export function perimeterRuns(region: HintedRegion, edges: PerimeterEdges = 'hinted'): Run[] {
+  if (edges !== 'hinted' && edges !== 'unguaranteed') throw new RangeError(`Unknown perimeter edges: ${String(edges)}.`);
+  const hints: Run[] = [...region.hints ?? []];
+  if (edges === 'hinted') return hints;
+  const owned = ownedOf(region), held = new Set<string>();
+  for (const run of [...hints, ...region.portals ?? []]) for (let i = 0; i < run.length; i++)
+    held.add(run.axis === 'h' ? segmentKey('h', run.x + i, run.y) : segmentKey('v', run.x, run.y + i));
+  // Each free perimeter segment, filed by its line and the side the region lies on.
+  const lines = new Map<string, { axis: 'h' | 'v'; line: number; side: number; at: number[] }>();
+  const add = (axis: 'h' | 'v', x: number, y: number, side: number) => {
+    if (held.has(segmentKey(axis, x, y))) return;
+    const line = axis === 'h' ? y : x, id = `${axis}:${line}:${side}`;
+    let entry = lines.get(id);
+    if (!entry) lines.set(id, entry = { axis, line, side, at: [] });
+    entry.at.push(axis === 'h' ? x : y);
+  };
+  for (const { x, y } of region.cells) {
+    if (!owned.has(`${x},${y - 1}`)) add('h', x, y, 1);
+    if (!owned.has(`${x},${y + 1}`)) add('h', x, y + 1, -1);
+    if (!owned.has(`${x - 1},${y}`)) add('v', x, y, 1);
+    if (!owned.has(`${x + 1},${y}`)) add('v', x + 1, y, -1);
+  }
+  const free: (Run & { side: number })[] = [];
+  for (const { axis, line, side, at } of lines.values()) {
+    at.sort((a, b) => a - b);
+    for (let i = 0; i < at.length;) {
+      let j = i + 1;
+      while (j < at.length && at[j] === at[j - 1]! + 1 && j - i < LIMITS.run) j++;
+      free.push(axis === 'h' ? { axis, x: at[i]!, y: line, length: j - i, side } : { axis, x: line, y: at[i]!, length: j - i, side });
+      i = j;
+    }
+  }
+  free.sort((a, b) => (a.axis === b.axis ? 0 : a.axis === 'h' ? -1 : 1) || a.y - b.y || a.x - b.x || a.side - b.side);
+  return [...hints, ...free.map(({ axis, x, y, length }) => ({ axis, x, y, length }))];
+}
+
 export interface PerimeterReachOptions {
-  /** Explicit perimeter runs, hinted or not. Defaults to the brief's hints; [] selects none. */
+  /** Explicit perimeter runs, hinted or not (`perimeterRuns`). Defaults to the brief's hints; [] selects none. */
   runs?: readonly Run[];
   kind: WallRunParams['kind'];
   /** Cells across each wall. Default a quarter, as `hut`'s and `ruins`' walls are. */

@@ -98,6 +98,9 @@ Everything else is an aggregate built from these three.
 
 ## Segment prescriptions
 
+How perimeter values turn into clear ground and open seams, with authoring tips for
+obstruction, is in [52.1](52.1-perimeter-authoring.md).
+
 A segment carries a set of prescriptions, each on its own dimension and each
 with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
 
