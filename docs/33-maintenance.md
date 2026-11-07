@@ -1,5 +1,9 @@
 # 33. Maintenance rules
 
+| Child | Load for |
+| --- | --- |
+| [33.1](33.1-foundation-pass.md) | The Foundation Pass: what a periodic quality and maintainability review covers and where its decisions stop |
+
 ## Where a fact belongs
 
 One statement of each fact, in one file. Before adding a paragraph, check whether
@@ -18,6 +22,7 @@ it restates something in another numbered file; if it does, link the number inst
 | What to build next | [41](41-roadmap.md) |
 | Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |
 | A dependency added, upgraded or newly served to browsers; a third-party asset | [21.1](21.1-third-party-licenses.md), `tools/third-party/components.json`, then `npm run notices` |
+| A superseded verbatim capture, retired guidance, explored paths, or history taken out of code comments | `docs/archive/<YYYY-MM-DD>-<topic>/`, as below |
 | Hosting, CI runners, network access, credentials, machine paths | The private `corey/studio-ops` repository on Forgejo, never this one ([34](34-forgejo-workflow.md#hosting)) |
 
 When a requirement changes, update its row first, then the explanation in a 2x file
@@ -42,7 +47,7 @@ The #380 ownership decision separates current contracts from dated observations:
 | Runtime measurements | [42.2](42.2-runtime-performance.md) |
 | Generation, delegation and verification-cost evidence | [42.3](42.3-generation-and-delegation-evidence.md) |
 | Dated chain captures | [42.4](42.4-chain-checkpoint-history.md) |
-| Player/operator entry commands; developer labs; agent setup | [README](../README.md); [20.5](20.5-tools-and-next-boundaries.md); [34](34-forgejo-workflow.md) respectively |
+| Player, host and operator entry; developer labs; agent setup | [README](../README.md), with audience guides beside it as `README.<subject>.md`; [20.5](20.5-tools-and-next-boundaries.md); [34](34-forgejo-workflow.md) respectively |
 
 Retain historical evidence in the repository. Keep witness scripts at their
 existing paths; moving documentation does not authorize deleting or adapting them.
@@ -87,12 +92,31 @@ locations and explicit input flags or a non-destructive setup recipe.
 - A status column says whether behavior exists. "Accepted" never means implemented.
 - Preserve the user's verbatim answers in the records under [17](17-open-questions.md). Do not
   paraphrase them into a requirement and delete the original.
+- A verbatim answer preserves provenance; it does not freeze intent. Once a requirement settles,
+  state it in its owning document, then move the superseded captures to the archive with their
+  wording intact.
 - Do not record a measurement without its workload, machine and limitations.
 - Point-in-time reports do not belong here. A finished verification pass leaves its
   durable findings in [42](42-performance-history.md); its narrative stays in the
   commit and the handoff. Raw evidence for those findings may be committed under
   `docs/reports/` as specified in the placement table; that directory is not a
   home for session narratives or transient test outputs.
+
+## The archive
+
+`docs/archive/` holds what no longer belongs in active guidance but is still worth
+keeping. That includes superseded verbatim captures, retired documents, explored and
+rejected paths, and history taken out of code comments. It keeps active context
+small, and it makes reopening a settled choice a deliberate act.
+
+- Archive in a dated folder, `docs/archive/<YYYY-MM-DD>-<topic>/`, whose `README.md`
+  says what it holds, why it was archived and what supersedes it. This follows
+  `map/macro/docs/archive/`.
+- Move the material with its wording, dates and IDs intact. An archived numbered
+  file keeps its name; its number is retired, never reused.
+- Whether to leave a pointer at the original location is a judgment call. Ask the
+  human if unsure.
+- Active documents do not cite the archive as a current source.
 
 ## Hierarchical documents
 

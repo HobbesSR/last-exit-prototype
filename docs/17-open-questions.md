@@ -18,6 +18,7 @@ Use the smallest relevant record. Preserve answers in that record, including the
 | [17.3](17.3-product-gameplay.md) | Product and gameplay questions |
 | [17.4](17.4-live-service.md) | Live-service policy |
 | [17.5](17.5-playtests.md) | Open playtest questions |
+| [17.6](17.6-foundation-pass.md) | Foundation Pass scope answers behind [33.1](33.1-foundation-pass.md) |
 
 ## Earlier heading links
 
