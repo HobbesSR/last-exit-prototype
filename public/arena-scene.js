@@ -10,6 +10,7 @@ import { DEFAULT_THEME, themeColors, css } from './palette.js';
 import {
   APPEARANCE_RECIPE_VERSION,
   resolveBuildingAppearance,
+  resolveDeclaredRoofs,
   resolveObstacleAppearance,
   resolveGroundAppearance,
   sampleSpatialLight,
@@ -370,110 +371,91 @@ export function makeArenaScene(api) {
       this.roofMembers = roofGroups(map);
       // Buildings a declared roof covers; the update's fade loop skips them as well.
       const coveredBuildingIds = this.coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
-      // Pre-select the primary roof per building (covering or closest to building origin) in linear time
-      const primaryRoofByBuildingId = new Map();
-      if (map.roofs?.length) {
-        for (const roof of map.roofs) {
-          if (!roof.buildingId) continue;
-          const b = buildingsById.get(roof.buildingId);
-          if (!b) continue;
-          const dx = Math.max(0, roof.bounds.x - b.x, b.x - (roof.bounds.x + roof.bounds.w));
-          const dy = Math.max(0, roof.bounds.y - b.y, b.y - (roof.bounds.y + roof.bounds.h));
-          const dSq = dx * dx + dy * dy;
-          const cur = primaryRoofByBuildingId.get(roof.buildingId);
-          if (!cur || dSq < cur.distSq) {
-            primaryRoofByBuildingId.set(roof.buildingId, { roof, distSq: dSq });
+      // Each declared roof's appearance, and whether it is its building's primary roof (the one carrying marks).
+      for (const { roof, resolved, primary: isPrimaryRoof } of resolveDeclaredRoofs(map, artOpts)) {
+        const key = `roof:${roof.id}`;
+        const overhang = roof.overhang ?? ROOF_OVERHANG;
+        const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
+        const width = roof.bounds.w + overhang * 2, height = roof.bounds.h + overhang * 2;
+        const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height }, priorGroups.get(key));
+        this.roofs.set(roof.id, roofState);
+        const g = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
+
+        for (const c of roof.cells) {
+          const cx0 = roof.origin.x + c.x * roof.cellSize;
+          const cy0 = roof.origin.y + c.y * roof.cellSize;
+          const cx1 = cx0 + roof.cellSize;
+          const cy1 = cy0 + roof.cellSize;
+
+          const b = roofCellBorders(roof, c, map);
+
+          const nwCorner = b.w.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.start <= cx0 + 1);
+          const neCorner = b.e.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.end >= cx1 - 1);
+          const swCorner = b.w.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.start <= cx0 + 1);
+          const seCorner = b.e.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.end >= cx1 - 1);
+
+          g.fillStyle(resolved.roofEave);
+          g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
+          for (const seg of b.w.exposed) g.fillRect(cx0 - overhang, seg.start, overhang, seg.end - seg.start);
+          for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, overhang, seg.end - seg.start);
+          for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - overhang, seg.end - seg.start, overhang);
+          for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, overhang);
+          if (nwCorner) g.fillRect(cx0 - overhang, cy0 - overhang, overhang, overhang);
+          if (neCorner) g.fillRect(cx1, cy0 - overhang, overhang, overhang);
+          if (swCorner) g.fillRect(cx0 - overhang, cy1, overhang, overhang);
+          if (seCorner) g.fillRect(cx1, cy1, overhang, overhang);
+
+          g.fillStyle(resolved.roofFill);
+          g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
+          const inExt = Math.max(0, overhang - 4);
+          for (const seg of b.w.exposed) g.fillRect(cx0 - inExt, seg.start, inExt, seg.end - seg.start);
+          for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, inExt, seg.end - seg.start);
+          for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - inExt, seg.end - seg.start, inExt);
+          for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, inExt);
+          if (nwCorner) g.fillRect(cx0 - inExt, cy0 - inExt, inExt, inExt);
+          if (neCorner) g.fillRect(cx1, cy0 - inExt, inExt, inExt);
+          if (swCorner) g.fillRect(cx0 - inExt, cy1, inExt, inExt);
+          if (seCorner) g.fillRect(cx1, cy1, inExt, inExt);
+
+          g.lineStyle(4, resolved.roofRim);
+          for (const seg of b.w.exposed) {
+            const y0 = seg.start - (seg.start <= cy0 + 1 && nwCorner ? overhang : 0);
+            const y1 = seg.end + (seg.end >= cy1 - 1 && swCorner ? overhang : 0);
+            g.lineBetween(cx0 - overhang, y0, cx0 - overhang, y1);
+            if (seg.start > cy0 + 1) g.lineBetween(cx0 - overhang, seg.start, cx0, seg.start);
+            if (seg.end < cy1 - 1) g.lineBetween(cx0 - overhang, seg.end, cx0, seg.end);
+          }
+          for (const seg of b.e.exposed) {
+            const y0 = seg.start - (seg.start <= cy0 + 1 && neCorner ? overhang : 0);
+            const y1 = seg.end + (seg.end >= cy1 - 1 && seCorner ? overhang : 0);
+            g.lineBetween(cx1 + overhang, y0, cx1 + overhang, y1);
+            if (seg.start > cy0 + 1) g.lineBetween(cx1, seg.start, cx1 + overhang, seg.start);
+            if (seg.end < cy1 - 1) g.lineBetween(cx1, seg.end, cx1 + overhang, seg.end);
+          }
+          for (const seg of b.n.exposed) {
+            const x0 = seg.start - (seg.start <= cx0 + 1 && nwCorner ? overhang : 0);
+            const x1 = seg.end + (seg.end >= cx1 - 1 && neCorner ? overhang : 0);
+            g.lineBetween(x0, cy0 - overhang, x1, cy0 - overhang);
+            if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy0 - overhang, seg.start, cy0);
+            if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy0 - overhang, seg.end, cy0);
+          }
+          for (const seg of b.s.exposed) {
+            const x0 = seg.start - (seg.start <= cx0 + 1 && swCorner ? overhang : 0);
+            const x1 = seg.end + (seg.end >= cx1 - 1 && seCorner ? overhang : 0);
+            g.lineBetween(x0, cy1 + overhang, x1, cy1 + overhang);
+            if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy1, seg.start, cy1 + overhang);
+            if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
           }
         }
-        for (const roof of map.roofs) {
-          const building = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
-          const buildingAppearance = building?.appearance || roof.appearance;
-          const isPrimaryRoof = !roof.buildingId || primaryRoofByBuildingId.get(roof.buildingId)?.roof === roof;
-          const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance: buildingAppearance }, map.appearance, artOpts);
-          const key = `roof:${roof.id}`;
-          const overhang = roof.overhang ?? ROOF_OVERHANG;
-          const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
-          const width = roof.bounds.w + overhang * 2, height = roof.bounds.h + overhang * 2;
-          const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height }, priorGroups.get(key));
-          this.roofs.set(roof.id, roofState);
-          const g = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
+        if (resolved.roofMarks.length && isPrimaryRoof) recordAppearanceOps(g, resolved.roofMarks);
 
+        g.lineStyle(2, resolved.roofRidge);
+        for (let ry = roof.bounds.y + 12; ry < roof.bounds.y + roof.bounds.h - 10; ry += 24) {
           for (const c of roof.cells) {
-            const cx0 = roof.origin.x + c.x * roof.cellSize;
             const cy0 = roof.origin.y + c.y * roof.cellSize;
-            const cx1 = cx0 + roof.cellSize;
-            const cy1 = cy0 + roof.cellSize;
-
-            const b = roofCellBorders(roof, c, map);
-
-            const nwCorner = b.w.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.start <= cx0 + 1);
-            const neCorner = b.e.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.end >= cx1 - 1);
-            const swCorner = b.w.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.start <= cx0 + 1);
-            const seCorner = b.e.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.end >= cx1 - 1);
-
-            g.fillStyle(resolved.roofEave);
-            g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
-            for (const seg of b.w.exposed) g.fillRect(cx0 - overhang, seg.start, overhang, seg.end - seg.start);
-            for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, overhang, seg.end - seg.start);
-            for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - overhang, seg.end - seg.start, overhang);
-            for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, overhang);
-            if (nwCorner) g.fillRect(cx0 - overhang, cy0 - overhang, overhang, overhang);
-            if (neCorner) g.fillRect(cx1, cy0 - overhang, overhang, overhang);
-            if (swCorner) g.fillRect(cx0 - overhang, cy1, overhang, overhang);
-            if (seCorner) g.fillRect(cx1, cy1, overhang, overhang);
-
-            g.fillStyle(resolved.roofFill);
-            g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
-            const inExt = Math.max(0, overhang - 4);
-            for (const seg of b.w.exposed) g.fillRect(cx0 - inExt, seg.start, inExt, seg.end - seg.start);
-            for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, inExt, seg.end - seg.start);
-            for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - inExt, seg.end - seg.start, inExt);
-            for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, inExt);
-            if (nwCorner) g.fillRect(cx0 - inExt, cy0 - inExt, inExt, inExt);
-            if (neCorner) g.fillRect(cx1, cy0 - inExt, inExt, inExt);
-            if (swCorner) g.fillRect(cx0 - inExt, cy1, inExt, inExt);
-            if (seCorner) g.fillRect(cx1, cy1, inExt, inExt);
-
-            g.lineStyle(4, resolved.roofRim);
-            for (const seg of b.w.exposed) {
-              const y0 = seg.start - (seg.start <= cy0 + 1 && nwCorner ? overhang : 0);
-              const y1 = seg.end + (seg.end >= cy1 - 1 && swCorner ? overhang : 0);
-              g.lineBetween(cx0 - overhang, y0, cx0 - overhang, y1);
-              if (seg.start > cy0 + 1) g.lineBetween(cx0 - overhang, seg.start, cx0, seg.start);
-              if (seg.end < cy1 - 1) g.lineBetween(cx0 - overhang, seg.end, cx0, seg.end);
-            }
-            for (const seg of b.e.exposed) {
-              const y0 = seg.start - (seg.start <= cy0 + 1 && neCorner ? overhang : 0);
-              const y1 = seg.end + (seg.end >= cy1 - 1 && seCorner ? overhang : 0);
-              g.lineBetween(cx1 + overhang, y0, cx1 + overhang, y1);
-              if (seg.start > cy0 + 1) g.lineBetween(cx1, seg.start, cx1 + overhang, seg.start);
-              if (seg.end < cy1 - 1) g.lineBetween(cx1, seg.end, cx1 + overhang, seg.end);
-            }
-            for (const seg of b.n.exposed) {
-              const x0 = seg.start - (seg.start <= cx0 + 1 && nwCorner ? overhang : 0);
-              const x1 = seg.end + (seg.end >= cx1 - 1 && neCorner ? overhang : 0);
-              g.lineBetween(x0, cy0 - overhang, x1, cy0 - overhang);
-              if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy0 - overhang, seg.start, cy0);
-              if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy0 - overhang, seg.end, cy0);
-            }
-            for (const seg of b.s.exposed) {
-              const x0 = seg.start - (seg.start <= cx0 + 1 && swCorner ? overhang : 0);
-              const x1 = seg.end + (seg.end >= cx1 - 1 && seCorner ? overhang : 0);
-              g.lineBetween(x0, cy1 + overhang, x1, cy1 + overhang);
-              if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy1, seg.start, cy1 + overhang);
-              if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
-            }
-          }
-          if (resolved.roofMarks.length && isPrimaryRoof) recordAppearanceOps(g, resolved.roofMarks);
-
-          g.lineStyle(2, resolved.roofRidge);
-          for (let ry = roof.bounds.y + 12; ry < roof.bounds.y + roof.bounds.h - 10; ry += 24) {
-            for (const c of roof.cells) {
-              const cy0 = roof.origin.y + c.y * roof.cellSize;
-              if (ry >= cy0 && ry < cy0 + roof.cellSize) {
-                const cx0 = roof.origin.x + c.x * roof.cellSize;
-                g.lineBetween(cx0 + 4, ry, cx0 + roof.cellSize - 4, ry);
-              }
+            if (ry >= cy0 && ry < cy0 + roof.cellSize) {
+              const cx0 = roof.origin.x + c.x * roof.cellSize;
+              g.lineBetween(cx0 + 4, ry, cx0 + roof.cellSize - 4, ry);
             }
           }
         }

@@ -274,6 +274,37 @@ export function resolvePropAppearance(baseFill, baseStroke, lightSample, options
 }
 
 /**
+ * Resolve each declared roof (`map.roofs`) to the appearance the scene draws it with (#584, #725).
+ * A roof wears its owning building's authored appearance, falling back to its own. A building with
+ * several roofs draws its marks (signs, stains) once, on its primary roof: the one covering or
+ * nearest the building's origin, first wins on a tie. A roof with no building is its own primary.
+ * Returns `[{ roof, resolved, primary }]` in `map.roofs` order.
+ */
+export function resolveDeclaredRoofs(map, options = {}) {
+  const roofs = map?.roofs || [];
+  if (!roofs.length) return [];
+  const buildingsById = options.buildingsById || new Map((map.buildings || []).map(b => [b.id, b]));
+  const primaryByBuildingId = new Map();
+  for (const roof of roofs) {
+    const b = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
+    if (!b) continue;
+    const dx = Math.max(0, roof.bounds.x - b.x, b.x - (roof.bounds.x + roof.bounds.w));
+    const dy = Math.max(0, roof.bounds.y - b.y, b.y - (roof.bounds.y + roof.bounds.h));
+    const distSq = dx * dx + dy * dy;
+    const cur = primaryByBuildingId.get(roof.buildingId);
+    if (!cur || distSq < cur.distSq) primaryByBuildingId.set(roof.buildingId, { roof, distSq });
+  }
+  const artOpts = { ...options, buildingsById };
+  return roofs.map(roof => {
+    const building = roof.buildingId ? buildingsById.get(roof.buildingId) : null;
+    const appearance = building?.appearance || roof.appearance;
+    const resolved = resolveBuildingAppearance({ id: roof.buildingId || roof.id, ...roof.bounds, appearance }, map.appearance, artOpts);
+    const primary = !roof.buildingId || primaryByBuildingId.get(roof.buildingId)?.roof === roof;
+    return { roof, resolved, primary };
+  });
+}
+
+/**
  * Resolve a building's floor, roof, and ground/roof decorative marks from optional `map.appearance`
  * (or neutral theme fallback when omitted).
  * Composition order (29.4):
