@@ -419,7 +419,9 @@ catalogue, and it grows from here. The fixture libraries in
   with four orientations gets four times its weight. Hut quarters have weight
   0.3 since #214; their adjacency asks need compatible ground around the cluster,
   so their frequency also depends on the other weights. A
-  design weighted 0 is no fill option: only a set piece places it. A lone
+  design weighted 0 is no fill option: only a set piece places it. A design can say so
+  directly with `fillable: false` (default true; Corey, 2026-11-06, 17.2.2, #849), which
+  is meant to replace weight 0 when the content is migrated. A lone
   6 × 6 tile of a structure type is too small for its builder, so those
   grounds are weighted 0, `park-ground` since #221 excepted.
 - **Clear fill tiles (#214):** `clear-rubble-bank` paints a three-cell-wide rubble

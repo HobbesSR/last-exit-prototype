@@ -14,6 +14,7 @@ import { openFaceRule } from "./open-face.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE, countParamsProblem } from "./library.ts";
 import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, PlacementRule } from "./library.ts";
+import { passabilityFits } from "./resolution.ts";
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
 import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SegmentKey, SetPieceInstance } from "./types.ts";
@@ -55,14 +56,28 @@ function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>
   return picks.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
 }
 
+/** Whether the fill may place a design: not stated `fillable: false`, nor weighted 0 as older content says it (52). */
+const fillable = (tile: ChainTileDesign): boolean => tile.fillable !== false && tile.weight !== 0;
+
 /** A design's own eligibility (52), wherever it is placed: by the fill or in a set piece slot. */
 const eligibleIn = (tile: ChainTileDesign, zone: MapZone): boolean =>
   (!tile.eligibleTiers || tile.eligibleTiers.includes(zone.tier)) &&
   (!tile.eligibleBonus || tile.eligibleBonus.includes(zone.bonus));
 
-/** Adjacency prescriptions a design states, which WFC prefers to place early. */
-function difficulty(design: ChainTileDesign): number {
-  return Object.values(design.segments ?? {}).filter((s) => s.adjacency !== undefined && s.adjacency !== "any").length;
+/**
+ * How hard a design is to fit, which WFC prefers to place early: the adjacency prescriptions it
+ * states, and under `matched` passability (17.2.2) also each perimeter segment stating
+ * `passable` or a hint, since only those constrain a neighbour; `any` fits anything.
+ */
+function difficulty(design: ChainTileDesign, matched = false): number {
+  let count = 0;
+  for (const [key, s] of Object.entries(design.segments ?? {})) {
+    if (s.adjacency !== undefined && s.adjacency !== "any") count++;
+    // The library writes `h:line,offset`; a perimeter segment lies on line 0 or 6.
+    const line = Number(key.slice(2).split(",")[0]);
+    if (matched && (line === 0 || line === S) && s.passability !== undefined && s.passability !== "any") count++;
+  }
+  return count;
 }
 
 /** A cell meets a prescription when it is the class required, or `any`. */
@@ -71,20 +86,53 @@ const meets = (required: string | undefined, found: string): boolean =>
 
 const S = CHAIN_TILE_SIZE;
 /** `b` east of `a`: each side's prescriptions on the shared seam against the other's cells. */
-function fitsEast(a: OrientedDesign, b: OrientedDesign): boolean {
+function fitsEast(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
   for (let i = 0; i < S; i++) {
-    if (!meets(a.segments.get(`v:${S},${i}`)?.adjacency, b.cells[i * S]!)) return false;
-    if (!meets(b.segments.get(`v:0,${i}`)?.adjacency, a.cells[i * S + S - 1]!)) return false;
+    const near = a.segments.get(`v:${S},${i}`), far = b.segments.get(`v:0,${i}`);
+    if (!meets(near?.adjacency, b.cells[i * S]!)) return false;
+    if (!meets(far?.adjacency, a.cells[i * S + S - 1]!)) return false;
+    if (matched && !passabilityFits(near?.passability, far?.passability)) return false;
   }
   return true;
 }
 /** `b` south of `a`. */
-function fitsSouth(a: OrientedDesign, b: OrientedDesign): boolean {
+function fitsSouth(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
   for (let i = 0; i < S; i++) {
-    if (!meets(a.segments.get(`h:${i},${S}`)?.adjacency, b.cells[i]!)) return false;
-    if (!meets(b.segments.get(`h:${i},0`)?.adjacency, a.cells[(S - 1) * S + i]!)) return false;
+    const near = a.segments.get(`h:${i},${S}`), far = b.segments.get(`h:${i},0`);
+    if (!meets(near?.adjacency, b.cells[i]!)) return false;
+    if (!meets(far?.adjacency, a.cells[(S - 1) * S + i]!)) return false;
+    if (matched && !passabilityFits(near?.passability, far?.passability)) return false;
   }
   return true;
+}
+
+/**
+ * Under `matched` passability (17.2.2), the seams inside a set piece that no pairing of its
+ * slots' members fits, so the set piece can never be placed. A slot's members are tried in
+ * every orientation it allows. Placement reports these once rather than failing its solves.
+ */
+export function setPieceSeamProblems(library: ChainLibrary): string[] {
+  if (library.passabilityRules !== "matched") return [];
+  const oriented = orientedDesigns(library);
+  const sets = new Map(library.tileSets.map((set) => [set.id, set]));
+  const tiles = new Map(library.tiles.map((tile) => [tile.id, tile]));
+  const used = new Set(library.setPieceClasses.flatMap((setPieceClass) => setPieceClass.setPieces));
+  const problems: string[] = [];
+  for (const piece of library.setPieces) {
+    if (!used.has(piece.id)) continue;
+    const designs = (slot: ChainSetPiece["tiles"][number]) => (sets.get(slot.tileSetId)?.members ?? []).flatMap((id) =>
+      (slot.orientation !== undefined ? [slot.orientation] : tiles.get(id)?.orientations ?? [0])
+        .map((orientation) => oriented(id, orientation as Orientation)));
+    const at = new Map(piece.tiles.map((slot) => [`${slot.dx},${slot.dy}`, slot]));
+    for (const slot of piece.tiles) {
+      for (const [dx, dy, fits] of [[1, 0, fitsEast], [0, 1, fitsSouth]] as const) {
+        const other = at.get(`${slot.dx + dx},${slot.dy + dy}`);
+        if (other && !designs(slot).some((a) => designs(other).some((b) => fits(a, b, true))))
+          problems.push(`set piece ${piece.id}: slots ${slot.dx},${slot.dy} and ${other.dx},${other.dy} have no members whose sides fit`);
+      }
+    }
+  }
+  return problems;
 }
 
 /**
@@ -113,17 +161,20 @@ const agree = (a: string | undefined, b: string | undefined): boolean =>
  *   ask its corner cell for two classes. Where that cell is `any`, this is the only rule
  *   that keeps it to one; where it isn't, the seams already require both to match it.
  *
- * Passability can't conflict, so it never constrains the solve.
+ * - Under `matched` passability rules (17.2.2), each pair of sides on a seam must fit:
+ *   `any` (or unstated) fits anything, otherwise like with like. Under `either-side`,
+ *   passability can't conflict, so it never constrains the solve.
  */
 export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility {
   const oriented = orientedDesigns(library);
   const of = (option: TileOption) => oriented(option.templateId, option.orientation);
+  const matched = library.passabilityRules === "matched";
   return (a, relation, b) => {
     switch (relation) {
-      case "E": return fitsEast(of(a), of(b));
-      case "W": return fitsEast(of(b), of(a));
-      case "S": return fitsSouth(of(a), of(b));
-      case "N": return fitsSouth(of(b), of(a));
+      case "E": return fitsEast(of(a), of(b), matched);
+      case "W": return fitsEast(of(b), of(a), matched);
+      case "S": return fitsSouth(of(a), of(b), matched);
+      case "N": return fitsSouth(of(b), of(a), matched);
     }
     const [corner, side] = relation.split(":") as [Corner, string];
     const keys = CORNERS[corner] as Record<string, SegmentKey>;
@@ -210,7 +261,7 @@ function sample(
   const optionsFor = (zone: MapZone): TileOption[] => {
     let list = options.get(zone.id);
     if (!list) options.set(zone.id, list = fill(zone).flatMap((design) => design.orientations.map((orientation) => ({
-      templateId: design.id, orientation: orientation as Orientation, difficulty: difficulty(design), weight: design.weight ?? 1,
+      templateId: design.id, orientation: orientation as Orientation, difficulty: difficulty(design, library.passabilityRules === "matched"), weight: design.weight ?? 1,
     }))));
     return list;
   };
@@ -226,7 +277,8 @@ function sample(
   });
   adjacencyLinks(grid);
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
-    openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {});
+    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {}),
+      ...(library.difficultyOffset !== undefined ? { difficultyOffset: library.difficultyOffset } : {}) });
   if (!solved) return "wfc";
 
   const slots: PlacedSlot[] = mask
@@ -258,9 +310,11 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
     featureClasses.has(tile.defaultCellClass) || Object.values(tile.legend ?? {}).some((id) => featureClasses.has(id));
 
   // Problems no retry can fix are reported once, not fifty times.
+  const seams = setPieceSeamProblems(library);
+  if (seams.length) throw new Error(`${seams.join("; ")} (matched passability, 17.2.2)`);
   const fillByZone = new Map<string, ChainTileDesign[]>();
   for (const zone of zones.values()) {
-    const eligible = library.tiles.filter((tile) => !paintsFeature(tile) && tile.weight !== 0 && eligibleIn(tile, zone));
+    const eligible = library.tiles.filter((tile) => !paintsFeature(tile) && fillable(tile) && eligibleIn(tile, zone));
     if (!eligible.length) throw new Error(`no tile design is eligible for zone ${zone.id} (tier ${zone.tier}, bonus ${zone.bonus})`);
     fillByZone.set(zone.id, eligible);
   }

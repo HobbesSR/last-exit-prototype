@@ -10,6 +10,16 @@ export const CHAIN_MODULE_SCHEMA = 1;
 
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any" | "not-passable-hint";
+/**
+ * How stated passability resolves (51.4). `either-side`, the default, lets `passable` on
+ * either side win, and `any` meeting `any` passes. `matched` is Corey's 2026-11-06 answer
+ * (17.2.2): where two tiles meet, `any` fits anything and other values match like with
+ * like; an unstated side reads as `any`; and `any` meeting `any` passes only between two
+ * regions, never inside one. A library opts in, so libraries without it are unchanged.
+ */
+export type PassabilityRules = "either-side" | "matched";
+export const PASSABILITY_RULES: ReadonlySet<PassabilityRules> = new Set<PassabilityRules>(["either-side", "matched"]);
+const offsetValid = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value > 0;
 /** Map params a core element count may name, resolved from the Layout's params (52). */
 export const COUNT_PARAMS = ["exitCount", "contestantCount", "hunterCount"] as const;
 export type CountParam = typeof COUNT_PARAMS[number];
@@ -44,6 +54,12 @@ export interface ChainTileDesign {
   labels?: string[];
   /** The fill weight, 1 by default. A design weighted 0 is no fill option: only set pieces place it (52). */
   weight?: number;
+  /**
+   * Whether the fill may place this design; true when absent (Corey, 2026-11-06, 17.2.2).
+   * `false` leaves it to set pieces. Weight 0 still excludes it too, for content written
+   * before this flag.
+   */
+  fillable?: boolean;
 }
 
 export interface ChainTileSet {
@@ -85,6 +101,13 @@ export interface ChainLibrary {
   tileSets: ChainTileSet[];
   setPieces: ChainSetPiece[];
   setPieceClasses: ChainSetPieceClass[];
+  /** Absent means `either-side`; present only when the top-level library states it. */
+  passabilityRules?: PassabilityRules;
+  /**
+   * Experimental (#849): placement's difficulty offset in place of the solver's 12, for the
+   * Map Lab to try. Present only when stated; it changes the fingerprint, so saved maps tie to it.
+   */
+  difficultyOffset?: number;
 }
 
 export interface LibraryValidation {
@@ -119,7 +142,7 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
   const lists = ["tiles", "tileSets", "setPieces"] as const;
   function consume(raw: Record<string, unknown>, source: string, isTop: boolean): void {
     const allowed = isTop
-      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "includes", "cellClasses", ...lists, "setPieceClasses"]
+      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "passabilityRules", "difficultyOffset", "includes", "cellClasses", ...lists, "setPieceClasses"]
       : ["schema", "name", "version", "includes", "cellClasses", ...lists];
     for (const key of Object.keys(raw)) if (!allowed.includes(key)) throw new Error(`${source}: unknown field ${key}`);
     if (raw.cellClasses !== undefined && !object(raw.cellClasses)) throw new Error(`${source}: cellClasses must be an object`);
@@ -142,6 +165,15 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
     if (isTop) {
       if (!Array.isArray(raw.setPieceClasses)) throw new Error(`${source}: setPieceClasses must be an array`);
       resolved.setPieceClasses = structuredClone(raw.setPieceClasses) as ChainSetPieceClass[];
+      // Set only when stated, so a library without it keeps its fingerprint.
+      if (raw.passabilityRules !== undefined) {
+        if (!PASSABILITY_RULES.has(raw.passabilityRules as PassabilityRules)) throw new Error(`${source}: unknown passabilityRules ${String(raw.passabilityRules)}`);
+        resolved.passabilityRules = raw.passabilityRules as PassabilityRules;
+      }
+      if (raw.difficultyOffset !== undefined) {
+        if (!offsetValid(raw.difficultyOffset)) throw new Error(`${source}: difficultyOffset must be a positive finite number`);
+        resolved.difficultyOffset = raw.difficultyOffset;
+      }
     }
   }
   function visit(raw: Record<string, unknown>, source: string, isTop: boolean): void {
@@ -261,9 +293,15 @@ function tileClasses(tile: Record<string, unknown>, declared: Set<string>, path:
   return result;
 }
 
-function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], minRun: number, path: string, errors: string[]): void {
-  const segments = tile.segments;
-  if (!object(segments)) return;
+function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], minRun: number, path: string, errors: string[],
+  rules: PassabilityRules = "either-side"): void {
+  if (!object(tile.segments) && rules === "either-side") return;
+  const segments: Record<string, unknown> = object(tile.segments) ? tile.segments : {};
+  // Whether a segment on a class boundary inside the tile passes: stated `passable` or
+  // `any`, or under `matched` anything but a hint, since unstated reads as `any` (17.2.2).
+  const passes = (prescription: unknown): boolean => rules === "matched"
+    ? !(object(prescription) && prescription.passability === "not-passable-hint")
+    : object(prescription) && (prescription.passability === "passable" || prescription.passability === "any");
   // The shared finder splits whenever either class changes. A passable stretch
   // is then a contiguous subset of one boundary run, never a bridge across
   // distinct class pairs.
@@ -284,7 +322,7 @@ function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], min
     const uncertain = Array.from({ length: run.length }, (_, i) => {
       const offset = start + i;
       const prescription = segments[`${run.axis}:${line},${offset}`];
-      if (!object(prescription) || (prescription.passability !== "passable" && prescription.passability !== "any")) return false;
+      if (!passes(prescription)) return false;
       const adjacent = run.axis === "v"
         ? [{ x: line - 1, y: offset }, { x: line, y: offset }]
         : [{ x: offset, y: line - 1 }, { x: offset, y: line }];
@@ -301,7 +339,7 @@ function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], min
     for (let offset = start; offset <= end; offset++) {
       const key = `${run.axis}:${line},${offset}`;
       const prescription = segments[key];
-      if (offset < end && object(prescription) && (prescription.passability === "passable" || prescription.passability === "any")) {
+      if (offset < end && passes(prescription)) {
         if (from < 0) from = offset;
       } else finish(offset);
     }
@@ -317,7 +355,11 @@ export function validateLibrary(
 ): LibraryValidation {
   const errors: string[] = [];
   if (!object(library)) return { valid: false, errors: ["library: must be an object"] };
-  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses"], "library", errors);
+  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses", "passabilityRules", "difficultyOffset"], "library", errors);
+  if (library.passabilityRules !== undefined && !PASSABILITY_RULES.has(library.passabilityRules as PassabilityRules))
+    errors.push(`library: unknown passabilityRules ${String(library.passabilityRules)}`);
+  if (library.difficultyOffset !== undefined && !offsetValid(library.difficultyOffset))
+    errors.push("library: difficultyOffset must be a positive finite number");
   if (library.version !== CHAIN_LIBRARY_VERSION) errors.push(`library: unsupported version ${String(library.version)}`);
   if (!name(library.name)) errors.push("library: missing name");
   if (library.zonePlan !== "diamond") errors.push(`library: unknown zone plan ${String(library.zonePlan)}`);
@@ -345,7 +387,7 @@ export function validateLibrary(
   if (Array.isArray(library.tiles)) for (const [i, raw] of library.tiles.entries()) {
     if (!object(raw)) continue;
     const path = `tile ${name(raw.id) ? raw.id : i}`;
-    unknownFields(raw, ["id", "defaultCellClass", "cells", "legend", "segments", "orientations", "eligibleTiers", "eligibleBonus", "labels", "weight"], path, errors);
+    unknownFields(raw, ["id", "defaultCellClass", "cells", "legend", "segments", "orientations", "eligibleTiers", "eligibleBonus", "labels", "weight", "fillable"], path, errors);
     const classes = tileClasses(raw, declared, path, errors);
     if (!Array.isArray(raw.orientations) || raw.orientations.length === 0 ||
       !raw.orientations.every((v) => ORIENTATIONS.has(v)) || new Set(raw.orientations).size !== raw.orientations.length)
@@ -356,6 +398,7 @@ export function validateLibrary(
     if (raw.labels !== undefined && !names(raw.labels)) errors.push(`${path}: malformed labels`);
     if (raw.weight !== undefined && !(typeof raw.weight === "number" && Number.isFinite(raw.weight) && raw.weight >= 0))
       errors.push(`${path}: malformed weight`);
+    if (raw.fillable !== undefined && typeof raw.fillable !== "boolean") errors.push(`${path}: malformed fillable`);
     if (raw.segments !== undefined && !object(raw.segments)) errors.push(`${path}: segments must be an object`);
     if (object(raw.segments)) for (const [key, value] of Object.entries(raw.segments)) {
       const address = segmentAddress(key);
@@ -375,7 +418,7 @@ export function validateLibrary(
         errors.push(`${path}: malformed passability ${key}: ${String(value.passability)}`);
     }
     if (integer(minPassableRun) && minPassableRun > 0 && classes.every(name))
-      shortInteriorRuns(raw, classes, minPassableRun, path, errors);
+      shortInteriorRuns(raw, classes, minPassableRun, path, errors, library.passabilityRules as PassabilityRules | undefined);
   }
 
   const tileSetIds = uniqueIds(library.tileSets, "tileSets", errors);

@@ -45,7 +45,7 @@ const SIDES = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
  */
 export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: number, rows: number,
   refused: (reason: string) => void = () => {}): WfcAccept {
-  const width = columns * S, height = rows * S;
+  const width = columns * S, height = rows * S, rules = library.passabilityRules ?? "either-side";
   const slotAt = new Int32Array(columns * rows).fill(-1);
   grid.forEach((slot, i) => { slotAt[slot.y * columns + slot.x] = i; });
   const oriented = orientedDesigns(library);
@@ -167,13 +167,14 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
       return solving[slotOf(nx, ny)]!.domain.some((option) => {
         const across = turned(option).cells[local];
         return across === own || (across === "any" && anyCouldBe(nx, ny, option, own))
-          || guaranteesPassability(stated(x, y, ...key)?.passability, stated(nx, ny, ...key, option)?.passability);
+          || guaranteesPassability(stated(x, y, ...key)?.passability, stated(nx, ny, ...key, option)?.passability, rules);
       });
     };
     /** Derived guarantee after both segment prescriptions are known. Both slots are placed. */
     const guaranteed = (x: number, y: number, dx: number, dy: number): boolean => {
       const key = between(x, y, dx, dy);
-      return guaranteesPassability(stated(x, y, ...key)?.passability, stated(x + dx, y + dy, ...key)?.passability);
+      // Called only between two settled cells of different classes.
+      return guaranteesPassability(stated(x, y, ...key)?.passability, stated(x + dx, y + dy, ...key)?.passability, rules);
     };
 
     // Cells within `margin` of a placed slot, each once.

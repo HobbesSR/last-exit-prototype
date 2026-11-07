@@ -8,7 +8,7 @@ import districtSetPieces from './macro/content/district-set-pieces@4.json' with 
 import { resolveLibrary, validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
 import type { ChainLibrary, LibraryValidation } from './macro/src/chain/library.ts';
 import { generateChainMap } from './macro/src/chain/map.ts';
-import { DEFAULT_CHAIN_PARAMS, placement } from './macro/src/chain/placement.ts';
+import { DEFAULT_CHAIN_PARAMS, placement, setPieceSeamProblems } from './macro/src/chain/placement.ts';
 import type { ChainMap, ChainParams } from './macro/src/chain/types.ts';
 import type { RegionElement } from './micro/types.ts';
 import { DEFAULT_CELL_SIZE, GAME_ENGINES, GAME_REGION_TYPES } from './engines.ts';
@@ -72,8 +72,15 @@ export function chainParams(input: object = {}): ChainParams {
   return params;
 }
 
+/**
+ * The library checks, then, for a library under `matched` passability (17.2.2), its set pieces'
+ * own seams: a rule or tile change can leave a set piece that was valid when saved unplaceable.
+ */
 export function validateLibrary(library: unknown): LibraryValidation {
-  return validateChainLibrary(library, GAME_REGION_TYPES);
+  const checked = validateChainLibrary(library, GAME_REGION_TYPES);
+  if (!checked.valid) return checked;
+  const seams = setPieceSeamProblems(library as ChainLibrary);
+  return seams.length ? { valid: false, errors: seams } : checked;
 }
 
 export function checkedLibrary(library: unknown = CHAIN_LIBRARY): ChainLibrary {
