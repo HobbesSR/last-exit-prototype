@@ -1,17 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPortalPlanner, portalGraphOf, regionAt, standJoins } from '../shared/navigation/portal-graph.ts';
-import { gridReach, stepsLength } from '../shared/navigation/grid-level.ts';
+import { createPortalPlanner, regionAt, standJoins } from '../shared/navigation/portal-graph.ts';
+import { gridReach } from '../shared/navigation/grid-level.ts';
 import { meshReach } from '../shared/navigation/mesh-level.ts';
 import { gridRoute } from '../shared/map/route.ts';
 import { canOccupy, sweptClear, TILE } from '../shared/movement.ts';
-import { generate } from '../map/chain.ts';
-import { composeRegions } from '../map/micro/compose.ts';
-import { builtMapCollision, builtMapFrame } from '../map/micro/adapter.ts';
-import { generateLiveMap, liveChainParams } from '../map/live.ts';
-import { createGame } from '../shared/simulation.ts';
-import { DEFAULT_CELL_SIZE } from '../map/engines.ts';
-import { buildPortalGraph } from '../map/navigation.ts';
 
 // Navigation's top level is the portals generation guarantees between regions (22.6, #420).
 
@@ -90,27 +83,6 @@ test('a detour past today\'s search box is found through the portal around the w
   assert.equal(gridRoute(map, 'contestant', box, from, to, true), null);
 });
 
-test('on a live map every promised pair connects over the mesh, and routes stay close to the unrestricted grid search', () => {
-  const built = composeRegions(generate(1, liveChainParams(), undefined, DEFAULT_CELL_SIZE).results);
-  const { origin } = builtMapFrame(built), collision = builtMapCollision(built);
-  const graph = buildPortalGraph(built, origin);
-  assert.deepEqual(buildPortalGraph(built, origin), graph, 'derivation is deterministic');
-  assert.ok(graph.portals.every(p => p.regions[0] !== p.regions[1]), 'every portal joins two regions');
-  const sites = built.regions.flatMap(r => r.coreElements).map(s => ({ kind: s.kind, x: s.x + origin.x, y: s.y + origin.y }));
-  const from = sites.find(s => s.kind === 'spawn'), to = sites.find(s => s.kind === 'exit');
-  const full = { x: 0, y: 0, width: Math.ceil(collision.width / TILE), height: Math.ceil(collision.height / TILE) };
-  for (const role of ['contestant', 'gladiator']) {
-    const reach = meshReach(collision, role, graph), planner = createPortalPlanner(graph, reach);
-    assert.ok(planner.tables.every(table => !table.includes(Infinity)), `${role}: every portal reaches every other in its region`);
-    assert.deepEqual(standJoins(graph, reach), [], `${role}: every portal's stands join`);
-    assert.deepEqual(reach.defects, [], `${role}: collision accepts every path the mesh found`);
-    const route = planner.route(from, to), reference = stepsLength(from, gridRoute(collision, role, full, from, to, true), to);
-    assert.equal(route.status, 'complete');
-    // Any-angle legs undercut the grid's tile steps; crossing each portal at its middle stand costs a little back.
-    assert.ok(route.length >= Math.hypot(to.x - from.x, to.y - from.y) && route.length <= reference * 1.1, `${role}: ${route.length} against ${reference}`);
-  }
-});
-
 /** An open map of `cols` × `rows` cells with one thin wall, 4 units thick: thinner than the gap between two clear tile disks. */
 function thinWall(cols, rows, wall) {
   const playableArea = { cellSize: CELL, rows: Array.from({ length: rows }, (_, y) => ({ y, runs: [[0, cols]] })) };
@@ -155,13 +127,4 @@ test('an endpoint whose only walkable tile lies across a wall is unreachable, no
   assert.ok(gridRoute(map, 'contestant', box, from, to, true), 'the unswept snapping falls back across the wall');
   assert.deepEqual(gridReach(map, 'contestant', graph)(from, [to], 0), [null]);
   assert.deepEqual(gridReach(map, 'contestant', graph)(to, [from], 0), [null], 'as a target too');
-});
-
-test('a live map carries its portal graph beside it, never in it', () => {
-  const map = generateLiveMap(1), graph = portalGraphOf(map);
-  assert.ok(graph?.portals.length, 'live assembly attaches the graph');
-  assert.equal(Object.keys(map).some(key => map[key] === graph), false, 'not a field of the map');
-  assert.equal(JSON.stringify(map).includes('"owner"'), false, 'so no recording or projection serializes it');
-  assert.equal(portalGraphOf(structuredClone(map)), undefined, 'and no clone carries it');
-  assert.equal(portalGraphOf(createGame(1, map).map), graph, 'the game holds the same map, graph and all');
 });

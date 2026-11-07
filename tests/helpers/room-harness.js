@@ -5,6 +5,7 @@ import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../../map
 import { legacyContent } from '../../shared/simulation/content.ts';
 import { createMatch } from '../../server/match.js';
 import { attachPortalGraph, portalGraphOf } from '../../shared/navigation/portal-graph.ts';
+import { ARENA_SEED, readArena } from '../../tools/room-arena.mjs';
 
 // These tests are about room policy with a fake clock, not about an engine. They pin the legacy mover and
 // its synchronous match so a room has its match at once, as characterization pins `content-1`; physics
@@ -13,7 +14,10 @@ export { legacyContent };
 
 const generated = new Map();
 /**
- * The live map for a seed and size, generated once per test file, as a fresh copy each call. Copying
+ * The live map for a seed and size, generated once per test file, as a fresh copy each call.
+ * Seed 9 at the default size, which every room test plays on, is read from the pregenerated
+ * arena instead (`tools/room-arena.mjs`, #849): these tests are about rooms, a 12 x 6 map takes
+ * seconds to build, and `tests/slow/room-arena.test.js` checks the arena is still seed 9's map. Copying
  * is what a room is given anyway: the worker's map arrives structured-cloned (map-worker.js), so no
  * two rooms ever share one, and none can change the map another is given. The portal graph is kept
  * beside a map rather than in it (22.6) and a clone drops it, so each copy is given its own, as the
@@ -21,7 +25,13 @@ const generated = new Map();
  */
 export function generatedMap(seed = 9, size = DEFAULT_LIVE_ZONE_SIZE) {
   const key = `${seed} ${zoneSizeName(size)}`;
-  if (!generated.has(key)) generated.set(key, generateLiveMap(seed, legacyContent(), size));
+  if (!generated.has(key)) {
+    if (seed === ARENA_SEED && zoneSizeName(size) === zoneSizeName(DEFAULT_LIVE_ZONE_SIZE)) {
+      const { map, graph } = readArena();
+      attachPortalGraph(map, graph);
+      generated.set(key, map);
+    } else generated.set(key, generateLiveMap(seed, legacyContent(), size));
+  }
   const original = generated.get(key), copy = structuredClone(original), graph = portalGraphOf(original);
   if (graph) attachPortalGraph(copy, structuredClone(graph));
   return copy;

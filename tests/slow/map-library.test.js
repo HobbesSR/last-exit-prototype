@@ -18,3 +18,8 @@ test('a game-size map sites and reaches every core element for 8 contestants, an
   checkLibraryMap(map, 'library-0', 8, { reach: false });
   assert.deepEqual(diagnoseBuiltMap(mapViews(map, ENGINES.compose).built), []);
 });
+
+// Moved from tests/map-library.test.js (#849): a game map for 24 contestants, slow-tier work (31).
+test('game-size library-4 sites and reaches every core element for 24 contestants', () => {
+  checkLibraryMap(libraryMap('library-4', 24), 'library-4', 24);
+});

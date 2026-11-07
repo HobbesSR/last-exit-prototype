@@ -4,15 +4,15 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, wri
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
-import { SHARED_MANIFEST } from '../map/micro/result.ts';
-import { QUICK_CASES } from '../map/tools/sweep.mts';
-import { captureBriefs, replayBriefs, replayFailed, typesToReplay } from '../map/tools/sweep-briefs.mts';
+import { SHARED_MANIFEST } from '../../map/micro/result.ts';
+import { QUICK_CASES } from '../../map/tools/sweep.mts';
+import { captureBriefs, replayBriefs, replayFailed, typesToReplay } from '../../map/tools/sweep-briefs.mts';
 
 /**
  * The brief replay (53, "Replaying one region type"; #541). The quick cases are captured once
  * against the committed baseline's own hashes, and each test replays or tampers with a copy.
  */
-const BASELINE = JSON.parse(readFileSync(new URL('../map/tools/fixtures/chain-baseline.json', import.meta.url), 'utf8'));
+const BASELINE = JSON.parse(readFileSync(new URL('../../map/tools/fixtures/chain-baseline.json', import.meta.url), 'utf8'));
 const keys = QUICK_CASES.flatMap((c) => Array.from({ length: c.count }, (_, i) => `${c.id}/${c.seedPrefix}-${i + 1}`));
 const baseline = { provenance: { ...BASELINE.provenance, cases: QUICK_CASES }, entries: Object.fromEntries(keys.map((key) => [key, BASELINE.entries[key]])) };
 const withEntry = (key, changes) => ({ ...baseline, entries: { ...baseline.entries, [key]: { ...baseline.entries[key], ...changes } } });
