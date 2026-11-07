@@ -1,4 +1,5 @@
-import { gateShape, insideMap, litPoint, visibilityPolygon } from './movement.ts';
+import { gateShape, gatesNear, insideMap, litPoint, visibilityPolygon } from './movement.ts';
+import { itemsNear } from './simulation/ground-items.ts';
 import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
 import { count } from './profiler.ts';
@@ -151,7 +152,7 @@ export function discover(
     if (map.items) {
       const items = memory.items ??= new Map();
       const present = new Set<ItemId>();
-      for (const item of map.items) {
+      for (const item of itemsNear(map.items, eye, radius)) {
         if (!sees(item.x, item.y)) continue;
         present.add(item.id);
         items.set(item.id, { ...item });
@@ -159,7 +160,7 @@ export function discover(
       for (const [id, item] of items) if (!present.has(id) && sees(item.x, item.y)) items.delete(id);
     }
     // A door is seen at the point of its outline nearest the eye, a unit toward the eye, so a closed door's own face does not hide it.
-    for (const gate of map.gates) {
+    for (const gate of gatesNear(map, eye.x - radius, eye.y - radius, eye.x + radius, eye.y + radius)) {
       const box = gateShape(gate);
       const nx = Math.max(box.x, Math.min(box.x + box.w, eye.x)), ny = Math.max(box.y, Math.min(box.y + box.h, eye.y));
       const dx = eye.x - nx, dy = eye.y - ny, d = hypot(dx, dy);

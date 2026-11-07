@@ -141,8 +141,8 @@ export function removeItem(s: Game, item: GroundItem): number {
  * Every ground record that could be within `reach` of `at`, in list order: a superset, never a ruling.
  * The caller's own test decides; a record whose position compares as nothing (NaN) is always offered.
  */
-export function itemsNear(s: Game, at: Vec2, reach: number): GroundItem[] {
-  const list = s.map.items;
+export function itemsNear(target: Game | Pick<Game, 'map'> | readonly GroundItem[], at: Vec2, reach: number): GroundItem[] {
+  const list = Array.isArray(target) ? target : (target as Game).map.items;
   if (!Number.isFinite(at.x) || !Number.isFinite(at.y)) return list.slice();
   const grid = gridOf(list);
   return inOrder(grid, candidates(grid, at, reach));
