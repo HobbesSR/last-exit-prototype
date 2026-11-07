@@ -74,3 +74,41 @@ test('perimeterRuns lists the hints, then every stretch no portal or hint holds,
   // A concave region's notch is perimeter too: an L of three cells has six runs.
   assert.equal(perimeterRuns({ cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] }, 'unguaranteed').length, 6);
 });
+
+test('cover and park wall their hinted edges only when their class asks (#849), keeping the portal promise', async () => {
+  const { buildRegion } = await import('../map/micro/region-types.ts');
+  const { elementShapes } = await import('../map/micro/geometry.ts');
+  const cells = cellsOf(18, 12);
+  const brief = (type, parameters) => ({ id: type, seed: 3, type, cellSize: 40, cells, parameters,
+    zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }],
+    portals: [{ id: 'w', axis: 'v', x: 0, y: 5, length: 3 }, { id: 'e', axis: 'v', x: 18, y: 5, length: 3 }],
+    hints: [{ axis: 'h', x: 0, y: 0, length: 18 }, { axis: 'h', x: 0, y: 12, length: 18 }] });
+  for (const type of ['cover', 'park']) {
+    const walled = buildRegion(brief(type, { perimeterWalls: true })), plain = buildRegion(brief(type));
+    const walls = walled.elements.filter(e => e.label.startsWith(`${type}-edge-wall-`));
+    assert.ok(walls.length > 0, `${type} stood edge walls`);
+    assert.equal(plain.elements.some(e => e.label.includes('-edge-wall-')), false, `${type} without the parameter`);
+    const blockers = walled.elements.flatMap(e => elementShapes(e));
+    assert.deepEqual(validatePortalReach({ ...walled.brief, blockers }, { search: 'thorough' }).errors, [], type);
+  }
+});
+
+test('cover\'s fallback still sites pieces in a small region when walls are asked for (#852 review 669)', async () => {
+  const { buildRegion } = await import('../map/micro/region-types.ts');
+  const { elementShapes } = await import('../map/micro/geometry.ts');
+  const cells = cellsOf(6, 6);
+  let walls = 0;
+  for (const seed of [3, 5, 8]) {
+    const brief = parameters => ({ id: 'cover', seed, type: 'cover', cellSize: 40, cells, parameters,
+      zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals: [], hints: [{ axis: 'h', x: 0, y: 0, length: 6 }] });
+    const plain = buildRegion(brief()), walled = buildRegion(brief({ perimeterWalls: true }));
+    const pieces = region => region.elements.filter(e => !e.label.includes('-edge-wall-')).map(e => e.label);
+    assert.ok(pieces(plain).length > 0, `seed ${seed}: the fallback places cover`);
+    assert.deepEqual(pieces(walled), pieces(plain), `seed ${seed}: walls leave the fallback's pieces`);
+    // A wall is passed over where the fallback's pieces already stand against the hint.
+    walls += walled.elements.filter(e => e.label.startsWith('cover-edge-wall-')).length;
+    const blockers = walled.elements.flatMap(e => elementShapes(e));
+    assert.deepEqual(validatePortalReach({ ...walled.brief, blockers }, { search: 'thorough' }).errors, [], `seed ${seed}`);
+  }
+  assert.ok(walls > 0, 'walls stand beside the fallback cover');
+});
