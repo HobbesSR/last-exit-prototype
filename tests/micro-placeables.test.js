@@ -39,6 +39,7 @@ const PINNED = {
   'park-hedge-block': ['park-hedge-block-1', '666797ec06bbb491'],
   'plant-machine': ['plant-machine-1', '8975ce930b7a04e3'],
   'plant-pipe-run': ['plant-pipe-run-1', '3c4eed0ac5a59880'],
+  'landmark-site': ['landmark-site-1', '61d8cac793f1e2d9'],
 };
 
 const digest = placeable => createHash('sha256').update(JSON.stringify(placeable.examples.map(params => {

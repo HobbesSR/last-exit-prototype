@@ -2067,6 +2067,95 @@ try {
     await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
 
+  // 5d. Block-scale landmark silhouettes (41.2 step 5, 11.1 §8, #769):
+  //     Build the three authored landmarks through the building pipeline, place them side by
+  //     side, and prove their distinctive non-rectangular roof contours stay legible at gameplay
+  //     zoom and through the distant LOD cut. Each silhouette is sampled on a roofed cell and on
+  //     a cell its contour deliberately leaves open (the L's missing quadrant, a parking bay gap,
+  //     the restaurant's missing corner).
+  const { LANDMARK_SITE } = await import('../map/micro/placeables/landmark-site.ts');
+  const landmarkCtx = createGenerationContext(24680);
+  const landmarkSites = [
+    { kind: 'gas-station', x: 200, y: 560 },
+    { kind: 'collapsed-parking', x: 560, y: 560 },
+    { kind: 'ruined-restaurant', x: 300, y: 920 },
+  ];
+  for (const site of landmarkSites) {
+    const placed = LANDMARK_SITE.build({ kind: site.kind, seed: 11 }, 40);
+    assert.ok(!('refused' in placed), `${site.kind} builds`);
+    for (const element of placed.elements) placeElement(landmarkCtx, element.template, site.x + element.x, site.y + element.y,
+      { nodeId: `landmark-${site.kind}`, locked: false });
+  }
+  const lmMap = {
+    seed: 24680, width: 1400, height: 1000,
+    buildings: landmarkCtx.map.buildings, roofs: landmarkCtx.map.roofs,
+    obstacles: landmarkCtx.map.obstacles, decals: landmarkCtx.map.decals || [],
+    modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [],
+    appearance: { surfaces: [{ id: 'lm-apron', bounds: { x: 160, y: 760, w: 1080, h: 120 }, material: 'nightAsphalt' }] },
+  };
+  assert.equal(lmMap.roofs.length, 3, 'one roof contour per landmark');
+  const landmarkPoints = {
+    gasRoof: { x: 260, y: 580 }, gasVoid: { x: 380, y: 740 },
+    parkingRoof: { x: 620, y: 740 }, parkingVoid: { x: 700, y: 740 },
+    restaurantRoof: { x: 400, y: 980 }, restaurantVoid: { x: 360, y: 1140 },
+  };
+
+  const landmarkDemo = await page.evaluate(async ({ demoMap, points, lodZoom }) => {
+    const f = window.witness, s = f.scene;
+    const priorMap = f.map, priorPlayers = f.state.players, priorBodies = f.state.bodies;
+    f.map = demoMap; s.recordStatic(demoMap);
+    f.state.players = f.state.players.filter(p => p.id === 'self');
+    f.state.bodies = (f.state.bodies || []).filter(b => b.actorId === 'self');
+    await f.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false,
+      camera: { x: 660, y: 860, zoom: 1.12 }, selfPos: { x: 660, y: 860 }, roofSteps: 40 });
+    const gameplay = Object.fromEntries(Object.entries(points).map(([key, p]) => [key, f.pixelAtWorld(p.x, p.y)]));
+    const gameplayAlphas = demoMap.roofs.map(roof => s.roofs.get(roof.id)?.alpha ?? 0);
+    await f.settle({ palette: 'signature', lighting: true, wear: true, directed: true, fog: true, followId: 'self',
+      camera: { x: 660, y: 760, zoom: lodZoom }, selfPos: { x: 660, y: 860 }, roofSteps: 40 });
+    const lod = Object.fromEntries(Object.entries(points).map(([key, p]) => [key, f.pixelAtWorld(p.x, p.y)]));
+    const lodAlphas = demoMap.roofs.map(roof => s.roofs.get(roof.id)?.alpha ?? 0);
+    return { gameplay, lod, gameplayAlphas, lodAlphas, priorMap: !!priorMap };
+  }, { demoMap: lmMap, points: landmarkPoints, lodZoom: LOD_LOW_ZOOM });
+
+  await page.evaluate(async (demoMap) => {
+    window.witness.map = demoMap; window.witness.scene.recordStatic(demoMap);
+    window.witness.state.players = window.witness.state.players.filter(p => p.id === 'self');
+    window.witness.state.bodies = (window.witness.state.bodies || []).filter(b => b.actorId === 'self');
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: false, fog: false,
+      camera: { x: 660, y: 860, zoom: 1.12 }, selfPos: { x: 660, y: 860 }, roofSteps: 40 });
+  }, lmMap);
+  const fileLmGameplay = 'landmark-gameplay-silhouettes.png';
+  await page.screenshot({ path: path.join(outDir, fileLmGameplay) });
+  captures.push({ id: 'landmark-gameplay-silhouettes', file: fileLmGameplay, theme: 'signature', fog: false, zoom: PLAY_ZOOM, view: 'step5-landmark-silhouettes (player zoom: gas station L, parking comb, restaurant notch)' });
+
+  await page.evaluate(async (lodZoom) => {
+    await window.witness.settle({ palette: 'signature', lighting: true, wear: true, directed: true, fog: true, followId: 'self',
+      camera: { x: 660, y: 640, zoom: lodZoom }, selfPos: { x: 660, y: 900 } });
+  }, LOD_LOW_ZOOM);
+  const fileLmLod = 'landmark-distant-lod.png';
+  await page.screenshot({ path: path.join(outDir, fileLmLod) });
+  captures.push({ id: 'landmark-distant-lod', file: fileLmLod, theme: 'signature', fog: true, zoom: LOD_LOW_ZOOM, view: `step5-landmark-distant-lod (${LOD_LOW_ZOOM} silhouette survival)` });
+
+  await page.evaluate(async () => {
+    const f = window.witness;
+    if (window.__witnessPriorMap) { f.map = window.__witnessPriorMap; f.scene.recordStatic(window.__witnessPriorMap); }
+    if (window.__witnessPriorPlayers) f.state.players = window.__witnessPriorPlayers;
+    if (window.__witnessPriorBodies) f.state.bodies = window.__witnessPriorBodies;
+    await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
+  });
+
+  assert.ok(landmarkDemo.gameplayAlphas.every(alpha => alpha === 1), 'landmark roofs are closed at gameplay zoom');
+  assert.ok(landmarkDemo.lodAlphas.every(alpha => alpha === 1), 'landmark roofs stay closed at distant LOD');
+  for (const [roofKey, voidKey] of [['gasRoof', 'gasVoid'], ['parkingRoof', 'parkingVoid'], ['restaurantRoof', 'restaurantVoid']]) {
+    const key = roofKey.replace('Roof', '');
+    assert.notEqual(landmarkDemo.gameplay[roofKey].hex, landmarkDemo.gameplay[voidKey].hex, `${key}: gameplay contour separates roof from open ground`);
+    assert.notEqual(landmarkDemo.lod[roofKey].hex, landmarkDemo.lod[voidKey].hex, `${key}: LOD contour separates roof from open ground`);
+    assert.ok(lumContrast(landmarkDemo.gameplay[roofKey].hex, landmarkDemo.gameplay[voidKey].hex) >= 1.15,
+      `${key}: gameplay roof/void value separation`);
+    assert.ok(lumContrast(landmarkDemo.lod[roofKey].hex, landmarkDemo.lod[voidKey].hex) >= 1.15,
+      `${key}: LOD roof/void value separation`);
+  }
+
   // Grayscale / luminance evaluation:
 
   const intactRoofLumRatio = lumContrast(storefrontDemo.intactRoofPx.hex, storefrontDemo.streetPx.hex);

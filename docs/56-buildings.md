@@ -433,3 +433,28 @@ without changing authoritative geometry, navigation, or simulation RNG:
   (`PLANT_SHED_APPEARANCE` with slate shadow roof, metal walls, and sodium amber focal rims),
   cooling towers (`coolConcrete` with `sodiumAmber` focal rim), and generator substations
   (`oxidizedMetal` with `electricTurquoise` focal rim).
+- **Block-scale landmark kit (`landmark` and `LANDMARK_SITE`, #769):** three silhouettes,
+  each a building design realized through the pipeline rather than hand-placed parts
+  (see below).
+
+## Landmarks
+
+`landmark-site` (20.8) builds three block-scale landmarks whose former use reads
+from a non-rectangular roof contour at gameplay and distant zoom (11.1 §7–§8):
+
+| Kind | Plan | Envelope | Appearance |
+| --- | --- | --- | --- |
+| `gas-station` | L: a 6 × 4 shop over a 3 × 3 service bay, two pump islands | 8 × 7 | `GAS_STATION_APPEARANCE` — motel-turquoise roof, electric-turquoise sign, sodium-amber pump rims |
+| `collapsed-parking` | Comb: an 11 × 3 deck over three 3 × 3 bays open south | 11 × 6 | `COLLAPSED_PARKING_APPEARANCE` — cool concrete deck, structural-void rim, old-advert-blue sign |
+| `ruined-restaurant` | 10 × 6 with its south-west 2 × 2 corner missing behind a wide storefront opening | 10 × 6 | `RUINED_RESTAURANT_APPEARANCE` — old-sign-red roof, weathered-coral rim, faded panel and scorch |
+
+Each is a `BuildingDesign` partitioned by `allocateBuilding` (the parking comb is
+authored, as `compound`'s ring is) and realized by `realizeBuilding`, so it gets
+real walls, gates, door thresholds, roof cell groups and presentation appearance
+without a second collision model. `landmark` sites one through a live cord; the
+art witness samples a roofed cell against a cell the contour leaves open and
+requires the two to stay distinct at `playerZoom` and `LOD_LOW_ZOOM`
+(`tests/art-witness.browser.mjs`, `landmark-gameplay-silhouettes.png` and
+`landmark-distant-lod.png`). No new destruction vocabulary is introduced:
+breaches and collapsed roof footprints that change sight remain #594's deferred
+work.

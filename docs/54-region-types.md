@@ -126,6 +126,7 @@ counts.
 | [`compound`](54.2-structures.md#compound) | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | [`block`](54.3-district-and-drafted.md#block) | district | a city block that decomposes into the types above | — |
 | [`market`](54.3-district-and-drafted.md#market) | district | stall rows and narrow lanes: dense, low, sight-breaking cover | — |
+| [`landmark`](54.2-structures.md#landmark) | structure | one block-scale landmark whose former use reads from silhouette and layout | — |
 | [`arrival`](54.4-core-element-classes.md#arrival) | core element | the contestants' start | `spawn` × `contestantCount` |
 | [`departure`](54.4-core-element-classes.md#departure) | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` × `hunterCount` |
 | [`charging`](54.4-core-element-classes.md#charging) | core element | the power-cell charging station (F-03) | `charger` |
@@ -144,7 +145,7 @@ Builder mechanics are in [20.3](20.3-builders-decomposition.md).
 | Part | Load for |
 | --- | --- |
 | [54.1](54.1-ground-and-friction.md) | The `open` ground and the friction types: `cover`, `rubble`, `ruins` and `hall`. |
-| [54.2](54.2-structures.md) | The structure section: `checkpoint`, `park`, `hut`, `depot`, `plant` and `compound`. The catalogue table lists `checkpoint` and `park` in the friction family; their entries sit in this section. |
+| [54.2](54.2-structures.md) | The structure section: `checkpoint`, `park`, `hut`, `depot`, `plant`, `compound` and `landmark`. The catalogue table lists `checkpoint` and `park` in the friction family; their entries sit in this section. |
 | [54.3](54.3-district-and-drafted.md) | The `block` district, which decomposes into the other types, and `market` stall rows. |
 | [54.4](54.4-core-element-classes.md) | The core element classes: `arrival`, `departure`, `charging` and `transit`. |
 
@@ -191,6 +192,7 @@ above).
 | `plant` | `depot`'s warehouse for its shed (built, #219) | — |
 | `checkpoint` | `cover`'s barriers and `depot`'s warehouse for its post (built, #220) | — |
 | `park` | `cover`'s spacing, its clusters' aisles (built, #221) | `open-field` |
+| `landmark` | Authored non-rectangular building designs built through the pipeline (#769) | — |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
 | `charging` | `spreadPoints` (built, #132) | — |
