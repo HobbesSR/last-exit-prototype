@@ -19,9 +19,10 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       <label>Zone size<select id="solveSize"></select></label>
       <button id="solveRandom" type="button">New seed</button>
     </div>
-    <p id="solveRecipe" class="hint">Edit seed and size here. Mode and library use the World recipe. Placement only; no regions are built.</p>
+    <p class="hint">Seed and size edits apply when you press Record placement. The attempt list belongs to the recorded seed.</p>
     <div class="solve-controls">
       <label>Attempt <select id="solveAttempt" disabled></select></label>
+      <button id="solveResult" type="button" disabled>Show result</button>
       <button id="solvePrev" type="button" disabled>← Step</button>
       <button id="solvePlay" type="button" disabled>Play</button>
       <button id="solveNext" type="button" disabled>Step →</button>
@@ -31,6 +32,10 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       <label>Events / second <select id="solveSpeed"><option>5</option><option selected>30</option><option>120</option></select></label>
     </div>
     <label class="solve-timeline">Event <input id="solveStep" aria-label="Placement event" type="range" min="0" max="0" value="0" disabled><output id="solvePosition">0 / 0</output></label>
+    <div class="solve-metadata">
+      <section><h2>Map metadata</h2><p id="solveRecipe">No recording yet. Mode and library use the World recipe.</p><p id="solveMapSummary" class="hint">Record placement to inspect a map.</p></section>
+      <section><h2>Selected attempt</h2><p id="solveAttemptStatus" role="status">No attempt selected.</p></section>
+    </div>
     <div class="solve-workspace"><div class="solve-canvas-wrap"><canvas id="solveCanvas" aria-label="Placement solve"></canvas></div>
       <aside class="solve-inspector"><h2>At this step</h2><p id="solveCounters"></p><p id="solveEvent"></p><p id="solveHover" class="hint">Hover a slot for its tile and depth.</p>
       <h2>Legend</h2><p class="hint">Wheel to zoom / Drag to pan / Fit to reset.</p><p class="hint">Unfilled: dark. Set pieces: continuous blue, shown internally passable. Fill: colour by collapse depth, cool to warm. Outer hinted segments: thick dark lines; passable: pale lines; any: dashed.</p>
@@ -44,6 +49,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
   let events: PlacementTraceEvent[] = [];
   let slots: Slot[] = [], tiles = new Map<number, Tile>();
   let index = 0, applied = -1, depth = 0, stall = 0, iterations = 0;
+  let resultAttempt = -1;
   let maxDepth = 1;
   let refusal: Refusal | null = null;
   let timer: ReturnType<typeof setInterval> | undefined;
@@ -112,31 +118,58 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
     if (refusal) {
       ctx.fillStyle = '#ff3c5c88';
       for (const cell of refusal.cells) ctx.fillRect(cell.x, cell.y, 1, 1);
-      ctx.strokeStyle = '#ff9aab'; ctx.lineWidth = 3 / scale;
-      for (const face of refusal.faces) { ctx.beginPath(); ctx.moveTo(face.a.x, face.a.y); ctx.lineTo(face.b.x, face.b.y); ctx.stroke(); }
       ctx.strokeStyle = '#ffe477'; ctx.lineWidth = 2 / scale;
       for (const cause of refusal.causeSlots) { const slot = slots[cause]; if (slot) ctx.strokeRect(slot.x * 6 + .15, slot.y * 6 + .15, 5.7, 5.7); }
+      ctx.strokeStyle = '#ff9aab'; ctx.lineWidth = 3 / scale;
+      for (const face of refusal.faces) { ctx.beginPath(); ctx.moveTo(face.a.x, face.a.y); ctx.lineTo(face.b.x, face.b.y); ctx.stroke(); }
     }
   }
-  function chooseAttempt() {
-    pause(); events = byAttempt[Number(attempts.value)] ?? []; applied = -1; tiles.clear(); slots = []; depth = stall = iterations = 0;
+  function chooseAttempt(keepPlaying = false) {
+    if (!keepPlaying) pause();
+    events = byAttempt[Number(attempts.value)] ?? []; applied = -1; tiles.clear(); slots = []; depth = stall = iterations = 0;
+    const end = events.find(event => event.type === 'attempt-end');
+    const description = end?.type !== 'attempt-end' ? 'Partial trace.'
+      : end.outcome.startsWith('set piece ') ? `Set-piece placement failed (${end.outcome.slice(10)}); no fill started in this attempt.`
+      : end.outcome === 'placed' ? 'Fill completed successfully.' : 'Fill search failed.';
+    const next = Number(attempts.value) + 1 < byAttempt.length ? 'Play continues to the next attempt.' : 'Last recorded attempt.';
+    el('solveAttemptStatus').textContent = `Seed ${recording?.seed ?? ''} · Attempt ${Number(attempts.value) + 1} of ${byAttempt.length}. ${description} ${next}`;
     maxDepth = events.reduce((max, event) => event.type === 'collapse' ? Math.max(max, event.depth) : max, 1);
     step.max = String(Math.max(0, events.length - 1)); seek(0);
   }
+  function selectAttempt(attempt: number, keepPlaying = false) {
+    attempts.value = String(attempt); chooseAttempt(keepPlaying);
+  }
+  function stepAcross(direction: number) {
+    pause();
+    const next = index + direction, attempt = Number(attempts.value) + direction;
+    if ((next < 0 || next >= events.length) && attempt >= 0 && attempt < byAttempt.length) {
+      selectAttempt(attempt); seek(direction > 0 ? 0 : events.length - 1);
+    } else seek(next);
+  }
   function jumpRefusal(direction: number) {
     pause();
-    for (let n = index + direction; n >= 0 && n < events.length; n += direction) if (events[n]!.type === 'refusal') { seek(n); return; }
+    const current = Number(attempts.value);
+    for (let attempt = current; attempt >= 0 && attempt < byAttempt.length; attempt += direction) {
+      const candidates = byAttempt[attempt]!;
+      for (let n = attempt === current ? index + direction : direction > 0 ? 0 : candidates.length - 1; n >= 0 && n < candidates.length; n += direction)
+        if (candidates[n]!.type === 'refusal') { if (attempt !== current) selectAttempt(attempt); seek(n); return; }
+    }
   }
   el('solveRecord').onclick = run; el('solveCancel').onclick = cancel;
-  el('solvePrev').onclick = () => { pause(); seek(index - 1); };
-  el('solveNext').onclick = () => { pause(); seek(index + 1); };
+  el('solvePrev').onclick = () => stepAcross(-1);
+  el('solveNext').onclick = () => stepAcross(1);
+  el('solveResult').onclick = () => { if (resultAttempt >= 0) { selectAttempt(resultAttempt); seek(events.length - 1); } };
   el('solvePrevRefusal').onclick = () => jumpRefusal(-1); el('solveNextRefusal').onclick = () => jumpRefusal(1);
-  step.oninput = () => { pause(); seek(Number(step.value)); }; attempts.onchange = chooseAttempt;
+  step.oninput = () => { pause(); seek(Number(step.value)); }; attempts.onchange = () => chooseAttempt();
   el('solvePlay').onclick = () => {
     if (timer !== undefined) { pause(); return; }
-    if (index >= events.length - 1) seek(0);
+    if (index >= events.length - 1) selectAttempt(Number(attempts.value) + 1 < byAttempt.length ? Number(attempts.value) + 1 : 0);
     el('solvePlay').textContent = 'Pause';
-    timer = setInterval(() => { if (index >= events.length - 1) pause(); else seek(index + 1); }, 1000 / Number(el<HTMLSelectElement>('solveSpeed').value));
+    timer = setInterval(() => {
+      if (index < events.length - 1) seek(index + 1);
+      else if (Number(attempts.value) + 1 < byAttempt.length) selectAttempt(Number(attempts.value) + 1, true);
+      else pause();
+    }, 1000 / Number(el<HTMLSelectElement>('solveSpeed').value));
   };
   el('solveSpeed').onchange = pause;
   el('solveFit').onclick = () => { zoom = 1; pan = { x: 0, y: 0 }; draw(); };
@@ -161,6 +194,9 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
   return {
     pending(recipe: string) {
       pause(); recording = null; byAttempt = []; events = []; slots = []; tiles.clear(); applied = -1;
+      resultAttempt = -1; el<HTMLButtonElement>('solveResult').disabled = true;
+      el('solveAttemptStatus').textContent = 'Recording attempts…';
+      el('solveMapSummary').textContent = 'Recording placement only; no regions are built.';
       depth = stall = iterations = 0; attempts.replaceChildren(); step.max = '0';
       el('solveHover').textContent = 'Hover a slot for its tile and depth.';
       zoom = 1; pan = { x: 0, y: 0 };
@@ -172,15 +208,26 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
     },
     stopped(message: string) {
       pause(); el('solveStatus').textContent = message;
+      if (!recording) {
+        el('solveAttemptStatus').textContent = 'No attempt selected.';
+        el('solveMapSummary').textContent = 'No recording retained.';
+      }
       el<HTMLButtonElement>('solveCancel').disabled = true; el<HTMLButtonElement>('solveRecord').disabled = false;
       for (const id of ['solveSeed', 'solveSize', 'solveRandom']) (el(id) as HTMLButtonElement).disabled = false;
     },
     received(result: PlacementRecording, library: ChainLibrary, ms: number) {
       recording = result; turned = orientedDesigns(library); byAttempt = [];
       for (const event of result.events) (byAttempt[event.attempt] ??= []).push(event);
+      resultAttempt = byAttempt.findIndex(attempt => attempt.some(event => event.type === 'attempt-end' && event.outcome === 'placed'));
+      el<HTMLButtonElement>('solveResult').disabled = resultAttempt < 0;
+      const first = result.events.find(event => event.type === 'attempt-start');
+      const slotCount = result.layout?.slots.length ?? (first?.type === 'attempt-start' ? first.slots.length : 0);
+      el('solveMapSummary').textContent = `${slotCount} slots · ${result.layout ? `${result.layout.setPieces.length} set pieces · ` : ''}${byAttempt.length} attempts · ${(ms / 1000).toFixed(2)} s · ${result.truncated ? 'Partial trace retained' : 'Complete trace'}`;
       attempts.replaceChildren(...byAttempt.map((events, i) => {
         const end = events.find(event => event.type === 'attempt-end');
-        return Object.assign(document.createElement('option'), { value: String(i), textContent: `${i + 1}: ${end?.type === 'attempt-end' ? end.outcome : 'partial'} (${events.length} events)` });
+        const outcome = end?.type !== 'attempt-end' ? 'partial trace' : end.outcome === 'placed' ? 'fill complete'
+          : end.outcome.startsWith('set piece ') ? `before fill: ${end.outcome.slice(10)} did not fit` : 'fill search failed';
+        return Object.assign(document.createElement('option'), { value: String(i), textContent: `${result.seed} · ${i + 1}: ${outcome} (${events.length} events)` });
       }));
       attempts.value = '0';
       for (const id of ['solveAttempt', 'solveStep', 'solvePrev', 'solveNext', 'solvePlay', 'solvePrevRefusal', 'solveNextRefusal']) (el(id) as HTMLButtonElement).disabled = !result.events.length;
@@ -188,6 +235,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       chooseAttempt();
     },
     hide: pause,
+    recipeEdited: pause,
     snapshot: () => ({ seed: recording?.seed, events: recording?.events.length ?? 0, attempt: Number(attempts.value), index, depth, stall, iterations, collapsed: tiles.size, event: events[index], truncated: recording?.truncated }),
   };
 }

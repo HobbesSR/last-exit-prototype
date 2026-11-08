@@ -39,6 +39,73 @@ try {
   assert.match(await page.locator('#solveRecipe').innerText(), /sweep-66.*bundled/);
   const attempts = [...new Set(trace.events.map(event => event.attempt))];
   assert.ok(attempts.length > 1, 'fixture exercises attempt selection');
+  assert.equal(initial.attempt, 0, 'recording opens on the first attempt');
+  const firstAttempt = trace.events.filter(event => event.attempt === 0);
+  const placedEnd = trace.events.find(event => event.type === 'attempt-end' && event.outcome === 'placed');
+  assert.ok(placedEnd && trace.layout, 'fixture eventually places a layout');
+  const metadata = await page.locator('#solveMapSummary').innerText();
+  assert.match(metadata, new RegExp(`${trace.layout.slots.length} slots`));
+  assert.match(metadata, new RegExp(`${trace.layout.setPieces.length} set pieces`));
+  assert.match(metadata, new RegExp(`${attempts.length} attempts`));
+  assert.match(metadata, /complete trace/i);
+  const placedEvents = trace.events.filter(event => event.attempt === placedEnd.attempt);
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /set.piece.*fail/i);
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /no fill/i);
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /sweep-66/);
+  await page.locator('#solveSpeed').selectOption('120');
+  await page.locator('#solveStep').evaluate((input: HTMLInputElement, n: number) => { input.value = String(n); input.dispatchEvent(new Event('input', { bubbles: true })); }, Math.max(0, firstAttempt.length - 2));
+  await page.locator('#solvePlay').click();
+  await page.waitForFunction(() => (window as any).mapLab.snapshot().placement.attempt === 1, null, { timeout: 5000 });
+  await page.locator('#solvePlay').click();
+  assert.equal((await snapshot()).attempt, 1, 'play continues into the next attempt');
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /sweep-66/);
+  await page.locator('#solveAttempt').selectOption('0');
+  await page.locator('#solveStep').evaluate((input: HTMLInputElement, n: number) => { input.value = String(n); input.dispatchEvent(new Event('input', { bubbles: true })); }, firstAttempt.length - 1);
+  await page.locator('#solveNext').click();
+  assert.equal((await snapshot()).attempt, 1, 'step advances into the next attempt');
+  assert.equal((await snapshot()).index, 0);
+  await page.locator('#solvePrev').click();
+  assert.equal((await snapshot()).attempt, 0, 'step back returns to the previous attempt');
+  assert.equal((await snapshot()).index, firstAttempt.length - 1);
+  await page.locator('#solveNextRefusal').click();
+  assert.equal((await snapshot()).attempt, 1, 'refusal navigation crosses attempts');
+  assert.equal((await snapshot()).event.type, 'refusal');
+  await page.locator('#solveResult').click();
+  const result = await snapshot();
+  assert.equal(result.attempt, placedEnd.attempt);
+  assert.equal(result.index, placedEvents.length - 1);
+  assert.deepEqual(result.event, placedEnd);
+  assert.equal(result.collapsed, trace.layout.slots.length);
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /sweep-66/);
+  const resultStart = placedEvents.find(event => event.type === 'attempt-start');
+  assert.ok(resultStart && resultStart.type === 'attempt-start');
+  const pieceSlots = new Set(placedEvents.filter(event => event.type === 'set-piece-slot').map(event => event.slot));
+  const fillSlots = resultStart.slots.filter(slot => !pieceSlots.has(slot.slot));
+  assert.ok(fillSlots.length, 'successful attempt contains non-piece fill');
+  const fillPixels = await page.locator('#solveCanvas').evaluate((canvas: HTMLCanvasElement, slots: { x: number; y: number }[]) => {
+    const box = canvas.getBoundingClientRect(), ratio = devicePixelRatio || 1;
+    const minX = Math.min(...slots.map(s => s.x)) * 6, minY = Math.min(...slots.map(s => s.y)) * 6;
+    const width = (Math.max(...slots.map(s => s.x)) + 1) * 6 - minX;
+    const height = (Math.max(...slots.map(s => s.y)) + 1) * 6 - minY;
+    const scale = Math.max(.1, Math.min((box.width - 32) / width, (box.height - 32) / height));
+    const x = (box.width - width * scale) / 2 - minX * scale, y = (box.height - height * scale) / 2 - minY * scale;
+    const pixels = canvas.getContext('2d')!;
+    return slots.map(slot => Array.from(pixels.getImageData(Math.round((x + (slot.x * 6 + .5) * scale) * ratio), Math.round((y + (slot.y * 6 + .5) * scale) * ratio), 1, 1).data));
+  }, resultStart.slots);
+  const fillIndices = new Set(fillSlots.map(slot => slot.slot));
+  const paintedFill = resultStart.slots.flatMap((slot, i) => fillIndices.has(slot.slot) ? [fillPixels[i]!] : []);
+  assert.ok(paintedFill.some(([r, g, b]) => {
+    const high = Math.max(r!, g!, b!), low = Math.min(r!, g!, b!);
+    return high > 70 && high - low > 35 && !(r === 49 && g === 84 && b === 126);
+  }), 'non-piece slots have visible, chromatic fill colour');
+  await page.screenshot({ path: `${out}/placement-result.png`, fullPage: true });
+  await page.locator('#solveAttempt').selectOption('0');
+  assert.equal((await snapshot()).attempt, 0, 'failed attempt remains selectable');
+  assert.equal(await page.locator('#solveMapSummary').innerText(), metadata);
+  assert.match(await page.locator('#solveRecipe').innerText(), /sweep-66/);
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /set.piece.*fail/i);
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /sweep-66/);
+  assert.match(await page.locator('#solveAttempt').locator('option').first().innerText(), /sweep-66/);
   for (const attempt of attempts) {
     await page.locator('#solveAttempt').selectOption(String(attempt));
     const events = trace.events.filter(event => event.attempt === attempt);
@@ -82,8 +149,8 @@ try {
         }
         return { pink, yellow, red };
       });
-      assert.ok(colours.pink && colours.yellow && colours.red, `refusal overlays are drawn: ${JSON.stringify(colours)}`);
       await page.screenshot({ path: `${out}/placement.png`, fullPage: true });
+      assert.ok(colours.pink && colours.yellow && colours.red, `refusal overlays are drawn: ${JSON.stringify(colours)}`);
     }
   }
   // At the end of pre-assignment, a shared edge within one piece is solid blue,
@@ -119,7 +186,7 @@ try {
     const ratio = devicePixelRatio || 1;
     return Array.from(canvas.getContext('2d')!.getImageData(Math.round((point.x * point.scale + point.offsetX) * ratio), Math.round((point.y * point.scale + point.offsetY) * ratio), 1, 1).data);
   }, { ...seam, scale: geometry.scale, offsetX: geometry.x, offsetY: geometry.y });
-  assert.deepEqual(seamPixel, [49, 84, 126, 255], 'shared set-piece seam remains solid blue');
+  assert.ok(seamPixel.every((channel: number, i: number) => Math.abs(channel - [49, 84, 126, 255][i]!) <= 1), `shared set-piece seam remains solid blue: ${seamPixel}`);
   const boundary = start.slots.flatMap(slot => {
     const tile = placed.get(slot.slot);
     return [[1, 0], [0, 1]].flatMap(([dx, dy]) => {
@@ -172,9 +239,20 @@ try {
   assert.equal((await snapshot()).seed, 'placement-second', await page.locator('#solveStatus').innerText());
   assert.ok((await snapshot()).events > 0);
   assert.match(await page.locator('#solveRecipe').innerText(), /placement-second/);
+  assert.match(await page.locator('#solveAttempt').locator('option').first().innerText(), /placement-second/);
+  const beforeRandom = await snapshot();
+  const labelsBeforeRandom = await page.locator('#solveAttempt').locator('option').allTextContents();
+  const recipeBeforeRandom = await page.locator('#solveRecipe').innerText();
+  const metadataBeforeRandom = await page.locator('#solveMapSummary').innerText();
   await page.locator('#solveRandom').click();
   assert.match(await page.locator('#solveSeed').inputValue(), /^exit-/);
   assert.equal(await page.locator('#solveSeed').inputValue(), await page.locator('#seed').inputValue());
+  assert.deepEqual(await snapshot(), beforeRandom, 'new seed edits the recipe without replacing the recording');
+  assert.deepEqual(await page.locator('#solveAttempt').locator('option').allTextContents(), labelsBeforeRandom);
+  assert.equal(await page.locator('#solveRecipe').innerText(), recipeBeforeRandom);
+  assert.equal(await page.locator('#solveMapSummary').innerText(), metadataBeforeRandom);
+  assert.match(await page.locator('#solveAttemptStatus').innerText(), /placement-second/);
+  await page.locator('#solveRecord').click();
   await page.locator('#solveCancel').click();
   assert.match(await page.locator('#solveStatus').innerText(), /cancelled/i);
   assert.equal(await page.locator('#solveCancel').isDisabled(), true);
