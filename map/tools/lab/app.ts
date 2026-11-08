@@ -3,8 +3,8 @@
  * `mapViews` (51.12), with the report beside the game's `diagnoseBuiltMap`. It generates, saves and
  * loads through the same core as the CLI and MCP, so all three agree on a map.
  */
-import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, validateLibrary } from "../core.ts";
-import type { MapCheck, ToolMap } from "../core.ts";
+import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, sparseSidesLibrary, validateLibrary } from "../core.ts";
+import type { FillSides, MapCheck, SetPieceSides, ToolMap } from "../core.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import type { MapViews } from "../../macro/src/chain/map.ts";
@@ -149,6 +149,9 @@ function recipeParams(): ChainParams {
 
 function chosenLibrary(): unknown {
   if (select("librarySource").value === "bundled") return bundledLibrary(recipeParams());
+  // Experimental (#851): the bundled library with sparser tile sides.
+  if (select("librarySource").value === "sparse") return sparseSidesLibrary(bundledLibrary(recipeParams()),
+    { fill: select("fillSides").value as FillSides, setPieces: select("setPieceSides").value as SetPieceSides });
   const draft = chainDraft();
   const checked = validateLibrary(draft);
   if (!checked.valid) throw new Error(`the Chain Library tab's draft isn't valid for the game: ${checked.errors.join("; ")}`);

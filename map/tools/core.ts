@@ -13,6 +13,8 @@ import type { BrokenPromise } from '../micro/diagnose.ts';
 import { GAME_ENGINES } from './engines.ts';
 
 export { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary, chainParams, generate, generateMacro, validateLibrary } from '../chain.ts';
+export { sparseSidesLibrary } from '../sparse-sides.ts';
+export type { FillSides, SetPieceSides } from '../sparse-sides.ts';
 export type ToolMap = GameChainMap;
 
 
