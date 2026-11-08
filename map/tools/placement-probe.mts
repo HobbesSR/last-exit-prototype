@@ -31,7 +31,11 @@ const larger = (width: number) => ({ zoneWidth: width, zoneHeight: width / 2, ex
 const params = size === '12' ? chainParams({}) : size === 'playground' ? chainParams({ ...larger(36), mode: 'playground' }) : chainParams(larger(Number(size)));
 const library = bundledLibrary(size === 'playground' ? chainParams({}) : params);
 
-const rows = [];
+interface Row {
+  seed: string; placed: boolean; attempts: number; refusals: number; mostStall: number;
+  unsolved: number; setPieceMisfits: number; nodes: number; ms: number; cpuMs: number;
+}
+const rows: Row[] = [];
 for (let n = from; n <= to; n++) {
   const seed = `${prefix}-${n}`, attempts: PlacementAttempt[] = [];
   const started = performance.now(), cpu = process.cpuUsage();
@@ -42,7 +46,7 @@ for (let n = from; n <= to; n++) {
     placed = false;
   }
   const used = process.cpuUsage(cpu);
-  const row = {
+  const row: Row = {
     seed, placed, attempts: attempts.length,
     refusals: attempts.reduce((sum, a) => sum + a.refusals, 0),
     mostStall: Math.max(0, ...attempts.map((a) => a.mostStall)),
