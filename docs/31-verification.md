@@ -485,6 +485,14 @@ shares one authoritative simulation; it is byte-compatibility evidence, not a
 timing comparison. Preserve the baseline revision and cache provenance with its
 report. Simulation/view equality is separately checked by `frame-hashes.mjs`.
 
+`node tools/perf/recording-payload.mjs --maps-cache=<file> --tile=2x2
+--ticks=1200 --out=<json>` is a recording-only scaling probe when tiled geometry
+exceeds physics admission limits. It records stable tiled item/gate lists and a
+changing tick, without advancing a tiled simulation. `--baseline=<archived-writer-module>`
+selects a comparison writer. It takes the lock and reports append latency and
+run wall/CPU time, including draining, separately. Its results are not server
+tick or capacity measurements.
+
 `node tools/perf/room-startup.mjs --size=12x6 --out=test-results/startup.json`
 is the short startup diagnostic for #842 (also accepts `--size=36x18` and
 `--seed`). It takes the benchmark lock, prepares two maps through the production

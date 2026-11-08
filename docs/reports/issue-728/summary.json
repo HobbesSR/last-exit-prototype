@@ -1,0 +1,291 @@
+{
+  "provenance": {
+    "baseline": "7f93dea",
+    "implementation": "952f4af",
+    "node": "v24.15.0",
+    "mapSource": "7f93dea production map worker",
+    "mapSha256": "da53a8924e32eec19db092604b7b9aa12612b0172158fc8dd405ee2f2935219a",
+    "blocked72": {
+      "error": "Physics static body capacity exceeded",
+      "phase": "buildPhysicsGeometry, before timing",
+      "limit": 100000,
+      "tiledObstacles": 114332,
+      "baselineReproduces": true
+    },
+    "method": "Three sequential baseline/worker pairs per workload; built-in benchmark lock; source map restored independently; no concurrent lead tests"
+  },
+  "ticks": [
+    {
+      "size": "36x18",
+      "pair": 1,
+      "variant": "base",
+      "recordMean": 1.6491641666666097,
+      "tick": {
+        "mean": 7.814365999999976,
+        "p50": 7.359400000000278,
+        "p99": 17.271700000001147,
+        "max": 132.78320000000008,
+        "over": 3
+      },
+      "coldTickMs": 132.78320000000008,
+      "run": {
+        "wallMs": 25232.4244,
+        "cpuMs": 27625,
+        "userCpuMs": 26906,
+        "systemCpuMs": 719
+      }
+    },
+    {
+      "size": "36x18",
+      "pair": 1,
+      "variant": "branch",
+      "recordMean": 0.45594083333333,
+      "tick": {
+        "mean": 6.664038000000027,
+        "p50": 6.143200000002253,
+        "p99": 15.674600000000282,
+        "max": 150.29279999999994,
+        "over": 1
+      },
+      "coldTickMs": 150.29279999999994,
+      "run": {
+        "wallMs": 25955.018300000003,
+        "cpuMs": 30125,
+        "userCpuMs": 29047,
+        "systemCpuMs": 1078
+      }
+    },
+    {
+      "size": "36x18",
+      "pair": 2,
+      "variant": "base",
+      "recordMean": 1.676800833333357,
+      "tick": {
+        "mean": 8.104101999999976,
+        "p50": 7.688900000000103,
+        "p99": 16.367500000000064,
+        "max": 141.63909999999987,
+        "over": 1
+      },
+      "coldTickMs": 141.63909999999987,
+      "run": {
+        "wallMs": 25847.264,
+        "cpuMs": 29202,
+        "userCpuMs": 28062,
+        "systemCpuMs": 1140
+      }
+    },
+    {
+      "size": "36x18",
+      "pair": 2,
+      "variant": "branch",
+      "recordMean": 0.4564426666666651,
+      "tick": {
+        "mean": 6.874109583333318,
+        "p50": 6.4637000000002445,
+        "p99": 15.891799999997602,
+        "max": 131.5489,
+        "over": 2
+      },
+      "coldTickMs": 131.5489,
+      "run": {
+        "wallMs": 26212.953800000003,
+        "cpuMs": 29828,
+        "userCpuMs": 28438,
+        "systemCpuMs": 1390
+      }
+    },
+    {
+      "size": "36x18",
+      "pair": 3,
+      "variant": "base",
+      "recordMean": 1.6841565833333536,
+      "tick": {
+        "mean": 8.143223666666708,
+        "p50": 7.67029999999977,
+        "p99": 17.221700000000055,
+        "max": 135.4733000000001,
+        "over": 2
+      },
+      "coldTickMs": 135.4733000000001,
+      "run": {
+        "wallMs": 25770.679,
+        "cpuMs": 29281,
+        "userCpuMs": 28031,
+        "systemCpuMs": 1250
+      }
+    },
+    {
+      "size": "36x18",
+      "pair": 3,
+      "variant": "branch",
+      "recordMean": 0.4497337499999437,
+      "tick": {
+        "mean": 6.693541333333329,
+        "p50": 6.306100000000242,
+        "p99": 16.902200000000448,
+        "max": 133.6648,
+        "over": 1
+      },
+      "coldTickMs": 133.6648,
+      "run": {
+        "wallMs": 25934.3106,
+        "cpuMs": 30938,
+        "userCpuMs": 29344,
+        "systemCpuMs": 1594
+      }
+    }
+  ],
+  "payload": [
+    {
+      "pair": 1,
+      "variant": "base",
+      "note": "Recording-only stable-list payload probe; no tiled physics simulation or server tick timing",
+      "seed": 4217,
+      "content": "content-6",
+      "node": "v24.15.0",
+      "size": "72x36",
+      "items": 33300,
+      "gates": 2884,
+      "frameBytes": 4169610,
+      "ticks": 1200,
+      "append": {
+        "mean": 4.690055916666687,
+        "p99": 10.46389999999883,
+        "max": 58.986700000000155
+      },
+      "run": {
+        "wallMs": 54962.0245,
+        "cpuMs": 62063
+      },
+      "droppedFrames": 0,
+      "archiveSha256": "4c189eda33b0ba6459faabd85d673351ea58a369980dd1c47608ab54013c826a",
+      "frameSha256": "f0feda2f07eb64216f72fff1b4638bec5705a4464a592c50d8ad91de2aadced3"
+    },
+    {
+      "pair": 1,
+      "variant": "branch",
+      "note": "Recording-only stable-list payload probe; no tiled physics simulation or server tick timing",
+      "seed": 4217,
+      "content": "content-6",
+      "node": "v24.15.0",
+      "size": "72x36",
+      "items": 33300,
+      "gates": 2884,
+      "frameBytes": 4169610,
+      "ticks": 1200,
+      "append": {
+        "mean": 0.30775141666656114,
+        "p99": 0.49849999999423744,
+        "max": 21.094800000000077
+      },
+      "run": {
+        "wallMs": 59356.1634,
+        "cpuMs": 59235
+      },
+      "droppedFrames": 0,
+      "archiveSha256": "4c189eda33b0ba6459faabd85d673351ea58a369980dd1c47608ab54013c826a",
+      "frameSha256": "f0feda2f07eb64216f72fff1b4638bec5705a4464a592c50d8ad91de2aadced3"
+    },
+    {
+      "pair": 2,
+      "variant": "base",
+      "note": "Recording-only stable-list payload probe; no tiled physics simulation or server tick timing",
+      "seed": 4217,
+      "content": "content-6",
+      "node": "v24.15.0",
+      "size": "72x36",
+      "items": 33300,
+      "gates": 2884,
+      "frameBytes": 4169610,
+      "ticks": 1200,
+      "append": {
+        "mean": 4.626245416666545,
+        "p99": 10.664399999994203,
+        "max": 44.2192
+      },
+      "run": {
+        "wallMs": 54954.8292,
+        "cpuMs": 62172
+      },
+      "droppedFrames": 0,
+      "archiveSha256": "4c189eda33b0ba6459faabd85d673351ea58a369980dd1c47608ab54013c826a",
+      "frameSha256": "f0feda2f07eb64216f72fff1b4638bec5705a4464a592c50d8ad91de2aadced3"
+    },
+    {
+      "pair": 2,
+      "variant": "branch",
+      "note": "Recording-only stable-list payload probe; no tiled physics simulation or server tick timing",
+      "seed": 4217,
+      "content": "content-6",
+      "node": "v24.15.0",
+      "size": "72x36",
+      "items": 33300,
+      "gates": 2884,
+      "frameBytes": 4169610,
+      "ticks": 1200,
+      "append": {
+        "mean": 0.30644041666672045,
+        "p99": 0.4823000000033062,
+        "max": 20.193500000000085
+      },
+      "run": {
+        "wallMs": 58789.7023,
+        "cpuMs": 60625
+      },
+      "droppedFrames": 0,
+      "archiveSha256": "4c189eda33b0ba6459faabd85d673351ea58a369980dd1c47608ab54013c826a",
+      "frameSha256": "f0feda2f07eb64216f72fff1b4638bec5705a4464a592c50d8ad91de2aadced3"
+    },
+    {
+      "pair": 3,
+      "variant": "base",
+      "note": "Recording-only stable-list payload probe; no tiled physics simulation or server tick timing",
+      "seed": 4217,
+      "content": "content-6",
+      "node": "v24.15.0",
+      "size": "72x36",
+      "items": 33300,
+      "gates": 2884,
+      "frameBytes": 4169610,
+      "ticks": 1200,
+      "append": {
+        "mean": 4.624110666666702,
+        "p99": 8.516999999999825,
+        "max": 54.334100000000035
+      },
+      "run": {
+        "wallMs": 54511.4476,
+        "cpuMs": 61078
+      },
+      "droppedFrames": 0,
+      "archiveSha256": "4c189eda33b0ba6459faabd85d673351ea58a369980dd1c47608ab54013c826a",
+      "frameSha256": "f0feda2f07eb64216f72fff1b4638bec5705a4464a592c50d8ad91de2aadced3"
+    },
+    {
+      "pair": 3,
+      "variant": "branch",
+      "note": "Recording-only stable-list payload probe; no tiled physics simulation or server tick timing",
+      "seed": 4217,
+      "content": "content-6",
+      "node": "v24.15.0",
+      "size": "72x36",
+      "items": 33300,
+      "gates": 2884,
+      "frameBytes": 4169610,
+      "ticks": 1200,
+      "append": {
+        "mean": 0.30260599999995785,
+        "p99": 0.5059000000001106,
+        "max": 20.678499999999985
+      },
+      "run": {
+        "wallMs": 59366.345400000006,
+        "cpuMs": 60469
+      },
+      "droppedFrames": 0,
+      "archiveSha256": "4c189eda33b0ba6459faabd85d673351ea58a369980dd1c47608ab54013c826a",
+      "frameSha256": "f0feda2f07eb64216f72fff1b4638bec5705a4464a592c50d8ad91de2aadced3"
+    }
+  ]
+}
