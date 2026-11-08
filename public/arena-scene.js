@@ -6,7 +6,7 @@ import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
-import { DEFAULT_THEME, themeColors, css } from './palette.js';
+import { DEFAULT_THEME, themeColors, css, mix } from './palette.js';
 import {
   APPEARANCE_RECIPE_VERSION,
   resolveBuildingAppearance,

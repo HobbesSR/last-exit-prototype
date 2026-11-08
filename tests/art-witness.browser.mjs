@@ -11,7 +11,7 @@ import { MATERIAL_SWATCH } from '../public/appearance.js';
 import { MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
 import { createCompoundAppearance, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
 import { PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
-import { PARK_PAVILION_INTACT, PARK_HEDGE_INTACT } from '../map/micro/strategies/park.ts';
+import { PARK_PAVILION_INTACT, PARK_HEDGE_INTACT, PARK_TREE_APPEARANCE } from '../map/micro/strategies/park.ts';
 import { CHECKPOINT_POST_INTACT, CHECKPOINT_BARRIER_APPEARANCE } from '../map/micro/strategies/checkpoint.ts';
 import { RUINS_BUILDING_DAMAGED, RUIN_WALL_WEATHERED } from '../map/micro/strategies/ruins.ts';
 import { HALL_BUILDING_INTACT, HALL_PILLAR_APPEARANCE } from '../map/micro/strategies/hall.ts';
@@ -2301,6 +2301,7 @@ try {
       { id: 'park-hedge', kind: 'hedge', x: 960, y: 380, w: 60, h: 28, appearance: PARK_HEDGE_INTACT },
       { id: 'ruin-wall-obs', kind: 'ruin-wall', x: 840, y: 380, w: 60, h: 24, appearance: RUIN_WALL_WEATHERED },
       { id: 'hall-pillar-obs', kind: 'building', x: 1040, y: 380, w: 40, h: 40, appearance: HALL_PILLAR_APPEARANCE },
+      { id: 'park-tree-obs', kind: 'tree', x: 1140, y: 380, r: 22, appearance: PARK_TREE_APPEARANCE },
     ],
     gates: [],
     hazards: [],
@@ -2375,6 +2376,7 @@ try {
     });
     const parkRoofPx = f.pixelAtWorld(1040, 300);
     const parkHedgePx = f.pixelAtWorld(990, 394);
+    const parkTreePx = f.pixelAtWorld(1140, 380);
 
     // 2. Interior view inside compound room:
     await f.settle({
@@ -2409,6 +2411,7 @@ try {
       hallRoofPx,
       cpBarrierPx,
       parkHedgePx,
+      parkTreePx,
       streetRefPx,
       compRoofAlphaClosed,
       compRoofAlphaInside,
@@ -2448,6 +2451,9 @@ try {
   const parkHedgeRatio = Number((Math.max(parkHedgeLum, streetLum) / Math.min(parkHedgeLum, streetLum)).toFixed(2));
   assert.ok(cpBarrierRatio >= 1.15, `checkpoint barrier survives grayscale contrast vs street (${cpBarrierRatio})`);
   assert.ok(parkHedgeRatio >= 1.15, `park hedge survives grayscale contrast vs street (${parkHedgeRatio})`);
+  const parkTreeLum = toLuminance(expandedKitsDemo.parkTreePx.hex);
+  const parkTreeRatio = Number((Math.max(parkTreeLum, streetLum) / Math.min(parkTreeLum, streetLum)).toFixed(2));
+  assert.ok(parkTreeRatio >= 1.15, `park tree survives grayscale contrast vs street (${parkTreeRatio})`);
 
   // 3. Compound roof reveals when player enters:
   assert.equal(expandedKitsDemo.compRoofAlphaClosed, 1, 'compound roof is closed when player is outside');
