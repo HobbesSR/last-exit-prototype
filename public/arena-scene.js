@@ -6,7 +6,7 @@ import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
-import { DEFAULT_THEME, themeColors, css } from './palette.js';
+import { DEFAULT_THEME, themeColors, css, mix } from './palette.js';
 import {
   APPEARANCE_RECIPE_VERSION,
   resolveBuildingAppearance,
@@ -542,16 +542,57 @@ export function makeArenaScene(api) {
         }
         return;
       }
-      if (o.kind === 'pipe') { g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h); g.fillStyle(ink.pipe); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, ink.pipeEdge, 0.6); o.w > o.h ? g.lineBetween(o.x, o.y + 2, o.x + o.w, o.y + 2) : g.lineBetween(o.x + 2, o.y, o.x + 2, o.y + o.h); return; }
-      if (o.kind === 'hedge') { g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h); g.fillStyle(ink.hedge); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, ink.hedgeEdge, 0.7); g.strokeRect(o.x, o.y, o.w, o.h); return; }
-      if (o.kind === 'ruin-wall') { g.fillStyle(ink.ruinShadow); g.fillRect(o.x + 5, o.y + 6, o.w, o.h); g.fillStyle(ink.ruin); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, ink.ruinEdge); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2); return; }
+      const drawFocalRim = () => {
+        if (!resolved?.focalRim) return;
+        g.lineStyle(3, resolved.focalRim.color, resolved.focalRim.alpha);
+        if (o.r) {
+          const angles = { N: [Math.PI * 1.25, Math.PI * 1.75], S: [Math.PI * 0.25, Math.PI * 0.75], W: [Math.PI * 0.75, Math.PI * 1.25], E: [-Math.PI * 0.25, Math.PI * 0.25] };
+          const [start, end] = angles[resolved.focalRim.side || 'N'] || angles.N;
+          g.beginPath(); g.arc(o.x, o.y, o.r, start, end); g.strokePath();
+          return;
+        }
+        if (resolved.focalRim.side === 'N') g.lineBetween(o.x + 2, o.y + 1, o.x + o.w - 2, o.y + 1);
+        else if (resolved.focalRim.side === 'S') g.lineBetween(o.x + 2, o.y + o.h - 1, o.x + o.w - 2, o.y + o.h - 1);
+        else if (resolved.focalRim.side === 'W') g.lineBetween(o.x + 1, o.y + 2, o.x + 1, o.y + o.h - 2);
+        else if (resolved.focalRim.side === 'E') g.lineBetween(o.x + o.w - 1, o.y + 2, o.x + o.w - 1, o.y + o.h - 2);
+      };
+      if (o.kind === 'pipe') {
+        const pipeFill = resolved ? resolved.fill : ink.pipe;
+        g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h);
+        g.fillStyle(pipeFill); g.fillRect(o.x, o.y, o.w, o.h);
+        g.lineStyle(2, ink.pipeEdge, 0.6); o.w > o.h ? g.lineBetween(o.x, o.y + 2, o.x + o.w, o.y + 2) : g.lineBetween(o.x + 2, o.y, o.x + 2, o.y + o.h);
+        drawFocalRim();
+        return;
+      }
+      if (o.kind === 'hedge') {
+        const hedgeFill = resolved ? resolved.fill : ink.hedge;
+        const hedgeEdge = resolved ? (resolved.hedgeEdge ?? ink.hedgeEdge) : ink.hedgeEdge;
+        g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h);
+        g.fillStyle(hedgeFill); g.fillRect(o.x, o.y, o.w, o.h);
+        g.lineStyle(2, hedgeEdge, 0.7); g.strokeRect(o.x, o.y, o.w, o.h);
+        drawFocalRim();
+        return;
+      }
+      if (o.kind === 'ruin-wall') {
+        const ruinFill = resolved ? resolved.fill : ink.ruin;
+        const ruinEdge = resolved ? (resolved.ruinEdge ?? ink.ruinEdge) : ink.ruinEdge;
+        g.fillStyle(ink.ruinShadow); g.fillRect(o.x + 5, o.y + 6, o.w, o.h);
+        g.fillStyle(ruinFill); g.fillRect(o.x, o.y, o.w, o.h);
+        g.lineStyle(2, ruinEdge); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2);
+        drawFocalRim();
+        return;
+      }
       if (o.r) {
         g.fillStyle(ink.circleShadow, 0.25); g.fillCircle(o.x + 6, o.y + 8, o.r + 2);
         if (o.kind === 'tree') {
-          g.fillStyle(ink.trunk); g.fillCircle(o.x, o.y, o.r);
-          g.fillStyle(ink.trunkTop); g.fillCircle(o.x - o.r * 0.18, o.y - o.r * 0.2, o.r * 0.54);
+          const trunkFill = resolved ? resolved.fill : ink.trunk;
+          const trunkTop = resolved ? (resolved.trunkTop ?? mix(trunkFill, 0xffffff, 0.25)) : ink.trunkTop;
+          g.fillStyle(trunkFill); g.fillCircle(o.x, o.y, o.r);
+          g.fillStyle(trunkTop); g.fillCircle(o.x - o.r * 0.18, o.y - o.r * 0.2, o.r * 0.54);
+          drawFocalRim();
         } else {
-          g.fillStyle(ink.rock); g.fillCircle(o.x, o.y, o.r);
+          const rockFill = resolved ? resolved.fill : ink.rock;
+          g.fillStyle(rockFill); g.fillCircle(o.x, o.y, o.r);
           g.fillStyle(ink.rockMid); g.fillCircle(o.x - 3, o.y - 4, o.r - 5);
           g.fillStyle(ink.rockTop); g.fillEllipse(o.x - 8, o.y - 9, o.r * 0.9, o.r * 0.65);
         }
@@ -565,18 +606,14 @@ export function makeArenaScene(api) {
       g.lineStyle(3, 0xffffff, 0.22); g.lineBetween(o.x + 7, o.y + 7, o.x + o.w - 7, o.y + 7);
       if (o.kind === 'fence') {
         for (let y = o.y + 12; y < o.y + o.h - 6; y += 23) { g.lineStyle(2, ink.fenceLine); g.lineBetween(o.x + 3, y, o.x + o.w - 3, y); }
+        drawFocalRim();
       } else if (o.kind === 'building') {
         g.fillStyle(resolved ? resolved.wallInset : ink.wallInset); g.fillRoundedRect(o.x + o.w * 0.25, o.y + o.h * 0.25, o.w * 0.5, o.h * 0.5, 4);
         g.lineStyle(2, resolved ? resolved.wallLine : ink.wallLine); g.lineBetween(o.x + 10, o.y + o.h - 12, o.x + o.w - 10, o.y + o.h - 12);
-        if (resolved?.focalRim) {
-          g.lineStyle(3, resolved.focalRim.color, resolved.focalRim.alpha);
-          if (resolved.focalRim.side === 'N') g.lineBetween(o.x + 2, o.y + 1, o.x + o.w - 2, o.y + 1);
-          else if (resolved.focalRim.side === 'S') g.lineBetween(o.x + 2, o.y + o.h - 1, o.x + o.w - 2, o.y + o.h - 1);
-          else if (resolved.focalRim.side === 'W') g.lineBetween(o.x + 1, o.y + 2, o.x + 1, o.y + o.h - 2);
-          else if (resolved.focalRim.side === 'E') g.lineBetween(o.x + o.w - 1, o.y + 2, o.x + o.w - 1, o.y + o.h - 2);
-        }
+        drawFocalRim();
       } else {
         g.lineStyle(2, ink.crateLine, 0.3); for (let x = o.x + 13; x < o.x + o.w - 5; x += 16) g.lineBetween(x, o.y + 11, x, o.y + o.h - 7);
+        drawFocalRim();
       }
     }
     decal(g, d) {

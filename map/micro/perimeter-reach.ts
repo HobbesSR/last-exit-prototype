@@ -7,6 +7,7 @@ import type { WallRunParams } from './placeables/wall-run.ts';
 import type { AddressedArea } from './addressed.ts';
 import { disjoint } from '../../shared/shape-construction.ts';
 import type { Shape } from '../../shared/shape.ts';
+import type { ObstacleAppearance } from '../../shared/types.ts';
 import { commitEach, type SitingCanvas } from './canvas.ts';
 import type { Cell, RegionBrief, RegionElement } from './types.ts';
 import type { Run } from '../kernel/run.ts';
@@ -80,6 +81,8 @@ export interface PerimeterReachOptions {
   minLength?: number;
   /** Prefixed to each wall's label. Default `perimeter-wall`. */
   label?: string;
+  /** Optional obstacle appearance for the wall runs. */
+  appearance?: ObstacleAppearance | undefined;
 }
 
 export interface PerimeterWalls {
@@ -105,13 +108,13 @@ export interface PerimeterWalls {
  * `reachPerimeter` to prove and commit them. Walls at a convex corner share a cell.
  */
 export function perimeterWalls(brief: RegionBrief, options: PerimeterReachOptions): PerimeterWalls {
-  const { runs = brief.hints ?? [], kind, thickness = 0.25, inset = 0, avoid = [], addressed, minLength = 1, label = 'perimeter-wall' } = options;
+  const { runs = brief.hints ?? [], kind, thickness = 0.25, inset = 0, avoid = [], addressed, minLength = 1, label = 'perimeter-wall', appearance } = options;
   if (!Number.isInteger(minLength) || minLength < 1) throw new RangeError('A hint wall needs a whole positive minimum length.');
   const fill = createFillMask(brief), size = brief.cellSize, owned = ownedOf(brief);
   const result: PerimeterWalls = { elements: [], shapes: [], cells: [] }, walled = new Map<string, Cell>();
   for (const hint of runs) {
     const stretches = stretchesOf(hint, owned), { inward } = stretches[0]!;
-    const shape = { turned: hint.axis === 'v', side: inward.x + inward.y > 0 ? 'start' : 'end', thickness, inset, kind } as const;
+    const shape = { turned: hint.axis === 'v', side: inward.x + inward.y > 0 ? 'start' : 'end', thickness, inset, kind, ...(appearance ? { appearance } : {}) } as const;
     const place = (cells: readonly Cell[]) => expectPlaced(WALL_RUN.build({ length: cells.length, ...shape }, size));
     let run: Cell[] = [];
     const flush = () => {

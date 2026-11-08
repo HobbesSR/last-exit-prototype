@@ -1,4 +1,5 @@
 import { rect } from '../../../shared/shape.ts';
+import type { ObstacleAppearance } from '../../../shared/types.ts';
 import { compareCells } from '../../kernel/cell.ts';
 import { capsule, elementShapes, findRegionRoute } from '../geometry.ts';
 import { hunterClearance, portalStands } from '../portals.ts';
@@ -11,9 +12,9 @@ import type { RegionBrief } from '../types.ts';
 export const PARK_POCKET_LIMITS = Object.freeze({ candidates: 2048, routes: 8, side: 14, apron: 2 });
 
 /** One atomic pocket before scatter. No RNG, growth, or final-proof retry loop. */
-export function siteParkPocket(brief: RegionBrief, canvas: SitingCanvas) {
+export function siteParkPocket(brief: RegionBrief, canvas: SitingCanvas, appearance?: ObstacleAppearance) {
   const size = brief.cellSize, { side, apron } = PARK_POCKET_LIMITS;
-  const built = expectPlaced(PARK_HEDGE_POCKET.build({}, size));
+  const built = expectPlaced(PARK_HEDGE_POCKET.build(appearance ? { appearance } : {}, size));
   let candidates = 0, routes = 0;
   // A zero hedge parameter still means no hedges; callers own that choice.
   for (const cell of [...canvas.fill.cells].sort(compareCells)) {

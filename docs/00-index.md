@@ -50,7 +50,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [14-match-rules.md](14-match-rules.md) | Implemented defaults: capacities, inventory, objective, traps, timings, lifecycle |
 | [15-information-rules.md](15-information-rules.md) | What each viewer may know: sight, projections, spectators, privacy |
 | [16-deferred.md](16-deferred.md) | Settled decisions, and requirements deliberately postponed to later milestones |
-| [17-open-questions.md](17-open-questions.md) | Guide to question records: micro (17.1), map generation (17.2, including delegation decisions in 17.2.9 and portal cord source direction in 17.2.10, navigation structure direction in 17.2.11), product (17.3), live service (17.4), playtests (17.5); verbatim answers stay in the relevant record |
+| [17-open-questions.md](17-open-questions.md) | Guide to question records: micro (17.1), map generation (17.2, including delegation decisions in 17.2.9 and portal cord source direction in 17.2.10, navigation structure direction in 17.2.11), product (17.3), live service (17.4), playtests (17.5), Foundation Pass (17.6); verbatim answers stay in the relevant record |
 | [18-original-prompt.md](18-original-prompt.md) | The preserved original design stream and influences. A source record, not requirements |
 | [19-decomposition-design.md](19-decomposition-design.md) | Accepted decomposition SDK direction: candidate assignment, generator contracts, residuals and interfaces |
 
@@ -88,7 +88,9 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | --- | --- |
 | [31-verification.md](31-verification.md) | Verification gates, what each suite covers, the frozen fixture rule |
 | [32-delegation.md](32-delegation.md) | Cost-aware delegation, the worker brief, manual model switches |
-| [33-maintenance.md](33-maintenance.md) | How to keep these documents true, and where a new fact belongs |
+| [33-maintenance.md](33-maintenance.md) | How to keep these documents true, and where a new fact belongs, including the archive |
+| [33.1-foundation-pass.md](33.1-foundation-pass.md) | The Foundation Pass: a periodic project-wide quality and maintainability review under a freeze; its conditions, six concern tracks and how a pass ends |
+| [33.2-readme-design.md](33.2-readme-design.md) | The README and audience-guide design: host/client players first, what the README holds, what moves to dedicated guides, secondary audiences |
 | [34-forgejo-workflow.md](34-forgejo-workflow.md) | Forgejo as source of truth, agent accounts and worktrees, the issue-to-PR loop |
 
 ### 4x — Plan and history

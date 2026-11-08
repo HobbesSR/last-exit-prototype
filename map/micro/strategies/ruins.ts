@@ -4,16 +4,97 @@ import { FALLEN_SLAB } from '../placeables/fallen-slab.ts';
 import { RUIN_ROOM_SPAN } from '../placeables/ruin-room-span.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, liveCord, portalApproaches } from './scatter.ts';
-import { draw } from '../random.ts';
+import { draw, rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { commitHintWalls, wallHints } from '../hint-walls.ts';
 import { mergeAssemblies, type CanvasAssembly } from '../canvas.ts';
 import { disjoint } from '../../../shared/shape-construction.ts';
 import type { Shape } from '../../../shared/shape.ts';
+import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
+
+/**
+ * Authored minimal appearance descriptors for ruined masonry rooms (`ruins`) and collapsed slabs (11.1 §5.5, 54).
+ * Ruin wall obstacles use high-value `dirtyCream` and `dustyStucco` masonry so Tier 2 ruin blockers
+ * stay clearly separated (`>= 1.50` contrast) from dark asphalt, street, and floor surfaces across all palettes.
+ */
+export const RUIN_WALL_INTACT: ObstacleAppearance = Object.freeze({
+  material: 'dirtyCream',
+  focalRim: { side: 'N' as const, color: 'weatheredCoral' },
+});
+
+export const RUIN_WALL_WEATHERED: ObstacleAppearance = Object.freeze({
+  material: 'dustyStucco',
+  weathered: true,
+  focalRim: { side: 'N' as const, color: 'sodiumAmber' },
+});
+
+export const RUIN_WALL_DAMAGED: ObstacleAppearance = Object.freeze({
+  material: 'dirtyCream',
+  weathered: true,
+  focalRim: { side: 'S' as const, color: 'oldSignRed' },
+});
+
+export const FALLEN_SLAB_APPEARANCE: ObstacleAppearance = Object.freeze({
+  material: 'dustyStucco',
+  weathered: true,
+});
+
+export const RUINS_BUILDING_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'warmMasonry',
+  wallMaterial: 'dirtyCream',
+  roofPaint: 'dustyStucco',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'weatheredCoral',
+});
+
+export const RUINS_BUILDING_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'warmMasonry',
+  wallMaterial: 'dustyStucco',
+  roofPaint: 'dirtyCream',
+  roofRim: 'sodiumAmber',
+  interiorTrim: 'oldSignRed',
+  neglect: {
+    fadedPanel: { dx: 18, dy: 24, w: 42, h: 20 },
+    roofDrainStain: { dx: 54, dy: 20, w: 28, h: 18 },
+  },
+});
+
+export const RUINS_BUILDING_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'dirtyCream',
+  roofPaint: 'coolConcrete',
+  roofRim: 'oldSignRed',
+  interiorTrim: 'oldSignRed',
+  neglect: {
+    fadedPanel: { dx: 16, dy: 22, w: 38, h: 18 },
+    roofDrainStain: { dx: 50, dy: 18, w: 26, h: 18 },
+    floorStain: { dx: 40, dy: 34, w: 32, h: 22 },
+    scorchMark: { dx: 32, dy: 38, w: 44, h: 28 },
+  },
+});
+
+export const RUINS_BUILDING_PRESETS: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance] = Object.freeze([
+  RUINS_BUILDING_INTACT,
+  RUINS_BUILDING_WEATHERED,
+  RUINS_BUILDING_DAMAGED,
+]);
+
+export function selectRuinWallAppearance(roll: number): ObstacleAppearance {
+  return roll < 0.35 ? RUIN_WALL_INTACT : roll < 0.75 ? RUIN_WALL_WEATHERED : RUIN_WALL_DAMAGED;
+}
+
+export function createRuinAppearance(options: TieredAppearanceOptions = {}): BuildingAppearance {
+  return createTieredBuildingAppearance(options, {
+    presets: RUINS_BUILDING_PRESETS,
+    thresholds: [0.25, 0.65],
+    tierChannel: 'ruin-tier',
+  });
+}
 
 const DEFAULT_DENSITY = 0.7;
 const DEFAULT_DECAY = 0.35;
@@ -77,10 +158,10 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   const sited: { elements: RegionElement[]; shapes: Shape[] }[] = [];
   const reserved: { x: number; y: number; w: number; h: number }[] = [];
   let rooms = 0;
-  const lay = (label: string, shape: Shape) => {
+  const lay = (label: string, shape: Shape, appearance: ObstacleAppearance) => {
     if (!canvas.fits(shape)) return false;
     room.push({ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
-      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } });
+      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall', appearance }] } });
     roomShapes.push(shape);
     return true;
   };
@@ -119,15 +200,16 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
         const cy = across ? (side === 'north' ? slot.y : slot.y + h - 1) : slot.y + i;
         const label = `ruins-${side}-${cx}-${cy}`;
         if (draw(brief.seed, cx, cy, CHANNEL.span + s) >= decay) {
-          const span = expectPlaced(RUIN_ROOM_SPAN.build({ side }, size));
+          const wallApp = selectRuinWallAppearance(rng(brief.seed, `${brief.id}:ruin-wall:${cx}:${cy}:${side}`).next());
+          const span = expectPlaced(RUIN_ROOM_SPAN.build({ side, appearance: wallApp }, size));
           const local = (span.elements[0]!.template.parts[0] as { shape: Shape }).shape;
           if (local.kind !== 'rect') throw new Error('A ruin room span must be a rectangle.');
           // Keep the old arithmetic order in the absolute-shape record, including fractional cell sizes.
           const shape = rect(side === 'east' ? (cx + 1) * size - local.w : cx * size,
             side === 'south' ? (cy + 1) * size - local.h : cy * size, local.w, local.h);
-          lay(`${label}-wall`, shape);
+          lay(`${label}-wall`, shape, wallApp);
         } else if (draw(brief.seed, cx, cy, CHANNEL.debris + s) < .5)
-          lay(`${label}-debris`, slab(cx, cy, size, draw(brief.seed, cx, cy, CHANNEL.angle + s), draw(brief.seed, cx, cy, CHANNEL.size + s)));
+          lay(`${label}-debris`, slab(cx, cy, size, draw(brief.seed, cx, cy, CHANNEL.angle + s), draw(brief.seed, cx, cy, CHANNEL.size + s)), FALLEN_SLAB_APPEARANCE);
       }
     }
     if (room.length) sited.push({ elements: room, shapes: roomShapes });
@@ -143,7 +225,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   const laid = canvas.elements, pieces = laid.flatMap(e => elementShapes(e));
   const walls = laid.filter(e => e.label.endsWith('-wall')).length, debris = laid.filter(e => e.label.endsWith('-debris')).length;
 
-  const hinted = commitHintWalls(canvas, wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...approaches, ...pieces] }), { passOver: true });
+  const hinted = commitHintWalls(canvas, wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...approaches, ...pieces], appearance: RUIN_WALL_WEATHERED }), { passOver: true });
   const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
   const crates = canvas.stage();
   placeInfillCrates({ brief, canvas: crates.canvas, chance: density * 0.5, channels: CHANNEL,

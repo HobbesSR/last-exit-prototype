@@ -1,5 +1,5 @@
 import { rect } from '../../../shared/shape.ts';
-import type { ObstacleKind } from '../../../shared/types.ts';
+import type { ElementAppearance, ObstacleAppearance, ObstacleKind } from '../../../shared/types.ts';
 import type { Placeable } from './placeable.ts';
 
 /*
@@ -23,6 +23,8 @@ export interface CoverPieceParams {
   length: number;
   /** From 0 to 1: where along its footprint a shorter piece stands. */
   offset: number;
+  appearance?: ObstacleAppearance | undefined;
+  elementAppearance?: ElementAppearance | undefined;
 }
 
 /** A piece's shape inside its footprint of `w` × `h` world units, along the footprint's long axis. */
@@ -49,10 +51,12 @@ export const COVER_PIECE = Object.freeze<Placeable<CoverPieceParams>>({
     { piece: 'barrier', turned: true, length: 0.2, offset: 0.9 },
     { piece: 'container', turned: false, length: 1, offset: 0.5 },
   ],
-  build({ piece, turned, length, offset }: CoverPieceParams, cellSize: number) {
+  build({ piece, turned, length, offset, appearance, elementAppearance }: CoverPieceParams, cellSize: number) {
     const { kind, w: across, h: down } = COVER_PIECES[piece], w = turned ? down : across, h = turned ? across : down;
     const shape = drawn(piece, w * cellSize, h * cellSize, length, offset);
-    return { elements: [{ x: 0, y: 0, template: { w: w * cellSize, h: h * cellSize, parts: [{ part: 'obstacle' as const, shape, kind }] } }],
+    return { elements: [{ x: 0, y: 0, template: { w: w * cellSize, h: h * cellSize,
+      ...(elementAppearance ? { appearance: elementAppearance } : {}),
+      parts: [{ part: 'obstacle' as const, shape, kind, ...(appearance ? { appearance } : {}) }] } }],
       demand: { body: { w, h }, clear: [] }, details: undefined };
   },
 });

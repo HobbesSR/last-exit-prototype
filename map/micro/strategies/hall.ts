@@ -2,16 +2,80 @@ import { rect, bounds } from '../../../shared/shape.ts';
 import { HALL_PILLAR, HALL_PILLAR_INSET as INSET } from '../placeables/hall-pillar.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, liveCord, portalApproaches } from './scatter.ts';
-import { draw } from '../random.ts';
+import { draw, rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { wallHints } from '../hint-walls.ts';
 import { construct } from '../../../shared/shape-construction.ts';
 import type { Shape } from '../../../shared/shape.ts';
+import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
+
+/**
+ * Authored minimal appearance descriptors for pillar halls (`hall`, 11.1 §5.5, 54).
+ * Three visual decay tiers for the hall structure and its supporting pillars:
+ * - `HALL_BUILDING_INTACT`: Civic transit/market hall in slate paving, cool concrete pillars, storefront-teal roof with awnings-yellow rim.
+ * - `HALL_BUILDING_WEATHERED`: Warm masonry floor, dusty stucco pillars, weathered coral roof, drainage stains.
+ * - `HALL_BUILDING_DAMAGED`: Cracked slate paving, cool concrete pillars, dirty cream roof, floor stains and competition scorch mark.
+ */
+export const HALL_BUILDING_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'storefrontTeal',
+  roofRim: 'awningsYellow',
+  interiorTrim: 'storefrontTeal',
+});
+
+export const HALL_BUILDING_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'warmMasonry',
+  wallMaterial: 'dustyStucco',
+  roofPaint: 'weatheredCoral',
+  roofRim: 'storefrontTeal',
+  interiorTrim: 'weatheredCoral',
+  neglect: {
+    fadedPanel: { dx: 24, dy: 28, w: 56, h: 24 },
+    roofDrainStain: { dx: 84, dy: 22, w: 32, h: 20 },
+  },
+});
+
+export const HALL_BUILDING_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'dirtyCream',
+  roofRim: 'oldSignRed',
+  interiorTrim: 'oldSignRed',
+  neglect: {
+    fadedPanel: { dx: 22, dy: 26, w: 48, h: 22 },
+    roofDrainStain: { dx: 80, dy: 22, w: 30, h: 20 },
+    floorStain: { dx: 56, dy: 44, w: 36, h: 24 },
+    scorchMark: { dx: 42, dy: 50, w: 50, h: 32 },
+  },
+});
+
+export const HALL_BUILDING_PRESETS: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance] = Object.freeze([
+  HALL_BUILDING_INTACT,
+  HALL_BUILDING_WEATHERED,
+  HALL_BUILDING_DAMAGED,
+]);
+
+export const HALL_PILLAR_APPEARANCE: ObstacleAppearance = Object.freeze({
+  material: 'coolConcrete',
+  weathered: true,
+  focalRim: { side: 'N' as const, color: 'storefrontTeal' },
+});
+
+export function createHallAppearance(options: TieredAppearanceOptions = {}): BuildingAppearance {
+  return createTieredBuildingAppearance(options, {
+    presets: HALL_BUILDING_PRESETS,
+    thresholds: [0.35, 0.7],
+    tierChannel: 'hall-tier',
+    weatheredFloorStainChance: 0.5,
+  });
+}
 
 /** The catalogue's proposed shape need (54): a contained rectangle at least this many cells a side. */
 const MIN_SIDE = 6;
@@ -102,22 +166,26 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
             b.y - shape.y - span, shape.y - b.y - b.h) < CELL_SCALE.doorway * size;
         })) continue;
         pillars.push(shape);
-        placed.push({ bay: index, part: { part: 'obstacle', shape: rect((bx - wing.x + INSET) * size, (by - wing.y + INSET) * size, span, span), kind: 'building' } });
+        placed.push({ bay: index, part: { part: 'obstacle', shape: rect((bx - wing.x + INSET) * size, (by - wing.y + INSET) * size, span, span), kind: 'building', appearance: HALL_PILLAR_APPEARANCE } });
       }
     }
   }
 
-  const hinted = wallHints(brief, { kind: 'building', avoid: [...approaches, ...pillars] });
+  const hinted = wallHints(brief, { kind: 'building', avoid: [...approaches, ...pillars], appearance: HALL_PILLAR_APPEARANCE });
   const wallShapes = hinted.elements.map(element => elementShapes(element));
   // The hall bays and hint walls commit as one assembly: pillars in order, then walls, kept
   // greedily while a cord stands. A bay stands if it is roofed or keeps a pillar. Walls were
   // hinted around every sited pillar, so a refused pillar leaves its wall gap. Its intent is its
   // rectangles and the walls, less the approaches it keeps clear (29's construction).
+  const hallTierRoll = rng(brief.seed, `${brief.id}:hall-appearance`).next();
   const hallOf = (kept: readonly boolean[]) => {
     const bays = boxes.flatMap((wing, index) => {
       const parts = placed.filter((p, i) => p.bay === index && kept[i]).map(p => p.part);
-      return parts.length || roofed ? [{ label: index ? `hall-wing-${index}` : 'hall', x: wing.x * size, y: wing.y * size,
-        template: { w: wing.w * size, h: wing.h * size, ...(roofed ? { encloses: true } : {}), parts } }] : [];
+      if (!parts.length && !roofed) return [];
+      const baySeed = Math.floor(rng(brief.seed, `${brief.id}:hall-bay:${index}`).next() * 2 ** 31);
+      const building = createHallAppearance({ seed: baySeed, roll: hallTierRoll, w: wing.w * size, h: wing.h * size });
+      return [{ label: index ? `hall-wing-${index}` : 'hall', x: wing.x * size, y: wing.y * size,
+        template: { w: wing.w * size, h: wing.h * size, ...(roofed ? { encloses: true } : {}), parts, appearance: { building } } }];
     });
     const walls = hinted.elements.filter((_, i) => kept[placed.length + i]);
     const shapes = wallShapes.filter((_, i) => kept[placed.length + i]).flat();

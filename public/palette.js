@@ -61,7 +61,7 @@ function night({ background = U.structuralVoid, ground, street, streetLine, floo
     tuft: mix(vegetation, white, 0.12), floor,
     shadow: background, outline, wall, wallInset: mix(wall, outline, 0.22), wallLine: mix(wall, outline, 0.55),
     fence, fenceLine: mix(fence, outline, 0.6), crates, crateLine: outline,
-    hedge: vegetation, hedgeEdge: mix(vegetation, white, 0.3), ruin: mix(wall, ground, 0.15), ruinShadow: background, ruinEdge: mix(wall, white, 0.25),
+    hedge: L.fadedMint, hedgeEdge: mix(L.fadedMint, white, 0.4), ruin: mix(wall, L.dirtyCream, 0.5), ruinShadow: background, ruinEdge: mix(mix(wall, L.dirtyCream, 0.5), white, 0.35),
     pipe: metal, pipeEdge: mix(metal, white, 0.45), glass, glassEdge: mix(glass, white, 0.5),
     circleShadow: background, rock: mix(U.dustyStucco, ground, 0.35), rockMid: U.dustyStucco, rockTop: mix(U.dustyStucco, white, 0.3),
     trunk: mix(U.weatheredBrick, background, 0.4), trunkTop: U.weatheredBrick,

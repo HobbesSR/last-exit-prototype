@@ -1,11 +1,16 @@
 import { polygon } from '../../../shared/shape.ts';
+import type { ObstacleAppearance } from '../../../shared/types.ts';
 import type { Placeable } from './placeable.ts';
 
 /*
  * `fallen-slab`: a convex rotated span of a collapsed ruin wall. `ruins` chooses which
  * wall cells collapse and which slabs survive its protected routes.
  */
-export interface FallenSlabParams { turn: number; length: number }
+export interface FallenSlabParams {
+  turn: number;
+  length: number;
+  appearance?: ObstacleAppearance | undefined;
+}
 const WALL = 0.25;
 
 export const FALLEN_SLAB = Object.freeze<Placeable<FallenSlabParams>>({
@@ -16,7 +21,7 @@ export const FALLEN_SLAB = Object.freeze<Placeable<FallenSlabParams>>({
     { name: 'length', summary: 'Slab length variation.', kind: 'number', min: 0, max: 1 },
   ],
   examples: [{ turn: 0, length: 0 }, { turn: 0.37, length: 0.8 }],
-  build({ turn, length }, cellSize) {
+  build({ turn, length, appearance }, cellSize) {
     const angle = turn * Math.PI, long = cellSize * (.55 + length * .25), wide = cellSize * WALL * 1.2;
     const cos = Math.cos(angle), sin = Math.sin(angle);
     const round = (n: number) => Math.round(n * 1000) / 1000;
@@ -24,7 +29,7 @@ export const FALLEN_SLAB = Object.freeze<Placeable<FallenSlabParams>>({
       x: round(u! * long / 2 * cos - v! * wide / 2 * sin), y: round(u! * long / 2 * sin + v! * wide / 2 * cos) }));
     const shape = polygon(.5 * cellSize, .5 * cellSize, points);
     return { elements: [{ x: 0, y: 0, template: { w: cellSize, h: cellSize,
-      parts: [{ part: 'obstacle' as const, kind: 'ruin-wall' as const, shape }] } }],
+      parts: [{ part: 'obstacle' as const, kind: 'ruin-wall' as const, shape, ...(appearance ? { appearance } : {}) }] } }],
       demand: { body: { w: 1, h: 1 }, clear: [] }, details: undefined };
   },
 });

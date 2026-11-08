@@ -21,10 +21,10 @@ const shapes = {
 };
 // SHA-256 of { primary elements, observer traces } at pre-infill commit f775fe7.
 const baseline = {
-  yard: ['c10621626970cbaa02a6b3ca72d19dedd86dcd999d899c9c60e5d7822badba22', '09f0e58853644ff366a13185323c8ad36381b13109d7fcb82a5f1067386e2c6d'],
-  ell: ['bf369333a976a67af719aa92d177b85bef82d3f75323def510ab5950dcb7ce97', 'c6ab028cdb52d01ef56fb4faa5e443b65947b0e07b870bd5a81ab281f1d9b307'],
-  one: ['8ab387415972b0347eb6f39777eee3c3c147b5d6fe82c6d6bafb008d6d8a4e14', 'db0595e821377903544bc1e4fbe49786bbf5edc91c52130a91eb9dbad98c86f0'],
-  tiny: ['40fb98ef94e60edc814fab653823a1b9af7b2f6a8310fdd91b303dbf534509e5', 'f15089f3c85bb14f492b21dac68e9de87cbb38df857cc0cc70c54c8555549594'],
+  yard: ['ea4f2449d978802830955c872e34be3517cc4734e510d48cedd6a0fd12d3dc63', '85048cb51382c7b740a47dbacb54db37c876f1718a8fd38e0a6ac2f60c956487'],
+  ell: ['a7ed1e03b4c302c078ef141335c6140447e067852bab99f8768dfca6c0a6a726', 'b612319df788a818c08e548c1fe4f3f3026e24988e9f742e413c28b80eafa79d'],
+  one: ['c1ddd8af6405cc06e2d1e1e063fc69013ea8dc236d5c863e9f8be689e42e9218', 'dffa0360abc1fd27f9e32f55c66fbc13c2eeabd8ebd589ad2fbb8a04af5d6e59'],
+  tiny: ['73d9217e0ce5f82833bb0e2e08c374d994e90ffac2dbf43a7cda3648ccfdda6f', 'dc3d6de18b5ad91ba7ff2eccefd035b3c92b2afdb154ad9518825f4acbfba96f'],
 };
 const input = (name, seed, cells = shapes[name][0], portals = shapes[name][1]) => ({
   id: name, seed, type: 'checkpoint', cellSize: SIZE, cells,
