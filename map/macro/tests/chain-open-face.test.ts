@@ -121,6 +121,33 @@ test("a sealed component is refused by its cut, not by every slot inside it", ()
   assert.deepEqual(cause, [3]);
 });
 
+test("a pocket is refused while its hole is unplaced, once every side around it is closed (#857)", () => {
+  // A hut, then a hole that can only be hut, then open ground, then a slot still to place.
+  // The hut faces the hole, which could join it, so the rule's flood stops there; the open
+  // ground faces the slot beyond it. But nothing the hole holds can join the open ground,
+  // so the hut and the hole are sealed together already: the lookahead floods through the
+  // hole and refuses them now, naming the slots that close it, not once the hole is placed.
+  const hut: ChainTileDesign = { id: "hut-block", defaultCellClass: "hut", orientations: [0, 180] };
+  const library: ChainLibrary = { ...HAND, tiles: [...HAND_TILES, hut] };
+  const option = (templateId: string, orientation: 0 | 180 = 0): TileOption => ({ templateId, orientation, difficulty: 0, weight: 1 });
+  const check = (hole: TileOption[], lookahead?: number) => {
+    const grid: WfcGrid = [[option("hut-block")], hole, [option("field")], [option("field"), option("annex", 180)]]
+      .map((domain, x) => ({ x, y: 0, domain, links: [] }));
+    adjacencyLinks(grid);
+    const refusals: string[] = [];
+    const cause = openFaceRule(library, grid, 4, 1, (reason) => refusals.push(reason), lookahead)(grid, [0, 2]);
+    return { cause: cause === true ? cause : [...cause].sort(), refusals };
+  };
+  const huts = [option("hut-block"), option("hut-block", 180)];
+  assert.deepEqual(check(huts), {
+    cause: [0, 2], refusals: ["the area from hut@0,0 (72 cells, 1 unplaced slot) can't reach the rest of the map"],
+  });
+  // Without the lookahead it waits for the hole to be placed.
+  assert.deepEqual(check(huts, 0), { cause: true, refusals: [] });
+  // A hole that could still join the open ground is no pocket.
+  assert.deepEqual(check([...huts, option("field")]), { cause: true, refusals: [] });
+});
+
 test("a portal shorter than a hunter is refused once its ends are settled, and a seam can lengthen it", () => {
   // One passable segment at the foot of a column, continued, or not, by the column below.
   assert.deepEqual(solve({ "0,0": ["door-foot"], "0,1": ["plain-column", "door-head"] }, 1, 2).placed, ["door-foot@0", "door-head@0"]);

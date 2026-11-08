@@ -9,6 +9,11 @@
  *   unplaced slot is open while some option left for that slot could join there.
  * - **Short portal:** a portal whose every cell, and the cells just past each end, are
  *   settled can't grow, so one shorter than `MIN_PORTAL_LENGTH` is refused.
+ * - **Sealed pocket (lookahead, #857):** the sealed check floods on through unplaced slots
+ *   and unsettled cells, each unplaced slot as one node that joins whatever it could. An
+ *   area of up to `LOOKAHEAD_CELLS` that can't reach the rest of the map is refused while
+ *   it is still a hole, rather than once its last face closes, when the choices that walled
+ *   it in may lie far back and the solver churns among the slots around it.
  *
  * An `any` cell is settled once a placed design beside it asks it for a class, since
  * placement keeps the asks aimed at one cell in agreement, or once every cell beside it
@@ -29,7 +34,7 @@ import type { TileOption, WfcAccept, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
-import type { ChainLibrary } from "./library.ts";
+import type { ChainLibrary, SegmentPrescription } from "./library.ts";
 import { DEFAULT_RESOLVED_CLASS, guaranteesPassability } from "./resolution.ts";
 import type { Orientation, SegmentKey } from "./types.ts";
 
@@ -39,22 +44,94 @@ const OUTSIDE = "";
 /** A cell whose class isn't settled: its slot is unplaced, or it is an `any` cell nothing has asked yet. */
 const UNSETTLED = "?";
 const SIDES = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
+/** Cells of one design that join inside it (`partsOf`), by local index, and its exits, `local * 4 + side`. */
+interface Part { cells: number[]; exits: number[] }
+interface Parts { of: Int16Array; parts: Part[] }
+/**
+ * The largest area, in cells, the lookahead floods before taking it as open (#857): 32 slots.
+ * It bounds each check's cost, not which layouts are valid: a larger sealed area is still
+ * refused, by the open-face rule, once its last face closes. The pockets that stalled 12 x 6
+ * to 36 x 18 seeds (42.39) reached 17 slots of settled cells beside a hole; 8 slots left
+ * three of them to the stall limit, and 16 slots one.
+ */
+export const LOOKAHEAD_CELLS = 32 * CHAIN_TILE_SIZE * CHAIN_TILE_SIZE;
+/**
+ * The most unplaced slots a lookahead area may hold before it is taken as open: a pocket is a
+ * hole or two beside settled cells, and an area reaching many unplaced slots is the unsolved
+ * map. On the stalled seeds of 42.39 eight kept every pocket and cut the flood by a fifth; four lost one.
+ */
+export const LOOKAHEAD_SLOTS = 8;
 
 /**
  * The rule for one solve over `grid`, a map `columns` by `rows` slots. `refused` hears
  * why each refused branch was refused.
  */
 export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: number, rows: number,
-  refused: (reason: string) => void = () => {}): WfcAccept {
+  refused: (reason: string) => void = () => {}, lookahead = LOOKAHEAD_CELLS): WfcAccept {
   const width = columns * S, height = rows * S, rules = library.passabilityRules ?? "either-side";
   const slotAt = new Int32Array(columns * rows).fill(-1);
   grid.forEach((slot, i) => { slotAt[slot.y * columns + slot.x] = i; });
   const oriented = orientedDesigns(library);
   // Each option's design, turned once.
   const designs = new Map<TileOption, OrientedDesign>();
+  /**
+   * A design's fixed parts: its cells that join inside it whatever lies around it, the same
+   * class or a guaranteed segment between them, both stated by the design alone. An `any`
+   * cell's class depends on its neighbours, so it is in no part. The floods take a part as one
+   * node and leave it only by its exits, the faces from its cells to cells outside it.
+   */
+  const partsCache = new Map<OrientedDesign, Parts>();
+  /** A design's segment prescriptions by number: `h:x,y` at `y * S + x`, then `v:x,y` at `x * S + y`. */
+  const segmentCache = new Map<OrientedDesign, Array<SegmentPrescription | undefined>>();
+  const segmentsOf = (turnedDesign: OrientedDesign): Array<SegmentPrescription | undefined> => {
+    let found = segmentCache.get(turnedDesign);
+    if (found) return found;
+    found = new Array(2 * (S + 1) * S);
+    for (const [key, prescription] of turnedDesign.segments) {
+      const [a, b] = key.slice(2).split(",").map(Number) as [number, number];
+      found[key[0] === "h" ? b * S + a : (S + 1) * S + a * S + b] = prescription;
+    }
+    segmentCache.set(turnedDesign, found);
+    return found;
+  };
+  const partsOf = (turnedDesign: OrientedDesign): Parts => {
+    let found = partsCache.get(turnedDesign);
+    if (found) return found;
+    const { cells } = turnedDesign;
+    const of = new Int16Array(S * S).fill(-1), parts: Part[] = [];
+    const joinsInside = (local: number, k: number): number => {
+      const x = local % S, y = (local - x) / S, [dx, dy] = SIDES[k]!, nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= S || ny >= S) return -1;
+      const next = ny * S + nx;
+      if (cells[next] === "any") return -1;
+      if (cells[next] === cells[local]) return next;
+      const segment = turnedDesign.segments.get((dx ? `v:${x + Math.max(dx, 0)},${y}` : `h:${x},${y + Math.max(dy, 0)}`) as SegmentKey);
+      return guaranteesPassability(segment?.passability, segment?.passability, rules) ? next : -1;
+    };
+    for (let first = 0; first < S * S; first++) {
+      if (cells[first] === "any" || of[first]! >= 0) continue;
+      const part: Part = { cells: [first], exits: [] };
+      of[first] = parts.length;
+      for (let i = 0; i < part.cells.length; i++) for (let k = 0; k < SIDES.length; k++) {
+        const next = joinsInside(part.cells[i]!, k);
+        if (next >= 0 && of[next]! < 0) { of[next] = parts.length; part.cells.push(next); }
+      }
+      parts.push(part);
+    }
+    for (const [id, part] of parts.entries()) for (const local of part.cells) for (let k = 0; k < SIDES.length; k++) {
+      const next = joinsInside(local, k);
+      if (next < 0 || of[next] !== id) part.exits.push(local * 4 + k);
+    }
+    partsCache.set(turnedDesign, found = { of, parts });
+    return found;
+  };
   // Flood marks, kept across checks: a mark at or above `firstFlood` belongs to this check.
-  const mark = new Int32Array(width * height);
+  // Cells first, then one node per slot (the lookahead's unplaced slots).
+  const mark = new Int32Array(width * height + grid.length);
   let flood = 0;
+  // Each cell's class, found once a check: valid while its stamp is the check's.
+  const classStamp = new Int32Array(width * height), classOf: string[] = new Array(width * height);
+  let checks = 0;
 
   return (solving, placed) => {
     const turned = (option: TileOption): OrientedDesign => {
@@ -73,21 +150,20 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
      * global key: the placed design, or `option`.
      */
     const stated = (x: number, y: number, axis: "h" | "v", gx: number, gy: number, option?: TileOption) => {
-      const ox = Math.floor(x / S) * S, oy = Math.floor(y / S) * S;
-      return (option ? turned(option) : design(slotOf(x, y))!).segments.get(`${axis}:${gx - ox},${gy - oy}` as SegmentKey);
+      const lx = gx - x + (x % S), ly = gy - y + (y % S);
+      return segmentsOf(option ? turned(option) : design(slotOf(x, y))!)[axis === "h" ? ly * S + lx : (S + 1) * S + lx * S + ly];
     };
     /** The segment between (x, y) and the cell `dx, dy` from it, by its global key. */
     const between = (x: number, y: number, dx: number, dy: number): ["h" | "v", number, number] =>
       dx ? ["v", x + Math.max(dx, 0), y] : ["h", x, y + Math.max(dy, 0)];
 
-    const classes = new Map<number, string>();
+    const check = ++checks;
     /** A cell's resolved class as resolution would give it, or `OUTSIDE`, or `UNSETTLED`. */
     const classAt = (x: number, y: number): string => {
       const slot = slotOf(x, y);
       if (slot < 0) return OUTSIDE;
       const cell = y * width + x;
-      const known = classes.get(cell);
-      if (known !== undefined) return known;
+      if (classStamp[cell] === check) return classOf[cell]!;
       const own = design(slot);
       let found = own ? own.cells[(y % S) * S + (x % S)]! : UNSETTLED;
       if (found === "any") {
@@ -103,7 +179,8 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
         }
         found = asked ?? (waiting ? UNSETTLED : DEFAULT_RESOLVED_CLASS);
       }
-      classes.set(cell, found);
+      classStamp[cell] = check;
+      classOf[cell] = found;
       return found;
     };
     /**
@@ -161,15 +238,21 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
      * cell that could resolve to it, or the paired prescriptions guarantee passage. Domains
      * only narrow, so a face that can't join now never will.
      */
+    // Both passes ask about the same faces, so each answer is kept for the check.
+    const joinable = new Map<number, boolean>();
     const couldJoin = (x: number, y: number, dx: number, dy: number, own: string): boolean => {
+      const face = (y * width + x) * 4 + (dx ? 1 + dx : 2 + dy);
+      let found = joinable.get(face);
+      if (found !== undefined) return found;
       const key = between(x, y, dx, dy);
-      if (stated(x, y, ...key)?.passability === "passable") return true;
       const nx = x + dx, ny = y + dy, local = (ny % S) * S + (nx % S);
-      return solving[slotOf(nx, ny)]!.domain.some((option) => {
+      found = stated(x, y, ...key)?.passability === "passable" || solving[slotOf(nx, ny)]!.domain.some((option) => {
         const across = turned(option).cells[local];
         return across === own || (across === "any" && anyCouldBe(nx, ny, option, own))
           || guaranteesPassability(stated(x, y, ...key)?.passability, stated(nx, ny, ...key, option)?.passability, rules);
       });
+      joinable.set(face, found);
+      return found;
     };
     /** Derived guarantee after both segment prescriptions are known. Both slots are placed. */
     const guaranteed = (x: number, y: number, dx: number, dy: number): boolean => {
@@ -230,69 +313,161 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
       }
     }
 
-    // ── Sealed components ──
-    let unplaced = 0;
-    for (const slot of solving) if (slot.domain.length !== 1) unplaced++;
-    const firstFlood = ++flood;
-    const stack: number[] = [];
-    // A component's last open face was a placed slot's cell, or an `any` cell beside one
-    // that has now settled, so it has a cell within two of a placed slot.
-    for (const start of near(2)) {
-      if (mark[start]! >= firstFlood) continue;
-      const sx = start % width, sy = (start - sx) / width;
-      const startClass = classAt(sx, sy);
-      if (startClass === OUTSIDE || startClass === UNSETTLED) continue;
-      const id = flood++;
-      mark[start] = id;
-      stack.length = 0;
-      stack.push(start);
-      let open = false, lowest = start;
-      const component: number[] = [];
-      // Its cells facing an unplaced slot that can't join, and each closed face toward a
-      // settled cell, as [cell, across]; those whose cell across lies outside it are its cut.
-      const cut = new Set<number>();
-      const faces: number[] = [];
-      // Unplaced slots the component faces, but that have no option left to join it.
-      const closed = new Set<number>();
-      while (stack.length && !open) {
-        const cell = stack.pop()!;
-        component.push(cell);
-        if (cell < lowest) lowest = cell;
-        const x = cell % width, y = (cell - x) / width, own = classAt(x, y);
-        for (const [dx, dy] of SIDES) {
-          const across = classAt(x + dx, y + dy);
-          if (across === OUTSIDE) continue;
-          if (across === UNSETTLED) {
-            const beside = slotOf(x + dx, y + dy);
-            // Even a placed `any` cell can join only through a possible class or a
-            // derived guarantee. A hint doesn't turn an unsettled class into passage.
-            if (couldJoin(x, y, dx, dy, own)) { open = true; break; }
-            closed.add(beside);
-            cut.add(cell);
-            continue;
-          }
-          if (across !== own && !guaranteed(x, y, dx, dy)) { faces.push(cell, (y + dy) * width + x + dx); continue; }
-          const next = (y + dy) * width + x + dx;
-          if (mark[next] === id) continue;
-          // An earlier flood of this check stopped at an open face, so its cells are open.
-          if (mark[next]! >= firstFlood) { open = true; break; }
-          mark[next] = id;
-          stack.push(next);
-        }
+    // ── Sealed areas ──
+    // Flood nodes: a placed design's part, numbered by its first cell, or an `any` cell of a
+    // placed slot, or an unplaced slot, numbered after the cells. Nothing yet decides how an
+    // unplaced slot's cells connect, so it joins all of its faces, and two unplaced slots, or
+    // cells whose class isn't settled, always join.
+    const cellCount = width * height;
+    /** The part of a placed slot's design holding (x, y), with the slot's origin, or undefined for an `any` cell. */
+    const partAt = (x: number, y: number, placedDesign: OrientedDesign) => {
+      const ox = x - (x % S), oy = y - (y % S), { of, parts } = partsOf(placedDesign);
+      const id = of[(y % S) * S + (x % S)]!;
+      return id < 0 ? undefined : { part: parts[id]!, ox, oy };
+    };
+    const nodeOf = (x: number, y: number): number => {
+      const slot = slotOf(x, y);
+      if (slot < 0) return -1;
+      const placedDesign = design(slot);
+      if (!placedDesign) return cellCount + slot;
+      const found = partAt(x, y, placedDesign);
+      if (!found) return y * width + x;
+      const first = found.part.cells[0]!;
+      return (found.oy + Math.floor(first / S)) * width + found.ox + (first % S);
+    };
+    /** Every cell of a node. */
+    const cellsOf = (node: number): number[] => {
+      if (node >= cellCount) {
+        const { x: col, y: row } = solving[node - cellCount]!;
+        return Array.from({ length: S * S }, (_, local) => (row * S + Math.floor(local / S)) * width + col * S + (local % S));
       }
-      if (open || (unplaced === 0 && component.length === grid.length * S * S)) continue;
-      for (let f = 0; f < faces.length; f += 2) if (mark[faces[f + 1]!] !== id) cut.add(faces[f]!);
-      const lx = lowest % width, ly = (lowest - lx) / width;
-      refused(`the component from ${classAt(lx, ly)}@${lx},${ly} (${component.length} cells) has no portal path out`);
-      // Every path out crosses the cut, so the slots that settle its faces seal the component
-      // whatever lies inside it: they are the cause, not the component's every slot. A sealed
-      // map-sized component named nearly every slot, and the solver then backtracked one slot
-      // at a time to its iteration cap (#849). A closed slot's domain was narrowed by its
-      // placed neighbours' propagation.
-      const slots = new Set(cause(cut.size ? cut : component));
-      for (const slot of closed) for (const { cell } of solving[slot]!.links) if (design(cell)) slots.add(cell);
-      return [...slots];
-    }
-    return true;
+      const x = node % width, y = (node - x) / width, found = partAt(x, y, design(slotOf(x, y))!);
+      return found ? found.part.cells.map((local) => (found.oy + Math.floor(local / S)) * width + found.ox + (local % S)) : [node];
+    };
+    /**
+     * Each face of `node` toward a cell of another node: from (x, y) to `dx, dy`. A part
+     * faces out by its exits, an unplaced slot from each of its perimeter cells.
+     */
+    const partSize = (node: number): number => {
+      const x = node % width, y = (node - x) / width;
+      return partAt(x, y, design(slotOf(x, y))!)?.part.cells.length ?? 1;
+    };
+    const facesOf = (node: number, visit: (x: number, y: number, dx: number, dy: number) => boolean): void => {
+      if (node < cellCount) {
+        const x = node % width, y = (node - x) / width, found = partAt(x, y, design(slotOf(x, y))!);
+        if (!found) {
+          for (const [dx, dy] of SIDES) if (visit(x, y, dx, dy)) return;
+          return;
+        }
+        for (const exit of found.part.exits) {
+          const local = exit >> 2, [dx, dy] = SIDES[exit & 3]!;
+          if (visit(found.ox + (local % S), found.oy + Math.floor(local / S), dx, dy)) return;
+        }
+        return;
+      }
+      const { x: col, y: row } = solving[node - cellCount]!;
+      for (const [dx, dy] of SIDES) {
+        // The side's first cell, and the step along it.
+        const x0 = dx > 0 ? col * S + S - 1 : col * S, y0 = dy > 0 ? row * S + S - 1 : row * S;
+        const beside = slotOf(x0 + dx, y0 + dy);
+        if (beside < 0) continue;
+        // Two unplaced slots join along their whole seam, so one face stands for it.
+        const cellsAlong = design(beside) ? S : 1;
+        for (let i = 0; i < cellsAlong; i++) if (visit(x0 + i * dy * dy, y0 + i * dx * dx, dx, dy)) return;
+      }
+    };
+
+    /**
+     * Refuses an area that can't reach the rest of the map: the open-face rule and its
+     * lookahead (#857), by `through`.
+     * - Without `through`, areas of settled cells, each stopping at its first face that an
+     *   unsettled cell could still join. One with none is sealed, whatever its size.
+     * - With `through`, it floods on past those faces, through unplaced slots and unsettled
+     *   cells, so a hole whose sides are all closed toward it is refused while it is still
+     *   a hole, not once the last of it is placed. A flood larger than `budget` cells is
+     *   taken as open: the lookahead is for pockets, and the first pass still proves the map.
+     */
+    const sealed = (through: boolean, budget: number): number[] | undefined => {
+      const firstFlood = ++flood;
+      // Breadth first, so an open flood marks the cells around the placed slots before it
+      // runs far, and the floods after it in this check meet its marks soon.
+      const queue: number[] = [];
+      // A component's last open face was a placed slot's cell, or an `any` cell beside one
+      // that has now settled, so it has a cell within two of a placed slot; a hole that has
+      // just closed lies beside one.
+      for (const startCell of near(2)) {
+        const sx = startCell % width, sy = (startCell - sx) / width;
+        const start = nodeOf(sx, sy);
+        if (start < 0 || mark[start]! >= firstFlood) continue;
+        if (!through && classAt(sx, sy) === UNSETTLED) continue;
+        const id = flood++;
+        mark[start] = id;
+        queue.length = 0;
+        queue.push(start);
+        let head = 0;
+        let open = false, size = 0, lowest = start, holes = 0;
+        const component: number[] = [];
+        // Each closed face as [settled cell, slot of the unsettled cell across or -1, node across].
+        // Those whose node across lies outside the component are its cut.
+        const faces: number[] = [];
+        while (head < queue.length && !open) {
+          const node = queue[head++]!;
+          component.push(node);
+          if (node < lowest) lowest = node;
+          size += node < cellCount ? partSize(node) : S * S;
+          if (node >= cellCount) holes++;
+          if (size > budget || holes > LOOKAHEAD_SLOTS) { open = true; break; }
+          facesOf(node, (x, y, dx, dy) => {
+            const ax = x + dx, ay = y + dy;
+            const across = classAt(ax, ay);
+            if (across === OUTSIDE) return false;
+            const next = nodeOf(ax, ay), own = classAt(x, y);
+            // Even a placed `any` cell can join only through a possible class or a derived
+            // guarantee. A hint doesn't turn an unsettled class into passage.
+            const joins = own !== UNSETTLED
+              ? across !== UNSETTLED ? across === own || guaranteed(x, y, dx, dy) : couldJoin(x, y, dx, dy, own)
+              : across !== UNSETTLED ? couldJoin(ax, ay, -dx, -dy, across) : true;
+            if (!joins) {
+              if (own === UNSETTLED) faces.push(ay * width + ax, slotOf(x, y), next);
+              else faces.push(y * width + x, across === UNSETTLED ? slotOf(ax, ay) : -1, next);
+              return false;
+            }
+            if (!through && across === UNSETTLED) return open = true;
+            if (mark[next] === id) return false;
+            // An earlier flood of this check was open, so whatever it reached is open.
+            if (mark[next]! >= firstFlood) return open = true;
+            mark[next] = id;
+            queue.push(next);
+            return false;
+          });
+        }
+        if (open || size === grid.length * S * S) continue;
+        const cut = new Set<number>();
+        // Unsettled cells' slots the area faces, but that have no option left to join it.
+        const closed = new Set<number>();
+        for (let f = 0; f < faces.length; f += 3) if (mark[faces[f + 2]!] !== id) {
+          cut.add(faces[f]!);
+          if (faces[f + 1]! >= 0) closed.add(faces[f + 1]!);
+        }
+        const at = lowest < cellCount ? lowest : (() => {
+          const { x, y } = solving[lowest - cellCount]!;
+          return y * S * width + x * S;
+        })();
+        const lx = at % width, ly = (at - lx) / width;
+        refused(through
+          ? `the area from ${classAt(lx, ly)}@${lx},${ly} (${size} cells, ${holes} unplaced slot${holes === 1 ? "" : "s"}) can't reach the rest of the map`
+          : `the component from ${classAt(lx, ly)}@${lx},${ly} (${size} cells) has no portal path out`);
+        // Every path out crosses the cut, so the slots that settle its faces seal the component
+        // whatever lies inside it: they are the cause, not the component's every slot. A sealed
+        // map-sized component named nearly every slot, and the solver then backtracked one slot
+        // at a time to its iteration cap (#849). A closed slot's domain was narrowed by its
+        // placed neighbours' propagation.
+        const slots = new Set(cause(cut.size ? cut : component.filter((node) => node < cellCount).flatMap(cellsOf)));
+        for (const slot of closed) for (const { cell } of solving[slot]!.links) if (design(cell)) slots.add(cell);
+        return [...slots];
+      }
+      return undefined;
+    };
+    return sealed(false, Infinity) ?? sealed(true, lookahead) ?? true;
   };
 }

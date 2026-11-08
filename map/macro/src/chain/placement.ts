@@ -7,7 +7,7 @@
  * attempt on its own stream.
  */
 import { libraryFingerprint } from "../coding.ts";
-import { solveWfc } from "../wfc.ts";
+import { solveWfc, wfcIterationCap } from "../wfc.ts";
 import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import { openFaceRule } from "./open-face.ts";
@@ -227,11 +227,17 @@ export function adjacencyLinks(grid: WfcGrid): void {
 
 type Failure = `set piece ${string}` | "wfc";
 
+/**
+ * What one placement attempt did, for probes and views of the solve (#857): search nodes,
+ * open-face refusals, the most refusals between two new depths, and how it ended.
+ */
+export interface PlacementAttempt { nodes: number; refusals: number; mostStall: number; outcome: "placed" | Failure }
+
 /** One sample: set pieces, then WFC. A failure names what failed, for the final error. */
 function sample(
   seed: string, params: ChainParams, library: ChainLibrary, fingerprint: string,
   mask: MaskCell[], zones: Map<string, MapZone>, fill: (zone: MapZone) => ChainTileDesign[],
-  random: Stream, openFace: boolean, refused: (reason: string) => void,
+  random: Stream, openFace: boolean, refused: (reason: string) => void, attempt?: PlacementAttempt, lookahead?: number,
 ): Layout | Failure {
   const plan = zonePlan(params), { columns, rows } = planTiles(plan, params);
   const designs = new Map(library.tiles.map((tile) => [tile.id, tile]));
@@ -293,8 +299,11 @@ function sample(
     };
   });
   adjacencyLinks(grid);
+  const state = { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, stall = { most: 0 };
+  const counted = (reason: string) => { if (attempt) attempt.refusals++; refused(reason); };
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
-    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {}), stallLimit: PLACEMENT_STALL_LIMIT });
+    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, counted, lookahead) } : {}), stallLimit: PLACEMENT_STALL_LIMIT, state, stall });
+  if (attempt) Object.assign(attempt, { nodes: state.iterations, mostStall: stall.most });
   if (!solved) return "wfc";
 
   const slots: PlacedSlot[] = mask
@@ -305,9 +314,13 @@ function sample(
 
 /**
  * Placement, with the open-face rule on or off. Only tests switch it off, to show that
- * layouts it would refuse do occur (the PR #110 method).
+ * layouts it would refuse do occur (the PR #110 method). `attempts` hears each attempt's
+ * search figures, in order; `lookahead` overrides the open-face rule's (`LOOKAHEAD_CELLS`,
+ * 0 for none), for probes and tests comparing them.
  */
-export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placement"] => (seed, params, library) => {
+export const placer = ({ openFace, attempts, lookahead }: {
+  openFace: boolean; attempts?: (attempt: PlacementAttempt) => void; lookahead?: number;
+}): MacroStages["placement"] => (seed, params, library) => {
   const mode = params.mode ?? "game";
   const plan = zonePlan(params);
   if (library.zonePlan !== plan.id) throw new Error(`library ${library.name} is authored for ${library.zonePlan}, not ${plan.id}`);
@@ -342,8 +355,10 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
   const failures = new Map<Failure, number>();
   let refusal: string | undefined;
   for (let attempt = 0; attempt < PLACEMENT_ATTEMPTS; attempt++) {
+    const record: PlacementAttempt | undefined = attempts ? { nodes: 0, refusals: 0, mostStall: 0, outcome: "wfc" } : undefined;
     const result = sample(seed, params, library, fingerprint, mask, zones, (zone) => fillByZone.get(zone.id)!,
-      stream(seed, "placement", attempt), openFace, (reason) => { refusal = reason; });
+      stream(seed, "placement", attempt), openFace, (reason) => { refusal = reason; }, record, lookahead);
+    if (record) attempts!({ ...record, outcome: typeof result === "string" ? result : "placed" });
     if (typeof result !== "string") return result;
     failures.set(result, (failures.get(result) ?? 0) + 1);
   }
