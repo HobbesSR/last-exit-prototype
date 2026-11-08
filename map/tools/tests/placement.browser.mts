@@ -26,6 +26,8 @@ try {
   await page.locator('#seed').fill('sweep-66');
   await page.locator('#librarySource').selectOption('bundled');
   await page.locator('#solveTab').click();
+  assert.equal(await page.locator('#solveSeed').inputValue(), 'sweep-66');
+  assert.equal(await page.locator('#solveRecord').innerText(), 'Record placement');
   await page.locator('#solveRecord').click();
   await page.waitForFunction(() => (document.querySelector('#solveCancel') as HTMLButtonElement).disabled, null, { timeout: 60000 });
   const snapshot = () => page.evaluate(() => (window as any).mapLab.snapshot().placement);
@@ -84,6 +86,57 @@ try {
       await page.screenshot({ path: `${out}/placement.png`, fullPage: true });
     }
   }
+  // At the end of pre-assignment, a shared edge within one piece is solid blue,
+  // while its exterior still has an outline and hovering still identifies the tile.
+  await page.locator('#solveAttempt').selectOption('0');
+  const firstEvents = trace.events.filter(event => event.attempt === 0);
+  const start = firstEvents.find(event => event.type === 'attempt-start');
+  assert.ok(start && start.type === 'attempt-start');
+  const assigned = firstEvents.filter(event => event.type === 'set-piece-slot');
+  const checkpoint = firstEvents.reduce((last, event, i) => event.type === 'set-piece-slot' ? i : last, -1);
+  assert.ok(checkpoint >= 0);
+  const placed = new Map(assigned.map(event => [event.slot, event]));
+  const coordinates = new Map(start.slots.map(slot => [`${slot.x},${slot.y}`, slot]));
+  const pair = start.slots.flatMap(slot => {
+    const tile = placed.get(slot.slot);
+    return [[1, 0], [0, 1]].flatMap(([dx, dy]) => {
+      const other = coordinates.get(`${slot.x + dx!},${slot.y + dy!}`);
+      return tile && other && placed.get(other.slot)?.instance === tile.instance ? [{ slot, dx: dx!, dy: dy!, tile }] : [];
+    });
+  })[0];
+  assert.ok(pair, 'fixture has adjacent slots in one set piece');
+  await page.locator('#solveStep').evaluate((input: HTMLInputElement, n: number) => { input.value = String(n); input.dispatchEvent(new Event('input', { bubbles: true })); }, checkpoint);
+  const geometry = await page.locator('#solveCanvas').evaluate((canvas: HTMLCanvasElement, slots: { x: number; y: number }[]) => {
+    const box = canvas.getBoundingClientRect();
+    const minX = Math.min(...slots.map(s => s.x)) * 6, minY = Math.min(...slots.map(s => s.y)) * 6;
+    const width = (Math.max(...slots.map(s => s.x)) + 1) * 6 - minX;
+    const height = (Math.max(...slots.map(s => s.y)) + 1) * 6 - minY;
+    const scale = Math.max(.1, Math.min((box.width - 32) / width, (box.height - 32) / height));
+    return { x: (box.width - width * scale) / 2 - minX * scale, y: (box.height - height * scale) / 2 - minY * scale, scale, left: box.left, top: box.top };
+  }, start.slots);
+  const seam = { x: pair.slot.x * 6 + (pair.dx ? 6 : 3), y: pair.slot.y * 6 + (pair.dy ? 6 : 3) };
+  const seamPixel = await page.locator('#solveCanvas').evaluate((canvas: HTMLCanvasElement, point: { x: number; y: number; scale: number; offsetX: number; offsetY: number }) => {
+    const ratio = devicePixelRatio || 1;
+    return Array.from(canvas.getContext('2d')!.getImageData(Math.round((point.x * point.scale + point.offsetX) * ratio), Math.round((point.y * point.scale + point.offsetY) * ratio), 1, 1).data);
+  }, { ...seam, scale: geometry.scale, offsetX: geometry.x, offsetY: geometry.y });
+  assert.deepEqual(seamPixel, [49, 84, 126, 255], 'shared set-piece seam remains solid blue');
+  const boundary = start.slots.flatMap(slot => {
+    const tile = placed.get(slot.slot);
+    return [[1, 0], [0, 1]].flatMap(([dx, dy]) => {
+      const other = coordinates.get(`${slot.x + dx!},${slot.y + dy!}`);
+      const otherTile = other && placed.get(other.slot);
+      return tile && otherTile && tile.instance !== otherTile.instance ? [{ slot, dx: dx!, dy: dy! }] : [];
+    });
+  })[0];
+  assert.ok(boundary, 'fixture has adjacent distinct pieces');
+  const boundaryPixel = await page.locator('#solveCanvas').evaluate((canvas: HTMLCanvasElement, point: { x: number; y: number; scale: number; offsetX: number; offsetY: number }) => {
+    const ratio = devicePixelRatio || 1;
+    return Array.from(canvas.getContext('2d')!.getImageData(Math.round((point.x * point.scale + point.offsetX) * ratio), Math.round((point.y * point.scale + point.offsetY) * ratio), 1, 1).data);
+  }, { x: boundary.slot.x * 6 + (boundary.dx ? 6 : 3), y: boundary.slot.y * 6 + (boundary.dy ? 6 : 3), scale: geometry.scale, offsetX: geometry.x, offsetY: geometry.y });
+  assert.notDeepEqual(boundaryPixel, seamPixel, 'distinct set pieces retain their shared boundary');
+  await page.mouse.move(geometry.left + geometry.x + (pair.slot.x * 6 + 3) * geometry.scale, geometry.top + geometry.y + (pair.slot.y * 6 + 3) * geometry.scale);
+  assert.match(await page.locator('#solveHover').innerText(), new RegExp(`Slot ${pair.slot.slot} .*${pair.tile.instance}`));
+  await page.screenshot({ path: `${out}/placement-piece.png`, fullPage: true });
   // Playback advances and pauses; camera operations affect only the drawing.
   await page.locator('#solveStep').evaluate((input: HTMLInputElement) => { input.value = '0'; input.dispatchEvent(new Event('input', { bubbles: true })); });
   await page.locator('#solveSpeed').selectOption('120');
@@ -111,21 +164,31 @@ try {
   assert.equal(await pixels(), baseline, 'fit restores the drawing');
   assert.equal((await snapshot()).index, paused.index);
 
-  await page.locator('#worldTab').click();
-  await page.locator('#seed').fill('placement-second');
-  await page.locator('#solveTab').click();
-  await page.locator('#solveRecord').click();
+  await page.locator('#solveSeed').fill('placement-second');
+  assert.equal(await page.locator('#seed').inputValue(), 'placement-second');
+  await page.locator('#solveSeed').press('Enter');
   await page.waitForFunction(() => (document.querySelector('#solveCancel') as HTMLButtonElement).disabled, null, { timeout: 60000 });
   assert.equal((await snapshot()).seed, 'placement-second', await page.locator('#solveStatus').innerText());
   assert.ok((await snapshot()).events > 0);
   assert.match(await page.locator('#solveRecipe').innerText(), /placement-second/);
-  await page.locator('#solveRecord').click();
+  await page.locator('#solveRandom').click();
+  assert.match(await page.locator('#solveSeed').inputValue(), /^exit-/);
+  assert.equal(await page.locator('#solveSeed').inputValue(), await page.locator('#seed').inputValue());
   await page.locator('#solveCancel').click();
   assert.match(await page.locator('#solveStatus').innerText(), /cancelled/i);
   assert.equal(await page.locator('#solveCancel').isDisabled(), true);
   assert.equal(await page.locator('#solveRecord').isEnabled(), true);
   assert.equal((await snapshot()).events, 0, 'cancel discards the previous recording');
   assert.equal((await snapshot()).seed, undefined);
+  await page.locator('#solveSize').selectOption('24x12');
+  await page.locator('#worldTab').click();
+  assert.equal(await page.locator('#zoneSize').inputValue(), '24x12');
+  assert.equal(await page.locator('#zoneWidth').inputValue(), '24');
+  assert.equal(await page.locator('#zoneHeight').inputValue(), '12');
+  await page.locator('#solveTab').click();
+  await page.locator('#solveRecord').click();
+  await page.locator('#solveCancel').click();
+  assert.match(await page.locator('#solveRecipe').innerText(), /24 × 12.*diamond-24x12/);
   await page.setViewportSize({ width: 390, height: 900 });
   for (const tab of ['solveTab', 'placeablesTab']) {
     await page.locator(`#${tab}`).click();
