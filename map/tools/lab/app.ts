@@ -191,23 +191,25 @@ function syncPlacementControls(): void {
 function cancelStaleWorldGeneration(): void {
   if (!busy) return;
   mapWorker?.terminate(); mapWorker = null; busy = false;
-  setStatus("World generation cancelled: recipe edited in Placement.");
+  setStatus("Generation cancelled: recipe edited in Placement.");
 }
 input("solveSeed").oninput = () => {
+  solveView.recipeEdited();
   cancelStaleWorldGeneration();
   input("seed").value = input("solveSeed").value;
 };
 input("solveSeed").onkeydown = event => { if (event.key === "Enter") $("solveRecord").click(); };
 select("solveSize").onchange = () => {
+  solveView.recipeEdited();
   cancelStaleWorldGeneration();
   select("zoneSize").value = select("solveSize").value;
   select("zoneSize").dispatchEvent(new Event("change"));
 };
 $("solveRandom").onclick = () => {
+  solveView.recipeEdited();
   cancelStaleWorldGeneration();
   input("seed").value = `exit-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36)}`;
   syncPlacementControls();
-  $("solveRecord").click();
 };
 
 /** Set the recipe to a room's (53 "Play in the game"), with a room seed, and generate. */
@@ -233,7 +235,7 @@ function renderPlay(): void {
 }
 
 function setStatus(text: string, bad = false): void {
-  $("status").textContent = text;
+  $("status").textContent = `World: ${text}`;
   $("status").style.color = bad ? "#f2b787" : "";
 }
 
