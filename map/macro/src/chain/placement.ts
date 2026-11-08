@@ -191,6 +191,7 @@ const agree = (a: string | undefined, b: string | undefined): boolean =>
  */
 function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
   let portalRun = 0;
+  let lastA: string | undefined, lastB: string | undefined;
   for (let k = 0; k < S; k++) {
     const cellA = a.cells[k * S + S - 1]!, cellB = b.cells[k * S]!;
     const segA = a.segments.get(`v:${S},${k}`), segB = b.segments.get(`v:0,${k}`);
@@ -199,12 +200,19 @@ function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: Passabili
     const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
     if (resA === resB) return true;
     const pA = segA?.passability, pB = segB?.passability;
-    if (pA === "passable" || pB === "passable") return true;
-    if (guaranteesPassability(pA, pB, rules)) {
-      portalRun++;
+    if (guaranteesPassability(pA, pB, rules, false)) {
+      if (resA === lastA && resB === lastB) {
+        portalRun++;
+      } else {
+        portalRun = 1;
+        lastA = resA;
+        lastB = resB;
+      }
       if (portalRun >= MIN_PORTAL_LENGTH) return true;
     } else {
       portalRun = 0;
+      lastA = undefined;
+      lastB = undefined;
     }
   }
   return false;
@@ -212,6 +220,7 @@ function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: Passabili
 
 function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
   let portalRun = 0;
+  let lastA: string | undefined, lastB: string | undefined;
   for (let k = 0; k < S; k++) {
     const cellA = a.cells[(S - 1) * S + k]!, cellB = b.cells[k]!;
     const segA = a.segments.get(`h:${k},${S}`), segB = b.segments.get(`h:${k},0`);
@@ -220,12 +229,19 @@ function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign, rules: Passabil
     const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
     if (resA === resB) return true;
     const pA = segA?.passability, pB = segB?.passability;
-    if (pA === "passable" || pB === "passable") return true;
-    if (guaranteesPassability(pA, pB, rules)) {
-      portalRun++;
+    if (guaranteesPassability(pA, pB, rules, false)) {
+      if (resA === lastA && resB === lastB) {
+        portalRun++;
+      } else {
+        portalRun = 1;
+        lastA = resA;
+        lastB = resB;
+      }
       if (portalRun >= MIN_PORTAL_LENGTH) return true;
     } else {
       portalRun = 0;
+      lastA = undefined;
+      lastB = undefined;
     }
   }
   return false;
