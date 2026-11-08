@@ -7,8 +7,48 @@ import type { Game, GroundItem, Vec2 } from '../types.ts';
 
 /** Positions by item id, per list. Built on demand and carried across a copy that only replaces records. */
 const indexes = new WeakMap<readonly GroundItem[], Map<string, number>>();
+/** Records by id, independent of positions: removing a pickup need not rebuild the ground for body ownership checks. */
+const records = new WeakMap<readonly GroundItem[], Map<string, GroundItem>>();
 /** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
 const published = new WeakSet<readonly GroundItem[]>();
+
+/** Only logical items awaiting a body, ordered by id; carried across the live list's copies. */
+interface Admission { admitted: ReadonlySet<string>; items: GroundItem[]; size: number }
+const admissions = new WeakMap<readonly GroundItem[], Admission>();
+function admissionPosition(items: readonly GroundItem[], id: string): number {
+  let lo = 0, hi = items.length;
+  while (lo < hi) { const mid = (lo + hi) >>> 1; if (items[mid]!.id < id) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+function admissionOf(s: Game, admitted: ReadonlySet<string>): Admission {
+  const list = s.map.items;
+  let pending = admissions.get(list);
+  // Scenario setup may replace the list or edit its length without the ground-list helpers.
+  if (!pending || pending.admitted !== admitted || pending.size !== list.length) {
+    pending = { admitted, size: list.length, items: list.filter(item => !admitted.has(`item:${item.id}`))
+      .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) };
+    admissions.set(list, pending);
+  }
+  return pending;
+}
+
+/** Awaiting-body items in id order. Removing the yielded item from admission keeps iteration at its successor. */
+export function* unadmittedItems(s: Game, admitted: ReadonlySet<string>): Generator<GroundItem> {
+  const pending = admissionOf(s, admitted);
+  for (let at = 0; at < pending.items.length;) {
+    const item = pending.items[at]!;
+    yield item;
+    if (pending.items[at] === item) at++;
+  }
+}
+
+/** A successful body admission takes this item out of the pending order. */
+export function admitItem(s: Game, item: GroundItem): void {
+  const pending = admissions.get(s.map.items);
+  if (!pending) return;
+  const at = admissionPosition(pending.items, item.id);
+  if (pending.items[at]?.id === item.id) pending.items.splice(at, 1);
+}
 
 /**
  * Records by coarse cell, so a rule that reaches a few units looks at a few cells instead of the whole map (#641).
@@ -104,26 +144,37 @@ function inOrder(grid: Grid, items: GroundItem[]): GroundItem[] {
 
 function writable(s: Game): GroundItem[] {
   const list = s.map.items;
+  if (admissions.get(list)?.size !== list.length) admissions.delete(list);
+  if (records.get(list)?.size !== list.length) records.delete(list);
   if (!published.has(list)) return list;
-  const copy = list.slice(), index = indexes.get(list), grid = grids.get(list);
+  const copy = list.slice(), index = indexes.get(list), grid = grids.get(list), admission = admissions.get(list), byId = records.get(list);
   if (index) indexes.set(copy, index);
   if (grid) { grids.delete(list); grids.set(copy, grid); }
+  if (admission) { admissions.delete(list); admissions.set(copy, admission); }
+  if (byId) { records.delete(list); records.set(copy, byId); }
   return s.map.items = copy;
 }
 
 /** The ground list to edit freely. A published list is copied first, pointers only; the indexes are rebuilt on next use. */
 export function groundList(s: Game): GroundItem[] {
   const list = writable(s);
-  indexes.delete(list); grids.delete(list);
+  indexes.delete(list); grids.delete(list); admissions.delete(list); records.delete(list);
   return list;
 }
 
 /** Put records on the ground, after everything already there. */
 export function addItems(s: Game, ...items: GroundItem[]): void {
-  const list = writable(s), grid = grids.get(list);
-  indexes.delete(list);
+  const list = writable(s), grid = grids.get(list), index = indexes.get(list), pending = admissions.get(list);
+  if (index) for (let i = 0; i < items.length; i++) index.set(String(items[i]!.id), list.length + i);
   list.push(...items);
+  const byId = records.get(list);
+  if (byId) for (const item of items) byId.set(String(item.id), item);
   if (grid) for (const item of items) enter(grid, item);
+  if (pending) {
+    for (const item of items) if (!pending.admitted.has(`item:${item.id}`))
+      pending.items.splice(admissionPosition(pending.items, item.id), 0, item);
+    pending.size = list.length;
+  }
 }
 
 /** Take a record off the ground; later records keep their order. Returns where it was, which is now where the next one is. */
@@ -133,7 +184,11 @@ export function removeItem(s: Game, item: GroundItem): number {
   if (at < 0) throw new Error(`ground item ${item.id} is not on the ground`);
   indexes.delete(list);
   list.splice(at, 1);
+  records.get(list)?.delete(String(item.id));
   leave(list, item);
+  admitItem(s, item);
+  const pending = admissions.get(list);
+  if (pending) pending.size = list.length;
   return at;
 }
 
@@ -188,15 +243,27 @@ export function groundPosition(s: Game, id: string): number | undefined {
   let index = positions(list), at = index.get(id);
   // A list edited in place without groundList (a test arranging a scenario) is indexed again.
   if (index.size !== list.length || at !== undefined && String(list[at]?.id) !== id) {
-    indexes.delete(list); index = positions(list); at = index.get(id);
+    indexes.delete(list); admissions.delete(list); records.delete(list); index = positions(list); at = index.get(id);
   }
   return at;
 }
 
-/** The ground record with this id. */
+/**
+ * The ground record with this id, without rebuilding positions after a removal. Helpers maintain the lookup;
+ * raw length changes rebuild it, and an existing positional index still detects stale requested positions.
+ * Arbitrary same-length scenario edits must use groundList to invalidate every cache.
+ */
 export function groundItem(s: Game, id: string): GroundItem | undefined {
-  const at = groundPosition(s, id);
-  return at === undefined ? undefined : s.map.items[at];
+  const list = s.map.items, index = indexes.get(list), at = index?.get(id);
+  if (index && (index.size !== list.length || at !== undefined && String(list[at]?.id) !== id)) groundPosition(s, id);
+  let byId = records.get(list);
+  if (!byId || byId.size !== list.length) {
+    byId = new Map(list.map(item => [String(item.id), item])); records.set(list, byId);
+  }
+  // A scenario may replace a record in place while retaining its id and an existing positional index.
+  const position = indexes.get(list)?.get(id);
+  if (position !== undefined && byId.get(id) !== list[position]) byId.set(id, list[position]!);
+  return byId.get(id);
 }
 
 /** Put `next` where `item` is on the ground. The id stays: the position index is carried across. */
@@ -206,6 +273,12 @@ export function replaceItem(s: Game, item: GroundItem, next: GroundItem): void {
   const at = hinted !== undefined && list[hinted] === item ? hinted : list.indexOf(item);
   if (at < 0) throw new Error(`ground item ${item.id} is not on the ground`);
   list[at] = next;
+  records.get(list)?.set(String(next.id), next);
+  const pending = admissions.get(list);
+  if (pending) {
+    const pos = admissionPosition(pending.items, item.id);
+    if (pending.items[pos]?.id === item.id) pending.items[pos] = next;
+  }
   const order = leave(list, item);
   if (order !== undefined) enter(grids.get(list)!, next, order);
 }

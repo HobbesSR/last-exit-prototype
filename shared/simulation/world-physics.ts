@@ -4,7 +4,7 @@ import { physicsRuntime, markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
 import { hypot } from '../math.ts';
-import { groundItem, replaceItem } from './ground-items.ts';
+import { admitItem, groundItem, replaceItem, unadmittedItems } from './ground-items.ts';
 
 export const PHYSICS_WORLD_VERSION = 'last-exit-0.8-physics-5';
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
@@ -73,21 +73,30 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
   // With no launched item to place and no slot beyond the reserve, nothing below can be admitted: skip ordering
   // every ground item (thousands on a large map) on every call.
   if (r.itemLaunches.size === 0 && !r.world.canAddBodies(1 + reserveActors(s, r) + (profile.dropReserve ?? 0))) return;
-  // A transfer that preflighted a batch owns its released slots before retrying overflow.
-  for (const item of [...s.map.items].sort((a, b) => Number(r.itemLaunches.has(b.id)) - Number(r.itemLaunches.has(a.id)) || order(a.id, b.id))) {
+  const place = (item: GroundItem, reserve: number): void => {
     const id = bodyId(item);
-    // A launched or dropped item may use the drop reserve; an ordinary map item must leave it free.
-    const reserve = r.itemLaunches.has(item.id) ? 0 : profile.dropReserve ?? 0;
     if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r) + reserve) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
-      || !physicalDropPlacementClear(s, r, item.x, item.y)) continue;
+      || !physicalDropPlacementClear(s, r, item.x, item.y)) return;
     const motion = r.itemLaunches.get(item.id);
     r.world.queueAddBody({ id, kind: 'prop', collisionProfile: 'loot', shape: { kind: 'circle', radius: profile.loot.radius },
       x: item.x, y: item.y, mass: profile.loot.mass, friction: 0, restitution: 0,
       linearDamping: profile.loot.linearDamping, angularDamping: profile.loot.angularDamping,
       vx: motion?.x ?? 0, vy: motion?.y ?? 0 });
     r.items.add(id);
+    admitItem(s, item);
     r.world.commitMutations();
     markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
+  };
+  // A preflighted transfer owns its released slots first, in the same id order as the old combined sort.
+  for (const id of [...r.itemLaunches.keys()].sort(order)) {
+    const item = groundItem(s, id);
+    if (item) place(item, 0);
+  }
+  const reserve = profile.dropReserve ?? 0;
+  if (r.world.canAddBodies(1 + reserveActors(s, r) + reserve)) for (const item of unadmittedItems(s, r.items)) {
+    // No later item can free capacity. Failed launches were already tested with less reserve above.
+    if (!r.world.canAddBodies(1 + reserveActors(s, r) + reserve)) break;
+    if (!r.itemLaunches.has(item.id)) place(item, reserve);
   }
   r.world.commitMutations();
   r.itemLaunches.clear();
