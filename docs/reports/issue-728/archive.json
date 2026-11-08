@@ -1,0 +1,18 @@
+{
+  "seed": 4217,
+  "size": "36x18",
+  "content": "content-6",
+  "node": "v24.15.0",
+  "frames": 10234,
+  "snapshotSha256": "acaefc6e040ba5c1d38668c0fe845e070d7180b3ffe0a1f1dc3129e328800b69",
+  "archiveSha256": "85f9c1bf5873d8735319c852b7627a433eef8e1bb211a0f238aa3c607a982d97",
+  "archiveBytes": 1200925211,
+  "metadata": {
+    "id": "recording-comparison",
+    "seed": 4217,
+    "createdAt": 0,
+    "ticks": 10233,
+    "frames": 10234,
+    "sha256": "87d16620088d798963edcd4a09ffbacfee1cd80bb65bc19cb5defd41b3791ce2"
+  }
+}

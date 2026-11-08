@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
 import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createReplayWriter, frameLine, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
@@ -103,10 +103,11 @@ test('replay writer bounds immutable serialized frames, drops whole frames, then
   // work on the threadpool, so how many event-loop turns it needs depends on what else is running:
   // twenty was enough on an idle machine and not enough under a full suite, where this test starved
   // its own writer past the finalization deadline and failed as if the writer were at fault.
-  const pump = async (done, turns = 2000) => {
-    for (let i = 0; i < turns && !done(); i++) {
+  const pump = async done => {
+    const deadline = Date.now() + 4000;
+    while (!done() && Date.now() < deadline) {
       while (callbacks.length) callbacks.shift()();
-      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setTimeout(resolve, 1));
     }
   };
   await pump(() => !writer.blocked);
@@ -210,4 +211,62 @@ test('frames are written byte for byte as JSON.stringify writes them, with the g
     const { line, bytes } = frameLine(state, commands, kept);
     assert.equal(bytes, Buffer.byteLength(line));
   }
+});
+
+test('an omitted kept-list update cannot replace the last retained worker state', async () => {
+  const chunks = [];
+  const writer = createReplayWriter({ header: { id: 'kept-gap' }, queueBytes: 1200,
+    output: new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } }),
+    publish: async () => {}, onError: () => {} });
+  const initial = { tick: 0, items: [{ id: 'old', name: '雪' }], gates: [{ id: 'door', open: false }] };
+  assert.equal(writer.append(initial, []), true);
+  const changed = { tick: 1, items: [{ id: 'new', name: 'é' }], gates: [{ id: 'door', open: true }] };
+  assert.equal(writer.append({ ...changed, payload: 'x'.repeat(2000) }, []), false);
+  // Resume using the very same list objects as the rejected append. The worker must receive them now.
+  const deadline = Date.now() + 4000;
+  while (writer.blocked && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 2));
+  assert.equal(writer.blocked, false);
+  assert.equal(writer.append(changed, []), true);
+  const meta = await writer.finish({ ticks: 1 });
+  const frames = [{ state: initial, commands: [] }, { state: changed, commands: [] }];
+  const replay = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+  assert.deepEqual(replay.frames, frames);
+  assert.equal(meta.sha256, createHash('sha256').update(frames.map(frame => JSON.stringify(frame) + '\n').join('')).digest('hex'));
+  assert.equal(meta.recording.droppedFrames, 1);
+});
+
+test('header serialization and premature output closure fail recording once without publication', async () => {
+  for (const mode of ['header', 'close']) {
+    const errors = [], header = { id: mode };
+    if (mode === 'header') header.circular = header;
+    const output = new Writable({ write() {} });
+    const writer = createReplayWriter({ header, output, onError: error => errors.push(error),
+      publish: async () => assert.fail('a failed output must never publish') });
+    if (mode === 'close') {
+      assert.equal(writer.append({ tick: 0 }, []), true);
+      output.destroy();
+      // Observe close before finish: this must fail during a live match, without waiting for its deadline.
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    assert.equal(writer.append({ tick: 1 }, []), false);
+    await assert.rejects(writer.finish({ ticks: 0 }), mode === 'header' ? /circular/ : /closed before completion/);
+    assert.equal(errors.length, 1);
+  }
+});
+
+test('the worker-owned file output preserves exact archive bytes and store publication', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'last-exit-worker-file-'));
+  try {
+    const header = { id: 'worker-file', seed: 42, createdAt: 123, map: { name: '街' } };
+    const states = [{ tick: 0, items: [{ id: 'loot', name: 'é' }], gates: [] },
+      { tick: 1, gates: [], items: [], gone: undefined, label: '雪' }];
+    const store = await createFileReplayStore(directory);
+    const writer = store.start(header, { onError: () => {} });
+    states.forEach(state => assert.equal(writer.append(state, []), true));
+    writer.mark({ tick: 1, kind: 'manual' });
+    const meta = await writer.finish({ ticks: 1, escaped: 0 });
+    const expected = `${JSON.stringify(header).slice(0, -1)},"frames":[${states.map(state => JSON.stringify({ state, commands: [] })).join(',')}],"diagnostics":{"marks":[{"tick":1,"kind":"manual"}]}}`;
+    assert.equal(gunzipSync(await readFile(store.download(header.id).path)).toString(), expected);
+    assert.deepEqual((await createFileReplayStore(directory)).list(), [meta]);
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });

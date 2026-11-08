@@ -13,7 +13,7 @@
 // collected objects included, so it counts what was allocated, not what survived) and prints the top allocating
 // functions; --heap-interval=<bytes> sets the mean sampling interval (default 32768). Sampling slows every stage, so
 // a profiled run's times are not comparable with an unprofiled run's.
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { Writable } from 'node:stream';
 import { PerformanceObserver } from 'node:perf_hooks';
 import v8 from 'node:v8';
@@ -32,6 +32,7 @@ import { createReplayWriter } from '../server/replay-writer.js';
 import { SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import { tileMap } from './helpers/tile-map.js';
 import { cliArgs } from './helpers/args.js';
+import { attachPortalGraph } from '../shared/navigation/portal-graph.ts';
 
 const args = cliArgs();
 const number = (key, fallback) => Number(args.get(key) ?? fallback);
@@ -44,13 +45,21 @@ if (!size) { console.error(`--size must be one of ${LIVE_ZONE_SIZES.map(zoneSize
 const [columns, rows] = (args.get('tile') ?? '1x1').split('x').map(Number);
 const label = columns * rows > 1 ? `${zoneWidth * columns}x${zoneHeight * rows} (${zoneSizeName(size)} tiled ${columns}x${rows})` : zoneSizeName(size);
 const baseContent = contentById(args.get('content') ?? CONTENT_ID);
+// Reuse one production-worker map for sequential comparisons, as frame-hashes and room-startup do.
+// Use a fresh cache after any generation/content change; the cache deliberately pins source geometry.
+const cache = args.has('maps-cache') ? v8.deserialize(await readFile(args.get('maps-cache'))) : undefined;
+if (cache && (cache.size !== zoneSizeName(size) || cache.content !== baseContent.id
+  || seed < cache.seed || seed + roomCount > cache.seed + cache.maps.length)) throw new Error('map cache seed/size/content mismatch');
 // A bare flag parses as '1', which would write a file of that name.
 if (args.get('heap-profile') === '1') { console.error('--heap-profile needs a file: --heap-profile=<file.heapprofile>'); process.exit(2); }
 
 await acquireMachineLock('bench');
 const discard = () => new Writable({ write(_chunk, _encoding, done) { done(); } });
 async function buildRoom(i) {
-  let map = generateLiveMap(seed + i, baseContent, size);
+  const entry = cache ? structuredClone(cache.maps[seed + i - cache.seed]) : undefined;
+  let map = entry?.map ?? generateLiveMap(seed + i, baseContent, size);
+  if (entry?.navigation) attachPortalGraph(map, entry.navigation);
+  for (const packed of entry?.tiles ?? []) adoptPackedTiles(map, packed);
   let content = baseContent;
   if (columns * rows > 1) {
     map = tileMap(map, columns, rows);
@@ -92,6 +101,7 @@ if (inspector) {
 profiler.enable(true);
 const totals = [], starts = [], frames = [], memory = [], tickNumbers = [], drains = [];
 let completed = 0;
+const runStarted = performance.now(), cpuStarted = process.cpuUsage();
 for (let tick = 0; tick < ticks; tick++) {
   const before = performance.now();
   for (const room of rooms) {
@@ -113,6 +123,7 @@ for (let tick = 0; tick < ticks; tick++) {
   drains.push(performance.now() - drainStarted);
 }
 const heap = inspector ? (await inspector.post('HeapProfiler.stopSampling')).profile : undefined;
+const cpu = process.cpuUsage(cpuStarted), wallMs = performance.now() - runStarted;
 inspector?.disconnect();
 await new Promise(resolve => setTimeout(resolve, 50));
 observer.disconnect();
@@ -178,6 +189,7 @@ const result = {
   meta: { seed, content: baseContent.id, size: label, rooms: roomCount, clients, spectators, recording, ticks: completed, node: process.version,
     items: rooms.map(r => r.items), obstacles: rooms.map(r => r.obstacles), tilesMs: rooms.map(r => r.tilesMs) },
   tick: { ...tickStats, over: over.length }, stages, over,
+  run: { wallMs, cpuMs: (cpu.user + cpu.system) / 1000, userCpuMs: cpu.user / 1000, systemCpuMs: cpu.system / 1000 },
   recorder: { droppedFrames, drainMs: stats(drains) },
   gc: { count: gc.length, ms: gc.reduce((a, e) => a + e.ms, 0), max: Math.max(0, ...gc.map(e => e.ms)) },
   memory: { samples: memory, historyFrames: rooms.map(r => r.history.length), historyBytes, stateBytes },
