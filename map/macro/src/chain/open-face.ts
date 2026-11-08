@@ -264,7 +264,29 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
     const guaranteed = (x: number, y: number, dx: number, dy: number): boolean => {
       const key = between(x, y, dx, dy);
       // Called only between two settled cells of different classes.
-      return guaranteesPassability(stated(x, y, ...key)?.passability, stated(x + dx, y + dy, ...key)?.passability, rules);
+      const passLower = stated(x, y, ...key)?.passability;
+      const passUpper = stated(x + dx, y + dy, ...key)?.passability;
+      if (!guaranteesPassability(passLower, passUpper, rules)) return false;
+      if (rules === "matched" && passLower !== "passable" && passUpper !== "passable") {
+        // Emergent guarantee between different classes (#893).
+        // If fully bounded to length < MIN_PORTAL_LENGTH, resolution demotes it to "none".
+        const [ax, ay] = [dy, dx];
+        const lower = classAt(x, y), upper = classAt(x + dx, y + dy);
+        let canExtend = false;
+        for (const step of [-1, 1] as const) {
+          const px = x + ax * step, py = y + ay * step;
+          const [l, u] = [classAt(px, py), classAt(px + dx, py + dy)];
+          if (l === UNSETTLED || u === UNSETTLED) { canExtend = true; break; }
+          if (l === lower && u === upper) {
+            const nKey = between(px, py, dx, dy);
+            if (guaranteesPassability(stated(px, py, ...nKey)?.passability, stated(px + dx, py + dy, ...nKey)?.passability, rules)) {
+              canExtend = true; break;
+            }
+          }
+        }
+        if (!canExtend) return false;
+      }
+      return true;
     };
 
     // Cells within `margin` of a placed slot, each once.
@@ -306,6 +328,17 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
         if (walked.has(key)) continue;
         walked.add(key);
         if (length < MIN_PORTAL_LENGTH) {
+          if (rules === "matched") {
+            let hasAuthored = false;
+            for (let k = 0; k < length; k++) {
+              const px = sx + ax * k, py = sy + ay * k;
+              const [axis, gx, gy] = between(px, py, dx, dy);
+              const p1 = stated(px, py, axis, gx, gy)?.passability;
+              const p2 = stated(px + dx, py + dy, axis, gx, gy)?.passability;
+              if (p1 === "passable" || p2 === "passable") { hasAuthored = true; break; }
+            }
+            if (!hasAuthored) continue;
+          }
           const reason = `portal between ${lower} and ${upper} at ${key} is ${length} segment${length === 1 ? "" : "s"} long, shorter than a hunter's ${MIN_PORTAL_LENGTH}`;
           refused(reason);
           // The portal's cells, and those just past each end.

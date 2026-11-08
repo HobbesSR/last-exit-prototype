@@ -15,7 +15,9 @@ import { openFaceRule } from "./open-face.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE, countParamsProblem } from "./library.ts";
 import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, PlacementRule } from "./library.ts";
-import { passabilityFits } from "./resolution.ts";
+import { DEFAULT_RESOLVED_CLASS, guaranteesPassability, passabilityFits } from "./resolution.ts";
+import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
+import type { PassabilityRules } from "./library.ts";
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
 import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SegmentKey, SetPieceInstance } from "./types.ts";
@@ -187,6 +189,63 @@ const agree = (a: string | undefined, b: string | undefined): boolean =>
  *   `any` (or unstated) fits anything, otherwise like with like. Under `either-side`,
  *   passability can't conflict, so it never constrains the solve.
  */
+function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
+  let portalRun = 0;
+  for (let k = 0; k < S; k++) {
+    const cellA = a.cells[k * S + S - 1]!, cellB = b.cells[k * S]!;
+    const segA = a.segments.get(`v:${S},${k}`), segB = b.segments.get(`v:0,${k}`);
+    const reqB = segB?.adjacency, reqA = segA?.adjacency;
+    const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+    const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+    if (resA === resB) return true;
+    const pA = segA?.passability, pB = segB?.passability;
+    if (pA === "passable" || pB === "passable") return true;
+    if (guaranteesPassability(pA, pB, rules)) {
+      portalRun++;
+      if (portalRun >= MIN_PORTAL_LENGTH) return true;
+    } else {
+      portalRun = 0;
+    }
+  }
+  return false;
+}
+
+function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
+  let portalRun = 0;
+  for (let k = 0; k < S; k++) {
+    const cellA = a.cells[(S - 1) * S + k]!, cellB = b.cells[k]!;
+    const segA = a.segments.get(`h:${k},${S}`), segB = b.segments.get(`h:${k},0`);
+    const reqB = segB?.adjacency, reqA = segA?.adjacency;
+    const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+    const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+    if (resA === resB) return true;
+    const pA = segA?.passability, pB = segB?.passability;
+    if (pA === "passable" || pB === "passable") return true;
+    if (guaranteesPassability(pA, pB, rules)) {
+      portalRun++;
+      if (portalRun >= MIN_PORTAL_LENGTH) return true;
+    } else {
+      portalRun = 0;
+    }
+  }
+  return false;
+}
+
+export function adjacencyConnects(library: ChainLibrary): (a: TileOption, relation: string, b: TileOption) => boolean {
+  const oriented = orientedDesigns(library);
+  const of = (option: TileOption) => oriented(option.templateId, option.orientation);
+  const rules = library.passabilityRules ?? "either-side";
+  return (a, relation, b) => {
+    switch (relation) {
+      case "E": return edgeConnectsEast(of(a), of(b), rules);
+      case "W": return edgeConnectsEast(of(b), of(a), rules);
+      case "S": return edgeConnectsSouth(of(a), of(b), rules);
+      case "N": return edgeConnectsSouth(of(b), of(a), rules);
+      default: return false;
+    }
+  };
+}
+
 export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility {
   const oriented = orientedDesigns(library);
   const of = (option: TileOption) => oriented(option.templateId, option.orientation);
@@ -339,7 +398,12 @@ function sample(
   const state = { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, stall = { most: 0 };
   const counted = (reason: string) => { if (attempt) attempt.refusals++; refused(reason); };
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
-    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, counted, lookahead, trace) } : {}), stallLimit: PLACEMENT_STALL_LIMIT, state, stall, ...(trace ? { trace } : {}) });
+    {
+      ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, counted, lookahead, trace) } : {}),
+      stallLimit: PLACEMENT_STALL_LIMIT, state, stall,
+      ...(trace ? { trace } : {}),
+      connects: adjacencyConnects(library),
+    });
   if (attempt) Object.assign(attempt, { nodes: state.iterations, mostStall: stall.most });
   if (!solved) return "wfc";
 
