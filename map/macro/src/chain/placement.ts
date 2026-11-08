@@ -246,6 +246,20 @@ function sample(
   const slotAt = new Map(mask.map((cell, i) => [`${cell.x},${cell.y}`, i]));
   const assigned: Array<{ design: string; orientation: Orientation } | undefined> = new Array(mask.length);
   const instances: SetPieceInstance[] = [];
+  // Experimental (#856): only libraries stating it check a piece's sides against pieces already placed.
+  const fitPlaced = library.fitPlacedSetPieces === true;
+  const oriented = orientedDesigns(library), matched = library.passabilityRules === "matched";
+  const fitsPlacedNeighbours = (j: number, id: string, orientation: Orientation): boolean => {
+    const here = oriented(id, orientation), { x, y } = mask[j]!;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const n = slotAt.get(`${x + dx},${y + dy}`), there = n === undefined ? undefined : assigned[n];
+      if (!there) continue;
+      const other = oriented(there.design, there.orientation);
+      if (!(dx === 1 ? fitsEast(here, other, matched) : dx === -1 ? fitsEast(other, here, matched)
+        : dy === 1 ? fitsSouth(here, other, matched) : fitsSouth(other, here, matched))) return false;
+    }
+    return true;
+  };
 
   const picks = (params.mode ?? "game") === "game" ? pickSetPieces(library, pieces, plan, columns, rows, random) : [];
   for (const [nth, { setPieceClass, piece, filter }] of picks.entries()) {
@@ -257,22 +271,32 @@ function sample(
       return tileSets.get(tileSetId)!.members.map((id) => designs.get(id)!).filter((tile) =>
         eligibleIn(tile, zone) && (orientation === undefined || tile.orientations.includes(orientation)));
     };
+    // Orientations a slot's member may take; with `fitPlacedSetPieces`, only those fitting placed neighbours.
+    const turns = (k: number, j: number, design: ChainTileDesign): Orientation[] => {
+      const allowed = (piece.tiles[k]!.orientation !== undefined ? [piece.tiles[k]!.orientation] : design.orientations) as Orientation[];
+      return fitPlaced ? allowed.filter((orientation) => fitsPlacedNeighbours(j, design.id, orientation)) : allowed;
+    };
+    const fitting = (k: number, j: number): ChainTileDesign[] =>
+      fitPlaced ? eligible(k, j).filter((design) => turns(k, j, design).length > 0) : eligible(k, j);
     const placements: number[][] = [];
     for (const anchor of mask) {
       if (!filter(anchor, width)) continue;
       const covered = piece.tiles.map((s) => slotAt.get(`${anchor.x + s.dx},${anchor.y + s.dy}`));
       if (covered.every((j, k) => j !== undefined && !assigned[j] &&
         (!piece.eligibleTiers || piece.eligibleTiers.includes(zones.get(mask[j]!.zoneId)!.tier)) &&
-        eligible(k, j).length > 0))
+        fitting(k, j).length > 0))
         placements.push(covered as number[]);
     }
     if (!placements.length) return `set piece ${piece.id}`;
     const covered = random.pick(placements);
-    piece.tiles.forEach((s, k) => {
-      const design = random.pick(eligible(k, covered[k]!));
-      const orientation = (s.orientation ?? random.pick(design.orientations)) as Orientation;
+    for (const [k, s] of piece.tiles.entries()) {
+      const choices = fitting(k, covered[k]!);
+      // A slot whose own piece's earlier members left it no fit fails here, as the solve would.
+      if (!choices.length) return `set piece ${piece.id}`;
+      const design = random.pick(choices);
+      const orientation = (s.orientation ?? random.pick(fitPlaced ? turns(k, covered[k]!, design) : design.orientations)) as Orientation;
       assigned[covered[k]!] = { design: design.id, orientation };
-    });
+    }
     instances.push({
       id: `${piece.id}#${nth}`, setPiece: piece.id, setPieceClass: setPieceClass.id,
       slots: covered.map((j) => ({ col: mask[j]!.col, row: mask[j]!.row })),

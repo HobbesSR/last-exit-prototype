@@ -7,7 +7,10 @@
  * maps `--save` keeps. Results: 42.37.
  *
  *   node map/tools/library-comparison.mts [--library FILE] [--widths 12,24,36] [--seeds 1,2,3]
- *     [--macro] [--save DIR] [--out FILE [--replace]]
+ *     [--sparse FILL/SET_PIECES] [--macro] [--save DIR] [--out FILE [--replace]]
+ *
+ * `--sparse` takes each size's bundled library through #851's experimental sparse sides
+ * (`map/sparse-sides.ts`), for example `--sparse bundled/alternate` (42.40).
  *
  * `--macro` stops at the briefs (`generateMacro`): portals, one-portal regions and fill need only
  * the Layout and its views, so it skips building and the navigation measures, which need geometry.
@@ -22,7 +25,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { performance } from 'node:perf_hooks';
-import { generate, generateMacro } from './core.ts';
+import { CHAIN_LIBRARIES, generate, generateMacro, sparseSidesLibrary } from './core.ts';
+import type { FillSides, SetPieceSides } from './core.ts';
 import { readLibraryFile } from './library-files.mts';
 import { chainMapToJson } from '../macro/src/chain/saving.ts';
 import { mapViews } from '../macro/src/chain/map.ts';
@@ -39,7 +43,15 @@ const seeds = arg('--seeds', '1').split(',').map(Number);
 const macroOnly = process.argv.includes('--macro');
 const libraryFile = arg('--library', ''), save = arg('--save', ''), out = arg('--out', '');
 if (out && existsSync(out) && !process.argv.includes('--replace')) throw new Error(`${out} exists; pass --replace`);
+const sparse = arg('--sparse', '');
+if (sparse && libraryFile) throw new Error('--sparse and --library are exclusive');
 const library = libraryFile ? readLibraryFile(libraryFile) as { zoneWidth: number } : undefined;
+const [fillSides, setPieceSides] = sparse.split('/') as [FillSides, SetPieceSides];
+const FILL_SIDES: readonly string[] = ['bundled', 'sparse'], SET_PIECE_SIDES: readonly string[] = ['bundled', 'inner', 'alternate', 'face'];
+if (sparse && (sparse.split('/').length !== 2 || !FILL_SIDES.includes(fillSides) || !SET_PIECE_SIDES.includes(setPieceSides)))
+  throw new Error(`--sparse takes FILL/SET_PIECES, fill one of ${FILL_SIDES.join(', ')} and set pieces one of ${SET_PIECE_SIDES.join(', ')}; got ${sparse}`);
+const libraryFor = (width: number) => !sparse ? library
+  : sparseSidesLibrary(CHAIN_LIBRARIES.find(bundled => bundled.zoneWidth === width)!, { fill: fillSides, setPieces: setPieceSides });
 if (library && widths.some(w => w !== library.zoneWidth)) throw new Error(`${libraryFile} is authored for width ${library.zoneWidth} only`);
 if (save) mkdirSync(save, { recursive: true });
 const hash = (v: string) => createHash('sha256').update(v).digest('hex');
@@ -51,7 +63,7 @@ for (const width of widths) for (const n of seeds) {
   const seed = `size-${width}-${n}`;
   const params = { zoneWidth: width, zoneHeight: width / 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: .04, lootTierStep: .09 };
   const t0 = performance.now();
-  const map = macroOnly ? generateMacro(seed, params, library) : generate(seed, params, library, 48);
+  const map = macroOnly ? generateMacro(seed, params, libraryFor(width)) : generate(seed, params, libraryFor(width), 48);
   const seconds = (performance.now() - t0) / 1000;
   const json = chainMapToJson(map, macroOnly ? { results: false } : {}); // macro: the Layout alone
   if (save) writeFileSync(`${save}/${seed}.json.gz`, gzipSync(json));
@@ -77,6 +89,6 @@ for (const width of widths) for (const n of seeds) {
     bodies });
   console.error(`${seed}: generated in ${seconds.toFixed(1)} s, measured`);
 }
-const report = { version: 'library-comparison-1', definitions: 'docs/51.10-measurement.md', results: 'docs/42.37-matched-adoption.md',
-  revision: git('rev-parse', 'HEAD'), library: libraryFile || 'bundled', stages: macroOnly ? 'macro' : 'built', node: process.version, maps };
+const report = { version: 'library-comparison-1', definitions: 'docs/51.10-measurement.md', results: sparse ? 'docs/42.40-sparse-sides-experiment.md' : 'docs/42.37-matched-adoption.md',
+  revision: git('rev-parse', 'HEAD'), library: libraryFile || (sparse ? `sparse ${sparse}` : 'bundled'), stages: macroOnly ? 'macro' : 'built', node: process.version, maps };
 if (out) writeFileSync(out, JSON.stringify(report, null, 1) + '\n'); else console.log(JSON.stringify(report, null, 1));

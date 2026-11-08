@@ -57,6 +57,9 @@ Placement's reachability lookahead, which refuses sealed pockets once they are c
 limit no longer fires on the measured seeds, and what it costs, is in
 [42.39](42.39-reachability-lookahead.md) (#857).
 
+The sparse-sides experiment, fill and set-piece schemes with fewer passable halves, their portals,
+one-portal regions and placement cost, is in [42.40](42.40-sparse-sides-experiment.md) (#851).
+
 The opt-in regional lighting recipe and its multi-region cache/rebuild evidence
 are in [42.39](42.39-regional-lighting.md) (#771).
 

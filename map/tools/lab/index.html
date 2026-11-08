@@ -81,7 +81,22 @@
             <label
               >Library<select id="librarySource">
                 <option value="bundled">Bundled library for the size</option>
+                <option value="sparse">Bundled, sparser tile sides (experimental, #851)</option>
                 <option value="draft">The Chain Library tab's draft</option>
+              </select></label
+            >
+            <label title="Sparser sides only (#851): fill tiles with half-and-half sides (hhhPPP) keep one or two of them open and hint the rest; the all-open tile stays as a 10% fallback."
+              >Fill sides<select id="fillSides" disabled>
+                <option value="sparse" selected>One or two open sides</option>
+                <option value="bundled">As bundled</option>
+              </select></label
+            >
+            <label title="Sparser sides only (#851): every scheme but 'as bundled' hints the seams inside a set piece. Openings stay whole 3-cell blocks."
+              >Set-piece sides<select id="setPieceSides" disabled>
+                <option value="inner">Inner seams hinted, outer as bundled</option>
+                <option value="alternate" selected>Every other outer slot side</option>
+                <option value="face">One opening per outer face (slow at 24 and 36 wide, 42.40)</option>
+                <option value="bundled">As bundled</option>
               </select></label
             >
             <div class="pair">
