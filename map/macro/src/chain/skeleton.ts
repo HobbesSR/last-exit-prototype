@@ -15,7 +15,7 @@ import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, ChainTileDesign, PassabilityRules } from "./library.ts";
 import { fitsEast, fitsSouth, edgeConnectsEast, edgeConnectsSouth } from "./placement.ts";
 import type { Stream } from "./random.ts";
-import { guaranteesPassability } from "./resolution.ts";
+import { DEFAULT_RESOLVED_CLASS, guaranteesPassability } from "./resolution.ts";
 import type { MaskCell, MapZone } from "./zones.ts";
 import type { Orientation, SetPieceInstance, SegmentKey } from "./types.ts";
 
@@ -359,172 +359,47 @@ export function buildSkeleton(
 }
 
 /**
- * Computes the cell indices in oriented design `a` that form a passable crossing to `b`
- * across the specified border `side` (from `a`'s perspective).
+ * Per side of a design, the border cell, the cell across in the neighbour, and the two
+ * segment keys on the seam, for position `k` along it.
  */
-function edgeCrossingCells(
-  side: Side,
-  a: OrientedDesign,
-  b: OrientedDesign,
-  rules: PassabilityRules,
-  matched: boolean,
-): number[] {
-  const S = 6;
-  const DEFAULT_RESOLVED_CLASS = "open";
+const BORDER: Record<Side, (k: number) => { mine: number; theirs: number; segMine: SegmentKey; segTheirs: SegmentKey }> = {
+  E: (k) => ({ mine: k * S + S - 1, theirs: k * S, segMine: `v:${S},${k}` as SegmentKey, segTheirs: `v:0,${k}` as SegmentKey }),
+  W: (k) => ({ mine: k * S, theirs: k * S + S - 1, segMine: `v:0,${k}` as SegmentKey, segTheirs: `v:${S},${k}` as SegmentKey }),
+  S: (k) => ({ mine: (S - 1) * S + k, theirs: k, segMine: `h:${k},${S}` as SegmentKey, segTheirs: `h:${k},0` as SegmentKey }),
+  N: (k) => ({ mine: k, theirs: (S - 1) * S + k, segMine: `h:${k},0` as SegmentKey, segTheirs: `h:${k},${S}` as SegmentKey }),
+};
 
-  if (side === "E") {
-    if (!fitsEast(a, b, matched)) return [];
-    const cells: number[] = [];
-    let portalRun: number[] = [];
-    let lastA: string | undefined, lastB: string | undefined;
-    for (let k = 0; k < S; k++) {
-      const idxA = k * S + S - 1;
-      const cellA = a.cells[idxA]!, cellB = b.cells[k * S]!;
-      const segA = a.segments.get(`v:${S},${k}` as SegmentKey), segB = b.segments.get(`v:0,${k}` as SegmentKey);
-      const reqB = segB?.adjacency, reqA = segA?.adjacency;
-      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
-      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
-      const pA = segA?.passability, pB = segB?.passability;
-      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
-        cells.push(idxA);
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      } else if (guaranteesPassability(pA, pB, rules, false)) {
-        if (resA === lastA && resB === lastB) {
-          portalRun.push(idxA);
-        } else {
-          portalRun = [idxA];
-          lastA = resA;
-          lastB = resB;
-        }
-        if (portalRun.length >= MIN_PORTAL_LENGTH) {
-          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
-        }
-      } else {
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      }
+/**
+ * The border cells of design `a` that cross into `b`, its neighbour on `side` (review 707).
+ * Cells cross as `edgeConnectsEast` and the proof join them: the same resolved class, or a
+ * guaranteed run of at least `MIN_PORTAL_LENGTH` between one pair of classes. Empty when the
+ * two designs don't fit.
+ */
+function edgeCrossingCells(side: Side, a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules, matched: boolean): number[] {
+  const fits = side === "E" ? fitsEast(a, b, matched) : side === "W" ? fitsEast(b, a, matched)
+    : side === "S" ? fitsSouth(a, b, matched) : fitsSouth(b, a, matched);
+  if (!fits) return [];
+  const cells = new Set<number>();
+  let run: number[] = [];
+  let lastA: string | undefined, lastB: string | undefined;
+  for (let k = 0; k < S; k++) {
+    const { mine, theirs, segMine, segTheirs } = BORDER[side](k);
+    const segA = a.segments.get(segMine), segB = b.segments.get(segTheirs);
+    const cellA = a.cells[mine]!, cellB = b.cells[theirs]!;
+    const resA = cellA === "any" ? (segB?.adjacency ?? DEFAULT_RESOLVED_CLASS) : cellA;
+    const resB = cellB === "any" ? (segA?.adjacency ?? DEFAULT_RESOLVED_CLASS) : cellB;
+    if (resA === resB) {
+      cells.add(mine);
+      run = []; lastA = lastB = undefined;
+    } else if (guaranteesPassability(segA?.passability, segB?.passability, rules, false)) {
+      if (resA === lastA && resB === lastB) run.push(mine);
+      else { run = [mine]; lastA = resA; lastB = resB; }
+      if (run.length >= MIN_PORTAL_LENGTH) for (const c of run) cells.add(c);
+    } else {
+      run = []; lastA = lastB = undefined;
     }
-    return cells;
   }
-
-  if (side === "W") {
-    if (!fitsEast(b, a, matched)) return [];
-    const cells: number[] = [];
-    let portalRun: number[] = [];
-    let lastA: string | undefined, lastB: string | undefined;
-    for (let k = 0; k < S; k++) {
-      const idxA = k * S;
-      const cellA = a.cells[idxA]!, cellB = b.cells[k * S + S - 1]!;
-      const segA = a.segments.get(`v:0,${k}` as SegmentKey), segB = b.segments.get(`v:${S},${k}` as SegmentKey);
-      const reqB = segB?.adjacency, reqA = segA?.adjacency;
-      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
-      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
-      const pA = segA?.passability, pB = segB?.passability;
-      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
-        cells.push(idxA);
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      } else if (guaranteesPassability(pB, pA, rules, false)) {
-        if (resA === lastA && resB === lastB) {
-          portalRun.push(idxA);
-        } else {
-          portalRun = [idxA];
-          lastA = resA;
-          lastB = resB;
-        }
-        if (portalRun.length >= MIN_PORTAL_LENGTH) {
-          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
-        }
-      } else {
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      }
-    }
-    return cells;
-  }
-
-  if (side === "S") {
-    if (!fitsSouth(a, b, matched)) return [];
-    const cells: number[] = [];
-    let portalRun: number[] = [];
-    let lastA: string | undefined, lastB: string | undefined;
-    for (let k = 0; k < S; k++) {
-      const idxA = (S - 1) * S + k;
-      const cellA = a.cells[idxA]!, cellB = b.cells[k]!;
-      const segA = a.segments.get(`h:${k},${S}` as SegmentKey), segB = b.segments.get(`h:${k},0` as SegmentKey);
-      const reqB = segB?.adjacency, reqA = segA?.adjacency;
-      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
-      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
-      const pA = segA?.passability, pB = segB?.passability;
-      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
-        cells.push(idxA);
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      } else if (guaranteesPassability(pA, pB, rules, false)) {
-        if (resA === lastA && resB === lastB) {
-          portalRun.push(idxA);
-        } else {
-          portalRun = [idxA];
-          lastA = resA;
-          lastB = resB;
-        }
-        if (portalRun.length >= MIN_PORTAL_LENGTH) {
-          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
-        }
-      } else {
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      }
-    }
-    return cells;
-  }
-
-  if (side === "N") {
-    if (!fitsSouth(b, a, matched)) return [];
-    const cells: number[] = [];
-    let portalRun: number[] = [];
-    let lastA: string | undefined, lastB: string | undefined;
-    for (let k = 0; k < S; k++) {
-      const idxA = k;
-      const cellA = a.cells[idxA]!, cellB = b.cells[(S - 1) * S + k]!;
-      const segA = a.segments.get(`h:${k},0` as SegmentKey), segB = b.segments.get(`h:${k},${S}` as SegmentKey);
-      const reqB = segB?.adjacency, reqA = segA?.adjacency;
-      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
-      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
-      const pA = segA?.passability, pB = segB?.passability;
-      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
-        cells.push(idxA);
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      } else if (guaranteesPassability(pB, pA, rules, false)) {
-        if (resA === lastA && resB === lastB) {
-          portalRun.push(idxA);
-        } else {
-          portalRun = [idxA];
-          lastA = resA;
-          lastB = resB;
-        }
-        if (portalRun.length >= MIN_PORTAL_LENGTH) {
-          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
-        }
-      } else {
-        portalRun = [];
-        lastA = undefined;
-        lastB = undefined;
-      }
-    }
-    return cells;
-  }
-
-  return [];
+  return [...cells];
 }
 
 /**
@@ -562,9 +437,8 @@ export function filterSlotDomains(
       if (nx < 0 || ny < 0 || nx >= S || ny >= S) return -1;
       const next = ny * S + nx;
       if (cells[next] === "any") return -1;
-      const segment = turnedDesign.segments.get((dx ? `v:${x + Math.max(dx, 0)},${y}` : `h:${x},${y + Math.max(dy, 0)}`) as SegmentKey);
-      if (segment?.passability === "not-passable-hint") return -1;
       if (cells[next] === cells[local]) return next;
+      const segment = turnedDesign.segments.get((dx ? `v:${x + Math.max(dx, 0)},${y}` : `h:${x},${y + Math.max(dy, 0)}`) as SegmentKey);
       return guaranteesPassability(segment?.passability, segment?.passability, rules) ? next : -1;
     };
     for (let first = 0; first < S * S; first++) {

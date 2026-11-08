@@ -210,18 +210,18 @@ test('multi-part filter rejects E/W split tile when east and west neighbors have
     orientations: [0],
   };
 
-  // West neighbor (slot 1): East border has open on rows 0..2, rubble on rows 3..5
+  // West neighbor (slot 1): East border has open on rows 0..2, hinted hut on rows 3..5
   const upperOnlyTile = {
     id: 'upper-only-tile',
     defaultCellClass: 'open',
-    legend: { R: 'rubble' },
+    legend: { H: 'hut' },
     cells: [
       '......',
       '......',
       '......',
-      'RRRRRR',
-      'RRRRRR',
-      'RRRRRR',
+      'HHHHHH',
+      'HHHHHH',
+      'HHHHHH',
     ],
     segments: {
       'h:3,0': { passability: 'not-passable-hint' },
@@ -237,15 +237,15 @@ test('multi-part filter rejects E/W split tile when east and west neighbors have
     orientations: [0],
   };
 
-  // East neighbor (slot 2): West border has rubble on rows 0..2, open on rows 3..5
+  // East neighbor (slot 2): West border has hinted hut on rows 0..2, open on rows 3..5
   const lowerOnlyTile = {
     id: 'lower-only-tile',
     defaultCellClass: 'open',
-    legend: { R: 'rubble' },
+    legend: { H: 'hut' },
     cells: [
-      'RRRRRR',
-      'RRRRRR',
-      'RRRRRR',
+      'HHHHHH',
+      'HHHHHH',
+      'HHHHHH',
       '......',
       '......',
       '......',
@@ -284,10 +284,19 @@ test('multi-part filter rejects E/W split tile when east and west neighbors have
 
   const ok = filterSlotDomains(grid, testLib, forcedSeams);
   // Both parts touch West and East boundaries, but crossings are in different parts:
-  // West crossing is in Part 0 (upper), East crossing is in Part 1 (lower).
+  // West crossing is in Part 0 (upper), East crossing is in Part 2 (lower; the rubble band is Part 1).
   // The filter must reject the split tile, emptying slot 0's domain and returning false.
   assert.equal(ok, false, 'rejects tile whose forced crossings belong to disconnected parts');
   assert.equal(grid[0].domain.length, 0, 'domain emptied when no part can bridge both crossings');
+
+  // Control: both neighbours reach the upper part, so one part carries both crossings.
+  const control = [
+    { domain: [{ templateId: splitTile.id, orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: upperOnlyTile.id, orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: upperOnlyTile.id, orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+  ];
+  assert.equal(filterSlotDomains(control, testLib, forcedSeams), true, 'keeps tile when one part carries every crossing');
+  assert.equal(control[0].domain.length, 1);
 });
 
 test('buildSkeleton rejects seams between unassigned fill slots when no zone options can connect', () => {
