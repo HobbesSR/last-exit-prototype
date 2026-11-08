@@ -199,8 +199,8 @@ export function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: Pa
     const reqB = segB?.adjacency, reqA = segA?.adjacency;
     const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
     const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
-    if (resA === resB) return true;
     const pA = segA?.passability, pB = segB?.passability;
+    if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") return true;
     if (guaranteesPassability(pA, pB, rules, false)) {
       if (resA === lastA && resB === lastB) {
         portalRun++;
@@ -228,8 +228,8 @@ export function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign, rules: P
     const reqB = segB?.adjacency, reqA = segA?.adjacency;
     const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
     const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
-    if (resA === resB) return true;
     const pA = segA?.passability, pB = segB?.passability;
+    if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") return true;
     if (guaranteesPassability(pA, pB, rules, false)) {
       if (resA === lastA && resB === lastB) {
         portalRun++;

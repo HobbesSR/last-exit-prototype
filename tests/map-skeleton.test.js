@@ -101,13 +101,19 @@ test('multi-part domain filtering prunes split tiles that cannot bridge forced-o
   };
 
   // Create a grid cell with the split tile options (orientation 0 has split N/S, orientation 90 has split W/E)
-  const grid = [{
-    domain: [
-      { templateId: splitTile.id, orientation: 0, difficulty: 0, weight: 1 },
-      { templateId: splitTile.id, orientation: 90, difficulty: 0, weight: 1 },
-    ],
-    links: [],
-  }, { domain: [], links: [] }, { domain: [], links: [] }];
+  const grid = [
+    {
+      domain: [
+        { templateId: splitTile.id, orientation: 0, difficulty: 0, weight: 1 },
+        { templateId: splitTile.id, orientation: 90, difficulty: 0, weight: 1 },
+      ],
+      links: [],
+    },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+  ];
 
   // Force open North (slot 1 to South of slot 0) and South (slot 0 to South of slot 2)
   // Slot 0 has forced sides North and South.
@@ -140,10 +146,10 @@ test('multi-part domain filtering prunes split tiles that cannot bridge forced-o
       ],
       links: [],
     },
-    { domain: [], links: [] },
-    { domain: [], links: [] },
-    { domain: [], links: [] },
-    { domain: [], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
   ];
   const okEmpty = filterSlotDomains(gridEmpty, testLib, fourSides);
   assert.equal(okEmpty, false, 'returns false when all options in domain are pruned');
@@ -158,12 +164,130 @@ test('multi-part domain filtering prunes split tiles that cannot bridge forced-o
       ],
       links: [],
     },
-    { domain: [], links: [] },
-    { domain: [], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: 'field', orientation: 0, difficulty: 0, weight: 1 }], links: [] },
   ];
   const okSingleton = filterSlotDomains(gridSingleton, testLib, forcedSeams);
   assert.equal(okSingleton, false, 'returns false when sole option in singleton domain cannot bridge forced sides');
   assert.equal(gridSingleton[0].domain.length, 0, 'singleton domain is emptied when sole option fails');
+});
+
+test('multi-part filter rejects E/W split tile when east and west neighbors have crossings in different parts', () => {
+  const library = bundledLibrary(DEFAULT_CHAIN_PARAMS);
+
+  // Tile A (middle): split horizontally into upper (rows 0..1 open) and lower (rows 4..5 open)
+  // separated by a rubble barrier (rows 2..3). Both open parts touch West (x=0) and East (x=5) geometrically.
+  const splitTile = {
+    id: 'ew-split-tile',
+    defaultCellClass: 'open',
+    legend: { R: 'rubble' },
+    cells: [
+      '......',
+      '......',
+      'RRRRRR',
+      'RRRRRR',
+      '......',
+      '......',
+    ],
+    segments: {
+      'h:2,0': { passability: 'not-passable-hint' },
+      'h:2,1': { passability: 'not-passable-hint' },
+      'h:2,2': { passability: 'not-passable-hint' },
+      'h:2,3': { passability: 'not-passable-hint' },
+      'h:2,4': { passability: 'not-passable-hint' },
+      'h:2,5': { passability: 'not-passable-hint' },
+      'h:4,0': { passability: 'not-passable-hint' },
+      'h:4,1': { passability: 'not-passable-hint' },
+      'h:4,2': { passability: 'not-passable-hint' },
+      'h:4,3': { passability: 'not-passable-hint' },
+      'h:4,4': { passability: 'not-passable-hint' },
+      'h:4,5': { passability: 'not-passable-hint' },
+      'v:0,2': { passability: 'not-passable-hint' },
+      'v:0,3': { passability: 'not-passable-hint' },
+      'v:6,2': { passability: 'not-passable-hint' },
+      'v:6,3': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  // West neighbor (slot 1): East border has open on rows 0..2, rubble on rows 3..5
+  const upperOnlyTile = {
+    id: 'upper-only-tile',
+    defaultCellClass: 'open',
+    legend: { R: 'rubble' },
+    cells: [
+      '......',
+      '......',
+      '......',
+      'RRRRRR',
+      'RRRRRR',
+      'RRRRRR',
+    ],
+    segments: {
+      'h:3,0': { passability: 'not-passable-hint' },
+      'h:3,1': { passability: 'not-passable-hint' },
+      'h:3,2': { passability: 'not-passable-hint' },
+      'h:3,3': { passability: 'not-passable-hint' },
+      'h:3,4': { passability: 'not-passable-hint' },
+      'h:3,5': { passability: 'not-passable-hint' },
+      'v:6,3': { passability: 'not-passable-hint' },
+      'v:6,4': { passability: 'not-passable-hint' },
+      'v:6,5': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  // East neighbor (slot 2): West border has rubble on rows 0..2, open on rows 3..5
+  const lowerOnlyTile = {
+    id: 'lower-only-tile',
+    defaultCellClass: 'open',
+    legend: { R: 'rubble' },
+    cells: [
+      'RRRRRR',
+      'RRRRRR',
+      'RRRRRR',
+      '......',
+      '......',
+      '......',
+    ],
+    segments: {
+      'h:3,0': { passability: 'not-passable-hint' },
+      'h:3,1': { passability: 'not-passable-hint' },
+      'h:3,2': { passability: 'not-passable-hint' },
+      'h:3,3': { passability: 'not-passable-hint' },
+      'h:3,4': { passability: 'not-passable-hint' },
+      'h:3,5': { passability: 'not-passable-hint' },
+      'v:0,0': { passability: 'not-passable-hint' },
+      'v:0,1': { passability: 'not-passable-hint' },
+      'v:0,2': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  const testLib = {
+    ...library,
+    tiles: [...library.tiles, splitTile, upperOnlyTile, lowerOnlyTile],
+  };
+
+  // Slot 0 is middle tile. Slot 1 is West neighbor. Slot 2 is East neighbor.
+  const grid = [
+    { domain: [{ templateId: splitTile.id, orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: upperOnlyTile.id, orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+    { domain: [{ templateId: lowerOnlyTile.id, orientation: 0, difficulty: 0, weight: 1 }], links: [] },
+  ];
+
+  // Seams: slot 1 (West) to slot 0 (dir 'E'), slot 0 to slot 2 (East, dir 'E')
+  const forcedSeams = [
+    { slotA: 1, slotB: 0, dir: 'E', isTree: true },
+    { slotA: 0, slotB: 2, dir: 'E', isTree: true },
+  ];
+
+  const ok = filterSlotDomains(grid, testLib, forcedSeams);
+  // Both parts touch West and East boundaries, but crossings are in different parts:
+  // West crossing is in Part 0 (upper), East crossing is in Part 1 (lower).
+  // The filter must reject the split tile, emptying slot 0's domain and returning false.
+  assert.equal(ok, false, 'rejects tile whose forced crossings belong to disconnected parts');
+  assert.equal(grid[0].domain.length, 0, 'domain emptied when no part can bridge both crossings');
 });
 
 test('buildSkeleton rejects seams between unassigned fill slots when no zone options can connect', () => {

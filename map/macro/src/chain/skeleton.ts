@@ -8,10 +8,11 @@
  *   forced-open sides (#883 comment 10802).
  */
 import type { WfcGrid } from "../wfc.ts";
+import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
-import type { ChainLibrary, ChainTileDesign } from "./library.ts";
+import type { ChainLibrary, ChainTileDesign, PassabilityRules } from "./library.ts";
 import { fitsEast, fitsSouth, edgeConnectsEast, edgeConnectsSouth } from "./placement.ts";
 import type { Stream } from "./random.ts";
 import { guaranteesPassability } from "./resolution.ts";
@@ -358,8 +359,177 @@ export function buildSkeleton(
 }
 
 /**
+ * Computes the cell indices in oriented design `a` that form a passable crossing to `b`
+ * across the specified border `side` (from `a`'s perspective).
+ */
+function edgeCrossingCells(
+  side: Side,
+  a: OrientedDesign,
+  b: OrientedDesign,
+  rules: PassabilityRules,
+  matched: boolean,
+): number[] {
+  const S = 6;
+  const DEFAULT_RESOLVED_CLASS = "open";
+
+  if (side === "E") {
+    if (!fitsEast(a, b, matched)) return [];
+    const cells: number[] = [];
+    let portalRun: number[] = [];
+    let lastA: string | undefined, lastB: string | undefined;
+    for (let k = 0; k < S; k++) {
+      const idxA = k * S + S - 1;
+      const cellA = a.cells[idxA]!, cellB = b.cells[k * S]!;
+      const segA = a.segments.get(`v:${S},${k}` as SegmentKey), segB = b.segments.get(`v:0,${k}` as SegmentKey);
+      const reqB = segB?.adjacency, reqA = segA?.adjacency;
+      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+      const pA = segA?.passability, pB = segB?.passability;
+      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
+        cells.push(idxA);
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      } else if (guaranteesPassability(pA, pB, rules, false)) {
+        if (resA === lastA && resB === lastB) {
+          portalRun.push(idxA);
+        } else {
+          portalRun = [idxA];
+          lastA = resA;
+          lastB = resB;
+        }
+        if (portalRun.length >= MIN_PORTAL_LENGTH) {
+          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
+        }
+      } else {
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      }
+    }
+    return cells;
+  }
+
+  if (side === "W") {
+    if (!fitsEast(b, a, matched)) return [];
+    const cells: number[] = [];
+    let portalRun: number[] = [];
+    let lastA: string | undefined, lastB: string | undefined;
+    for (let k = 0; k < S; k++) {
+      const idxA = k * S;
+      const cellA = a.cells[idxA]!, cellB = b.cells[k * S + S - 1]!;
+      const segA = a.segments.get(`v:0,${k}` as SegmentKey), segB = b.segments.get(`v:${S},${k}` as SegmentKey);
+      const reqB = segB?.adjacency, reqA = segA?.adjacency;
+      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+      const pA = segA?.passability, pB = segB?.passability;
+      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
+        cells.push(idxA);
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      } else if (guaranteesPassability(pB, pA, rules, false)) {
+        if (resA === lastA && resB === lastB) {
+          portalRun.push(idxA);
+        } else {
+          portalRun = [idxA];
+          lastA = resA;
+          lastB = resB;
+        }
+        if (portalRun.length >= MIN_PORTAL_LENGTH) {
+          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
+        }
+      } else {
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      }
+    }
+    return cells;
+  }
+
+  if (side === "S") {
+    if (!fitsSouth(a, b, matched)) return [];
+    const cells: number[] = [];
+    let portalRun: number[] = [];
+    let lastA: string | undefined, lastB: string | undefined;
+    for (let k = 0; k < S; k++) {
+      const idxA = (S - 1) * S + k;
+      const cellA = a.cells[idxA]!, cellB = b.cells[k]!;
+      const segA = a.segments.get(`h:${k},${S}` as SegmentKey), segB = b.segments.get(`h:${k},0` as SegmentKey);
+      const reqB = segB?.adjacency, reqA = segA?.adjacency;
+      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+      const pA = segA?.passability, pB = segB?.passability;
+      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
+        cells.push(idxA);
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      } else if (guaranteesPassability(pA, pB, rules, false)) {
+        if (resA === lastA && resB === lastB) {
+          portalRun.push(idxA);
+        } else {
+          portalRun = [idxA];
+          lastA = resA;
+          lastB = resB;
+        }
+        if (portalRun.length >= MIN_PORTAL_LENGTH) {
+          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
+        }
+      } else {
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      }
+    }
+    return cells;
+  }
+
+  if (side === "N") {
+    if (!fitsSouth(b, a, matched)) return [];
+    const cells: number[] = [];
+    let portalRun: number[] = [];
+    let lastA: string | undefined, lastB: string | undefined;
+    for (let k = 0; k < S; k++) {
+      const idxA = k;
+      const cellA = a.cells[idxA]!, cellB = b.cells[(S - 1) * S + k]!;
+      const segA = a.segments.get(`h:${k},0` as SegmentKey), segB = b.segments.get(`h:${k},${S}` as SegmentKey);
+      const reqB = segB?.adjacency, reqA = segA?.adjacency;
+      const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+      const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+      const pA = segA?.passability, pB = segB?.passability;
+      if (resA === resB && resA !== "rubble" && pA !== "not-passable-hint" && pB !== "not-passable-hint") {
+        cells.push(idxA);
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      } else if (guaranteesPassability(pB, pA, rules, false)) {
+        if (resA === lastA && resB === lastB) {
+          portalRun.push(idxA);
+        } else {
+          portalRun = [idxA];
+          lastA = resA;
+          lastB = resB;
+        }
+        if (portalRun.length >= MIN_PORTAL_LENGTH) {
+          for (const c of portalRun) if (!cells.includes(c)) cells.push(c);
+        }
+      } else {
+        portalRun = [];
+        lastA = undefined;
+        lastB = undefined;
+      }
+    }
+    return cells;
+  }
+
+  return [];
+}
+
+/**
  * Filter slot domains ensuring each slot's candidate options can bridge all of its
- * forced-open sides through a single internal part (#883 comment 10802).
+ * forced-open sides through a single internal part (#883 comment 10802, review 707).
  */
 export function filterSlotDomains(
   grid: WfcGrid,
@@ -367,24 +537,21 @@ export function filterSlotDomains(
   forcedSeams: SkeletonSeam[],
 ): boolean {
   const rules = library.passabilityRules ?? "either-side";
+  const matched = library.passabilityRules === "matched";
   const oriented = orientedDesigns(library);
 
-  // Group forced sides per slot
-  const forcedSidesPerSlot = new Map<number, Set<Side>>();
+  // Group forced edges per slot: slot -> Array<{ nbr: number; side: Side }>
+  const forcedEdgesPerSlot = new Map<number, Array<{ nbr: number; side: Side }>>();
   for (const seam of forcedSeams) {
     const { slotA, slotB, dir } = seam;
-    let setA = forcedSidesPerSlot.get(slotA);
-    if (!setA) forcedSidesPerSlot.set(slotA, setA = new Set());
-    setA.add(dir === "E" ? "E" : "S");
-
-    let setB = forcedSidesPerSlot.get(slotB);
-    if (!setB) forcedSidesPerSlot.set(slotB, setB = new Set());
-    setB.add(dir === "E" ? "W" : "N");
+    const rev = dir === "E" ? "W" : "N";
+    (forcedEdgesPerSlot.get(slotA) ?? (forcedEdgesPerSlot.set(slotA, []), forcedEdgesPerSlot.get(slotA)!)).push({ nbr: slotB, side: dir });
+    (forcedEdgesPerSlot.get(slotB) ?? (forcedEdgesPerSlot.set(slotB, []), forcedEdgesPerSlot.get(slotB)!)).push({ nbr: slotA, side: rev });
   }
 
-  // Parts cache for oriented designs
-  const partsCache = new Map<OrientedDesign, number[][]>();
-  const partsOf = (turnedDesign: OrientedDesign): number[][] => {
+  // Parts cache for oriented designs: returns both the component arrays and a cell -> partId map
+  const partsCache = new Map<OrientedDesign, { parts: number[][]; of: Int16Array }>();
+  const partsOf = (turnedDesign: OrientedDesign): { parts: number[][]; of: Int16Array } => {
     let found = partsCache.get(turnedDesign);
     if (found) return found;
     const { cells } = turnedDesign;
@@ -395,8 +562,9 @@ export function filterSlotDomains(
       if (nx < 0 || ny < 0 || nx >= S || ny >= S) return -1;
       const next = ny * S + nx;
       if (cells[next] === "any") return -1;
-      if (cells[next] === cells[local]) return next;
       const segment = turnedDesign.segments.get((dx ? `v:${x + Math.max(dx, 0)},${y}` : `h:${x},${y + Math.max(dy, 0)}`) as SegmentKey);
+      if (segment?.passability === "not-passable-hint") return -1;
+      if (cells[next] === cells[local]) return next;
       return guaranteesPassability(segment?.passability, segment?.passability, rules) ? next : -1;
     };
     for (let first = 0; first < S * S; first++) {
@@ -409,37 +577,48 @@ export function filterSlotDomains(
       }
       parts.push(part);
     }
-    partsCache.set(turnedDesign, found = parts);
+    found = { parts, of };
+    partsCache.set(turnedDesign, found);
     return found;
   };
 
   let ok = true;
   for (let slot = 0; slot < grid.length; slot++) {
-    const sides = forcedSidesPerSlot.get(slot);
-    if (!sides || sides.size <= 1) continue;
+    const edges = forcedEdgesPerSlot.get(slot);
+    if (!edges || edges.length <= 1) continue;
     const cell = grid[slot]!;
     if (cell.domain.length === 0) continue;
 
     const filtered = cell.domain.filter((opt) => {
       const des = oriented(opt.templateId, opt.orientation);
-      const parts = partsOf(des);
+      const { parts, of } = partsOf(des);
       if (parts.length <= 1) return true;
 
-      // Check if at least one part touches all forced sides
-      return parts.some((part) => {
-        for (const side of sides) {
-          let touchesSide = false;
-          for (let i = 0; i < part.length; i++) {
-            const c = part[i]!;
-            if (side === "N" && Math.floor(c / S) === 0) { touchesSide = true; break; }
-            if (side === "S" && Math.floor(c / S) === S - 1) { touchesSide = true; break; }
-            if (side === "W" && c % S === 0) { touchesSide = true; break; }
-            if (side === "E" && c % S === S - 1) { touchesSide = true; break; }
+      // For each forced edge, find which internal parts of 'des' can connect to at least one neighbor option
+      let commonParts: Set<number> | null = null;
+      for (const edge of edges) {
+        const nbrCell = grid[edge.nbr];
+        if (!nbrCell) continue;
+        const partsForEdge = new Set<number>();
+        for (const optB of nbrCell.domain) {
+          const desB = oriented(optB.templateId, optB.orientation);
+          const cCells = edgeCrossingCells(edge.side, des, desB, rules, matched);
+          for (const c of cCells) {
+            const p = of[c]!;
+            if (p >= 0) partsForEdge.add(p);
           }
-          if (!touchesSide) return false;
         }
-        return true;
-      });
+        if (partsForEdge.size === 0) return false;
+        if (commonParts === null) {
+          commonParts = new Set(partsForEdge);
+        } else {
+          for (const p of commonParts) {
+            if (!partsForEdge.has(p)) commonParts.delete(p);
+          }
+        }
+        if (commonParts.size === 0) return false;
+      }
+      return commonParts !== null && commonParts.size > 0;
     });
 
     if (filtered.length < cell.domain.length) {
