@@ -166,7 +166,7 @@ existed.
 
 ## Other places facts live
 
-Regional lighting experiment evidence (#771): [42.39-regional-lighting.md](42.39-regional-lighting.md).
+Regional lighting experiment evidence (#771): [42.40-regional-lighting.md](42.40-regional-lighting.md).
 
 `AGENTS.md` at the repository root carries session start rules and project
 invariants. `README.md` is the player- and operator-facing entry point: running,
