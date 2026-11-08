@@ -150,12 +150,14 @@ Four more entries are macro alone at the larger authored sizes (`macro-24x12` an
 `macro-36x18`, seeds `size-24-1`, `size-24-2`, `size-36-1` and `size-36-2`, `stages: 'macro'`): the Layout and macro's views
 through the briefs, with nothing built (`generateMacro` in `map/chain.ts`; #821). What builders
 make of those sizes is checked from stored briefs instead (31).
-The current baseline provenance is content commit `e97b4447ba9ee33e61033432f9b5cc22c18f5cbe`,
-captured 2026-11-07 under Node v24.15.0: architectural appearance kits across the remaining
-region catalogue types (`types-66`, #770) over `landmark` (#769) and the matched libraries
-(`common-primitives@6`, #849). Every region result and built map with styled obstacles/buildings
-moves; the Layout, briefs, proof and zones, and every macro-only entry, are unchanged. A full
-lookup is still the pinned seed set; `npm test` pins its quick cases against this file.
+The current baseline provenance is commit `4a38e17631f0fac87327603e2ac9fcba651136ab`, captured
+2026-11-08 under Node v24.15.0: placement's reachability lookahead (`06b912a`, #857, 42.39) over
+the architectural appearance kits (`types-66`, #770), `landmark` (#769) and the matched libraries
+(`common-primitives@6`, #849). The lookahead refuses some search branches sooner, so 61 of the
+228 maps place differently and every view of them moves, Layout and briefs included: 17 of the 120
+game maps, 4 crowded, 4 sparse, and 36 playgrounds. The other 167, and every macro-only entry, are
+unchanged. A full lookup is still the pinned seed set; `npm test` pins its quick cases against this
+file.
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash

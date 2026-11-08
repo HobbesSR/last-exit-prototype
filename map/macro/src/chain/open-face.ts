@@ -454,9 +454,11 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
           return y * S * width + x * S;
         })();
         const lx = at % width, ly = (at - lx) / width;
+        // An area of holes alone starts in an unplaced slot, whose class isn't settled.
+        const found = classAt(lx, ly), label = found === UNSETTLED ? "unsettled" : found;
         refused(through
-          ? `the area from ${classAt(lx, ly)}@${lx},${ly} (${size} cells, ${holes} unplaced slot${holes === 1 ? "" : "s"}) can't reach the rest of the map`
-          : `the component from ${classAt(lx, ly)}@${lx},${ly} (${size} cells) has no portal path out`);
+          ? `the area from ${label}@${lx},${ly} (${size} cells, ${holes} unplaced slot${holes === 1 ? "" : "s"}) can't reach the rest of the map`
+          : `the component from ${label}@${lx},${ly} (${size} cells) has no portal path out`);
         // Every path out crosses the cut, so the slots that settle its faces seal the component
         // whatever lies inside it: they are the cause, not the component's every slot. A sealed
         // map-sized component named nearly every slot, and the solver then backtracked one slot
