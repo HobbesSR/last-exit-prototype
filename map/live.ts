@@ -38,9 +38,10 @@ export function liveChainParams(content: MatchContent = defaultContent(), size: 
   return chainParams({ mode: 'game', zoneWidth: size.zoneWidth, zoneHeight: size.zoneHeight, exitCount: 1, contestantCount: content.roster.contestants.length, hunterCount: content.roster.gladiators.length });
 }
 
-export function generateLiveMap(seed: number, content: MatchContent = defaultContent(), size: ZoneSize = DEFAULT_LIVE_ZONE_SIZE): GameMap {
+export function generateLiveMap(seed: number, content: MatchContent = defaultContent(), size: ZoneSize = DEFAULT_LIVE_ZONE_SIZE,
+  appearance: { regionalLighting?: boolean } = {}): GameMap {
   const chain = generate(seed, liveChainParams(content, size), undefined, DEFAULT_CELL_SIZE);
-  return liveMapFromBuilt(seed, composeRegions(chain.results), content);
+  return liveMapFromBuilt(seed, composeRegions(chain.results), content, appearance);
 }
 
 /** The room seed a chain seed names: the number it spells exactly, when a room accepts it. */
@@ -87,12 +88,13 @@ export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSiz
 }
 
 /** Accept completed region results; keep their geometry and site coordinates authoritative. */
-export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, content: MatchContent = defaultContent()): GameMap {
+export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, content: MatchContent = defaultContent(),
+  appearance: { regionalLighting?: boolean } = {}): GameMap {
   const context = createGenerationContext(seed), { map } = context;
   const { width, height, origin } = builtMapFrame(built);
   map.width = width; map.height = height; map.generator = LIVE_MAP_VERSION;
   map.playableArea = builtPlayableArea(built, origin);
-  stampBuiltMap(context, built, origin);
+  stampBuiltMap(context, built, origin, appearance);
   // Navigation's top level, derived here and never saved (22.6). No bot reads it yet.
   attachPortalGraph(map, buildPortalGraph(built, origin));
   const world = (p: Vec2): Vec2 => ({ x: p.x + origin.x, y: p.y + origin.y });

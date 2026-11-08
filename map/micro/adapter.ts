@@ -1,6 +1,7 @@
 import { placeElement } from '../../shared/map/element.ts';
 import { createGenerationContext } from '../../shared/map/context.ts';
 import { pointInRoof } from '../../shared/view.ts';
+import { regionalLightingFields } from './lighting.ts';
 import type { BaseGenerationContext } from '../../shared/map/context.ts';
 import type { CollisionMap, NodeId, PlayableArea, Vec2 } from '../../shared/types.ts';
 import type { BuiltMap, RegionElement } from './types.ts';
@@ -30,8 +31,13 @@ function stamp(context: BaseGenerationContext, elements: readonly RegionElement[
  * Nothing is validated first: a builder's promise is its own to check (51 principle 9).
  * Core element sites stay in the map for the report; map/live.ts applies gameplay placement policy.
  */
-export function stampBuiltMap(context: BaseGenerationContext, map: BuiltMap<RegionElement>, origin: Vec2): void {
+export function stampBuiltMap(context: BaseGenerationContext, map: BuiltMap<RegionElement>, origin: Vec2,
+  options: { regionalLighting?: boolean } = {}): void {
   for (const region of map.regions) stamp(context, region.elements, region.loot, origin, region.brief.id as NodeId);
+  if (options.regionalLighting) {
+    const appearance = (context.map.appearance ??= {}), lighting = (appearance.lighting ??= {});
+    lighting.fields = [...(lighting.fields ?? []), ...regionalLightingFields(map, origin)];
+  }
 }
 
 /**
