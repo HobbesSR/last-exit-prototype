@@ -2071,6 +2071,55 @@ try {
     await f.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
 
+  // #771: six tiny real region builds, emitted through the production map adapter.
+  // This uses no whole-chain generation and checks static tile rebuild stability in WebGL.
+  const { buildRegion: buildLightingRegion } = await import('../map/micro/region-types.ts');
+  const { composeRegions: composeLightingRegions } = await import('../map/micro/compose.ts');
+  const { stampBuiltMap: stampLightingMap } = await import('../map/micro/adapter.ts');
+  const lightingRegions = [];
+  for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++) {
+    const cells = Array.from({ length: 100 }, (_, i) => ({ x: col * 10 + i % 10, y: row * 10 + Math.floor(i / 10) }));
+    lightingRegions.push(buildLightingRegion({ id: `lighting-${col}-${row}`, seed: 771, type: ['open', 'park', 'rubble'][col],
+      cellSize: 40, cells, zones: [{ tier: 2, bonus: 0, lootChance: 0, cells }], portals: [] }));
+  }
+  const lightingContext = createGenerationContext(771);
+  stampLightingMap(lightingContext, composeLightingRegions(lightingRegions), { x: 0, y: 0 }, { regionalLighting: true });
+  const { map: proceduralMap } = arena({ cols: 30, rows: 20, cellSize: 40, seed: 771,
+    obstacles: lightingContext.map.obstacles, gates: lightingContext.map.gates,
+    buildings: lightingContext.map.buildings, roofs: lightingContext.map.roofs, appearance: lightingContext.map.appearance });
+  const proceduralEvidence = await page.evaluate(async demoMap => {
+    const f = window.witness, s = f.scene;
+    const priorMap = f.map, priorPlayers = f.state.players, priorBodies = f.state.bodies;
+    window.__proceduralLightingPrior = { map: priorMap, players: priorPlayers, bodies: priorBodies };
+    f.map = demoMap; s.recordStatic(demoMap);
+    f.state.players = priorPlayers.filter(p => p.id === 'self');
+    f.state.bodies = [];
+    const view = { palette: 'signature', lighting: true, wear: false, directed: true, fog: false,
+      camera: { x: 600, y: 400, zoom: 0.9 }, selfPos: { x: 600, y: 600 } };
+    const samples = () => [200, 600, 1000].map(x => f.pixelAtWorld(x, 200).hex);
+    await f.settle(view);
+    const lit = samples();
+    await f.settle({ ...view, lighting: false });
+    const unlit = samples();
+    await f.settle(view);
+    const rebuilt = samples();
+    return { lit, unlit, rebuilt, fields: demoMap.appearance.lighting.fields };
+  }, proceduralMap);
+  await writeFile(path.join(outDir, 'procedural-lighting.json'), JSON.stringify(proceduralEvidence, null, 2));
+  assert.equal(proceduralEvidence.fields.length, 6);
+  assert.equal(new Set(proceduralEvidence.fields.map(f => f.tint)).size, 3);
+  assert.deepEqual(proceduralEvidence.rebuilt, proceduralEvidence.lit, 'generated field pixels survive tile invalidation/rebuild');
+  assert.ok(proceduralEvidence.lit.some((hex, i) => hex !== proceduralEvidence.unlit[i]), 'generated fields visibly light the map');
+  await page.screenshot({ path: path.join(outDir, 'procedural-regional-lighting.png') });
+  captures.push({ id: 'procedural-regional-lighting', file: 'procedural-regional-lighting.png', theme: 'signature',
+    fog: false, zoom: 0.9, view: 'six emitted district fields across open, park and rubble regions (#771)' });
+  await page.evaluate(async () => {
+    const f = window.witness, prior = window.__proceduralLightingPrior;
+    f.map = prior.map; f.state.players = prior.players; f.state.bodies = prior.bodies;
+    f.scene.recordStatic(prior.map);
+    await f.settle({ wear: true });
+    delete window.__proceduralLightingPrior;
+  });
   // 5d. Block-scale landmark silhouettes (41.2 step 5, 11.1 §8, #769):
   //     Build the three authored landmarks through the building pipeline, place them side by
   //     side, and prove their distinctive non-rectangular roof contours stay legible at gameplay
