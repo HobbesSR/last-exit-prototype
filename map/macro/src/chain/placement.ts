@@ -9,7 +9,7 @@
 import type { PlacementTraceDetail, PlacementTraceEvent } from "./placement-trace.ts";
 import { libraryFingerprint } from "../coding.ts";
 import { solveWfc, wfcIterationCap } from "../wfc.ts";
-import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
+import type { TileOption, WfcAccept, WfcCompatibility, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import { openFaceRule } from "./open-face.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
@@ -24,7 +24,7 @@ import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, Segment
 import { planTiles, zonePlan } from "./zone-plan.ts";
 import type { PlacementFilter, ZonePlan } from "./zone-plan.ts";
 import { layoutSlots, makeZones } from "./zones.ts";
-import { buildSkeleton, applySkeletonToGrid } from "./skeleton.ts";
+import { buildSkeleton, applySkeletonToGrid, bothRules, skeletonPartRule } from "./skeleton.ts";
 import type { MapZone, MaskCell } from "./zones.ts";
 
 export const PLACEMENT_ATTEMPTS = 50;
@@ -418,6 +418,7 @@ function sample(
     };
   });
   adjacencyLinks(grid);
+  let partRule: WfcAccept | undefined;
   if (library.connectivitySkeleton) {
     const skeletonConfig = typeof library.connectivitySkeleton === "object" ? library.connectivitySkeleton : {};
     const maxTries = 5;
@@ -441,6 +442,7 @@ function sample(
       if (ok) break;
     }
 
+    if (skeletonResult && skeletonConfig.filterParts !== false) partRule = skeletonPartRule(library, skeletonResult.forcedSeams);
     if (skeletonResult) {
       trace?.({
         type: "skeleton",
@@ -454,7 +456,11 @@ function sample(
   const counted = (reason: string) => { if (attempt) attempt.refusals++; refused(reason); };
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
     {
-      ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, counted, lookahead, trace) } : {}),
+      ...(() => {
+        const face = openFace ? openFaceRule(library, grid, columns, rows, counted, lookahead, trace) : undefined;
+        const accept = partRule ? bothRules(partRule, face) : face;
+        return accept ? { accept } : {};
+      })(),
       stallLimit: PLACEMENT_STALL_LIMIT, state, stall,
       ...(trace ? { trace } : {}),
       connects: adjacencyConnects(library),

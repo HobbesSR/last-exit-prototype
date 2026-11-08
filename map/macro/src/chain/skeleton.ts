@@ -7,7 +7,7 @@
  * - filterParts: pre-solve filter ensuring each slot's options can internally connect all its
  *   forced-open sides (#883 comment 10802).
  */
-import type { WfcGrid } from "../wfc.ts";
+import type { TileOption, WfcAccept, WfcGrid } from "../wfc.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
@@ -402,36 +402,38 @@ function edgeCrossingCells(side: Side, a: OrientedDesign, b: OrientedDesign, rul
   return [...cells];
 }
 
+type ForcedEdge = { nbr: number; side: Side };
+
+/** Each slot's forced-open seams, as the side of that slot and the slot across. */
+function forcedEdgesBySlot(forcedSeams: SkeletonSeam[]): Map<number, ForcedEdge[]> {
+  const bySlot = new Map<number, ForcedEdge[]>();
+  const add = (slot: number, edge: ForcedEdge) => {
+    const list = bySlot.get(slot);
+    if (list) list.push(edge); else bySlot.set(slot, [edge]);
+  };
+  for (const { slotA, slotB, dir } of forcedSeams) {
+    add(slotA, { nbr: slotB, side: dir });
+    add(slotB, { nbr: slotA, side: dir === "E" ? "W" : "N" });
+  }
+  return bySlot;
+}
+
 /**
- * Filter slot domains ensuring each slot's candidate options can bridge all of its
- * forced-open sides through a single internal part (#883 comment 10802, review 707).
+ * Whether one internal part of `option` carries a crossing on every forced edge, against
+ * the options `domainOf` gives for each neighbour (#883 comment 10802, reviews 707, 708).
+ * Parts are the open-face rule's fixed parts: cells joined by class or a guaranteed segment.
  */
-export function filterSlotDomains(
-  grid: WfcGrid,
-  library: ChainLibrary,
-  forcedSeams: SkeletonSeam[],
-): boolean {
+function partBridges(library: ChainLibrary) {
   const rules = library.passabilityRules ?? "either-side";
   const matched = library.passabilityRules === "matched";
   const oriented = orientedDesigns(library);
-
-  // Group forced edges per slot: slot -> Array<{ nbr: number; side: Side }>
-  const forcedEdgesPerSlot = new Map<number, Array<{ nbr: number; side: Side }>>();
-  for (const seam of forcedSeams) {
-    const { slotA, slotB, dir } = seam;
-    const rev = dir === "E" ? "W" : "N";
-    (forcedEdgesPerSlot.get(slotA) ?? (forcedEdgesPerSlot.set(slotA, []), forcedEdgesPerSlot.get(slotA)!)).push({ nbr: slotB, side: dir });
-    (forcedEdgesPerSlot.get(slotB) ?? (forcedEdgesPerSlot.set(slotB, []), forcedEdgesPerSlot.get(slotB)!)).push({ nbr: slotA, side: rev });
-  }
-
-  // Parts cache for oriented designs: returns both the component arrays and a cell -> partId map
-  const partsCache = new Map<OrientedDesign, { parts: number[][]; of: Int16Array }>();
-  const partsOf = (turnedDesign: OrientedDesign): { parts: number[][]; of: Int16Array } => {
+  const partsCache = new Map<OrientedDesign, { count: number; of: Int16Array }>();
+  const partsOf = (turnedDesign: OrientedDesign): { count: number; of: Int16Array } => {
     let found = partsCache.get(turnedDesign);
     if (found) return found;
     const { cells } = turnedDesign;
     const of = new Int16Array(S * S).fill(-1);
-    const parts: number[][] = [];
+    let count = 0;
     const joinsInside = (local: number, k: number): number => {
       const x = local % S, y = (local - x) / S, [dx, dy] = SIDES[k]!, nx = x + dx, ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= S || ny >= S) return -1;
@@ -444,63 +446,86 @@ export function filterSlotDomains(
     for (let first = 0; first < S * S; first++) {
       if (cells[first] === "any" || of[first]! >= 0) continue;
       const part = [first];
-      of[first] = parts.length;
+      of[first] = count;
       for (let i = 0; i < part.length; i++) for (let k = 0; k < SIDES.length; k++) {
         const next = joinsInside(part[i]!, k);
-        if (next >= 0 && of[next]! < 0) { of[next] = parts.length; part.push(next); }
+        if (next >= 0 && of[next]! < 0) { of[next] = count; part.push(next); }
       }
-      parts.push(part);
+      count++;
     }
-    found = { parts, of };
-    partsCache.set(turnedDesign, found);
+    partsCache.set(turnedDesign, found = { count, of });
     return found;
   };
-
-  let ok = true;
-  for (let slot = 0; slot < grid.length; slot++) {
-    const edges = forcedEdgesPerSlot.get(slot);
-    if (!edges || edges.length <= 1) continue;
-    const cell = grid[slot]!;
-    if (cell.domain.length === 0) continue;
-
-    const filtered = cell.domain.filter((opt) => {
-      const des = oriented(opt.templateId, opt.orientation);
-      const { parts, of } = partsOf(des);
-      if (parts.length <= 1) return true;
-
-      // For each forced edge, find which internal parts of 'des' can connect to at least one neighbor option
-      let commonParts: Set<number> | null = null;
-      for (const edge of edges) {
-        const nbrCell = grid[edge.nbr];
-        if (!nbrCell) continue;
-        const partsForEdge = new Set<number>();
-        for (const optB of nbrCell.domain) {
-          const desB = oriented(optB.templateId, optB.orientation);
-          const cCells = edgeCrossingCells(edge.side, des, desB, rules, matched);
-          for (const c of cCells) {
-            const p = of[c]!;
-            if (p >= 0) partsForEdge.add(p);
-          }
+  return (option: TileOption, edges: ForcedEdge[], domainOf: (slot: number) => TileOption[]): boolean => {
+    const design = oriented(option.templateId, option.orientation as Orientation);
+    const { count, of } = partsOf(design);
+    if (count <= 1) return true;
+    let common: Set<number> | null = null;
+    for (const edge of edges) {
+      const reached = new Set<number>();
+      for (const across of domainOf(edge.nbr)) {
+        for (const c of edgeCrossingCells(edge.side, design, oriented(across.templateId, across.orientation as Orientation), rules, matched)) {
+          const part = of[c]!;
+          if (part >= 0 && (common === null || common.has(part))) reached.add(part);
         }
-        if (partsForEdge.size === 0) return false;
-        if (commonParts === null) {
-          commonParts = new Set(partsForEdge);
-        } else {
-          for (const p of commonParts) {
-            if (!partsForEdge.has(p)) commonParts.delete(p);
-          }
-        }
-        if (commonParts.size === 0) return false;
       }
-      return commonParts !== null && commonParts.size > 0;
-    });
+      common = reached;
+      if (common.size === 0) return false;
+    }
+    return true;
+  };
+}
 
+/**
+ * Before the solve, prunes options that no choice of neighbours could bridge through one part.
+ * It reads whole neighbour domains, so it is optimistic; `skeletonPartRule` checks the
+ * chosen neighbours during the solve. False when a slot is left with no option.
+ */
+export function filterSlotDomains(grid: WfcGrid, library: ChainLibrary, forcedSeams: SkeletonSeam[]): boolean {
+  const bridges = partBridges(library);
+  const domainOf = (slot: number) => grid[slot]?.domain ?? [];
+  let ok = true;
+  for (const [slot, edges] of forcedEdgesBySlot(forcedSeams)) {
+    const cell = grid[slot];
+    if (!cell || edges.length <= 1 || cell.domain.length === 0) continue;
+    const filtered = cell.domain.filter((option) => bridges(option, edges, domainOf));
     if (filtered.length < cell.domain.length) {
       cell.domain = filtered;
       if (filtered.length === 0) ok = false;
     }
   }
   return ok;
+}
+
+/**
+ * The part filter against the options the solve chose (review 708). Once a slot with two or
+ * more forced seams and every slot across them are placed, one part of the slot's design must
+ * carry all those crossings. A refusal names those slots, so the solver backjumps to the
+ * latest of them.
+ */
+export function skeletonPartRule(library: ChainLibrary, forcedSeams: SkeletonSeam[]): WfcAccept {
+  const bridges = partBridges(library);
+  const bySlot = forcedEdgesBySlot(forcedSeams);
+  return (grid, placed) => {
+    const checked = new Set<number>();
+    const domainOf = (slot: number) => grid[slot]!.domain;
+    for (const p of placed) {
+      for (const slot of [p, ...(bySlot.get(p) ?? []).map((edge) => edge.nbr)]) {
+        if (checked.has(slot)) continue;
+        checked.add(slot);
+        const edges = bySlot.get(slot);
+        if (!edges || edges.length <= 1 || grid[slot]!.domain.length !== 1) continue;
+        if (edges.some((edge) => grid[edge.nbr]!.domain.length !== 1)) continue;
+        if (!bridges(grid[slot]!.domain[0]!, edges, domainOf)) return [slot, ...edges.map((edge) => edge.nbr)];
+      }
+    }
+    return true;
+  };
+}
+
+/** Runs each rule in turn; the first refusal stands. */
+export function bothRules(first: WfcAccept, second: WfcAccept | undefined): WfcAccept {
+  return second ? (grid, placed) => { const refused = first(grid, placed); return refused === true ? second(grid, placed) : refused; } : first;
 }
 
 /**

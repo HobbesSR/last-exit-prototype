@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CHAIN_LIBRARIES, validateLibrary, bundledLibrary } from '../map/chain.ts';
 import { sparseSidesLibrary } from '../map/sparse-sides.ts';
-import { placer, DEFAULT_CHAIN_PARAMS } from '../map/macro/src/chain/placement.ts';
-import { buildSkeleton, filterSlotDomains } from '../map/macro/src/chain/skeleton.ts';
+import { placer, DEFAULT_CHAIN_PARAMS, adjacencyCompatibility } from '../map/macro/src/chain/placement.ts';
+import { buildSkeleton, filterSlotDomains, skeletonPartRule } from '../map/macro/src/chain/skeleton.ts';
 import { zonePlan, planTiles } from '../map/macro/src/chain/zone-plan.ts';
 import { layoutSlots, makeZones } from '../map/macro/src/chain/zones.ts';
 import { stream } from '../map/macro/src/chain/random.ts';
 import { orientedDesigns } from '../map/macro/src/chain/declared-grid.ts';
+import { solveWfc } from '../map/macro/src/wfc.ts';
 
 test('connectivitySkeleton validation accepts valid configs and rejects malformed values', () => {
   const base = bundledLibrary(DEFAULT_CHAIN_PARAMS);
@@ -297,6 +298,163 @@ test('multi-part filter rejects E/W split tile when east and west neighbors have
   ];
   assert.equal(filterSlotDomains(control, testLib, forcedSeams), true, 'keeps tile when one part carries every crossing');
   assert.equal(control[0].domain.length, 1);
+});
+
+test('skeletonPartRule enforces crossing-component consistency during WFC solve (#883 review 708)', () => {
+  const library = bundledLibrary(DEFAULT_CHAIN_PARAMS);
+
+  // Center tile: split horizontally into upper (rows 0..1) and lower (rows 4..5) parts by rubble (rows 2..3)
+  const splitTile = {
+    id: 'wfc-split-tile',
+    defaultCellClass: 'open',
+    legend: { R: 'rubble' },
+    cells: [
+      '......',
+      '......',
+      'RRRRRR',
+      'RRRRRR',
+      '......',
+      '......',
+    ],
+    segments: {
+      'h:2,0': { passability: 'not-passable-hint' },
+      'h:2,1': { passability: 'not-passable-hint' },
+      'h:2,2': { passability: 'not-passable-hint' },
+      'h:2,3': { passability: 'not-passable-hint' },
+      'h:2,4': { passability: 'not-passable-hint' },
+      'h:2,5': { passability: 'not-passable-hint' },
+      'h:4,0': { passability: 'not-passable-hint' },
+      'h:4,1': { passability: 'not-passable-hint' },
+      'h:4,2': { passability: 'not-passable-hint' },
+      'h:4,3': { passability: 'not-passable-hint' },
+      'h:4,4': { passability: 'not-passable-hint' },
+      'h:4,5': { passability: 'not-passable-hint' },
+      'v:0,2': { passability: 'not-passable-hint' },
+      'v:0,3': { passability: 'not-passable-hint' },
+      'v:6,2': { passability: 'not-passable-hint' },
+      'v:6,3': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  // West neighbor option A: upper-only crossing (East border rows 0..2 open, 3..5 blocked)
+  const westUpperTile = {
+    id: 'wfc-west-upper',
+    defaultCellClass: 'open',
+    legend: { H: 'hut' },
+    cells: [
+      '......',
+      '......',
+      '......',
+      'HHHHHH',
+      'HHHHHH',
+      'HHHHHH',
+    ],
+    segments: {
+      'h:3,0': { passability: 'not-passable-hint' },
+      'h:3,1': { passability: 'not-passable-hint' },
+      'h:3,2': { passability: 'not-passable-hint' },
+      'h:3,3': { passability: 'not-passable-hint' },
+      'h:3,4': { passability: 'not-passable-hint' },
+      'h:3,5': { passability: 'not-passable-hint' },
+      'v:6,3': { passability: 'not-passable-hint' },
+      'v:6,4': { passability: 'not-passable-hint' },
+      'v:6,5': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  // West neighbor option B: lower-only crossing (East border rows 0..2 blocked, 3..5 open)
+  const westLowerTile = {
+    id: 'wfc-west-lower',
+    defaultCellClass: 'open',
+    legend: { H: 'hut' },
+    cells: [
+      'HHHHHH',
+      'HHHHHH',
+      'HHHHHH',
+      '......',
+      '......',
+      '......',
+    ],
+    segments: {
+      'h:3,0': { passability: 'not-passable-hint' },
+      'h:3,1': { passability: 'not-passable-hint' },
+      'h:3,2': { passability: 'not-passable-hint' },
+      'h:3,3': { passability: 'not-passable-hint' },
+      'h:3,4': { passability: 'not-passable-hint' },
+      'h:3,5': { passability: 'not-passable-hint' },
+      'v:6,0': { passability: 'not-passable-hint' },
+      'v:6,1': { passability: 'not-passable-hint' },
+      'v:6,2': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  // East neighbor: upper-only crossing (West border rows 0..2 open, 3..5 blocked)
+  const eastUpperTile = {
+    id: 'wfc-east-upper',
+    defaultCellClass: 'open',
+    legend: { H: 'hut' },
+    cells: [
+      '......',
+      '......',
+      '......',
+      'HHHHHH',
+      'HHHHHH',
+      'HHHHHH',
+    ],
+    segments: {
+      'h:3,0': { passability: 'not-passable-hint' },
+      'h:3,1': { passability: 'not-passable-hint' },
+      'h:3,2': { passability: 'not-passable-hint' },
+      'h:3,3': { passability: 'not-passable-hint' },
+      'h:3,4': { passability: 'not-passable-hint' },
+      'h:3,5': { passability: 'not-passable-hint' },
+      'v:0,3': { passability: 'not-passable-hint' },
+      'v:0,4': { passability: 'not-passable-hint' },
+      'v:0,5': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  const testLib = {
+    ...library,
+    tiles: [...library.tiles, splitTile, westUpperTile, westLowerTile, eastUpperTile],
+  };
+
+  const forcedSeams = [
+    { slotA: 1, slotB: 0, dir: 'E', isTree: true },
+    { slotA: 0, slotB: 2, dir: 'E', isTree: true },
+  ];
+
+  const opt = (id) => ({ templateId: id, orientation: 0, difficulty: 0, weight: 1 });
+
+  // West neighbor has both lower-only and upper-only alternatives; East neighbor is upper-only.
+  // Pre-solve domain filter passes because the upper-only alternative supports the skeleton.
+  const grid = [
+    { domain: [opt(splitTile.id)], links: [{ cell: 1, relation: 'W:must-open' }, { cell: 2, relation: 'E:must-open' }] },
+    { domain: [opt(westLowerTile.id), opt(westUpperTile.id)], links: [{ cell: 0, relation: 'E:must-open' }] },
+    { domain: [opt(eastUpperTile.id)], links: [{ cell: 0, relation: 'W:must-open' }] },
+  ];
+
+  assert.equal(filterSlotDomains(grid, testLib, forcedSeams), true, 'survives pre-solve filter with alternative options');
+
+  // During WFC, westLowerTile is tried first, but skeletonPartRule rejects the inconsistent crossing.
+  // The solver backjumps and successfully chooses westUpperTile.
+  const partRule = skeletonPartRule(testLib, forcedSeams);
+  const solved = solveWfc(grid, adjacencyCompatibility(testLib), () => 0.1, { accept: partRule });
+  assert.ok(solved, 'WFC solve completes by backtracking out of the inconsistent component choice');
+  assert.equal(solved[1].domain[0].templateId, westUpperTile.id, 'solver selects consistent upper-crossing alternative');
+
+  // When only the lower-only choice is available on the west, the solve must fail (cannot yield an accepted skeleton)
+  const failGrid = [
+    { domain: [opt(splitTile.id)], links: [{ cell: 1, relation: 'W:must-open' }, { cell: 2, relation: 'E:must-open' }] },
+    { domain: [opt(westLowerTile.id)], links: [{ cell: 0, relation: 'E:must-open' }] },
+    { domain: [opt(eastUpperTile.id)], links: [{ cell: 0, relation: 'W:must-open' }] },
+  ];
+  const failSolved = solveWfc(failGrid, adjacencyCompatibility(testLib), () => 0.1, { accept: partRule });
+  assert.equal(failSolved, null, 'lower-only choice cannot yield an accepted skeleton');
 });
 
 test('buildSkeleton rejects seams between unassigned fill slots when no zone options can connect', () => {
