@@ -549,6 +549,7 @@ export function resolveObstacleAppearance(obstacle, mapAppearance, options = {})
   const wallLine = mix(fill, outline, 0.55);
   const hedgeEdge = mix(fill, 0xffffff, 0.4);
   const ruinEdge = mix(fill, 0xffffff, 0.35);
+  const trunkTop = mix(fill, 0xffffff, 0.25);
 
   // Directional focal rim:
   // "A colored rim belongs to an exposed, deliberately lit edge; the full structural perimeter must remain readable without it" (11.1 §5.5).
@@ -567,6 +568,7 @@ export function resolveObstacleAppearance(obstacle, mapAppearance, options = {})
     wallLine,
     hedgeEdge,
     ruinEdge,
+    trunkTop,
     focalRim,
     lightSample: light,
   };

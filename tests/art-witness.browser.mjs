@@ -2442,7 +2442,12 @@ try {
   assert.ok(cpRoofRatio >= 1.15, `checkpoint post roof survives grayscale contrast vs street (${cpRoofRatio})`);
   assert.ok(parkRoofRatio >= 1.15, `park pavilion roof survives grayscale contrast vs street (${parkRoofRatio})`);
   assert.ok(hallRoofRatio >= 1.15, `hall roof survives grayscale contrast vs street (${hallRoofRatio})`);
-  assert.notEqual(expandedKitsDemo.cpBarrierPx.hex, expandedKitsDemo.parkHedgePx.hex, 'checkpoint barrier and park hedge have distinct visual fills');
+  const cpBarrierLum = toLuminance(expandedKitsDemo.cpBarrierPx.hex);
+  const parkHedgeLum = toLuminance(expandedKitsDemo.parkHedgePx.hex);
+  const cpBarrierRatio = Number((Math.max(cpBarrierLum, streetLum) / Math.min(cpBarrierLum, streetLum)).toFixed(2));
+  const parkHedgeRatio = Number((Math.max(parkHedgeLum, streetLum) / Math.min(parkHedgeLum, streetLum)).toFixed(2));
+  assert.ok(cpBarrierRatio >= 1.15, `checkpoint barrier survives grayscale contrast vs street (${cpBarrierRatio})`);
+  assert.ok(parkHedgeRatio >= 1.15, `park hedge survives grayscale contrast vs street (${parkHedgeRatio})`);
 
   // 3. Compound roof reveals when player enters:
   assert.equal(expandedKitsDemo.compRoofAlphaClosed, 1, 'compound roof is closed when player is outside');

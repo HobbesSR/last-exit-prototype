@@ -150,13 +150,12 @@ Four more entries are macro alone at the larger authored sizes (`macro-24x12` an
 `macro-36x18`, seeds `size-24-1`, `size-24-2`, `size-36-1` and `size-36-2`, `stages: 'macro'`): the Layout and macro's views
 through the briefs, with nothing built (`generateMacro` in `map/chain.ts`; #821). What builders
 make of those sizes is checked from stored briefs instead (31).
-The current baseline provenance is content commit `f46d127de576667e6dd421f8bbbb24ad4e93ca0f`,
-captured 2026-11-07 under Node v24.15.0: the landmark region type and block
-landmark lots (`types-65`, #769) over the matched libraries
-(`common-primitives@6`, #849), with placement's stall limit (#854). Maps whose
-blocks offer a lot of at least 8 × 13 move; a block with no eligible lot, and
-every macro-only entry, is unchanged. A full lookup is still the pinned seed set;
-`npm test` pins its quick cases against this file.
+The current baseline provenance is content commit `e97b4447ba9ee33e61033432f9b5cc22c18f5cbe`,
+captured 2026-11-07 under Node v24.15.0: architectural appearance kits across the remaining
+region catalogue types (`types-66`, #770) over `landmark` (#769) and the matched libraries
+(`common-primitives@6`, #849). Every region result and built map with styled obstacles/buildings
+moves; the Layout, briefs, proof and zones, and every macro-only entry, are unchanged. A full
+lookup is still the pinned seed set; `npm test` pins its quick cases against this file.
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash

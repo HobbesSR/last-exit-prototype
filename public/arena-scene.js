@@ -545,6 +545,12 @@ export function makeArenaScene(api) {
       const drawFocalRim = () => {
         if (!resolved?.focalRim) return;
         g.lineStyle(3, resolved.focalRim.color, resolved.focalRim.alpha);
+        if (o.r) {
+          const angles = { N: [Math.PI * 1.25, Math.PI * 1.75], S: [Math.PI * 0.25, Math.PI * 0.75], W: [Math.PI * 0.75, Math.PI * 1.25], E: [-Math.PI * 0.25, Math.PI * 0.25] };
+          const [start, end] = angles[resolved.focalRim.side || 'N'] || angles.N;
+          g.beginPath(); g.arc(o.x, o.y, o.r, start, end); g.strokePath();
+          return;
+        }
         if (resolved.focalRim.side === 'N') g.lineBetween(o.x + 2, o.y + 1, o.x + o.w - 2, o.y + 1);
         else if (resolved.focalRim.side === 'S') g.lineBetween(o.x + 2, o.y + o.h - 1, o.x + o.w - 2, o.y + o.h - 1);
         else if (resolved.focalRim.side === 'W') g.lineBetween(o.x + 1, o.y + 2, o.x + 1, o.y + o.h - 2);
@@ -579,8 +585,11 @@ export function makeArenaScene(api) {
       if (o.r) {
         g.fillStyle(ink.circleShadow, 0.25); g.fillCircle(o.x + 6, o.y + 8, o.r + 2);
         if (o.kind === 'tree') {
-          g.fillStyle(ink.trunk); g.fillCircle(o.x, o.y, o.r);
-          g.fillStyle(ink.trunkTop); g.fillCircle(o.x - o.r * 0.18, o.y - o.r * 0.2, o.r * 0.54);
+          const trunkFill = resolved ? resolved.fill : ink.trunk;
+          const trunkTop = resolved ? (resolved.trunkTop ?? mix(trunkFill, 0xffffff, 0.25)) : ink.trunkTop;
+          g.fillStyle(trunkFill); g.fillCircle(o.x, o.y, o.r);
+          g.fillStyle(trunkTop); g.fillCircle(o.x - o.r * 0.18, o.y - o.r * 0.2, o.r * 0.54);
+          drawFocalRim();
         } else {
           const rockFill = resolved ? resolved.fill : ink.rock;
           g.fillStyle(rockFill); g.fillCircle(o.x, o.y, o.r);

@@ -853,6 +853,15 @@ test('remaining region catalogue strategies adopt architectural appearance kits 
   assert.ok(parkRegion.elements.length > 0, 'park produces elements');
   const parkStyledObs = parkRegion.elements.flatMap(e => e.template.parts).filter(p => p.part === 'obstacle' && p.appearance);
   assert.ok(parkStyledObs.length > 0, 'park hedges and trees carry obstacle appearance');
+  const treeObs = parkStyledObs.find(p => p.shape.kind === 'circle');
+  assert.ok(treeObs, 'park tree obstacle carries appearance');
+  assert.deepEqual(treeObs.appearance, PARK_TREE_APPEARANCE, 'park tree obstacle matches PARK_TREE_APPEARANCE');
+  const unstyledTree = { id: 'tree-unstyled', kind: 'tree', x: 0, y: 0, r: 22 };
+  const styledTree = { id: 'tree-styled', kind: 'tree', x: 0, y: 0, r: 22, appearance: PARK_TREE_APPEARANCE };
+  const resUnstyled = resolveObstacleAppearance(unstyledTree, null, { palette: 'signature' });
+  const resStyled = resolveObstacleAppearance(styledTree, null, { palette: 'signature' });
+  assert.notEqual(resStyled.fill, resUnstyled.fill, 'styled tree resolves distinct authored fill from unstyled tree');
+  assert.ok(resStyled.trunkTop > 0, 'styled tree resolves non-zero trunkTop highlight');
 
   // 2. Checkpoint strategy: tiered guard post and perimeter chicane barriers
   const cpBrief = chainBrief({
