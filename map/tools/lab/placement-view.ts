@@ -2,19 +2,24 @@ import type { PlacementRecording } from '../placement-trace.ts';
 import type { PlacementTraceEvent } from '../../macro/src/chain/placement-trace.ts';
 import type { ChainLibrary } from '../../macro/src/chain/library.ts';
 import { orientedDesigns } from '../../macro/src/chain/declared-grid.ts';
+import { drawPlacementTiles } from './placement-drawing.ts';
+import type { Slot, Tile } from './placement-drawing.ts';
 
-type Slot = { slot: number; x: number; y: number; col: number; row: number };
-type Tile = { design: string; orientation: 0 | 90 | 180 | 270; depth: number; piece?: string };
 type Refusal = Extract<PlacementTraceEvent, { type: 'refusal' }>;
 
 /** A recording is a delta log. Seeking backwards rebuilds only the selected attempt. */
 export function mountPlacementView(host: HTMLElement, run: () => void, cancel: () => void) {
   host.innerHTML = `
     <header class="solve-header"><h1>Placement</h1>
-      <button id="solveRecord" class="primary" type="button">Record World recipe</button>
+      <button id="solveRecord" class="primary" type="button">Record placement</button>
       <button id="solveCancel" type="button" disabled>Cancel</button>
       <span id="solveStatus" role="status">Record a seed to inspect its solve.</span></header>
-    <p id="solveRecipe" class="hint">Uses the seed, size and library currently selected in World. Placement only; no regions are built.</p>
+    <div class="solve-recipe-controls">
+      <label>Seed<input id="solveSeed" /></label>
+      <label>Zone size<select id="solveSize"></select></label>
+      <button id="solveRandom" type="button">New seed</button>
+    </div>
+    <p id="solveRecipe" class="hint">Edit seed and size here. Mode and library use the World recipe. Placement only; no regions are built.</p>
     <div class="solve-controls">
       <label>Attempt <select id="solveAttempt" disabled></select></label>
       <button id="solvePrev" type="button" disabled>← Step</button>
@@ -28,7 +33,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
     <label class="solve-timeline">Event <input id="solveStep" aria-label="Placement event" type="range" min="0" max="0" value="0" disabled><output id="solvePosition">0 / 0</output></label>
     <div class="solve-workspace"><div class="solve-canvas-wrap"><canvas id="solveCanvas" aria-label="Placement solve"></canvas></div>
       <aside class="solve-inspector"><h2>At this step</h2><p id="solveCounters"></p><p id="solveEvent"></p><p id="solveHover" class="hint">Hover a slot for its tile and depth.</p>
-      <h2>Legend</h2><p class="hint">Wheel to zoom / Drag to pan / Fit to reset.</p><p class="hint">Unfilled: dark. Set pieces: blue. Fill: colour by collapse depth, cool to warm. Hinted segments: thick dark lines; passable: pale lines; any: dashed.</p>
+      <h2>Legend</h2><p class="hint">Wheel to zoom / Drag to pan / Fit to reset.</p><p class="hint">Unfilled: dark. Set pieces: continuous blue, shown internally passable. Fill: colour by collapse depth, cool to warm. Outer hinted segments: thick dark lines; passable: pale lines; any: dashed.</p>
       <p class="hint">Refused component: red. Cut faces: pink. Cause slots: yellow. These are macro prescriptions and connectivity diagnostics.</p>
       <pre id="solveDetails"></pre></aside></div>`;
   const el = <T extends HTMLElement = HTMLElement>(id: string) => host.querySelector<T>(`#${id}`)!;
@@ -103,24 +108,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
     const scale = Math.max(0.1, Math.min((box.width - 32) / width, (box.height - 32) / height)) * zoom;
     frame = { x: (box.width - width * scale) / 2 - minX * scale + pan.x, y: (box.height - height * scale) / 2 - minY * scale + pan.y, scale };
     ctx.translate(frame.x, frame.y); ctx.scale(scale, scale);
-    for (const slot of slots) {
-      const tile = tiles.get(slot.slot), x = slot.x * 6, y = slot.y * 6;
-      ctx.fillStyle = tile ? tile.piece ? '#31547e' : `hsl(${220 - 190 * tile.depth / maxDepth} 48% 42%)` : '#172129';
-      ctx.fillRect(x, y, 6, 6);
-      ctx.lineWidth = 0.7 / scale; ctx.strokeStyle = '#63717a'; ctx.strokeRect(x, y, 6, 6);
-      if (tile && turned) {
-        const design = turned(tile.design, tile.orientation);
-        for (const [key, segment] of design.segments) {
-          const [a, b] = key.slice(2).split(',').map(Number) as [number, number];
-          const h = key[0] === 'h', hint = segment.passability === 'not-passable-hint';
-          ctx.lineWidth = (hint ? 2.4 : 0.8) / scale;
-          ctx.strokeStyle = hint ? '#0b1015' : '#d2e0c4';
-          ctx.setLineDash(segment.passability === 'any' || !segment.passability ? [1 / scale, 2 / scale] : []);
-          ctx.beginPath(); ctx.moveTo(x + a, y + b); ctx.lineTo(x + a + (h ? 1 : 0), y + b + (h ? 0 : 1)); ctx.stroke();
-        }
-      }
-    }
-    ctx.setLineDash([]);
+    drawPlacementTiles(ctx, slots, tiles, turned, scale, maxDepth);
     if (refusal) {
       ctx.fillStyle = '#ff3c5c88';
       for (const cell of refusal.cells) ctx.fillRect(cell.x, cell.y, 1, 1);
@@ -179,12 +167,13 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       el('solveRecipe').textContent = recipe;
       el('solveStatus').textContent = 'Recording placement…';
       el<HTMLButtonElement>('solveCancel').disabled = false;
-      for (const id of ['solveRecord', 'solveAttempt', 'solveStep', 'solvePrev', 'solveNext', 'solvePlay', 'solvePrevRefusal', 'solveNextRefusal']) (el(id) as HTMLButtonElement).disabled = true;
+      for (const id of ['solveRecord', 'solveSeed', 'solveSize', 'solveRandom', 'solveAttempt', 'solveStep', 'solvePrev', 'solveNext', 'solvePlay', 'solvePrevRefusal', 'solveNextRefusal']) (el(id) as HTMLButtonElement).disabled = true;
       seek(0);
     },
     stopped(message: string) {
       pause(); el('solveStatus').textContent = message;
       el<HTMLButtonElement>('solveCancel').disabled = true; el<HTMLButtonElement>('solveRecord').disabled = false;
+      for (const id of ['solveSeed', 'solveSize', 'solveRandom']) (el(id) as HTMLButtonElement).disabled = false;
     },
     received(result: PlacementRecording, library: ChainLibrary, ms: number) {
       recording = result; turned = orientedDesigns(library); byAttempt = [];

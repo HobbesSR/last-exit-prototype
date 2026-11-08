@@ -173,8 +173,42 @@ const solveView = mountPlacementView($("solveView"), () => {
   } catch (error) { solveView.stopped(error instanceof Error ? error.message : String(error)); }
 }, () => {
   solveWorker?.terminate(); solveWorker = null;
-  solveView.stopped('Recording cancelled. Record the World recipe to try again.');
+  solveView.stopped('Recording cancelled. Record placement to try again.');
 });
+
+for (const library of CHAIN_LIBRARIES) {
+  select("solveSize").append(Object.assign(document.createElement("option"), {
+    value: sizeKey(library.zoneWidth, library.zoneHeight), textContent: `${library.zoneWidth} × ${library.zoneHeight}`,
+  }));
+}
+select("solveSize").append(Object.assign(document.createElement("option"), { value: "world", textContent: "Custom (set in World)", disabled: true }));
+function syncPlacementControls(): void {
+  input("solveSeed").value = input("seed").value;
+  const key = sizeKey(input("zoneWidth").value, input("zoneHeight").value);
+  select("solveSize").value = CHAIN_LIBRARIES.some(library => sizeKey(library.zoneWidth, library.zoneHeight) === key) ? key : "world";
+}
+// An older World result must not reset a recipe edited here while it was building.
+function cancelStaleWorldGeneration(): void {
+  if (!busy) return;
+  mapWorker?.terminate(); mapWorker = null; busy = false;
+  setStatus("World generation cancelled: recipe edited in Placement.");
+}
+input("solveSeed").oninput = () => {
+  cancelStaleWorldGeneration();
+  input("seed").value = input("solveSeed").value;
+};
+input("solveSeed").onkeydown = event => { if (event.key === "Enter") $("solveRecord").click(); };
+select("solveSize").onchange = () => {
+  cancelStaleWorldGeneration();
+  select("zoneSize").value = select("solveSize").value;
+  select("zoneSize").dispatchEvent(new Event("change"));
+};
+$("solveRandom").onclick = () => {
+  cancelStaleWorldGeneration();
+  input("seed").value = `exit-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36)}`;
+  syncPlacementControls();
+  $("solveRecord").click();
+};
 
 /** Set the recipe to a room's (53 "Play in the game"), with a room seed, and generate. */
 function useRoomRecipe(): void {
@@ -1375,6 +1409,7 @@ input("seed").onkeydown = (event) => {
 
 type Tab = "world" | "chain" | "placeables" | "solve";
 function showTab(tab: Tab): void {
+  if (tab === "solve") syncPlacementControls();
   $("worldView").hidden = tab !== "world";
   $("solveView").hidden = tab !== "solve";
   $("solveTab").classList.toggle("active", tab === "solve");
