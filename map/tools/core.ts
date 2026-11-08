@@ -16,6 +16,8 @@ export { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary, chainParams, generate, 
 export { sparseSidesLibrary } from '../sparse-sides.ts';
 export type { FillSides, SetPieceSides } from '../sparse-sides.ts';
 export type ToolMap = GameChainMap;
+export { tracePlacement } from './placement-trace.ts';
+export type { PlacementRecording } from './placement-trace.ts';
 
 
 export const MAX_BATCH_COUNT = 1000;

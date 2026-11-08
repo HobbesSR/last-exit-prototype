@@ -1,3 +1,4 @@
+import type { WfcTraceEvent, TraceSlot } from "./chain/placement-trace.ts";
 import type { Orientation } from "./chain/types.ts";
 
 export interface TileOption {
@@ -88,6 +89,8 @@ export type WfcCompatibility = (a: TileOption, relation: string, b: TileOption) 
 export type WfcAccept = (grid: WfcGrid, placed: number[]) => true | number[];
 
 export interface WfcOptions {
+  /** Detached diagnostic deltas; absent by default. Does not draw randomness. */
+  trace?: (event: WfcTraceEvent) => void;
   /** Counts calls across the whole search; the solve gives up past `maxIterations`. */
   state?: { iterations: number; maxIterations: number };
   accept?: WfcAccept;
@@ -111,7 +114,7 @@ export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * 
 
 export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
   return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept,
-    { limit: options.stallLimit ?? Infinity, record: options.stall });
+    { limit: options.stallLimit ?? Infinity, record: options.stall }, options.trace);
 }
 
 /**
@@ -190,13 +193,36 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
 export const DIFFICULTY_OFFSET = 12;
 
 function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
-  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }): WfcGrid | null {
+  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }, trace?: (event: WfcTraceEvent) => void): WfcGrid | null {
   // Refusals since the search last reached a new depth (`stallLimit`).
   let deepest = -1, refusals = 0;
   const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
-  const undoTo = (mark: number) => {
-    while (trail.cells.length > mark) grid[trail.cells.pop()!]!.domain = trail.domains.pop()!;
+  const shown = trace ? new Map<number, TileOption>() : undefined;
+  const showCollapsed = (depth: number) => {
+    if (!trace) return;
+    const slots: TraceSlot[] = [];
+    for (let slot = 0; slot < grid.length; slot++) {
+      const domain = grid[slot]!.domain;
+      if (domain.length !== 1 || shown!.get(slot) === domain[0]) continue;
+      const option = domain[0]!;
+      shown!.set(slot, option);
+      slots.push({ slot, design: option.templateId, orientation: option.orientation });
+    }
+    if (slots.length) trace({ type: "collapse", depth, slots });
   };
+  const undoTo = (mark: number) => {
+    const removed = trace ? new Set<number>() : undefined;
+    while (trail.cells.length > mark) {
+      const slot = trail.cells.pop()!;
+      grid[slot]!.domain = trail.domains.pop()!;
+      if (shown?.has(slot) && (grid[slot]!.domain.length !== 1 || grid[slot]!.domain[0] !== shown.get(slot))) {
+        shown.delete(slot);
+        removed!.add(slot);
+      }
+    }
+    if (removed?.size) trace!({ type: "undo", slots: [...removed] });
+  };
+  showCollapsed(0);
 
   // Each collapsed cell is labelled with the depth that collapsed it, plus one; a node
   // sees its ancestors' labels, and clears its own on leaving.
@@ -205,10 +231,19 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
   // One node: propagate, check `accept`, pick a cell. It returns a frame to try that
   // cell's options, true when every cell is collapsed, or the node's failure.
   const enter = (depth: number, startQueue?: number): Frame | true | Conflict => {
-    if (state.iterations++ > state.maxIterations) return null;
+    if (state.iterations++ > state.maxIterations) {
+      trace?.({ type: "give-up", reason: "iterations", depth, iterations: state.iterations, stall: refusals });
+      return null;
+    }
     if (depth > deepest) { deepest = depth; refusals = 0; }
+    trace?.({ type: "node", depth, iterations: state.iterations, stall: refusals });
     if (depth === 0) prepare(grid, compatible);
-    if (!propagate(grid, startQueue, trail)) return null;
+    const propagated = propagate(grid, startQueue, trail);
+    showCollapsed(depth);
+    if (!propagated) {
+      if (trace) trace({ type: "contradiction", depth, slots: grid.flatMap((cell, slot) => cell.domain.length ? [] : [slot]) });
+      return null;
+    }
 
     const placed: number[] = [];
     for (let i = 0; i < grid.length; i++) if (grid[i]!.domain.length === 1 && !now[i]) {
@@ -221,8 +256,12 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
         refusals++;
         if (stall.record && refusals > stall.record.most) stall.record.most = refusals;
         // Past the limit every later node fails at once, as past the cap, so the search unwinds.
-        if (refusals > stall.limit) state.iterations = state.maxIterations + 1;
+        if (refusals > stall.limit) {
+          state.iterations = state.maxIterations + 1;
+          trace?.({ type: "give-up", reason: "stall", depth, iterations: state.iterations, stall: refusals });
+        }
         const depths = new Set(refused.map((i) => now[i]! - 1));
+        if (trace) trace({ type: "conflict", depth, depths: [...depths], backjump: Math.max(-1, ...depths), stall: refusals });
         for (const i of placed) now[i] = 0;
         return { depths };
       }
@@ -259,6 +298,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
       // The child just left failed, and its parent takes the result.
       const frame = stack[stack.length - 1];
       if (!frame) return null;
+      trace?.({ type: "backtrack", fromDepth: frame.depth + 1, toDepth: frame.depth });
       undoTo(frame.mark);
       if (outcome === null) frame.unknown = true;
       else if (!outcome.depths.has(frame.depth + 1)) {
@@ -275,6 +315,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
       trail.cells.push(frame.cell);
       trail.domains.push(target.domain);
       target.domain = [frame.options[frame.next++]!];
+      showCollapsed(frame.depth + 1);
       outcome = enter(frame.depth + 1, frame.cell);
       continue;
     }

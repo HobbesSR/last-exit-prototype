@@ -12,12 +12,14 @@
   <body>
     <nav class="app-nav">
       <button id="worldTab" type="button" class="active">World</button>
+      <button id="solveTab" type="button">Placement</button>
       <button id="chainTab" type="button">Chain Library</button>
       <button id="placeablesTab" type="button">Placeables</button>
       <div class="app-nav-spacer"></div>
       <span id="status" role="status">Loading…</span>
     </nav>
     <main>
+      <div id="solveView" class="tab-view" hidden></div>
       <div id="worldView" class="tab-view">
         <header id="worldActions">
           <div class="world-heading"><h1>World</h1><span>Generation chain</span></div>

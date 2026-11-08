@@ -69,10 +69,10 @@ export const SETS = {
     fast: ['map-access-conservatism', 'map-authored-seams', 'map-block-library-audit', 'map-boundary', 'map-clear-tiles',
       'map-entrypoint', 'map-hall-wing-library', 'map-inward-authoring', 'map-inward-seams',
       'map-lab-draft-safety', 'map-lab-routes', 'map-library', 'map-navigation-structure', 'map-navigation-structure-cli',
-      'map-passable-margins', 'map-portal-thorough', 'map-sparse-sides', 'map-sweep', 'map-tools', 'portal-graph',
+      'map-passable-margins', 'map-placement-trace', 'map-portal-thorough', 'map-sparse-sides', 'map-sweep', 'map-tools', 'portal-graph',
       'macro-curtain', 'static-barrier-composition', 'static-barrier-routes', 'appearance-descriptor'],
     slow: ['map-library', 'map-macro-sizes', 'map-container', 'map-sweep-replay', 'map-lab-routes', 'map-tools', 'map-chain-sweep', 'portal-graph'],
-    browser: ['lab'],
+    browser: ['lab', 'placement'],
     sources: ['map/macro/**', 'map/kernel/**', 'map/tools/**', 'map/*.ts'],
   },
   micro: {
