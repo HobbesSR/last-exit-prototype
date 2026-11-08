@@ -53,6 +53,9 @@ blocking, detour, dead ends, fill, cost), and placement's heavy tail are in
 Where that adoption's generation time goes, per builder (park's hedge fronts, rubble's batch proof,
 edge walls), four exact savings, and the content-changing options are in
 [42.38](42.38-matched-generation-cost.md) (#868).
+Placement's reachability lookahead, which refuses sealed pockets once they are certain so the stall
+limit no longer fires on the measured seeds, and what it costs, is in
+[42.39](42.39-reachability-lookahead.md) (#857).
 
 The opt-in regional lighting recipe and its multi-region cache/rebuild evidence
 are in [42.39](42.39-regional-lighting.md) (#771).

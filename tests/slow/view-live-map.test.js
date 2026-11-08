@@ -6,7 +6,7 @@ import { generateLiveMap } from '../../map/live.ts';
 // Moved from tests/view.test.js (#849): it builds two live maps, so it is slow-tier work (31).
 
 test('live map: roofs have unique ids, keep map id order, and declare multi-room groups', () => {
-  // #530's grounds, infill, #534's market, #647's yards, #532's structures, #533's warehouses/winged library, #717's fallback, #750's cord-routed park and #759/#760's cord-routed rubble and plant and park fronts, #787's cord-routed cover, ruins, depot and hall, and #849's matched libraries with cover and park edge walls change counts.
+  // #530's grounds, infill, #534's market, #647's yards, #532's structures, #533's warehouses/winged library, #717's fallback, #750's cord-routed park and #759/#760's cord-routed rubble and plant and park fronts, #787's cord-routed cover, ruins, depot and hall, #849's matched libraries with cover and park edge walls, and #857's placement lookahead (seed 2's layout) change counts.
   // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
   const map1 = generateLiveMap(1);
   assert.equal(map1.obstacles?.at(-1)?.id, 'o3071', 'obstacle IDs stay pinned on seed 1');
@@ -14,9 +14,9 @@ test('live map: roofs have unique ids, keep map id order, and declare multi-room
   assert.equal(map1.items?.at(-1)?.id, 'item-4055', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o3219', 'obstacle IDs stay pinned on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-2044', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-4194', 'item IDs stay pinned on seed 2');
+  assert.equal(map2.obstacles?.at(-1)?.id, 'o3185', 'obstacle IDs stay pinned on seed 2');
+  assert.equal(map2.gates?.at(-1)?.id, 'door-2058', 'gate IDs stay pinned on seed 2');
+  assert.equal(map2.items?.at(-1)?.id, 'item-4158', 'item IDs stay pinned on seed 2');
 
   assert.ok([map1, map2].some(map => [...roofGroups(map).values()].some(group => group.length > 1)),
     'the live-map sample declares a multi-room group');
