@@ -1,4 +1,5 @@
 import type { PlacementSeam, SeamSide } from '../../macro/src/chain/partial-connectivity.ts';
+import type { Slot } from './placement-drawing.ts';
 
 type Style = { colour: string; width: number; dash?: readonly number[] };
 const derived: Partial<Record<PlacementSeam['kind'], Style>> = {
@@ -51,4 +52,92 @@ export function drawPlacementSeams(ctx: CanvasRenderingContext2D, seams: readonl
   }
   ctx.restore();
   return drawn;
+}
+
+/** Draw connectivity skeleton (#883): spanning tree and extra open seams. */
+export function drawPlacementSkeleton(
+  ctx: CanvasRenderingContext2D,
+  slots: readonly Slot[],
+  edges: readonly { slotA: number; slotB: number; dir: 'E' | 'S'; isTree: boolean }[],
+  scale: number,
+): number {
+  if (!edges.length || !slots.length) return 0;
+  const slotMap = new Map<number, Slot>(slots.map(s => [s.slot, s]));
+
+  ctx.save();
+
+  // First pass: center-to-center graph connections
+  // Tree connections: teal
+  ctx.strokeStyle = '#7adbc188';
+  ctx.lineWidth = 2.5 / scale;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  for (const edge of edges) {
+    if (!edge.isTree) continue;
+    const a = slotMap.get(edge.slotA), b = slotMap.get(edge.slotB);
+    if (!a || !b) continue;
+    ctx.moveTo(a.x * 6 + 3, a.y * 6 + 3);
+    ctx.lineTo(b.x * 6 + 3, b.y * 6 + 3);
+  }
+  ctx.stroke();
+
+  // Extra open connections: gold dashed
+  ctx.strokeStyle = '#f7cd8b88';
+  ctx.lineWidth = 2 / scale;
+  ctx.setLineDash([3 / scale, 2 / scale]);
+  ctx.beginPath();
+  for (const edge of edges) {
+    if (edge.isTree) continue;
+    const a = slotMap.get(edge.slotA), b = slotMap.get(edge.slotB);
+    if (!a || !b) continue;
+    ctx.moveTo(a.x * 6 + 3, a.y * 6 + 3);
+    ctx.lineTo(b.x * 6 + 3, b.y * 6 + 3);
+  }
+  ctx.stroke();
+
+  // Second pass: boundary seam highlights
+  // Tree seams: solid teal
+  ctx.strokeStyle = '#7adbc1';
+  ctx.lineWidth = 3 / scale;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  for (const edge of edges) {
+    if (!edge.isTree) continue;
+    const a = slotMap.get(edge.slotA);
+    if (!a) continue;
+    if (edge.dir === 'E') {
+      const x = (a.x + 1) * 6;
+      ctx.moveTo(x, a.y * 6);
+      ctx.lineTo(x, (a.y + 1) * 6);
+    } else {
+      const y = (a.y + 1) * 6;
+      ctx.moveTo(a.x * 6, y);
+      ctx.lineTo((a.x + 1) * 6, y);
+    }
+  }
+  ctx.stroke();
+
+  // Extra open seams: dashed gold
+  ctx.strokeStyle = '#f7cd8b';
+  ctx.lineWidth = 2.5 / scale;
+  ctx.setLineDash([4 / scale, 2 / scale]);
+  ctx.beginPath();
+  for (const edge of edges) {
+    if (edge.isTree) continue;
+    const a = slotMap.get(edge.slotA);
+    if (!a) continue;
+    if (edge.dir === 'E') {
+      const x = (a.x + 1) * 6;
+      ctx.moveTo(x, a.y * 6);
+      ctx.lineTo(x, (a.y + 1) * 6);
+    } else {
+      const y = (a.y + 1) * 6;
+      ctx.moveTo(a.x * 6, y);
+      ctx.lineTo((a.x + 1) * 6, y);
+    }
+  }
+  ctx.stroke();
+
+  ctx.restore();
+  return edges.length;
 }

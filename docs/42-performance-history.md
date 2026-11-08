@@ -61,6 +61,9 @@ The sparse-sides experiment, fill and set-piece schemes with fewer passable halv
 one-portal regions and placement cost, is in [42.40](42.40-sparse-sides-experiment.md) (#851).
 Landing/evac-first placement's matched 30-seed attempt counts and shifted packing
 failures are in [42.41](42.41-set-piece-order.md) (#891); the flag stays off by default.
+The connectivity skeleton experiment, a pre-fill spanning tree of forced-open seams preventing
+sealed pockets under sparse tile sides, with Wilson/Prim/Kruskal algorithms and built navigation
+measures, is in [42.42](42.42-connectivity-skeleton-experiment.md) (#883).
 
 The opt-in regional lighting recipe and its multi-region cache/rebuild evidence
 are in [42.39](42.39-regional-lighting.md) (#771).

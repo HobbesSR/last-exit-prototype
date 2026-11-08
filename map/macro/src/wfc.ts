@@ -161,8 +161,8 @@ interface Frame {
  * and a table per option grew with the square of those slots (#171).
  */
 function prepare(grid: WfcGrid, compatible: WfcCompatibility, connects?: (a: TileOption, relation: string, b: TileOption) => boolean): void {
-  const orthoRelations = new Set(["N", "S", "E", "W"]);
-  for (let i = 0; i < grid.length; i++) grid[i]!.orthoLinks = grid[i]!.links.filter((l) => orthoRelations.has(l.relation));
+  const isOrtho = (rel: string) => rel === "N" || rel === "S" || rel === "E" || rel === "W" || rel.endsWith(":must-open");
+  for (let i = 0; i < grid.length; i++) grid[i]!.orthoLinks = grid[i]!.links.filter((l) => isOrtho(l.relation));
   const allOpts = new Set<TileOption>();
   for (let i = 0; i < grid.length; i++) {
     const cell = grid[i]!;
