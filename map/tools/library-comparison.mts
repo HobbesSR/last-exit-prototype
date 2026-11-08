@@ -27,6 +27,7 @@ import { gzipSync } from 'node:zlib';
 import { performance } from 'node:perf_hooks';
 import { CHAIN_LIBRARIES, generate, generateMacro, sparseSidesLibrary } from './core.ts';
 import type { FillSides, SetPieceSides } from './core.ts';
+import type { SkeletonAlgorithm } from '../macro/src/chain/skeleton.ts';
 import { readLibraryFile } from './library-files.mts';
 import { chainMapToJson } from '../macro/src/chain/saving.ts';
 import { mapViews } from '../macro/src/chain/map.ts';
@@ -44,14 +45,37 @@ const macroOnly = process.argv.includes('--macro');
 const libraryFile = arg('--library', ''), save = arg('--save', ''), out = arg('--out', '');
 if (out && existsSync(out) && !process.argv.includes('--replace')) throw new Error(`${out} exists; pass --replace`);
 const sparse = arg('--sparse', '');
+const skeletonArg = arg('--skeleton', '');
+const SKELETON_ALGOS: readonly string[] = ['wilson', 'prim', 'kruskal'];
+let skeletonConfig: { algorithm: SkeletonAlgorithm; extraOpenShare: number } | undefined;
+if (skeletonArg) {
+  const [algo, shareStr] = skeletonArg.split('/') as [SkeletonAlgorithm, string | undefined];
+  if (!SKELETON_ALGOS.includes(algo)) throw new Error(`--skeleton algorithm must be one of ${SKELETON_ALGOS.join(', ')}; got ${algo}`);
+  const extraOpenShare = shareStr !== undefined ? Number(shareStr) : 0;
+  if (!Number.isFinite(extraOpenShare) || extraOpenShare < 0 || extraOpenShare > 1)
+    throw new Error(`--skeleton extraOpenShare must be a number between 0 and 1; got ${shareStr}`);
+  skeletonConfig = { algorithm: algo, extraOpenShare };
+}
 if (sparse && libraryFile) throw new Error('--sparse and --library are exclusive');
-const library = libraryFile ? readLibraryFile(libraryFile) as { zoneWidth: number } : undefined;
+const library = libraryFile ? readLibraryFile(libraryFile) as { zoneWidth: number; name?: string } : undefined;
 const [fillSides, setPieceSides] = sparse.split('/') as [FillSides, SetPieceSides];
 const FILL_SIDES: readonly string[] = ['bundled', 'sparse'], SET_PIECE_SIDES: readonly string[] = ['bundled', 'inner', 'alternate', 'face'];
 if (sparse && (sparse.split('/').length !== 2 || !FILL_SIDES.includes(fillSides) || !SET_PIECE_SIDES.includes(setPieceSides)))
   throw new Error(`--sparse takes FILL/SET_PIECES, fill one of ${FILL_SIDES.join(', ')} and set pieces one of ${SET_PIECE_SIDES.join(', ')}; got ${sparse}`);
-const libraryFor = (width: number) => !sparse ? library
-  : sparseSidesLibrary(CHAIN_LIBRARIES.find(bundled => bundled.zoneWidth === width)!, { fill: fillSides, setPieces: setPieceSides });
+const libraryFor = (width: number) => {
+  const base = !sparse ? (library ?? CHAIN_LIBRARIES.find(bundled => bundled.zoneWidth === width)!)
+    : sparseSidesLibrary(CHAIN_LIBRARIES.find(bundled => bundled.zoneWidth === width)!, { fill: fillSides, setPieces: setPieceSides });
+  
+  if (!base || !skeletonConfig) return base;
+  const baseName = ('name' in base && typeof (base as { name: unknown }).name === 'string') ? (base as { name: string }).name : 'custom';
+  return {
+    ...base,
+    name: `${baseName}-skeleton-${skeletonConfig.algorithm}`,
+    connectivitySkeleton: skeletonConfig,
+  };
+};
+
+
 if (library && widths.some(w => w !== library.zoneWidth)) throw new Error(`${libraryFile} is authored for width ${library.zoneWidth} only`);
 if (save) mkdirSync(save, { recursive: true });
 const hash = (v: string) => createHash('sha256').update(v).digest('hex');
@@ -89,6 +113,8 @@ for (const width of widths) for (const n of seeds) {
     bodies });
   console.error(`${seed}: generated in ${seconds.toFixed(1)} s, measured`);
 }
-const report = { version: 'library-comparison-1', definitions: 'docs/51.10-measurement.md', results: sparse ? 'docs/42.40-sparse-sides-experiment.md' : 'docs/42.37-matched-adoption.md',
-  revision: git('rev-parse', 'HEAD'), library: libraryFile || (sparse ? `sparse ${sparse}` : 'bundled'), stages: macroOnly ? 'macro' : 'built', node: process.version, maps };
+const resultsDoc = skeletonConfig ? 'docs/42.42-connectivity-skeleton-experiment.md' : (sparse ? 'docs/42.40-sparse-sides-experiment.md' : 'docs/42.37-matched-adoption.md');
+const libLabel = (libraryFile || (sparse ? 'sparse ' + sparse : 'bundled')) + (skeletonConfig ? ' skeleton ' + skeletonConfig.algorithm + '/' + skeletonConfig.extraOpenShare : '');
+const report = { version: 'library-comparison-1', definitions: 'docs/51.10-measurement.md', results: resultsDoc,
+  revision: git('rev-parse', 'HEAD'), library: libLabel, stages: macroOnly ? 'macro' : 'built', node: process.version, maps };
 if (out) writeFileSync(out, JSON.stringify(report, null, 1) + '\n'); else console.log(JSON.stringify(report, null, 1));

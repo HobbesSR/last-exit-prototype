@@ -24,6 +24,7 @@ import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, Segment
 import { planTiles, zonePlan } from "./zone-plan.ts";
 import type { PlacementFilter, ZonePlan } from "./zone-plan.ts";
 import { layoutSlots, makeZones } from "./zones.ts";
+import { buildSkeleton, applySkeletonToGrid } from "./skeleton.ts";
 import type { MapZone, MaskCell } from "./zones.ts";
 
 export const PLACEMENT_ATTEMPTS = 50;
@@ -110,7 +111,7 @@ const meets = (required: string | undefined, found: string): boolean =>
 
 const S = CHAIN_TILE_SIZE;
 /** `b` east of `a`: each side's prescriptions on the shared seam against the other's cells. */
-function fitsEast(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
+export function fitsEast(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
   for (let i = 0; i < S; i++) {
     const near = a.segments.get(`v:${S},${i}`), far = b.segments.get(`v:0,${i}`);
     if (!meets(near?.adjacency, b.cells[i * S]!)) return false;
@@ -120,7 +121,7 @@ function fitsEast(a: OrientedDesign, b: OrientedDesign, matched: boolean): boole
   return true;
 }
 /** `b` south of `a`. */
-function fitsSouth(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
+export function fitsSouth(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
   for (let i = 0; i < S; i++) {
     const near = a.segments.get(`h:${i},${S}`), far = b.segments.get(`h:${i},0`);
     if (!meets(near?.adjacency, b.cells[i]!)) return false;
@@ -189,7 +190,7 @@ const agree = (a: string | undefined, b: string | undefined): boolean =>
  *   `any` (or unstated) fits anything, otherwise like with like. Under `either-side`,
  *   passability can't conflict, so it never constrains the solve.
  */
-function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
+export function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
   let portalRun = 0;
   let lastA: string | undefined, lastB: string | undefined;
   for (let k = 0; k < S; k++) {
@@ -218,7 +219,7 @@ function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: Passabili
   return false;
 }
 
-function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
+export function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
   let portalRun = 0;
   let lastA: string | undefined, lastB: string | undefined;
   for (let k = 0; k < S; k++) {
@@ -252,7 +253,8 @@ export function adjacencyConnects(library: ChainLibrary): (a: TileOption, relati
   const of = (option: TileOption) => oriented(option.templateId, option.orientation);
   const rules = library.passabilityRules ?? "either-side";
   return (a, relation, b) => {
-    switch (relation) {
+    const dir = relation.split(":")[0];
+    switch (dir) {
       case "E": return edgeConnectsEast(of(a), of(b), rules);
       case "W": return edgeConnectsEast(of(b), of(a), rules);
       case "S": return edgeConnectsSouth(of(a), of(b), rules);
@@ -266,12 +268,17 @@ export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility 
   const oriented = orientedDesigns(library);
   const of = (option: TileOption) => oriented(option.templateId, option.orientation);
   const matched = library.passabilityRules === "matched";
+  const rules = library.passabilityRules ?? "either-side";
   return (a, relation, b) => {
     switch (relation) {
       case "E": return fitsEast(of(a), of(b), matched);
       case "W": return fitsEast(of(b), of(a), matched);
       case "S": return fitsSouth(of(a), of(b), matched);
       case "N": return fitsSouth(of(b), of(a), matched);
+      case "E:must-open": return fitsEast(of(a), of(b), matched) && edgeConnectsEast(of(a), of(b), rules);
+      case "W:must-open": return fitsEast(of(b), of(a), matched) && edgeConnectsEast(of(b), of(a), rules);
+      case "S:must-open": return fitsSouth(of(a), of(b), matched) && edgeConnectsSouth(of(a), of(b), rules);
+      case "N:must-open": return fitsSouth(of(b), of(a), matched) && edgeConnectsSouth(of(b), of(a), rules);
     }
     const [corner, side] = relation.split(":") as [Corner, string];
     const keys = CORNERS[corner] as Record<string, SegmentKey>;
@@ -411,6 +418,17 @@ function sample(
     };
   });
   adjacencyLinks(grid);
+  if (library.connectivitySkeleton) {
+    const skeletonConfig = typeof library.connectivitySkeleton === "object" ? library.connectivitySkeleton : {};
+    const skeletonResult = buildSkeleton(mask, assigned, instances, zones, (zone) => fill(zone), library, random, skeletonConfig);
+    applySkeletonToGrid(grid, library, skeletonResult, skeletonConfig.filterParts !== false);
+    trace?.({
+      type: "skeleton",
+      algorithm: skeletonConfig.algorithm ?? "wilson",
+      extraOpenShare: skeletonConfig.extraOpenShare ?? 0,
+      edges: skeletonResult.forcedSeams.map((s) => ({ slotA: s.slotA, slotB: s.slotB, dir: s.dir, isTree: s.isTree })),
+    });
+  }
   const state = { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, stall = { most: 0 };
   const counted = (reason: string) => { if (attempt) attempt.refusals++; refused(reason); };
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),

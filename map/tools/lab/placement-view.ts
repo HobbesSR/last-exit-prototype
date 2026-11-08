@@ -6,7 +6,7 @@ import { drawPlacementTiles } from './placement-drawing.ts';
 import type { Slot, Tile } from './placement-drawing.ts';
 import { placementSeams } from '../../macro/src/chain/partial-connectivity.ts';
 import type { PlacementSeam } from '../../macro/src/chain/partial-connectivity.ts';
-import { drawPlacementSeams } from './placement-seam-drawing.ts';
+import { drawPlacementSeams, drawPlacementSkeleton } from './placement-seam-drawing.ts';
 
 type Refusal = Extract<PlacementTraceEvent, { type: 'refusal' }>;
 
@@ -21,6 +21,8 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       <label>Seed<input id="solveSeed" /></label>
       <label>Zone size<select id="solveSize"></select></label>
       <label>Set-piece order<select id="solveOrder"><option value="library">Library default</option><option value="start-end">Landing / evac first (experiment)</option></select></label>
+      <label>Skeleton<select id="solveSkeleton"><option value="off" selected>Off</option><option value="wilson">Wilson</option><option value="prim">Prim</option><option value="kruskal">Kruskal</option></select></label>
+      <label>Extra open<select id="solveExtraOpen"><option value="0">0%</option><option value="0.15" selected>15%</option><option value="0.30">30%</option></select></label>
       <button id="solveRandom" type="button">New seed</button>
     </div>
     <p class="hint">Seed and size edits apply when you press Record placement. The attempt list belongs to the recorded seed.</p>
@@ -34,7 +36,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       <button id="solveNextRefusal" type="button" disabled>Refusal →</button>
       <button id="solveFit" type="button">Fit map</button>
       <label>Events / second <select id="solveSpeed"><option>5</option><option selected>30</option><option>120</option></select></label>
-      <label>Seams <select id="solveSeams"><option value="connectivity">Derived connectivity</option><option value="authored">Both authored sides</option><option value="none">None</option></select></label>
+      <label>Seams <select id="solveSeams"><option value="connectivity">Derived connectivity</option><option value="authored">Both authored sides</option><option value="skeleton">Connectivity skeleton (#883)</option><option value="none">None</option></select></label>
     </div>
     <label class="solve-timeline">Event <input id="solveStep" aria-label="Placement event" type="range" min="0" max="0" value="0" disabled><output id="solvePosition">0 / 0</output></label>
     <div class="solve-metadata">
@@ -46,6 +48,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       <p id="solveSeamDetail" class="hint">Hover a seam to inspect both authored sides and derived connectivity.</p>
       <h2>Legend</h2><p class="hint">Wheel to zoom / Drag to pan / Fit to reset.</p><p class="hint">Set pieces: blue; fill: colour by depth. Derived seams: pink = hint inside one region; dark = no guaranteed boundary crossing; dotted = unsettled; pale = guaranteed crossing; orange = conflicting prescriptions. Internal region membership connects cells even when a hint is present. Gray outlines face outside the map.</p>
       <p class="hint">Both authored sides shows two separate strokes: dark hint, pale passable, dotted any/unstated. Hover gives the side values. With no overlay, set pieces are shown as internally open shapes; this is a visual abstraction.</p>
+      <p class="hint">Connectivity skeleton (#883): teal = spanning tree edges; gold dashed = extra open seams; center lines show tree topology.</p>
       <p class="hint">Refused component: red. Cut faces: cyan dashes. Cause slots: yellow. These are macro prescriptions and connectivity diagnostics.</p>
       <pre id="solveDetails"></pre></aside></div>`;
   const el = <T extends HTMLElement = HTMLElement>(id: string) => host.querySelector<T>(`#${id}`)!;
@@ -126,13 +129,20 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
     const scale = Math.max(0.1, Math.min((box.width - 32) / width, (box.height - 32) / height)) * zoom;
     frame = { x: (box.width - width * scale) / 2 - minX * scale + pan.x, y: (box.height - height * scale) / 2 - minY * scale + pan.y, scale };
     ctx.translate(frame.x, frame.y); ctx.scale(scale, scale);
-    const seamMode = el<HTMLSelectElement>('solveSeams').value as 'connectivity' | 'authored' | 'none';
+    const seamMode = el<HTMLSelectElement>('solveSeams').value as 'connectivity' | 'authored' | 'skeleton' | 'none';
     drawPlacementTiles(ctx, slots, tiles, scale, maxDepth, seamMode === 'none');
     if (activeLibrary && turned && seamsDirty) {
       seams = placementSeams(activeLibrary, slots, tiles, turned);
       seamByKey = new Map(seams.map(seam => [seam.key, seam])); seamsDirty = false;
     }
-    drawnSeams = seamMode === 'none' ? 0 : drawPlacementSeams(ctx, seams, scale, seamMode);
+    if (seamMode === 'none') {
+      drawnSeams = 0;
+    } else if (seamMode === 'skeleton') {
+      const skeletonEvent = events.find((e): e is Extract<PlacementTraceEvent, { type: 'skeleton' }> => e.type === 'skeleton');
+      drawnSeams = skeletonEvent ? drawPlacementSkeleton(ctx, slots, skeletonEvent.edges, scale) : 0;
+    } else {
+      drawnSeams = drawPlacementSeams(ctx, seams, scale, seamMode);
+    }
     if (refusal) {
       ctx.fillStyle = '#ff3c5c88';
       for (const cell of refusal.cells) ctx.fillRect(cell.x, cell.y, 1, 1);
@@ -234,7 +244,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       el('solveRecipe').textContent = recipe;
       el('solveStatus').textContent = 'Recording placement…';
       el<HTMLButtonElement>('solveCancel').disabled = false;
-      for (const id of ['solveRecord', 'solveSeed', 'solveSize', 'solveOrder', 'solveRandom', 'solveAttempt', 'solveStep', 'solvePrev', 'solveNext', 'solvePlay', 'solvePrevRefusal', 'solveNextRefusal']) (el(id) as HTMLButtonElement).disabled = true;
+      for (const id of ['solveRecord', 'solveSeed', 'solveSize', 'solveOrder', 'solveSkeleton', 'solveExtraOpen', 'solveRandom', 'solveAttempt', 'solveStep', 'solvePrev', 'solveNext', 'solvePlay', 'solvePrevRefusal', 'solveNextRefusal']) (el(id) as HTMLButtonElement).disabled = true;
       seek(0);
     },
     stopped(message: string) {
@@ -244,7 +254,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
         el('solveMapSummary').textContent = 'No recording retained.';
       }
       el<HTMLButtonElement>('solveCancel').disabled = true; el<HTMLButtonElement>('solveRecord').disabled = false;
-      for (const id of ['solveSeed', 'solveSize', 'solveOrder', 'solveRandom']) (el(id) as HTMLButtonElement).disabled = false;
+      for (const id of ['solveSeed', 'solveSize', 'solveOrder', 'solveSkeleton', 'solveExtraOpen', 'solveRandom']) (el(id) as HTMLButtonElement).disabled = false;
     },
     received(result: PlacementRecording, library: ChainLibrary, ms: number) {
       recording = result; activeLibrary = library; turned = orientedDesigns(library); byAttempt = [];

@@ -164,8 +164,13 @@ let solveWorker: Worker | null = null;
 const solveView = mountPlacementView($("solveView"), () => {
   try {
     const seed = input("seed").value, params = recipeParams(), chosen = chosenLibrary() as ChainLibrary;
-    const library = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
-    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}`);
+    let library: ChainLibrary = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
+    const skeletonAlgo = select("solveSkeleton").value;
+    if (skeletonAlgo !== "off") {
+      const extraOpenShare = Number(select("solveExtraOpen").value) || 0;
+      library = { ...library, connectivitySkeleton: { algorithm: skeletonAlgo as "wilson" | "prim" | "kruskal", extraOpenShare, shortcutPriority: true } };
+    }
+    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("solveExtraOpen").value) || 0) * 100)}% open)` : ''}`);
     solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
       solveWorker = null;
       if (reply.kind === "placement") solveView.received(reply.recording, library, reply.ms);
@@ -207,6 +212,8 @@ select("solveSize").onchange = () => {
   select("zoneSize").dispatchEvent(new Event("change"));
 };
 select("solveOrder").onchange = () => solveView.recipeEdited();
+select("solveSkeleton").onchange = () => solveView.recipeEdited();
+select("solveExtraOpen").onchange = () => solveView.recipeEdited();
 $("solveRandom").onclick = () => {
   solveView.recipeEdited();
   cancelStaleWorldGeneration();
