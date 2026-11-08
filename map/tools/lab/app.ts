@@ -163,8 +163,9 @@ function chosenLibrary(): unknown {
 let solveWorker: Worker | null = null;
 const solveView = mountPlacementView($("solveView"), () => {
   try {
-    const seed = input("seed").value, params = recipeParams(), library = chosenLibrary() as ChainLibrary;
-    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''}`);
+    const seed = input("seed").value, params = recipeParams(), chosen = chosenLibrary() as ChainLibrary;
+    const library = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
+    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}`);
     solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
       solveWorker = null;
       if (reply.kind === "placement") solveView.received(reply.recording, library, reply.ms);
@@ -205,6 +206,7 @@ select("solveSize").onchange = () => {
   select("zoneSize").value = select("solveSize").value;
   select("zoneSize").dispatchEvent(new Event("change"));
 };
+select("solveOrder").onchange = () => solveView.recipeEdited();
 $("solveRandom").onclick = () => {
   solveView.recipeEdited();
   cancelStaleWorldGeneration();

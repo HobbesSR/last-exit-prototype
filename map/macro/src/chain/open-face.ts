@@ -36,7 +36,7 @@ import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, SegmentPrescription } from "./library.ts";
-import { DEFAULT_RESOLVED_CLASS, guaranteesPassability } from "./resolution.ts";
+import { DEFAULT_RESOLVED_CLASS, guaranteesPassability, resolveSettledClass } from "./resolution.ts";
 import type { Orientation, SegmentKey } from "./types.ts";
 
 const S = CHAIN_TILE_SIZE;
@@ -183,7 +183,7 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
           const required = stated(x + dx, y + dy, ...between(x, y, dx, dy))?.adjacency;
           if (required !== undefined && required !== "any") { asked = required; break; }
         }
-        found = asked ?? (waiting ? UNSETTLED : DEFAULT_RESOLVED_CLASS);
+        found = resolveSettledClass(found, asked, waiting) ?? UNSETTLED;
       }
       classStamp[cell] = check;
       classOf[cell] = found;

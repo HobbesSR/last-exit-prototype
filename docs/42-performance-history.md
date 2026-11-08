@@ -59,6 +59,8 @@ limit no longer fires on the measured seeds, and what it costs, is in
 
 The sparse-sides experiment, fill and set-piece schemes with fewer passable halves, their portals,
 one-portal regions and placement cost, is in [42.40](42.40-sparse-sides-experiment.md) (#851).
+Landing/evac-first placement's matched 30-seed attempt counts and shifted packing
+failures are in [42.41](42.41-set-piece-order.md) (#891); the flag stays off by default.
 
 The opt-in regional lighting recipe and its multi-region cache/rebuild evidence
 are in [42.39](42.39-regional-lighting.md) (#771).

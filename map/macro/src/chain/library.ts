@@ -108,6 +108,8 @@ export interface ChainLibrary {
    * libraries keep their fingerprints and maps; the Map Lab's sparse-sides libraries state it.
    */
   fitPlacedSetPieces?: boolean;
+  /** Experimental (#891): place start and end pieces before the remaining largest-first pieces. */
+  startEndFirst?: boolean;
 }
 
 export interface LibraryValidation {
@@ -142,7 +144,7 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
   const lists = ["tiles", "tileSets", "setPieces"] as const;
   function consume(raw: Record<string, unknown>, source: string, isTop: boolean): void {
     const allowed = isTop
-      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "passabilityRules", "fitPlacedSetPieces", "includes", "cellClasses", ...lists, "setPieceClasses"]
+      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "passabilityRules", "fitPlacedSetPieces", "startEndFirst", "includes", "cellClasses", ...lists, "setPieceClasses"]
       : ["schema", "name", "version", "includes", "cellClasses", ...lists];
     for (const key of Object.keys(raw)) if (!allowed.includes(key)) throw new Error(`${source}: unknown field ${key}`);
     if (raw.cellClasses !== undefined && !object(raw.cellClasses)) throw new Error(`${source}: cellClasses must be an object`);
@@ -173,6 +175,10 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
       if (raw.fitPlacedSetPieces !== undefined) {
         if (typeof raw.fitPlacedSetPieces !== "boolean") throw new Error(`${source}: fitPlacedSetPieces must be a boolean`);
         resolved.fitPlacedSetPieces = raw.fitPlacedSetPieces;
+      }
+      if (raw.startEndFirst !== undefined) {
+        if (typeof raw.startEndFirst !== "boolean") throw new Error(`${source}: startEndFirst must be a boolean`);
+        resolved.startEndFirst = raw.startEndFirst;
       }
     }
   }
@@ -355,7 +361,9 @@ export function validateLibrary(
 ): LibraryValidation {
   const errors: string[] = [];
   if (!object(library)) return { valid: false, errors: ["library: must be an object"] };
-  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses", "passabilityRules", "fitPlacedSetPieces"], "library", errors);
+  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses", "passabilityRules", "fitPlacedSetPieces", "startEndFirst"], "library", errors);
+  if (library.startEndFirst !== undefined && typeof library.startEndFirst !== "boolean")
+    errors.push("library: startEndFirst must be a boolean");
   if (library.fitPlacedSetPieces !== undefined && typeof library.fitPlacedSetPieces !== "boolean")
     errors.push("library: fitPlacedSetPieces must be a boolean");
   if (library.passabilityRules !== undefined && !PASSABILITY_RULES.has(library.passabilityRules as PassabilityRules))

@@ -50,7 +50,7 @@ const RULE_ORDER: readonly PlacementRule[] = ["start", "end", "enormous", "trans
 
 interface Pick { setPieceClass: ChainSetPieceClass; piece: ChainSetPiece; filter: PlacementFilter }
 
-/** Every class's quota of set pieces, in placement order: largest first, ties as drawn. */
+/** Every class's quota, largest first unless start/end priority is requested; ties as drawn. */
 function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>, plan: ZonePlan, columns: number, rows: number, random: Stream): Pick[] {
   const picks: Pick[] = [];
   for (const rule of RULE_ORDER) for (const setPieceClass of library.setPieceClasses) {
@@ -62,7 +62,11 @@ function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>
       : Array.from({ length: setPieceClass.quota }, () => random.pick(members));
     chosen.forEach((piece, nth) => picks.push({ setPieceClass, piece, filter: plan.placementFilter(rule, nth, setPieceClass.quota, columns, rows) }));
   }
-  return picks.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
+  // Sorting never draws: the pick stream and each rule's quota/filter stay unchanged.
+  const priority = (pick: Pick): number => pick.setPieceClass.placementRule === "start" ? 0
+    : pick.setPieceClass.placementRule === "end" ? 1 : 2;
+  return picks.sort((a, b) => (library.startEndFirst === true ? priority(a) - priority(b) : 0)
+    || b.piece.tiles.length - a.piece.tiles.length);
 }
 
 /** Whether the fill may place a design: not stated `fillable: false`, nor weighted 0 as older content says it (52). */

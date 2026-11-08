@@ -10,6 +10,11 @@ import type { DeclaredSegment, MacroStages, ResolvedSegment, SegmentKey, StatedP
 /** What an `any` cell resolves to when no adjacency prescription asks it for a class. */
 export const DEFAULT_RESOLVED_CLASS = "open";
 
+/** A declared class stands; an `any` cell waits only while no placed neighbour asks it. */
+export function resolveSettledClass(declared: string, asked: string | undefined, waiting: boolean): string | undefined {
+  return declared === "any" ? asked ?? (waiting ? undefined : DEFAULT_RESOLVED_CLASS) : declared;
+}
+
 /**
  * Derived crossing promise for two cells on the map; hints never require a barrier. Under
  * `matched` (17.2.2) an unstated side reads as `any`, and `any` meeting `any` passes only
