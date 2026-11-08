@@ -54,6 +54,35 @@ test("all paired prescriptions resolve with provenance and the solver agrees", (
   }
 });
 
+test("under matched rules, emergent crossings shorter than MIN_PORTAL_LENGTH demote to none (#893)", () => {
+  const notchTile = {
+    id: "notch", defaultCellClass: "open", cells: [".....H", "......", "......", "......", "......", "......"],
+    legend: { H: "hut" }, orientations: [0],
+  };
+  const plainTile = { id: "plain", defaultCellClass: "rubble", orientations: [0] };
+  const lib: ChainLibrary = {
+    ...BASE, passabilityRules: "matched", tiles: [notchTile, plainTile],
+    tileSets: [], setPieces: [], setPieceClasses: [],
+  };
+  const testLayout: Layout = {
+    seed: "notch-test", library: "hand", setPieces: [],
+    params: layout.params,
+    slots: [{ col: 0, row: 0, design: "notch", orientation: 0 }, { col: 1, row: 0, design: "plain", orientation: 0 }],
+  };
+  const resolved = resolution(testLayout, lib);
+  assert.equal(resolved.segments["v:6,0"]?.guarantee, "none");
+  assert.equal(resolved.segments["v:6,1"]?.guarantee, "guaranteed");
+  assert.equal(portalViolations(regions(resolved, testLayout.seed)).length, 0);
+
+  const testGrid: WfcGrid = [
+    { x: 0, y: 0, domain: [option("notch")], links: [] },
+    { x: 1, y: 0, domain: [option("plain")], links: [] },
+  ];
+  const reasons: string[] = [];
+  openFaceRule(lib, testGrid, 2, 1, (r) => reasons.push(r))(testGrid, [0, 1]);
+  assert.equal(reasons.some((r) => r.includes("shorter than a hunter")), false);
+});
+
 test("any+any portals are derived before the short-portal check", () => {
   const lib = library("any", "any", 1), slots = grid(), reasons: string[] = [];
   assert.notEqual(openFaceRule(lib, slots, 2, 1, (reason) => reasons.push(reason))(slots, [0, 1]), true);

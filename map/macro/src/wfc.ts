@@ -9,6 +9,8 @@ export interface TileOption {
   id?: number;
   /** Per relation, the ids of the options this one admits across it. The solver fills it. */
   valid?: Map<string, Set<number>>;
+  /** Per relation, the ids of the options this one connects to across it. */
+  connects?: Map<string, Set<number>>;
 }
 
 /**
@@ -26,6 +28,7 @@ export interface WfcCell {
   domain: TileOption[];
   /** Checked, and queued on a change, in this order. */
   links: WfcLink[];
+  orthoLinks?: WfcLink[];
 }
 
 export type WfcGrid = WfcCell[];
@@ -34,7 +37,7 @@ export type WfcGrid = WfcCell[];
  * Narrows domains to a fixed point, from `startQueue`'s links or from every cell. Given
  * `trail`, it records each domain it replaces, so the caller can undo the narrowing.
  */
-export function propagate(grid: WfcGrid, startQueue?: number, trail?: { cells: number[]; domains: TileOption[][] }): boolean {
+export function propagate(grid: WfcGrid, startQueue?: number | number[], trail?: { cells: number[]; domains: TileOption[][] }): boolean {
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
@@ -44,8 +47,10 @@ export function propagate(grid: WfcGrid, startQueue?: number, trail?: { cells: n
 
   if (startQueue === undefined) {
     for (let i = 0; i < grid.length; i++) enqueue(i);
-  } else {
+  } else if (typeof startQueue === "number") {
     for (const link of grid[startQueue]!.links) enqueue(link.cell);
+  } else {
+    for (const s of startQueue) for (const link of grid[s]!.links) enqueue(link.cell);
   }
 
   let head = 0;
@@ -103,6 +108,8 @@ export interface WfcOptions {
   stallLimit?: number;
   /** When given, the most refusals the search made between two new depths is recorded here. */
   stall?: { most: number };
+  /** Whether two options connect across relation (shared class or portal). Prunes single-tile dead ends (#894). */
+  connects?: (a: TileOption, relation: string, b: TileOption) => boolean;
 }
 
 /**
@@ -114,7 +121,7 @@ export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * 
 
 export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
   return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept,
-    { limit: options.stallLimit ?? Infinity, record: options.stall }, options.trace);
+    { limit: options.stallLimit ?? Infinity, record: options.stall }, options.trace, options.connects);
 }
 
 /**
@@ -153,7 +160,9 @@ interface Frame {
  * share an id and one table. Every pre-assigned set piece slot is its own option object,
  * and a table per option grew with the square of those slots (#171).
  */
-function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
+function prepare(grid: WfcGrid, compatible: WfcCompatibility, connects?: (a: TileOption, relation: string, b: TileOption) => boolean): void {
+  const orthoRelations = new Set(["N", "S", "E", "W"]);
+  for (let i = 0; i < grid.length; i++) grid[i]!.orthoLinks = grid[i]!.links.filter((l) => orthoRelations.has(l.relation));
   const allOpts = new Set<TileOption>();
   for (let i = 0; i < grid.length; i++) {
     const cell = grid[i]!;
@@ -173,13 +182,17 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
   const relations = [...new Set(grid.flatMap((c) => c.links.map((link) => link.relation)))];
   kinds.forEach((kin, id) => {
     const valid = new Map(relations.map((relation) => [relation, new Set<number>()]));
+    const connMap = connects ? new Map(relations.map((relation) => [relation, new Set<number>()])) : undefined;
     for (const opt of kin) {
       opt.id = id;
       opt.valid = valid;
+      if (connMap) opt.connects = connMap;
     }
   });
-  for (const mine of kinds) for (const [id, theirs] of kinds.entries()) for (const relation of relations)
+  for (const mine of kinds) for (const [id, theirs] of kinds.entries()) for (const relation of relations) {
     if (compatible(mine[0]!, relation, theirs[0]!)) mine[0]!.valid!.get(relation)!.add(id);
+    if (connects && connects(mine[0]!, relation, theirs[0]!)) mine[0]!.connects!.get(relation)!.add(id);
+  }
 }
 
 /**
@@ -193,7 +206,8 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
 export const DIFFICULTY_OFFSET = 12;
 
 function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
-  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }, trace?: (event: WfcTraceEvent) => void): WfcGrid | null {
+  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }, trace?: (event: WfcTraceEvent) => void,
+  connects?: (a: TileOption, relation: string, b: TileOption) => boolean): WfcGrid | null {
   // Refusals since the search last reached a new depth (`stallLimit`).
   let deepest = -1, refusals = 0;
   const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
@@ -237,12 +251,66 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
     }
     if (depth > deepest) { deepest = depth; refusals = 0; }
     trace?.({ type: "node", depth, iterations: state.iterations, stall: refusals });
-    if (depth === 0) prepare(grid, compatible);
+    if (depth === 0) prepare(grid, compatible, connects);
+    const trailStart = trail.cells.length;
     const propagated = propagate(grid, startQueue, trail);
     showCollapsed(depth);
     if (!propagated) {
       if (trace) trace({ type: "contradiction", depth, slots: grid.flatMap((cell, slot) => cell.domain.length ? [] : [slot]) });
       return null;
+    }
+
+    if (connects) {
+      const candidates = new Set<number>();
+      if (depth === 0) {
+        for (let i = 0; i < grid.length; i++) candidates.add(i);
+      } else {
+        if (startQueue !== undefined) candidates.add(startQueue);
+        for (let t = trailStart; t < trail.cells.length; t++) {
+          const changed = trail.cells[t]!;
+          const ortho = grid[changed]!.orthoLinks!;
+          for (let l = 0; l < ortho.length; l++) candidates.add(ortho[l]!.cell);
+        }
+      }
+
+      const queue = [...candidates];
+      const rePropagate: number[] = [];
+      while (queue.length > 0) {
+        const i = queue.pop()!;
+        const cell = grid[i]!;
+        if (cell.domain.length <= 1) continue;
+        const orthoLinks = cell.orthoLinks!;
+        const newDomain = cell.domain.filter((opt) => {
+          for (let l = 0; l < orthoLinks.length; l++) {
+            const link = orthoLinks[l]!;
+            const connectSet = opt.connects?.get(link.relation);
+            if (!connectSet) continue;
+            const nDomain = grid[link.cell]!.domain;
+            for (let k = 0; k < nDomain.length; k++) {
+              if (connectSet.has(nDomain[k]!.id!)) return true;
+            }
+          }
+          return false;
+        });
+        if (newDomain.length < cell.domain.length) {
+          trail.cells.push(i);
+          trail.domains.push(cell.domain);
+          cell.domain = newDomain;
+          rePropagate.push(i);
+          if (newDomain.length === 0) {
+            if (trace) trace({ type: "contradiction", depth, slots: [i] });
+            return null;
+          }
+          for (let l = 0; l < orthoLinks.length; l++) queue.push(orthoLinks[l]!.cell);
+        }
+      }
+      if (rePropagate.length > 0) {
+        if (!propagate(grid, rePropagate, trail)) {
+          if (trace) trace({ type: "contradiction", depth, slots: grid.flatMap((cell, slot) => cell.domain.length ? [] : [slot]) });
+          return null;
+        }
+        showCollapsed(depth);
+      }
     }
 
     const placed: number[] = [];
