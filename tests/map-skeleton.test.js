@@ -118,10 +118,94 @@ test('multi-part domain filtering prunes split tiles that cannot bridge forced-o
     { slotA: 0, slotB: 2, dir: 'S', isTree: true },
   ];
 
-  filterSlotDomains(grid, testLib, forcedSeams);
+  const ok = filterSlotDomains(grid, testLib, forcedSeams);
+  assert.equal(ok, true);
 
   const remaining = grid[0].domain.map(d => d.orientation);
   assert.deepEqual(remaining, [90], 'orientation 0 is pruned because its parts cannot bridge North and South');
+
+  // If forced sides also require West (N, S, E, W), neither 0 (split N/S) nor 90 (split W/E) can bridge all sides.
+  // The domain should become empty and filterSlotDomains must return false (not silently keep options).
+  const fourSides = [
+    { slotA: 1, slotB: 0, dir: 'S', isTree: true },
+    { slotA: 0, slotB: 2, dir: 'S', isTree: true },
+    { slotA: 0, slotB: 3, dir: 'E', isTree: true },
+    { slotA: 4, slotB: 0, dir: 'E', isTree: true },
+  ];
+  const gridEmpty = [
+    {
+      domain: [
+        { templateId: splitTile.id, orientation: 0, difficulty: 0, weight: 1 },
+        { templateId: splitTile.id, orientation: 90, difficulty: 0, weight: 1 },
+      ],
+      links: [],
+    },
+    { domain: [], links: [] },
+    { domain: [], links: [] },
+    { domain: [], links: [] },
+    { domain: [], links: [] },
+  ];
+  const okEmpty = filterSlotDomains(gridEmpty, testLib, fourSides);
+  assert.equal(okEmpty, false, 'returns false when all options in domain are pruned');
+  assert.equal(gridEmpty[0].domain.length, 0, 'domain is emptied rather than silently retaining invalid options');
+});
+
+test('buildSkeleton rejects seams between unassigned fill slots when no zone options can connect', () => {
+  const library = bundledLibrary(DEFAULT_CHAIN_PARAMS);
+
+  // Tile A is 'open' class with not-passable-hint on its East edge
+  const solidEastTile = {
+    id: 'solid-east-tile',
+    defaultCellClass: 'open',
+    cells: Array(6).fill('......'),
+    segments: {
+      'v:6,0': { passability: 'not-passable-hint' },
+      'v:6,1': { passability: 'not-passable-hint' },
+      'v:6,2': { passability: 'not-passable-hint' },
+      'v:6,3': { passability: 'not-passable-hint' },
+      'v:6,4': { passability: 'not-passable-hint' },
+      'v:6,5': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  // Tile B is 'rubble' class with not-passable-hint on its West edge
+  const solidWestTile = {
+    id: 'solid-west-tile',
+    defaultCellClass: 'rubble',
+    cells: Array(6).fill('RRRRRR'),
+    legend: { R: 'rubble' },
+    segments: {
+      'v:0,0': { passability: 'not-passable-hint' },
+      'v:0,1': { passability: 'not-passable-hint' },
+      'v:0,2': { passability: 'not-passable-hint' },
+      'v:0,3': { passability: 'not-passable-hint' },
+      'v:0,4': { passability: 'not-passable-hint' },
+      'v:0,5': { passability: 'not-passable-hint' },
+    },
+    orientations: [0],
+  };
+
+  const testLib = {
+    ...library,
+    tiles: [...library.tiles, solidEastTile, solidWestTile],
+  };
+
+  const mask = [
+    { x: 0, y: 0, zoneId: 'zoneA' },
+    { x: 1, y: 0, zoneId: 'zoneB' },
+  ];
+  const zones = new Map([
+    ['zoneA', { id: 'zoneA' }],
+    ['zoneB', { id: 'zoneB' }],
+  ]);
+  const fillByZone = (z) => z.id === 'zoneA' ? [solidEastTile] : [solidWestTile];
+  const assigned = [undefined, undefined];
+  const rand = stream('test-unassigned-connect', 'placement', 0);
+
+  const res = buildSkeleton(mask, assigned, [], zones, fillByZone, testLib, rand, { algorithm: 'kruskal' });
+  // Because solidEastTile and solidWestTile have different classes and no passable portals, they cannot connect East
+  assert.equal(res.forcedSeams.length, 0, 'no candidate seam between zones that cannot connect');
 });
 
 test('placer with connectivitySkeleton solves sparse/face maps with zero sealed pocket refusals', () => {

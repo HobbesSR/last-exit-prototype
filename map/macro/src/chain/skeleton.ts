@@ -119,6 +119,47 @@ export function buildSkeleton(
   const candidateSeams: CandidateSeam[] = [];
   let seamId = 0;
 
+  const eastZoneCache = new Map<string, boolean>();
+  const southZoneCache = new Map<string, boolean>();
+
+  function zonesCanConnectEast(zoneAId: string, zoneBId: string): boolean {
+    const key = `${zoneAId}:${zoneBId}`;
+    let res = eastZoneCache.get(key);
+    if (res !== undefined) return res;
+    const fillA = fillByZone(zones.get(zoneAId)!);
+    const fillB = fillByZone(zones.get(zoneBId)!);
+    res = fillA.some((tA) =>
+      tA.orientations.some((oA) => {
+        const desA = oriented(tA.id, oA as Orientation);
+        return fillB.some((tB) =>
+          tB.orientations.some((oB) => {
+            const desB = oriented(tB.id, oB as Orientation);
+            return fitsEast(desA, desB, matched) && edgeConnectsEast(desA, desB, rules);
+          }));
+      }));
+    eastZoneCache.set(key, res);
+    return res;
+  }
+
+  function zonesCanConnectSouth(zoneAId: string, zoneBId: string): boolean {
+    const key = `${zoneAId}:${zoneBId}`;
+    let res = southZoneCache.get(key);
+    if (res !== undefined) return res;
+    const fillA = fillByZone(zones.get(zoneAId)!);
+    const fillB = fillByZone(zones.get(zoneBId)!);
+    res = fillA.some((tA) =>
+      tA.orientations.some((oA) => {
+        const desA = oriented(tA.id, oA as Orientation);
+        return fillB.some((tB) =>
+          tB.orientations.some((oB) => {
+            const desB = oriented(tB.id, oB as Orientation);
+            return fitsSouth(desA, desB, matched) && edgeConnectsSouth(desA, desB, rules);
+          }));
+      }));
+    southZoneCache.set(key, res);
+    return res;
+  }
+
   for (let i = 0; i < mask.length; i++) {
     const { x, y } = mask[i]!;
 
@@ -144,6 +185,8 @@ export function buildSkeleton(
             const desA = oriented(t.id, o as Orientation);
             return fitsEast(desA, desB, matched) && edgeConnectsEast(desA, desB, rules);
           }));
+      } else {
+        can = zonesCanConnectEast(mask[i]!.zoneId, mask[eastIdx]!.zoneId);
       }
       if (can) candidateSeams.push({ seamId: seamId++, u: nodeOf[i]!, v: nodeOf[eastIdx]!, slotA: i, slotB: eastIdx, dir: "E" });
     }
@@ -170,6 +213,8 @@ export function buildSkeleton(
             const desA = oriented(t.id, o as Orientation);
             return fitsSouth(desA, desB, matched) && edgeConnectsSouth(desA, desB, rules);
           }));
+      } else {
+        can = zonesCanConnectSouth(mask[i]!.zoneId, mask[southIdx]!.zoneId);
       }
       if (can) candidateSeams.push({ seamId: seamId++, u: nodeOf[i]!, v: nodeOf[southIdx]!, slotA: i, slotB: southIdx, dir: "S" });
     }
@@ -320,7 +365,7 @@ export function filterSlotDomains(
   grid: WfcGrid,
   library: ChainLibrary,
   forcedSeams: SkeletonSeam[],
-): void {
+): boolean {
   const rules = library.passabilityRules ?? "either-side";
   const oriented = orientedDesigns(library);
 
@@ -368,6 +413,7 @@ export function filterSlotDomains(
     return found;
   };
 
+  let ok = true;
   for (let slot = 0; slot < grid.length; slot++) {
     const sides = forcedSidesPerSlot.get(slot);
     if (!sides || sides.size <= 1) continue;
@@ -396,10 +442,12 @@ export function filterSlotDomains(
       });
     });
 
-    if (filtered.length > 0 && filtered.length < cell.domain.length) {
+    if (filtered.length < cell.domain.length) {
       cell.domain = filtered;
+      if (filtered.length === 0) ok = false;
     }
   }
+  return ok;
 }
 
 /**
@@ -410,7 +458,7 @@ export function applySkeletonToGrid(
   library: ChainLibrary,
   skeletonResult: SkeletonResult,
   filterParts = true,
-): void {
+): boolean {
   for (const seam of skeletonResult.forcedSeams) {
     const { slotA, slotB, dir } = seam;
     const linkA = grid[slotA]!.links.find((l) => l.cell === slotB && l.relation === dir);
@@ -422,6 +470,7 @@ export function applySkeletonToGrid(
   }
 
   if (filterParts) {
-    filterSlotDomains(grid, library, skeletonResult.forcedSeams);
+    return filterSlotDomains(grid, library, skeletonResult.forcedSeams);
   }
+  return true;
 }

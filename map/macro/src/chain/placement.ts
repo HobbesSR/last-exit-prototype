@@ -420,14 +420,35 @@ function sample(
   adjacencyLinks(grid);
   if (library.connectivitySkeleton) {
     const skeletonConfig = typeof library.connectivitySkeleton === "object" ? library.connectivitySkeleton : {};
-    const skeletonResult = buildSkeleton(mask, assigned, instances, zones, (zone) => fill(zone), library, random, skeletonConfig);
-    applySkeletonToGrid(grid, library, skeletonResult, skeletonConfig.filterParts !== false);
-    trace?.({
-      type: "skeleton",
-      algorithm: skeletonConfig.algorithm ?? "wilson",
-      extraOpenShare: skeletonConfig.extraOpenShare ?? 0,
-      edges: skeletonResult.forcedSeams.map((s) => ({ slotA: s.slotA, slotB: s.slotB, dir: s.dir, isTree: s.isTree })),
-    });
+    const maxTries = 5;
+    const initialDomains = grid.map((c) => c.domain.slice());
+    let skeletonResult: ReturnType<typeof buildSkeleton> | undefined;
+    let ok = false;
+
+    for (let tryIdx = 0; tryIdx < maxTries; tryIdx++) {
+      if (tryIdx > 0) {
+        for (let i = 0; i < grid.length; i++) {
+          grid[i]!.domain = initialDomains[i]!.slice();
+          for (const l of grid[i]!.links) {
+            if (l.relation.endsWith(":must-open")) {
+              l.relation = l.relation.slice(0, -10);
+            }
+          }
+        }
+      }
+      skeletonResult = buildSkeleton(mask, assigned, instances, zones, (zone) => fill(zone), library, random, skeletonConfig);
+      ok = applySkeletonToGrid(grid, library, skeletonResult, skeletonConfig.filterParts !== false);
+      if (ok) break;
+    }
+
+    if (skeletonResult) {
+      trace?.({
+        type: "skeleton",
+        algorithm: skeletonConfig.algorithm ?? "wilson",
+        extraOpenShare: skeletonConfig.extraOpenShare ?? 0,
+        edges: skeletonResult.forcedSeams.map((s) => ({ slotA: s.slotA, slotB: s.slotB, dir: s.dir, isTree: s.isTree })),
+      });
+    }
   }
   const state = { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, stall = { most: 0 };
   const counted = (reason: string) => { if (attempt) attempt.refusals++; refused(reason); };
