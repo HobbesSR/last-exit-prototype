@@ -418,7 +418,7 @@ export function filterSlotDomains(
     const sides = forcedSidesPerSlot.get(slot);
     if (!sides || sides.size <= 1) continue;
     const cell = grid[slot]!;
-    if (cell.domain.length <= 1) continue;
+    if (cell.domain.length === 0) continue;
 
     const filtered = cell.domain.filter((opt) => {
       const des = oriented(opt.templateId, opt.orientation);

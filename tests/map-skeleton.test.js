@@ -148,6 +148,22 @@ test('multi-part domain filtering prunes split tiles that cannot bridge forced-o
   const okEmpty = filterSlotDomains(gridEmpty, testLib, fourSides);
   assert.equal(okEmpty, false, 'returns false when all options in domain are pruned');
   assert.equal(gridEmpty[0].domain.length, 0, 'domain is emptied rather than silently retaining invalid options');
+
+  // Singleton domain with a split tile that cannot bridge forced sides:
+  // Orientation 0 cannot bridge North and South. It must be pruned, emptying the domain and returning false.
+  const gridSingleton = [
+    {
+      domain: [
+        { templateId: splitTile.id, orientation: 0, difficulty: 0, weight: 1 },
+      ],
+      links: [],
+    },
+    { domain: [], links: [] },
+    { domain: [], links: [] },
+  ];
+  const okSingleton = filterSlotDomains(gridSingleton, testLib, forcedSeams);
+  assert.equal(okSingleton, false, 'returns false when sole option in singleton domain cannot bridge forced sides');
+  assert.equal(gridSingleton[0].domain.length, 0, 'singleton domain is emptied when sole option fails');
 });
 
 test('buildSkeleton rejects seams between unassigned fill slots when no zone options can connect', () => {
