@@ -1,4 +1,5 @@
 import { LIMITS } from '../limits.ts';
+import type { ObstacleAppearance } from '../../../shared/types.ts';
 import type { Placeable } from './placeable.ts';
 import { oriented } from './frame.ts';
 
@@ -22,6 +23,7 @@ export interface WallRunParams {
   /** Cells between the wall and its edge. */
   inset: number;
   kind: typeof WALL_RUN_KINDS[number];
+  appearance?: ObstacleAppearance | undefined;
 }
 
 export const WALL_RUN = Object.freeze<Placeable<WallRunParams>>({
@@ -41,11 +43,12 @@ export const WALL_RUN = Object.freeze<Placeable<WallRunParams>>({
     { length: 4, turned: false, side: 'start', thickness: 0.25, inset: 0, kind: 'building' },
     { length: 1, turned: true, side: 'end', thickness: 0.25, inset: 0.1, kind: 'ruin-wall' },
   ],
-  build({ length, turned, side, thickness, inset, kind }: WallRunParams, cellSize: number) {
+  build({ length, turned, side, thickness, inset, kind, appearance }: WallRunParams, cellSize: number) {
     const across = side === 'start' ? inset : 1 - inset - thickness;
     const shape = oriented(cellSize, !turned)(0, across, length, thickness);
     const w = turned ? 1 : length, h = turned ? length : 1;
-    return { elements: [{ x: 0, y: 0, template: { w: w * cellSize, h: h * cellSize, parts: [{ part: 'obstacle' as const, shape, kind }] } }],
+    return { elements: [{ x: 0, y: 0, template: { w: w * cellSize, h: h * cellSize,
+      parts: [{ part: 'obstacle' as const, shape, kind, ...(appearance ? { appearance } : {}) }] } }],
       demand: { body: { w, h }, clear: [] }, details: undefined };
   },
 });

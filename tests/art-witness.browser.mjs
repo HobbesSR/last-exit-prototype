@@ -11,6 +11,10 @@ import { MATERIAL_SWATCH } from '../public/appearance.js';
 import { MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
 import { createCompoundAppearance, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
 import { PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
+import { PARK_PAVILION_INTACT, PARK_HEDGE_INTACT, PARK_TREE_APPEARANCE } from '../map/micro/strategies/park.ts';
+import { CHECKPOINT_POST_INTACT, CHECKPOINT_BARRIER_APPEARANCE } from '../map/micro/strategies/checkpoint.ts';
+import { RUINS_BUILDING_DAMAGED, RUIN_WALL_WEATHERED } from '../map/micro/strategies/ruins.ts';
+import { HALL_BUILDING_INTACT, HALL_PILLAR_APPEARANCE } from '../map/micro/strategies/hall.ts';
 
 import { INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM, playerZoom } from '../shared/view.ts';
 
@@ -2260,6 +2264,11 @@ try {
       { id: 'exp-plant-shed', x: 360, y: 240, w: 160, h: 120, appearance: PLANT_SHED_APPEARANCE },
       // Compound residential room (generated damaged wear with scorch marks and floor stains)
       { id: 'exp-compound-damaged', x: 560, y: 240, w: 160, h: 120, appearance: expCompoundDamaged },
+      // Remaining catalogue kits (#770): checkpoint security post, park pavilion, pillar hall bay, ruined room
+      { id: 'exp-checkpoint-post', x: 760, y: 240, w: 160, h: 120, appearance: CHECKPOINT_POST_INTACT },
+      { id: 'exp-park-pavilion', x: 960, y: 240, w: 160, h: 120, appearance: PARK_PAVILION_INTACT },
+      { id: 'exp-hall-bay', x: 760, y: 100, w: 160, h: 120, appearance: HALL_BUILDING_INTACT },
+      { id: 'exp-ruins-room', x: 960, y: 100, w: 160, h: 120, appearance: RUINS_BUILDING_DAMAGED },
     ],
     roofs: [
       // Market stall awnings
@@ -2272,6 +2281,10 @@ try {
       { id: 'exp-plant-roof', groupId: 'plant-1', bounds: { x: 360, y: 240, w: 160, h: 120 }, origin: { x: 360, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-plant-shed', appearance: PLANT_SHED_APPEARANCE },
       // Compound residential roof (generated damaged wear)
       { id: 'exp-compound-damaged-roof', groupId: 'comp-2', bounds: { x: 560, y: 240, w: 160, h: 120 }, origin: { x: 560, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-compound-damaged', appearance: expCompoundDamaged },
+      // Checkpoint security post roof & Park pavilion roof (#770)
+      { id: 'exp-checkpoint-roof', groupId: 'cp-1', bounds: { x: 760, y: 240, w: 160, h: 120 }, origin: { x: 760, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-checkpoint-post', appearance: CHECKPOINT_POST_INTACT },
+      { id: 'exp-park-roof', groupId: 'park-1', bounds: { x: 960, y: 240, w: 160, h: 120 }, origin: { x: 960, y: 240 }, cellSize: 40, cells: roomCells, buildingId: 'exp-park-pavilion', appearance: PARK_PAVILION_INTACT },
+      { id: 'exp-hall-roof', groupId: 'hall-1', bounds: { x: 760, y: 100, w: 160, h: 120 }, origin: { x: 760, y: 100 }, cellSize: 40, cells: roomCells, buildingId: 'exp-hall-bay', appearance: HALL_BUILDING_INTACT },
     ],
     obstacles: [
       // Compound perimeter walls
@@ -2283,6 +2296,12 @@ try {
       // Plant cooling tower & substation
       { id: 'plant-ct', kind: 'container', x: 380, y: 380, w: 60, h: 40, appearance: { material: 'coolConcrete', focalRim: { side: 'N', color: 'sodiumAmber' } } },
       { id: 'plant-sub', kind: 'container', x: 460, y: 380, w: 60, h: 40, appearance: { material: 'oxidizedMetal', focalRim: { side: 'E', color: 'electricTurquoise' } } },
+      // Remaining catalogue obstacles (#770): checkpoint barrier, park hedge, ruin wall, hall pillar
+      { id: 'cp-barrier', kind: 'ruin-wall', x: 760, y: 380, w: 60, h: 24, appearance: CHECKPOINT_BARRIER_APPEARANCE },
+      { id: 'park-hedge', kind: 'hedge', x: 960, y: 380, w: 60, h: 28, appearance: PARK_HEDGE_INTACT },
+      { id: 'ruin-wall-obs', kind: 'ruin-wall', x: 840, y: 380, w: 60, h: 24, appearance: RUIN_WALL_WEATHERED },
+      { id: 'hall-pillar-obs', kind: 'building', x: 1040, y: 380, w: 40, h: 40, appearance: HALL_PILLAR_APPEARANCE },
+      { id: 'park-tree-obs', kind: 'tree', x: 1140, y: 380, r: 22, appearance: PARK_TREE_APPEARANCE },
     ],
     gates: [],
     hazards: [],
@@ -2336,9 +2355,28 @@ try {
     const compoundRoofPx = f.pixelAtWorld(240, 300);
     const plantRoofPx = f.pixelAtWorld(440, 300);
     const compDamagedRoofPx = f.pixelAtWorld(640, 300);
+    const checkpointRoofPx = f.pixelAtWorld(800, 300);
+    const hallRoofPx = f.pixelAtWorld(800, 160);
+    const cpBarrierPx = f.pixelAtWorld(790, 392);
     const streetRefPx = f.pixelAtWorld(360, 480);
 
     const compRoofAlphaClosed = s.roofs.get('exp-compound-roof')?.alpha ?? 0;
+
+    // 1b. Second exterior pan to sample park pavilion & park hedge on the east side:
+    await f.settle({
+      palette: 'signature',
+      lighting: true,
+      wear: true,
+      directed: true,
+      fog: true,
+      followId: 'self',
+      camera: { x: 880, y: 290, zoom: 1.0 },
+      selfPos: { x: 880, y: 480 },
+      roofSteps: 40,
+    });
+    const parkRoofPx = f.pixelAtWorld(1040, 300);
+    const parkHedgePx = f.pixelAtWorld(990, 394);
+    const parkTreePx = f.pixelAtWorld(1140, 380);
 
     // 2. Interior view inside compound room:
     await f.settle({
@@ -2368,6 +2406,12 @@ try {
       compoundRoofPx,
       plantRoofPx,
       compDamagedRoofPx,
+      checkpointRoofPx,
+      parkRoofPx,
+      hallRoofPx,
+      cpBarrierPx,
+      parkHedgePx,
+      parkTreePx,
       streetRefPx,
       compRoofAlphaClosed,
       compRoofAlphaInside,
@@ -2384,14 +2428,32 @@ try {
   const stallIntactLum = toLuminance(expandedKitsDemo.stallIntactPx.hex);
   const compRoofLum = toLuminance(expandedKitsDemo.compoundRoofPx.hex);
   const plantRoofLum = toLuminance(expandedKitsDemo.plantRoofPx.hex);
+  const cpRoofLum = toLuminance(expandedKitsDemo.checkpointRoofPx.hex);
+  const parkRoofLum = toLuminance(expandedKitsDemo.parkRoofPx.hex);
+  const hallRoofLum = toLuminance(expandedKitsDemo.hallRoofPx.hex);
 
   const stallIntactRatio = Number((Math.max(stallIntactLum, streetLum) / Math.min(stallIntactLum, streetLum)).toFixed(2));
   const compRoofRatio = Number((Math.max(compRoofLum, streetLum) / Math.min(compRoofLum, streetLum)).toFixed(2));
   const plantRoofRatio = Number((Math.max(plantRoofLum, streetLum) / Math.min(plantRoofLum, streetLum)).toFixed(2));
+  const cpRoofRatio = Number((Math.max(cpRoofLum, streetLum) / Math.min(cpRoofLum, streetLum)).toFixed(2));
+  const parkRoofRatio = Number((Math.max(parkRoofLum, streetLum) / Math.min(parkRoofLum, streetLum)).toFixed(2));
+  const hallRoofRatio = Number((Math.max(hallRoofLum, streetLum) / Math.min(hallRoofLum, streetLum)).toFixed(2));
 
   assert.ok(stallIntactRatio >= 1.15, `market intact awning survives grayscale contrast vs street (${stallIntactRatio})`);
   assert.ok(compRoofRatio >= 1.15, `compound roof survives grayscale contrast vs street (${compRoofRatio})`);
   assert.ok(plantRoofRatio >= 1.15, `plant roof survives grayscale contrast vs street (${plantRoofRatio})`);
+  assert.ok(cpRoofRatio >= 1.15, `checkpoint post roof survives grayscale contrast vs street (${cpRoofRatio})`);
+  assert.ok(parkRoofRatio >= 1.15, `park pavilion roof survives grayscale contrast vs street (${parkRoofRatio})`);
+  assert.ok(hallRoofRatio >= 1.15, `hall roof survives grayscale contrast vs street (${hallRoofRatio})`);
+  const cpBarrierLum = toLuminance(expandedKitsDemo.cpBarrierPx.hex);
+  const parkHedgeLum = toLuminance(expandedKitsDemo.parkHedgePx.hex);
+  const cpBarrierRatio = Number((Math.max(cpBarrierLum, streetLum) / Math.min(cpBarrierLum, streetLum)).toFixed(2));
+  const parkHedgeRatio = Number((Math.max(parkHedgeLum, streetLum) / Math.min(parkHedgeLum, streetLum)).toFixed(2));
+  assert.ok(cpBarrierRatio >= 1.15, `checkpoint barrier survives grayscale contrast vs street (${cpBarrierRatio})`);
+  assert.ok(parkHedgeRatio >= 1.15, `park hedge survives grayscale contrast vs street (${parkHedgeRatio})`);
+  const parkTreeLum = toLuminance(expandedKitsDemo.parkTreePx.hex);
+  const parkTreeRatio = Number((Math.max(parkTreeLum, streetLum) / Math.min(parkTreeLum, streetLum)).toFixed(2));
+  assert.ok(parkTreeRatio >= 1.15, `park tree survives grayscale contrast vs street (${parkTreeRatio})`);
 
   // 3. Compound roof reveals when player enters:
   assert.equal(expandedKitsDemo.compRoofAlphaClosed, 1, 'compound roof is closed when player is outside');
@@ -2416,10 +2478,18 @@ try {
     compoundRoofHex: css(expandedKitsDemo.compoundRoofPx.hex),
     compDamagedRoofHex: css(expandedKitsDemo.compDamagedRoofPx.hex),
     plantRoofHex: css(expandedKitsDemo.plantRoofPx.hex),
+    checkpointRoofHex: css(expandedKitsDemo.checkpointRoofPx.hex),
+    parkRoofHex: css(expandedKitsDemo.parkRoofPx.hex),
+    hallRoofHex: css(expandedKitsDemo.hallRoofPx.hex),
+    cpBarrierHex: css(expandedKitsDemo.cpBarrierPx.hex),
+    parkHedgeHex: css(expandedKitsDemo.parkHedgePx.hex),
     stallIntactRatio,
     compRoofRatio,
     compDamagedRatio,
     plantRoofRatio,
+    cpRoofRatio,
+    parkRoofRatio,
+    hallRoofRatio,
     compRoofAlphaClosed: expandedKitsDemo.compRoofAlphaClosed,
     compRoofAlphaInside: expandedKitsDemo.compRoofAlphaInside,
   };
@@ -2508,6 +2578,12 @@ try {
       gateStatus,
     };
   });
+
+  for (const c of comment6317Candidates) {
+    if (c.kind === 'ruin' || c.kind === 'hedge') {
+      assert.equal(c.gateStatus, 'pass', `${c.theme} ${c.kind} on ${c.surface} satisfies Tier 2 fill and edge separation (#770)`);
+    }
+  }
 
   // Also check Neon Aftermath `broadcastPink` (`#D94BC6`) street center line (drawn at 0.35 alpha over `street`)
   // against active gameplay signals (mine `#ff778c`, turret `#ff879f`, gladiator ring `#ff7d8a`, advancing hazard `#d65065`):

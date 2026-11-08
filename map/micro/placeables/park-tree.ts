@@ -1,4 +1,5 @@
 import { circle } from '../../../shared/shape.ts';
+import type { ObstacleAppearance } from '../../../shared/types.ts';
 import type { Placeable } from './placeable.ts';
 
 /*
@@ -8,13 +9,18 @@ import type { Placeable } from './placeable.ts';
 const TREE = 2, REACH = 0.75;
 const thousandth = (value: number) => Math.round(value * 1000) / 1000;
 
-export const PARK_TREE = Object.freeze<Placeable<Record<string, never>>>({
+export interface ParkTreeParams {
+  appearance?: ObstacleAppearance | undefined;
+}
+
+export const PARK_TREE = Object.freeze<Placeable<ParkTreeParams>>({
   id: 'park-tree', version: 'park-tree-1', summary: 'A round tree giving soft cover.',
   params: [], examples: [{}],
-  build(_params, cellSize) {
+  build({ appearance }, cellSize) {
     const middle = TREE * cellSize / 2;
     return { elements: [{ x: 0, y: 0, template: { w: TREE * cellSize, h: TREE * cellSize,
-      parts: [{ part: 'obstacle' as const, kind: 'tree' as const, shape: circle(middle, middle, thousandth(REACH * cellSize)) }] } }],
+      parts: [{ part: 'obstacle' as const, kind: 'tree' as const, shape: circle(middle, middle, thousandth(REACH * cellSize)),
+        ...(appearance ? { appearance } : {}) }] } }],
       demand: { body: { w: TREE, h: TREE }, clear: [] }, details: undefined };
   },
 });

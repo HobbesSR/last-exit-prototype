@@ -531,20 +531,25 @@ export function resolveObstacleAppearance(obstacle, mapAppearance, options = {})
     : obstacle.kind === 'rock' ? ink.rock
     : ink.crates[obstacle.color || 0];
 
+  const isTier2TerrainObstacle = obstacle.kind === 'hedge' || obstacle.kind === 'ruin-wall';
   if (desc?.material) {
-    baseFill = resolveSwatch(desc.material, baseFill);
+    const swatch = resolveSwatch(desc.material, baseFill);
+    baseFill = isTier2TerrainObstacle ? mix(baseFill, swatch, 0.35) : swatch;
   } else if (obstacle.kind === 'building' && buildingDesc?.wallMaterial) {
     baseFill = resolveSwatch(buildingDesc.wallMaterial, baseFill);
   }
 
   if (art.wear && (desc?.weathered || buildingDesc?.neglect)) {
-    baseFill = mix(baseFill, U.slateShadow, 0.14);
+    baseFill = mix(baseFill, U.slateShadow, isTier2TerrainObstacle ? 0.08 : 0.14);
   }
 
   const fill = applyLightSample(baseFill, light, 0.32);
   const outline = ink.outline;
   const wallInset = mix(fill, outline, 0.22);
   const wallLine = mix(fill, outline, 0.55);
+  const hedgeEdge = mix(fill, 0xffffff, 0.4);
+  const ruinEdge = mix(fill, 0xffffff, 0.35);
+  const trunkTop = mix(fill, 0xffffff, 0.25);
 
   // Directional focal rim:
   // "A colored rim belongs to an exposed, deliberately lit edge; the full structural perimeter must remain readable without it" (11.1 §5.5).
@@ -561,6 +566,9 @@ export function resolveObstacleAppearance(obstacle, mapAppearance, options = {})
     outline,
     wallInset,
     wallLine,
+    hedgeEdge,
+    ruinEdge,
+    trunkTop,
     focalRim,
     lightSample: light,
   };

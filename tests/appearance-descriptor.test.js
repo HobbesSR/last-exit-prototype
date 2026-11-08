@@ -12,6 +12,85 @@ import { buildMarket, MARKET_STALL_PRESETS, MARKET_STALL_INTACT, MARKET_STALL_WE
 import { buildCompound, createCompoundAppearance, COMPOUND_RESIDENTIAL_PRESETS, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
 import { rng } from '../map/micro/random.ts';
 import { buildPlant, PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
+import {
+  buildPark,
+  PARK_PAVILION_PRESETS,
+  PARK_PAVILION_INTACT,
+  PARK_PAVILION_WEATHERED,
+  PARK_PAVILION_DAMAGED,
+  PARK_HEDGE_PRESETS,
+  PARK_HEDGE_INTACT,
+  PARK_HEDGE_WEATHERED,
+  PARK_HEDGE_DAMAGED,
+  PARK_TREE_APPEARANCE,
+} from '../map/micro/strategies/park.ts';
+import {
+  buildCheckpoint,
+  CHECKPOINT_POST_PRESETS,
+  CHECKPOINT_POST_INTACT,
+  CHECKPOINT_POST_WEATHERED,
+  CHECKPOINT_POST_DAMAGED,
+  CHECKPOINT_BARRIER_APPEARANCE,
+} from '../map/micro/strategies/checkpoint.ts';
+import {
+  buildRuins,
+  RUIN_WALL_INTACT,
+  RUIN_WALL_WEATHERED,
+  RUIN_WALL_DAMAGED,
+  FALLEN_SLAB_APPEARANCE,
+  RUINS_BUILDING_PRESETS,
+} from '../map/micro/strategies/ruins.ts';
+import {
+  buildRubble,
+  RUBBLE_DEBRIS_INTACT,
+  RUBBLE_DEBRIS_WEATHERED,
+  RUBBLE_DEBRIS_DAMAGED,
+} from '../map/micro/strategies/rubble.ts';
+import {
+  buildCover,
+  COVER_CRATE_APPEARANCE,
+  COVER_BARRIER_APPEARANCE,
+  COVER_CONTAINER_APPEARANCE,
+} from '../map/micro/strategies/cover.ts';
+import {
+  buildOpen,
+  createOpenParcelAppearance,
+  OPEN_PARCEL_PRESETS,
+  OPEN_PARCEL_INTACT,
+  OPEN_PARCEL_WEATHERED,
+  OPEN_PARCEL_DAMAGED,
+} from '../map/micro/strategies/open.ts';
+import {
+  buildHall,
+  HALL_BUILDING_PRESETS,
+  HALL_BUILDING_INTACT,
+  HALL_BUILDING_WEATHERED,
+  HALL_BUILDING_DAMAGED,
+  HALL_PILLAR_APPEARANCE,
+} from '../map/micro/strategies/hall.ts';
+import {
+  buildArrival,
+  ARRIVAL_PLAZA_PRESETS,
+  ARRIVAL_COVER_APPEARANCE,
+} from '../map/micro/strategies/arrival.ts';
+import {
+  buildDeparture,
+  DEPARTURE_EXIT_PRESETS,
+  DEPARTURE_CIVIC_COVER_APPEARANCE,
+  DEPARTURE_HUNTER_RIG_APPEARANCE,
+} from '../map/micro/strategies/departure.ts';
+import {
+  buildCharging,
+  CHARGING_RIG_PRESETS,
+  CHARGING_COVER_APPEARANCE,
+  CHARGING_GUARD_APPEARANCE,
+} from '../map/micro/strategies/charging.ts';
+import {
+  buildTransit,
+  TRANSIT_STATION_PRESETS,
+  TRANSIT_CIVIC_COVER_APPEARANCE,
+  TRANSIT_WARP_GUARD_APPEARANCE,
+} from '../map/micro/strategies/transit.ts';
 
 import { chainBrief } from './helpers/chain-briefs.js';
 import { cellsOf } from './helpers/cells.js';
@@ -740,4 +819,144 @@ test('declared roofs: primary roof per building and appearance fallback (#725)',
   const unstyled = { buildings: [{ ...building, appearance: null }], roofs: [map.roofs[1]] };
   assert.equal(resolveDeclaredRoofs(unstyled, opts)[0].resolved.roofFill, neutral.roofFill, 'no appearance anywhere stays neutral');
   assert.deepEqual(resolveDeclaredRoofs({ buildings: [] }, opts), []);
+});
+
+test('remaining region catalogue strategies adopt architectural appearance kits with zero simulation RNG draws (#770)', () => {
+  const allowedBuildingKeys = new Set([
+    'floorMaterial',
+    'wallMaterial',
+    'roofPaint',
+    'roofRim',
+    'interiorTrim',
+    'roofSign',
+    'neglect',
+  ]);
+  for (const preset of [
+    ...PARK_PAVILION_PRESETS,
+    ...CHECKPOINT_POST_PRESETS,
+    ...RUINS_BUILDING_PRESETS,
+    ...OPEN_PARCEL_PRESETS,
+    ...HALL_BUILDING_PRESETS,
+    ...ARRIVAL_PLAZA_PRESETS,
+    ...DEPARTURE_EXIT_PRESETS,
+    ...CHARGING_RIG_PRESETS,
+    ...TRANSIT_STATION_PRESETS,
+  ]) {
+    for (const k of Object.keys(preset)) {
+      assert.ok(allowedBuildingKeys.has(k), `preset field ${k} is allowed`);
+    }
+  }
+
+  // 1. Park strategy: hedge blocks/runs, trees, and park pockets
+  const parkBrief = chainBrief({ type: 'park', cells: cellsOf(24, 24), seed: 42 });
+  const parkRegion = buildPark(parkBrief);
+  assert.ok(parkRegion.elements.length > 0, 'park produces elements');
+  const parkStyledObs = parkRegion.elements.flatMap(e => e.template.parts).filter(p => p.part === 'obstacle' && p.appearance);
+  assert.ok(parkStyledObs.length > 0, 'park hedges and trees carry obstacle appearance');
+  const treeObs = parkStyledObs.find(p => p.shape.kind === 'circle');
+  assert.ok(treeObs, 'park tree obstacle carries appearance');
+  assert.deepEqual(treeObs.appearance, PARK_TREE_APPEARANCE, 'park tree obstacle matches PARK_TREE_APPEARANCE');
+  const unstyledTree = { id: 'tree-unstyled', kind: 'tree', x: 0, y: 0, r: 22 };
+  const styledTree = { id: 'tree-styled', kind: 'tree', x: 0, y: 0, r: 22, appearance: PARK_TREE_APPEARANCE };
+  const resUnstyled = resolveObstacleAppearance(unstyledTree, null, { palette: 'signature' });
+  const resStyled = resolveObstacleAppearance(styledTree, null, { palette: 'signature' });
+  assert.notEqual(resStyled.fill, resUnstyled.fill, 'styled tree resolves distinct authored fill from unstyled tree');
+  assert.ok(resStyled.trunkTop > 0, 'styled tree resolves non-zero trunkTop highlight');
+
+  // 2. Checkpoint strategy: tiered guard post and perimeter chicane barriers
+  const cpBrief = chainBrief({
+    type: 'checkpoint',
+    cells: cellsOf(24, 18),
+    seed: 1,
+    portals: [
+      { id: 'west', axis: 'v', x: 0, y: 7, length: 3 },
+      { id: 'east', axis: 'v', x: 24, y: 12, length: 3 },
+    ],
+  });
+  const cpRegion = buildCheckpoint(cpBrief);
+  const cpPost = cpRegion.elements.find(e => e.label === 'checkpoint-post-1');
+  assert.ok(cpPost?.template.appearance?.building, 'checkpoint guard post carries tiered building appearance');
+  const cpBarriers = cpRegion.elements.filter(e => e.label.startsWith('checkpoint-barrier'));
+  assert.ok(cpBarriers.length > 0, 'checkpoint emits chicane barriers');
+  for (const b of cpBarriers) {
+    const obsPart = b.template.parts.find(p => p.part === 'obstacle');
+    assert.deepEqual(obsPart?.appearance, CHECKPOINT_BARRIER_APPEARANCE, 'checkpoint barrier carries appearance');
+  }
+
+  // 3. Ruins & Rubble strategies: fractured masonry, fallen slabs, debris
+  const ruinsBrief = chainBrief({ type: 'ruins', cells: cellsOf(24, 24), seed: 42 });
+  const ruinsRegion = buildRuins(ruinsBrief);
+  const ruinsStyledObs = ruinsRegion.elements.flatMap(e => e.template.parts).filter(p => p.part === 'obstacle' && p.appearance);
+  assert.ok(ruinsStyledObs.length > 0, 'ruins walls and slabs carry obstacle appearance');
+
+  const rubbleBrief = chainBrief({ type: 'rubble', cells: cellsOf(24, 24), seed: 42 });
+  const rubbleRegion = buildRubble(rubbleBrief);
+  const rubbleStyledObs = rubbleRegion.elements.flatMap(e => e.template.parts).filter(p => p.part === 'obstacle' && p.appearance);
+  assert.ok(rubbleStyledObs.length > 0, 'rubble debris and hint walls carry obstacle appearance');
+
+  // 4. Cover, Open, and Hall strategies
+  const coverBrief = chainBrief({ type: 'cover', cells: cellsOf(20, 20), seed: 42 });
+  const coverRegion = buildCover(coverBrief);
+  const coverStyledObs = coverRegion.elements.flatMap(e => e.template.parts).filter(p => p.part === 'obstacle' && p.appearance);
+  assert.ok(coverStyledObs.length === coverRegion.elements.length, 'every cover piece carries obstacle appearance');
+
+  const openBrief = chainBrief({ type: 'open', cells: cellsOf(16, 16), seed: 42 });
+  const openRegion = buildOpen(openBrief);
+  assert.deepEqual(openRegion.elements, [], 'buildOpen preserves empty elements contract');
+  const openApp = createOpenParcelAppearance({ seed: openBrief.seed, w: 640, h: 640 });
+  assert.ok(openApp.floorMaterial, 'createOpenParcelAppearance returns tiered BuildingAppearance');
+
+  const hallBrief = chainBrief({ type: 'hall', cells: cellsOf(24, 24), seed: 42 });
+  const hallRegion = buildHall(hallBrief);
+  const hallBay = hallRegion.elements.find(e => e.template.appearance?.building);
+  assert.ok(hallBay, 'hall bay carries tiered building appearance');
+  const hallPillars = hallBay.template.parts.filter(pt => pt.part === 'obstacle');
+  assert.ok(hallPillars.length > 0, 'hall bay emits pillar obstacles');
+  for (const obsPart of hallPillars) {
+    assert.deepEqual(obsPart.appearance, HALL_PILLAR_APPEARANCE, 'hall pillar carries appearance');
+  }
+
+  // 5. Arena core facilities: arrival, departure, charging, transit
+  const arrivalBrief = chainBrief({ type: 'arrival', cells: cellsOf(20, 20), seed: 42, coreElements: { spawn: 2 } });
+  const arrivalRegion = buildArrival(arrivalBrief);
+  assert.ok(arrivalRegion.elements[0].template.appearance?.surfaces?.some(s => s.id?.includes('arrival-apron')), 'arrival emits civic apron surface');
+  assert.ok(arrivalRegion.elements[0].template.appearance?.lighting?.fields?.length > 0, 'arrival emits concourse lighting');
+
+  const departureBrief = chainBrief({ type: 'departure', cells: cellsOf(24, 24), seed: 42, coreElements: { exit: 1, 'hunter-spawn': 1 } });
+  const departureRegion = buildDeparture(departureBrief);
+  assert.ok(departureRegion.elements[0].template.appearance?.surfaces?.some(s => s.id?.includes('departure-threshold')), 'departure emits civic exit threshold surface');
+  assert.ok(departureRegion.elements[0].template.appearance?.scars?.some(s => s.id?.includes('hunter-launch-scorch')), 'departure emits imposed hunter launch scorch');
+
+  const chargingBrief = chainBrief({ type: 'charging', cells: cellsOf(20, 20), seed: 42, coreElements: { charger: 1 } });
+  const chargingRegion = buildCharging(chargingBrief);
+  assert.ok(chargingRegion.elements[0].template.appearance?.surfaces?.some(s => s.id?.includes('charging-rig-pad')), 'charging emits competition rig pad');
+  assert.ok(chargingRegion.elements[0].template.appearance?.scars?.some(s => s.id?.includes('charging-rig-scorch')), 'charging emits arc scorch scars');
+
+  const transitBrief = chainBrief({ type: 'transit', cells: cellsOf(20, 20), seed: 42, coreElements: { warp: 1 } });
+  const transitRegion = buildTransit(transitBrief);
+  assert.ok(transitRegion.elements[0].template.appearance?.surfaces?.some(s => s.id?.includes('transit-platform')), 'transit emits station platform surface');
+  assert.ok(transitRegion.elements[0].template.appearance?.lighting?.fields?.length > 0, 'transit emits warp lighting');
+
+  // 6. Stamp all regions into a context and verify 0 simulation RNG draws and clean resolution
+  const ctx = createGenerationContext(97531);
+  let rngDraws = 0;
+  const origRandom = ctx.random;
+  ctx.random = () => {
+    rngDraws++;
+    return origRandom();
+  };
+  for (const reg of [parkRegion, cpRegion, ruinsRegion, rubbleRegion, coverRegion, hallRegion, arrivalRegion, departureRegion, chargingRegion, transitRegion]) {
+    for (const elem of reg.elements) {
+      placeElement(ctx, elem.template, elem.x, elem.y, { nodeId: 'catalogue-node' });
+    }
+  }
+  assert.equal(rngDraws, 0, 'stamping all remaining region catalogue kits performs zero simulation RNG draws');
+  const groundOps = resolveGroundAppearance(ctx.map.appearance, { palette: 'signature', lighting: true, wear: true });
+  assert.ok(groundOps.length > 0, 'stamped catalogue regions resolve ground appearance operations');
+  for (const o of ctx.map.obstacles.filter(obs => obs.appearance)) {
+    const shapeBefore = shapeOf(o);
+    const res = resolveObstacleAppearance(o, ctx.map.appearance, { palette: 'signature', lighting: true, wear: true });
+    assert.ok(res.fill > 0, `obstacle ${o.id} (${o.kind}) resolves non-zero fill`);
+    assert.deepEqual(shapeOf(o), shapeBefore, 'obstacle collision shape is untouched');
+  }
 });

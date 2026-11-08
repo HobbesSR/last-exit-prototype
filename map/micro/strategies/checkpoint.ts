@@ -1,9 +1,10 @@
 import type { BuildingObserver } from '../building/trace.ts';
+import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import { CHECKPOINT_BARRIER } from '../placeables/checkpoint-barrier.ts';
 import { WAREHOUSE } from '../placeables/warehouse.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot } from './scatter.ts';
-import { draw } from '../random.ts';
+import { draw, rng } from '../random.ts';
 import { capsule, createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from '../geometry.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';
@@ -12,8 +13,103 @@ import { infillCrates as placeInfillCrates } from './infill.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { rect } from '../../../shared/shape.ts';
+import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
 import type { BuiltRegion, Portal, RegionBrief, RegionElement } from '../types.ts';
 import { builtRegion } from '../result.ts';
+
+/**
+ * Authored minimal appearance descriptors for checkpoint guard posts and chicane barriers (11.1 §5.5, 54).
+ * Three visual decay tiers for the security post:
+ * - `CHECKPOINT_POST_INTACT`: Civic transit/security post in old advert blue roof paint, cool concrete floor, oxidized metal walls, sodium amber rim and signage.
+ * - `CHECKPOINT_POST_WEATHERED`: Slate shadow roof, weathered coral rim, drainage stains and faded notice panel.
+ * - `CHECKPOINT_POST_DAMAGED`: Dirty cream roof, hazard red rim, floor stain and competition scorch mark.
+ */
+export const CHECKPOINT_POST_INTACT: BuildingAppearance = Object.freeze({
+  floorMaterial: 'concrete',
+  wallMaterial: 'oxidizedMetal',
+  roofPaint: 'oldAdvertBlue',
+  roofRim: 'sodiumAmber',
+  interiorTrim: 'sodiumAmber',
+  roofSign: {
+    color: 'sodiumAmber',
+    backing: 'structuralVoid',
+    stripe: 'dirtyCream',
+    dx: 20,
+    dy: 14,
+    w: 84,
+    h: 20,
+  },
+});
+
+export const CHECKPOINT_POST_WEATHERED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'concrete',
+  wallMaterial: 'oxidizedMetal',
+  roofPaint: 'slateShadow',
+  roofRim: 'weatheredCoral',
+  interiorTrim: 'sodiumAmber',
+  roofSign: {
+    color: 'weatheredCoral',
+    backing: 'structuralVoid',
+    stripe: 'sodiumAmber',
+    dx: 20,
+    dy: 14,
+    w: 80,
+    h: 20,
+  },
+  neglect: {
+    fadedPanel: { dx: 22, dy: 38, w: 54, h: 24 },
+    roofDrainStain: { dx: 96, dy: 28, w: 32, h: 20 },
+  },
+});
+
+export const CHECKPOINT_POST_DAMAGED: BuildingAppearance = Object.freeze({
+  floorMaterial: 'slatePaving',
+  wallMaterial: 'coolConcrete',
+  roofPaint: 'dirtyCream',
+  roofRim: 'oldSignRed',
+  interiorTrim: 'oldSignRed',
+  roofSign: {
+    color: 'oldSignRed',
+    backing: 'structuralVoid',
+    stripe: 'sodiumAmber',
+    dx: 20,
+    dy: 14,
+    w: 76,
+    h: 20,
+  },
+  neglect: {
+    fadedPanel: { dx: 20, dy: 36, w: 48, h: 22 },
+    roofDrainStain: { dx: 92, dy: 26, w: 30, h: 20 },
+    floorStain: { dx: 64, dy: 52, w: 36, h: 24 },
+    scorchMark: { dx: 44, dy: 58, w: 48, h: 30 },
+  },
+});
+
+export const CHECKPOINT_POST_PRESETS: readonly [BuildingAppearance, BuildingAppearance, BuildingAppearance] = Object.freeze([
+  CHECKPOINT_POST_INTACT,
+  CHECKPOINT_POST_WEATHERED,
+  CHECKPOINT_POST_DAMAGED,
+]);
+
+export const CHECKPOINT_POST_APPEARANCE: BuildingAppearance = CHECKPOINT_POST_WEATHERED;
+
+export const CHECKPOINT_BARRIER_APPEARANCE: ObstacleAppearance = Object.freeze({
+  material: 'dirtyCream',
+  weathered: true,
+  focalRim: { side: 'N' as const, color: 'sodiumAmber' },
+});
+
+export type CheckpointPostAppearanceOptions = TieredAppearanceOptions;
+
+export function createCheckpointPostAppearance(options: CheckpointPostAppearanceOptions = {}): BuildingAppearance {
+  return createTieredBuildingAppearance(options, {
+    presets: CHECKPOINT_POST_PRESETS,
+    thresholds: [0.3, 0.7],
+    tierChannel: 'checkpoint-tier',
+    damagedSignScale: 0.8,
+    weatheredFloorStainChance: 0.5,
+  });
+}
 
 /** Barrier gaps and post spacing, as well as clear space around each post. */
 const AISLE = CELL_SCALE.doorway;
@@ -176,7 +272,7 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
       const [from, to] = low ? [lo, hi - AISLE] : [lo + AISLE, hi];
       const box: Box = alongX ? { x: column + (1 - THICK) / 2, y: from, w: THICK, h: to - from }
         : { x: from, y: column + (1 - THICK) / 2, w: to - from, h: THICK };
-      const [element] = placedElements(expectPlaced(CHECKPOINT_BARRIER.build({ w: box.w, h: box.h }, size)),
+      const [element] = placedElements(expectPlaced(CHECKPOINT_BARRIER.build({ w: box.w, h: box.h, appearance: CHECKPOINT_BARRIER_APPEARANCE }, size)),
         `checkpoint-barrier-${barriers.length + 1}`, box.x, box.y, size) as [RegionElement];
       elements.push(element);
       if (holds(blockers())) { commit(element); barriers.push(box); } else elements.pop();
@@ -210,7 +306,9 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   let posts = 0, designed = 0;
   for (const { box } of sites.slice(0, POST_TRIES)) {
     const seed = Math.floor(draw(brief.seed, box.x, box.y, CHANNEL.design) * 2 ** 31);
-    const built = expectPlaced(WAREHOUSE.build({ w: box.w, h: box.h, alongX: box.w >= box.h, seed }, size)), { design, allocation, realization, rejected } = built.details;
+    const appSeed = Math.floor(rng(brief.seed, `${brief.id}:checkpoint-post:${box.x}:${box.y}`).next() * 2 ** 31);
+    const postAppearance = createCheckpointPostAppearance({ seed: appSeed, w: box.w * size, h: box.h * size });
+    const built = expectPlaced(WAREHOUSE.build({ w: box.w, h: box.h, alongX: box.w >= box.h, seed, appearance: postAppearance, shelfAppearance: { material: 'oxidizedMetal' } }, size)), { design, allocation, realization, rejected } = built.details;
     const [element] = placedElements(built, 'checkpoint-post-1', box.x, box.y, size) as [RegionElement];
     elements.push(element);
     if (!holds(blockers())) { elements.pop(); continue; }
