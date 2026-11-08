@@ -6,6 +6,7 @@
  * A sample whose set pieces don't fit, or whose fill has no solution, is retried, each
  * attempt on its own stream.
  */
+import type { PlacementTraceDetail, PlacementTraceEvent } from "./placement-trace.ts";
 import { libraryFingerprint } from "../coding.ts";
 import { solveWfc, wfcIterationCap } from "../wfc.ts";
 import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
@@ -237,7 +238,7 @@ export interface PlacementAttempt { nodes: number; refusals: number; mostStall: 
 function sample(
   seed: string, params: ChainParams, library: ChainLibrary, fingerprint: string,
   mask: MaskCell[], zones: Map<string, MapZone>, fill: (zone: MapZone) => ChainTileDesign[],
-  random: Stream, openFace: boolean, refused: (reason: string) => void, attempt?: PlacementAttempt, lookahead?: number,
+  random: Stream, openFace: boolean, refused: (reason: string) => void, attempt?: PlacementAttempt, lookahead?: number, trace?: (event: PlacementTraceDetail) => void,
 ): Layout | Failure {
   const plan = zonePlan(params), { columns, rows } = planTiles(plan, params);
   const designs = new Map(library.tiles.map((tile) => [tile.id, tile]));
@@ -287,15 +288,23 @@ function sample(
         fitting(k, j).length > 0))
         placements.push(covered as number[]);
     }
-    if (!placements.length) return `set piece ${piece.id}`;
+    if (!placements.length) {
+      trace?.({ type: "set-piece-failed", setPiece: piece.id, reason: "no eligible placement" });
+      return `set piece ${piece.id}`;
+    }
     const covered = random.pick(placements);
     for (const [k, s] of piece.tiles.entries()) {
       const choices = fitting(k, covered[k]!);
       // A slot whose own piece's earlier members left it no fit fails here, as the solve would.
-      if (!choices.length) return `set piece ${piece.id}`;
+      if (!choices.length) {
+        trace?.({ type: "set-piece-failed", setPiece: piece.id, reason: "earlier members left no fitting design" });
+        return `set piece ${piece.id}`;
+      }
       const design = random.pick(choices);
       const orientation = (s.orientation ?? random.pick(fitPlaced ? turns(k, covered[k]!, design) : design.orientations)) as Orientation;
       assigned[covered[k]!] = { design: design.id, orientation };
+      trace?.({ type: "set-piece-slot", instance: `${piece.id}#${nth}`, setPiece: piece.id,
+        setPieceClass: setPieceClass.id, slot: covered[k]!, design: design.id, orientation });
     }
     instances.push({
       id: `${piece.id}#${nth}`, setPiece: piece.id, setPieceClass: setPieceClass.id,
@@ -326,7 +335,7 @@ function sample(
   const state = { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, stall = { most: 0 };
   const counted = (reason: string) => { if (attempt) attempt.refusals++; refused(reason); };
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
-    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, counted, lookahead) } : {}), stallLimit: PLACEMENT_STALL_LIMIT, state, stall });
+    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, counted, lookahead, trace) } : {}), stallLimit: PLACEMENT_STALL_LIMIT, state, stall, ...(trace ? { trace } : {}) });
   if (attempt) Object.assign(attempt, { nodes: state.iterations, mostStall: stall.most });
   if (!solved) return "wfc";
 
@@ -342,8 +351,8 @@ function sample(
  * search figures, in order; `lookahead` overrides the open-face rule's (`LOOKAHEAD_CELLS`,
  * 0 for none), for probes and tests comparing them.
  */
-export const placer = ({ openFace, attempts, lookahead }: {
-  openFace: boolean; attempts?: (attempt: PlacementAttempt) => void; lookahead?: number;
+export const placer = ({ openFace, attempts, lookahead, trace }: {
+  openFace: boolean; attempts?: (attempt: PlacementAttempt) => void; lookahead?: number; trace?: (event: PlacementTraceEvent) => void;
 }): MacroStages["placement"] => (seed, params, library) => {
   const mode = params.mode ?? "game";
   const plan = zonePlan(params);
@@ -379,10 +388,16 @@ export const placer = ({ openFace, attempts, lookahead }: {
   const failures = new Map<Failure, number>();
   let refusal: string | undefined;
   for (let attempt = 0; attempt < PLACEMENT_ATTEMPTS; attempt++) {
-    const record: PlacementAttempt | undefined = attempts ? { nodes: 0, refusals: 0, mostStall: 0, outcome: "wfc" } : undefined;
+    const record: PlacementAttempt | undefined = attempts || trace ? { nodes: 0, refusals: 0, mostStall: 0, outcome: "wfc" } : undefined;
+    const emit: ((event: PlacementTraceDetail) => void) | undefined = trace ? (event) => trace({ ...event, attempt }) : undefined;
+    if (emit) emit({ type: "attempt-start", slots: mask.map((cell, slot) => ({ slot, x: cell.x, y: cell.y, col: cell.col, row: cell.row })) });
     const result = sample(seed, params, library, fingerprint, mask, zones, (zone) => fillByZone.get(zone.id)!,
-      stream(seed, "placement", attempt), openFace, (reason) => { refusal = reason; }, record, lookahead);
-    if (record) attempts!({ ...record, outcome: typeof result === "string" ? result : "placed" });
+      stream(seed, "placement", attempt), openFace, (reason) => { refusal = reason; }, record, lookahead, emit);
+    if (record) {
+      const outcome = typeof result === "string" ? result : "placed";
+      attempts?.({ ...record, outcome });
+      emit?.({ type: "attempt-end", outcome, nodes: record.nodes, mostStall: record.mostStall });
+    }
     if (typeof result !== "string") return result;
     failures.set(result, (failures.get(result) ?? 0) + 1);
   }

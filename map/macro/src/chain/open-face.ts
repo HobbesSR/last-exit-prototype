@@ -29,6 +29,7 @@
  * latest of them (`solveWfc`). A sealed component is named by its cut, the faces between
  * it and the cells outside it, since every path out crosses them.
  */
+import type { RefusalTraceEvent, TraceFace } from "./placement-trace.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 import type { TileOption, WfcAccept, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
@@ -67,7 +68,7 @@ export const LOOKAHEAD_SLOTS = 8;
  * why each refused branch was refused.
  */
 export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: number, rows: number,
-  refused: (reason: string) => void = () => {}, lookahead = LOOKAHEAD_CELLS): WfcAccept {
+  refused: (reason: string) => void = () => {}, lookahead = LOOKAHEAD_CELLS, trace?: (event: RefusalTraceEvent) => void): WfcAccept {
   const width = columns * S, height = rows * S, rules = library.passabilityRules ?? "either-side";
   const slotAt = new Int32Array(columns * rows).fill(-1);
   grid.forEach((slot, i) => { slotAt[slot.y * columns + slot.x] = i; });
@@ -157,6 +158,11 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
     const between = (x: number, y: number, dx: number, dy: number): ["h" | "v", number, number] =>
       dx ? ["v", x + Math.max(dx, 0), y] : ["h", x, y + Math.max(dy, 0)];
 
+    const faceGeometry = (x: number, y: number, dx: number, dy: number): TraceFace => {
+      const [axis, gx, gy] = between(x, y, dx, dy);
+      return { a: { x: gx, y: gy }, b: { x: gx + (axis === "h" ? 1 : 0), y: gy + (axis === "v" ? 1 : 0) } };
+    };
+    const point = (cell: number) => ({ x: cell % width, y: Math.floor(cell / width) });
     const check = ++checks;
     /** A cell's resolved class as resolution would give it, or `OUTSIDE`, or `UNSETTLED`. */
     const classAt = (x: number, y: number): string => {
@@ -300,7 +306,8 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
         if (walked.has(key)) continue;
         walked.add(key);
         if (length < MIN_PORTAL_LENGTH) {
-          refused(`portal between ${lower} and ${upper} at ${key} is ${length} segment${length === 1 ? "" : "s"} long, shorter than a hunter's ${MIN_PORTAL_LENGTH}`);
+          const reason = `portal between ${lower} and ${upper} at ${key} is ${length} segment${length === 1 ? "" : "s"} long, shorter than a hunter's ${MIN_PORTAL_LENGTH}`;
+          refused(reason);
           // The portal's cells, and those just past each end.
           const cells: number[] = [];
           for (let k = -1; k <= length; k++) {
@@ -308,7 +315,10 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
             for (const [cx, cy] of [[px, py], [px + dx, py + dy]] as const)
               if (cx >= 0 && cy >= 0 && cx < width && cy < height) cells.push(cy * width + cx);
           }
-          return cause(cells);
+          const causeSlots = cause(cells);
+          if (trace) trace({ type: "refusal", kind: "portal", reason, cells: cells.map(point),
+            faces: Array.from({ length }, (_, k) => faceGeometry(sx + ax * k, sy + ay * k, dx, dy)), causeSlots: [...causeSlots] });
+          return causeSlots;
         }
       }
     }
@@ -410,6 +420,7 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
         // Each closed face as [settled cell, slot of the unsettled cell across or -1, node across].
         // Those whose node across lies outside the component are its cut.
         const faces: number[] = [];
+        const geometry: TraceFace[] | undefined = trace ? [] : undefined;
         while (head < queue.length && !open) {
           const node = queue[head++]!;
           component.push(node);
@@ -428,6 +439,7 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
               ? across !== UNSETTLED ? across === own || guaranteed(x, y, dx, dy) : couldJoin(x, y, dx, dy, own)
               : across !== UNSETTLED ? couldJoin(ax, ay, -dx, -dy, across) : true;
             if (!joins) {
+              geometry?.push(faceGeometry(x, y, dx, dy));
               if (own === UNSETTLED) faces.push(ay * width + ax, slotOf(x, y), next);
               else faces.push(y * width + x, across === UNSETTLED ? slotOf(ax, ay) : -1, next);
               return false;
@@ -456,9 +468,10 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
         const lx = at % width, ly = (at - lx) / width;
         // An area of holes alone starts in an unplaced slot, whose class isn't settled.
         const found = classAt(lx, ly), label = found === UNSETTLED ? "unsettled" : found;
-        refused(through
+        const reason = through
           ? `the area from ${label}@${lx},${ly} (${size} cells, ${holes} unplaced slot${holes === 1 ? "" : "s"}) can't reach the rest of the map`
-          : `the component from ${label}@${lx},${ly} (${size} cells) has no portal path out`);
+          : `the component from ${label}@${lx},${ly} (${size} cells) has no portal path out`;
+        refused(reason);
         // Every path out crosses the cut, so the slots that settle its faces seal the component
         // whatever lies inside it: they are the cause, not the component's every slot. A sealed
         // map-sized component named nearly every slot, and the solver then backtracked one slot
@@ -466,7 +479,11 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
         // placed neighbours' propagation.
         const slots = new Set(cause(cut.size ? cut : component.filter((node) => node < cellCount).flatMap(cellsOf)));
         for (const slot of closed) for (const { cell } of solving[slot]!.links) if (design(cell)) slots.add(cell);
-        return [...slots];
+        const causeSlots = [...slots];
+        if (trace) trace({ type: "refusal", kind: through ? "pocket" : "sealed", reason,
+          cells: component.flatMap(cellsOf).map(point),
+          faces: geometry!.filter((_, i) => mark[faces[i * 3 + 2]!] !== id), causeSlots: [...causeSlots] });
+        return causeSlots;
       }
       return undefined;
     };

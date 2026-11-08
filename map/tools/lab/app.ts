@@ -28,6 +28,8 @@ import type { LabReply, LabRequest } from "./worker.ts";
 import { PARTS, PART_FILL, addElementParts, partPaths } from "./parts.ts";
 import type { Part } from "./parts.ts";
 import { renderPlaceables } from "./placeables.ts";
+import { mountPlacementView } from "./placement-view.ts";
+import type { ChainLibrary } from "../../macro/src/chain/library.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -157,6 +159,22 @@ function chosenLibrary(): unknown {
   if (!checked.valid) throw new Error(`the Chain Library tab's draft isn't valid for the game: ${checked.errors.join("; ")}`);
   return draft;
 }
+
+let solveWorker: Worker | null = null;
+const solveView = mountPlacementView($("solveView"), () => {
+  try {
+    const seed = input("seed").value, params = recipeParams(), library = chosenLibrary() as ChainLibrary;
+    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''}`);
+    solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
+      solveWorker = null;
+      if (reply.kind === "placement") solveView.received(reply.recording, library, reply.ms);
+      else solveView.stopped(reply.kind === "error" ? reply.message : 'Unexpected worker reply.');
+    });
+  } catch (error) { solveView.stopped(error instanceof Error ? error.message : String(error)); }
+}, () => {
+  solveWorker?.terminate(); solveWorker = null;
+  solveView.stopped('Recording cancelled. Record the World recipe to try again.');
+});
 
 /** Set the recipe to a room's (53 "Play in the game"), with a room seed, and generate. */
 function useRoomRecipe(): void {
@@ -1355,9 +1373,12 @@ input("seed").onkeydown = (event) => {
   if (event.key === "Enter") generateMap();
 };
 
-type Tab = "world" | "chain" | "placeables";
+type Tab = "world" | "chain" | "placeables" | "solve";
 function showTab(tab: Tab): void {
   $("worldView").hidden = tab !== "world";
+  $("solveView").hidden = tab !== "solve";
+  $("solveTab").classList.toggle("active", tab === "solve");
+  if (tab !== "solve") solveView.hide();
   $("chainViewContainer").hidden = tab !== "chain";
   $("placeablesView").hidden = tab !== "placeables";
   $("worldTab").classList.toggle("active", tab === "world");
@@ -1365,8 +1386,9 @@ function showTab(tab: Tab): void {
   $("placeablesTab").classList.toggle("active", tab === "placeables");
   if (tab === "chain") renderChainLibrary();
   else if (tab === "placeables") renderPlaceables($("placeablesView"));
-  else resize();
+  else if (tab === "world") resize();
 }
+$("solveTab").onclick = () => showTab("solve");
 $("worldTab").onclick = () => showTab("world");
 $("chainTab").onclick = () => showTab("chain");
 $("placeablesTab").onclick = () => showTab("placeables");
@@ -1412,6 +1434,7 @@ declare global {
 }
 window.mapLab = Object.freeze({
   snapshot: () => ({
+    placement: solveView.snapshot(),
     busy,
     error,
     seed: map?.layout.seed ?? null,
