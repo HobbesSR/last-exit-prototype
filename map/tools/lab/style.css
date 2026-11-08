@@ -1464,6 +1464,8 @@ a.button {
   .world-heading { margin-right: auto; }
 }
 @media (max-width: 800px) {
+  body > .app-nav { flex-wrap: wrap; }
+  body > .app-nav #status { flex-basis: 100%; max-width: 100%; padding: 4px 12px; }
   body { height: auto; min-height: 100vh; overflow: auto; }
   #worldView { grid-template-columns: minmax(0, 1fr); overflow: visible; }
   #worldActions { flex-wrap: wrap; }

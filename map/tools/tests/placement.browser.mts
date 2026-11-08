@@ -126,6 +126,12 @@ try {
   assert.equal(await page.locator('#solveRecord').isEnabled(), true);
   assert.equal((await snapshot()).events, 0, 'cancel discards the previous recording');
   assert.equal((await snapshot()).seed, undefined);
+  await page.setViewportSize({ width: 390, height: 900 });
+  for (const tab of ['solveTab', 'placeablesTab']) {
+    await page.locator(`#${tab}`).click();
+    const dimensions = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+    assert.ok(dimensions.width <= dimensions.viewport, `${tab} has no horizontal overflow: ${JSON.stringify(dimensions)}`);
+  }
   assert.deepEqual(errors, []);
   console.log('Placement browser acceptance passed.');
 } finally {
