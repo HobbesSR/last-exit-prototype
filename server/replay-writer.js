@@ -1,6 +1,4 @@
-import { createHash } from 'node:crypto';
-import { createGzip } from 'node:zlib';
-import { pipeline } from 'node:stream/promises';
+import { Worker } from 'node:worker_threads';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
 
@@ -18,7 +16,7 @@ const aborted = signal => { if (signal?.aborted) throw asError(signal.reason || 
 // length for a list under a key in KEPT. Keys go in the same order and undefined values are left out, as
 // JSON.stringify does, so the bytes and the digest are unchanged (26).
 const KEPT = new Set(['items', 'gates']);
-export function frameLine(state, commands, kept) {
+function frameParts(state, commands, kept, referenceKept = false) {
   if (state === null || typeof state !== 'object' || 'toJSON' in state) {
     const line = JSON.stringify({ state, commands });
     return { line, bytes: Buffer.byteLength(line) };
@@ -27,7 +25,7 @@ export function frameLine(state, commands, kept) {
   let bytes = 0;
   for (const key of Object.keys(state)) {
     // Kept keys are plain ASCII words, so the key and its quotes and colon are 3 + length bytes.
-    if (KEPT.has(key) && Array.isArray(state[key])) { const list = kept(key, state[key]); parts.push(`"${key}":${list.json}`); bytes += 3 + key.length + list.bytes; continue; }
+    if (KEPT.has(key) && Array.isArray(state[key])) { const list = kept(key, state[key]); parts.push(referenceKept ? { kept: key } : `"${key}":${list.json}`); bytes += 3 + key.length + list.bytes; continue; }
     const json = JSON.stringify(state[key]);
     if (json === undefined) continue;
     const part = `${JSON.stringify(key)}:${json}`;
@@ -35,82 +33,97 @@ export function frameLine(state, commands, kept) {
   }
   const commandsJson = JSON.stringify(commands), tail = commandsJson === undefined ? '}}' : `},"commands":${commandsJson}}`;
   bytes += 10 + Math.max(0, parts.length - 1) + Buffer.byteLength(tail);
-  return { line: `{"state":{${parts.join(',')}${tail}`, bytes };
+  return { parts, tail, bytes };
 }
 
-// The writer owns encoding, integrity and stream lifetime. It never receives a room.
-export function createReplayWriter({ header, output, publish, onError = error => console.error('Replay write failed:', error.message), queueBytes, finalizeTimeoutMs = DEFAULT_FINALIZE_TIMEOUT_MS, setTimer = setTimeout, clearTimer = clearTimeout, gzipOptions }) {
+// Compatibility helper for callers that explicitly need a complete line. The live
+// writer sends fragments instead, so assembly and UTF-8 encoding belong to the worker.
+export function frameLine(state, commands, kept) {
+  const frame = frameParts(state, commands, kept);
+  return { line: frame.line ?? `{"state":{${frame.parts.join(',')}${frame.tail}`, bytes: frame.bytes };
+}
+
+// The writer owns admission and publication; its worker owns bytes and stream lifetime.
+export function createReplayWriter({ header, output, outputPath, publish, onError = error => console.error('Replay write failed:', error.message), queueBytes, finalizeTimeoutMs = DEFAULT_FINALIZE_TIMEOUT_MS, setTimer = setTimeout, clearTimer = clearTimeout, gzipOptions }) {
   if (queueBytes !== undefined && (!Number.isSafeInteger(queueBytes) || queueBytes < 1)) throw new RangeError('queueBytes must be a positive integer');
   if (!Number.isFinite(finalizeTimeoutMs) || finalizeTimeoutMs < 0) throw new RangeError('finalizeTimeoutMs must be non-negative');
-  const hash = createHash('sha256'), recorder = createGzip(gzipOptions), controller = new AbortController();
-  const recording = pipeline(recorder, output), queue = [];
-  let queuedBytes = 0, writing = null, frames = 0, droppedFrames = 0, marks = [], droppedMarks = 0, ending = false, completion, failed = null, reported = false;
-  // Observe this independently of finish(), because a live sink can fail mid-match.
-  recording.catch(error => fail(error));
-
+  const controller = new AbortController();
+  let worker, queuedBytes = 0, headerBytes = 0, frames = 0, droppedFrames = 0, marks = [], droppedMarks = 0, ending = false, completion, failed = null, reported = false, workerDone = false;
+  let resolveRecording, rejectRecording;
+  const recording = new Promise((resolve, reject) => { resolveRecording = resolve; rejectRecording = reject; });
+  recording.catch(() => {});
   function fail(error) {
     if (failed) return failed;
-    failed = asError(error); controller.abort(failed);
+    failed = asError(error); controller.abort(failed); rejectRecording(failed);
     if (!reported) { reported = true; try { onError(failed); } catch { /* Observer failures cannot break cleanup. */ } }
-    if (!recorder.destroyed) recorder.destroy(failed);
     if (output && !output.destroyed && typeof output.destroy === 'function') output.destroy(failed);
+    worker?.terminate().catch(() => {});
     return failed;
   }
-  function pump() {
-    if (failed || writing || !queue.length) return;
-    writing = queue.shift();
-    recorder.write(writing.text, error => {
-      queuedBytes -= writing.bytes; writing = null;
-      if (error) fail(error); else pump();
-      endWhenDrained();
-    });
+  function send(message) {
+    try { worker.postMessage(message); return true; }
+    catch (error) { fail(error); return false; }
   }
-  // Only frames count against the budget; `append` asks before it encodes, so a dropped frame is never encoded.
+  // Retained bytes stay charged until the worker's gzip write acknowledges them.
+  // The changed-list payload alone is smaller than this full-frame byte budget.
   const fits = bytes => queuedBytes + bytes <= (queueBytes ?? Math.max(DEFAULT_QUEUE_BYTES, headerBytes + DEFAULT_QUEUE_FRAMES * bytes));
-  function enqueue(text, bytes = Buffer.byteLength(text)) {
-    queuedBytes += bytes; queue.push({ text, bytes }); pump();
-  }
-  function endWhenDrained() {
-    if (ending && !failed && !writing && !queue.length && !recorder.writableEnded) recorder.end();
-  }
-  // Each kept list's last JSON and its length: the same string object while that list is unchanged.
-  const last = { items: { json: undefined, bytes: 0 }, gates: { json: undefined, bytes: 0 } };
+  const last = { items: { json: undefined, bytes: 0 }, gates: { json: undefined, bytes: 0 } }, sent = {};
   const keptText = (key, list) => {
     const json = key === 'items' ? itemsJson(list) : gatesJson(list), text = last[key];
     if (json !== text.json) { text.json = json; text.bytes = Buffer.byteLength(json); }
     return text;
   };
-  // Keep the old header bytes exactly, including its key order and compact JSON form.
-  let headerBytes = 0;
-  try { const text = `${JSON.stringify(header).slice(0, -1)},"frames":[`; headerBytes = Buffer.byteLength(text); enqueue(text, headerBytes); }
-  catch (error) { fail(error); }
+  // Install observers before serializing the header: even a synchronous header
+  // failure destroys the injected stream, which may emit its error later.
+  output?.on('error', fail);
+  output?.on('close', () => { if (!output.writableFinished && !failed) fail(new Error('Replay output closed before completion')); });
+  try {
+    // Preserve header order and compact JSON. No mutable caller-owned data crosses the boundary.
+    const text = `${JSON.stringify(header).slice(0, -1)},"frames":[`;
+    headerBytes = Buffer.byteLength(text);
+    worker = new Worker(new URL('./replay-worker.js', import.meta.url), { workerData: { outputPath, gzipOptions } });
+    worker.on('error', fail);
+    worker.on('exit', code => { if (!workerDone && !failed) fail(new Error(`Replay worker exited before completion (${code})`)); });
+    worker.on('message', message => {
+      if (failed) return;
+      if (message.type === 'failure') fail(message.error);
+      else if (message.type === 'ack') queuedBytes -= message.bytes;
+      else if (message.type === 'done') { workerDone = true; resolveRecording(message.sha256); }
+      else if (message.type === 'chunk') {
+        try { output.write(message.bytes, error => { if (error) fail(error); else if (!failed) send({ type: 'chunk-ack' }); }); }
+        catch (error) { fail(error); }
+      } else if (message.type === 'output-end') {
+        try { output.end(error => { if (error) fail(error); else if (!failed) send({ type: 'output-finished' }); }); }
+        catch (error) { fail(error); }
+      }
+    });
+    queuedBytes += headerBytes; send({ type: 'header', text, bytes: headerBytes });
+  } catch (error) { fail(error); }
   function rejectedCompletion() {
     if (!completion) { completion = Promise.reject(failed || new Error('Replay recording failed')); completion.catch(() => {}); }
     return completion;
   }
-
   return {
-    // Diagnostic only. Match advancement must never depend on this state.
-    get blocked() { return queuedBytes > 0 || recorder.writableNeedDrain; },
+    get blocked() { return queuedBytes > 0; },
     get pendingBytes() { return queuedBytes; },
     get droppedFrames() { return droppedFrames; },
     get failed() { return failed; },
     append(state, commands) {
       if (completion || ending) throw new Error('Cannot append to a finalized replay');
       if (failed) return false;
-      let line, bytes;
-      try { ({ line, bytes } = frameLine(state, commands, keptText)); }
+      let frame;
+      try { frame = frameParts(state, commands, keptText, true); }
       catch (error) { fail(error); return false; }
-      // One UTF-8 encoding serves the stream and the digest, which covers the line without its separating comma (#727).
-      const comma = frames ? 1 : 0;
-      if (!fits(comma + bytes)) { droppedFrames++; return false; }
-      const encoded = Buffer.allocUnsafe(comma + bytes);
-      if (comma) encoded[0] = 0x2c;
-      if (encoded.write(line, comma) !== bytes) { fail(new Error('Replay frame length does not match its encoding')); return false; }
-      enqueue(encoded, encoded.length);
-      hash.update(encoded.subarray(comma)); hash.update('\n'); frames++; return true;
+      const bytes = frame.bytes + (frames ? 1 : 0);
+      if (!fits(bytes)) { droppedFrames++; return false; }
+      const updates = {};
+      for (const part of frame.parts ?? []) {
+        if (typeof part !== 'string' && last[part.kept].json !== sent[part.kept]) updates[part.kept] = last[part.kept].json;
+      }
+      queuedBytes += bytes;
+      if (!send({ ...frame, type: 'frame', bytes, updates })) return false;
+      Object.assign(sent, updates); frames++; return true;
     },
-    // Never touches frames or the digest. Past the cap a marker is counted, not kept.
     mark(marker) {
       if (completion || ending || failed) return false;
       if (marks.length >= MAX_DIAGNOSTIC_MARKS) { droppedMarks++; return false; }
@@ -129,17 +142,17 @@ export function createReplayWriter({ header, output, publish, onError = error =>
         try { trailer += `,"diagnostics":${JSON.stringify(droppedMarks ? { marks, dropped: droppedMarks } : { marks })}`; }
         catch { /* A marker that cannot serialize must not cost the recording. */ }
       }
-      enqueue(`${trailer}}`);
-      endWhenDrained();
+      const text = `${trailer}}`, bytes = Buffer.byteLength(text);
+      queuedBytes += bytes; send({ type: 'finish', text, bytes });
       let timer;
       const timeout = new Promise((_, reject) => {
         timer = setTimer(() => reject(fail(new Error(`Replay finalization exceeded ${finalizeTimeoutMs}ms`))), finalizeTimeoutMs);
       });
       completion = (async () => {
         try {
-          await Promise.race([recording, timeout]);
+          const sha256 = await Promise.race([recording, timeout]);
           if (failed) throw failed;
-          const meta = { id: header.id, seed: header.seed, createdAt: header.createdAt, ticks: result?.ticks, frames, sha256: hash.digest('hex'), escaped: result?.escaped };
+          const meta = { id: header.id, seed: header.seed, createdAt: header.createdAt, ticks: result?.ticks, frames, sha256, escaped: result?.escaped };
           if (droppedFrames) meta.recording = { complete: false, droppedFrames, endTick };
           aborted(controller.signal);
           await Promise.race([publish(meta, { signal: controller.signal }), timeout]);
@@ -148,7 +161,6 @@ export function createReplayWriter({ header, output, publish, onError = error =>
         } catch (error) { throw fail(error); }
         finally { clearTimer(timer); }
       })();
-      // A failed fire-and-forget finalization must not become an unhandled rejection.
       completion.catch(() => {});
       return completion;
     }

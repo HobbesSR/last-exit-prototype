@@ -465,12 +465,25 @@ projection, layer encoding and serialization) and keeps every tick of every `sim
 so each tick over 50 ms is classified by stage, keyframe cut and overlapping GC. It drains the recorder between
 ticks, outside the measured time, and fails a run whose recorder drops a frame. `--rooms`,
 `--clients`, `--spectators` and `--no-record` shape the load; `--tile=CxR` repeats a real map at
-the same density for sizes the protocol does not serve. It takes the same lock. Method and the
+the same density for sizes the protocol does not serve. It takes the same lock.
+`--maps-cache=<file>` reuses the production-worker geometry/navigation cache from
+`room-startup.mjs` for sequential comparisons (use a fresh cache after generation/content changes).
+The result's `run` records wall and process CPU milliseconds over the loop and inter-tick drains,
+including worker CPU; per-tick timings still exclude those drains. Method and the
 first results are [42.22](42.22-tick-cost-attribution.md) (#637). `--heap-profile=<file>` samples
 allocations over the measured ticks (`--heap-interval=<bytes>`, default 32768), including objects already
 collected, and writes a `.heapprofile` that DevTools opens. It also prints the top allocators, by function and by
 the nearest frame in the repository's own code. A profiled run's times are slower and are not comparable with an
 unprofiled run's (#727).
+
+`node tools/perf/recording-compare.mjs --baseline=<archived-writer-module>
+--maps-cache=<file> --out=<json>` compares a whole match's complete gzip archive
+and metadata between an archived writer and the current writer (#728). It also
+checks the retained-frame digest against ordinary JSON serialization and refuses
+any omitted frame. It takes the lock, drains both writers between frames and
+shares one authoritative simulation; it is byte-compatibility evidence, not a
+timing comparison. Preserve the baseline revision and cache provenance with its
+report. Simulation/view equality is separately checked by `frame-hashes.mjs`.
 
 `node tools/perf/room-startup.mjs --size=12x6 --out=test-results/startup.json`
 is the short startup diagnostic for #842 (also accepts `--size=36x18` and
