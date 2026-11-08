@@ -187,13 +187,24 @@ function syncPlacementControls(): void {
   const key = sizeKey(input("zoneWidth").value, input("zoneHeight").value);
   select("solveSize").value = CHAIN_LIBRARIES.some(library => sizeKey(library.zoneWidth, library.zoneHeight) === key) ? key : "world";
 }
-input("solveSeed").oninput = () => { input("seed").value = input("solveSeed").value; };
+// An older World result must not reset a recipe edited here while it was building.
+function cancelStaleWorldGeneration(): void {
+  if (!busy) return;
+  mapWorker?.terminate(); mapWorker = null; busy = false;
+  setStatus("World generation cancelled: recipe edited in Placement.");
+}
+input("solveSeed").oninput = () => {
+  cancelStaleWorldGeneration();
+  input("seed").value = input("solveSeed").value;
+};
 input("solveSeed").onkeydown = event => { if (event.key === "Enter") $("solveRecord").click(); };
 select("solveSize").onchange = () => {
+  cancelStaleWorldGeneration();
   select("zoneSize").value = select("solveSize").value;
   select("zoneSize").dispatchEvent(new Event("change"));
 };
 $("solveRandom").onclick = () => {
+  cancelStaleWorldGeneration();
   input("seed").value = `exit-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36)}`;
   syncPlacementControls();
   $("solveRecord").click();

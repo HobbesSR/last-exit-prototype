@@ -166,6 +166,7 @@ try {
 
   await page.locator('#solveSeed').fill('placement-second');
   assert.equal(await page.locator('#seed').inputValue(), 'placement-second');
+  assert.equal(await page.evaluate(() => (window as any).mapLab.snapshot().busy), false, 'editing the recipe cancels an older World generation');
   await page.locator('#solveSeed').press('Enter');
   await page.waitForFunction(() => (document.querySelector('#solveCancel') as HTMLButtonElement).disabled, null, { timeout: 60000 });
   assert.equal((await snapshot()).seed, 'placement-second', await page.locator('#solveStatus').innerText());
