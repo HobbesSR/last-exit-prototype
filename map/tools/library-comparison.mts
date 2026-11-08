@@ -47,6 +47,9 @@ const sparse = arg('--sparse', '');
 if (sparse && libraryFile) throw new Error('--sparse and --library are exclusive');
 const library = libraryFile ? readLibraryFile(libraryFile) as { zoneWidth: number } : undefined;
 const [fillSides, setPieceSides] = sparse.split('/') as [FillSides, SetPieceSides];
+const FILL_SIDES: readonly string[] = ['bundled', 'sparse'], SET_PIECE_SIDES: readonly string[] = ['bundled', 'inner', 'alternate', 'face'];
+if (sparse && (sparse.split('/').length !== 2 || !FILL_SIDES.includes(fillSides) || !SET_PIECE_SIDES.includes(setPieceSides)))
+  throw new Error(`--sparse takes FILL/SET_PIECES, fill one of ${FILL_SIDES.join(', ')} and set pieces one of ${SET_PIECE_SIDES.join(', ')}; got ${sparse}`);
 const libraryFor = (width: number) => !sparse ? library
   : sparseSidesLibrary(CHAIN_LIBRARIES.find(bundled => bundled.zoneWidth === width)!, { fill: fillSides, setPieces: setPieceSides });
 if (library && widths.some(w => w !== library.zoneWidth)) throw new Error(`${libraryFile} is authored for width ${library.zoneWidth} only`);
@@ -86,6 +89,6 @@ for (const width of widths) for (const n of seeds) {
     bodies });
   console.error(`${seed}: generated in ${seconds.toFixed(1)} s, measured`);
 }
-const report = { version: 'library-comparison-1', definitions: 'docs/51.10-measurement.md', results: 'docs/42.37-matched-adoption.md',
+const report = { version: 'library-comparison-1', definitions: 'docs/51.10-measurement.md', results: sparse ? 'docs/42.40-sparse-sides-experiment.md' : 'docs/42.37-matched-adoption.md',
   revision: git('rev-parse', 'HEAD'), library: libraryFile || (sparse ? `sparse ${sparse}` : 'bundled'), stages: macroOnly ? 'macro' : 'built', node: process.version, maps };
 if (out) writeFileSync(out, JSON.stringify(report, null, 1) + '\n'); else console.log(JSON.stringify(report, null, 1));

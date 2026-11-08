@@ -39,25 +39,41 @@ test('every sparse-sides library is valid, its set pieces fit inside, and the bu
   assert.equal(CHAIN_LIBRARIES.some(library => 'fitPlacedSetPieces' in library), false);
 });
 
-test('one opening per face leaves every set piece at least one open outer side and hints its inner seams', () => {
-  const library = sparseSidesLibrary(CHAIN_LIBRARIES[0], { fill: 'bundled', setPieces: 'face' });
+/**
+ * Piece-frame sides of each slot that face outside the piece and state a passable segment, by
+ * the slot's members turned as the slot turns them. Slots whose orientation placement chooses
+ * are skipped: the sparse schemes leave them as authored.
+ */
+function outerOpenings(library, piece) {
   const sets = new Map(library.tileSets.map(set => [set.id, set]));
   const tiles = new Map(library.tiles.map(tile => [tile.id, tile]));
-  const STEP = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
-  for (const piece of library.setPieces) {
-    const at = new Set(piece.tiles.map(slot => `${slot.dx},${slot.dy}`));
-    let open = 0;
-    for (const slot of piece.tiles) {
-      // Only fixed-orientation slots are rewritten, and the inward and station tiles are fixed at 0.
-      if (slot.orientation) continue;
-      for (const member of sets.get(slot.tileSetId).members) for (const [s, [dx, dy]] of Object.entries(STEP)) {
-        const pattern = side(tiles.get(member), s);
-        if (at.has(`${slot.dx + dx},${slot.dy + dy}`)) assert.notEqual(pattern, 'hhhPPP', `${piece.id} ${slot.dx},${slot.dy} ${s} is inner`);
-        else if (pattern.includes('P')) open++;
-      }
+  const at = new Set(piece.tiles.map(slot => `${slot.dx},${slot.dy}`));
+  const SIDES = ['N', 'E', 'S', 'W'], STEP = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
+  const inner = [], outer = [];
+  for (const slot of piece.tiles) for (const id of sets.get(slot.tileSetId).members) {
+    const member = tiles.get(id);
+    const orientation = slot.orientation ?? (member.orientations.length === 1 ? member.orientations[0] : undefined);
+    if (orientation === undefined) continue;
+    for (const s of SIDES) {
+      // A slot turned clockwise by `orientation` shows its tile's side (s - turns) on the piece's side s.
+      const pattern = side(member, SIDES[(SIDES.indexOf(s) - orientation / 90 + 8) % 4]);
+      const facing = `${slot.dx + STEP[s][0]},${slot.dy + STEP[s][1]}`;
+      (at.has(facing) ? inner : outer).push({ where: `${slot.dx},${slot.dy} ${s}`, pattern });
     }
-    const rotated = piece.tiles.some(slot => slot.orientation);
-    assert.ok(open > 0 || rotated, `${piece.id} keeps an opening`);
+  }
+  return { inner, outer: outer.filter(({ pattern }) => pattern.includes('P')) };
+}
+
+test('every set-piece scheme keeps an opening on each piece that had one, and hints its inner half-and-half seams', () => {
+  for (const bundled of CHAIN_LIBRARIES) for (const setPieces of ['inner', 'alternate', 'face']) {
+    const library = sparseSidesLibrary(bundled, { fill: 'bundled', setPieces });
+    const before = new Map(bundled.setPieces.map(piece => [piece.id, piece]));
+    for (const piece of library.setPieces) {
+      const { inner, outer } = outerOpenings(library, piece);
+      const name = `${bundled.name} ${setPieces}: ${piece.id}`;
+      for (const { where, pattern } of inner) assert.ok(!['hhhPPP', 'PPPhhh'].includes(pattern), `${name} ${where} is an inner seam`);
+      if (outerOpenings(bundled, before.get(piece.id)).outer.length) assert.ok(outer.length > 0, `${name} keeps an opening`);
+    }
   }
 });
 

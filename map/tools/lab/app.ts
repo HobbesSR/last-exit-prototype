@@ -162,6 +162,7 @@ function chosenLibrary(): unknown {
 function useRoomRecipe(): void {
   fillParams(liveChainParams());
   select("librarySource").value = "bundled";
+  showSparseControls();
   if (liveSeed(input("seed").value) === null)
     input("seed").value = String(1 + (crypto.getRandomValues(new Uint32Array(1))[0]! % MAX_ARENA_SEED));
   generateMap();
@@ -1307,6 +1308,14 @@ input("load").onchange = async () => {
 // ── Controls ────────────────────────────────────────────────────────────────
 
 $("generate").onclick = generateMap;
+/** The sparse-sides menus (#851) apply only to their library source. */
+function showSparseControls(): void {
+  const off = select("librarySource").value !== "sparse";
+  select("fillSides").disabled = off;
+  select("setPieceSides").disabled = off;
+}
+select("librarySource").onchange = showSparseControls;
+showSparseControls();
 select("zoneSize").onchange = () => {
   const library = CHAIN_LIBRARIES.find((l) => sizeKey(l.zoneWidth, l.zoneHeight) === select("zoneSize").value);
   if (!library) return;
