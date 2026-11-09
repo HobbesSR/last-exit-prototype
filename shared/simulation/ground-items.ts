@@ -155,7 +155,12 @@ function writable(s: Game): GroundItem[] {
   return s.map.items = copy;
 }
 
-/** The ground list to edit freely. A published list is copied first, pointers only; the indexes are rebuilt on next use. */
+/**
+ * The ground list to edit freely. A published list is copied first, pointers only; the indexes are rebuilt on next use.
+ * Use this before any arbitrary in-place scenario edits, including same-length replacements or a push followed by a
+ * removal. Length checks catch raw appends/removals only when the resulting length differs; equal-length edits can
+ * otherwise leave the ID-to-record cache stale.
+ */
 export function groundList(s: Game): GroundItem[] {
   const list = writable(s);
   indexes.delete(list); grids.delete(list); admissions.delete(list); records.delete(list);
