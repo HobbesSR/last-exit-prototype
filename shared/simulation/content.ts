@@ -25,7 +25,8 @@ import type { MatchContent } from '../types.ts';
  * format change. It identifies balance, where `VERSION` identifies rules: two matches can run the
  * same rules over different numbers, and a reader looking at an old recording needs to tell which.
  *
- * `content-7` adopts portal-graph planning for gladiators (#682, #865). Content 1 to 5 run the legacy mover.
+ * `content-7` adopts portal-graph planning for gladiators (#682, #865). `content-6` was the first set built
+ * for the physics engine (#523); content 1 to 5 run the legacy mover.
  */
 export const CONTENT_ID = 'content-7';
 

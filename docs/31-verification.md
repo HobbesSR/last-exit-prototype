@@ -935,7 +935,8 @@ strategy option) whose default leaves the output exactly as it is.
 - updates the pins and tests that move with the new output;
 - bumps `REGION_TYPES_VERSION` once, recaptures the sweep last (53, "Proving a change") and
   updates 53's version row and baseline provenance;
-- records the result in the experiments' 42.x documents.
+- records the result in the experiments' 42.x documents;
+- **corridor re-check rule (#865):** when region content becomes more obstructive (an adoption batch that adds detours or dead ends), re-run `tools/navigation/corridor-report.mjs` and compare against [42.22](42.22-tick-cost-attribution.md)'s figures (median 1.002–1.015, worst 1.081). If the worst ratio grows materially, the upgrade path is lazily learned crossing lengths.
 An experiment Corey doesn't adopt stays switched off, or is removed in its own PR, which needs
 no bump.
 

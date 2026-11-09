@@ -2,7 +2,7 @@
 // (#664, #641). Each line is one match: a sha256 over JSON.stringify of its first snapshot and every advance().
 // Compare a run on the base commit with one on the branch:
 //   node tools/perf/frame-hashes.mjs --out=base.txt   (then, on the branch)   --out=branch.txt
-// --size=12x6 --contents=content-5,content-6,... --seeds=4217,11,902 --out=<file>
+// --size=12x6 --contents=content-5,content-6,content-7,... --seeds=4217,11,902 --out=<file>
 // --views also hashes every frame's projection for each player and the directed view, in a second digest.
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -21,7 +21,7 @@ const cache = args.has('maps-cache') ? deserialize(await readFile(args.get('maps
 const [zoneWidth, zoneHeight] = (args.get('size') ?? '12x6').split('x').map(Number);
 const size = liveZoneSize({ zoneWidth, zoneHeight });
 if (!size) { console.error('unknown --size'); process.exit(2); }
-const contents = (args.get('contents') ?? 'content-5,content-6,content-ammo-1,content-loot-1').split(',');
+const contents = (args.get('contents') ?? 'content-5,content-6,content-7,content-ammo-1,content-loot-1').split(',');
 const seeds = (args.get('seeds') ?? '4217,11,902').split(',').map(Number);
 const views = args.has('views');
 if (cache && (cache.size !== `${zoneWidth}x${zoneHeight}` || contents.some(id => id !== cache.content)))
