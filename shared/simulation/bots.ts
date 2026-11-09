@@ -546,6 +546,7 @@ function legGoal(s: Game, p: Player, target: Vec2): Vec2 {
 
 /** A leg that cannot be planned is given up: the gladiator plans for its goal itself until the goal changes region. */
 function abandonLeg(p: Player): void {
+  count('work.route.abandonedLeg');
   const corridor = corridors.get(p);
   if (corridor) corridor.direct = true;
 }
