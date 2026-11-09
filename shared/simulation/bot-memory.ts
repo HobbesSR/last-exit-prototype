@@ -143,15 +143,18 @@ export class ItemMemory extends Map<ItemId, GroundItem> {
    * superset, never a ruling, so the caller's own distance test decides.
    */
   near(at: Vec2, reach: number): GroundItem[] {
-    const found: Held[] = this.#loose.slice();
+    const found: Held[] = [];
     // One unit past the reach, so a rounding difference between this bound and the caller's distance cannot exclude.
     const x0 = Math.floor((at.x - reach - 1) / BUCKET), x1 = Math.floor((at.x + reach + 1) / BUCKET);
     const y0 = Math.floor((at.y - reach - 1) / BUCKET), y1 = Math.floor((at.y + reach + 1) / BUCKET);
     if (!(Number.isFinite(x0) && Number.isFinite(x1) && Number.isFinite(y0) && Number.isFinite(y1))) {
       for (const held of this.#held.values()) if (held.item.kind !== 'cell') found.push(held);
-    } else for (let cx = x0; cx <= x1; cx++) for (let cy = y0; cy <= y1; cy++) {
-      const bucket = Math.abs(cx) < SPAN && Math.abs(cy) < SPAN ? this.#grid.get((cx + SPAN) * 2 * SPAN + cy + SPAN) : undefined;
-      if (bucket) for (const held of bucket) found.push(held);
+    } else {
+      found.push(...this.#loose);
+      for (let cx = x0; cx <= x1; cx++) for (let cy = y0; cy <= y1; cy++) {
+        const bucket = Math.abs(cx) < SPAN && Math.abs(cy) < SPAN ? this.#grid.get((cx + SPAN) * 2 * SPAN + cy + SPAN) : undefined;
+        if (bucket) for (const held of bucket) found.push(held);
+      }
     }
     return found.sort((a, b) => a.seq - b.seq).map(held => held.item);
   }

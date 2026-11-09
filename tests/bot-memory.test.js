@@ -108,6 +108,8 @@ test('an item at no usable position is offered to every query', () => {
   assert.deepEqual(memory.near({ x: 0, y: 0 }, 210), []);
   memory.set('near', item('near', 'med', 10, 10));
   assert.deepEqual(memory.near({ x: NaN, y: 0 }, 210).map(i => i.id), ['far', 'near'], 'with no usable point, everything is offered');
+  memory.set('odd', item('odd', 'med', NaN, 5));
+  assert.deepEqual(memory.near({ x: NaN, y: 0 }, 210).map(i => i.id), ['far', 'near', 'odd'], 'each once, an unplaced item included');
 });
 
 test('a scenario that sets a plain Map of items is indexed in its order, once', () => {
