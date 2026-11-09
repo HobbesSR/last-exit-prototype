@@ -17,6 +17,7 @@ import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment, dropInventorySlot } from './loot.ts';
 import { reloadableRounds, reserveRoom } from './ammo.ts';
 import { heardBy } from './hearing.ts';
+import { rememberedItems, seenCells } from './bot-memory.ts';
 import type { BuildingId, CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, StationId, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
 import { atan2, cos, hypot, sin } from '../math.ts';
 
@@ -47,7 +48,6 @@ const EXPLORE_RIGHTWARD = 0.5;
 const EXPLORE_HAZARD_MARGIN = 300;
 /** A goal not approached by PROGRESS within STALL ticks is given up; a set-aside item returns after IGNORE_FOR. */
 const STALL = 6 * HZ, PROGRESS: World = 16, IGNORE_FOR = 30 * HZ;
-const NEIGHBOURS = [[1, 0], [0, 1], [0, -1], [-1, 0]] as const;
 
 function pursuitOf(p: Player): Pursuit {
   let state = pursuits.get(p);
@@ -65,7 +65,7 @@ function stalled(s: Game, p: Player, state: Pursuit, goal: string, at: Vec2): bo
 }
 
 function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory, avoid: readonly Vec2[] = []): Vec2 | null {
-  const state = pursuitOf(p), seen = memory.seen ?? memory.discovered;
+  const state = pursuitOf(p), { cols, rows } = discoveryGrid(s.map), seen = seenCells(memory, cols, rows);
   // A cautious contestant turns from a cell near fresh gunfire (#685): set aside while heard, not given up.
   const loud = (centre: Vec2) => avoid.some(cue => distance(cue, centre) < AVOID_CUE);
   if (state.cell >= 0 && loud(cellCenter(s.map, state.cell))) state.cell = -1;
@@ -79,20 +79,17 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory, avoid: reado
     if (!seen.has(state.cell)) state.abandoned.add(state.cell);
     state.cell = -1;
   }
-  const { cols, rows } = discoveryGrid(s.map);
-  count('work.bots.frontier', seen.size);
+  // The frontier is kept as cells are seen (#864): unseen cells beside a seen one, in the order a scan of the seen
+  // set meets them. Ties keep the first, so the choice is deterministic.
+  const frontier = seen.frontier;
+  count('work.bots.frontier', frontier.size);
   let best = -1, bestScore = Infinity;
-  // Sight order is deterministic, and ties keep the first, so the choice is too.
-  for (const index of seen) {
-    const col = index % cols, row = (index - col) / cols;
-    for (const [dc, dr] of NEIGHBOURS) {
-      const c = col + dc, r = row + dr, next = r * cols + c;
-      if (c < 0 || r < 0 || c >= cols || r >= rows || seen.has(next) || state.abandoned.has(next)) continue;
-      const centre = cellCenter(s.map, next);
-      if (centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !ground(s, memory, next, centre) || loud(centre)) continue;
-      const score = distance(p, centre) - (centre.x - p.x) * EXPLORE_RIGHTWARD;
-      if (score < bestScore) { bestScore = score; best = next; }
-    }
+  for (const next of frontier) {
+    if (state.abandoned.has(next)) continue;
+    const centre = cellCenter(s.map, next);
+    if (centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !ground(s, memory, next, centre) || loud(centre)) continue;
+    const score = distance(p, centre) - (centre.x - p.x) * EXPLORE_RIGHTWARD;
+    if (score < bestScore) { bestScore = score; best = next; }
   }
   if (best < 0) return null;
   state.cell = best; state.entered = -1;
@@ -653,14 +650,21 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     start('sim.bots.items');
     const memory = p.discovery, pursuit = memory ? pursuitOf(p) : null;
     const known = (feature: Vec2) => !memory || isFeatureDiscovered(memory, s.map, feature);
-    count('work.bots.items', memory ? memory.items?.size ?? 0 : s.map.items.length);
-    const items = memory ? [...memory.items?.values() ?? []].filter(i => !(pursuit!.ignored.get(i.id)! > s.tick)) : s.map.items;
+    // What it remembers, read by what the decision asks for (#864): the power cells, and loot near it. Without discovery it reads the whole ground.
+    const remembered = memory ? rememberedItems(memory) : undefined;
+    const setAside = (i: GroundItem) => !!memory && pursuit!.ignored.get(i.id)! > s.tick;
+    let scanned = 0;
+    const cellItems = (): GroundItem[] => {
+      const listed = memory ? remembered?.cellItems() ?? [] : s.map.items;
+      scanned += listed.length;
+      return listed.filter(i => i.kind === 'cell' && !setAside(i));
+    };
     // Over tiles, a door is locked when the bot last saw it locked; the grid planner reads the doors as they stand.
     const locked = (g: Gate) => { const seen = tiles ? memory?.gates?.get(g.id) : g; return !!seen && !!seen.locked && !seen.open; };
     const buildingGates = botGates(s.map).byBuilding;
     const accessible = (i: GroundItem) => p.keys > 0 || !i.buildingId || !(buildingGates.get(i.buildingId)?.some(locked));
     const charged = !!cell && cell.charge >= s.content.cellChargeTicks;
-    const objective: Vec2[] = !cell ? items.filter(i => i.kind === 'cell' && i.x > s.hazardX + 100 && accessible(i))
+    const objective: Vec2[] = !cell ? cellItems().filter(i => i.x > s.hazardX + 100 && accessible(i))
       : !charged ? s.map.chargers.filter(st => st.x > s.hazardX + 100 && known(st)) : [];
     if (memory && !objective.length && !(charged && known(s.map.exit))) {
       // Nothing it needs is known: search for it, and fall back on the exit only once nothing is left to search.
@@ -691,7 +695,10 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     const room = (slot: WeaponItem) => reserveRoom(s, p, s.content.reloading!.weapons[slot.weaponType].family);
     const refills = (slot: WeaponItem) => s.content.reloading ? room(slot) > 0 : slot.ammo < s.content.weapons[slot.weaponType]?.maxAmmo;
     const full = (slot: WeaponItem) => s.content.reloading ? room(slot) <= 0 : slot.ammo >= s.content.weapons[slot.weaponType].maxAmmo;
-    const loot = items.filter(i => i.kind !== 'cell' && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)
+    const lootable = memory ? remembered?.near(p, 210) ?? [] : s.map.items;
+    scanned += lootable.length;
+    count('work.bots.items', scanned);
+    const loot = lootable.filter(i => i.kind !== 'cell' && !setAside(i) && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)
       && (i.kind !== 'med' || effectiveHp < 75)
       && (i.kind === 'ammo' ? reserveRoom(s, p, i.family) > 0 : i.kind === 'access' || inventory.some(slot => !slot) || inventory.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3 && sameQuality(slot, i)
         || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && refills(slot)))
