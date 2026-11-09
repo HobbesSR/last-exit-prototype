@@ -51,7 +51,9 @@ let skeletonConfig: { algorithm: SkeletonAlgorithm; extraOpenShare: number; shor
 if (skeletonArg) {
   // ALGO[/SHARE[/shortcut]]: `shortcut` opens the extra seams joining the nodes farthest apart on the tree first, as the
   // Map Lab always does; without it they are picked at random.
-  const [algo, shareStr, flag] = skeletonArg.split('/') as [SkeletonAlgorithm, string | undefined, string | undefined];
+  const parts = skeletonArg.split('/');
+  if (parts.length > 3) throw new Error(`--skeleton takes ALGO[/SHARE[/shortcut]]; got ${skeletonArg}`);
+  const [algo, shareStr, flag] = parts as [SkeletonAlgorithm, string | undefined, string | undefined];
   if (flag !== undefined && flag !== 'shortcut') throw new Error(`--skeleton's third part must be 'shortcut'; got ${flag}`);
   if (!SKELETON_ALGOS.includes(algo)) throw new Error(`--skeleton algorithm must be one of ${SKELETON_ALGOS.join(', ')}; got ${algo}`);
   const extraOpenShare = shareStr !== undefined ? Number(shareStr) : 0;

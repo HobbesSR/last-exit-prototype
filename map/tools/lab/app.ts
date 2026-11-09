@@ -153,7 +153,8 @@ function recipeParams(): ChainParams {
 /** The library World and Placement both use: the chosen source, then the experimental skeleton (#883) if on. */
 function chosenLibrary(): unknown {
   const skeleton = select("skeleton").value;
-  const withSkeleton = (library: ChainLibrary): ChainLibrary => skeleton === "off" ? library : { ...library,
+  // "Off" is stated, so it also clears a skeleton a Chain Library draft authored (review 721).
+  const withSkeleton = ({ connectivitySkeleton: _, ...library }: ChainLibrary): ChainLibrary => skeleton === "off" ? library : { ...library,
     connectivitySkeleton: { algorithm: skeleton as SkeletonAlgorithm, extraOpenShare: Number(select("skeletonExtraOpen").value) || 0, shortcutPriority: true } };
   if (select("librarySource").value === "bundled") return withSkeleton(bundledLibrary(recipeParams()));
   // Experimental (#851): the bundled library with sparser tile sides.
@@ -213,8 +214,6 @@ select("solveSize").onchange = () => {
   select("zoneSize").dispatchEvent(new Event("change"));
 };
 select("solveOrder").onchange = () => solveView.recipeEdited();
-select("skeleton").onchange = () => { select("skeletonExtraOpen").disabled = select("skeleton").value === "off"; solveView.recipeEdited(); };
-select("skeletonExtraOpen").onchange = () => solveView.recipeEdited();
 $("solveRandom").onclick = () => {
   solveView.recipeEdited();
   cancelStaleWorldGeneration();
@@ -1382,6 +1381,8 @@ function showSparseControls(): void {
 }
 select("librarySource").onchange = showSparseControls;
 showSparseControls();
+/** The extra-open share (#883) applies only with a skeleton. */
+select("skeleton").onchange = () => { select("skeletonExtraOpen").disabled = select("skeleton").value === "off"; };
 select("zoneSize").onchange = () => {
   const library = CHAIN_LIBRARIES.find((l) => sizeKey(l.zoneWidth, l.zoneHeight) === select("zoneSize").value);
   if (!library) return;
