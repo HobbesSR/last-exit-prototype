@@ -1,0 +1,83 @@
+[
+  {
+    "tick": 1,
+    "removed": [
+      "item-29540",
+      "item-29542",
+      "item-29544",
+      "item-29546",
+      "item-29548",
+      "item-29550",
+      "item-29552",
+      "item-29554"
+    ],
+    "added": [],
+    "lootEffects": 8
+  },
+  {
+    "tick": 7,
+    "removed": [
+      "item-29553"
+    ],
+    "added": [],
+    "lootEffects": 9
+  },
+  {
+    "tick": 9,
+    "removed": [
+      "item-29551"
+    ],
+    "added": [],
+    "lootEffects": 10
+  },
+  {
+    "tick": 10,
+    "removed": [
+      "item-29547"
+    ],
+    "added": [],
+    "lootEffects": 11
+  },
+  {
+    "tick": 11,
+    "removed": [
+      "item-29545"
+    ],
+    "added": [],
+    "lootEffects": 12
+  },
+  {
+    "tick": 12,
+    "removed": [
+      "item-29543"
+    ],
+    "added": [],
+    "lootEffects": 13
+  },
+  {
+    "tick": 13,
+    "removed": [
+      "item-29541",
+      "item-29557",
+      "item-30335"
+    ],
+    "added": [],
+    "lootEffects": 8
+  },
+  {
+    "tick": 26,
+    "removed": [
+      "item-29555"
+    ],
+    "added": [],
+    "lootEffects": 1
+  },
+  {
+    "tick": 30,
+    "removed": [
+      "item-29549"
+    ],
+    "added": [],
+    "lootEffects": 2
+  }
+]
