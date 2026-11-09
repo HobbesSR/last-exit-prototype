@@ -9,6 +9,10 @@ const item = (id, x) => Object.freeze({ id, kind: 'med', x, y: 2 });
 const gate = (id, open) => Object.freeze({ id, x: 1, y: 2, w: 3, h: 4, open, locked: false, kind: 'door' });
 
 test('prepared map serialization is byte-for-byte ordinary JSON with map and envelope order retained', async () => {
+  for (const map of [undefined, null, '', false, 0, {}]) {
+    const ordinary = { type: 'welcome', map, state: null };
+    assert.equal(stringifyWithMap(ordinary), JSON.stringify(ordinary), 'unprepared values use ordinary JSON');
+  }
   const map = {
     seed: 7, generator: undefined, width: 100, height: 80,
     playableArea: { rows: ['..', 'é'], bounds: { x: 1, y: 2 } },

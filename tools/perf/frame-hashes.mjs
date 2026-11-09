@@ -4,17 +4,24 @@
 //   node tools/perf/frame-hashes.mjs --out=base.txt   (then, on the branch)   --out=branch.txt
 // --size=12x6 --contents=content-5,content-6,... --seeds=4217,11,902 --out=<file>
 // --views also hashes every frame's projection for each player and the directed view, in a second digest.
+// --payloads exercises recording/live/delayed map queries and hashes their JSON at
+// tick 0, 600, 1200 and match end. --root=PATH selects archived match/cache modules.
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { deserialize } from 'node:v8';
 import { liveZoneSize } from '../../map/live.ts';
 import { contentById } from '../../shared/simulation/content.ts';
-import { createMatchFor } from '../../server/match.js';
+import { stringifyWithMap } from '../../server/map-payload.js';
+import { resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { cliArgs } from '../../tests/helpers/args.js';
-import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
-import { adoptPackedTiles } from '../../shared/free-space.ts';
 
 const args = cliArgs();
+const root = resolve(args.get('root') ?? fileURLToPath(new URL('../../', import.meta.url)));
+const fromRoot = file => import(pathToFileURL(resolve(root, file)).href);
+const { createMatchFor } = await fromRoot('server/match.js');
+const { attachPortalGraph } = await fromRoot('shared/navigation/portal-graph.ts');
+const { adoptPackedTiles } = await fromRoot('shared/free-space.ts');
 // Reuse the startup diagnostic's worker-prepared maps for exact comparisons,
 // including real 36x18 matches, without regenerating the same source geometry.
 const cache = args.has('maps-cache') ? deserialize(await readFile(args.get('maps-cache'))) : undefined;
@@ -40,16 +47,30 @@ for (const id of contents) for (const seed of seeds) {
     for (const packed of cloned.tiles) adoptPackedTiles(map, packed);
   }
   const match = await createMatchFor(seed, size, map, contentById(id));
-  const hash = createHash('sha256'), viewHash = createHash('sha256');
+  const hash = createHash('sha256'), viewHash = createHash('sha256'), mapHash = createHash('sha256');
+  let previousMapFrame;
+  const maps = frame => {
+    const query = (kind, reference) => match.payloadMap ? match.payloadMap(kind, reference)
+      : kind === 'recording' ? match.map() : kind === 'live' ? match.liveMap() : match.spectatorMap(reference);
+    for (const kind of ['recording', 'live', 'spectator'])
+      mapHash.update(stringifyWithMap({ map: query(kind, previousMapFrame ?? frame) }));
+    previousMapFrame = frame;
+  };
+  // Recording start publishes its source map before capturing the first frame.
+  if (args.has('payloads')) {
+    const map = match.payloadMap ? match.payloadMap('recording') : match.map();
+    mapHash.update(stringifyWithMap({ map }));
+  }
   const record = frame => {
     hash.update(JSON.stringify(frame));
     if (views) for (const viewer of [...frame.players.map(p => p.id), null]) viewHash.update(JSON.stringify(match.project(frame, viewer)));
+    if (args.has('payloads') && ([0, 600, 1200].includes(frame.tick) || match.phase !== 'live')) maps(frame);
   };
   record(match.snapshot());
   let frames = 1;
   while (match.phase === 'live') { record(match.advance()); frames++; }
   match.dispose();
-  const line = `${id} seed=${seed} frames=${frames} ${hash.digest('hex')}${views ? ` views=${viewHash.digest('hex')}` : ''}`;
+  const line = `${id} seed=${seed} frames=${frames} ${hash.digest('hex')}${views ? ` views=${viewHash.digest('hex')}` : ''}${args.has('payloads') ? ` maps=${mapHash.digest('hex')}` : ''}`;
   lines.push(line);
   console.log(`${line} (${((performance.now() - started) / 1000).toFixed(0)} s)`);
 }

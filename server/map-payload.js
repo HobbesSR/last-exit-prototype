@@ -70,7 +70,7 @@ export async function prepareMapPayload(map, pause) {
 // Welcome/ready envelopes and recording headers keep their ordinary JSON shape
 // and field order. Only maps prepared here can bypass ordinary serialization.
 export function stringifyWithMap(value) {
-  const map = value?.map && encodedMaps.get(value.map);
+  const map = encodedMaps.get(value?.map);
   if (map === undefined) return JSON.stringify(value);
   const parts = [];
   for (const key of Object.keys(value)) {

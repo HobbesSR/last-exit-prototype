@@ -502,8 +502,24 @@ room's first tick, that room runs for one second before a second room is
 constructed and started; both run for another 1.5 seconds. Construction/readiness,
 start, the cold first tick, timer delays, delivery gaps and host wake work are
 reported separately. Raw wakes and profiler stages accompany `--out`.
-Recorder drops or lifecycle errors fail the diagnostic. No sockets or disk are
-measured, nor map delivery/adoption while live rooms run. The short sample's
+Recorder drops or lifecycle errors fail the diagnostic. The default uses direct
+fake-peer delivery callbacks. Add `--sockets --viewers=9` for real loopback
+WebSocket delivery and nine dev viewers per room, joined sequentially. Socket
+clients parse their welcomes and frames on a separate worker, and the delivery
+series then measures the first active viewer's parsed state receipt times.
+Joins wait for the welcome, and starts wait for the initial state; server phases
+and host wake measurements remain separate from these end-to-end waits. The
+result includes lifecycle wall and process CPU time through replay drain and
+transport teardown, excluding map preparation and transport setup. Process CPU
+includes recorder workers and, in socket mode, the client worker.
+
+`--root=PATH` selects an archived source tree's server modules plus its matching
+navigation-cache and profiler instances. The harness and cached source maps stay
+common, so alternate revisions adopt identical prebuilt navigation rather than
+accidentally rebuilding it in only one version. Archive `server/`, `shared/`,
+`map/` and `package.json` beneath the worktree (for dependency resolution).
+No production disk throughput, remote network or worker map delivery/adoption
+while live rooms run is measured. The short sample's
 p99.9 is effectively its maximum; delivery gaps over 50 ms include normal cadence
 jitter. This locates blocking work, not capacity or closure evidence for #635.
 `--maps-cache=FILE` saves the two worker-prepared maps with their navigation and
@@ -517,6 +533,10 @@ diagnostic only and must not be compared with unprofiled runs.
 `--size=36x18 --contents=content-6 --seeds=4217 --views --maps-cache=FILE`.
 It restores the worker's navigation data, then hashes a whole match and every
 player/spectator projection as usual. Cache seed, size and content must match.
+`--payloads` additionally exercises recording/live/delayed map payload queries
+and hashes their JSON at tick 0, 600, 1200 and the end. It requests the recording
+map before the first snapshot, as startup does. `--root=PATH` selects the archived
+match and matching navigation-cache modules for exact before/after comparisons.
 
 `node tests/measure-changes.mjs` (`--size`, `--content`, `--seed`, `--ticks`, `--out`) counts how much
 of each published frame differs from the previous tick's, per collection and by entity id. It times
