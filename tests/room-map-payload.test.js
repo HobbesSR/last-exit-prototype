@@ -13,6 +13,8 @@ test('prepared map serialization is byte-for-byte ordinary JSON with map and env
     const ordinary = { type: 'welcome', map, state: null };
     assert.equal(stringifyWithMap(ordinary), JSON.stringify(ordinary), 'unprepared values use ordinary JSON');
   }
+  const custom = { map: {}, toJSON() { return { type: 'custom', map: this.map }; } };
+  assert.equal(stringifyWithMap(custom), JSON.stringify(custom), 'custom root toJSON retains native semantics');
   const map = {
     seed: 7, generator: undefined, width: 100, height: 80,
     playableArea: { rows: ['..', 'é'], bounds: { x: 1, y: 2 } },
@@ -25,6 +27,9 @@ test('prepared map serialization is byte-for-byte ordinary JSON with map and env
   const payloadMap = prepared.read(map, { itemsJson: JSON.stringify, gatesJson: JSON.stringify });
   const envelope = { type: 'welcome', label: '日本語', map: payloadMap, state: { tick: 0 }, tail: undefined };
   assert.equal(stringifyWithMap(envelope), JSON.stringify(envelope));
+  assert.equal(stringifyWithMap(payloadMap), JSON.stringify(payloadMap));
+  assert.equal(stringifyWithMap({ type: 'nested', payload: { map: payloadMap } }),
+    JSON.stringify({ type: 'nested', payload: { map: payloadMap } }));
   assert.deepEqual(Object.keys(payloadMap), Object.keys(map));
   assert.equal(Object.hasOwn(payloadMap, 'generator'), true);
   assert.equal(stringifyWithMap({ type: 'ready', map: payloadMap }), JSON.stringify({ type: 'ready', map: payloadMap }));
@@ -68,6 +73,22 @@ test('static JSON is prepared privately; dynamic fields and extensions are fresh
   assert.equal(Object.hasOwn(recording, 'physicsProps'), true);
   assert.equal(Object.hasOwn(publicView, 'traps'), true);
   assert.equal(publicView.traps.length, 0);
+});
+
+test('identical published map lists reuse the assembled map; synthetic dynamic records are deeply detached', async () => {
+  const map = { width: 10, obstacles: [], items: [], gates: [], traps: [], physicsProps: [] };
+  const prepared = await prepareMapPayload(map, async () => {});
+  const items = [{ id: 'nested', detail: { value: 1 } }], gates = [];
+  const read = () => prepared.read({ ...map, items, gates }, { publicMap: true,
+    itemsJson: JSON.stringify, gatesJson: JSON.stringify });
+  const first = read();
+  assert.equal(read(), first);
+  assert.throws(() => { first.items[0].detail.value = 2; }, TypeError);
+  items[0].detail.value = 3;
+  assert.equal(first.items[0].detail.value, 1);
+  const changed = read();
+  assert.notEqual(changed, first, 'a changed mutable source list invalidates the assembled map');
+  assert.equal(changed.items[0].detail.value, 3);
 });
 
 test('preparation yields while copying large and nested map arrays', async () => {
