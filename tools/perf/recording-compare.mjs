@@ -34,7 +34,11 @@ const header = { id: 'recording-comparison', seed: cache.seed, createdAt: 0, hz:
   version: match.version, contentId: match.contentId, schema: SCHEMA,
   minSchema: minimumReaderForMatch(map, match.hasPhysics === true), map: match.map() };
 const digests = [createHash('sha256'), createHash('sha256')], bytes = [0, 0];
-const writers = [baseline.createReplayWriter, createReplayWriter].map((create, i) => create({ header,
+// The changed writer receives the prepared map that production room startup uses;
+// the baseline receives the existing detached-map header. Both must be identical.
+const preparedHeader = { ...header, map: match.payloadMap('recording') };
+assert.equal(JSON.stringify(preparedHeader), JSON.stringify(header));
+const writers = [baseline.createReplayWriter, createReplayWriter].map((create, i) => create({ header: i ? preparedHeader : header,
   output: new Writable({ write(chunk, _encoding, next) { digests[i].update(chunk); bytes[i] += chunk.length; next(); } }),
   publish: async () => {}, onError: () => {} }));
 const frames = createHash('sha256'), snapshots = createHash('sha256');
