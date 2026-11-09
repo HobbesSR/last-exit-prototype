@@ -73,7 +73,13 @@ export class SeenCells extends Set<number> {
 
 /** A remembered item with the order it was first remembered in, which a scan of the memory would meet it in. */
 interface Held { seq: number; item: GroundItem; bucket: Held[] | null }
-/** Loot is found by coarse cell. A bot reaches about 210 units, so a few cells answer a query. */
+/**
+ * Loot is found by coarse cell. A bot reaches about 210 units, so a few cells answer a query. This follows the ground
+ * grid's pattern (`ground-items.ts`, #641) but is not that grid: the ground grid indexes a published list and
+ * places only frozen records (anything else waits as loose and is read by every query), while a bot's memory is a
+ * keyed `Map` of unfrozen copies, each replaced under its id on every sighting. Reusing it would leave every remembered item
+ * loose, which is the scan this removes.
+ */
 const BUCKET = 256, SPAN = 1 << 15;
 
 function bucketKey(x: number, y: number): number | undefined {
