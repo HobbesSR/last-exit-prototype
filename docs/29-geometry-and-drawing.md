@@ -41,8 +41,8 @@ shapes must be decomposed into convex pieces before they become geometry, with s
 ## Collision
 
 Collision is the physics engine's: Rapier 2D 0.21.0 behind one adapter, `shared/physics/world.ts`,
-which the server and the browser both run. The shipped default, `content-6` ([14](14-match-rules.md),
-#523), runs on it. Contents 1 to 5 still run the legacy mover, described last in this section for
+which the server and the browser both run. The shipped default, `content-7` ([14](14-match-rules.md),
+#865; `content-6` since #523), runs on it. Contents 1 to 5 still run the legacy mover, described last in this section for
 characterization and old recordings. The design is [29.1](29.1-physics-design.md), its state,
 networking and replay [29.2](29.2-physics-state-networking.md), and the plan and gates
 [41.1](41.1-physics-plan.md).

@@ -19,7 +19,7 @@ try {
   await start.click();
   await page.waitForFunction(() => window.arenaDebug().phase === 'live' && window.arenaDebug().me?.id, null, { timeout: 120000 });
   const live = await page.evaluate(() => window.arenaDebug());
-  assert.equal(live.content, 'content-6', 'a room with no options runs the shipped default');
+  assert.equal(live.content, 'content-7', 'a room with no options runs the shipped default');
   assert.equal(live.version, 'last-exit-0.8-physics-8', 'on the physics rules');
   const game = server.rooms.get(room).game;
   assert.equal(server.rooms.get(room).match.hasPhysics, true, 'the server built a physics match');

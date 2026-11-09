@@ -57,7 +57,7 @@ old recordings are unchanged ([31](31-verification.md)). Tuning is as it was in 
 profiles: the human feel review of 2026-10-28 ([42.20](42.20-physics-p9.md)) accepted it as it
 stands and deferred tuning, so nothing here was rebalanced for the switch.
 
-`content-7` (#682, selectable, not the default) is `content-6` with gladiator bots planning trips across
+`content-7` (#682, #865, the default) is `content-6` with gladiator bots planning trips across
 regions over the portal graph (`hunterPlanning: 'portals'`, 22.6). When its goal is in another region, a
 gladiator takes the regions to cross from the portal graph, costing each crossing by its straight-line
 length, and searches tiles only as far as the crossing after the next one. Once its goal is in its own
