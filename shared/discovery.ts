@@ -1,5 +1,6 @@
 import { gateShape, gatesNear, insideMap, litPoint, visibilityPolygon } from './movement.ts';
 import { itemsNear } from './simulation/ground-items.ts';
+import { ItemMemory, SeenCells } from './simulation/bot-memory.ts';
 import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
 import { count } from './profiler.ts';
@@ -147,10 +148,10 @@ export function discover(
       if (!poly) poly = visibilityPolygon(map, eye, radius);
       return litPoint(poly, eye, x, y);
     };
-    const seen = memory.seen ??= new Set();
+    const seen = memory.seen ??= new SeenCells(cols, rows);
     cells(radius, radius, (idx, cx, cy) => { if (!seen.has(idx) && sees(cx, cy)) seen.add(idx); });
     if (map.items) {
-      const items = memory.items ??= new Map();
+      const items = memory.items ??= new ItemMemory();
       const present = new Set<ItemId>();
       for (const item of itemsNear(map.items, eye, radius)) {
         if (!sees(item.x, item.y)) continue;
