@@ -7,7 +7,7 @@
  * maps `--save` keeps. Results: 42.37.
  *
  *   node map/tools/library-comparison.mts [--library FILE] [--widths 12,24,36] [--seeds 1,2,3]
- *     [--sparse FILL/SET_PIECES] [--macro] [--save DIR] [--out FILE [--replace]]
+ *     [--sparse FILL/SET_PIECES] [--skeleton ALGO[/SHARE[/shortcut]]] [--macro] [--save DIR] [--out FILE [--replace]]
  *
  * `--sparse` takes each size's bundled library through #851's experimental sparse sides
  * (`map/sparse-sides.ts`), for example `--sparse bundled/alternate` (42.40).
@@ -47,14 +47,17 @@ if (out && existsSync(out) && !process.argv.includes('--replace')) throw new Err
 const sparse = arg('--sparse', '');
 const skeletonArg = arg('--skeleton', '');
 const SKELETON_ALGOS: readonly string[] = ['wilson', 'prim', 'kruskal'];
-let skeletonConfig: { algorithm: SkeletonAlgorithm; extraOpenShare: number } | undefined;
+let skeletonConfig: { algorithm: SkeletonAlgorithm; extraOpenShare: number; shortcutPriority: boolean } | undefined;
 if (skeletonArg) {
-  const [algo, shareStr] = skeletonArg.split('/') as [SkeletonAlgorithm, string | undefined];
+  // ALGO[/SHARE[/shortcut]]: `shortcut` opens the extra seams joining the nodes farthest apart on the tree first, as the
+  // Map Lab always does; without it they are picked at random.
+  const [algo, shareStr, flag] = skeletonArg.split('/') as [SkeletonAlgorithm, string | undefined, string | undefined];
+  if (flag !== undefined && flag !== 'shortcut') throw new Error(`--skeleton's third part must be 'shortcut'; got ${flag}`);
   if (!SKELETON_ALGOS.includes(algo)) throw new Error(`--skeleton algorithm must be one of ${SKELETON_ALGOS.join(', ')}; got ${algo}`);
   const extraOpenShare = shareStr !== undefined ? Number(shareStr) : 0;
   if (!Number.isFinite(extraOpenShare) || extraOpenShare < 0 || extraOpenShare > 1)
     throw new Error(`--skeleton extraOpenShare must be a number between 0 and 1; got ${shareStr}`);
-  skeletonConfig = { algorithm: algo, extraOpenShare };
+  skeletonConfig = { algorithm: algo, extraOpenShare, shortcutPriority: flag === 'shortcut' };
 }
 if (sparse && libraryFile) throw new Error('--sparse and --library are exclusive');
 const library = libraryFile ? readLibraryFile(libraryFile) as { zoneWidth: number; name?: string } : undefined;
@@ -114,7 +117,7 @@ for (const width of widths) for (const n of seeds) {
   console.error(`${seed}: generated in ${seconds.toFixed(1)} s, measured`);
 }
 const resultsDoc = skeletonConfig ? 'docs/42.42-connectivity-skeleton-experiment.md' : (sparse ? 'docs/42.40-sparse-sides-experiment.md' : 'docs/42.37-matched-adoption.md');
-const libLabel = (libraryFile || (sparse ? 'sparse ' + sparse : 'bundled')) + (skeletonConfig ? ' skeleton ' + skeletonConfig.algorithm + '/' + skeletonConfig.extraOpenShare : '');
+const libLabel = (libraryFile || (sparse ? 'sparse ' + sparse : 'bundled')) + (skeletonConfig ? ' skeleton ' + skeletonConfig.algorithm + '/' + skeletonConfig.extraOpenShare + (skeletonConfig.shortcutPriority ? '/shortcut' : '') : '');
 const report = { version: 'library-comparison-1', definitions: 'docs/51.10-measurement.md', results: resultsDoc,
   revision: git('rev-parse', 'HEAD'), library: libLabel, stages: macroOnly ? 'macro' : 'built', node: process.version, maps };
 if (out) writeFileSync(out, JSON.stringify(report, null, 1) + '\n'); else console.log(JSON.stringify(report, null, 1));
