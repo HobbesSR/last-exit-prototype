@@ -97,10 +97,10 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function view(room, session) {
     if (session.playerId && room.waiting) return { map: room.waiting.map, state: waitingView(room.waiting, session.playerId) };
     if (!room.match) return { map: null, state: null };
-    if (session.playerId) return { map: room.match.liveMap(), state: room.match.project(room.match.snapshot(), session.playerId) };
+    if (session.playerId) return { map: room.match.payloadMap?.('live') ?? room.match.liveMap(), state: room.match.project(room.match.snapshot(), session.playerId) };
     // A spectator is shown the delayed frame; the dev view the present one.
     const frame = session.dev ? room.match.snapshot() : spectatorFrame(room);
-    return { map: room.match.spectatorMap(frame), state: room.match.project(frame, null) };
+    return { map: room.match.payloadMap?.('spectator', frame) ?? room.match.spectatorMap(frame), state: room.match.project(frame, null) };
   }
   const preferredRole = (room, preference) => room.seats.preferredRole(preference);
   /** Every unfinished room's public summary: plain data, never the room, and never its owner key. */
@@ -157,7 +157,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   }
   function startRecording(room) {
     try {
-      const map = room.match.map();
+      const map = room.match.payloadMap?.('recording') ?? room.match.map();
       room.writer = replays.start({ version: room.match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(map, room.match.hasPhysics === true), contentId: room.match.contentId, presentation: room.presentation, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map },
         { onError: error => failRecording(room, error) });
       if (room.recordingError) room.writer?.abort?.(room.recordingError);

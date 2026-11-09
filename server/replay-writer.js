@@ -1,6 +1,7 @@
 import { Worker } from 'node:worker_threads';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
+import { stringifyWithMap } from './map-payload.js';
 
 // Without an explicit budget the queue holds the larger of 8 MiB and the header (which carries the map) plus four frames
 // of the size being appended, so a larger map's frames are not all dropped (a 72x36 frame is about 3.3 MiB, 42.22); see 26.
@@ -79,7 +80,7 @@ export function createReplayWriter({ header, output, outputPath, publish, onErro
   output?.on('close', () => { if (!output.writableFinished && !failed) fail(new Error('Replay output closed before completion')); });
   try {
     // Preserve header order and compact JSON. No mutable caller-owned data crosses the boundary.
-    const text = `${JSON.stringify(header).slice(0, -1)},"frames":[`;
+    const text = `${stringifyWithMap(header).slice(0, -1)},"frames":[`;
     headerBytes = Buffer.byteLength(text);
     worker = new Worker(new URL('./replay-worker.js', import.meta.url), { workerData: { outputPath, gzipOptions } });
     worker.on('error', fail);

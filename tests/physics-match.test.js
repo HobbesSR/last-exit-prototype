@@ -6,6 +6,8 @@ import { contentById } from '../shared/simulation/content.ts';
 import { createPhysicsGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { insideMap } from '../shared/movement.ts';
+import { stringifyWithMap } from '../server/map-payload.js';
+import { replaceItem } from '../shared/simulation/ground-items.ts';
 
 const content = () => ({ ...structuredClone(contentById('content-1')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = (x = 0, y = 0) => ({ width: x + 600, height: y + 400, playableArea: { cellSize: 100, rows: Array.from({ length: (y + 400) / 100 }, (_, y) => ({ y, runs: [[0, (x + 600) / 100]] })) },
@@ -49,6 +51,75 @@ test('room composition awaits explicit physics factory, stamps pinned rules and 
   await service.close();
   assert.equal(header.version, PHYSICS_VERSION);
   assert.throws(() => world.counts(), /disposed/);
+});
+
+test('prepared map payloads match detached map queries at live and historical boundaries', async () => {
+  const map = arena();
+  map.gates.push({ id: 'gate', x: 300, y: 100, w: 20, h: 20, kind: 'door', open: false, locked: false });
+  map.items.push({ id: 'cell', x: 400, y: 200, kind: 'cell', charge: 0 });
+  map.physicsProps = [{ id: 'authored', x: 450, y: 250, profile: 'crate' }];
+  const match = await createPhysicsMatch(1, undefined, map, content());
+  try {
+    const old = match.snapshot();
+    const check = (kind, expected, frame) => {
+      const payload = match.payloadMap(kind, frame);
+      assert.equal(stringifyWithMap({ type: 'ready', map: payload }), JSON.stringify({ type: 'ready', map: expected }));
+      assert.deepEqual(payload, expected);
+      return payload;
+    };
+    const initial = check('recording', match.map());
+    check('live', match.liveMap());
+    check('spectator', match.spectatorMap(old), old);
+    map.gates[0].open = true;
+    replaceItem(match.diagnosticState, map.items[0], { ...map.items[0], x: 420 });
+    map.traps.push({ id: 'private-trap', x: 20, y: 20 });
+    const current = check('recording', match.map());
+    check('live', match.liveMap());
+    const delayed = check('spectator', match.spectatorMap(old), old);
+    assert.equal(delayed.gates[0].open, false);
+    assert.equal(delayed.items[0].x, 400);
+    assert.deepEqual(delayed.traps, []);
+    assert.equal('physicsProps' in delayed, false);
+    assert.equal(initial.gates[0].open, false);
+    assert.equal(initial.items[0].x, 400);
+    assert.deepEqual(initial.traps, []);
+    assert.equal(current.traps.length, 1);
+    assert.throws(() => current.items.pop(), TypeError);
+    assert.throws(() => current.items[0].x = 0, TypeError);
+    assert.equal(match.map().items[0].x, 420);
+  } finally { match.dispose(); }
+});
+
+test('room welcomes and recording start use prepared maps without changing start or command ordering', async () => {
+  let match, header;
+  const frames = [], messages = [];
+  const service = createRoomService({ devTools: 'all', content,
+    matchFactory: async (...args) => {
+      match = await createPhysicsMatch(...args);
+      return { ...match, map() { throw new Error('full map clone'); }, liveMap() { throw new Error('live map clone'); },
+        spectatorMap() { throw new Error('spectator map clone'); } };
+    },
+    replays: { start(value) { header = structuredClone(value); return {
+      append(state, commands) { frames.push(structuredClone({ state, commands })); return true; }, finish() { return {}; }
+    }; } }
+  });
+  const room = service.makeRoom(1, false, undefined, arena());
+  const player = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
+  service.receive(player, { type: 'join', room: room.id, ownerKey: room.ownerKey, name: 'Player' });
+  service.receive(player, { type: 'start' });
+  try {
+    assert.notEqual(messages[0].map.width, 600, 'player first sees the waiting yard, not the match map');
+    await room.ready;
+    assert.equal(room.started, true);
+    const ready = messages.find(message => message.type === 'ready');
+    assert.deepEqual(ready.map, match.liveMap());
+    assert.deepEqual(header.map, match.map());
+    assert.deepEqual(frames[0].commands.map(command => command.type), ['join', 'start']);
+    assert.equal(frames[0].state.tick, 0);
+    const watcher = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
+    service.receive(watcher, { type: 'join', room: room.id, role: 'dev' });
+    assert.deepEqual(messages.at(-1).map, match.spectatorMap(match.snapshot()));
+  } finally { await service.close(); }
 });
 
 test('cooperative physics preparation yields between static geometry batches without changing the match trace', async () => {
