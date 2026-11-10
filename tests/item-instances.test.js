@@ -332,10 +332,10 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   for (const player of s.players) { player.bot = false; player.input = {}; }
   const p = s.players[0], chunks = [];
   const header = { id: 'item-roundtrip', version: s.version, contentId: s.content.id,
-    schema: SCHEMA, minSchema: minimumReaderForMatch(map, false), seed: s.seed,
+    schema: SCHEMA, minSchema: minimumReaderForMatch(map, true), seed: s.seed,
     hz: 20, createdAt: 1, map: structuredClone(map) };
   assert.equal(header.schema, 16);
-  assert.equal(header.minSchema, 4);
+  assert.equal(header.minSchema, 10);
   assert.equal(recordingFit(header), 'ok');
   assert.equal(recordingFit({ ...header, schema: 10, minSchema: 10 }), 'ok');
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
