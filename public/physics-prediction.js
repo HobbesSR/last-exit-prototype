@@ -34,7 +34,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     // Timers precede motors on authority too. Ability activation waits for authority.
     value.boost = Math.max(0, (value.boost ?? 0) - 1);
     value.stun = Math.max(0, (value.stun ?? 0) - 1);
-    world.setMotor(own.id, characterMotor(motor, map.motorSurfaces, value,
+    world.setMotor(own.id, characterMotor(motor, motor.surfaces ? map.motorSurfaces : undefined, value,
       input.x ?? 0, input.y ?? 0, movementSpeed(value, input, 20)));
     world.step(); world.drainContacts();
     Object.assign(value, world.getTransform(own.id)); tick++;

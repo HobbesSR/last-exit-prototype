@@ -35,8 +35,8 @@ test('own physics view publishes only pinned motor tuning; directed and legacy v
     // The world's settings are frozen and shared with the frame (22.1 "Frames"), so the scenario gets its own.
     frame.physics.settings = { ...frame.physics.settings, secret: 'private-setting' };
     const own = playerView(game, frame, id);
-    assert.deepEqual(own.predictionMotor, { acceleration: 4200, braking: 2200, maxSpeed: 540 });
-    assert.deepEqual(Object.keys(own.predictionMotor), ['acceleration', 'braking', 'maxSpeed']);
+    assert.deepEqual(own.predictionMotor, { acceleration: 4200, braking: 2200, maxSpeed: 540, surfaces: true });
+    assert.deepEqual(Object.keys(own.predictionMotor), ['acceleration', 'braking', 'maxSpeed', 'surfaces']);
     assert.equal(JSON.stringify(own.predictionMotor).includes('777'), false);
     assert.equal(JSON.stringify(own).includes('private-setting'), false);
     assert.equal(Object.hasOwn(playerView(game, frame, 'missing'), 'predictionMotor'), false);
@@ -52,7 +52,7 @@ test('own physics view publishes only pinned motor tuning; directed and legacy v
   const p1 = await createPhysicsGame(1, arena(), content('content-1'));
   try {
     assert.deepEqual(playerView(p1, snapshot(p1), p1.players[0].id).predictionMotor,
-      { acceleration: 3600, braking: 3600, maxSpeed: 768 });
+      { acceleration: 3600, braking: 3600, maxSpeed: 768, surfaces: false }, 'without a profile the authority reads no surfaces');
   } finally { disposePhysics(p1); }
 
   const legacy = createGame(1, arena(), content('content-1'));
