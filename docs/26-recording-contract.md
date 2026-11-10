@@ -253,8 +253,21 @@ the header plus four frames of the size being appended, so it grows with the map
 have their own bounded high-water marks. An incoming frame that exceeds available
 queue capacity is omitted in its entirety; no command/frame fragments are written.
 The writer resumes accepting frames when capacity returns. It never retains
-mutable snapshots. Serialization remains synchronous CPU work;
-this isolates storage waits and failures, not arbitrary event-loop stalls.
+mutable snapshots. The changing fields and commands are serialized on the main thread. A recording
+worker assembles complete frames from those parts and the kept item/gate JSON,
+then encodes UTF-8, hashes and compresses them (#728). Kept lists are sent only
+when their serialized value differs from the last retained frame; an omitted
+frame cannot advance that worker cache. This is a storage implementation change,
+with no schema, reader floor, content or gameplay version change.
+
+The main thread reserves each accepted frame's exact uncompressed byte length
+until the worker's gzip write callback acknowledges consumption. The budget
+therefore includes messages waiting in either thread and bytes offered to gzip,
+without depending on how quickly the worker receives messages. Production file
+streams live in the recording worker. Injected Writable outputs use an
+acknowledged compressed-chunk bridge: the worker waits for the output callback
+before sending the next chunk. Worker errors and unexpected exits fail only the
+recording; abort and finalization deadlines also terminate the worker.
 
 ## Playback
 

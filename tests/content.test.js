@@ -29,7 +29,7 @@ test('shipped content ids return independent deeply frozen retained and current 
   const current = contentById('content-2');
   assert.equal(legacy.id, 'content-1');
   assert.equal(current.id, 'content-2');
-  assert.equal(defaultContent().id, 'content-6', 'the shipped default advances without changing legacy content');
+  assert.equal(defaultContent().id, 'content-7', 'the shipped default advances without changing legacy content');
   assert.equal(legacyContent().id, 'content-5', 'and the legacy mover keeps the last set it runs');
   // content-3 changes only how bots plan (#424): content-2's numbers and roster, over free-space tiles.
   const { id, navigation, ...tuning } = contentById('content-3'), { id: _, ...previous } = current;

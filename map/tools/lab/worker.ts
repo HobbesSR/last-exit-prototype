@@ -4,8 +4,8 @@
  * rebuilding one region to trace its buildings, and measuring routes through the built map.
  * Each map request goes through the tools' core, as the CLI and MCP do.
  */
-import { checkMap, generate, readMap } from "../core.ts";
-import type { ToolMap } from "../core.ts";
+import { checkMap, generate, readMap, tracePlacement } from "../core.ts";
+import type { ToolMap, PlacementRecording } from "../core.ts";
 import type { BuiltMap, RegionBrief } from "../../kernel/contract.ts";
 import { buildRegion } from "../../micro/region-types.ts";
 import { planBlock } from "../../micro/strategies/block.ts";
@@ -18,6 +18,7 @@ import type { RouteMeasure } from "../routes.ts";
 import type { Vec2 } from "../../../shared/types.ts";
 
 export type LabRequest =
+  | { kind: "placement"; seed: string; params: object; library: unknown }
   | { kind: "generate"; seed: string; params: object; library: unknown }
   | { kind: "read"; saved: Uint8Array }
   | { kind: "diagnose"; map: ToolMap }
@@ -25,6 +26,7 @@ export type LabRequest =
   | { kind: "routes"; built: BuiltMap<RegionElement>; from: Vec2; to: Vec2 };
 
 export type LabReply =
+  | { kind: "placement"; recording: PlacementRecording; ms: number }
   | { kind: "map"; map: ToolMap; ms: number; live: string[] }
   | { kind: "diagnosis"; brokenPromises: NonNullable<ReturnType<typeof checkMap>["brokenPromises"]>; ms: number }
   | { kind: "drill"; id: string; traces: BuildingTrace[]; lots: RegionBrief[]; difference: string | null; ms: number }
@@ -45,6 +47,8 @@ function answer(request: LabRequest): LabReply {
   const started = performance.now();
   const ms = () => performance.now() - started;
   switch (request.kind) {
+    case "placement":
+      return { kind: "placement", recording: tracePlacement(request.seed, request.params, request.library), ms: ms() };
     // Why a room wouldn't play the map (53 "Play in the game"). A map just generated is its
     // recipe's by construction; a read one is compared with its seed's, as a save can be edited.
     case "generate": {

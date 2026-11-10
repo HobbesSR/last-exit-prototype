@@ -3,6 +3,7 @@ import { CORE_ELEMENT_KINDS } from "../../../kernel/contract.ts";
 import type { CoreElementKind } from "../../../kernel/contract.ts";
 import { boundaryRuns } from "../../../kernel/run.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
+import type { ConnectivitySkeletonConfig } from "./skeleton.ts";
 export const CHAIN_LIBRARY_VERSION = 3;
 export const CHAIN_TILE_SIZE = 6;
 /** Module file format; independent of each module's authored content version. */
@@ -102,6 +103,16 @@ export interface ChainLibrary {
   setPieceClasses: ChainSetPieceClass[];
   /** Absent means `either-side`; present only when the top-level library states it. */
   passabilityRules?: PassabilityRules;
+  /**
+   * Experimental (#856, #851): placement refuses a set piece anchor, member or orientation whose
+   * sides don't fit a set piece already placed beside it. Present only when stated, so bundled
+   * libraries keep their fingerprints and maps; the Map Lab's sparse-sides libraries state it.
+   */
+  fitPlacedSetPieces?: boolean;
+  /** Experimental (#891): place start and end pieces before the remaining largest-first pieces. */
+  startEndFirst?: boolean;
+  /** Experimental (#883): forced-open spanning tree over slots. */
+  connectivitySkeleton?: boolean | ConnectivitySkeletonConfig;
 }
 
 export interface LibraryValidation {
@@ -136,7 +147,7 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
   const lists = ["tiles", "tileSets", "setPieces"] as const;
   function consume(raw: Record<string, unknown>, source: string, isTop: boolean): void {
     const allowed = isTop
-      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "passabilityRules", "includes", "cellClasses", ...lists, "setPieceClasses"]
+      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "passabilityRules", "fitPlacedSetPieces", "startEndFirst", "connectivitySkeleton", "includes", "cellClasses", ...lists, "setPieceClasses"]
       : ["schema", "name", "version", "includes", "cellClasses", ...lists];
     for (const key of Object.keys(raw)) if (!allowed.includes(key)) throw new Error(`${source}: unknown field ${key}`);
     if (raw.cellClasses !== undefined && !object(raw.cellClasses)) throw new Error(`${source}: cellClasses must be an object`);
@@ -163,6 +174,19 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
       if (raw.passabilityRules !== undefined) {
         if (!PASSABILITY_RULES.has(raw.passabilityRules as PassabilityRules)) throw new Error(`${source}: unknown passabilityRules ${String(raw.passabilityRules)}`);
         resolved.passabilityRules = raw.passabilityRules as PassabilityRules;
+      }
+      if (raw.fitPlacedSetPieces !== undefined) {
+        if (typeof raw.fitPlacedSetPieces !== "boolean") throw new Error(`${source}: fitPlacedSetPieces must be a boolean`);
+        resolved.fitPlacedSetPieces = raw.fitPlacedSetPieces;
+      }
+      if (raw.startEndFirst !== undefined) {
+        if (typeof raw.startEndFirst !== "boolean") throw new Error(`${source}: startEndFirst must be a boolean`);
+        resolved.startEndFirst = raw.startEndFirst;
+      }
+      if (raw.connectivitySkeleton !== undefined) {
+        if (typeof raw.connectivitySkeleton !== "boolean" && !object(raw.connectivitySkeleton))
+          throw new Error(`${source}: connectivitySkeleton must be a boolean or object`);
+        resolved.connectivitySkeleton = structuredClone(raw.connectivitySkeleton) as boolean | ConnectivitySkeletonConfig;
       }
     }
   }
@@ -345,7 +369,26 @@ export function validateLibrary(
 ): LibraryValidation {
   const errors: string[] = [];
   if (!object(library)) return { valid: false, errors: ["library: must be an object"] };
-  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses", "passabilityRules"], "library", errors);
+  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses", "passabilityRules", "fitPlacedSetPieces", "startEndFirst", "connectivitySkeleton"], "library", errors);
+  if (library.startEndFirst !== undefined && typeof library.startEndFirst !== "boolean")
+    errors.push("library: startEndFirst must be a boolean");
+  if (library.connectivitySkeleton !== undefined) {
+    if (typeof library.connectivitySkeleton !== "boolean" && !object(library.connectivitySkeleton)) {
+      errors.push("library: connectivitySkeleton must be a boolean or object");
+    } else if (object(library.connectivitySkeleton)) {
+      const cfg = library.connectivitySkeleton as Record<string, unknown>;
+      if (cfg.algorithm !== undefined && !["wilson", "prim", "kruskal"].includes(cfg.algorithm as string))
+        errors.push(`library: unknown skeleton algorithm ${String(cfg.algorithm)}`);
+      if (cfg.extraOpenShare !== undefined && (typeof cfg.extraOpenShare !== "number" || cfg.extraOpenShare < 0 || cfg.extraOpenShare > 1))
+        errors.push("library: connectivitySkeleton extraOpenShare must be a number between 0 and 1");
+      if (cfg.filterParts !== undefined && typeof cfg.filterParts !== "boolean")
+        errors.push("library: connectivitySkeleton filterParts must be a boolean");
+      if (cfg.shortcutPriority !== undefined && typeof cfg.shortcutPriority !== "boolean")
+        errors.push("library: connectivitySkeleton shortcutPriority must be a boolean");
+    }
+  }
+  if (library.fitPlacedSetPieces !== undefined && typeof library.fitPlacedSetPieces !== "boolean")
+    errors.push("library: fitPlacedSetPieces must be a boolean");
   if (library.passabilityRules !== undefined && !PASSABILITY_RULES.has(library.passabilityRules as PassabilityRules))
     errors.push(`library: unknown passabilityRules ${String(library.passabilityRules)}`);
   if (library.version !== CHAIN_LIBRARY_VERSION) errors.push(`library: unsupported version ${String(library.version)}`);

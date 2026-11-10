@@ -6,21 +6,25 @@
  * A sample whose set pieces don't fit, or whose fill has no solution, is retried, each
  * attempt on its own stream.
  */
+import type { PlacementTraceDetail, PlacementTraceEvent } from "./placement-trace.ts";
 import { libraryFingerprint } from "../coding.ts";
-import { solveWfc } from "../wfc.ts";
-import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
+import { solveWfc, wfcIterationCap } from "../wfc.ts";
+import type { TileOption, WfcAccept, WfcCompatibility, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import { openFaceRule } from "./open-face.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE, countParamsProblem } from "./library.ts";
 import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, PlacementRule } from "./library.ts";
-import { passabilityFits } from "./resolution.ts";
+import { DEFAULT_RESOLVED_CLASS, guaranteesPassability, passabilityFits } from "./resolution.ts";
+import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
+import type { PassabilityRules } from "./library.ts";
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
 import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SegmentKey, SetPieceInstance } from "./types.ts";
 import { planTiles, zonePlan } from "./zone-plan.ts";
 import type { PlacementFilter, ZonePlan } from "./zone-plan.ts";
 import { layoutSlots, makeZones } from "./zones.ts";
+import { buildSkeleton, applySkeletonToGrid, bothRules, skeletonPartRule } from "./skeleton.ts";
 import type { MapZone, MaskCell } from "./zones.ts";
 
 export const PLACEMENT_ATTEMPTS = 50;
@@ -49,7 +53,7 @@ const RULE_ORDER: readonly PlacementRule[] = ["start", "end", "enormous", "trans
 
 interface Pick { setPieceClass: ChainSetPieceClass; piece: ChainSetPiece; filter: PlacementFilter }
 
-/** Every class's quota of set pieces, in placement order: largest first, ties as drawn. */
+/** Every class's quota, largest first unless start/end priority is requested; ties as drawn. */
 function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>, plan: ZonePlan, columns: number, rows: number, random: Stream): Pick[] {
   const picks: Pick[] = [];
   for (const rule of RULE_ORDER) for (const setPieceClass of library.setPieceClasses) {
@@ -61,7 +65,11 @@ function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>
       : Array.from({ length: setPieceClass.quota }, () => random.pick(members));
     chosen.forEach((piece, nth) => picks.push({ setPieceClass, piece, filter: plan.placementFilter(rule, nth, setPieceClass.quota, columns, rows) }));
   }
-  return picks.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
+  // Sorting never draws: the pick stream and each rule's quota/filter stay unchanged.
+  const priority = (pick: Pick): number => pick.setPieceClass.placementRule === "start" ? 0
+    : pick.setPieceClass.placementRule === "end" ? 1 : 2;
+  return picks.sort((a, b) => (library.startEndFirst === true ? priority(a) - priority(b) : 0)
+    || b.piece.tiles.length - a.piece.tiles.length);
 }
 
 /** Whether the fill may place a design: not stated `fillable: false`, nor weighted 0 as older content says it (52). */
@@ -103,7 +111,7 @@ const meets = (required: string | undefined, found: string): boolean =>
 
 const S = CHAIN_TILE_SIZE;
 /** `b` east of `a`: each side's prescriptions on the shared seam against the other's cells. */
-function fitsEast(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
+export function fitsEast(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
   for (let i = 0; i < S; i++) {
     const near = a.segments.get(`v:${S},${i}`), far = b.segments.get(`v:0,${i}`);
     if (!meets(near?.adjacency, b.cells[i * S]!)) return false;
@@ -113,7 +121,7 @@ function fitsEast(a: OrientedDesign, b: OrientedDesign, matched: boolean): boole
   return true;
 }
 /** `b` south of `a`. */
-function fitsSouth(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
+export function fitsSouth(a: OrientedDesign, b: OrientedDesign, matched: boolean): boolean {
   for (let i = 0; i < S; i++) {
     const near = a.segments.get(`h:${i},${S}`), far = b.segments.get(`h:${i},0`);
     if (!meets(near?.adjacency, b.cells[i]!)) return false;
@@ -182,16 +190,95 @@ const agree = (a: string | undefined, b: string | undefined): boolean =>
  *   `any` (or unstated) fits anything, otherwise like with like. Under `either-side`,
  *   passability can't conflict, so it never constrains the solve.
  */
+export function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
+  let portalRun = 0;
+  let lastA: string | undefined, lastB: string | undefined;
+  for (let k = 0; k < S; k++) {
+    const cellA = a.cells[k * S + S - 1]!, cellB = b.cells[k * S]!;
+    const segA = a.segments.get(`v:${S},${k}`), segB = b.segments.get(`v:0,${k}`);
+    const reqB = segB?.adjacency, reqA = segA?.adjacency;
+    const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+    const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+    if (resA === resB) return true;
+    const pA = segA?.passability, pB = segB?.passability;
+    if (guaranteesPassability(pA, pB, rules, false)) {
+      if (resA === lastA && resB === lastB) {
+        portalRun++;
+      } else {
+        portalRun = 1;
+        lastA = resA;
+        lastB = resB;
+      }
+      if (portalRun >= MIN_PORTAL_LENGTH) return true;
+    } else {
+      portalRun = 0;
+      lastA = undefined;
+      lastB = undefined;
+    }
+  }
+  return false;
+}
+
+export function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules): boolean {
+  let portalRun = 0;
+  let lastA: string | undefined, lastB: string | undefined;
+  for (let k = 0; k < S; k++) {
+    const cellA = a.cells[(S - 1) * S + k]!, cellB = b.cells[k]!;
+    const segA = a.segments.get(`h:${k},${S}`), segB = b.segments.get(`h:${k},0`);
+    const reqB = segB?.adjacency, reqA = segA?.adjacency;
+    const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
+    const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+    if (resA === resB) return true;
+    const pA = segA?.passability, pB = segB?.passability;
+    if (guaranteesPassability(pA, pB, rules, false)) {
+      if (resA === lastA && resB === lastB) {
+        portalRun++;
+      } else {
+        portalRun = 1;
+        lastA = resA;
+        lastB = resB;
+      }
+      if (portalRun >= MIN_PORTAL_LENGTH) return true;
+    } else {
+      portalRun = 0;
+      lastA = undefined;
+      lastB = undefined;
+    }
+  }
+  return false;
+}
+
+export function adjacencyConnects(library: ChainLibrary): (a: TileOption, relation: string, b: TileOption) => boolean {
+  const oriented = orientedDesigns(library);
+  const of = (option: TileOption) => oriented(option.templateId, option.orientation);
+  const rules = library.passabilityRules ?? "either-side";
+  return (a, relation, b) => {
+    const dir = relation.split(":")[0];
+    switch (dir) {
+      case "E": return edgeConnectsEast(of(a), of(b), rules);
+      case "W": return edgeConnectsEast(of(b), of(a), rules);
+      case "S": return edgeConnectsSouth(of(a), of(b), rules);
+      case "N": return edgeConnectsSouth(of(b), of(a), rules);
+      default: return false;
+    }
+  };
+}
+
 export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility {
   const oriented = orientedDesigns(library);
   const of = (option: TileOption) => oriented(option.templateId, option.orientation);
   const matched = library.passabilityRules === "matched";
+  const rules = library.passabilityRules ?? "either-side";
   return (a, relation, b) => {
     switch (relation) {
       case "E": return fitsEast(of(a), of(b), matched);
       case "W": return fitsEast(of(b), of(a), matched);
       case "S": return fitsSouth(of(a), of(b), matched);
       case "N": return fitsSouth(of(b), of(a), matched);
+      case "E:must-open": return fitsEast(of(a), of(b), matched) && edgeConnectsEast(of(a), of(b), rules);
+      case "W:must-open": return fitsEast(of(b), of(a), matched) && edgeConnectsEast(of(b), of(a), rules);
+      case "S:must-open": return fitsSouth(of(a), of(b), matched) && edgeConnectsSouth(of(a), of(b), rules);
+      case "N:must-open": return fitsSouth(of(b), of(a), matched) && edgeConnectsSouth(of(b), of(a), rules);
     }
     const [corner, side] = relation.split(":") as [Corner, string];
     const keys = CORNERS[corner] as Record<string, SegmentKey>;
@@ -227,11 +314,17 @@ export function adjacencyLinks(grid: WfcGrid): void {
 
 type Failure = `set piece ${string}` | "wfc";
 
+/**
+ * What one placement attempt did, for probes and views of the solve (#857): search nodes,
+ * open-face refusals, the most refusals between two new depths, and how it ended.
+ */
+export interface PlacementAttempt { nodes: number; refusals: number; mostStall: number; outcome: "placed" | Failure }
+
 /** One sample: set pieces, then WFC. A failure names what failed, for the final error. */
 function sample(
   seed: string, params: ChainParams, library: ChainLibrary, fingerprint: string,
   mask: MaskCell[], zones: Map<string, MapZone>, fill: (zone: MapZone) => ChainTileDesign[],
-  random: Stream, openFace: boolean, refused: (reason: string) => void,
+  random: Stream, openFace: boolean, refused: (reason: string) => void, attempt?: PlacementAttempt, lookahead?: number, trace?: (event: PlacementTraceDetail) => void,
 ): Layout | Failure {
   const plan = zonePlan(params), { columns, rows } = planTiles(plan, params);
   const designs = new Map(library.tiles.map((tile) => [tile.id, tile]));
@@ -240,6 +333,20 @@ function sample(
   const slotAt = new Map(mask.map((cell, i) => [`${cell.x},${cell.y}`, i]));
   const assigned: Array<{ design: string; orientation: Orientation } | undefined> = new Array(mask.length);
   const instances: SetPieceInstance[] = [];
+  // Experimental (#856): only libraries stating it check a piece's sides against pieces already placed.
+  const fitPlaced = library.fitPlacedSetPieces === true;
+  const oriented = orientedDesigns(library), matched = library.passabilityRules === "matched";
+  const fitsPlacedNeighbours = (j: number, id: string, orientation: Orientation): boolean => {
+    const here = oriented(id, orientation), { x, y } = mask[j]!;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const n = slotAt.get(`${x + dx},${y + dy}`), there = n === undefined ? undefined : assigned[n];
+      if (!there) continue;
+      const other = oriented(there.design, there.orientation);
+      if (!(dx === 1 ? fitsEast(here, other, matched) : dx === -1 ? fitsEast(other, here, matched)
+        : dy === 1 ? fitsSouth(here, other, matched) : fitsSouth(other, here, matched))) return false;
+    }
+    return true;
+  };
 
   const picks = (params.mode ?? "game") === "game" ? pickSetPieces(library, pieces, plan, columns, rows, random) : [];
   for (const [nth, { setPieceClass, piece, filter }] of picks.entries()) {
@@ -251,22 +358,40 @@ function sample(
       return tileSets.get(tileSetId)!.members.map((id) => designs.get(id)!).filter((tile) =>
         eligibleIn(tile, zone) && (orientation === undefined || tile.orientations.includes(orientation)));
     };
+    // Orientations a slot's member may take; with `fitPlacedSetPieces`, only those fitting placed neighbours.
+    const turns = (k: number, j: number, design: ChainTileDesign): Orientation[] => {
+      const allowed = (piece.tiles[k]!.orientation !== undefined ? [piece.tiles[k]!.orientation] : design.orientations) as Orientation[];
+      return fitPlaced ? allowed.filter((orientation) => fitsPlacedNeighbours(j, design.id, orientation)) : allowed;
+    };
+    const fitting = (k: number, j: number): ChainTileDesign[] =>
+      fitPlaced ? eligible(k, j).filter((design) => turns(k, j, design).length > 0) : eligible(k, j);
     const placements: number[][] = [];
     for (const anchor of mask) {
       if (!filter(anchor, width)) continue;
       const covered = piece.tiles.map((s) => slotAt.get(`${anchor.x + s.dx},${anchor.y + s.dy}`));
       if (covered.every((j, k) => j !== undefined && !assigned[j] &&
         (!piece.eligibleTiers || piece.eligibleTiers.includes(zones.get(mask[j]!.zoneId)!.tier)) &&
-        eligible(k, j).length > 0))
+        fitting(k, j).length > 0))
         placements.push(covered as number[]);
     }
-    if (!placements.length) return `set piece ${piece.id}`;
+    if (!placements.length) {
+      trace?.({ type: "set-piece-failed", setPiece: piece.id, reason: "no eligible placement" });
+      return `set piece ${piece.id}`;
+    }
     const covered = random.pick(placements);
-    piece.tiles.forEach((s, k) => {
-      const design = random.pick(eligible(k, covered[k]!));
-      const orientation = (s.orientation ?? random.pick(design.orientations)) as Orientation;
+    for (const [k, s] of piece.tiles.entries()) {
+      const choices = fitting(k, covered[k]!);
+      // A slot whose own piece's earlier members left it no fit fails here, as the solve would.
+      if (!choices.length) {
+        trace?.({ type: "set-piece-failed", setPiece: piece.id, reason: "earlier members left no fitting design" });
+        return `set piece ${piece.id}`;
+      }
+      const design = random.pick(choices);
+      const orientation = (s.orientation ?? random.pick(fitPlaced ? turns(k, covered[k]!, design) : design.orientations)) as Orientation;
       assigned[covered[k]!] = { design: design.id, orientation };
-    });
+      trace?.({ type: "set-piece-slot", instance: `${piece.id}#${nth}`, setPiece: piece.id,
+        setPieceClass: setPieceClass.id, slot: covered[k]!, design: design.id, orientation });
+    }
     instances.push({
       id: `${piece.id}#${nth}`, setPiece: piece.id, setPieceClass: setPieceClass.id,
       slots: covered.map((j) => ({ col: mask[j]!.col, row: mask[j]!.row })),
@@ -293,8 +418,54 @@ function sample(
     };
   });
   adjacencyLinks(grid);
+  let partRule: WfcAccept | undefined;
+  if (library.connectivitySkeleton) {
+    const skeletonConfig = typeof library.connectivitySkeleton === "object" ? library.connectivitySkeleton : {};
+    const maxTries = 5;
+    const initialDomains = grid.map((c) => c.domain.slice());
+    let skeletonResult: ReturnType<typeof buildSkeleton> | undefined;
+    let ok = false;
+
+    for (let tryIdx = 0; tryIdx < maxTries; tryIdx++) {
+      if (tryIdx > 0) {
+        for (let i = 0; i < grid.length; i++) {
+          grid[i]!.domain = initialDomains[i]!.slice();
+          for (const l of grid[i]!.links) {
+            if (l.relation.endsWith(":must-open")) {
+              l.relation = l.relation.slice(0, -10);
+            }
+          }
+        }
+      }
+      skeletonResult = buildSkeleton(mask, assigned, instances, zones, (zone) => fill(zone), library, random, skeletonConfig);
+      ok = applySkeletonToGrid(grid, library, skeletonResult, skeletonConfig.filterParts !== false);
+      if (ok) break;
+    }
+
+    if (skeletonResult && skeletonConfig.filterParts !== false) partRule = skeletonPartRule(library, skeletonResult.forcedSeams);
+    if (skeletonResult) {
+      trace?.({
+        type: "skeleton",
+        algorithm: skeletonConfig.algorithm ?? "wilson",
+        extraOpenShare: skeletonConfig.extraOpenShare ?? 0,
+        edges: skeletonResult.forcedSeams.map((s) => ({ slotA: s.slotA, slotB: s.slotB, dir: s.dir, isTree: s.isTree })),
+      });
+    }
+  }
+  const state = { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, stall = { most: 0 };
+  const counted = (reason: string) => { if (attempt) attempt.refusals++; refused(reason); };
   const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
-    { ...(openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {}), stallLimit: PLACEMENT_STALL_LIMIT });
+    {
+      ...(() => {
+        const face = openFace ? openFaceRule(library, grid, columns, rows, counted, lookahead, trace) : undefined;
+        const accept = partRule ? bothRules(partRule, face) : face;
+        return accept ? { accept } : {};
+      })(),
+      stallLimit: PLACEMENT_STALL_LIMIT, state, stall,
+      ...(trace ? { trace } : {}),
+      connects: adjacencyConnects(library),
+    });
+  if (attempt) Object.assign(attempt, { nodes: state.iterations, mostStall: stall.most });
   if (!solved) return "wfc";
 
   const slots: PlacedSlot[] = mask
@@ -305,9 +476,13 @@ function sample(
 
 /**
  * Placement, with the open-face rule on or off. Only tests switch it off, to show that
- * layouts it would refuse do occur (the PR #110 method).
+ * layouts it would refuse do occur (the PR #110 method). `attempts` hears each attempt's
+ * search figures, in order; `lookahead` overrides the open-face rule's (`LOOKAHEAD_CELLS`,
+ * 0 for none), for probes and tests comparing them.
  */
-export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placement"] => (seed, params, library) => {
+export const placer = ({ openFace, attempts, lookahead, trace }: {
+  openFace: boolean; attempts?: (attempt: PlacementAttempt) => void; lookahead?: number; trace?: (event: PlacementTraceEvent) => void;
+}): MacroStages["placement"] => (seed, params, library) => {
   const mode = params.mode ?? "game";
   const plan = zonePlan(params);
   if (library.zonePlan !== plan.id) throw new Error(`library ${library.name} is authored for ${library.zonePlan}, not ${plan.id}`);
@@ -342,8 +517,16 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
   const failures = new Map<Failure, number>();
   let refusal: string | undefined;
   for (let attempt = 0; attempt < PLACEMENT_ATTEMPTS; attempt++) {
+    const record: PlacementAttempt | undefined = attempts || trace ? { nodes: 0, refusals: 0, mostStall: 0, outcome: "wfc" } : undefined;
+    const emit: ((event: PlacementTraceDetail) => void) | undefined = trace ? (event) => trace({ ...event, attempt }) : undefined;
+    if (emit) emit({ type: "attempt-start", slots: mask.map((cell, slot) => ({ slot, x: cell.x, y: cell.y, col: cell.col, row: cell.row })) });
     const result = sample(seed, params, library, fingerprint, mask, zones, (zone) => fillByZone.get(zone.id)!,
-      stream(seed, "placement", attempt), openFace, (reason) => { refusal = reason; });
+      stream(seed, "placement", attempt), openFace, (reason) => { refusal = reason; }, record, lookahead, emit);
+    if (record) {
+      const outcome = typeof result === "string" ? result : "placed";
+      attempts?.({ ...record, outcome });
+      emit?.({ type: "attempt-end", outcome, nodes: record.nodes, mostStall: record.mostStall });
+    }
     if (typeof result !== "string") return result;
     failures.set(result, (failures.get(result) ?? 0) + 1);
   }

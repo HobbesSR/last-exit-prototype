@@ -465,12 +465,33 @@ projection, layer encoding and serialization) and keeps every tick of every `sim
 so each tick over 50 ms is classified by stage, keyframe cut and overlapping GC. It drains the recorder between
 ticks, outside the measured time, and fails a run whose recorder drops a frame. `--rooms`,
 `--clients`, `--spectators` and `--no-record` shape the load; `--tile=CxR` repeats a real map at
-the same density for sizes the protocol does not serve. It takes the same lock. Method and the
+the same density for sizes the protocol does not serve. It takes the same lock.
+`--maps-cache=<file>` reuses the production-worker geometry/navigation cache from
+`room-startup.mjs` for sequential comparisons (use a fresh cache after generation/content changes).
+The result's `run` records wall and process CPU milliseconds over the loop and inter-tick drains,
+including worker CPU; per-tick timings still exclude those drains. Method and the
 first results are [42.22](42.22-tick-cost-attribution.md) (#637). `--heap-profile=<file>` samples
 allocations over the measured ticks (`--heap-interval=<bytes>`, default 32768), including objects already
 collected, and writes a `.heapprofile` that DevTools opens. It also prints the top allocators, by function and by
 the nearest frame in the repository's own code. A profiled run's times are slower and are not comparable with an
 unprofiled run's (#727).
+
+`node tools/perf/recording-compare.mjs --baseline=<archived-writer-module>
+--maps-cache=<file> --out=<json>` compares a whole match's complete gzip archive
+and metadata between an archived writer and the current writer (#728). It also
+checks the retained-frame digest against ordinary JSON serialization and refuses
+any omitted frame. It takes the lock, drains both writers between frames and
+shares one authoritative simulation; it is byte-compatibility evidence, not a
+timing comparison. Preserve the baseline revision and cache provenance with its
+report. Simulation/view equality is separately checked by `frame-hashes.mjs`.
+
+`node tools/perf/recording-payload.mjs --maps-cache=<file> --tile=2x2
+--ticks=1200 --out=<json>` is a recording-only scaling probe when tiled geometry
+exceeds physics admission limits. It records stable tiled item/gate lists and a
+changing tick, without advancing a tiled simulation. `--baseline=<archived-writer-module>`
+selects a comparison writer. It takes the lock and reports append latency and
+run wall/CPU time, including draining, separately. Its results are not server
+tick or capacity measurements.
 
 `node tools/perf/room-startup.mjs --size=12x6 --out=test-results/startup.json`
 is the short startup diagnostic for #842 (also accepts `--size=36x18` and
@@ -481,8 +502,24 @@ room's first tick, that room runs for one second before a second room is
 constructed and started; both run for another 1.5 seconds. Construction/readiness,
 start, the cold first tick, timer delays, delivery gaps and host wake work are
 reported separately. Raw wakes and profiler stages accompany `--out`.
-Recorder drops or lifecycle errors fail the diagnostic. No sockets or disk are
-measured, nor map delivery/adoption while live rooms run. The short sample's
+Recorder drops or lifecycle errors fail the diagnostic. The default uses direct
+fake-peer delivery callbacks. Add `--sockets --viewers=9` for real loopback
+WebSocket delivery and nine dev viewers per room, joined sequentially. Socket
+clients parse their welcomes and frames on a separate worker, and the delivery
+series then measures the first active viewer's parsed state receipt times.
+Joins wait for the welcome, and starts wait for the initial state; server phases
+and host wake measurements remain separate from these end-to-end waits. The
+result includes lifecycle wall and process CPU time through replay drain and
+transport teardown, excluding map preparation and transport setup. Process CPU
+includes recorder workers and, in socket mode, the client worker.
+
+`--root=PATH` selects an archived source tree's server modules plus its matching
+navigation-cache and profiler instances. The harness and cached source maps stay
+common, so alternate revisions adopt identical prebuilt navigation rather than
+accidentally rebuilding it in only one version. Archive `server/`, `shared/`,
+`map/` and `package.json` beneath the worktree (for dependency resolution).
+No production disk throughput, remote network or worker map delivery/adoption
+while live rooms run is measured. The short sample's
 p99.9 is effectively its maximum; delivery gaps over 50 ms include normal cadence
 jitter. This locates blocking work, not capacity or closure evidence for #635.
 `--maps-cache=FILE` saves the two worker-prepared maps with their navigation and
@@ -496,6 +533,10 @@ diagnostic only and must not be compared with unprofiled runs.
 `--size=36x18 --contents=content-6 --seeds=4217 --views --maps-cache=FILE`.
 It restores the worker's navigation data, then hashes a whole match and every
 player/spectator projection as usual. Cache seed, size and content must match.
+`--payloads` additionally exercises recording/live/delayed map payload queries
+and hashes their JSON at tick 0, 600, 1200 and the end. It requests the recording
+map before the first snapshot, as startup does. `--root=PATH` selects the archived
+match and matching navigation-cache modules for exact before/after comparisons.
 
 `node tests/measure-changes.mjs` (`--size`, `--content`, `--seed`, `--ticks`, `--out`) counts how much
 of each published frame differs from the previous tick's, per collection and by entity id. It times
@@ -914,7 +955,8 @@ strategy option) whose default leaves the output exactly as it is.
 - updates the pins and tests that move with the new output;
 - bumps `REGION_TYPES_VERSION` once, recaptures the sweep last (53, "Proving a change") and
   updates 53's version row and baseline provenance;
-- records the result in the experiments' 42.x documents.
+- records the result in the experiments' 42.x documents;
+- **corridor re-check rule (#865):** when region content becomes more obstructive (an adoption batch that adds detours or dead ends), re-run `tools/navigation/corridor-report.mjs` and compare against [42.22](42.22-tick-cost-attribution.md)'s figures (median 1.002–1.015, worst 1.081). If the worst ratio grows materially, the upgrade path is lazily learned crossing lengths.
 An experiment Corey doesn't adopt stays switched off, or is removed in its own PR, which needs
 no bump.
 

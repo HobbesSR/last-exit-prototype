@@ -9,6 +9,9 @@ import { defaultContent, legacyContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { createPhysicsGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
 import { setImmediate as preparationPause } from 'node:timers/promises';
+import { prepareMapPayload } from './map-payload.js';
+import { publishItems, itemsJson } from '../shared/simulation/ground-items.ts';
+import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
@@ -92,11 +95,15 @@ export function createMatchFor(seed, size, map, content = defaultContent()) {
 
 /** Experimental explicit rules selection; not offered by the public room protocol. */
 export async function createPhysicsMatch(seed, size, map, content = defaultContent()) {
-  return matchOf(await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content,
-    () => preparationPause()), true);
+  const game = await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content,
+    () => preparationPause());
+  try {
+    const payloads = await prepareMapPayload(game.map, () => preparationPause());
+    return matchOf(game, true, payloads);
+  } catch (error) { disposePhysics(game); throw error; }
 }
 
-function matchOf(game, hasPhysics = false) {
+function matchOf(game, hasPhysics = false, payloads) {
   let disposedFrame;
   return {
     /** Pinned capability, independent of rules-version spelling and world disposal. */
@@ -141,11 +148,24 @@ function matchOf(game, hasPhysics = false) {
     },
     advance() { if (disposedFrame) throw new Error('match disposed'); step(game); return snapshot(game); },
     snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
-    dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); } },
+    dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
     project: (frame, id) => playerView(game, frame, id),
     map: () => structuredClone(game.map),
     liveMap: () => { const map = structuredClone({ ...game.map, traps: [] }); delete map.physicsProps; return map; },
     spectatorMap: frame => { const map = structuredClone({ ...game.map, gates: frame.gates, items: frame.items, traps: [] }); delete map.physicsProps; return map; },
+    /** Detached immutable payload data; ordinary map queries above remain writable copies. */
+    payloadMap(kind, frame) {
+      if (!payloads) {
+        const source = kind === 'spectator' ? { ...game.map, gates: frame.gates, items: frame.items, traps: [] }
+          : kind === 'recording' ? game.map : { ...game.map, traps: [] };
+        const copy = structuredClone(source);
+        if (kind !== 'recording') delete copy.physicsProps;
+        return copy;
+      }
+      const source = { ...game.map, gates: kind === 'spectator' ? frame.gates : publishGates(game),
+        items: kind === 'spectator' ? frame.items : publishItems(game), ...(kind !== 'recording' ? { traps: [] } : {}) };
+      return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
+    },
     end({ strand = false } = {}) {
       game.phase = 'finished';
       if (strand) for (const p of game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';

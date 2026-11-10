@@ -11,7 +11,7 @@ import { libraryFingerprint } from "../src/coding.ts";
 import { declaredGrid, layoutViolations, orientDesign } from "../src/chain/declared-grid.ts";
 import { CHAIN_LIBRARY_VERSION, validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
-import { adjacencyCompatibility, adjacencyLinks, placement } from "../src/chain/placement.ts";
+import { adjacencyCompatibility, adjacencyConnects, adjacencyLinks, placement } from "../src/chain/placement.ts";
 import { solveWfc } from "../src/wfc.ts";
 import type { WfcGrid } from "../src/wfc.ts";
 import type { ChainParams, DeclaredGrid, Layout, PlacedSlot } from "../src/chain/types.ts";
@@ -329,6 +329,108 @@ test("the solver never places a tile that asks an any corner for a second class"
   assert.equal(solveCorner(["aim-open-south"]), null);
   // With no middle tile there is no corner cell, so nothing joins A and C.
   assert.equal(solveCorner(["aim-open-south"], false), "aim-open-south");
+});
+
+test("pre-screens isolated single-tile dead ends from option domains (#894)", () => {
+  const edge = (axis: "h" | "v", line: number, val: "not-passable-hint") =>
+    Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`${axis}:${line},${i}`, { passability: val }]));
+  const lib: ChainLibrary = {
+    version: CHAIN_LIBRARY_VERSION, name: "dead-end-test", zonePlan: "diamond", zoneWidth: 1, zoneHeight: 1,
+    passabilityRules: "matched",
+    cellClasses: { open: { regionType: "open" }, rubble: { regionType: "rubble" } },
+    tiles: [
+      { id: "connected", defaultCellClass: "open", orientations: [0] },
+      { id: "dead-rubble", defaultCellClass: "rubble", orientations: [0], segments: { ...edge("v", 6, "not-passable-hint"), ...edge("h", 6, "not-passable-hint") } },
+      { id: "neighbor-open", defaultCellClass: "open", orientations: [0], segments: { ...edge("v", 0, "not-passable-hint"), ...edge("h", 0, "not-passable-hint") } },
+    ],
+    tileSets: [], setPieces: [], setPieceClasses: []
+  };
+  const option = (templateId: string) => ({ templateId, orientation: 0 as const, difficulty: 0, weight: 1 });
+  const grid: WfcGrid = [
+    { x: 0, y: 0, domain: [option("dead-rubble"), option("connected")], links: [] },
+    { x: 1, y: 0, domain: [option("neighbor-open")], links: [] },
+    { x: 0, y: 1, domain: [option("neighbor-open")], links: [] },
+  ];
+  adjacencyLinks(grid);
+  const solved = solveWfc(grid, adjacencyCompatibility(lib), () => 0.5, { connects: adjacencyConnects(lib) });
+  assert.deepEqual(solved?.[0]?.domain?.map((o) => o.templateId), ["connected"]);
+
+  const deadGrid: WfcGrid = [
+    { x: 0, y: 0, domain: [option("dead-rubble"), { ...option("dead-rubble"), difficulty: 1 }], links: [] },
+    { x: 1, y: 0, domain: [option("neighbor-open")], links: [] },
+    { x: 0, y: 1, domain: [option("neighbor-open")], links: [] },
+  ];
+  adjacencyLinks(deadGrid);
+  const deadSolved = solveWfc(deadGrid, adjacencyCompatibility(lib), () => 0.5, { connects: adjacencyConnects(lib) });
+  assert.equal(deadSolved, null);
+});
+
+test("adjacencyConnects rejects 1-segment authored openings and split class pairs (#894 review)", () => {
+  const edge = (axis: "h" | "v", line: number, val: "not-passable-hint") =>
+    Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`${axis}:${line},${i}`, { passability: val }]));
+  const lib: ChainLibrary = {
+    version: CHAIN_LIBRARY_VERSION, name: "dead-end-review-test", zonePlan: "diamond", zoneWidth: 1, zoneHeight: 1,
+    passabilityRules: "matched",
+    cellClasses: { open: { regionType: "open" }, rubble: { regionType: "rubble" }, hut: { regionType: "hut" } },
+    tiles: [
+      { id: "connected", defaultCellClass: "open", orientations: [0] },
+      {
+        id: "one-segment-passable",
+        defaultCellClass: "rubble",
+        orientations: [0],
+        segments: { ...edge("v", 6, "not-passable-hint"), ...edge("h", 6, "not-passable-hint"), "v:6,0": { passability: "passable" } }
+      },
+      {
+        id: "two-segment-passable",
+        defaultCellClass: "rubble",
+        orientations: [0],
+        segments: { ...edge("v", 6, "not-passable-hint"), ...edge("h", 6, "not-passable-hint"), "v:6,0": { passability: "passable" }, "v:6,1": { passability: "passable" } }
+      },
+      {
+        id: "neighbor-open",
+        defaultCellClass: "open",
+        orientations: [0],
+        segments: { ...edge("v", 0, "not-passable-hint"), ...edge("h", 0, "not-passable-hint") }
+      },
+      {
+        id: "split-pair-rubble",
+        defaultCellClass: "rubble",
+        orientations: [0],
+        segments: { ...edge("v", 6, "not-passable-hint"), ...edge("h", 6, "not-passable-hint"), "v:6,0": { passability: "passable" }, "v:6,1": { passability: "passable" } }
+      },
+      {
+        id: "split-pair-neighbor",
+        defaultCellClass: "open",
+        orientations: [0],
+        cells: [
+          "......",
+          "h.....",
+          "......",
+          "......",
+          "......",
+          "......",
+        ],
+        legend: { h: "hut" },
+        segments: { ...edge("v", 0, "not-passable-hint"), ...edge("h", 0, "not-passable-hint") }
+      }
+    ],
+    tileSets: [], setPieces: [], setPieceClasses: []
+  };
+
+  const connects = adjacencyConnects(lib);
+  const opt = (templateId: string) => ({ templateId, orientation: 0 as const, difficulty: 0, weight: 1 });
+
+  assert.equal(connects(opt("one-segment-passable"), "E", opt("neighbor-open")), false, "1-segment authored opening must not connect");
+  assert.equal(connects(opt("two-segment-passable"), "E", opt("neighbor-open")), true, "2-segment authored opening must connect");
+  assert.equal(connects(opt("split-pair-rubble"), "E", opt("split-pair-neighbor")), false, "split class pairs must not combine into a portal");
+
+  // In WFC, a slot with only 1-segment opening prunes as dead end
+  const grid: WfcGrid = [
+    { x: 0, y: 0, domain: [opt("one-segment-passable")], links: [] },
+    { x: 1, y: 0, domain: [opt("neighbor-open")], links: [] },
+  ];
+  adjacencyLinks(grid);
+  assert.equal(solveWfc(grid, adjacencyCompatibility(lib), () => 0.5, { connects }), null);
 });
 
 test("game mode checks the library's authored size instead of a fixed zone limit", () => {

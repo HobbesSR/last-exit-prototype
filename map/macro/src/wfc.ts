@@ -1,3 +1,4 @@
+import type { WfcTraceEvent, TraceSlot } from "./chain/placement-trace.ts";
 import type { Orientation } from "./chain/types.ts";
 
 export interface TileOption {
@@ -8,6 +9,8 @@ export interface TileOption {
   id?: number;
   /** Per relation, the ids of the options this one admits across it. The solver fills it. */
   valid?: Map<string, Set<number>>;
+  /** Per relation, the ids of the options this one connects to across it. */
+  connects?: Map<string, Set<number>>;
 }
 
 /**
@@ -25,6 +28,7 @@ export interface WfcCell {
   domain: TileOption[];
   /** Checked, and queued on a change, in this order. */
   links: WfcLink[];
+  orthoLinks?: WfcLink[];
 }
 
 export type WfcGrid = WfcCell[];
@@ -33,7 +37,7 @@ export type WfcGrid = WfcCell[];
  * Narrows domains to a fixed point, from `startQueue`'s links or from every cell. Given
  * `trail`, it records each domain it replaces, so the caller can undo the narrowing.
  */
-export function propagate(grid: WfcGrid, startQueue?: number, trail?: { cells: number[]; domains: TileOption[][] }): boolean {
+export function propagate(grid: WfcGrid, startQueue?: number | number[], trail?: { cells: number[]; domains: TileOption[][] }): boolean {
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
@@ -43,8 +47,10 @@ export function propagate(grid: WfcGrid, startQueue?: number, trail?: { cells: n
 
   if (startQueue === undefined) {
     for (let i = 0; i < grid.length; i++) enqueue(i);
-  } else {
+  } else if (typeof startQueue === "number") {
     for (const link of grid[startQueue]!.links) enqueue(link.cell);
+  } else {
+    for (const s of startQueue) for (const link of grid[s]!.links) enqueue(link.cell);
   }
 
   let head = 0;
@@ -88,6 +94,8 @@ export type WfcCompatibility = (a: TileOption, relation: string, b: TileOption) 
 export type WfcAccept = (grid: WfcGrid, placed: number[]) => true | number[];
 
 export interface WfcOptions {
+  /** Detached diagnostic deltas; absent by default. Does not draw randomness. */
+  trace?: (event: WfcTraceEvent) => void;
   /** Counts calls across the whole search; the solve gives up past `maxIterations`. */
   state?: { iterations: number; maxIterations: number };
   accept?: WfcAccept;
@@ -100,6 +108,8 @@ export interface WfcOptions {
   stallLimit?: number;
   /** When given, the most refusals the search made between two new depths is recorded here. */
   stall?: { most: number };
+  /** Whether two options connect across relation (shared class or portal). Prunes single-tile dead ends (#894). */
+  connects?: (a: TileOption, relation: string, b: TileOption) => boolean;
 }
 
 /**
@@ -111,7 +121,7 @@ export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * 
 
 export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
   return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept,
-    { limit: options.stallLimit ?? Infinity, record: options.stall });
+    { limit: options.stallLimit ?? Infinity, record: options.stall }, options.trace, options.connects);
 }
 
 /**
@@ -150,7 +160,9 @@ interface Frame {
  * share an id and one table. Every pre-assigned set piece slot is its own option object,
  * and a table per option grew with the square of those slots (#171).
  */
-function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
+function prepare(grid: WfcGrid, compatible: WfcCompatibility, connects?: (a: TileOption, relation: string, b: TileOption) => boolean): void {
+  const isOrtho = (rel: string) => rel === "N" || rel === "S" || rel === "E" || rel === "W" || rel.endsWith(":must-open");
+  for (let i = 0; i < grid.length; i++) grid[i]!.orthoLinks = grid[i]!.links.filter((l) => isOrtho(l.relation));
   const allOpts = new Set<TileOption>();
   for (let i = 0; i < grid.length; i++) {
     const cell = grid[i]!;
@@ -170,13 +182,17 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
   const relations = [...new Set(grid.flatMap((c) => c.links.map((link) => link.relation)))];
   kinds.forEach((kin, id) => {
     const valid = new Map(relations.map((relation) => [relation, new Set<number>()]));
+    const connMap = connects ? new Map(relations.map((relation) => [relation, new Set<number>()])) : undefined;
     for (const opt of kin) {
       opt.id = id;
       opt.valid = valid;
+      if (connMap) opt.connects = connMap;
     }
   });
-  for (const mine of kinds) for (const [id, theirs] of kinds.entries()) for (const relation of relations)
+  for (const mine of kinds) for (const [id, theirs] of kinds.entries()) for (const relation of relations) {
     if (compatible(mine[0]!, relation, theirs[0]!)) mine[0]!.valid!.get(relation)!.add(id);
+    if (connects && connects(mine[0]!, relation, theirs[0]!)) mine[0]!.connects!.get(relation)!.add(id);
+  }
 }
 
 /**
@@ -190,13 +206,37 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
 export const DIFFICULTY_OFFSET = 12;
 
 function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
-  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }): WfcGrid | null {
+  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }, trace?: (event: WfcTraceEvent) => void,
+  connects?: (a: TileOption, relation: string, b: TileOption) => boolean): WfcGrid | null {
   // Refusals since the search last reached a new depth (`stallLimit`).
   let deepest = -1, refusals = 0;
   const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
-  const undoTo = (mark: number) => {
-    while (trail.cells.length > mark) grid[trail.cells.pop()!]!.domain = trail.domains.pop()!;
+  const shown = trace ? new Map<number, TileOption>() : undefined;
+  const showCollapsed = (depth: number) => {
+    if (!trace) return;
+    const slots: TraceSlot[] = [];
+    for (let slot = 0; slot < grid.length; slot++) {
+      const domain = grid[slot]!.domain;
+      if (domain.length !== 1 || shown!.get(slot) === domain[0]) continue;
+      const option = domain[0]!;
+      shown!.set(slot, option);
+      slots.push({ slot, design: option.templateId, orientation: option.orientation });
+    }
+    if (slots.length) trace({ type: "collapse", depth, slots });
   };
+  const undoTo = (mark: number) => {
+    const removed = trace ? new Set<number>() : undefined;
+    while (trail.cells.length > mark) {
+      const slot = trail.cells.pop()!;
+      grid[slot]!.domain = trail.domains.pop()!;
+      if (shown?.has(slot) && (grid[slot]!.domain.length !== 1 || grid[slot]!.domain[0] !== shown.get(slot))) {
+        shown.delete(slot);
+        removed!.add(slot);
+      }
+    }
+    if (removed?.size) trace!({ type: "undo", slots: [...removed] });
+  };
+  showCollapsed(0);
 
   // Each collapsed cell is labelled with the depth that collapsed it, plus one; a node
   // sees its ancestors' labels, and clears its own on leaving.
@@ -205,10 +245,73 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
   // One node: propagate, check `accept`, pick a cell. It returns a frame to try that
   // cell's options, true when every cell is collapsed, or the node's failure.
   const enter = (depth: number, startQueue?: number): Frame | true | Conflict => {
-    if (state.iterations++ > state.maxIterations) return null;
+    if (state.iterations++ > state.maxIterations) {
+      trace?.({ type: "give-up", reason: "iterations", depth, iterations: state.iterations, stall: refusals });
+      return null;
+    }
     if (depth > deepest) { deepest = depth; refusals = 0; }
-    if (depth === 0) prepare(grid, compatible);
-    if (!propagate(grid, startQueue, trail)) return null;
+    trace?.({ type: "node", depth, iterations: state.iterations, stall: refusals });
+    if (depth === 0) prepare(grid, compatible, connects);
+    const trailStart = trail.cells.length;
+    const propagated = propagate(grid, startQueue, trail);
+    showCollapsed(depth);
+    if (!propagated) {
+      if (trace) trace({ type: "contradiction", depth, slots: grid.flatMap((cell, slot) => cell.domain.length ? [] : [slot]) });
+      return null;
+    }
+
+    if (connects) {
+      const candidates = new Set<number>();
+      if (depth === 0) {
+        for (let i = 0; i < grid.length; i++) candidates.add(i);
+      } else {
+        if (startQueue !== undefined) candidates.add(startQueue);
+        for (let t = trailStart; t < trail.cells.length; t++) {
+          const changed = trail.cells[t]!;
+          const ortho = grid[changed]!.orthoLinks!;
+          for (let l = 0; l < ortho.length; l++) candidates.add(ortho[l]!.cell);
+        }
+      }
+
+      const queue = [...candidates];
+      const rePropagate: number[] = [];
+      while (queue.length > 0) {
+        const i = queue.pop()!;
+        const cell = grid[i]!;
+        if (cell.domain.length <= 1) continue;
+        const orthoLinks = cell.orthoLinks!;
+        const newDomain = cell.domain.filter((opt) => {
+          for (let l = 0; l < orthoLinks.length; l++) {
+            const link = orthoLinks[l]!;
+            const connectSet = opt.connects?.get(link.relation);
+            if (!connectSet) continue;
+            const nDomain = grid[link.cell]!.domain;
+            for (let k = 0; k < nDomain.length; k++) {
+              if (connectSet.has(nDomain[k]!.id!)) return true;
+            }
+          }
+          return false;
+        });
+        if (newDomain.length < cell.domain.length) {
+          trail.cells.push(i);
+          trail.domains.push(cell.domain);
+          cell.domain = newDomain;
+          rePropagate.push(i);
+          if (newDomain.length === 0) {
+            if (trace) trace({ type: "contradiction", depth, slots: [i] });
+            return null;
+          }
+          for (let l = 0; l < orthoLinks.length; l++) queue.push(orthoLinks[l]!.cell);
+        }
+      }
+      if (rePropagate.length > 0) {
+        if (!propagate(grid, rePropagate, trail)) {
+          if (trace) trace({ type: "contradiction", depth, slots: grid.flatMap((cell, slot) => cell.domain.length ? [] : [slot]) });
+          return null;
+        }
+        showCollapsed(depth);
+      }
+    }
 
     const placed: number[] = [];
     for (let i = 0; i < grid.length; i++) if (grid[i]!.domain.length === 1 && !now[i]) {
@@ -221,8 +324,12 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
         refusals++;
         if (stall.record && refusals > stall.record.most) stall.record.most = refusals;
         // Past the limit every later node fails at once, as past the cap, so the search unwinds.
-        if (refusals > stall.limit) state.iterations = state.maxIterations + 1;
+        if (refusals > stall.limit) {
+          state.iterations = state.maxIterations + 1;
+          trace?.({ type: "give-up", reason: "stall", depth, iterations: state.iterations, stall: refusals });
+        }
         const depths = new Set(refused.map((i) => now[i]! - 1));
+        if (trace) trace({ type: "conflict", depth, depths: [...depths], backjump: Math.max(-1, ...depths), stall: refusals });
         for (const i of placed) now[i] = 0;
         return { depths };
       }
@@ -259,6 +366,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
       // The child just left failed, and its parent takes the result.
       const frame = stack[stack.length - 1];
       if (!frame) return null;
+      trace?.({ type: "backtrack", fromDepth: frame.depth + 1, toDepth: frame.depth });
       undoTo(frame.mark);
       if (outcome === null) frame.unknown = true;
       else if (!outcome.depths.has(frame.depth + 1)) {
@@ -275,6 +383,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
       trail.cells.push(frame.cell);
       trail.domains.push(target.domain);
       target.domain = [frame.options[frame.next++]!];
+      showCollapsed(frame.depth + 1);
       outcome = enter(frame.depth + 1, frame.cell);
       continue;
     }

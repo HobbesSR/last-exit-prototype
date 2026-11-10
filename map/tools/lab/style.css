@@ -8,6 +8,29 @@
   color: #e2e9ee;
   font-size: 14px;
 }
+#solveView { flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.solve-header, .solve-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.solve-recipe-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
+.solve-recipe-controls label { display: grid; gap: 4px; margin: 0; min-width: 0; }
+.solve-recipe-controls label:first-child { flex: 1; max-width: 420px; min-width: 160px; }
+.solve-recipe-controls input, .solve-recipe-controls select { width: 100%; padding: 8px 10px; border: 1px solid #344754; border-radius: 5px; background: #182630; color: #dfe9ed; font: inherit; }
+.solve-header h1 { margin: 0 12px 0 0; }
+.solve-header #solveStatus { flex: 1; min-width: 220px; color: #a9d7b2; font-size: 12px; }
+.solve-controls label { display: flex; align-items: center; gap: 8px; margin: 0; }
+.solve-controls select { width: auto; max-width: 290px; }
+.solve-timeline { display: flex; align-items: center; gap: 12px; margin: 0; }
+.solve-timeline input { flex: 1; min-width: 100px; }
+.solve-timeline output { min-width: 95px; font-variant-numeric: tabular-nums; }
+.solve-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 300px; flex: 1; min-height: 360px; gap: 14px; }
+.solve-metadata { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; }
+.solve-metadata section { min-width: 0; padding: 10px 12px; background: #132128; border: 1px solid #344754; border-radius: 6px; overflow-wrap: anywhere; }
+.solve-metadata h2 { margin: 0 0 6px; font-size: 13px; color: #a9d7b2; }
+.solve-metadata p { margin: 4px 0 0; font-size: 12px; }
+.solve-canvas-wrap { min-width: 0; min-height: 360px; position: relative; border: 1px solid #344754; border-radius: 6px; overflow: hidden; }
+#solveCanvas { width: 100%; height: 100%; display: block; position: absolute; }
+.solve-inspector { min-height: 0; overflow: auto; padding: 0 10px; }
+.solve-inspector pre { font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 850px) { .solve-workspace, .solve-metadata { grid-template-columns: 1fr; } .solve-inspector { max-height: 300px; } }
 * {
   box-sizing: border-box;
 }
@@ -1449,6 +1472,8 @@ a.button {
   .world-heading { margin-right: auto; }
 }
 @media (max-width: 800px) {
+  body > .app-nav { flex-wrap: wrap; }
+  body > .app-nav #status { flex-basis: 100%; max-width: 100%; padding: 4px 12px; }
   body { height: auto; min-height: 100vh; overflow: auto; }
   #worldView { grid-template-columns: minmax(0, 1fr); overflow: visible; }
   #worldActions { flex-wrap: wrap; }

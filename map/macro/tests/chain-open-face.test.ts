@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { declaredGrid, layoutViolations } from "../src/chain/declared-grid.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
-import { openFaceRule } from "../src/chain/open-face.ts";
+import { LOOKAHEAD_SLOTS, openFaceRule } from "../src/chain/open-face.ts";
 import { adjacencyCompatibility, adjacencyLinks, placement, placer } from "../src/chain/placement.ts";
 import { proof, proofViolations } from "../src/chain/proof.ts";
 import { portalViolations, regions } from "../src/chain/regions.ts";
@@ -119,6 +119,73 @@ test("a sealed component is refused by its cut, not by every slot inside it", ()
   const cause = openFaceRule(HAND, grid, 4, 1, (reason) => refusals.push(reason))(grid, [0, 1, 2, 3]);
   assert.deepEqual(refusals, ["the component from open@0,0 (138 cells) has no portal path out"]);
   assert.deepEqual(cause, [3]);
+});
+
+// A hut tile with no portal at all, for pockets the lookahead refuses (#857).
+const HUT_BLOCK: ChainTileDesign = { id: "hut-block", defaultCellClass: "hut", orientations: [0, 180] };
+const POCKETS: ChainLibrary = { ...HAND, tiles: [...HAND_TILES, HUT_BLOCK] };
+const one = (templateId: string, orientation: 0 | 180 = 0): TileOption => ({ templateId, orientation, difficulty: 0, weight: 1 });
+const HUTS = [one("hut-block"), one("hut-block", 180)];
+
+/** Checks the slots `x,y` (each fixed, or unplaced with several options) once, with the given lookahead. */
+function checkOnce(slots: Record<string, TileOption[]>, columns: number, rows: number, lookahead?: number) {
+  const grid: WfcGrid = Object.entries(slots).map(([at, domain]) => {
+    const [x, y] = at.split(",").map(Number) as [number, number];
+    return { x, y, domain, links: [] };
+  });
+  adjacencyLinks(grid);
+  const placed = grid.flatMap((slot, i) => slot.domain.length === 1 ? [i] : []);
+  const refusals: string[] = [];
+  const cause = openFaceRule(POCKETS, grid, columns, rows, (reason) => refusals.push(reason), lookahead)(grid, placed);
+  return { cause: cause === true ? cause : [...cause].sort(), refusals };
+}
+
+test("a pocket is refused while its hole is unplaced, once every side around it is closed (#857)", () => {
+  // A hut, then a hole that can only be hut, then open ground, then a slot still to place.
+  // The hut faces the hole, which could join it, so the rule's flood stops there; the open
+  // ground faces the slot beyond it. But nothing the hole holds can join the open ground,
+  // so the hut and the hole are sealed together already: the lookahead floods through the
+  // hole and refuses them now, naming the slots that close it, not once the hole is placed.
+  const check = (hole: TileOption[], lookahead?: number) =>
+    checkOnce({ "0,0": [one("hut-block")], "1,0": hole, "2,0": [one("field")], "3,0": [one("field"), one("annex", 180)] }, 4, 1, lookahead);
+  assert.deepEqual(check(HUTS), {
+    cause: [0, 2], refusals: ["the area from hut@0,0 (72 cells, 1 unplaced slot) can't reach the rest of the map"],
+  });
+  // Without the lookahead it waits for the hole to be placed.
+  assert.deepEqual(check(HUTS, 0), { cause: true, refusals: [] });
+  // A hole that could still join the open ground is no pocket.
+  assert.deepEqual(check([...HUTS, one("field")]), { cause: true, refusals: [] });
+});
+
+test("the lookahead's bounds limit its cost, not which areas can be refused (#857)", () => {
+  // A hut, then `holes` slots that can only be hut, then open ground and `beyond` slots still
+  // to place: the hut and its holes are sealed together, 36 cells a slot. The map is split, so
+  // the open ground's side is sealed from the hut's too, and is refused where it is small.
+  const row = (holes: number, lookahead?: number, beyond = 1) => {
+    const slots: Record<string, TileOption[]> = { "0,0": [one("hut-block")] };
+    for (let x = 1; x <= holes; x++) slots[`${x},0`] = HUTS;
+    slots[`${holes + 1},0`] = [one("field")];
+    for (let x = holes + 2; x <= holes + 1 + beyond; x++) slots[`${x},0`] = [one("field"), one("annex", 180)];
+    return checkOnce(slots, holes + 2 + beyond, 1, lookahead).refusals;
+  };
+  // Within both bounds the pocket is refused, however large the cell budget.
+  assert.deepEqual(row(8), ["the area from hut@0,0 (324 cells, 8 unplaced slots) can't reach the rest of the map"]);
+  assert.deepEqual(row(1, 1e9), ["the area from hut@0,0 (72 cells, 1 unplaced slot) can't reach the rest of the map"]);
+  assert.deepEqual(row(1, 72), ["the area from hut@0,0 (72 cells, 1 unplaced slot) can't reach the rest of the map"]);
+  // Past either bound it is taken as open, and left to the open-face rule once it closes.
+  assert.equal(LOOKAHEAD_SLOTS, 8);
+  assert.deepEqual(row(9, undefined, 9), []);
+  assert.deepEqual(row(9), ["the area from open@60,0 (72 cells, 1 unplaced slot) can't reach the rest of the map"]);
+  assert.deepEqual(row(1, 71), []);
+});
+
+test("a pocket of unplaced slots alone is named as unsettled (#857)", () => {
+  // A hole in the corner, between open ground that can still reach the slot beyond it.
+  assert.deepEqual(checkOnce({
+    "0,0": HUTS, "1,0": [one("field")], "0,1": [one("field")], "1,1": [one("field"), one("annex", 180)],
+  }, 2, 2), {
+    cause: [1, 2], refusals: ["the area from unsettled@0,0 (36 cells, 1 unplaced slot) can't reach the rest of the map"],
+  });
 });
 
 test("a portal shorter than a hunter is refused once its ends are settled, and a seam can lengthen it", () => {

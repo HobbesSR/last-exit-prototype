@@ -2,8 +2,9 @@ import { zoneSizeName } from '../map/live.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { createDiscoveryEncoder } from '../shared/discovery.ts';
+import { stringifyWithMap } from './map-payload.js';
 export const SPECTATOR_DELAY_TICKS = 60;
-export const send = (session, value) => session.deliver(JSON.stringify(value));
+export const send = (session, value) => session.deliver(stringifyWithMap(value));
 const lobbyPayload = room => ({
   type: 'lobby', room: room.id, name: room.name, started: room.started, matchmade: !!room.matchmade, size: zoneSizeName(room.size),
   startsAt: room.startsAt || null,

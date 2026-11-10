@@ -53,6 +53,17 @@ blocking, detour, dead ends, fill, cost), and placement's heavy tail are in
 Where that adoption's generation time goes, per builder (park's hedge fronts, rubble's batch proof,
 edge walls), four exact savings, and the content-changing options are in
 [42.38](42.38-matched-generation-cost.md) (#868).
+Placement's reachability lookahead, which refuses sealed pockets once they are certain so the stall
+limit no longer fires on the measured seeds, and what it costs, is in
+[42.39](42.39-reachability-lookahead.md) (#857).
+
+The sparse-sides experiment, fill and set-piece schemes with fewer passable halves, their portals,
+one-portal regions and placement cost, is in [42.40](42.40-sparse-sides-experiment.md) (#851).
+Landing/evac-first placement's matched 30-seed attempt counts and shifted packing
+failures are in [42.41](42.41-set-piece-order.md) (#891); the flag stays off by default.
+The connectivity skeleton experiment, a pre-fill spanning tree of forced-open seams preventing
+sealed pockets under sparse tile sides, with Wilson/Prim/Kruskal algorithms and built navigation
+measures, is in [42.42](42.42-connectivity-skeleton-experiment.md) (#883).
 
 The opt-in regional lighting recipe and its multi-region cache/rebuild evidence
 are in [42.40](42.40-regional-lighting.md) (#771).

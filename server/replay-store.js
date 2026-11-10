@@ -1,5 +1,4 @@
 import { mkdir, readdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
 import path from 'node:path';
 import { createReplayWriter } from './replay-writer.js';
 
@@ -21,7 +20,7 @@ export async function createFileReplayStore(directory) {
     // Keep Express sendFile's existing range/cache/error behavior at the HTTP delivery edge.
     download: id => archives.has(id) ? { path: path.join(directory, `${id}.json.gz`) } : null,
     start(header, { onError } = {}) {
-      return createReplayWriter({ header, onError, output: createWriteStream(path.join(directory, `${header.id}.partial`)),
+      return createReplayWriter({ header, onError, outputPath: path.join(directory, `${header.id}.partial`),
         async publish(meta, { signal } = {}) {
           const metaPath = path.join(directory, `${header.id}.meta.json`);
           const partialMetaPath = path.join(directory, `${header.id}.meta.partial`);

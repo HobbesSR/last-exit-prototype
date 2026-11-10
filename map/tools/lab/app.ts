@@ -3,8 +3,8 @@
  * `mapViews` (51.12), with the report beside the game's `diagnoseBuiltMap`. It generates, saves and
  * loads through the same core as the CLI and MCP, so all three agree on a map.
  */
-import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, validateLibrary } from "../core.ts";
-import type { MapCheck, ToolMap } from "../core.ts";
+import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, sparseSidesLibrary, validateLibrary } from "../core.ts";
+import type { FillSides, MapCheck, SetPieceSides, ToolMap } from "../core.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import type { MapViews } from "../../macro/src/chain/map.ts";
@@ -28,6 +28,9 @@ import type { LabReply, LabRequest } from "./worker.ts";
 import { PARTS, PART_FILL, addElementParts, partPaths } from "./parts.ts";
 import type { Part } from "./parts.ts";
 import { renderPlaceables } from "./placeables.ts";
+import { mountPlacementView } from "./placement-view.ts";
+import type { ChainLibrary } from "../../macro/src/chain/library.ts";
+import type { SkeletonAlgorithm } from "../../macro/src/chain/skeleton.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -147,18 +150,84 @@ function recipeParams(): ChainParams {
   return chainParams(raw);
 }
 
+/** The library World and Placement both use: the chosen source, then the experimental skeleton (#883) if on. */
 function chosenLibrary(): unknown {
-  if (select("librarySource").value === "bundled") return bundledLibrary(recipeParams());
+  const skeleton = select("skeleton").value;
+  // "Off" is stated, so it also clears a skeleton a Chain Library draft authored (review 721).
+  const withSkeleton = ({ connectivitySkeleton: _, ...library }: ChainLibrary): ChainLibrary => skeleton === "off" ? library : { ...library,
+    connectivitySkeleton: { algorithm: skeleton as SkeletonAlgorithm, extraOpenShare: Number(select("skeletonExtraOpen").value) || 0, shortcutPriority: true } };
+  if (select("librarySource").value === "bundled") return withSkeleton(bundledLibrary(recipeParams()));
+  // Experimental (#851): the bundled library with sparser tile sides.
+  if (select("librarySource").value === "sparse") return withSkeleton(sparseSidesLibrary(bundledLibrary(recipeParams()),
+    { fill: select("fillSides").value as FillSides, setPieces: select("setPieceSides").value as SetPieceSides }));
   const draft = chainDraft();
   const checked = validateLibrary(draft);
   if (!checked.valid) throw new Error(`the Chain Library tab's draft isn't valid for the game: ${checked.errors.join("; ")}`);
-  return draft;
+  return withSkeleton(draft as ChainLibrary);
 }
+
+let solveWorker: Worker | null = null;
+const solveView = mountPlacementView($("solveView"), () => {
+  try {
+    const seed = input("seed").value, params = recipeParams(), chosen = chosenLibrary() as ChainLibrary;
+    const library: ChainLibrary = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
+    const skeletonAlgo = select("skeleton").value;
+    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("skeletonExtraOpen").value) || 0) * 100)}% open)` : ''}`);
+    solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
+      solveWorker = null;
+      if (reply.kind === "placement") solveView.received(reply.recording, library, reply.ms);
+      else solveView.stopped(reply.kind === "error" ? reply.message : 'Unexpected worker reply.');
+    });
+  } catch (error) { solveView.stopped(error instanceof Error ? error.message : String(error)); }
+}, () => {
+  solveWorker?.terminate(); solveWorker = null;
+  solveView.stopped('Recording cancelled. Record placement to try again.');
+});
+
+for (const library of CHAIN_LIBRARIES) {
+  select("solveSize").append(Object.assign(document.createElement("option"), {
+    value: sizeKey(library.zoneWidth, library.zoneHeight), textContent: `${library.zoneWidth} × ${library.zoneHeight}`,
+  }));
+}
+select("solveSize").append(Object.assign(document.createElement("option"), { value: "world", textContent: "Custom (set in World)", disabled: true }));
+function syncPlacementControls(): void {
+  input("solveSeed").value = input("seed").value;
+  const key = sizeKey(input("zoneWidth").value, input("zoneHeight").value);
+  select("solveSize").value = CHAIN_LIBRARIES.some(library => sizeKey(library.zoneWidth, library.zoneHeight) === key) ? key : "world";
+}
+// An older World result must not reset a recipe edited here while it was building.
+function cancelStaleWorldGeneration(): void {
+  if (!busy) return;
+  mapWorker?.terminate(); mapWorker = null; busy = false;
+  setStatus("Generation cancelled: recipe edited in Placement.");
+}
+input("solveSeed").oninput = () => {
+  solveView.recipeEdited();
+  cancelStaleWorldGeneration();
+  input("seed").value = input("solveSeed").value;
+};
+input("solveSeed").onkeydown = event => { if (event.key === "Enter") $("solveRecord").click(); };
+select("solveSize").onchange = () => {
+  solveView.recipeEdited();
+  cancelStaleWorldGeneration();
+  select("zoneSize").value = select("solveSize").value;
+  select("zoneSize").dispatchEvent(new Event("change"));
+};
+select("solveOrder").onchange = () => solveView.recipeEdited();
+$("solveRandom").onclick = () => {
+  solveView.recipeEdited();
+  cancelStaleWorldGeneration();
+  input("seed").value = `exit-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36)}`;
+  syncPlacementControls();
+};
 
 /** Set the recipe to a room's (53 "Play in the game"), with a room seed, and generate. */
 function useRoomRecipe(): void {
   fillParams(liveChainParams());
   select("librarySource").value = "bundled";
+  select("skeleton").value = "off";
+  select("skeletonExtraOpen").disabled = true;
+  showSparseControls();
   if (liveSeed(input("seed").value) === null)
     input("seed").value = String(1 + (crypto.getRandomValues(new Uint32Array(1))[0]! % MAX_ARENA_SEED));
   generateMap();
@@ -177,7 +246,7 @@ function renderPlay(): void {
 }
 
 function setStatus(text: string, bad = false): void {
-  $("status").textContent = text;
+  $("status").textContent = `World: ${text}`;
   $("status").style.color = bad ? "#f2b787" : "";
 }
 
@@ -1304,6 +1373,16 @@ input("load").onchange = async () => {
 // ── Controls ────────────────────────────────────────────────────────────────
 
 $("generate").onclick = generateMap;
+/** The sparse-sides menus (#851) apply only to their library source. */
+function showSparseControls(): void {
+  const off = select("librarySource").value !== "sparse";
+  select("fillSides").disabled = off;
+  select("setPieceSides").disabled = off;
+}
+select("librarySource").onchange = showSparseControls;
+showSparseControls();
+/** The extra-open share (#883) applies only with a skeleton. */
+select("skeleton").onchange = () => { select("skeletonExtraOpen").disabled = select("skeleton").value === "off"; };
 select("zoneSize").onchange = () => {
   const library = CHAIN_LIBRARIES.find((l) => sizeKey(l.zoneWidth, l.zoneHeight) === select("zoneSize").value);
   if (!library) return;
@@ -1343,9 +1422,13 @@ input("seed").onkeydown = (event) => {
   if (event.key === "Enter") generateMap();
 };
 
-type Tab = "world" | "chain" | "placeables";
+type Tab = "world" | "chain" | "placeables" | "solve";
 function showTab(tab: Tab): void {
+  if (tab === "solve") syncPlacementControls();
   $("worldView").hidden = tab !== "world";
+  $("solveView").hidden = tab !== "solve";
+  $("solveTab").classList.toggle("active", tab === "solve");
+  if (tab !== "solve") solveView.hide();
   $("chainViewContainer").hidden = tab !== "chain";
   $("placeablesView").hidden = tab !== "placeables";
   $("worldTab").classList.toggle("active", tab === "world");
@@ -1353,8 +1436,9 @@ function showTab(tab: Tab): void {
   $("placeablesTab").classList.toggle("active", tab === "placeables");
   if (tab === "chain") renderChainLibrary();
   else if (tab === "placeables") renderPlaceables($("placeablesView"));
-  else resize();
+  else if (tab === "world") resize();
 }
+$("solveTab").onclick = () => showTab("solve");
 $("worldTab").onclick = () => showTab("world");
 $("chainTab").onclick = () => showTab("chain");
 $("placeablesTab").onclick = () => showTab("placeables");
@@ -1400,6 +1484,7 @@ declare global {
 }
 window.mapLab = Object.freeze({
   snapshot: () => ({
+    placement: solveView.snapshot(),
     busy,
     error,
     seed: map?.layout.seed ?? null,

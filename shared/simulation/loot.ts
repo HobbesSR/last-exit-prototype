@@ -34,7 +34,7 @@ export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readon
     const angle = (phase + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
     const candidate = { x: origin.x + cos(angle) * radius, y: origin.y + sin(angle) * radius };
     if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, origin, candidate)
-      && items.every(other => distance(other, candidate) > 32)
+      && (items === s.map.items ? itemsNear(s, candidate, 32) : items).every(other => distance(other, candidate) > 32)
       && points.every(other => distance(other, candidate) > 32)
       && (!runtime || physicalDropPlacementClear(s, runtime, candidate.x, candidate.y))) return candidate;
   }

@@ -7,6 +7,8 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
 import { interact } from '../shared/simulation/interactions.ts';
 import { eliminate } from '../shared/simulation/lifecycle.ts';
+import { addItems, removeItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
+import { synchronizePhysicalItems } from '../shared/simulation/world-physics.ts';
 
 const arena = () => ({ seed: 17, width: 800, height: 400,
   playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 8]] })) },
@@ -31,6 +33,48 @@ function fillDynamic(runtime) {
   runtime.world.commitMutations();
   return i;
 }
+
+test('admission prioritizes launched ids, preserves reserve, and retries ordinary ids only until full (#863)', async () => {
+  const profile = content();
+  profile.worldPhysics.dropReserve = 1;
+  const { s, runtime: r } = await game(arena(), profile);
+  try {
+    const count = fillDynamic(r);
+    let blockedChecks = 0;
+    const blocked = item('0-blocked', 'cell', { charge: 1 });
+    Object.defineProperty(blocked, 'x', { enumerable: true, get() { blockedChecks++; return -100; } });
+    addItems(s, blocked,
+      ...['z-launch', 'c', 'a', 'b-launch', ...Array.from({ length: 300 }, (_, i) => `tail-${i}`)]
+        .map(id => item(id, 'cell', { charge: 1 })));
+    // Build the pending order once. Subsequent synchronizations must not retest every logical item for ownership.
+    assert.equal([...unadmittedItems(s, r.items)].length, 305);
+    for (let i = count - 4; i < count; i++) r.world.queueRemoveBody(`filler:${i}`);
+    r.world.commitMutations();
+    r.itemLaunches.set('z-launch', { x: 12, y: 0 });
+    r.itemLaunches.set('b-launch', { x: 7, y: 0 });
+    r.itemLaunches.set('0-blocked', { x: 5, y: 0 });
+    const originalHas = r.items.has.bind(r.items);
+    let ownershipChecks = 0;
+    r.items.has = id => { ownershipChecks++; return originalHas(id); };
+    synchronizePhysicalItems(s, r, 19);
+    assert.deepEqual(r.discontinuities.filter(d => d.kind === 'placed' && d.id.startsWith('item:')).map(d => d.id),
+      ['item:b-launch', 'item:z-launch', 'item:a']);
+    assert.ok(Math.abs(r.world.getTransform('item:b-launch').vx - 7) < 1e-5);
+    assert.ok(Math.abs(r.world.getTransform('item:z-launch').vx - 12) < 1e-5);
+    assert.equal(r.world.canAddBodies(1), true, 'ordinary admission leaves the drop reserve free');
+    assert.equal(r.itemLaunches.size, 0);
+    assert.equal(blockedChecks, 1, 'a failed launch is not retried in the ordinary pass');
+    assert.ok(ownershipChecks < 20, `only visited candidates check ownership (${ownershipChecks})`);
+    const generation = r.world.getGeneration('item:a');
+    removeItem(s, s.map.items.find(i => i.id === 'a'));
+    synchronizePhysicalItems(s, r, 20);
+    assert.equal(r.world.hasBody('item:a'), false);
+    assert.equal(r.world.hasBody('item:c'), true, 'the next ordinary id fills the released slot');
+    assert.ok(r.discontinuities.some(d => d.id === 'item:a' && d.kind === 'removed' && d.generation === generation));
+    assert.equal(r.world.hasBody('item:0-blocked'), false, 'a blocked first id does not prevent a later valid admission');
+    assert.equal(blockedChecks, 2, 'a failed launch remains pending for later ordinary admission');
+  } finally { disposePhysics(s); }
+});
 
 test('pickup and drop retain instance identity, quantity, charge, and physical pose', async () => {
   const { s, p, runtime } = await game();

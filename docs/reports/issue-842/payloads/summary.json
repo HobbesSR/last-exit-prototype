@@ -1,0 +1,1538 @@
+{
+  "baseline": "9f589877c3ee064776332da9c0477fcc29e0f24c",
+  "implementation": "706d7e4",
+  "node": "v24.15.0",
+  "cache": [
+    {
+      "size": "12x6",
+      "content": "content-6",
+      "cacheSha256": "7296c1b679a6142dceac4fda5edbf21bf8bba54b5605ae985e7302b626b528ed",
+      "maps": [
+        {
+          "seed": 4217,
+          "mapSha256": "963e12c010550bcb85cf8fac71190c8a76d76357d44cb3233868328526205901",
+          "items": 963,
+          "gates": 60,
+          "obstacles": 3123
+        },
+        {
+          "seed": 4218,
+          "mapSha256": "f6e569495b3a618501d4a5132827cf3a9f8b92a0fd1f24685841dd46d22edbd5",
+          "items": 969,
+          "gates": 99,
+          "obstacles": 3013
+        }
+      ]
+    },
+    {
+      "size": "36x18",
+      "content": "content-6",
+      "cacheSha256": "82c19e1c91e4b721fb00bfca97f43d9997a7bd4aaba87f4ffe1179eb432eb52a",
+      "maps": [
+        {
+          "seed": 4217,
+          "mapSha256": "da53a8924e32eec19db092604b7b9aa12612b0172158fc8dd405ee2f2935219a",
+          "items": 8325,
+          "gates": 721,
+          "obstacles": 28583
+        },
+        {
+          "seed": 4218,
+          "mapSha256": "094bda1fb7a7e108f74f55fdd1455cc40418bdcf16d38e6a7287ed621e8a4d17",
+          "items": 8625,
+          "gates": 696,
+          "obstacles": 28948
+        }
+      ]
+    }
+  ],
+  "sourceSha256": {
+    "server/map-payload.js": "ac1dcf097ba619224e905c89b2c2110092156a37ba6ff72af5abd5ebc84bbb49",
+    "server/match.js": "77da27f2913f1136d519b0c6138da3f6468ab162c05eabd7f87a39490a856892",
+    "server/room-service.js": "77d2f7ff42bdca9a838599b563d53a12df01f96acd8821e0960e8723b93e0bc5",
+    "server/room-views.js": "dc97776e925f1f06e9c3b34aec8d89869501affd262a6faa298ee4ef407320a9",
+    "server/replay-writer.js": "0d42d20b74b67053b81e0bf44f5eb3b8075f50254b1015211e34a4de72e0d599",
+    "tools/perf/room-startup.mjs": "642ec7eb3776344f7fa001a3c0eb81902cda762a320fe0f91d7613fb6e1d927f",
+    "tools/perf/startup-client.mjs": "26837aaedf445ca501a2c482582028fb430e1bca1ea97ffe335cbb2e7439294c",
+    "tools/perf/frame-hashes.mjs": "ce13e156c3d62008bf5f4b7c81dd63ea858905e87b728d95067481f20469448e",
+    "tools/perf/recording-compare.mjs": "97fc55b090d75044bd7afbef2905efb2298315c2be9c7de0d608e6a7dc8c766a"
+  },
+  "runs": [
+    {
+      "file": "842-payloads-12x6-1-base.json",
+      "exit": 0,
+      "size": "12x6",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 685.7034,
+          "operationMs": 145.14030000000002,
+          "timerDelayMs": 3.408800000000042
+        },
+        {
+          "name": "cold.join",
+          "atMs": 830.8586,
+          "operationMs": 160.26170000000002,
+          "timerDelayMs": 4.33299999999997
+        },
+        {
+          "name": "cold.start",
+          "atMs": 991.1311,
+          "operationMs": 14.86710000000005,
+          "timerDelayMs": 14.737500000000068
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1006.006,
+          "operationMs": 60.00010000000009,
+          "timerDelayMs": 60.06530000000009
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2078.9512,
+          "operationMs": 88.2447000000002,
+          "timerDelayMs": 9.770300000000134
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 2167.2038,
+          "operationMs": 159.64310000000023,
+          "timerDelayMs": 8.83580000000029
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 2326.8581,
+          "operationMs": 16.338000000000193,
+          "timerDelayMs": 2.216899999999896
+        }
+      ],
+      "delivery": {
+        "samples": 54,
+        "maxMs": 122.857177734375,
+        "p999Ms": 122.857177734375,
+        "over50": 14,
+        "over75": 2
+      },
+      "wakes": {
+        "samples": 222,
+        "maxMs": 69.67990000000009,
+        "p999Ms": 69.67990000000009,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 222,
+        "maxMs": 69.62080000000014,
+        "p999Ms": 69.62080000000014,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 3176.787,
+        "cpuUserMs": 3109,
+        "cpuSystemMs": 625,
+        "cpuTotalMs": 3734,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        0
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-12x6-1-changed.json",
+      "exit": 0,
+      "size": "12x6",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 462.9214,
+          "operationMs": 153.97949999999997,
+          "timerDelayMs": 3.454999999999984
+        },
+        {
+          "name": "cold.join",
+          "atMs": 616.9151,
+          "operationMs": 87.98219999999992,
+          "timerDelayMs": 4.5038999999999305
+        },
+        {
+          "name": "cold.start",
+          "atMs": 704.9079,
+          "operationMs": 7.6066999999999325,
+          "timerDelayMs": 7.477800000000002
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 712.522,
+          "operationMs": 60.90949999999998,
+          "timerDelayMs": 60.98009999999999
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 1788.6562,
+          "operationMs": 101.22960000000012,
+          "timerDelayMs": 4.671400000000176
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 1889.8936,
+          "operationMs": 86.44849999999997,
+          "timerDelayMs": 1.2603999999998905
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 1976.3571,
+          "operationMs": 12.981400000000122,
+          "timerDelayMs": 13.02170000000001
+        }
+      ],
+      "delivery": {
+        "samples": 53,
+        "maxMs": 108.398681640625,
+        "p999Ms": 108.398681640625,
+        "over50": 15,
+        "over75": 1
+      },
+      "wakes": {
+        "samples": 195,
+        "maxMs": 68.8615000000002,
+        "p999Ms": 68.8615000000002,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 195,
+        "maxMs": 68.71389999999997,
+        "p999Ms": 68.71389999999997,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 3049.2819,
+        "cpuUserMs": 2718,
+        "cpuSystemMs": 407,
+        "cpuTotalMs": 3125,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        0
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-12x6-2-base.json",
+      "exit": 0,
+      "size": "12x6",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 688.2904,
+          "operationMs": 146.4678,
+          "timerDelayMs": 3.189300000000003
+        },
+        {
+          "name": "cold.join",
+          "atMs": 834.7722,
+          "operationMs": 163.75070000000005,
+          "timerDelayMs": 4.390800000000013
+        },
+        {
+          "name": "cold.start",
+          "atMs": 998.5341,
+          "operationMs": 15.523800000000051,
+          "timerDelayMs": 0.1431999999999789
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1014.0664,
+          "operationMs": 59.7435999999999,
+          "timerDelayMs": 59.81079999999986
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2084.7073,
+          "operationMs": 84.31449999999995,
+          "timerDelayMs": 9.081299999999828
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 2169.0292,
+          "operationMs": 166.48450000000003,
+          "timerDelayMs": 3.5009000000000015
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 2335.5249,
+          "operationMs": 14.544000000000324,
+          "timerDelayMs": 0.10310000000026776
+        }
+      ],
+      "delivery": {
+        "samples": 54,
+        "maxMs": 102.882568359375,
+        "p999Ms": 102.882568359375,
+        "over50": 18,
+        "over75": 1
+      },
+      "wakes": {
+        "samples": 224,
+        "maxMs": 64.08999999999992,
+        "p999Ms": 64.08999999999992,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 224,
+        "maxMs": 64.00990000000002,
+        "p999Ms": 64.00990000000002,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 3185.8728,
+        "cpuUserMs": 2875,
+        "cpuSystemMs": 609,
+        "cpuTotalMs": 3484,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        0
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-12x6-2-changed.json",
+      "exit": 0,
+      "size": "12x6",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 465.9456,
+          "operationMs": 153.4678,
+          "timerDelayMs": 3.5516999999999825
+        },
+        {
+          "name": "cold.join",
+          "atMs": 619.4343,
+          "operationMs": 88.69259999999997,
+          "timerDelayMs": 4.348799999999983
+        },
+        {
+          "name": "cold.start",
+          "atMs": 708.1371,
+          "operationMs": 7.492799999999988,
+          "timerDelayMs": 7.348799999999983
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 715.6379,
+          "operationMs": 58.75720000000001,
+          "timerDelayMs": 58.83290000000011
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 1783.1435,
+          "operationMs": 93.13740000000007,
+          "timerDelayMs": 4.704300000000103
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 1876.2868,
+          "operationMs": 90.71839999999997,
+          "timerDelayMs": 9.370799999999917
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 1967.0186,
+          "operationMs": 5.537299999999959,
+          "timerDelayMs": 5.474099999999908
+        }
+      ],
+      "delivery": {
+        "samples": 52,
+        "maxMs": 106.675537109375,
+        "p999Ms": 106.675537109375,
+        "over50": 20,
+        "over75": 1
+      },
+      "wakes": {
+        "samples": 206,
+        "maxMs": 67.87530000000015,
+        "p999Ms": 67.87530000000015,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 206,
+        "maxMs": 67.77639999999997,
+        "p999Ms": 67.77639999999997,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 3036.6867,
+        "cpuUserMs": 2969,
+        "cpuSystemMs": 406,
+        "cpuTotalMs": 3375,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        0
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-12x6-3-base.json",
+      "exit": 0,
+      "size": "12x6",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 690.9534,
+          "operationMs": 147.99170000000004,
+          "timerDelayMs": 3.554100000000062
+        },
+        {
+          "name": "cold.join",
+          "atMs": 838.9586,
+          "operationMs": 164.3261,
+          "timerDelayMs": 0.20859999999993306
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1003.2947,
+          "operationMs": 15.331199999999967,
+          "timerDelayMs": 14.98969999999997
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1018.6339,
+          "operationMs": 56.428300000000036,
+          "timerDelayMs": 56.500299999999925
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2089.9225,
+          "operationMs": 77.21360000000004,
+          "timerDelayMs": 0.6821999999997388
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 2167.1432,
+          "operationMs": 161.31219999999985,
+          "timerDelayMs": 3.7606000000000677
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 2328.4666,
+          "operationMs": 21.281099999999697,
+          "timerDelayMs": 13.852300000000014
+        }
+      ],
+      "delivery": {
+        "samples": 54,
+        "maxMs": 104.43408203125,
+        "p999Ms": 104.43408203125,
+        "over50": 17,
+        "over75": 1
+      },
+      "wakes": {
+        "samples": 198,
+        "maxMs": 65.47000000000003,
+        "p999Ms": 65.47000000000003,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 198,
+        "maxMs": 65.41129999999998,
+        "p999Ms": 65.41129999999998,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 3179.9332,
+        "cpuUserMs": 3609,
+        "cpuSystemMs": 468,
+        "cpuTotalMs": 4077,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        0
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-12x6-3-changed.json",
+      "exit": 0,
+      "size": "12x6",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 468.5468,
+          "operationMs": 152.59879999999993,
+          "timerDelayMs": 3.276999999999987
+        },
+        {
+          "name": "cold.join",
+          "atMs": 621.1634,
+          "operationMs": 93.47309999999993,
+          "timerDelayMs": 4.50789999999995
+        },
+        {
+          "name": "cold.start",
+          "atMs": 714.6476,
+          "operationMs": 8.431799999999953,
+          "timerDelayMs": 7.976400000000012
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 723.0876,
+          "operationMs": 58.76480000000004,
+          "timerDelayMs": 58.830400000000054
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 1797.4744,
+          "operationMs": 104.98789999999985,
+          "timerDelayMs": 1.0376999999998588
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 1902.4694,
+          "operationMs": 82.40930000000003,
+          "timerDelayMs": 1.705699999999979
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 1984.8944,
+          "operationMs": 14.32510000000002,
+          "timerDelayMs": 8.470200000000204
+        }
+      ],
+      "delivery": {
+        "samples": 53,
+        "maxMs": 103.886474609375,
+        "p999Ms": 103.886474609375,
+        "over50": 13,
+        "over75": 1
+      },
+      "wakes": {
+        "samples": 198,
+        "maxMs": 67.55629999999996,
+        "p999Ms": 67.55629999999996,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 198,
+        "maxMs": 64.64339999999993,
+        "p999Ms": 64.64339999999993,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 3050.1581,
+        "cpuUserMs": 2844,
+        "cpuSystemMs": 532,
+        "cpuTotalMs": 3376,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        0
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-36x18-1-base.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 199172.3815,
+          "operationMs": 514.0836000000127,
+          "timerDelayMs": 3.9271000000007916
+        },
+        {
+          "name": "cold.join",
+          "atMs": 199686.4804,
+          "operationMs": 1226.9039000000048,
+          "timerDelayMs": 4.794599999993807
+        },
+        {
+          "name": "cold.start",
+          "atMs": 200913.3987,
+          "operationMs": 108.06790000002366,
+          "timerDelayMs": 107.82690000001458
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 201021.4755,
+          "operationMs": 90.414300000004,
+          "timerDelayMs": 90.48120000000927
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 202124.926,
+          "operationMs": 539.8985999999859,
+          "timerDelayMs": 13.856499999994412
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 202664.8329,
+          "operationMs": 1283.158299999981,
+          "timerDelayMs": 31.21679999999469
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 203948.0041,
+          "operationMs": 196.04589999999735,
+          "timerDelayMs": 0.6301000000094064
+        }
+      ],
+      "delivery": {
+        "samples": 75,
+        "maxMs": 171.73388671875,
+        "p999Ms": 171.73388671875,
+        "over50": 37,
+        "over75": 11
+      },
+      "wakes": {
+        "samples": 302,
+        "maxMs": 136.50310000000172,
+        "p999Ms": 136.50310000000172,
+        "over50": 12
+      },
+      "loopWork": {
+        "samples": 302,
+        "maxMs": 90.28729999999632,
+        "p999Ms": 90.28729999999632,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 6505.069300000003,
+        "cpuUserMs": 9531,
+        "cpuSystemMs": 656,
+        "cpuTotalMs": 10187,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        13,
+        4
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-36x18-1-changed.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 680.5203,
+          "operationMs": 642.4146,
+          "timerDelayMs": 3.376199999999926
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1322.9506,
+          "operationMs": 543.7930000000001,
+          "timerDelayMs": 4.57080000000019
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1866.7602,
+          "operationMs": 26.33330000000001,
+          "timerDelayMs": 26.26610000000005
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1893.1048,
+          "operationMs": 102.07289999999989,
+          "timerDelayMs": 102.13419999999996
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 3004.4021,
+          "operationMs": 674.0050000000001,
+          "timerDelayMs": 9.206500000000233
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3678.4141,
+          "operationMs": 542.2188999999998,
+          "timerDelayMs": 1.3175000000001091
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 4220.6447,
+          "operationMs": 44.770800000000236,
+          "timerDelayMs": 0.08979999999974098
+        }
+      ],
+      "delivery": {
+        "samples": 73,
+        "maxMs": 150.507568359375,
+        "p999Ms": 150.507568359375,
+        "over50": 31,
+        "over75": 4
+      },
+      "wakes": {
+        "samples": 331,
+        "maxMs": 102.53909999999996,
+        "p999Ms": 102.53909999999996,
+        "over50": 3
+      },
+      "loopWork": {
+        "samples": 331,
+        "maxMs": 55.99369999999999,
+        "p999Ms": 55.99369999999999,
+        "over50": 2
+      },
+      "lifecycle": {
+        "wallMs": 5118.9468,
+        "cpuUserMs": 7312,
+        "cpuSystemMs": 828,
+        "cpuTotalMs": 8140,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        2
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-36x18-2-base.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 908.5686,
+          "operationMs": 514.1910000000001,
+          "timerDelayMs": 3.0762000000000853
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1422.7756,
+          "operationMs": 1243.7965,
+          "timerDelayMs": 1.9028000000000702
+        },
+        {
+          "name": "cold.start",
+          "atMs": 2666.5871,
+          "operationMs": 112.05159999999978,
+          "timerDelayMs": 111.76599999999962
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 2778.648,
+          "operationMs": 103.19929999999977,
+          "timerDelayMs": 103.26209999999992
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 3890.7024,
+          "operationMs": 559.424,
+          "timerDelayMs": 4.722699999999804
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 4450.1347,
+          "operationMs": 1199.7941,
+          "timerDelayMs": 23.428100000000086
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 5649.9394,
+          "operationMs": 184.59379999999965,
+          "timerDelayMs": 110.16259999999966
+        }
+      ],
+      "delivery": {
+        "samples": 76,
+        "maxMs": 147.044677734375,
+        "p999Ms": 147.044677734375,
+        "over50": 32,
+        "over75": 12
+      },
+      "wakes": {
+        "samples": 320,
+        "maxMs": 109.98829999999998,
+        "p999Ms": 109.98829999999998,
+        "over50": 12
+      },
+      "loopWork": {
+        "samples": 320,
+        "maxMs": 66.9386000000004,
+        "p999Ms": 66.9386000000004,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 6477.1351,
+        "cpuUserMs": 9547,
+        "cpuSystemMs": 578,
+        "cpuTotalMs": 10125,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        11,
+        3
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-36x18-2-changed.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 696.1468,
+          "operationMs": 633.8316,
+          "timerDelayMs": 3.51400000000001
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1329.9953,
+          "operationMs": 513.9265,
+          "timerDelayMs": 0.22109999999997854
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1843.9382,
+          "operationMs": 26.99090000000001,
+          "timerDelayMs": 26.91899999999987
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1870.939,
+          "operationMs": 108.70669999999996,
+          "timerDelayMs": 108.77649999999994
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2990.0802,
+          "operationMs": 686.3502000000003,
+          "timerDelayMs": 10.5933
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3676.4384,
+          "operationMs": 528.9884000000002,
+          "timerDelayMs": 1.408100000000104
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 4205.4378,
+          "operationMs": 45.42780000000039,
+          "timerDelayMs": 33.604699999999866
+        }
+      ],
+      "delivery": {
+        "samples": 73,
+        "maxMs": 123.73583984375,
+        "p999Ms": 123.73583984375,
+        "over50": 37,
+        "over75": 2
+      },
+      "wakes": {
+        "samples": 334,
+        "maxMs": 98.28420000000006,
+        "p999Ms": 98.28420000000006,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 334,
+        "maxMs": 43.389000000000124,
+        "p999Ms": 43.389000000000124,
+        "over50": 0
+      },
+      "lifecycle": {
+        "wallMs": 5090.1767,
+        "cpuUserMs": 7047,
+        "cpuSystemMs": 906,
+        "cpuTotalMs": 7953,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        1
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-36x18-3-base.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 890.5369,
+          "operationMs": 551.6467000000001,
+          "timerDelayMs": 3.5054000000000087
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1442.2054,
+          "operationMs": 1240.3875,
+          "timerDelayMs": 2.0267999999998665
+        },
+        {
+          "name": "cold.start",
+          "atMs": 2682.6084,
+          "operationMs": 121.17000000000007,
+          "timerDelayMs": 112.19579999999996
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 2803.7924,
+          "operationMs": 103.2818000000002,
+          "timerDelayMs": 103.35350000000017
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 3920.5796,
+          "operationMs": 535.6671999999999,
+          "timerDelayMs": 0.9376999999999498
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 4456.2555,
+          "operationMs": 1217.3167999999996,
+          "timerDelayMs": 22.9384
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 5673.5839,
+          "operationMs": 175.1258000000007,
+          "timerDelayMs": 2.5720000000001164
+        }
+      ],
+      "delivery": {
+        "samples": 77,
+        "maxMs": 155.06787109375,
+        "p999Ms": 155.06787109375,
+        "over50": 31,
+        "over75": 13
+      },
+      "wakes": {
+        "samples": 310,
+        "maxMs": 109.57309999999961,
+        "p999Ms": 109.57309999999961,
+        "over50": 12
+      },
+      "loopWork": {
+        "samples": 310,
+        "maxMs": 66.57639999999992,
+        "p999Ms": 66.57639999999992,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 6520.385,
+        "cpuUserMs": 8688,
+        "cpuSystemMs": 765,
+        "cpuTotalMs": 9453,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        11,
+        3
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-36x18-3-changed.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 9,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 685.9577,
+          "operationMs": 651.5548,
+          "timerDelayMs": 3.591099999999983
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1337.5291,
+          "operationMs": 502.2365,
+          "timerDelayMs": 4.408699999999953
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1839.7821,
+          "operationMs": 26.506900000000087,
+          "timerDelayMs": 25.97120000000018
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1866.2984,
+          "operationMs": 100.03390000000013,
+          "timerDelayMs": 100.09910000000013
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2975.4266,
+          "operationMs": 672.9193,
+          "timerDelayMs": 1.1824000000001433
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3648.3531,
+          "operationMs": 509.62429999999995,
+          "timerDelayMs": 1.3091000000003987
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 4157.9923,
+          "operationMs": 45.09940000000006,
+          "timerDelayMs": 34.01810000000023
+        }
+      ],
+      "delivery": {
+        "samples": 70,
+        "maxMs": 147.72705078125,
+        "p999Ms": 147.72705078125,
+        "over50": 29,
+        "over75": 5
+      },
+      "wakes": {
+        "samples": 299,
+        "maxMs": 106.28480000000036,
+        "p999Ms": 106.28480000000036,
+        "over50": 3
+      },
+      "loopWork": {
+        "samples": 299,
+        "maxMs": 106.0603000000001,
+        "p999Ms": 106.0603000000001,
+        "over50": 2
+      },
+      "lifecycle": {
+        "wallMs": 5052.103999999999,
+        "cpuUserMs": 7609,
+        "cpuSystemMs": 641,
+        "cpuTotalMs": 8250,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        4
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-single-36x18-1-base.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 1,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 900.8809,
+          "operationMs": 511.7786,
+          "timerDelayMs": 3.3985999999999876
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1412.6769,
+          "operationMs": 164.55150000000003,
+          "timerDelayMs": 4.310500000000047
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1577.2409,
+          "operationMs": 110.13040000000001,
+          "timerDelayMs": 104.99330000000009
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1687.38,
+          "operationMs": 101.7029,
+          "timerDelayMs": 101.74889999999982
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2798.2755,
+          "operationMs": 530.2839999999997,
+          "timerDelayMs": 0.9758999999999105
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3328.5673,
+          "operationMs": 176.82829999999967,
+          "timerDelayMs": 26.808599999999842
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 3505.4075,
+          "operationMs": 175.6513,
+          "timerDelayMs": 1.0950000000002547
+        }
+      ],
+      "delivery": {
+        "samples": 64,
+        "maxMs": 150.798828125,
+        "p999Ms": 150.798828125,
+        "over50": 24,
+        "over75": 5
+      },
+      "wakes": {
+        "samples": 281,
+        "maxMs": 101.84810000000016,
+        "p999Ms": 101.84810000000016,
+        "over50": 4
+      },
+      "loopWork": {
+        "samples": 281,
+        "maxMs": 72.6514000000002,
+        "p999Ms": 72.6514000000002,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 4305.534699999999,
+        "cpuUserMs": 6359,
+        "cpuSystemMs": 547,
+        "cpuTotalMs": 6906,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        3
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-single-36x18-1-changed.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 1,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 697.1139,
+          "operationMs": 630.0127000000001,
+          "timerDelayMs": 3.2121000000000777
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1327.1422,
+          "operationMs": 82.13000000000011,
+          "timerDelayMs": 4.602100000000064
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1409.2842,
+          "operationMs": 24.526499999999942,
+          "timerDelayMs": 18.772699999999986
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1433.8204,
+          "operationMs": 103.90149999999994,
+          "timerDelayMs": 103.95119999999997
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2552.0912,
+          "operationMs": 675.4947999999999,
+          "timerDelayMs": 13.014400000000023
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3227.593,
+          "operationMs": 70.46100000000024,
+          "timerDelayMs": 1.5626999999999498
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 3298.0671,
+          "operationMs": 36.053899999999885,
+          "timerDelayMs": 28.667099999999664
+        }
+      ],
+      "delivery": {
+        "samples": 65,
+        "maxMs": 154.34619140625,
+        "p999Ms": 154.34619140625,
+        "over50": 24,
+        "over75": 2
+      },
+      "wakes": {
+        "samples": 282,
+        "maxMs": 102.21379999999999,
+        "p999Ms": 102.21379999999999,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 282,
+        "maxMs": 42.59019999999964,
+        "p999Ms": 42.59019999999964,
+        "over50": 0
+      },
+      "lifecycle": {
+        "wallMs": 4182.6194000000005,
+        "cpuUserMs": 5563,
+        "cpuSystemMs": 766,
+        "cpuTotalMs": 6329,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        1
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-single-36x18-2-base.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 1,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 916.0619,
+          "operationMs": 520.1327,
+          "timerDelayMs": 3.081299999999942
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1436.2102,
+          "operationMs": 161.52430000000004,
+          "timerDelayMs": 1.7588000000000648
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1597.7471,
+          "operationMs": 111.87189999999987,
+          "timerDelayMs": 104.0963999999999
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1709.6289,
+          "operationMs": 100.96150000000011,
+          "timerDelayMs": 101.01040000000012
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2822.7655,
+          "operationMs": 533.6405,
+          "timerDelayMs": 0.9751999999998588
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3356.4157,
+          "operationMs": 173.73919999999998,
+          "timerDelayMs": 26.98849999999993
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 3530.1652,
+          "operationMs": 181.9046000000003,
+          "timerDelayMs": 103.66460000000006
+        }
+      ],
+      "delivery": {
+        "samples": 63,
+        "maxMs": 154.918701171875,
+        "p999Ms": 154.918701171875,
+        "over50": 24,
+        "over75": 5
+      },
+      "wakes": {
+        "samples": 288,
+        "maxMs": 107.21160000000009,
+        "p999Ms": 107.21160000000009,
+        "over50": 4
+      },
+      "loopWork": {
+        "samples": 288,
+        "maxMs": 78.1265000000003,
+        "p999Ms": 78.1265000000003,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 4333.7014,
+        "cpuUserMs": 5953,
+        "cpuSystemMs": 578,
+        "cpuTotalMs": 6531,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        3
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-single-36x18-2-changed.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 1,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 693.4876,
+          "operationMs": 619.0588999999999,
+          "timerDelayMs": 3.1850999999999203
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1312.5623,
+          "operationMs": 86.25019999999995,
+          "timerDelayMs": 4.516699999999901
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1398.8237,
+          "operationMs": 23.680000000000064,
+          "timerDelayMs": 18.79060000000004
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1422.5121,
+          "operationMs": 102.07619999999997,
+          "timerDelayMs": 102.13850000000002
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2537.0511,
+          "operationMs": 685.1043999999997,
+          "timerDelayMs": 9.227100000000064
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3222.1688,
+          "operationMs": 80.8400999999999,
+          "timerDelayMs": 1.4782000000000153
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 3303.0223,
+          "operationMs": 23.944099999999708,
+          "timerDelayMs": 19.29599999999982
+        }
+      ],
+      "delivery": {
+        "samples": 64,
+        "maxMs": 120.41162109375,
+        "p999Ms": 120.41162109375,
+        "over50": 31,
+        "over75": 2
+      },
+      "wakes": {
+        "samples": 299,
+        "maxMs": 112.87130000000025,
+        "p999Ms": 112.87130000000025,
+        "over50": 1
+      },
+      "loopWork": {
+        "samples": 299,
+        "maxMs": 41.31820000000016,
+        "p999Ms": 41.31820000000016,
+        "over50": 0
+      },
+      "lifecycle": {
+        "wallMs": 4157.7110999999995,
+        "cpuUserMs": 5672,
+        "cpuSystemMs": 781,
+        "cpuTotalMs": 6453,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        1
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-single-36x18-3-base.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 1,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 905.8065,
+          "operationMs": 514.5813999999999,
+          "timerDelayMs": 3.4062999999999874
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1420.4033,
+          "operationMs": 156.11820000000012,
+          "timerDelayMs": 0.22820000000001528
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1576.5335,
+          "operationMs": 111.72430000000008,
+          "timerDelayMs": 105.12220000000002
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1688.2763,
+          "operationMs": 101.10879999999997,
+          "timerDelayMs": 101.15660000000003
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2802.9972,
+          "operationMs": 550.7370000000001,
+          "timerDelayMs": 0.9907000000002881
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3353.7428,
+          "operationMs": 169.12710000000015,
+          "timerDelayMs": 18.60629999999992
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 3522.8837,
+          "operationMs": 172.84370000000035,
+          "timerDelayMs": 102.32110000000011
+        }
+      ],
+      "delivery": {
+        "samples": 64,
+        "maxMs": 151.4921875,
+        "p999Ms": 151.4921875,
+        "over50": 30,
+        "over75": 5
+      },
+      "wakes": {
+        "samples": 287,
+        "maxMs": 112.05330000000004,
+        "p999Ms": 112.05330000000004,
+        "over50": 4
+      },
+      "loopWork": {
+        "samples": 287,
+        "maxMs": 70.39889999999968,
+        "p999Ms": 70.39889999999968,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 4337.3303,
+        "cpuUserMs": 6218,
+        "cpuSystemMs": 562,
+        "cpuTotalMs": 6780,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        3
+      ],
+      "errors": []
+    },
+    {
+      "file": "842-payloads-single-36x18-3-changed.json",
+      "exit": 1,
+      "size": "36x18",
+      "viewers": 1,
+      "phases": [
+        {
+          "name": "cold.makeReady",
+          "atMs": 722.9159,
+          "operationMs": 628.5201999999999,
+          "timerDelayMs": 3.3168000000000575
+        },
+        {
+          "name": "cold.join",
+          "atMs": 1351.453,
+          "operationMs": 81.66669999999999,
+          "timerDelayMs": 4.504200000000083
+        },
+        {
+          "name": "cold.start",
+          "atMs": 1433.1319,
+          "operationMs": 26.050700000000006,
+          "timerDelayMs": 19.254899999999907
+        },
+        {
+          "name": "cold.tick1",
+          "atMs": 1459.1933,
+          "operationMs": 102.02700000000004,
+          "timerDelayMs": 102.07550000000015
+        },
+        {
+          "name": "concurrent.makeReady",
+          "atMs": 2575.121,
+          "operationMs": 669.8202000000001,
+          "timerDelayMs": 8.640300000000025
+        },
+        {
+          "name": "concurrent.join",
+          "atMs": 3244.9477,
+          "operationMs": 70.14489999999978,
+          "timerDelayMs": 1.4766999999997097
+        },
+        {
+          "name": "concurrent.start",
+          "atMs": 3315.1044,
+          "operationMs": 31.277399999999943,
+          "timerDelayMs": 31.248799999999846
+        }
+      ],
+      "delivery": {
+        "samples": 64,
+        "maxMs": 150.82958984375,
+        "p999Ms": 150.82958984375,
+        "over50": 25,
+        "over75": 2
+      },
+      "wakes": {
+        "samples": 262,
+        "maxMs": 101.97759999999971,
+        "p999Ms": 101.97759999999971,
+        "over50": 2
+      },
+      "loopWork": {
+        "samples": 262,
+        "maxMs": 52.48590000000013,
+        "p999Ms": 52.48590000000013,
+        "over50": 1
+      },
+      "lifecycle": {
+        "wallMs": 4154.2803,
+        "cpuUserMs": 5953,
+        "cpuSystemMs": 469,
+        "cpuTotalMs": 6422,
+        "scope": "After map preparation and transport setup through service close/replay drain and transport teardown",
+        "cpuScope": "Whole process, including socket client worker"
+      },
+      "recorderDrops": [
+        0,
+        1
+      ],
+      "errors": []
+    }
+  ]
+}
