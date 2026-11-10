@@ -353,8 +353,8 @@ libraries.
 
 `map/macro/content/diamond-12x6.json` is the library the chain is authored
 with (B4, #97; modularized in #168; set pieces on the old footprints in S5,
-#170). It includes `common-primitives@4.json` and `common-set-pieces@4.json`,
-which also includes the primitives. The top library owns the classes and
+#170, where at the time it included `common-primitives@4.json` and
+`common-set-pieces@4.json` in git; today it includes the `@7` revisions). The top library owns the classes and
 quotas for the diamond at its declared size. It paints every type in 54's
 catalogue, and it grows from here. The fixture libraries in
 `map/macro/tests/fixtures/` stay with the stage tests.
@@ -400,7 +400,7 @@ catalogue, and it grows from here. The fixture libraries in
 | `medium` | `market-row` 9 × 4 and `market-court` 7 × 5 (`market`), `walled-base` 6 × 6 and `barracks` 8 × 4 (`compound`), `checkpoint-lane` 12 × 3 (`checkpoint`), `pillar-hall` 6 × 5 (`hall`) |
 | `small` | `plant-row` 6 × 3, `plant-tower` 3 × 6 and `plant-yard` 5 × 3 (`plant`), `depot-sheds` 9 × 2 and `depot-lot` 7 × 3 (`depot`), `park-square` 4 × 4 and `park-green` 6 × 4 (`park`), `ruins-lot` 5 × 4 (`ruins`), `cover-yard` 4 × 5 (`cover`), `rubble-strip` 8 × 2 (rubble banks back to back, a rubble strip six cells deep between open lanes), `rubble-court` 3 × 3 (eight cover tiles around the centered rubble island) |
 
-  `common-set-pieces@4` still defines `hut-yard`, `hut-row`, `cover-patch`,
+  `common-set-pieces` (originally `common-set-pieces@4` in git, now `@7`) still defines `hut-yard`, `hut-row`, `cover-patch`,
   `cover-field`, `rubble-lane` and `rubble-lanes`, the set pieces before S5,
   for libraries at other sizes. This library's classes no longer draw them,
   so huts come from the fill's hut quarters.
@@ -473,31 +473,11 @@ catalogue, and it grows from here. The fixture libraries in
   the set pieces; its increased fill weight is intended to form larger joined
   cover regions.
 
-`map/tools/author-inward-grounds.mts` checks or regenerates these explicit
+The retired `map/tools/author-inward-grounds.mts` tool originally authored these explicit
 structure variants and their blueprint references from the original grounds
-and same-class slot adjacency. It is an offline authoring tool; library loading
-does not rewrite prescriptions. It authors the `common-primitives@5` module set, which the
-#849 adoption then migrated by hand into `@6` (below); it neither reads nor writes `@6`, and
-a later inward revision would first teach it the migration. For the set it authored, with a
-top-level library whose includes name that set (the committed tops now name `@6`, so the
-tests pin a copy back, `tests/helpers/inward-source.js`), run:
-
-```sh
-node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@5.json --common map/macro/content/common-set-pieces@5.json --district map/macro/content/district-set-pieces@4.json --local-library <top-level library including that set> --check
-```
-
-To regenerate, replace `--check` with `--out-dir <new-directory>`. Inputs and
-existing outputs are never overwritten. The current inputs reconstruct 81
-variants and 3,513 slot references, including 2,009 local slots. Omit the optional
-`--local-library` to check only the included modules (1,504 references). The
-library input authors all nine ground families in its local set pieces. Other
-slot families stay as supplied. #530 adds immutable `common-primitives@5`,
-`common-set-pieces@5` and `district-set-pieces@4`; all three authored-size
-libraries pin these revisions. Earlier module files remain unchanged, and
-saved maps retain their embedded library. This authored content change needs
-no strategy, macro algorithm or wire version bump (53). Future content changes
-still require reviewed module versions; the tool supports authored copies with
-matching includes.
+and same-class slot adjacency for the `common-primitives@5` module set (#530).
+The #849 and #895 adoptions then migrated them into the bundled libraries (`@6` and `@7`;
+earlier revisions stay reachable in git, and 42.4 keeps the checkpoint history).
 
 **Matched adoption (#849, `common-primitives@6`).** `common-primitives@6`,
 `common-set-pieces@6` and `district-set-pieces@5` carry the content Corey approved in the
@@ -569,7 +549,8 @@ keep loot per map level (14).
 ## The larger libraries (S6)
 
 `diamond-24x12.json` and `diamond-36x18.json` (#171) include the same two
-modules and `district-set-pieces@3.json`. A piece that is enormous at one size
+modules and `district-set-pieces` (originally `district-set-pieces@3.json` in git,
+now `@6.json`). A piece that is enormous at one size
 is medium at the next (55):
 
 | Set piece class | 24 × 12 | 36 × 18 |
@@ -588,7 +569,7 @@ Core element pieces, their quotas and the six transit stations stay as at
 split between two or three types so one structure type doesn't fill it alone.
 Sizes are in tiles.
 
-- **Districts** (`district-set-pieces@3`, shared by both sizes):
+- **Districts** (`district-set-pieces`, originally `@3` in git, now `@6`, shared by both sizes):
   `market-district` 20 × 10 (market and park), `industrial-estate` 18 × 10
   (plant and depot), `downtown` 20 × 9 (block over a market row), `garrison`
   16 × 10 (compound over a checkpoint lane) and `old-town` 18 × 10 (ruins,
