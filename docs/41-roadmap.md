@@ -200,7 +200,12 @@ shares remain high. Stop at this one-family capability: general #649 growth,
 macro boundary/portal control and other builder adoptions remain separate
 candidates, with no main lever or automatic successor selected.
 
-The bounded macro curtain experiment (#705, [42.26](42.26-macro-boundary.md)) shifted some long-route tails while keeping median progression nearly direct and empty-space shares nearly flat; it was retired (#927) after Corey's follow-up chose cross-region incidental joins instead (#716, [17.2.11](17.2.11-navigation-structure-direction.md)), with evidence retained in [42.26](42.26-macro-boundary.md) and [the report](reports/issue-705/README.md).
+The bounded macro curtain experiment (#705, [42.26](42.26-macro-boundary.md)) shifted
+some long-route tails while keeping median progression nearly direct and
+empty-space shares nearly flat; it was retired (#927) after Corey's follow-up
+chose cross-region incidental joins instead (#716,
+[17.2.11](17.2.11-navigation-structure-direction.md)), with evidence retained in
+[42.26](42.26-macro-boundary.md) and [the report](reports/issue-705/README.md).
 
 After the bounded macro curtain experiment (#705 / PR #713), Corey's follow-up
 selects a different missing capability: independently authored content from
