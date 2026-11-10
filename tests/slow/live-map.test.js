@@ -5,25 +5,28 @@ import { generateMacro } from '../../map/chain.ts';
 import { mapViews } from '../../map/macro/src/chain/map.ts';
 import { builtMapFrame } from '../../map/micro/adapter.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
-import { createGame, step } from '../../shared/simulation.ts';
+import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
 
 // Two maps: the claim is that the mechanism completes on a chain map, and more seeds only sample
-// for stalls. 4217, the third seed here until #822, is the map physics-navigation plays, but with
-// physical contestants: no legacy-mover bot match runs on it any more.
-test('combat-neutralized bots fill all three extraction slots on representative live chain maps', () => {
+// for stalls. 4217, the third seed here until #822, is the map physics-navigation plays. On the
+// shipped content and its engine (#920).
+test('combat-neutralized bots fill all three extraction slots on representative live chain maps', async () => {
+  const content = defaultContent();
   for (const seed of [1, 9]) {
-    const game = createGame(seed, generateLiveMap(seed));
-    game.map.traps = [];
-    for (const player of game.players) {
-      if (player.role === 'gladiator') player.status = 'eliminated';
-      else player.shield = 1000000;
-    }
-    // The match ends at its declared duration however play goes, so a stalled one fails here.
-    const limit = game.content.durationTicks;
-    for (let i = 0; i <= limit && game.phase === 'live'; i++) step(game);
-    assert.notEqual(game.phase, 'live', `seed ${seed}: the match ended within its ${limit}-tick duration`);
-    assert.equal(game.slots, 0, `seed ${seed}: three extraction slots filled`);
-    assert.equal(game.players.filter(player => player.status === 'escaped').length, 3, `seed ${seed}: three contestants escaped`);
+    const game = await createPhysicsGame(seed, generateLiveMap(seed, content), content);
+    try {
+      game.map.traps = [];
+      for (const player of game.players) {
+        if (player.role === 'gladiator') player.status = 'eliminated';
+        else player.shield = 1000000;
+      }
+      // The match ends at its declared duration however play goes, so a stalled one fails here.
+      const limit = game.content.durationTicks;
+      for (let i = 0; i <= limit && game.phase === 'live'; i++) step(game);
+      assert.notEqual(game.phase, 'live', `seed ${seed}: the match ended within its ${limit}-tick duration`);
+      assert.equal(game.slots, 0, `seed ${seed}: three extraction slots filled`);
+      assert.equal(game.players.filter(player => player.status === 'escaped').length, 3, `seed ${seed}: three contestants escaped`);
+    } finally { disposePhysics(game); }
   }
 });
 

@@ -7,7 +7,9 @@ import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createReplayWriter, frameLine, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
-import { createGame, snapshot, step } from '../shared/simulation.ts';
+import { createPhysicsGame, disposePhysics, snapshot, step } from '../shared/simulation.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
+import { generatedMap } from './helpers/room-harness.js';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
 import { createFileReplayStore } from '../server/replay-store.js';
@@ -181,8 +183,10 @@ test('a header descriptor is written once and leaves frame bytes and digest unto
   assert.deepEqual(JSON.parse(described.text).presentation, presentation);
 });
 
-test('frames are written byte for byte as JSON.stringify writes them, with the ground and gates from their kept JSON (#655)', async () => {
-  const s = createGame(4217), chunks = [], advance = () => { step(s); return snapshot(s); };
+test('frames are written byte for byte as JSON.stringify writes them, with the ground and gates from their kept JSON (#655)', async t => {
+  // A physics match on the room arena, the shipped content and engine (#920).
+  const s = await createPhysicsGame(4217, generatedMap(), defaultContent()), chunks = [], advance = () => { step(s); return snapshot(s); };
+  t.after(() => disposePhysics(s));
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const header = { id: 'ground', seed: 4217 };
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => { throw error; } });

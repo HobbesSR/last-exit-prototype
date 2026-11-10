@@ -1060,7 +1060,7 @@ establishes nothing about the reported slowdown.
 loot, region/tier ownership, determinism and JSON prediction agreement. The
 boundary tests cover concave edges, holes and whole-body clearance while pinning
 legacy diamond movement. `tests/slow/live-map.test.js` plays combat-neutralized
-bots through all three extraction slots on seeds 1 and 9 (#822; `physics-navigation` plays 4217's map with physical contestants, not legacy-mover bots), each bounded by
+bots through all three extraction slots on seeds 1 and 9 on the shipped content and its engine (#822, #920; `physics-navigation` plays 4217's map), each bounded by
 the match duration so a stalled match fails rather than hangs. Transit strategy
 and macro library tests check hunter access, standing space, six separate owned
 regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bot

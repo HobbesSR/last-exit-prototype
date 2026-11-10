@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { arena } from './helpers/arena.js';
-import { gunfight, run, stage } from './helpers/scenario.js';
+import { gunfight, run, stage, stagePhysics } from './helpers/scenario.js';
 import { canOccupy } from '../shared/movement.ts';
-import { contentById, legacyContent } from '../shared/simulation/content.ts';
+import { disposePhysics } from '../shared/simulation.ts';
+import { contentById, defaultContent } from '../shared/simulation/content.ts';
 
 // Test arenas and the scenario layer (31 "Test arenas", #697).
 
@@ -32,13 +33,16 @@ test('scattered crates depend on the seed alone', () => {
   assert.deepEqual([full.length, full.some(c => c.id === 'crate-3-1' || c.id === 'crate-4-1'), 'cell' in full[0]], [22, false, false]);
 });
 
-test('a stage holds exactly the actors asked for, where they were put', () => {
+test('a stage holds exactly the actors asked for, where they were put', async () => {
   const { map } = arena({ cols: 10, rows: 4 });
   const actors = [{ role: 'gladiator', kit: 'specter', x: 300, y: 400 }, { role: 'contestant', bot: false, x: 1500, y: 300 }, { role: 'contestant', x: 900, y: 200 }];
-  const { s, players } = stage(map, { content: legacyContent(), actors });
-  assert.equal(s.players.length, 3);
-  assert.deepEqual(players.map(p => [p.role, p.kit === 'specter', p.bot, p.x, p.y]),
-    [['gladiator', true, true, 300, 400], ['contestant', false, false, 1500, 300], ['contestant', false, true, 900, 200]]);
+  const { s, players } = await stagePhysics(map, { content: defaultContent(), actors });
+  try {
+    assert.equal(s.players.length, 3);
+    // The engine rests a body within a float of where it was put.
+    assert.deepEqual(players.map(p => [p.role, p.kit === 'specter', p.bot, Math.round(p.x), Math.round(p.y)]),
+      [['gladiator', true, true, 300, 400], ['contestant', false, false, 1500, 300], ['contestant', false, true, 900, 200]]);
+  } finally { disposePhysics(s); }
 });
 
 test('a gladiator that hears a gunfight goes straight to it; one that only hears does not', async () => {
@@ -51,7 +55,19 @@ test('a gladiator that hears a gunfight goes straight to it; one that only hears
   assert.ok(await gunfight(distance, { content: contentById('content-9'), until: 1, ticks: 600 }) < floor * 1.1);
 });
 
-test('an event without a period acts every tick, and one without content stages on the legacy mover', () => {
+test('an event without a period acts every tick', async () => {
+  const { s } = await stagePhysics(arena({ cols: 4, rows: 2 }).map, { content: defaultContent(), actors: [{ role: 'contestant', bot: false, x: 300, y: 200 }] });
+  try {
+    assert.equal(s.content.roster.contestants.length, 1);
+    assert.ok(s.content.weapons, 'a whole content');
+    const ticks = [];
+    run(s, { ticks: 5, events: [{ act: s => ticks.push(s.tick) }, { from: 2, until: 3, act: s => ticks.push(-s.tick) }] });
+    assert.deepEqual(ticks, [0, 1, 2, -2, 3, 4]);
+  } finally { disposePhysics(s); }
+});
+
+// Stage 4 retires the legacy mover and this half with it (#920).
+test('a stage without content is on the legacy mover (legacy mover, #920 stage 4)', () => {
   const { s } = stage(arena({ cols: 4, rows: 2 }).map, { actors: [{ role: 'contestant', bot: false, x: 300, y: 200 }] });
   assert.equal(s.content.roster.contestants.length, 1);
   assert.ok(s.content.weapons, 'a whole content');
