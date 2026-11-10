@@ -110,39 +110,31 @@ const CONTENT_AMMO_1: MatchContent = { ...CONTENT_LOOT_1, id: 'content-ammo-1', 
   },
   reserves: { pistol: 72, rifle: 120, shell: 30 },
 } };
-// Explicit experimental P2 selection; ordinary rooms select content-5.
-const CONTENT_PHYSICS_2: MatchContent = { ...CONTENT_4, id: 'content-physics-2', actorPhysics: {
-  geometry: {
-    contestant: { headRadius: 14.109375, bodyRadius: 11.2875, hurtRadius: 12 },
-    gladiator: { headRadius: 20.3125, bodyRadius: 16.25, hurtRadius: 23 },
-  }, acceleration: 3600, braking: 3600, maxImpulse: 600, maxSpeed: 600,
-} };
-// P5 is an experimental world/item extension; it does not select default physics.
-const CONTENT_PHYSICS_5: MatchContent = { ...CONTENT_PHYSICS_2, id: 'content-physics-5',
-  itemInstances: { groundCapacity: 4096 }, worldPhysics: {
+const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-loot-1': CONTENT_LOOT_1, 'content-ammo-1': CONTENT_AMMO_1 };
+
+// The first physics set (#523): content-5's numbers with narrow character bodies, physical items and props, the hook
+// kit, and temporary body detours for planning (#921 folded in the P2 to P8 stage sets it was built from; 42.12 to 42.19).
+// Ground capacity covers every live zone size: 65,536 holds a 72x36 map (about 31,000 items) twice over. The drop reserve
+// exists because a real 12x6 map has 974 items, which fill the world's 128 dynamic bodies (11 actors and 117 items) at
+// tick 0, so no player could drop anything. The hook tuning is provisional.
+SHIPPED['content-6'] = { ...CONTENT_5, id: 'content-6',
+  kits: { ...CONTENT_5.kits, hook: { name: 'Hook', color: 0x77dddd, damage: 24, cooldown: 140, skill: 'Hook / release' } },
+  actorPhysics: {
+    geometry: {
+      contestant: { headRadius: 14.109375, bodyRadius: 11.2875, hurtRadius: 12 },
+      gladiator: { headRadius: 20.3125, bodyRadius: 16.25, hurtRadius: 23 },
+    }, acceleration: 3600, braking: 3600, maxImpulse: 600, maxSpeed: 600,
+  },
+  itemInstances: { groundCapacity: 65536 },
+  worldPhysics: {
     loot: { radius: 6, mass: 0.2, linearDamping: 5, angularDamping: 5, dropSpeed: 60 },
     prop: { hx: 24, hy: 12, mass: 2, friction: 0.4, linearDamping: 2, angularDamping: 2 },
-    maxImpulse: 300,
-  } };
-// P6 tuning is provisional and separately selected; previous kits and content stay available.
-const CONTENT_PHYSICS_6: MatchContent = { ...CONTENT_PHYSICS_5, id: 'content-physics-6',
-  kits: { ...CONTENT_PHYSICS_5.kits, hook: { name: 'Hook', color: 0x77dddd, damage: 24, cooldown: 140, skill: 'Hook / release' } },
+    maxImpulse: 300, dropReserve: 48,
+  },
   hook: { range: 500, speed: 900, maxForce: 6000, stiffness: 120, damping: 30, pullSpeed: 240,
     durationTicks: 60, cooldownTicks: 140, standoff: 55, targetDistance: 35, breakDistance: 550 },
+  dynamicNavigation: true,
 };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5, 'content-physics-6': CONTENT_PHYSICS_6, 'content-loot-1': CONTENT_LOOT_1, 'content-ammo-1': CONTENT_AMMO_1 };
-
-
-// P8 keeps P6's physical content and adopts local repair plus temporary body detours.
-const CONTENT_PHYSICS_8: MatchContent = { ...CONTENT_PHYSICS_6, id: 'content-physics-8', replanning: 'repair', dynamicNavigation: true };
-SHIPPED['content-physics-8'] = CONTENT_PHYSICS_8;
-// The shipped physics default (#523): content-physics-8 with two changes the lab's small scenes never needed.
-// Ground capacity for every live zone size: the lab's 4096 holds a 24x12 map at 94% and refuses 36x18 (8,608 items on seed
-// 4217), so a room of the largest size could not start. 65,536 holds a 72x36 map (about 31,000 items) twice over for
-// measurement; no map that could start under the earlier 16,384 comes near either, so its matches are unchanged. And a drop reserve: a real 12x6 map has 974 items, which fill the
-// world's 128 dynamic bodies (11 actors and 117 items) at tick 0, so no player could drop anything.
-SHIPPED['content-6'] = { ...CONTENT_PHYSICS_8, id: 'content-6', itemInstances: { groundCapacity: 65536 },
-  worldPhysics: { ...CONTENT_PHYSICS_8.worldPhysics!, dropReserve: 48 } };
 // Gladiators plan trips across regions over the portal graph, a leg at a time (#682); otherwise content-6.
 SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlanning: 'portals' };
 // Gunfire is heard (#684); otherwise content-7. Placeholders, deliberately detuned (17.3 #26): ranges far beyond a fair

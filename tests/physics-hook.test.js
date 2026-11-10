@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, setInput, step, synchronizePhysics } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, setInput, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { teleport } from '../shared/simulation/dev.ts';
@@ -13,7 +13,7 @@ function fixture(contestants = 1) {
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: Array.from({ length: contestants }, (_, i) => ({ x: 250 + i * 80, y: 400 })),
     hunterSpawns: [{ x: 150, y: 400 }] };
-  const content = structuredClone(contentById('content-physics-6'));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: Array.from({ length: contestants }, (_, i) => `C${i}`),
     gladiators: [{ name: 'G', kit: 'hook' }] };
   return { map, content };
@@ -31,10 +31,10 @@ const world = s => physicsRuntime(s).world;
 const press = (s, id, fields) => assert.ok(setInput(s, id, { seq: s.tick + 1, ...fields }));
 const advance = (s, count) => { for (let i = 0; i < count; i++) step(s); };
 
-test('P6 hook is opt-in, launches once, misses at range and spends cooldown', async () => {
+test('the hook is opt-in, launches once, misses at range and spends cooldown', async () => {
   const s = await game();
   try {
-    assert.equal(s.version, 'last-exit-0.8-physics-6');
+    assert.equal(s.version, PHYSICS_VERSION);
     press(s, 'g0', { skill: true, aim: Math.PI }); step(s);
     assert.equal(player(s, 'g0').cooldown, s.content.hook.cooldownTicks);
     assert.equal(hooks(s).length, 1);

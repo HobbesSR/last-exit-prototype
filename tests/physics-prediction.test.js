@@ -96,6 +96,21 @@ test('walking across both range edges of a stationary prop keeps pending replay'
   } finally { p.dispose(); }
 });
 
+test('prediction reads authored surfaces only when the authority says it does', async () => {
+  // A half-speed, half-traction floor everywhere. Without a character profile the authority ignores it (actorMotor).
+  const floor = { ...map(), motorSurfaces: [{ id: 'slow', x: 0, y: 0, w: 600, h: 400, priority: 0, speed: 0.5, traction: 0.5, braking: 0.5 }] };
+  const moved = async (arena, surfaces) => {
+    const p = await predictor(arena);
+    try {
+      p.correct(frame(10, { predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4, surfaces } }));
+      return p.input(move(0)).x - 100;
+    } finally { p.dispose(); }
+  };
+  const bare = await moved(map(), true);
+  assert.equal(await moved(floor, false), bare, 'no-profile authority: the floor changes nothing');
+  assert.ok(await moved(floor, true) < bare, 'profiled authority: the floor slows the predicted step');
+});
+
 test('map wall remains a fixed blocker in the prediction island', async () => {
   const arena = map();
   arena.obstacles.push({ id: 'wall', x: 130, y: 150, w: 20, h: 100 });

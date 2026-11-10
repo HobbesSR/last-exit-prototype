@@ -4,11 +4,11 @@ import { createRoomService } from '../server/room-service.js';
 import { createPhysicsMatch } from '../server/match.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
-import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { PHYSICS_VERSION, physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { SPECTATOR_DELAY_TICKS } from '../server/room-views.js';
 
-const VERSION = 'last-exit-0.8-physics-8';
-const content = () => ({ ...structuredClone(contentById('content-physics-8')),
+const VERSION = PHYSICS_VERSION;
+const content = () => ({ ...structuredClone(contentById('content-6')),
   roster: { contestants: ['A'], gladiators: [] } });
 const map = () => ({ seed: 449, width: 5000, height: 600,
   playableArea: { cellSize: 100, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 50]] })) },
@@ -53,7 +53,7 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     assert.equal(room.match.hasPhysics, true);
     assert.equal(room.match.version, VERSION);
     assert.equal(header.version, VERSION);
-    assert.equal(header.contentId, 'content-physics-8');
+    assert.equal(header.contentId, 'content-6');
     assert.equal(owner.messages.at(-1).state.physicsProfile, VERSION);
     const directed = owner.messages.filter(message => message.type === 'state').at(-1).decoded;
     assert.equal(directed.bodies.some(body => body.id === 'hidden-prop'), false,

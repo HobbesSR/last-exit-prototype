@@ -54,12 +54,19 @@ function arena(lootCount, clustered, propCount) {
   };
 }
 
+/** Physical items and props without the hook or body detours, every body admitted at once: the P5 workload (#445). */
+function bodyContent() {
+  const content = { ...structuredClone(contentById('content-6')), replanning: 'sliced', dynamicNavigation: false };
+  delete content.worldPhysics.dropReserve; delete content.hook; delete content.kits.hook;
+  content.roster = { contestants: Array.from({ length: 8 }, (_, i) => `C${i}`),
+    gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: 'warden' })) };
+  return content;
+}
+
 async function runCase({ lootCount, clustered, propCount, awake }) {
   const map = arena(lootCount, clustered, propCount);
   const mapSha256 = hash(JSON.stringify(map));
-  const content = structuredClone(contentById('content-physics-5'));
-  content.roster = { contestants: Array.from({ length: 8 }, (_, i) => `C${i}`),
-    gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: 'warden' })) };
+  const content = bodyContent();
   const initStarted = performance.now();
   const game = await createPhysicsGame(seed, map, content);
   const initializationMs = performance.now() - initStarted;
@@ -162,10 +169,7 @@ const report = {
     lockPort: lock.port, seed, warmup, samples, packageName: JSON.parse(await readFile('package.json', 'utf8')).name,
     hashes: {},
   },
-  pinnedContent: { ...contentById('content-physics-5'), roster: {
-    contestants: Array.from({ length: 8 }, (_, i) => `C${i}`),
-    gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: 'warden' })),
-  } },
+  pinnedContent: bodyContent(),
   scenarios: [],
   forcedGcBetweenScenes: typeof global.gc === 'function',
   memoryBefore: memory(),

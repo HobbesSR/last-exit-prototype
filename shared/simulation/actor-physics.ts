@@ -2,7 +2,6 @@ import { bodyRadius } from '../movement.ts';
 import type { ActorPhysics, Game, GameMap, MotorSurface, Player, Vec2 } from '../types.ts';
 import { hypot } from '../math.ts';
 
-export const PHYSICS_CHARACTER_VERSION = 'last-exit-0.8-physics-2';
 export const DEFAULT_CHARACTER_MOTOR = Object.freeze({ acceleration: 3600, braking: 3600 });
 export const actorRadius = (s: Game, p: Player): number => s.content.actorPhysics?.geometry[p.role].bodyRadius ?? bodyRadius(p);
 

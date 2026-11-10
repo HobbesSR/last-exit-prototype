@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { serveWithBrowser } from './helpers/browser.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createPhysicsMatch } from '../server/match.js';
+import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
 // Delivery is scheduled here, not sent through a real WebSocket. Chrome loads
 // the production prediction module and its production Rapier WASM bootstrap.
-const content = structuredClone(contentById('content-physics-2'));
+const content = structuredClone(contentById('content-6'));
 content.roster = { contestants: ['Self', 'Other'], gladiators: [] };
 const map = { seed: 441, width: 1200, height: 800,
   playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 12]] })) },
@@ -69,9 +70,9 @@ try {
   live.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await live.goto(`${base}/?seed=441`);
   await live.getByRole('button', { name: 'Start match', exact: true }).click();
-  await live.waitForFunction(() => window.arenaDebug?.().phase === 'live' &&
-    window.arenaDebug().version === 'last-exit-0.8-physics-2' &&
-    window.arenaDebug().physicsPrediction?.rebuilds > 0, null, { timeout: 15000 });
+  await live.waitForFunction(version => window.arenaDebug?.().phase === 'live' &&
+    window.arenaDebug().version === version &&
+    window.arenaDebug().physicsPrediction?.rebuilds > 0, PHYSICS_VERSION, { timeout: 15000 });
   const initial = await live.evaluate(() => window.arenaDebug());
   await live.evaluate(() => {
     window.__predictionSamples = [];

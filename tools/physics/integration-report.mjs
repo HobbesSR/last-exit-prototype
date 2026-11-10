@@ -55,8 +55,12 @@ function arena(seed, actors, props, loot, layout) {
 }
 
 function contentFor(stage, actors) {
-  const id = stage === 'A' ? 'content-physics-2' : stage === 'legacy' ? 'content-5' : 'content-physics-8';
-  const content = structuredClone(contentById(id));
+  // A: content-4 with the shipped character profile and no physical items. B and C: the shipped physics set, with no
+  // bodies held back for drops so the cap rows fill all 128.
+  const content = stage === 'legacy' ? structuredClone(contentById('content-5'))
+    : stage === 'A' ? { ...structuredClone(contentById('content-4')), actorPhysics: structuredClone(contentById('content-6').actorPhysics) }
+    : structuredClone(contentById('content-6'));
+  if (content.worldPhysics) delete content.worldPhysics.dropReserve;
   content.discovery = false;
   content.roster = { contestants: Array.from({ length: actors - 3 }, (_, i) => `C${i}`),
     gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: stage === 'C' ? 'hook' : 'warden' })) };
@@ -173,8 +177,8 @@ export async function main(argv = process.argv.slice(2)) {
         lockPort: lock.port, hashes },
       workload: { seed: chosen.seed, warmup: chosen.warmup, samples: chosen.samples, tickMs: 50,
         map: 'synthetic open 17280x8640 room, 120-unit playable cells', layouts: ['sparse', 'clustered'],
-        stages: { A: 'content-physics-2; no authored props', B: 'content-physics-8; warden roster',
-          C: 'content-physics-8; hook roster and eight synthetic bounded ropes', legacy: 'content-5 control' },
+        stages: { A: 'content-4 with content-6 actorPhysics; no authored props', B: 'content-6 without dropReserve; warden roster',
+          C: 'content-6 without dropReserve; hook roster and eight synthetic bounded ropes', legacy: 'content-5 control' },
         actors: [11, 27], cap: '128 total dynamic bodies including actors; cap rows use 64 solid crates and 53 or 37 sensor loot bodies',
         inputs: 'one accepted deterministic movement input per actor per tick; alternating magnitude-2 prop impulses keep props awake; bots disabled; damage set to zero' },
       targets: { stepP95Ms: 5, stepP99Ms: 10, wholeTickP99Ms: 25,

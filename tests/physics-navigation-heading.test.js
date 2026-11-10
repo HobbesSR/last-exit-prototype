@@ -14,7 +14,7 @@ function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, obstacles =
     chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [], physicsProps: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns,
     hunterSpawns: [{ x: 300, y: 400 }] };
-  const content = structuredClone(contentById('content-physics-8'));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: spawns.map((_, i) => `C${i}`), gladiators: gladiator ? [{ name: 'G', kit: 'warden' }] : [] };
   content.discovery = false;
   return { map, content };

@@ -99,6 +99,8 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
       acceleration: s.content.actorPhysics?.acceleration ?? DEFAULT_CHARACTER_MOTOR.acceleration,
       braking: s.content.actorPhysics?.braking ?? DEFAULT_CHARACTER_MOTOR.braking,
       maxSpeed: s.content.actorPhysics?.maxSpeed ?? MAX_PHYSICS_SPEED,
+      // The authority reads authored motor surfaces only under a character profile (actorMotor).
+      surfaces: !!s.content.actorPhysics,
     }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),

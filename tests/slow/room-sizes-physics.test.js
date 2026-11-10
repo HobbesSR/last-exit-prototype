@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { zoneSizeName } from '../../map/live.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { createMatchFor } from '../../server/match.js';
-import { PHYSICS_NAVIGATION_VERSION } from '../../shared/simulation/physics-runtime.ts';
+import { PHYSICS_VERSION } from '../../shared/simulation/physics-runtime.ts';
 import { playsToItsEnd, selectedSizes } from '../helpers/room-sizes.js';
 
 // The shipped default (#523) is physics content, so this is the room a player gets. Sizes follow ROOM_SIZES like
@@ -13,7 +13,7 @@ for (const size of selectedSizes()) {
     const { room, header } = await playsToItsEnd(size, { content: defaultContent, matchFactory: createMatchFor });
     assert.equal(room.match.hasPhysics, true, 'the default runs on the physics engine');
     assert.equal(header.contentId, defaultContent().id);
-    assert.equal(header.version, PHYSICS_NAVIGATION_VERSION, 'and the recording names the physics rules it ran');
+    assert.equal(header.version, PHYSICS_VERSION, 'and the recording names the physics rules it ran');
     assert.ok(room.game.map.items.length <= defaultContent().itemInstances.groundCapacity, 'the map fits the content\'s ground capacity');
   });
 }

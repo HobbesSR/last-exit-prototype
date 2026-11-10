@@ -56,7 +56,7 @@ test('L2 is opt-in, versioned, requires L0 and leaves loot-1 without reserves', 
 });
 
 test('the physics tick refuses L2 content rather than silently never reloading', async () => {
-  const physical = { ...contentById('content-physics-5'), reloading: contentById('content-ammo-1').reloading };
+  const physical = { ...contentById('content-6'), reloading: contentById('content-ammo-1').reloading };
   await assert.rejects(createPhysicsGame(17, arena(), physical), /no physics tick/);
 });
 

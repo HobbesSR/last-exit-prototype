@@ -1,7 +1,7 @@
 import { createGame } from './state.ts';
 import { canOccupy, reachClear, movementSpeed, gateShape, prepareMovementGeometry } from '../movement.ts';
-import { actorRadius, actorMotor, validateActorPhysics, PHYSICS_CHARACTER_VERSION } from './actor-physics.ts';
-import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWorldPhysics, writePhysicalItemPoses, PHYSICS_WORLD_VERSION } from './world-physics.ts';
+import { actorRadius, actorMotor, validateActorPhysics } from './actor-physics.ts';
+import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWorldPhysics, writePhysicalItemPoses } from './world-physics.ts';
 import { HZ } from './rules.ts';
 import { syncWeapon, rearrangeEquipment, rearrangeInstanceEquipment } from '../equipment.ts';
 import { collectBotIntent } from './bots.ts';
@@ -19,7 +19,7 @@ import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { recordRewind } from './rewind.ts';
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
-import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION, PHYSICS_HOOK_VERSION, PHYSICS_NAVIGATION_VERSION } from './physics-runtime.ts';
+import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
@@ -106,7 +106,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     if (yieldControl) await yieldControl();
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
-    Object.defineProperty(s, 'version', { value: s.content.dynamicNavigation ? PHYSICS_NAVIGATION_VERSION : s.content.hook ? PHYSICS_HOOK_VERSION : s.content.worldPhysics ? PHYSICS_WORLD_VERSION : s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
+    Object.defineProperty(s, 'version', { value: PHYSICS_VERSION, enumerable: true, writable: false });
     synchronize(s, runtime, s.tick + 1);
     return s;
   } catch (error) { world.dispose(); throw error; }

@@ -11,7 +11,7 @@ import { SCHEMA, recordingFit } from '../shared/recording.ts';
 import { createLobby } from '../server/match.js';
 
 function fixture() {
-  const content = structuredClone(contentById('content-physics-6'));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
   const map = { seed: 446, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
@@ -23,15 +23,17 @@ function fixture() {
 }
 
 test('physical content can enter an empty lobby and offer the hook without initializing a world', () => {
-  for (const id of ['content-physics-5', 'content-physics-6']) {
-    const lobby = createLobby(contentById(id));
-    assert.equal(lobby.content.id, id);
-    assert.equal(lobby.hasKit('hook'), id === 'content-physics-6');
+  const withoutHook = structuredClone(contentById('content-6'));
+  delete withoutHook.kits.hook; delete withoutHook.hook;
+  for (const [content, offered] of [[withoutHook, false], [contentById('content-6'), true]]) {
+    const lobby = createLobby(content);
+    assert.equal(lobby.content.id, 'content-6');
+    assert.equal(lobby.hasKit('hook'), offered);
     assert.equal(lobby.capacity('gladiator'), 3);
   }
 });
 
-test('P6 tuning rejects missing/invalid values and is detached from caller edits', async () => {
+test('hook tuning rejects missing/invalid values and is detached from caller edits', async () => {
   for (const mutate of [h => delete h.speed, h => h.maxForce = Infinity,
     h => h.targetDistance = 1, h => h.durationTicks = 0.5, h => h.standoff = 600]) {
     const { content, map } = fixture(); mutate(content.hook);
@@ -43,7 +45,7 @@ test('P6 tuning rejects missing/invalid values and is detached from caller edits
     content.hook.maxForce = 1;
     assert.equal(s.content.hook.maxForce, 6000);
     assert.ok(Object.isFrozen(s.content.hook));
-    assert.equal(contentById('content-physics-5').kits.hook, undefined);
+    assert.equal(contentById('content-5').kits.hook, undefined);
     assert.equal(contentById('content-5').hook, undefined);
   } finally { disposePhysics(s); }
 });
@@ -78,7 +80,7 @@ test('schema 14 retains flight/pending/pull/cancel states through compressed rec
   } finally { disposePhysics(s); }
 });
 
-test('P4 prediction cuts on a real P6 pull and resumes from authority after release', async () => {
+test('prediction cuts on a real hook pull and resumes from authority after release', async () => {
   const { content, map } = fixture();
   const s = await createPhysicsGame(446, map, content);
   const prediction = await createPhysicsPrediction(map, 'c0', { clock: () => 0 });

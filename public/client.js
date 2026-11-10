@@ -13,7 +13,6 @@ import { readPresentation } from '/shared/presentation.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { contentById } from '/shared/simulation/content.ts';
 import { transitOptions } from '/shared/simulation/transit.ts';
-import { PHYSICS_CHARACTER_VERSION } from '/shared/simulation/actor-physics.ts';
 import { downloadJson } from '/download.js';
 import { THEMES, DEFAULT_THEME, themeColors, css } from '/palette.js';
 import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions, fillKitOptions } from '/ui.js';
@@ -464,8 +463,8 @@ const ArenaScene = makeArenaScene({
   predictionCut: () => physicsPrediction?.stats().cuts,
   replay: () => replayController.active(), directed, aim: () => inputController.aim(),
   // Geometry is match display data, shown only after a dev welcome has authorized this view. The
-  // version check stays: a legacy match factory can carry the same descriptor without the bodies.
-  geometryOverlay: () => !replayController.active() && presentationFrame()?.version === PHYSICS_CHARACTER_VERSION
+  // physics check stays: a legacy match factory can carry the same descriptor without the bodies.
+  geometryOverlay: () => !replayController.active() && !!presentationFrame()?.physicsProfile
     && (devView || devFeed && devPresentation)
     ? displayPresentation()?.actorGeometry ?? null : null,
   director, follow: () => directed() ? director.subject() : null,

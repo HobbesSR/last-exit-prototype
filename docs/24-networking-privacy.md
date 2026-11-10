@@ -26,7 +26,7 @@ never as a client statement.
 ## Lag compensation
 
 Experimental physics P4 (#441) adds own-view-only `predictionMotor` tuning
-(acceleration, braking, maximum speed) beside the authorized correction-tick
+(acceleration, braking, maximum speed, whether motor surfaces apply) beside the authorized correction-tick
 body lists. Own velocity remains private to that player; observed actors still
 omit motion and sleep fields. Fixed prediction proxies use only authorized
 projected poses. No hidden contacts, force sources, endpoint IDs or backend

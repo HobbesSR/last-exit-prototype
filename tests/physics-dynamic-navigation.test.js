@@ -1,21 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { dynamicNavigationWork, dynamicWaypoint, observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
 
-function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [], obstacles = [], items = [], contentId = 'content-physics-8' } = {}) {
+function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [], obstacles = [], items = [], dynamicNavigation = true } = {}) {
   const map = { seed: 448, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
     modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [], physicsProps: props,
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns,
     hunterSpawns: [{ x: 300, y: 400 }] };
-  const content = structuredClone(contentById(contentId));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: spawns.map((_, i) => `C${i}`), gladiators: gladiator ? [{ name: 'G', kit: 'warden' }] : [] };
   content.discovery = false;
+  if (!dynamicNavigation) delete content.dynamicNavigation;
   return { map, content };
 }
 async function game(options) {
@@ -133,7 +134,7 @@ test('hidden actors and wall-concealed props do not alter local waypoints; old c
     assert.equal(observedBlockers(wall, p).length, 0);
     assert.deepEqual(dynamicWaypoint(wall, p, goal), before);
   } finally { disposePhysics(wall); }
-  const old = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400 }], contentId: 'content-physics-5' });
+  const old = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400 }], dynamicNavigation: false });
   try { assert.deepEqual(dynamicWaypoint(old, old.players[0], { x: 480, y: 400 }), { x: 480, y: 400 }); }
   finally { disposePhysics(old); }
 });
@@ -150,13 +151,13 @@ test('teleport discards a stale detour and follows the new destination', async (
   } finally { disposePhysics(s); }
 });
 
-test('P8 selects the physics coordinator without adding snapshot fields', async () => {
-  const p8 = await game(), p6 = await game({ contentId: 'content-physics-6' });
+test('dynamic navigation adds no snapshot fields', async () => {
+  const p8 = await game(), p6 = await game({ dynamicNavigation: false });
   try {
-    assert.equal(p8.version, 'last-exit-0.8-physics-8');
+    assert.equal(p8.version, PHYSICS_VERSION);
     drive(p8, p8.players[0], { x: 300, y: 400 });
     const current = snapshot(p8), previous = snapshot(p6);
-    assert.equal(current.version, 'last-exit-0.8-physics-8');
+    assert.equal(current.version, PHYSICS_VERSION);
     assert.deepEqual(Object.keys(current).sort(), Object.keys(previous).sort());
     assert.deepEqual(Object.keys(current.physics).sort(), Object.keys(previous.physics).sort());
   } finally { disposePhysics(p8); disposePhysics(p6); }

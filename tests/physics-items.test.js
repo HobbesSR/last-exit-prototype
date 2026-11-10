@@ -15,7 +15,7 @@ const arena = () => ({ seed: 17, width: 800, height: 400,
   modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
   chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
   entry: { x: 60, y: 200 }, exit: { x: 750, y: 200 }, spawns: [{ x: 120, y: 200 }] });
-const content = () => ({ ...structuredClone(contentById('content-physics-5')),
+const content = () => ({ ...structuredClone(contentById('content-6')),
   roster: { contestants: ['A'], gladiators: [] }, discovery: false });
 const item = (id, kind, fields = {}) => ({ id, kind, x: 300, y: 200, ...fields });
 const carried = (id, kind, fields = {}) => ({ kind, instanceId: id, lineageId: id, ...fields });
@@ -130,7 +130,10 @@ test('exhausted physical slots reject optional drops atomically but retain manda
 });
 
 test('full-inventory E swap uses the incoming body slot and removes a sleeping pickup with its joint', async () => {
-  const { s, p, runtime } = await game();
+  // The pickup lies inside the actor's footprint, where a dynamic-navigation world declines to place a loot body.
+  const profile = content();
+  delete profile.dynamicNavigation;
+  const { s, p, runtime } = await game(arena(), profile);
   try {
     for (let i = 0; i < 6; i++) p.inventory[i] = carried(`held-${i}`, 'cell', { charge: i + 1 });
     s.map.items.push(item('incoming', 'cell', { x: 120, charge: 79 }));

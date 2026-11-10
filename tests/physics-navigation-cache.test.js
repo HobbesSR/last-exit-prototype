@@ -6,7 +6,7 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
 
 test('bots share one prop query during collection, while same-tick external moves are observed freshly', async () => {
-  const content = structuredClone(contentById('content-physics-8'));
+  const content = structuredClone(contentById('content-6'));
   content.discovery = false;
   content.roster = { contestants: ['A', 'B'], gladiators: [] };
   const map = { seed: 448, width: 800, height: 800,

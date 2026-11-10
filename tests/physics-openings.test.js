@@ -11,7 +11,7 @@ test('the authored 32-unit legacy shortcut still admits contestants and blocks g
   const map = generateMap(4217), gap = map.gaps[0];
   assert.ok(gap, 'actual generator supplies the shortcut');
   const specs = buildPhysicsGeometry(map);
-  for (const [role, profile] of Object.entries(contentById('content-physics-2').actorPhysics.geometry)) {
+  for (const [role, profile] of Object.entries(contentById('content-6').actorPhysics.geometry)) {
     const world = await createPhysicsWorld();
     try {
       for (let i = 0; i < specs.length; i++) {
@@ -32,7 +32,7 @@ test('the authored 32-unit legacy shortcut still admits contestants and blocks g
 test('narrow actors at the P2 speed cap cannot cross a playable-mask hole', async () => {
   const map = { width: 800, height: 800, obstacles: [], gates: [], playableArea: { cellSize: 100,
     rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: y >= 2 && y < 6 ? [[0, 3], [4, 8]] : [[0, 8]] })) } };
-  for (const [role, profile] of Object.entries(contentById('content-physics-2').actorPhysics.geometry)) {
+  for (const [role, profile] of Object.entries(contentById('content-6').actorPhysics.geometry)) {
     const world = await createPhysicsWorld();
     try {
       for (const spec of buildPhysicsGeometry(map)) world.queueAddBody(spec);
@@ -54,7 +54,7 @@ test('narrow actors at the P2 speed cap cannot cross a playable-mask hole', asyn
 });
 
 test('both narrow role bodies traverse actual authored hut doors in all orientations', async () => {
-  const geometry = contentById('content-physics-2').actorPhysics.geometry;
+  const geometry = contentById('content-6').actorPhysics.geometry;
   const sides = new Set();
   // These seeds exercise the production one-space hut authoring and its 80-unit door.
   for (let seed = 1; seed <= 16; seed++) {

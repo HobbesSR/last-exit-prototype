@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { serveWithBrowser } from './helpers/browser.js';
-import { createPhysicsGame, disposePhysics, step } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 
 const map = { seed: 448, width: 1200, height: 800,
@@ -12,7 +12,7 @@ const map = { seed: 448, width: 1200, height: 800,
   traps: [], routes: [], nodes: [], streets: [],
   physicsProps: [{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 4 }],
   entry: { x: 100, y: 400 }, exit: { x: 1050, y: 400 }, spawns: [{ x: 150, y: 400 }] };
-const content = structuredClone(contentById('content-physics-8'));
+const content = structuredClone(contentById('content-6'));
 content.roster = { contestants: ['Navigator'], gladiators: [] };
 content.discovery = false;
 const game = await createPhysicsGame(448, structuredClone(map), content);
@@ -53,7 +53,7 @@ try {
       return { version: game.version, trace };
     } finally { disposePhysics(game); }
   }, { map, content });
-  assert.equal(actual.version, 'last-exit-0.8-physics-8');
+  assert.equal(actual.version, PHYSICS_VERSION);
   assert.deepEqual(actual.trace, expected);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, browser: browser.version(), ticks: expected.length,
