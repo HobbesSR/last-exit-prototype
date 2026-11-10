@@ -7,7 +7,8 @@ as `v8.serialize({ map, graph })` gzipped (the graph holds typed arrays). Room a
 play on it through `generatedMap(9)` (`tests/helpers/room-harness.js`) instead of building a map
 (31, "Test arenas"). It is not a behaviour baseline: `tests/slow/room-arena.test.js` fails when it
 is no longer seed 9's map, and the change that moved the map recaptures it with
-`node tools/room-arena.mjs` (`--check` compares without writing).
+`node tools/room-arena.mjs` (`--check` compares without writing). Last recaptured for the
+sparse-sides and lighting batch (#895, `types-67`).
 
 ## Focused compound siting input (#340)
 
@@ -211,12 +212,12 @@ alone (no builds): for each region type and each axis (portal count, owned cells
 brief over seeds `size-24-1` to `-5` and `size-36-1` to `-5` of the game-mode 24 × 12 and 36 × 18
 libraries is kept when it exceeds the largest that type gets in the full sweep's `sweep-1` to
 `sweep-120` game maps; a brief that wins both is kept once. Each entry records its seed and both
-values. Recaptured for placement's reachability lookahead (#857, which moves where the larger
-sizes' set pieces and fill land) at `f8c7633` (macro version 3): 13 briefs over 12 types, up to 88
-portals (market) and 11,484 cells (market). Gzip uses mtime 0; SHA-256
-`898becc5532c9499bac8f39b642fe95008f088f348eb1f77196ff369dc49e6fb`. Park's brief, which takes about
-40 s to build, is checked in `tests/slow/micro-large-briefs-park.test.js`. The previous captures:
-`e5058c8` for the matched libraries (#849, `common-primitives@6`, with the placement stall limit),
+values. Recaptured for the sparse-sides libraries (#851, #895, `common-primitives@7`) at
+`84d2553`: 14 briefs over 12 types, up to 46 portals (rubble) and 12,384 cells (compound). Gzip
+uses mtime 0; SHA-256 `dff6bbbb0d466d12a798ebbedba72e0a2a0ce130b0b0e5ca95e73bca40be5b51`. Park's
+brief is checked in `tests/slow/micro-large-briefs-park.test.js`. The previous captures: `f8c7633`
+for placement's reachability lookahead (#857), 13 briefs over 12 types, up to 88 portals (market)
+and 11,484 cells (market); `e5058c8` for the matched libraries (#849, `common-primitives@6`, with the placement stall limit),
 13 briefs over 12 types, up to 87 portals (park); `cbf302d` for `common-primitives@5`, 15 briefs
 over 13 types.
 

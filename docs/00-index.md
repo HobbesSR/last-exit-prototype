@@ -136,7 +136,9 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.32-cord-generation-cost.md](42.32-cord-generation-cost.md) | Live-cord generation cost split by work and builder, two exact savings (strictly simple screen, edge index) with zero drift, and what remains exact or inexact (#767) |
 | [42.33-live-cord-rollout.md](42.33-live-cord-rollout.md) | Cover, ruins, depot, hall and market on a live cord, batched commits for every cord builder, and two exact search savings (indexed sweeps, one corridor search): content, detour, dead ends, sweep replay and cost (#787) |
 | [42.34-edge-clearance.md](42.34-edge-clearance.md) | What keeps unguaranteed region edges clear: blocked share by side class, attribution per builder (20.6 end caps, fill left empty), seams, park bays and inward strips (#836) |
-| [42.40-sparse-sides-experiment.md](42.40-sparse-sides-experiment.md) | Sparser tile sides as a Map Lab experiment: fill and set-piece schemes, portals per set-piece region, one-portal regions, placement cost, the side-by-side set-piece fit (#851, #856) |
+| [42.44-sparse-lighting-adoption.md](42.44-sparse-lighting-adoption.md) | The sparse-sides and regional-lighting adoption batch: materialized libraries and their equivalence, moved pins, sweep and fixture recaptures, macro panel, generation cost, corridor re-check, slow tier (#895, #851, #878) |
+| [42.43-regional-lighting.md](42.43-regional-lighting.md) | Regional theatrical lighting: districts, field bounds, composition limits, the default-on adoption and room-arena refresh (#771, #878) |
+| [42.40-sparse-sides-experiment.md](42.40-sparse-sides-experiment.md) | Sparser tile sides as a Map Lab experiment: fill and set-piece schemes, portals per set-piece region, one-portal regions, placement cost, the side-by-side set-piece fit; `sparse / alternate` adopted in 42.44 (#851, #856) |
 | [42.41-set-piece-order.md](42.41-set-piece-order.md) | Opt-in landing/evac-first placement: matched 30-seed attempt and failure counts, shifted packing pressure and adoption limits (#891) |
 | [42.42-connectivity-skeleton-experiment.md](42.42-connectivity-skeleton-experiment.md) | Pre-fill connectivity skeleton as a Map Lab experiment: spanning trees, multi-part filtering, sealed pocket prevention and built detour under sparse sides (#883) |
 | [42.39-reachability-lookahead.md](42.39-reachability-lookahead.md) | Placement's reachability lookahead: the stalls it ends, the bounds chosen, refusals, stalls and alternated timing against `main` on 12 × 6 to 36 × 18 seeds (#857) |
@@ -169,8 +171,6 @@ existed.
 | [56.2-ground-decals.md](56.2-ground-decals.md) | Ground decals at outside doors and windows: the primitive, derivation, themes, drawing (#293) |
 
 ## Other places facts live
-
-Regional lighting experiment evidence (#771): [42.43-regional-lighting.md](42.43-regional-lighting.md).
 
 `AGENTS.md` at the repository root carries session start rules and project
 invariants. `README.md` is the player- and operator-facing entry point: running,
