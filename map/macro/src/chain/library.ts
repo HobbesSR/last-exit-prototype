@@ -109,8 +109,6 @@ export interface ChainLibrary {
    * fingerprint; every bundled library states it since the sparse-sides adoption (#851, #895).
    */
   fitPlacedSetPieces?: boolean;
-  /** Experimental (#891): place start and end pieces before the remaining largest-first pieces. */
-  startEndFirst?: boolean;
   /** Experimental (#883): forced-open spanning tree over slots. */
   connectivitySkeleton?: boolean | ConnectivitySkeletonConfig;
 }
@@ -147,7 +145,7 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
   const lists = ["tiles", "tileSets", "setPieces"] as const;
   function consume(raw: Record<string, unknown>, source: string, isTop: boolean): void {
     const allowed = isTop
-      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "passabilityRules", "fitPlacedSetPieces", "startEndFirst", "connectivitySkeleton", "includes", "cellClasses", ...lists, "setPieceClasses"]
+      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "passabilityRules", "fitPlacedSetPieces", "connectivitySkeleton", "includes", "cellClasses", ...lists, "setPieceClasses"]
       : ["schema", "name", "version", "includes", "cellClasses", ...lists];
     for (const key of Object.keys(raw)) if (!allowed.includes(key)) throw new Error(`${source}: unknown field ${key}`);
     if (raw.cellClasses !== undefined && !object(raw.cellClasses)) throw new Error(`${source}: cellClasses must be an object`);
@@ -178,10 +176,6 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
       if (raw.fitPlacedSetPieces !== undefined) {
         if (typeof raw.fitPlacedSetPieces !== "boolean") throw new Error(`${source}: fitPlacedSetPieces must be a boolean`);
         resolved.fitPlacedSetPieces = raw.fitPlacedSetPieces;
-      }
-      if (raw.startEndFirst !== undefined) {
-        if (typeof raw.startEndFirst !== "boolean") throw new Error(`${source}: startEndFirst must be a boolean`);
-        resolved.startEndFirst = raw.startEndFirst;
       }
       if (raw.connectivitySkeleton !== undefined) {
         if (typeof raw.connectivitySkeleton !== "boolean" && !object(raw.connectivitySkeleton))
@@ -369,9 +363,7 @@ export function validateLibrary(
 ): LibraryValidation {
   const errors: string[] = [];
   if (!object(library)) return { valid: false, errors: ["library: must be an object"] };
-  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses", "passabilityRules", "fitPlacedSetPieces", "startEndFirst", "connectivitySkeleton"], "library", errors);
-  if (library.startEndFirst !== undefined && typeof library.startEndFirst !== "boolean")
-    errors.push("library: startEndFirst must be a boolean");
+  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses", "passabilityRules", "fitPlacedSetPieces", "connectivitySkeleton"], "library", errors);
   if (library.connectivitySkeleton !== undefined) {
     if (typeof library.connectivitySkeleton !== "boolean" && !object(library.connectivitySkeleton)) {
       errors.push("library: connectivitySkeleton must be a boolean or object");

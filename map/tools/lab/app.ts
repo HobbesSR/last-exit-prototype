@@ -167,9 +167,9 @@ let solveWorker: Worker | null = null;
 const solveView = mountPlacementView($("solveView"), () => {
   try {
     const seed = input("seed").value, params = recipeParams(), chosen = chosenLibrary() as ChainLibrary;
-    const library: ChainLibrary = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
+    const library: ChainLibrary = chosen;
     const skeletonAlgo = select("skeleton").value;
-    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("skeletonExtraOpen").value) || 0) * 100)}% open)` : ''}`);
+    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value} · largest first${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("skeletonExtraOpen").value) || 0) * 100)}% open)` : ''}`);
     solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
       solveWorker = null;
       if (reply.kind === "placement") solveView.received(reply.recording, library, reply.ms);
@@ -210,7 +210,6 @@ select("solveSize").onchange = () => {
   select("zoneSize").value = select("solveSize").value;
   select("zoneSize").dispatchEvent(new Event("change"));
 };
-select("solveOrder").onchange = () => solveView.recipeEdited();
 $("solveRandom").onclick = () => {
   solveView.recipeEdited();
   cancelStaleWorldGeneration();

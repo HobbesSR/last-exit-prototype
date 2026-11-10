@@ -316,21 +316,6 @@ try {
   assert.equal(await page.locator('#solveRecord').isEnabled(), true);
   assert.equal((await snapshot()).events, 0, 'cancel discards the previous recording');
   assert.equal((await snapshot()).seed, undefined);
-  // The experiment records placement only, with the same seed and library as the core trace.
-  await page.locator('#solveSeed').fill('placement-order');
-  const orderBefore = await snapshot();
-  await page.locator('#solveOrder').selectOption('start-end');
-  assert.deepEqual(await snapshot(), orderBefore, 'order edit leaves the current recording intact');
-  await page.locator('#solveRecord').click();
-  await page.waitForFunction(() => (document.querySelector('#solveCancel') as HTMLButtonElement).disabled, null, { timeout: 60000 });
-  const ordered = tracePlacement('placement-order', {}, { ...CHAIN_LIBRARY, startEndFirst: true });
-  assert.ok(ordered.layout, ordered.error ?? 'experiment places a layout');
-  assert.equal((await snapshot()).events, ordered.events.length);
-  assert.match(await page.locator('#solveRecipe').innerText(), /landing\/evac first \(experiment\)/i);
-  const firstPiece = ordered.events.find(event => event.type === 'set-piece-slot');
-  assert.ok(firstPiece && firstPiece.type === 'set-piece-slot');
-  assert.ok(['start', 'end'].includes(CHAIN_LIBRARY.setPieceClasses.find(piece => piece.id === firstPiece.setPieceClass)!.placementRule));
-  await page.locator('#solveOrder').selectOption('library');
   await page.locator('#solveSize').selectOption('24x12');
   await page.locator('#worldTab').click();
   assert.equal(await page.locator('#zoneSize').inputValue(), '24x12');
