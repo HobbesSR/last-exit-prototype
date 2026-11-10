@@ -1,9 +1,9 @@
-import { scenarios, baselineScenarios, workload, admitMotion } from './scenarios.mjs';
+import { scenarios, workload, admitMotion } from './scenarios.mjs';
 import { createMetrics } from './metrics.mjs';
 import { DT, quantiles, stateText, digest, actionsAt, doorStats } from './common.mjs';
 
 export async function loadCandidate(name) {
-  if (!['rapier','custom','legacy'].includes(name)) throw new Error(`Unknown candidate ${name}`);
+  if (!['rapier', 'legacy'].includes(name)) throw new Error(`Unknown candidate ${name}`);
   return (await import(`./${name}.mjs`)).createWorld;
 }
 
@@ -47,13 +47,6 @@ async function trace(create, scenario, substeps, { checkpoint = false, metrics =
       }
       frames.push(stateText(previous));
       if (scenario.springStability) springTrace.push({ tick: tick + 1, bodies: previous.map(({ id, x, y }) => ({ id, x, y })) });
-      const ref=scenario.springReference;
-      if(ref && tick+1===Math.round(ref.atSeconds/DT)){
-        const a=previous.find(b=>b.id===ref.a),b=previous.find(b=>b.id===ref.b);
-        const measured=Math.abs(Math.hypot(a.x-b.x,a.y-b.y)-ref.length);
-        spring={measured,expected:ref.expectedAmplitude,relativeError:Math.abs(measured-ref.expectedAmplitude)/ref.expectedAmplitude};
-        spring.pass=spring.relativeError<=ref.tolerance;
-      }
     }
     if (scenario.springStability) {
       const s = scenario.springStability;
@@ -68,8 +61,7 @@ async function trace(create, scenario, substeps, { checkpoint = false, metrics =
 
 export async function correctness(name, { substepsList = [2,4,8], only } = {}) {
   const create = await loadCandidate(name), rows = [];
-  // Custom is retained solely as the archived P0 evidence/test baseline.
-  for (const substeps of substepsList) for (const scenario of (name === 'custom' ? baselineScenarios() : scenarios(substeps)).filter(s=>!only || only.includes(s.name))) {
+  for (const substeps of substepsList) for (const scenario of scenarios(substeps).filter(s=>!only || only.includes(s.name))) {
     try {
       const first = await trace(create, scenario, substeps, {metrics:true});
       const second = await trace(create, scenario, substeps);
@@ -89,8 +81,8 @@ export async function correctness(name, { substepsList = [2,4,8], only } = {}) {
         springTrace: first.springTrace, doors:first.doors,
         admission: first.admission, promotionEligible: !scenario.invalidStart,
         metadata:Object.fromEntries(Object.entries(scenario).filter(([k])=>!['scene','actions'].includes(k))),
-        numericalGate:!scenario.expectRefused && m.finite && m.staticPenetration<=(name === 'custom' ? .01 : .5) &&
-          (name === 'custom' || (m.staticRecoverySamples * DT/substeps <= .2 && m.staticUnrecoveredPairs === 0)) && m.actorPenetration<=.5 && m.propPenetration<=.5 &&
+        numericalGate:!scenario.expectRefused && m.finite && m.staticPenetration<=.5 &&
+          m.staticRecoverySamples * DT/substeps <= .2 && m.staticUnrecoveredPairs === 0 && m.actorPenetration<=.5 && m.propPenetration<=.5 &&
           m.crossings===0 && m.ropeExcess<=1 && (!first.spring||first.spring.pass)});
     } catch(error) { rows.push({scenario:scenario.name,substeps,error:String(error),numericalGate:false}); }
   }

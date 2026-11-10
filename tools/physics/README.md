@@ -51,8 +51,8 @@ scenarios at 2/4/8 substeps, then the diagonal capacity envelope at four substep
 in installed headless Chrome. `all` runs Node then Chrome. `--diagonal` reduces
 only Node timing coverage; it is recorded in the command. `--samples=N` and
 `--warmup=N` default to 100 and 20 ticks. Revised reports evaluate Rapier only,
-plus the legacy timing control; the retired custom solver and its tests remain
-an archived P0 baseline. Every invocation acquires the machine benchmark lock.
+plus the legacy timing control; the custom solver was retired after P0
+([42.6](../../docs/42.6-physics-comparison.md)). Every invocation acquires the machine benchmark lock.
 
 With `correctness`, `--browser` adds Chrome correctness without the full timing
 matrix. `--queries` adds 18 populated query microbenchmarks per candidate/runtime:
@@ -98,7 +98,6 @@ Limits that constrain interpretation:
   r=23. The doorway keeps its relative clearances and still rejects actor overlap
   above 0.5. The maximum live-map coordinate witness is 51,840 by 25,920 units,
   rather than a million. The generator playground has no universal size limit.
-  Old scenarios remain in baselineScenarios for custom's historical tests.
 - Paths between observed substeps are checked independently. Relative circles
   have an analytic straight-path test; rotating boxes are sampled at up to 1024
   intervals. These cannot prove arbitrary continuous containment or reconstruct

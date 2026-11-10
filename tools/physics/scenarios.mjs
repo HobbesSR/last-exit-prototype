@@ -6,7 +6,7 @@ const act = (tick, method, ...args) => ({ tick, method, args });
 const scene = (name, bodies, joints = [], ticks = 40, actions = [], metadata = {}) =>
   ({ name, scene: { bodies, joints }, ticks, actions, ...metadata });
 
-export function baselineScenarios() {
+function baseScenarios() {
   return [
     scene('head-on', [actor('a', -30, 0, { vx: 35 }), actor('b', 30, 0, { vx: -35 })], [], 35),
     scene('glancing-slide', [actor('a', -30, -6, { vx: 32 }), actor('b', 0, 8)], [], 35),
@@ -54,13 +54,7 @@ export function baselineScenarios() {
       actor('a', 999_965, 1_000_000, { vx: 1400 })], [], 4),
     scene('spring-decay', [actor('a', 0, 0, { mass: 1 }), actor('b', 50, 0, { mass: 1 })],
       [{ id: 'spring', kind: 'spring', a: 'a', b: 'b', length: 40, stiffness: 20, damping: 4 }],
-      80, [], { springReference: { a: 'a', b: 'b', length: 40, atSeconds: 1,
-        // Relative displacement x(t) = x0 exp(-gamma*t) *
-        // [cos(wd*t) + gamma/wd*sin(wd*t)], for two free unit masses.
-        expectedAmplitude: Math.abs(10 * Math.exp(-4) *
-          (Math.cos(Math.sqrt(24)) + 4 / Math.sqrt(24) * Math.sin(Math.sqrt(24)))),
-        tolerance: 0.05, initialAmplitude: 10, reducedMass: 0.5,
-        stiffness: 20, damping: 4 } }),
+      80),
     scene('zero-distance-spring', [actor('a', 0, 0), actor('b', 0, 0)],
       [{ id: 'spring', kind: 'spring', a: 'a', b: 'b', length: 15 }], 20, [],
       { invalidStart: true, expectedInitialOverlap: true }),
@@ -87,8 +81,8 @@ export function baselineScenarios() {
   ];
 }
 
-// #451: frozen P0 reports retain baselineScenarios. Scale contact geometry to
-// contestant r=12, use the real r=23 gladiator, and test supported live extents.
+// #451: scale P0 contact geometry to contestant r=12, use the real r=23
+// gladiator, and test supported live extents.
 export function bodySpeedCap(radius, substeps) {
   if (!Number.isFinite(radius) || !(radius > 0) || ![2, 4, 8].includes(substeps)) throw new RangeError('invalid motion envelope');
   return 16 * Math.min(radius, 12) * substeps;
@@ -106,7 +100,7 @@ export function admitMotion(bodies, substeps) {
 }
 
 export function scenarios(substeps = 4) {
-  const rows = baselineScenarios().map(source => {
+  const rows = baseScenarios().map(source => {
     const s = structuredClone(source);
     const scaleBody = b => {
       for (const k of ['x', 'y', 'radius', 'hx', 'hy']) if (b[k] != null) b[k] *= 1.5;
@@ -117,7 +111,6 @@ export function scenarios(substeps = 4) {
       if (['addBody', 'closeDoor'].includes(a.method)) scaleBody(a.args[0]);
       if (a.method === 'addJoint') a.args[0].length *= 1.5;
     }
-    delete s.springReference;
     return s;
   });
   const find = name => rows.find(s => s.name === name);
