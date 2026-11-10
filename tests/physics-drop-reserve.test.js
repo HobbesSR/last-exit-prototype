@@ -10,16 +10,19 @@ import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 // Without a reserve the items take every slot at tick 0 and a player's voluntary drop has nowhere to go (#523).
 const map = generateLiveMap(4217, contentById('content-6'), DEFAULT_LIVE_ZONE_SIZE);
 
-async function room(contentId) {
-  const s = await createPhysicsGame(4217, structuredClone(map), contentById(contentId));
+// A world without a drop reserve is content-6 with the field absent.
+async function room(content = contentById('content-6')) {
+  const s = await createPhysicsGame(4217, structuredClone(map), content);
   const p = s.players.find(q => q.role === 'contestant');
   p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: 'held-1', lineageId: 'held-1' };
   p.selectedSlot = 0;
   return { s, r: physicsRuntime(s), p };
 }
 
-test('the lab content fills the world with map items, so no drop can be admitted', async () => {
-  const { s, r, p } = await room('content-physics-8');
+test('content without a reserve fills the world with map items, so no drop can be admitted', async () => {
+  const noReserve = structuredClone(contentById('content-6'));
+  delete noReserve.worldPhysics.dropReserve;
+  const { s, r, p } = await room(noReserve);
   try {
     assert.ok(s.map.items.length > 128, 'a real map has more items than the world has slots');
     assert.equal(r.world.canAddBodies(1), false, 'the world is full at tick 0');
@@ -30,7 +33,7 @@ test('the lab content fills the world with map items, so no drop can be admitted
 });
 
 test('the shipped content leaves a reserve, so a player can drop and the item gets a body', async () => {
-  const { s, r, p } = await room('content-6');
+  const { s, r, p } = await room();
   try {
     const reserve = s.content.worldPhysics.dropReserve, free = () => 128 - r.world.counts().dynamic;
     assert.ok(reserve > 0 && free() >= reserve, `ordinary items leave the reserve free: ${free()} of ${reserve}`);

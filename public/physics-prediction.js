@@ -11,7 +11,7 @@ export { PREDICTION_LIMITS } from './physics-prediction-limits.js';
 export async function createPhysicsPrediction(map, playerId, { clock = () => performance.now() } = {}) {
   const factory = await createPhysicsWorldFactory();
   const geometry = buildPhysicsGeometry(map);
-  let world, authority, own, motor, surfaces, value, tick, receivedAt = -Infinity, floor = -1;
+  let world, authority, own, motor, value, tick, receivedAt = -Infinity, floor = -1;
   let inputs = [], frames = [], identity;
   const poses = new Map();
   let lastReason = 'initial', replayed = 0, rebuilds = 0, cuts = 0, error = 0;
@@ -34,7 +34,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     // Timers precede motors on authority too. Ability activation waits for authority.
     value.boost = Math.max(0, (value.boost ?? 0) - 1);
     value.stun = Math.max(0, (value.stun ?? 0) - 1);
-    world.setMotor(own.id, characterMotor(motor, surfaces, value,
+    world.setMotor(own.id, characterMotor(motor, map.motorSurfaces, value,
       input.x ?? 0, input.y ?? 0, movementSpeed(value, input, 20)));
     world.step(); world.drainContacts();
     Object.assign(value, world.getTransform(own.id)); tick++;
@@ -67,8 +67,6 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     authority = frame.players.find(p => p.id === playerId);
     own = frame.bodies?.find(b => b.actorId === playerId);
     motor = frame.predictionMotor;
-    // P1 deliberately did not adopt authored motor surfaces.
-    surfaces = frame.physicsProfile === 'last-exit-0.8-physics-1' ? undefined : map.motorSurfaces;
     receivedAt = clock(); replayed = 0;
     // Retain detached, tick-indexed projected history only. Never read render frames.
     frames.push(frame); frames = frames.slice(-PREDICTION_LIMITS.frames);

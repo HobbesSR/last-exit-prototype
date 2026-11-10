@@ -14,7 +14,7 @@ async function scenario() {
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: [{ x: 250, y: 400 }], hunterSpawns: [{ x: 150, y: 400 }] };
-  const content = structuredClone(contentById('content-physics-6'));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
   const game = await createPhysicsGame(446, map, content);
   try {

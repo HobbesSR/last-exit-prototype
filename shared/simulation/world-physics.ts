@@ -6,7 +6,6 @@ import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts'
 import { hypot } from '../math.ts';
 import { admitItem, groundItem, replaceItem, unadmittedItems } from './ground-items.ts';
 
-export const PHYSICS_WORLD_VERSION = 'last-exit-0.8-physics-5';
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.length - r.actors.size);
 const ITEM_PREFIX = 'item:';

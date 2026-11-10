@@ -25,7 +25,7 @@ const [viewportWidth, viewportHeight] = (args.get('viewport') ?? '1440x1000').sp
 const deviceScaleFactor = Number(args.get('dpr') ?? 1);
 if (args.has('physics') && (args.has('location') || args.has('spectator') || args.get('mode') === 'spectator'))
   throw new Error('--physics currently supports the live entry workload only');
-const physicsContent = args.has('physics') ? args.get('content') ?? 'content-physics-8' : null;
+const physicsContent = args.has('physics') ? args.get('content') ?? 'content-6' : null;
 await acquireMachineLock('bench');
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'),

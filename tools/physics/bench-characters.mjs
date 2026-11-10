@@ -16,7 +16,8 @@ await acquireMachineLock('bench', { pollMs: 100 });
 const content = contentById('content-4'), map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
 const rows = [];
 for (const mode of ['P1', 'P2']) {
-  const tuning = mode === 'P2' ? contentById('content-physics-2') : content;
+  // P2 is the same content with the shipped character profile: narrow bodies and a tuned motor.
+  const tuning = mode === 'P2' ? { ...content, actorPhysics: contentById('content-6').actorPhysics } : content;
   const arena = structuredClone(map);
   for (const tiles of prebuiltTiles(arena, content)) adoptPackedTiles(arena, tiles);
   const s = await createPhysicsGame(4217, arena, tuning);

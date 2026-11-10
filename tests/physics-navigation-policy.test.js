@@ -11,7 +11,7 @@ async function game({ width = 800, height = 800, spawns = [{ x: 150, y: 400 }], 
   const { map } = arena({ cols: width / 100, rows: height / 100, cellSize: 100, seed: 448, gates, obstacles, physicsProps: props,
     entry: { x: 80, y: 400 }, exit: { x: width - 50, y: 400 } });
   const actors = [...spawns.map(at => ({ role: 'contestant', bot: false, ...at })), ...gladiator ? [{ role: 'gladiator', bot: false, x: 300, y: 400 }] : []];
-  return (await stagePhysics(map, { seed: 448, content: contentById('content-physics-8'), actors })).s;
+  return (await stagePhysics(map, { seed: 448, content: contentById('content-6'), actors })).s;
 }
 
 test('local detours honor the remembered door state and do not inspect hidden geometry', async () => {

@@ -8,6 +8,7 @@ import { createReplayWriter } from '../../server/replay-writer.js';
 import { createLayerEncoder } from '../../shared/frame-layers.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { SCHEMA } from '../../shared/recording.ts';
+import { PHYSICS_VERSION } from '../../shared/simulation/physics-runtime.ts';
 
 await acquireMachineLock('bench');
 const out = process.argv[2] ?? 'test-results/physics-440-serialization.json';
@@ -23,7 +24,7 @@ const writer = createReplayWriter({ header: { id: 'physics-440', schema: SCHEMA,
 let plainBytes = 0, wireBytes = 0, peakPendingBytes = 0;
 const digest = createHash('sha256');
 for (let tick = 0; tick < samples; tick++) {
-  const projected = { tick, physicsProfile: 'last-exit-0.8-physics-2', bodies: bodies.map(b => ({ ...b, x: b.x + tick * 3, angle: tick * .025 })), tethers };
+  const projected = { tick, physicsProfile: PHYSICS_VERSION, bodies: bodies.map(b => ({ ...b, x: b.x + tick * 3, angle: tick * .025 })), tethers };
   const frame = { ...projected, physics: { profile: projected.physicsProfile,
     settings: { engine: 'synthetic', version: 'transport-only', unitsPerMetre: 40, substeps: 4, substepSeconds: .0125,
       speculativeDistanceMetres: .6, exactCheckpoint: 'unsupported', maxConstraints: 8, constraintLimitations: 'synthetic transport workload' },

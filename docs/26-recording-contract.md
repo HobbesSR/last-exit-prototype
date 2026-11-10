@@ -23,8 +23,8 @@ the latter carry player `reserves` and `reload`, `ammo` ground items and
 `reload`/`dropAmmo` commands; older readers ignore the fields and draw an ammo
 pickup as an unknown item, so the floor stays.
 
-Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-5`, and recordings use schema 16 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+Recording failure must never reach gameplay. Default content is `content-7` under
+`last-exit-0.8-physics` ([below](#physics-rules-version-921)); the legacy mover's rules are `last-exit-0.7`. Recordings use schema 16 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0. Optional appearance descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Schema 16 adds an optional contestant roster place to recorded player state (#792): identity rather than
@@ -33,7 +33,24 @@ Schema 10 adds required engine-free physics presentation for experimental physic
 matches; those matches require reader 10. Ordinary match reader floors stay unchanged.
 Storage-only changes must preserve frozen gameplay fixtures.
 
-Without a P2 character profile the explicit experimental factory pins
+## Physics rules version (#921)
+
+Every match built by `createPhysicsGame` records the one physics rules version,
+`last-exit-0.8-physics`; legacy-mover matches record `last-exit-0.7`. Which physics
+features a match ran (character profile, physical items, the hook, body detours) is
+stated by its content, named once in the header's content ID. Recordings written before
+#921 carry one of the stage strings `last-exit-0.8-physics-1`, `-2`, `-5`, `-6` or `-8`
+(every shipped physics match from #523 to #921 carries `-8`). A reader treats each as
+physics rules and needs nothing more: playback draws stored frames without a solver,
+nothing dispatches on the rules string, and the change moves no schema or reader floor,
+so old recordings play unchanged without migration. Their stage content IDs
+(`content-physics-2` to `-8`) no longer resolve through `contentById`; display metadata
+then comes from the header's embedded descriptor or the fallback in
+[22.7](22.7-content-and-presentation.md#recording-compatibility), and the stage sets
+are described in [42.12](42.12-physics-p2.md) to [42.19](42.19-physics-p8.md). The stage
+identities in the history below are as recorded at the time.
+
+Before #921, without a P2 character profile the explicit experimental factory pinned
 `last-exit-0.8-physics-1`; normal matches
 retain `last-exit-0.7`. Schema 8 adds optional `physics` on authoritative frames:
 dynamic body IDs/generations, transforms, motor state, ropes and bounded pending
@@ -45,7 +62,7 @@ See [29.2](29.2-physics-state-networking.md); P3 owns physical rendering/project
 and any later format changes. P1 introduced no content ID change: shipped tuning stayed
 `content-4` (which only changed bot planning, #473; `content-5` since, likewise), with P1 motor acceleration an experimental rules constant.
 
-P2's explicit `content-physics-2` selects `last-exit-0.8-physics-2`; P1 and ordinary
+P2's explicit `content-physics-2` selected `last-exit-0.8-physics-2`; P1 and ordinary
 matches retain the identities above. Schema 9 adds optional `actorGeometry` to
 the header display descriptor, optional map `motorSurfaces`, body speed limits
 and private per-frame physics discontinuity markers. The markers identify placed
@@ -360,9 +377,9 @@ Schema 14 adds optional private `physics.hooks`, explicit bounded spring/rope
 constraint fields, and optional `hookFlights` presentation records. This is
 the next writer revision after L2's schema 13; both explicit content sets remain
 independently selectable. The change is additive: the general minimum reader remains 0 and experimental physics keeps
-its schema-10 visual floor. New P6 simulation behavior is separately identified
-by `last-exit-0.8-physics-6` and `content-physics-6`; no legacy content is changed.
-P8 adds explicit `last-exit-0.8-physics-8` / `content-physics-8` for local dynamic
+its schema-10 visual floor. New P6 simulation behavior was separately identified
+by `last-exit-0.8-physics-6` and `content-physics-6` until #921; no legacy content is changed.
+P8 added explicit `last-exit-0.8-physics-8` / `content-physics-8` for local dynamic
 navigation and drop-placement behavior. It keeps P6's frame representation,
 schema and minimum reader; private local detours are not recorded. Old content
 and recorded poses remain unchanged.

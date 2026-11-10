@@ -7,6 +7,7 @@ import { serveWithBrowser } from './helpers/browser.js';
 import { createPhysicsMatch } from '../server/match.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { SCHEMA } from '../shared/recording.ts';
+import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
 const map = { seed: 446, width: 4000, height: 800,
   playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 40]] })) },
@@ -14,7 +15,7 @@ const map = { seed: 446, width: 4000, height: 800,
   chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
   entry: { x: 80, y: 400 }, exit: { x: 3900, y: 400 },
   spawns: [{ x: 250, y: 400 }, { x: 3000, y: 400 }], hunterSpawns: [{ x: 150, y: 400 }] };
-const content = structuredClone(contentById('content-physics-6'));
+const content = structuredClone(contentById('content-6'));
 content.roster = { contestants: ['Near', 'Far'], gladiators: [{ name: 'Caster', kit: 'hook' }] };
 const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-p6-live-'));
 const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false,
@@ -80,8 +81,8 @@ try {
         stale: [...caster.frames, ...near.frames, ...far.frames].flatMap(frame => frame.stale || []) };
     } finally { for (const client of [caster, near, far]) client.ws.close(); }
   }, { base, room: created.id, ownerKey: created.ownerKey });
-  assert.deepEqual(result.contentIds, ['content-physics-6', 'content-physics-6', 'content-physics-6']);
-  assert.deepEqual(result.versions, ['last-exit-0.8-physics-6', 'last-exit-0.8-physics-6']);
+  assert.deepEqual(result.contentIds, ['content-6', 'content-6', 'content-6']);
+  assert.deepEqual(result.versions, [PHYSICS_VERSION, PHYSICS_VERSION]);
   assert.equal(result.flight.hook.a, result.flight.body.id);
   assert.equal(result.flight.body.actorId, result.ids.caster);
   assert.ok(result.flight.hook.x > result.flight.body.x);
@@ -98,8 +99,8 @@ try {
   assert.deepEqual(result.stale, []);
   assert.deepEqual(errors, []);
   const replay = JSON.parse(gunzipSync(await readFile(path.join(replayDir, `${created.id}.json.gz`))));
-  assert.equal(replay.version, 'last-exit-0.8-physics-6');
-  assert.equal(replay.contentId, 'content-physics-6');
+  assert.equal(replay.version, PHYSICS_VERSION);
+  assert.equal(replay.contentId, 'content-6');
   assert.equal(replay.schema, SCHEMA);
   assert.equal(replay.minSchema, 10);
   assert.ok(replay.frames.some(frame => frame.state.hookFlights?.length), 'recording retains the flight display frame');

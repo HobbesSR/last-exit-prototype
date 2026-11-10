@@ -5,7 +5,7 @@ import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation
 import { contentById } from '../../shared/simulation/content.ts';
 
 test('P8 contestants complete a combat-neutralized live-chain match with solid actor contact', async () => {
-  const content = contentById('content-physics-8');
+  const content = contentById('content-6');
   const game = await createPhysicsGame(4217, generateLiveMap(4217, content), content);
   try {
     game.map.traps = [];

@@ -44,6 +44,9 @@ export const SCENES = Object.freeze({
     jelly: { x: 420, y: 400 } },
 });
 
+/** The first physics content set; the lab's scenes need nothing later sets add. */
+const LAB_CONTENT = 'content-6';
+
 export function sceneConfig(scene = 'A', seed = 449, tuning = {}) {
   if (!Object.hasOwn(SCENES, scene) || !Number.isSafeInteger(seed) || seed < 0) throw new RangeError('invalid lab scene or seed');
   const spec = SCENES[scene];
@@ -54,7 +57,7 @@ export function sceneConfig(scene = 'A', seed = 449, tuning = {}) {
     physicsProps: structuredClone(spec.props), entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: structuredClone(spec.spawns), hunterSpawns: spec.hook ? [{ x: 120, y: 400 }] : [],
   };
-  const content = structuredClone(contentById('content-physics-8'));
+  const content = structuredClone(contentById(LAB_CONTENT));
   content.roster = { contestants: spec.spawns.map((_, i) => `C${i + 1}`),
     gladiators: spec.hook ? [{ name: 'Hook', kit: 'hook' }] : [] };
   content.discovery = false;
@@ -80,7 +83,7 @@ export class PhysicsLab {
   }
   async start(config) {
     const copy = structuredClone(config);
-    if (copy.content?.id !== 'content-physics-8') throw new RangeError('lab requires content-physics-8');
+    if (copy.content?.id !== LAB_CONTENT) throw new RangeError(`lab requires ${LAB_CONTENT}`);
     const next = await createPhysicsGame(copy.seed, copy.map, copy.content);
     if (SCENES[copy.scene]?.jelly) addJelly(next, SCENES[copy.scene].jelly);
     this.dispose();

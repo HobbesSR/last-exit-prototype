@@ -8,7 +8,7 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createGame } from '../shared/simulation/state.ts';
 import { stepTraps } from '../shared/traps.ts';
 
-function parts(contentId = 'content-physics-5', obstacles = []) {
+function parts(contentId = 'content-6', obstacles = []) {
   const map = { seed: 445, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
     modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],

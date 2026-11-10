@@ -14,7 +14,7 @@ const map = () => ({ seed: 446, width: 800, height: 800,
   spawns: [{ x: 350, y: 400 }], hunterSpawns: [{ x: 150, y: 400 }] });
 
 test('flight capture and projection disclose only an authorized caster and tip', async () => {
-  const content = structuredClone(contentById('content-physics-6'));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
   const s = await createPhysicsGame(446, map(), content);
   try {
@@ -54,7 +54,7 @@ test('flight capture and projection disclose only an authorized caster and tip',
 });
 
 test('only the caster learns its hook is active, through flight, pending and pull', async () => {
-  const content = structuredClone(contentById('content-physics-6'));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
   const s = await createPhysicsGame(446, map(), content);
   try {
@@ -69,7 +69,8 @@ test('only the caster learns its hook is active, through flight, pending and pul
       assert.equal(playerView(s, frame, 'c0').hookActive, false, phase);
     }
   } finally { disposePhysics(s); }
-  const older = structuredClone(contentById('content-physics-5'));
+  const older = structuredClone(contentById('content-6'));
+  delete older.kits.hook; delete older.hook;
   older.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'warden' }] };
   const p5 = await createPhysicsGame(446, map(), older);
   try { assert.equal(Object.hasOwn(playerView(p5, snapshot(p5), 'g0'), 'hookActive'), false); }

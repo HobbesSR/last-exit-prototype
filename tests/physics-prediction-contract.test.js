@@ -26,7 +26,7 @@ test('shared motor keeps the authoritative surface priority, tie break and fallb
 });
 
 test('own physics view publishes only pinned motor tuning; directed and legacy views omit it', async () => {
-  const tuned = content('content-physics-2');
+  const tuned = content('content-6');
   Object.assign(tuned.actorPhysics, { acceleration: 4200, braking: 2200, maxSpeed: 540 });
   tuned.actorPhysics.maxImpulse = 777;
   const game = await createPhysicsGame(1, arena(), tuned);

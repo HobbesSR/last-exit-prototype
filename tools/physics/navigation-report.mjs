@@ -11,8 +11,13 @@ import { dynamicNavigationWork } from '../../shared/simulation/dynamic-navigatio
 const output = process.argv[2] ?? 'test-results/physics-p8-crowd.json';
 await acquireMachineLock('bench');
 const rows = [];
-for (let repeat = 0; repeat < 3; repeat++) for (const id of ['content-physics-6', 'content-physics-8']) {
-  const content = structuredClone(contentById(id));
+// Static planning against temporary body detours (#448), on the shipped physics set. The crowd fills the world's 128
+// dynamic bodies exactly, so no bodies are held back for drops.
+const variants = { static: { replanning: 'sliced', dynamicNavigation: false }, detours: {} };
+for (let repeat = 0; repeat < 3; repeat++) for (const [navigation, overrides] of Object.entries(variants)) {
+  const shipped = structuredClone(contentById('content-6'));
+  delete shipped.worldPhysics.dropReserve;
+  const content = { ...shipped, ...overrides };
   content.discovery = false;
   content.roster = { contestants: Array.from({ length: 24 }, (_, i) => `C${i}`),
     gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: 'warden' })) };
@@ -42,7 +47,7 @@ for (let repeat = 0; repeat < 3; repeat++) for (const id of ['content-physics-6'
       if (tick >= 100) samples.push(elapsed);
     }
     const sorted = [...samples].sort((a, b) => a - b), at = q => sorted[Math.floor(q * sorted.length)];
-    rows.push({ repeat, content: id, initialBodies, p50: at(.5), p95: at(.95), p99: at(.99), max: sorted.at(-1), peakEdges, samplesMs: samples });
+    rows.push({ repeat, navigation, initialBodies, p50: at(.5), p95: at(.95), p99: at(.99), max: sorted.at(-1), peakEdges, samplesMs: samples });
   } finally { disposePhysics(game); }
 }
 const sources = {};
@@ -50,7 +55,7 @@ for (const file of ['shared/simulation/dynamic-navigation.ts', 'shared/simulatio
   'shared/simulation.ts', 'shared/physics/world.ts', 'shared/simulation/content.ts', 'shared/simulation/visibility.ts', 'tools/physics/navigation-report.mjs'])
   sources[file] = createHash('sha256').update(await readFile(file)).digest('hex');
 await mkdir(dirname(output), { recursive: true });
-await writeFile(output, JSON.stringify({ schema: 'physics-p8-crowd-1', node: process.version, cpu: cpus()[0]?.model,
+await writeFile(output, JSON.stringify({ schema: 'physics-p8-crowd-2', node: process.version, cpu: cpus()[0]?.model,
   platform: platform(), release: release(), createdAt: new Date().toISOString(),
   workload: '27 bots, 64 crates, 37 sensor loot; 100 warmup + 400 samples; step + snapshot + one projection; three sequential paired runs',
   limitation: 'Synthetic crowd smoke cost, not P9 capacity qualification or evidence fixing the historical slowdown.', sources, rows }) + '\n');

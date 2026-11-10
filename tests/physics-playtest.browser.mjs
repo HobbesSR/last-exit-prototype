@@ -54,7 +54,7 @@ try {
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const exportA = JSON.parse(await page.locator('#recording').inputValue());
   assert.equal(exportA.format, 'last-exit-physics-lab-1');
-  assert.equal(exportA.content.id, 'content-physics-8');
+  assert.equal(exportA.content.id, 'content-6');
   assert.equal(exportA.frames[0].bodies.filter(body => body.kind === 'actor').length, 4, 'A offers a four-actor crowd');
   assert.deepEqual(exportA.map.obstacles.map(obstacle => obstacle.id), ['doorway-top', 'doorway-bottom']);
   assert.equal(exportA.trace.length, 3);

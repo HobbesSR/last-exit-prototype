@@ -1,8 +1,10 @@
 # 14. Match rules and implemented defaults
 
 Every number here is a tuning default, not a design constant. The shipped default is
-`content-7` under `last-exit-0.8-physics-8` rules: the physics engine, described in the
-sections below. Contents 1 to 5, under `last-exit-0.7`, run the legacy mover and stay
+`content-7` under `last-exit-0.8-physics` rules: the physics engine, described in the
+sections below. Every physics match carries that one rules version; which physics features it
+has (character profile, physical items, the hook, body detours) is stated by its content alone
+(#921). Contents 1 to 5, under `last-exit-0.7`, run the legacy mover and stay
 selectable for characterization and old recordings. Numbers outside the physics sections are
 `content-5`'s, which `content-6` and `content-7` share unless a physics section says otherwise. When one
 changes, it must stay named in code and updated here in the same change.
@@ -41,13 +43,14 @@ the next stretch of its route, it searches round the change at once and keeps th
 route, rather than walking on until its next sliced repath. Its numbers and roster are unchanged;
 `content-4` remains selectable.
 
-`content-6`, the default from #523 to #865, is `content-physics-8` under a shipped name: `content-5`'s
+`content-6`, the default from #523 to #865, is `content-5`'s
 numbers, roster and planner over the physics engine of the sections below. A live room builds it
 with `createPhysicsMatch`; the room service chooses the engine by content, physics content for
 the physics world and the rest for the legacy mover. Its lobby therefore offers the Hook kit
 alongside Warden, Specter and Striker, while the default roster's gladiators keep their kits.
-It differs from `content-physics-8` in two values that real maps need and the lab's small scenes did not:
-ground capacity 65,536 (a 36x18 map has 8,608 items; a synthetic 72x36 measured in
+It was built from the experimental stage sets `content-physics-2` to `-8` ([42.12](42.12-physics-p2.md) to
+[42.19](42.19-physics-p8.md)), which #921 retired, and differed from the last in two values that real maps
+need and the lab's small scenes did not: ground capacity 65,536 (a 36x18 map has 8,608 items; a synthetic 72x36 measured in
 [42.22](42.22-tick-cost-attribution.md) has about 31,000. It was 16,384 while physics stopped at 36x18; no
 map that could start then reaches either) and `worldPhysics.dropReserve` 48, the dynamic-body
 slots that ordinary map items leave free so a player's drop can be admitted ([42.20](42.20-physics-p9.md)).
@@ -149,12 +152,10 @@ speeds and weights are placeholders.
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
-## Experimental physical world profile (#445)
+## Physical world profile (#445)
 
-Explicit `content-physics-5` passed to `createPhysicsGame`/`createPhysicsMatch`
-selects `last-exit-0.8-physics-5`: P2 character rules plus L0 item ownership and
-physical world items. These rules are part of the shipped default since `content-6` (#523);
-`content-physics-5` stays selectable. Ordinary rooms no longer retain `content-5`.
+Content with `worldPhysics` (and `itemInstances`) adds physical world items to the character
+rules below, with L0 item ownership. These rules are part of the shipped default since `content-6` (#523).
 
 Provisional authored tuning, independent of item art/quality:
 
@@ -195,14 +196,13 @@ assumptions for experimental review, not new user balance answers.
 
 ## Dynamic navigation (#448), the shipped default since #523
 
-`content-physics-8` selects `last-exit-0.8-physics-8` in the physics factory, and
-`content-6` (the shipped default until #865 adopted `content-7`) is the same content under its own name. It extends P6 with
-P5 drops, P2 footprints and the default planner's local repair. Earlier content sets
+Content with `dynamicNavigation` turns it on, as `content-6` and every later set do. It
+extends the hook profile with physical drops, character footprints and the default planner's local repair. Earlier content sets
 and the frozen fixture retain their behavior. The bounds below were written as
 implementation assumptions for review and are the shipped values, accepted as they stand
 with tuning deferred.
 P9's local `/dev/physics` playtest ([42.20](42.20-physics-p9.md)) copies and pins
-`content-physics-8` at each reset. Its scenes stage characters, props, the hook, the
+`content-6` at each reset. Its scenes stage characters, props, the hook, the
 squish shell and the jelly; they introduce no match rules. Ballistics (P7), the loot
 overhaul (L1/L2) and jelly/squish stay outside the default.
 
@@ -228,13 +228,12 @@ after clearance. This placement rule does not turn loot into a solid blocker.
 Existing bounded actor placement, respawn deferral, exact developer-teleport
 refusal, transit preflight and occupied gate-close refusal remain in force.
 
-## Experimental character profile (#439)
+## Character profile (#439)
 
-Explicitly pass `contentById('content-physics-2')` to `createPhysicsGame` or
-`createPhysicsMatch` to select `last-exit-0.8-physics-2`. Neither the normal room
-nor the physics factory's omitted-content default selects it. P1 remains
-available with content-1 through content-5. These are provisional playtest
-settings, not a default balance change.
+Content with `actorPhysics` gives the physics engine the character profile below; every
+shipped physics set has it. Without one, `createPhysicsGame` runs content-1 through content-5
+with legacy body radii and the default motor (P1). The values are provisional, accepted as they
+stand with tuning deferred.
 
 | Role | Nominal head radius | Movement radius | Retained combat radius |
 | --- | ---: | ---: | ---: |
@@ -500,13 +499,11 @@ explicit L1 selection above. Traps, sensors and locked-door authoring remain def
 for the chain (16), so this library emits none of them. Their existing simulation
 mechanics still apply to stored legacy maps.
 
-## Experimental hook profile (#446)
+## Hook profile (#446)
 
-Explicit `content-physics-6` passed to `createPhysicsGame`/`createPhysicsMatch`
-selects `last-exit-0.8-physics-6`, extending P5 with an additional selectable
-`hook` gladiator kit. The existing roster and three kits remain available;
-normal rooms still select content-5. This is an experimental review profile,
-not default activation or a human-feel qualification.
+Content with a `hook` profile and a `hook` kit adds a selectable hook gladiator kit to the
+physical world profile; every shipped physics set has it. The existing roster and three kits
+remain available.
 
 Pinned provisional content: range 500 world units, swept tip speed 900 units/s,
 maximum tension 6,000 force units, stiffness 120, damping 30, target shortening

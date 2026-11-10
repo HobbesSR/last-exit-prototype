@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse,
+import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse,
   setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { teleport } from '../shared/simulation/dev.ts';
@@ -8,7 +8,7 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { solvePhysicsProjectiles } from '../shared/simulation/physics-projectiles.ts';
 import { interact } from '../shared/simulation/interactions.ts';
 
-function parts(contestants = 2, contentId = 'content-physics-2') {
+function parts(contestants = 2, contentId = 'content-6') {
   const map = { seed: 439, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
     modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
@@ -48,13 +48,13 @@ test('projectiles retain their old hit envelope beyond the narrower movement bod
   } finally { disposePhysics(s); }
 });
 
-test('P2 pins measured narrow bodies and physics-2 while P1 keeps its radius and version', async () => {
+test('content-6 pins measured narrow bodies while content-1 keeps its radius', async () => {
   const p2 = await game();
   const p1 = await game(parts(2, 'content-1'));
   try {
-    assert.equal(p2.version, 'last-exit-0.8-physics-2');
+    assert.equal(p2.version, PHYSICS_VERSION);
+    assert.equal(p1.version, PHYSICS_VERSION, 'one rules version, whatever the content');
     assert.throws(() => { p2.map.motorSurfaces = []; }, TypeError, 'an absent floor list is pinned too');
-    assert.equal(p1.version, 'last-exit-0.8-physics-1');
     assert.deepEqual([body(p2, 'c0').spec.shape.radius, body(p2, 'g0').spec.shape.radius], [11.2875, 16.25]);
     assert.deepEqual([body(p1, 'c0').spec.shape.radius, body(p1, 'g0').spec.shape.radius], [12, 23]);
     assert.deepEqual([p2.content.actorPhysics.geometry.contestant.hurtRadius,

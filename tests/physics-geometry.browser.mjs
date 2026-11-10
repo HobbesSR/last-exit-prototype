@@ -7,14 +7,15 @@ import { serveWithBrowser } from './helpers/browser.js';
 import { listen } from './helpers/listen.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createMatch, createPhysicsMatch } from '../server/match.js';
+import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
 const scratch = path.resolve('test-results');
 await mkdir(scratch, { recursive: true });
 const replayDir = await mkdtemp(path.join(scratch, 'physics-geometry-'));
-const { server, base, browser } = await serveWithBrowser({ replayDir, content: () => contentById('content-physics-2'), matchFactory: createPhysicsMatch,
+const { server, base, browser } = await serveWithBrowser({ replayDir, content: () => contentById('content-6'), matchFactory: createPhysicsMatch,
   devTools: 'all', profileSummary: false });
 const errors = [];
-const expected = contentById('content-physics-2').actorPhysics.geometry.contestant;
+const expected = contentById('content-6').actorPhysics.geometry.contestant;
 const color = { headRadius: 0x79d7ff, bodyRadius: 0xffd46d, hurtRadius: 0xff6d9a };
 function checkCircles(frame) {
   assert.equal(frame.geometry.visible, true);
@@ -31,20 +32,20 @@ try {
   const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(base);
-  await page.waitForFunction(() => window.arenaDebug?.().content === 'content-physics-2' && window.arenaDebug().actors?.length);
+  await page.waitForFunction(() => window.arenaDebug?.().content === 'content-6' && window.arenaDebug().actors?.length);
   const initial = await page.evaluate(() => { const d = window.arenaDebug(); return { dev: d.dev, geometry: d.actors[0].geometry }; });
   assert.equal(initial.dev, false);
   assert.equal(initial.geometry.visible, false);
   assert.deepEqual(initial.geometry.commands, []);
   await page.getByRole('button', { name: 'Start match', exact: true }).click();
-  await page.waitForFunction(() => window.arenaDebug().phase === 'live' && window.arenaDebug().version === 'last-exit-0.8-physics-2');
+  await page.waitForFunction(version => window.arenaDebug().phase === 'live' && window.arenaDebug().version === version, PHYSICS_VERSION);
   assert.ok((await page.evaluate(() => window.arenaDebug())).actors.every(a => !a.geometry.visible),
     'physics match still hides geometry from ordinary players');
   await page.getByRole('button', { name: 'Dev view', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug().devFeed && window.arenaDebug().actors?.some(a => a.geometry.visible));
   const dev = await page.evaluate(() => { const d = window.arenaDebug(); return { dev: d.dev, marker: d.markerScale, geometry: d.actors[0].geometry }; });
   assert.equal(dev.dev, true);
-  assert.equal(await page.evaluate(() => window.arenaDebug().version), 'last-exit-0.8-physics-2');
+  assert.equal(await page.evaluate(() => window.arenaDebug().version), PHYSICS_VERSION);
   checkCircles(dev);
   await page.mouse.move(500, 350);
   await page.mouse.wheel(0, -1500);
@@ -62,16 +63,16 @@ try {
   // Its bodies still use legacy movement, so the geometry circles must stay hidden even in dev view.
   const legacyReplayDir = await mkdtemp(path.join(scratch, 'legacy-geometry-'));
   const legacyServer = await createArenaServer({ replayDir: legacyReplayDir,
-    content: () => contentById('content-physics-2'), matchFactory: createMatch, devTools: 'all', profileSummary: false });
+    content: () => contentById('content-6'), matchFactory: createMatch, devTools: 'all', profileSummary: false });
   try {
     const legacyBase = await listen(legacyServer);
     const legacy = await browser.newPage({ viewport: { width: 1000, height: 700 } });
     legacy.on('pageerror', error => errors.push(error.message));
     await legacy.goto(legacyBase);
-    await legacy.waitForFunction(() => window.arenaDebug?.().content === 'content-physics-2');
+    await legacy.waitForFunction(() => window.arenaDebug?.().content === 'content-6');
     await legacy.getByRole('button', { name: 'Start match', exact: true }).click();
     await legacy.waitForFunction(() => window.arenaDebug().phase === 'live');
-    assert.notEqual(await legacy.evaluate(() => window.arenaDebug().version), 'last-exit-0.8-physics-2');
+    assert.notEqual(await legacy.evaluate(() => window.arenaDebug().version), PHYSICS_VERSION);
     await legacy.getByRole('button', { name: 'Dev view', exact: true }).click();
     await legacy.waitForFunction(() => window.arenaDebug().devFeed && window.arenaDebug().actors?.length);
     assert.ok((await legacy.evaluate(() => window.arenaDebug())).actors.every(a => !a.geometry.visible && !a.geometry.commands.length),

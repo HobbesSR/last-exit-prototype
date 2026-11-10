@@ -16,7 +16,7 @@ const parts = () => ({ map: { seed: 445, width: 800, height: 400,
   items: [{ id: 'sleeping', kind: 'cell', charge: 100, x: 300, y: 200 }],
   physicsProps: [{ id: 'hidden', profile: 'crate', x: 650, y: 200 }],
   entry: { x: 50, y: 200 }, exit: { x: 750, y: 200 }, spawns: [{ x: 120, y: 200 }] },
-  content: { ...structuredClone(contentById('content-physics-5')), roster: { contestants: ['A'], gladiators: [] }, discovery: false } });
+  content: { ...structuredClone(contentById('content-6')), roster: { contestants: ['A'], gladiators: [] }, discovery: false } });
 
 test('loot never blocks actor placement, pickup emits a typed removal, and replacement rejects stale impulses', async () => {
   const { map, content } = parts(), s = await createPhysicsGame(445, map, content);

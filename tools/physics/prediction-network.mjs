@@ -30,7 +30,8 @@ function fixture() {
     hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 300 }, exit: { x: 760, y: 300 },
     spawns: [{ x: 150, y: 300 }, { x: 700, y: 200 }], hunterSpawns: [{ x: 700, y: 500 }] };
-  const content = structuredClone(contentById('content-physics-2'));
+  // Character physics alone: content-4 with the shipped character profile.
+  const content = { ...structuredClone(contentById('content-4')), actorPhysics: structuredClone(contentById('content-6').actorPhysics) };
   content.roster = { contestants: ['Self', 'Other'], gladiators: [{ name: 'G', kit: 'warden' }] };
   return { map, content };
 }
@@ -215,7 +216,7 @@ const report = { witness: 'P4 deterministic scheduled-delivery lab', date: new D
   runtime: { node: process.version, platform: process.platform, release: os.release(), arch: process.arch,
     cpu: os.cpus()[0]?.model, rapierPackage: packageVersion },
   settings: { seed: 441, map: 'authored 800x600 full mask, wall and gate; two contestants plus gladiator',
-    physicsContent: 'content-physics-2', actorPhysics: contentById('content-physics-2').actorPhysics,
+    physicsContent: 'content-4 with content-6 actorPhysics', actorPhysics: contentById('content-6').actorPhysics,
     profiles, sampling: 'once per tick at t+49 ms after scheduled events',
     clock: 'synthetic millisecond event time', ordering: 'reliable FIFO per connection direction' },
   tickMs: TICK_MS, ticks: LAST_TICK,

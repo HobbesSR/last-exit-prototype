@@ -13,7 +13,7 @@ function arena({ width = 800, height = 800, cellSize = 100, rows, obstacles = []
     physicsProps: props, entry: { x: 80, y: height / 2 }, exit: { x: width - 50, y: height / 2 },
     spawns: [{ x: 150, y: height / 2 }] };
 }
-const content = () => ({ ...structuredClone(contentById('content-physics-5')),
+const content = () => ({ ...structuredClone(contentById('content-6')),
   roster: { contestants: ['A'], gladiators: [] }, discovery: false });
 const cell = (id, x, y) => ({ id, kind: 'cell', charge: 10, x, y });
 const boxRight = (pose, hx, hy) => pose.x + Math.abs(Math.cos(pose.angle)) * hx + Math.abs(Math.sin(pose.angle)) * hy;
