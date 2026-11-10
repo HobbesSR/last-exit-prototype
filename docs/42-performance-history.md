@@ -22,11 +22,11 @@ frames and their closing measurement (#655), and the physics ladder past 36x18 t
 Navigation structure's three-size detour, dead-end, empty-space and boundary
 baseline is in [42.23](42.23-navigation-structure.md) (#688).
 The matched connected static-barrier experiment and its production integration
-limit are in [42.24](42.24-static-barrier.md) (#694).
+limit are in [42.24](42.24-static-barrier.md) (#694, retired in #926).
 One production park hedge pocket's matched movement, access, loot and generation
 cost evidence is in [42.25](42.25-park-pocket.md) (#698).
 The opt-in macro boundary/crossing comparison, retained target failures and
-limited map-scale result are in [42.26](42.26-macro-boundary.md) (#705).
+limited map-scale result are in [42.26](42.26-macro-boundary.md) (#705, retired in #927).
 Geometry-empty regions by reason and cover/park's single-piece fallback are in
 [42.27](42.27-empty-region-fallback.md) (#717).
 The per-builder census of the same panel is in [42.28](42.28-builder-census.md) (#749). It covers

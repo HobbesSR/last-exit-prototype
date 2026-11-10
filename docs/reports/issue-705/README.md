@@ -5,9 +5,10 @@ This directory retains a separate experimental comparison, not production
 content or a new impassable-boundary contract. Historical captures in #688,
 #694 and #698 are unchanged.
 
-From the repository root:
+Historical reproduction commands (retired in #927; `tools/macro-boundary-experiment.mjs` and `tools/experiments/compact-curtain-preview.mjs` last ran at `c8fa4f1`, with pinned replay sources at `95c09f7` / PR #713 `0e97874`, and last existed on `main` at `f84ed93`):
 
 ```powershell
+# Historical commands for the pre-retirement revision; not supported on current main.
 node tools/macro-boundary-experiment.mjs --out=test-results/my-macro-boundary
 node tools/macro-boundary-experiment.mjs --out=docs/reports/issue-705 --verify
 ```
@@ -35,9 +36,9 @@ every failed endpoint. Other categories retain every route. Full unrounded
 measurements and complete saves are unchanged. `manifest.json` and the original
 QA artifacts describe the historical capture, including its original preview
 hash; `presentation.json` identifies the current derivative and its validation.
-To reproduce it, copy the original preview from `95c09f7` to a temporary file,
-then run the current `tools/experiments/compact-curtain-preview.mjs PATH` against
-that file. This presentation step needs no measurements or benchmark lock.
+To reproduce it on the pre-retirement revision (`95c09f7` / `f84ed93`), copy the original preview from `95c09f7` to a temporary file,
+then run `tools/experiments/compact-curtain-preview.mjs PATH` from that checkout against
+that file (`compact-curtain-preview.mjs` was retired in #927). This presentation step needs no measurements or benchmark lock.
 
 ## Candidate and controls
 

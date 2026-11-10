@@ -70,7 +70,7 @@ export const SETS = {
       'map-entrypoint',
       'map-lab-draft-safety', 'map-lab-routes', 'map-library', 'map-navigation-structure', 'map-navigation-structure-cli',
       'map-passable-margins', 'map-placement-trace', 'map-portal-thorough', 'map-skeleton', 'map-sparse-sides', 'map-sweep', 'map-tools', 'portal-graph',
-      'macro-curtain', 'static-barrier-composition', 'static-barrier-routes', 'appearance-descriptor'],
+      'appearance-descriptor'],
     slow: ['map-library', 'map-macro-sizes', 'map-container', 'map-sweep-replay', 'map-lab-routes', 'map-tools', 'map-chain-sweep', 'portal-graph'],
     browser: ['lab', 'placement'],
     sources: ['map/macro/**', 'map/kernel/**', 'map/tools/**', 'map/*.ts'],
