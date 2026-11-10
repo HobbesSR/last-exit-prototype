@@ -20,7 +20,8 @@ it restates something in another numbered file; if it does, link the number inst
 | An answer about map generation | The relevant record under [17.2](17.2-map-questions.md), verbatim; retain its M-number where one exists |
 | A measurement | [42](42-performance-history.md), with its workload and limits |
 | Raw measurement data supporting a durable finding in 42 or a child | `docs/reports/`, linked from the owning numbered document; retain source/configuration provenance and distinguish historical results from new runs. Transient outputs stay in `test-results/` |
-| What to build next | [41](41-roadmap.md) |
+| What to build next: the order of efforts, the reasons for it, and the tracker issue for each | [41](41-roadmap.md) |
+| The state of an issue or effort: open, assigned, blocked, awaiting an answer, swept so far | Its Forgejo issue or tracker, not a numbered document |
 | Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |
 | A dependency added, upgraded or newly served to browsers; a third-party asset | [21.1](21.1-third-party-licenses.md), `tools/third-party/components.json`, then `npm run notices` |
 | A superseded verbatim capture, retired guidance, or an explored path worth guarding against, including one taken out of a code comment | `docs/archive/<YYYY-MM-DD>-<topic>/`, as below |

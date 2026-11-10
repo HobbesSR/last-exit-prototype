@@ -4,6 +4,11 @@ The next useful boundaries, in the order they should be taken. Accepted features
 and their status are in [13](13-accepted-features.md); the policy answers that
 shape the later items are in [17](17-open-questions.md).
 
+This file owns the order of efforts and the reasons for it, and names the Forgejo
+tracker issue for each effort. The state of an issue (open, assigned, blocked,
+awaiting an answer) belongs to Forgejo and is not repeated here
+([33](33-maintenance.md#where-a-fact-belongs)).
+
 ## Standing priorities
 
 Module extraction alone does not establish ownership. The completed server match
@@ -47,6 +52,14 @@ F-11 is now implemented as `content-2`; F-12 and the remaining accepted addition
 still need separate gameplay and version review.
 
 ## Next tasks
+
+### Foundation Pass (#914)
+
+The next effort is a Foundation Pass ([33.1](33.1-foundation-pass.md)), taken before
+more is built on the sections below. Its ledger is #914, which holds how this pass is
+run, its sweep issues and its declined findings. The pass and its freeze begin when
+Corey declares them on the ledger; until then the sections below stand. #910 waits for
+the pass to close.
 
 ### Hierarchical navigation design (#353)
 
