@@ -113,8 +113,8 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const canvas: Siting = coordinator;
   const stageOf = (): { canvas: Siting; flush: () => boolean[] | null } => coordinator.stage();
   // Label the empty yard once. Every admitted envelope has a complete two-cell ring and
-  // two-cell inter-piece spacing, so later pieces can reroute a yard path around themselves.
-  // This preserves local bypasses as well as portal routes, without the experimental solver.
+  // two-cell inter-piece spacing, so later pieces can reroute a yard path around themselves,
+  // preserving local bypasses as well as portal routes.
   const yard = new Set<string>();
   const key = (x: number, y: number) => `${x},${y}`;
   if (brief.portals.length) {

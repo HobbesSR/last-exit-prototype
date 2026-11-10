@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * #750: park with frozen `protectedRoutes` against park whose placements push a live cord witness
- * (20.10), on one map per size, size-{12,24,36}-1. Briefs come from current generation; "before"
- * rebuilds the park briefs with the base commit's strategy, so both sides read the same briefs.
+ * #649: compare today's park with today's park given `hedgeFronts: X`, the growth-helper
+ * experiment (42.30), on one map per size, size-{12,24,36}-1.
+ * (Note: The former #750/#759/#787 base-commit comparison against frozen routes was retired with
+ * the frozen-route control in #923; the tool is listed for the Track 4 tools sweep).
  *
  * Detour is measured on focused fixed pairs: portal to portal through each park whose result
  * changed, and from its first portal to up to four of its fill cells. Empty share and dead-end area
@@ -11,18 +12,10 @@
  * `checkMap` with diagnosis. Cost is builder calls only, three sequential paired passes under the
  * machine lock, with output equality checked outside the timer.
  *
- * `--fronts X` (#649) compares instead today's park with today's park given `hedgeFronts: X`, the
- * growth-helper experiment (42.30); `--base` is then unused.
- * `--type T` (#759) audits another strategy the same way, against its own file at `--base`
- * (rubble and plant, moved off frozen routes after park; 42.31; cover, ruins, depot, hall and market
- * after them, #787, 42.33).
- * Usage: node tools/park-route-audit.mjs [outDir] [--base REV] [--fronts X] [--type T]
+ * Usage: node tools/park-route-audit.mjs [outDir] --fronts X
  */
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { generate, checkMap } from '../map/tools/core.ts';
 import { buildRegion, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
@@ -38,29 +31,19 @@ import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 import { captureSourceProvenance } from './lib/source-provenance.mjs';
 import { coveredSamples } from './lib/covered-samples.mjs';
 
-const args = process.argv.slice(2), at = args.indexOf('--base');
-const baseArg = at >= 0 ? args.splice(at, 2)[1] : undefined;
+const args = process.argv.slice(2);
 const frontsAt = args.indexOf('--fronts'), fronts = frontsAt >= 0 ? Number(args.splice(frontsAt, 2)[1]) : undefined;
-if (fronts !== undefined && !(fronts > 0 && fronts <= 1)) throw new Error('--fronts takes a chance above 0, at most 1.');
-const typeAt = args.indexOf('--type'), type = typeAt >= 0 ? args.splice(typeAt, 2)[1] : 'park';
-const STRATEGIES = { park: 'buildPark', rubble: 'buildRubble', plant: 'buildPlant',
-  cover: 'buildCover', ruins: 'buildRuins', depot: 'buildDepot', hall: 'buildHall', market: 'buildMarket' };
-const ROLLOUT = ['cover', 'ruins', 'depot', 'hall', 'market'];
-if (!STRATEGIES[type]) throw new Error(`--type takes one of ${Object.keys(STRATEGIES).join(', ')}.`);
-if (fronts !== undefined && type !== 'park') throw new Error('--fronts is park only.');
-const issue = ROLLOUT.includes(type) ? 787 : type !== 'park' ? 759 : fronts === undefined ? 750 : 649;
-const base = at >= 0 ? baseArg : type === 'park' ? '8eb3c58' : ROLLOUT.includes(type) ? '5e30b4b' : '3fbd082';
-const dir = args[0] ?? `docs/reports/issue-${issue}${type === 'park' ? '' : `-${type}`}`;
+if (fronts === undefined) throw new Error('Usage: node tools/park-route-audit.mjs [outDir] --fronts X (frozen-route base comparison retired in #923).');
+if (!(fronts > 0 && fronts <= 1)) throw new Error('--fronts takes a chance above 0, at most 1.');
+const issue = 649, type = 'park';
+const dir = args[0] ?? `docs/reports/issue-${issue}`;
 mkdirSync(dir, { recursive: true }); mkdirSync('test-results', { recursive: true });
 // Pinned first, so uncommitted sources fail before the long run rather than after it.
 const provenance = await captureSourceProvenance(['map/micro/strategies/park.ts', 'map/micro/strategies/park-pocket.ts',
   'map/micro/strategies/scatter.ts', 'map/micro/prospective-parcels.ts', 'map/micro/cord-witness.ts', 'map/micro/diagnose.ts',
-  'map/micro/region-types.ts', 'map/micro/growth.ts', 'map/micro/placeables/park-hedge-block.ts', 'tools/park-route-audit.mjs', 'tools/experiments/park-pocket-routes.mjs', 'tools/lib/covered-samples.mjs',
-  ...type === 'park' ? [] : [`map/micro/strategies/${type}.ts`, 'map/micro/hint-walls.ts', 'map/micro/strategies/infill.ts']]);
+  'map/micro/region-types.ts', 'map/micro/growth.ts', 'map/micro/placeables/park-hedge-block.ts', 'tools/park-route-audit.mjs', 'tools/experiments/park-pocket-routes.mjs', 'tools/lib/covered-samples.mjs']);
 
 // #649: today's park on both sides, the after side with hedge fronts.
-// Note: the former frozen-route base comparison (#750) was retired with the frozen-route control (#923).
-if (fronts === undefined) throw new Error('Frozen-route base comparison retired (#923); specify --fronts to audit hedge fronts.');
 const build = brief => buildRegion({ ...brief, parameters: { ...brief.parameters, hedgeFronts: fronts } });
 const before = buildRegion;
 
@@ -170,7 +153,7 @@ try {
   }
 } finally { release(); }
 
-const summary = { issue, type, ...(fronts === undefined ? { base } : { hedgeFronts: fronts }), build: REGION_TYPES_VERSION, node: process.version, provenance,
+const summary = { issue, type, hedgeFronts: fronts, build: REGION_TYPES_VERSION, node: process.version, provenance,
   panel: 'size-{12,24,36}-1, generate(seed, params, undefined, 48)', maps, timings };
 writeFileSync(`${dir}/summary.json`, JSON.stringify(summary, null, 1) + '\n');
 writeFileSync(`${dir}/examples.json.gz`, gzipSync(JSON.stringify(examples) + '\n'));

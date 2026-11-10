@@ -30,7 +30,6 @@ mkdirSync(dir, { recursive: true }); mkdirSync(cache, { recursive: true });
 
 /**
  * What a panel map depends on: the working tree's generation sources (macro, micro, kernel and the
- * What a panel map depends on: the working tree's generation sources (macro, micro, kernel and the
  * shared core, tracked or not, as they stand on disk), the lockfiles, and Node. Any change misses
  * the cache, so a cached map never stands in for sources it wasn't made from.
  */
