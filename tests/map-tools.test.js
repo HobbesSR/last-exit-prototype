@@ -173,7 +173,7 @@ test('file includes pin content revisions and reuse a parsed top library', async
   const dir = mkdtempSync(path.join(tmpdir(), 'module-revisions-'));
   try {
     const top = { name: 'revisions', version: 3, zonePlan: 'diamond', zoneWidth: 12, zoneHeight: 6,
-      includes: [{ name: 'base', version: 1 }, { name: 'base', version: 2 }], setPieceClasses: [] };
+      passabilityRules: 'matched', fitPlacedSetPieces: true, includes: [{ name: 'base', version: 1 }, { name: 'base', version: 2 }], setPieceClasses: [] };
     for (const version of [1, 2]) writeFileSync(path.join(dir, `base@${version}.json`), JSON.stringify({
       schema: 1, name: 'base', version, tiles: [{ id: `revision-${version}` }],
     }));

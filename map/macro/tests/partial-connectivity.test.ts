@@ -4,14 +4,14 @@ import { orientedDesigns, segmentCells } from "../src/chain/declared-grid.ts";
 import type { ChainLibrary, ChainTileDesign, PassabilityPrescription } from "../src/chain/library.ts";
 import { placementSeams } from "../src/chain/partial-connectivity.ts";
 import type { PartialPlacedTile, PlacementSlot } from "../src/chain/partial-connectivity.ts";
-import { resolution, resolveSettledClass } from "../src/chain/resolution.ts";
+import { passabilityFits, resolution, resolveSettledClass } from "../src/chain/resolution.ts";
 import type { Layout, Orientation, SegmentKey } from "../src/chain/types.ts";
 
 const tile = (id: string, declared: string, segments: ChainTileDesign["segments"] = {}): ChainTileDesign =>
   ({ id, defaultCellClass: declared, segments, orientations: [0, 90, 180, 270] });
 const library = (...tiles: ChainTileDesign[]): ChainLibrary => ({
   version: 3, name: "partial", zonePlan: "diamond", zoneWidth: 1, zoneHeight: 1,
-  passabilityRules: "matched", cellClasses: { open: { regionType: "open" }, hut: { regionType: "hut" } },
+  passabilityRules: "matched", fitPlacedSetPieces: true, cellClasses: { open: { regionType: "open" }, hut: { regionType: "hut" } },
   tiles, tileSets: [], setPieces: [], setPieceClasses: [],
 });
 const slots: PlacementSlot[] = [{ slot: 0, x: 0, y: 0 }, { slot: 1, x: 1, y: 0 }];
@@ -90,7 +90,6 @@ test("contradictory asks, fixed-class mismatch and invalid matched sides are con
   const invalid = library(tile("left", "open", { "v:6,0": { passability: "passable" } }),
     tile("right", "hut", { "v:0,0": { passability: "not-passable-hint" } }));
   assert.equal(seam(invalid).kind, "conflict");
-  assert.equal(seam({ ...invalid, passabilityRules: "either-side" }).kind, "guaranteed");
 });
 
 test("orientations preserve kernel coordinates, side ownership and one seam per segment", () => {
@@ -120,10 +119,10 @@ test("orientations preserve kernel coordinates, side ownership and one seam per 
 
 test("completed seam classes and crossing guarantees agree with actual resolution", () => {
   const values: (PassabilityPrescription | undefined)[] = ["passable", "any", "not-passable-hint", undefined];
-  for (const rules of ["matched", "either-side"] as const) for (const leftClass of ["any", "hut"]) for (const rightClass of ["any", "hut"]) for (const a of values) for (const b of values) {
-    if (rules === "matched" && (a === "passable" && b === "not-passable-hint" || b === "passable" && a === "not-passable-hint")) continue;
+  for (const leftClass of ["any", "hut"]) for (const rightClass of ["any", "hut"]) for (const a of values) for (const b of values) {
+    // Placement refuses a side pair that doesn't fit, so no resolution exists to compare.
+    if (!passabilityFits(a, b)) continue;
     const lib = library(tile("left", leftClass, { "v:6,0": { passability: a } }), tile("right", rightClass, { "v:0,0": { passability: b } }));
-    lib.passabilityRules = rules;
     const layout: Layout = { seed: "partial", library: "hand", setPieces: [],
       params: { mode: "playground", zoneWidth: 1, zoneHeight: 1, exitCount: 1, contestantCount: 1, hunterCount: 1, lootChance: 0, lootTierStep: 0 },
       slots: slots.map((slot, i) => ({ col: slot.x, row: slot.y, design: i ? "right" : "left", orientation: 0 })) };

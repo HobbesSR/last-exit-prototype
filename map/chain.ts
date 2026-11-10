@@ -73,8 +73,7 @@ export function chainParams(input: object = {}): ChainParams {
 }
 
 /**
- * The library checks, then, for a library under `matched` passability (17.2.2), its set pieces'
- * own seams: a rule or tile change can leave a set piece that was valid when saved unplaceable.
+ * The library checks, then its set pieces' own seams under matched passability (17.2.2): a rule or tile change can leave a set piece that was valid when saved unplaceable.
  */
 export function validateLibrary(library: unknown): LibraryValidation {
   const checked = validateChainLibrary(library, GAME_REGION_TYPES);

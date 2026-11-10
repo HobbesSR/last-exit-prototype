@@ -2221,7 +2221,7 @@ try {
   // Author an uninterrupted block for building traces. The bundled block's internal
   // guarantees deliberately split its fill; it need not retain the former warehouse.
   const blockLibrary = structuredClone(CHAIN_LIBRARY);
-  blockLibrary.tiles.push({ id: "block-browser-fixture", defaultCellClass: "block", orientations: [0], weight: 0, segments: {} });
+  blockLibrary.tiles.push({ id: "block-browser-fixture", defaultCellClass: "block", orientations: [0], fillable: false, segments: {} });
   const blockFixture: typeof reference = { library: blockLibrary, cellSize: 40, build: GAME_ENGINES.version, results: [],
     layout: { seed: "block-browser-1", params: chainParams({ mode: "playground", zoneWidth: 4, zoneHeight: 4 }),
       library: libraryFingerprint(blockLibrary), setPieces: [], slots: Array.from({ length: 36 }, (_, i) =>

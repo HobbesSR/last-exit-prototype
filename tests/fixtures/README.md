@@ -204,6 +204,15 @@ geometry; a bay with no safe pillar fit stays reserved. This is an input fixture
 not the frozen gameplay characterization baseline. Gzip uses mtime 0; SHA-256
 `c0aeef58a9e5866b1ee1826bd1611a7f970a2ac9f09ed7cb03d127c065d69877`.
 
+## Saved park briefs (#688, #922)
+
+`park-pocket-briefs.json.gz` holds the two park briefs `tests/micro-park-pocket.test.js` builds:
+`park@372,150` from `docs/reports/issue-688/size-24-1.json.gz` and `park@144,36` from
+`size-12-1.json.gz`, with the latter's saved (empty) elements. Those saved maps embed a library
+under the retired either-side rules, which the reader now refuses (#922), so the briefs were read
+with `d127833`'s reader and stored as builder inputs; they stay valid when macro moves on. Gzip
+uses mtime 0; SHA-256 `ad7329fab37b02e5d5b27a2853969cf72fb190b51832c15dd7dd9ed699adaaf6`.
+
 ## Larger-size briefs (#821)
 
 `large-briefs.json.gz` holds the briefs only the larger authored sizes hand a builder, for

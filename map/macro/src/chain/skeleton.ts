@@ -12,7 +12,7 @@ import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
-import type { ChainLibrary, ChainTileDesign, PassabilityRules } from "./library.ts";
+import type { ChainLibrary, ChainTileDesign } from "./library.ts";
 import { fitsEast, fitsSouth, edgeConnectsEast, edgeConnectsSouth } from "./placement.ts";
 import type { Stream } from "./random.ts";
 import { DEFAULT_RESOLVED_CLASS, guaranteesPassability } from "./resolution.ts";
@@ -95,8 +95,6 @@ export function buildSkeleton(
   const shortcutPriority = config.shortcutPriority ?? false;
 
   const oriented = orientedDesigns(library);
-  const matched = library.passabilityRules === "matched";
-  const rules = library.passabilityRules ?? "either-side";
 
   // Map each slot to its node id: each set piece is one node, each fill slot is one node.
   const nodeOf = new Int32Array(mask.length).fill(-1);
@@ -135,7 +133,7 @@ export function buildSkeleton(
         return fillB.some((tB) =>
           tB.orientations.some((oB) => {
             const desB = oriented(tB.id, oB as Orientation);
-            return fitsEast(desA, desB, matched) && edgeConnectsEast(desA, desB, rules);
+            return fitsEast(desA, desB) && edgeConnectsEast(desA, desB);
           }));
       }));
     eastZoneCache.set(key, res);
@@ -154,7 +152,7 @@ export function buildSkeleton(
         return fillB.some((tB) =>
           tB.orientations.some((oB) => {
             const desB = oriented(tB.id, oB as Orientation);
-            return fitsSouth(desA, desB, matched) && edgeConnectsSouth(desA, desB, rules);
+            return fitsSouth(desA, desB) && edgeConnectsSouth(desA, desB);
           }));
       }));
     southZoneCache.set(key, res);
@@ -171,20 +169,20 @@ export function buildSkeleton(
       let can = true;
       if (assignA && assignB) {
         const desA = oriented(assignA.design, assignA.orientation), desB = oriented(assignB.design, assignB.orientation);
-        can = fitsEast(desA, desB, matched) && edgeConnectsEast(desA, desB, rules);
+        can = fitsEast(desA, desB) && edgeConnectsEast(desA, desB);
       } else if (assignA && !assignB) {
         const desA = oriented(assignA.design, assignA.orientation);
         can = fillByZone(zones.get(mask[eastIdx]!.zoneId)!).some((t) =>
           t.orientations.some((o) => {
             const desB = oriented(t.id, o as Orientation);
-            return fitsEast(desA, desB, matched) && edgeConnectsEast(desA, desB, rules);
+            return fitsEast(desA, desB) && edgeConnectsEast(desA, desB);
           }));
       } else if (!assignA && assignB) {
         const desB = oriented(assignB.design, assignB.orientation);
         can = fillByZone(zones.get(mask[i]!.zoneId)!).some((t) =>
           t.orientations.some((o) => {
             const desA = oriented(t.id, o as Orientation);
-            return fitsEast(desA, desB, matched) && edgeConnectsEast(desA, desB, rules);
+            return fitsEast(desA, desB) && edgeConnectsEast(desA, desB);
           }));
       } else {
         can = zonesCanConnectEast(mask[i]!.zoneId, mask[eastIdx]!.zoneId);
@@ -199,20 +197,20 @@ export function buildSkeleton(
       let can = true;
       if (assignA && assignB) {
         const desA = oriented(assignA.design, assignA.orientation), desB = oriented(assignB.design, assignB.orientation);
-        can = fitsSouth(desA, desB, matched) && edgeConnectsSouth(desA, desB, rules);
+        can = fitsSouth(desA, desB) && edgeConnectsSouth(desA, desB);
       } else if (assignA && !assignB) {
         const desA = oriented(assignA.design, assignA.orientation);
         can = fillByZone(zones.get(mask[southIdx]!.zoneId)!).some((t) =>
           t.orientations.some((o) => {
             const desB = oriented(t.id, o as Orientation);
-            return fitsSouth(desA, desB, matched) && edgeConnectsSouth(desA, desB, rules);
+            return fitsSouth(desA, desB) && edgeConnectsSouth(desA, desB);
           }));
       } else if (!assignA && assignB) {
         const desB = oriented(assignB.design, assignB.orientation);
         can = fillByZone(zones.get(mask[i]!.zoneId)!).some((t) =>
           t.orientations.some((o) => {
             const desA = oriented(t.id, o as Orientation);
-            return fitsSouth(desA, desB, matched) && edgeConnectsSouth(desA, desB, rules);
+            return fitsSouth(desA, desB) && edgeConnectsSouth(desA, desB);
           }));
       } else {
         can = zonesCanConnectSouth(mask[i]!.zoneId, mask[southIdx]!.zoneId);
@@ -375,9 +373,9 @@ const BORDER: Record<Side, (k: number) => { mine: number; theirs: number; segMin
  * guaranteed run of at least `MIN_PORTAL_LENGTH` between one pair of classes. Empty when the
  * two designs don't fit.
  */
-function edgeCrossingCells(side: Side, a: OrientedDesign, b: OrientedDesign, rules: PassabilityRules, matched: boolean): number[] {
-  const fits = side === "E" ? fitsEast(a, b, matched) : side === "W" ? fitsEast(b, a, matched)
-    : side === "S" ? fitsSouth(a, b, matched) : fitsSouth(b, a, matched);
+function edgeCrossingCells(side: Side, a: OrientedDesign, b: OrientedDesign): number[] {
+  const fits = side === "E" ? fitsEast(a, b) : side === "W" ? fitsEast(b, a)
+    : side === "S" ? fitsSouth(a, b) : fitsSouth(b, a);
   if (!fits) return [];
   const cells = new Set<number>();
   let run: number[] = [];
@@ -391,7 +389,7 @@ function edgeCrossingCells(side: Side, a: OrientedDesign, b: OrientedDesign, rul
     if (resA === resB) {
       cells.add(mine);
       run = []; lastA = lastB = undefined;
-    } else if (guaranteesPassability(segA?.passability, segB?.passability, rules, false)) {
+    } else if (guaranteesPassability(segA?.passability, segB?.passability, false)) {
       if (resA === lastA && resB === lastB) run.push(mine);
       else { run = [mine]; lastA = resA; lastB = resB; }
       if (run.length >= MIN_PORTAL_LENGTH) for (const c of run) cells.add(c);
@@ -424,8 +422,6 @@ function forcedEdgesBySlot(forcedSeams: SkeletonSeam[]): Map<number, ForcedEdge[
  * Parts are the open-face rule's fixed parts: cells joined by class or a guaranteed segment.
  */
 function partBridges(library: ChainLibrary) {
-  const rules = library.passabilityRules ?? "either-side";
-  const matched = library.passabilityRules === "matched";
   const oriented = orientedDesigns(library);
   const partsCache = new Map<OrientedDesign, { count: number; of: Int16Array }>();
   const partsOf = (turnedDesign: OrientedDesign): { count: number; of: Int16Array } => {
@@ -441,7 +437,7 @@ function partBridges(library: ChainLibrary) {
       if (cells[next] === "any") return -1;
       if (cells[next] === cells[local]) return next;
       const segment = turnedDesign.segments.get((dx ? `v:${x + Math.max(dx, 0)},${y}` : `h:${x},${y + Math.max(dy, 0)}`) as SegmentKey);
-      return guaranteesPassability(segment?.passability, segment?.passability, rules) ? next : -1;
+      return guaranteesPassability(segment?.passability, segment?.passability) ? next : -1;
     };
     for (let first = 0; first < S * S; first++) {
       if (cells[first] === "any" || of[first]! >= 0) continue;
@@ -464,7 +460,7 @@ function partBridges(library: ChainLibrary) {
     for (const edge of edges) {
       const reached = new Set<number>();
       for (const across of domainOf(edge.nbr)) {
-        for (const c of edgeCrossingCells(edge.side, design, oriented(across.templateId, across.orientation as Orientation), rules, matched)) {
+        for (const c of edgeCrossingCells(edge.side, design, oriented(across.templateId, across.orientation as Orientation))) {
           const part = of[c]!;
           if (part >= 0 && (common === null || common.has(part))) reached.add(part);
         }

@@ -55,19 +55,25 @@ test("the fixture's components partition its regions, and match a search of the 
 
 /** Tiles for the rules below. A column of one class on the tile's east side. */
 const column = (mark: string) => Array.from({ length: 6 }, () => `.....${mark}`);
-const passable = (...keys: string[]) => Object.fromEntries(keys.map((key) => [key, { passability: "passable" as const }]));
+// Both faces of the column, a hint on every row but the given ones: an unstated face reads as
+// `any`, which passes between two regions, so a hint is what keeps the column sealed. A face
+// that is passable on some rows is a portal there.
+const faces = (...portals: string[]) => Object.fromEntries([5, 6].flatMap((line) => [0, 1, 2, 3, 4, 5].map((row) => {
+  const key = `v:${line},${row}`;
+  return [key, { passability: portals.includes(key) ? "passable" as const : "not-passable-hint" as const }];
+})));
 const HAND_TILES: ChainTileDesign[] = [
   { id: "field", defaultCellClass: "open", orientations: [0] },
   // A hut column with a portal on its west face, its east face, both, or neither.
   { id: "hut-west", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0],
-    segments: passable("v:5,2", "v:5,3") },
+    segments: faces("v:5,2", "v:5,3") },
   { id: "hut-east", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0],
-    segments: passable("v:6,2", "v:6,3") },
+    segments: faces("v:6,2", "v:6,3") },
   { id: "hut-through", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0],
-    segments: passable("v:5,2", "v:5,3", "v:6,2", "v:6,3") },
-  { id: "hut-shut", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0] },
+    segments: faces("v:5,2", "v:5,3", "v:6,2", "v:6,3") },
+  { id: "hut-shut", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0], segments: faces() },
   // The class that promises a spawn, with no portal.
-  { id: "arrival-shut", defaultCellClass: "open", cells: column("a"), legend: { a: "arrival" }, orientations: [0] },
+  { id: "arrival-shut", defaultCellClass: "open", cells: column("a"), legend: { a: "arrival" }, orientations: [0], segments: faces() },
 ];
 const HAND: ChainLibrary = { ...LIBRARY, tiles: HAND_TILES };
 const PLAYGROUND: ChainParams = { ...GAME, mode: "playground", zoneWidth: 1, zoneHeight: 1 };

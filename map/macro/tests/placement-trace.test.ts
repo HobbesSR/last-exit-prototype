@@ -10,6 +10,8 @@ import type { PlacementTraceEvent, RefusalTraceEvent, WfcTraceEvent } from "../s
 
 const library = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
 const option = (templateId: string): TileOption => ({ templateId, orientation: 0, difficulty: 0, weight: 1 });
+// A hint states a face sealed: an unstated one reads as `any`, which passes between two regions.
+const hint = { passability: "not-passable-hint" as const };
 const grid = (count: number): WfcGrid => Array.from({ length: count }, (_, x) => ({ x, y: 0, domain: [option("a"), option("b")], links: [] }));
 
 function run(trace?: WfcOptions["trace"]) {
@@ -67,7 +69,9 @@ test("stall and iteration give-up events retain the existing limits", () => {
 
 test("refusal geometry uses world cells and explicit unit face endpoints", () => {
   const custom: ChainLibrary = { ...library, tiles: [{ id: "island", defaultCellClass: "open", orientations: [0],
-    cells: ["......", "......", "..h...", "......", "......", "......"], legend: { h: "hut" } }], tileSets: [], setPieces: [], setPieceClasses: [] };
+    cells: ["......", "......", "..h...", "......", "......", "......"], legend: { h: "hut" },
+    // The hut cell's four faces (library keys are line first).
+    segments: { "v:2,2": hint, "v:3,2": hint, "h:2,2": hint, "h:3,2": hint } }], tileSets: [], setPieces: [], setPieceClasses: [] };
   // An offset slot makes local-cell coordinates visibly wrong.
   const cells: WfcGrid = [{ x: 2, y: 1, domain: [option("island")], links: [] }];
   const events: RefusalTraceEvent[] = [];
@@ -95,15 +99,29 @@ test("placer traces attempts and keeps its returned layout identical", () => {
 });
 
 test("set-piece failure preserves partial assignments before any WFC choices", () => {
-  const custom: ChainLibrary = { ...library, zoneWidth: 2, zoneHeight: 1, fitPlacedSetPieces: true,
-    tiles: [{ id: "bad", defaultCellClass: "open", orientations: [0], segments: { "v:6,0": { adjacency: "hut" } } }],
-    tileSets: [{ id: "bad-set", members: ["bad"] }],
-    setPieces: [{ id: "bad-piece", tiles: [{ dx: 0, dy: 0, tileSetId: "bad-set", orientation: 0 }, { dx: 1, dy: 0, tileSetId: "bad-set", orientation: 0 }] }],
+  // The seams inside a piece are checked once up front (17.2.2), pair by pair, so a failure left
+  // for the attempts is one no single member can resolve. `head` asks for hut across its east
+  // edge and `tail` for open across its west one; the middle slot's hut fits the first seam and
+  // its open tile the second, so whichever is chosen after `head` leaves `tail` no design.
+  const custom: ChainLibrary = { ...library, zoneWidth: 3, zoneHeight: 1,
+    tiles: [
+      { id: "head", defaultCellClass: "open", orientations: [0], segments: { "v:6,0": { adjacency: "hut" } } },
+      { id: "hut-mid", defaultCellClass: "hut", orientations: [0] },
+      { id: "open-mid", defaultCellClass: "open", orientations: [0] },
+      { id: "tail", defaultCellClass: "open", orientations: [0], segments: { "v:0,0": { adjacency: "open" } } },
+    ],
+    tileSets: [{ id: "head-set", members: ["head"] }, { id: "mid-set", members: ["hut-mid", "open-mid"] }, { id: "tail-set", members: ["tail"] }],
+    setPieces: [{ id: "bad-piece", tiles: [
+      { dx: 0, dy: 0, tileSetId: "head-set", orientation: 0 },
+      { dx: 1, dy: 0, tileSetId: "mid-set", orientation: 0 },
+      { dx: 2, dy: 0, tileSetId: "tail-set", orientation: 0 },
+    ] }],
     setPieceClasses: [{ id: "bad-class", placementRule: "small", quota: 1, setPieces: ["bad-piece"] }],
   };
   const events: PlacementTraceEvent[] = [];
-  assert.throws(() => placer({ openFace: true, trace: (event) => events.push(event) })("partial", { ...params, mode: "game", zoneWidth: 2 }, custom), /set piece bad-piece/);
-  assert.equal(events.filter((event) => event.type === "set-piece-slot").length, 50);
+  assert.throws(() => placer({ openFace: true, trace: (event) => events.push(event) })("partial", { ...params, mode: "game", zoneWidth: 3 }, custom), /set piece bad-piece/);
+  // Two members are kept in every attempt before the third fails.
+  assert.equal(events.filter((event) => event.type === "set-piece-slot").length, 100);
   assert.equal(events.filter((event) => event.type === "set-piece-failed").length, 50);
   assert.equal(events.filter((event) => event.type === "node").length, 0);
   assert.equal(events.at(-1)!.attempt, 49);
@@ -113,7 +131,9 @@ test("set-piece failure preserves partial assignments before any WFC choices", (
 test("short portals and lookahead pockets retain their exact refusal geometry", () => {
   const custom: ChainLibrary = { ...library, tiles: [
     { id: "field", defaultCellClass: "open", orientations: [0, 180] },
-    { id: "hut", defaultCellClass: "hut", orientations: [0, 180] },
+    // A hut tile with a hint on every edge: no portal to the open ground beside it.
+    { id: "hut", defaultCellClass: "hut", orientations: [0, 180],
+      segments: Object.fromEntries(["h:0", "h:6", "v:0", "v:6"].flatMap((line) => [0, 1, 2, 3, 4, 5].map((k) => [`${line},${k}`, hint]))) },
     { id: "portal", defaultCellClass: "open", orientations: [0],
       cells: ["......", "......", "..h...", "......", "......", "......"], legend: { h: "hut" },
       segments: { "v:2,2": { passability: "passable" } } },

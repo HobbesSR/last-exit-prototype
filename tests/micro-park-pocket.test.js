@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { readMap } from '../map/tools/core.ts';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { createBuilderCanvas } from '../map/micro/canvas.ts';
 import { createProspectiveParcels } from '../map/micro/prospective-parcels.ts';
@@ -14,8 +13,8 @@ import { PARK_POCKET_LIMITS, siteParkPocket } from '../map/micro/strategies/park
 import { cellsOf } from './helpers/cells.js';
 import { rect } from '../shared/shape.ts';
 
-const savedResults = size => readMap(JSON.parse(gunzipSync(readFileSync(new URL(`../docs/reports/issue-688/size-${size}-1.json.gz`, import.meta.url))))).results;
-const saved = size => savedResults(size).filter(r => r.brief.type === 'park').map(r => r.brief);
+// Two park briefs from #688's saved maps, kept as builder inputs (fixture README).
+const SAVED = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/park-pocket-briefs.json.gz', import.meta.url))));
 const shapes = result => result.elements.flatMap(e => elementShapes(e));
 const pocket = result => result.elements.filter(e => e.label === 'park-pocket');
 const tryPocket = brief => {
@@ -30,7 +29,7 @@ const synthetic = (cells, portals = []) => ({ id: 'pocket-test', seed: 1, type: 
   zones: [{ tier: 3, bonus: 0, lootChance: 0, cells }], portals });
 
 test('saved park pocket retains fill, portal and hunter access after scatter', () => {
-  const brief = saved(24).find(b => b.id === 'park@372,150');
+  const brief = SAVED.briefs['park@372,150'];
   assert.ok(brief);
   const { result: sited, canvas } = tryPocket(brief);
   assert.ok(sited.envelope);
@@ -68,10 +67,10 @@ test('pocket siting is bounded and leaves no partial placement on unsuitable fil
 });
 
 test('a pocket the frozen routes refused fits once cords may bend round it (#750), in any cell order, and not with hedges off', () => {
-  const original = savedResults(12).find(r => r.brief.id === 'park@144,36'), small = original.brief;
+  const small = SAVED.briefs['park@144,36'];
   assert.equal(small.cells.length, 936);
   // Its routes between portals left no pocket envelope and no lattice slot clear.
-  assert.deepEqual(original.elements, []);
+  assert.deepEqual(SAVED.savedElements['park@144,36'], []);
   const rebuilt = buildRegion(small);
   assert.equal(pocket(rebuilt).length, 1);
   assert.equal(rebuilt.manifest.pockets, 1);

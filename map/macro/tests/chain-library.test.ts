@@ -23,7 +23,7 @@ test("fixture is valid and the chain has its own version", () => {
 
 test("recursive diamond includes load each content revision once in stable order", () => {
   const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
-    includes: [{ name: "left", version: 1 }, { name: "right", version: 2 }], setPieceClasses: [] };
+    passabilityRules: "matched", fitPlacedSetPieces: true, includes: [{ name: "left", version: 1 }, { name: "right", version: 2 }], setPieceClasses: [] };
   const registry = {
     "base@1": { schema: 1, name: "base", version: 1, cellClasses: { open: { regionType: "open-field" } },
       tiles: [{ id: "base", defaultCellClass: "open", orientations: [0] }] },
@@ -40,7 +40,7 @@ test("recursive diamond includes load each content revision once in stable order
 
 test("module schemas, content revisions, identities and include cycles are checked separately", () => {
   const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
-    includes: [{ name: "base", version: 2 }], setPieceClasses: [] };
+    passabilityRules: "matched", fitPlacedSetPieces: true, includes: [{ name: "base", version: 2 }], setPieceClasses: [] };
   const module = { schema: 1, name: "base", version: 2 };
   assert.throws(() => resolveLibrary(root, {}), /missing module base@2/);
   assert.throws(() => resolveLibrary(root, { "base@1": { ...module, version: 1 } }), /missing module base@2/);
@@ -55,7 +55,7 @@ test("module schemas, content revisions, identities and include cycles are check
 
 test("two content revisions coexist but still cannot redefine ids", () => {
   const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
-    includes: [{ name: "base", version: 1 }, { name: "base", version: 2 }], setPieceClasses: [] };
+    passabilityRules: "matched", fitPlacedSetPieces: true, includes: [{ name: "base", version: 1 }, { name: "base", version: 2 }], setPieceClasses: [] };
   const registry = {
     "base@1": { schema: 1, name: "base", version: 1, tiles: [{ id: "old" }] },
     "base@2": { schema: 1, name: "base", version: 2, tiles: [{ id: "new" }] },
@@ -99,8 +99,9 @@ test("adjacency is allowed only on a tile perimeter segment", () => {
 });
 
 test("a short passable run wholly inside a tile is refused, grouped by class", () => {
+  // A hint at v:3,3 leaves v:3,2 alone: unstated would read as `any` and pass (17.2.2).
   const one = copy();
-  delete one.tiles[0]!.segments!["v:3,3"];
+  one.tiles[0]!.segments!["v:3,3"] = { passability: "not-passable-hint" };
   refusal(one, /short passable run v:3,2\.\.2/);
 
   const differentClass = copy();
@@ -139,21 +140,28 @@ test("a perimeter any cell defers its portal check until placement resolves its 
   const library = copy();
   library.tiles[0]!.legend = { a: "any", h: "hut" };
   library.tiles[0]!.cells = ["......", "......", "ah....", "......", "......", "......"];
-  library.tiles[0]!.segments = { "v:1,2": { passability: "passable" } };
+  // The hut's other faces are hinted, so the passable face beside the any cell is the only run.
+  library.tiles[0]!.segments = { "v:1,2": { passability: "passable" }, "h:2,1": { passability: "not-passable-hint" },
+    "h:3,1": { passability: "not-passable-hint" }, "v:2,2": { passability: "not-passable-hint" } };
   assert.deepEqual(validateLibrary(library, TYPES).errors, []);
 });
 
-test("a written any and unstated passability stay distinct", () => {
+test("a written any and unstated passability are stored apart, and read alike inside a tile", () => {
   const tile = FIXTURE.tiles[0]!;
   assert.deepEqual(tile.segments!["v:3,4"], { passability: "any" });
-  assert.equal(tile.segments!["v:3,5"], undefined);
   const library = copy();
+  delete library.tiles[0]!.segments!["v:3,5"];
+  assert.equal(library.tiles[0]!.segments!["v:3,5"], undefined);
   library.tiles[0]!.segments!["v:3,2"]!.passability = "any";
   assert.deepEqual(validateLibrary(library, TYPES).errors, []);
-  // Inside a tile a written any is stated on both sides and continues the portal.
-  library.tiles[0]!.segments = { "v:3,2": { passability: "any" } };
+  // Inside a tile a written any is stated on both sides and continues the portal; the hints around it end the run.
+  const hints = Object.fromEntries([0, 1, 3, 4, 5].map((y) => [`v:3,${y}`, { passability: "not-passable-hint" }]));
+  library.tiles[0]!.segments = { ...hints, "v:3,2": { passability: "any" } };
   refusal(library, /short passable run v:3,2\.\.2/);
-  library.tiles[0]!.segments!["v:3,2"]!.passability = "not-passable-hint";
+  // An unstated segment reads as `any`, so it continues the portal alike.
+  delete library.tiles[0]!.segments!["v:3,2"];
+  refusal(library, /short passable run v:3,2\.\.2/);
+  library.tiles[0]!.segments!["v:3,2"] = { passability: "not-passable-hint" };
   assert.deepEqual(validateLibrary(library, TYPES).errors, []);
 });
 
@@ -233,7 +241,7 @@ test("tiers, segment addresses and set piece slots have unambiguous bounds", () 
 
 test("module definitions cannot be overridden by the including library or own quotas", () => {
   const top = { name: "top", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
-    includes: [{ name: "base", version: 1 }], setPieceClasses: [], cellClasses: { open: { regionType: "open-field" } } };
+    passabilityRules: "matched", fitPlacedSetPieces: true, includes: [{ name: "base", version: 1 }], setPieceClasses: [], cellClasses: { open: { regionType: "open-field" } } };
   const base = { schema: 1, name: "base", version: 1, cellClasses: top.cellClasses };
   assert.throws(() => resolveLibrary(top, { "base@1": base }), /cell class open redefined in top; first defined in base/);
   assert.throws(() => resolveLibrary(top, { "base@1": { ...base, setPieceClasses: [] } }), /base@1: unknown field setPieceClasses/);

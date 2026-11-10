@@ -4,6 +4,8 @@
   "zonePlan": "diamond",
   "zoneWidth": 12,
   "zoneHeight": 6,
+  "passabilityRules": "matched",
+  "fitPlacedSetPieces": true,
   "cellClasses": {
     "open": { "regionType": "open-field" },
     "hut": { "regionType": "hut" },
@@ -16,6 +18,9 @@
       "cells": ["...hhh", "...hhh", "...hhh", "...hhh", "...hhh", "...hhh"],
       "legend": { "h": "hut" },
       "segments": {
+        "v:3,0": { "passability": "not-passable-hint" },
+        "v:3,1": { "passability": "not-passable-hint" },
+        "v:3,5": { "passability": "not-passable-hint" },
         "v:3,2": { "passability": "passable" },
         "v:3,3": { "passability": "passable" },
         "v:3,4": { "passability": "any" },
