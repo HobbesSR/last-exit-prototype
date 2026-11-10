@@ -4,7 +4,6 @@
  * nodes and time. Prints one JSON line a seed, then a summary line. Never writes anything.
  * node map/tools/placement-probe.mts --size 12|24|36|playground --prefix sweep --from 1 --to 120
  * Optional: --lookahead CELLS (0 turns the lookahead off; the default is `LOOKAHEAD_CELLS`).
- * Optional: --start-end-first enables the off-by-default landing/evac priority experiment.
  * `playground` is a 36 x 18 playground over the 12 x 6 library, as `tests/wfc-large`. Size
  * 24 and 36 use #688's parameters (42.37). Time a comparison under the bench lock (31, 42.39).
  */
@@ -30,8 +29,7 @@ if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from > to) throw
 
 const larger = (width: number) => ({ zoneWidth: width, zoneHeight: width / 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 });
 const params = size === '12' ? chainParams({}) : size === 'playground' ? chainParams({ ...larger(36), mode: 'playground' }) : chainParams(larger(Number(size)));
-const baseLibrary = bundledLibrary(size === 'playground' ? chainParams({}) : params);
-const library = process.argv.includes('--start-end-first') ? { ...baseLibrary, startEndFirst: true } : baseLibrary;
+const library = bundledLibrary(size === 'playground' ? chainParams({}) : params);
 
 interface Row {
   seed: string; placed: boolean; attempts: number; refusals: number; mostStall: number;

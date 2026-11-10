@@ -20,7 +20,6 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
     <div class="solve-recipe-controls">
       <label>Seed<input id="solveSeed" /></label>
       <label>Zone size<select id="solveSize"></select></label>
-      <label>Set-piece order<select id="solveOrder"><option value="library">Library default</option><option value="start-end">Landing / evac first (experiment)</option></select></label>
       <button id="solveRandom" type="button">New seed</button>
     </div>
     <p class="hint">Seed and size edits apply when you press Record placement. The attempt list belongs to the recorded seed.</p>
@@ -242,7 +241,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
       el('solveRecipe').textContent = recipe;
       el('solveStatus').textContent = 'Recording placement…';
       el<HTMLButtonElement>('solveCancel').disabled = false;
-      for (const id of ['solveRecord', 'solveSeed', 'solveSize', 'solveOrder', 'solveRandom', 'solveAttempt', 'solveStep', 'solvePrev', 'solveNext', 'solvePlay', 'solvePrevRefusal', 'solveNextRefusal']) (el(id) as HTMLButtonElement).disabled = true;
+      for (const id of ['solveRecord', 'solveSeed', 'solveSize', 'solveRandom', 'solveAttempt', 'solveStep', 'solvePrev', 'solveNext', 'solvePlay', 'solvePrevRefusal', 'solveNextRefusal']) (el(id) as HTMLButtonElement).disabled = true;
       seek(0);
     },
     stopped(message: string) {
@@ -252,7 +251,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
         el('solveMapSummary').textContent = 'No recording retained.';
       }
       el<HTMLButtonElement>('solveCancel').disabled = true; el<HTMLButtonElement>('solveRecord').disabled = false;
-      for (const id of ['solveSeed', 'solveSize', 'solveOrder', 'solveRandom']) (el(id) as HTMLButtonElement).disabled = false;
+      for (const id of ['solveSeed', 'solveSize', 'solveRandom']) (el(id) as HTMLButtonElement).disabled = false;
     },
     received(result: PlacementRecording, library: ChainLibrary, ms: number) {
       recording = result; activeLibrary = library; turned = orientedDesigns(library); byAttempt = [];
