@@ -71,15 +71,20 @@ test("the fixture's maps, built as their briefs ask, keep every promise", () => 
 // ── Hand-placed layouts ─────────────────────────────────────────────────────
 
 const column = (mark: string) => Array.from({ length: 6 }, () => `.....${mark}`);
-const passable = (...keys: string[]) => Object.fromEntries(keys.map((k) => [k, { passability: "passable" as const }]));
+// A face's rows (`v:line,row`): a hint on each but the given ones, which are passable. An
+// unstated face reads as `any`, which passes between two regions, so a hint keeps it sealed.
+const face = (line: number, ...portals: number[]) => Object.fromEntries([0, 1, 2, 3, 4, 5].map((row) =>
+  [`v:${line},${row}`, { passability: portals.includes(row) ? "passable" as const : "not-passable-hint" as const }]));
 const HAND: ChainLibrary = {
   ...LIBRARY,
   tiles: [
     { id: "field", defaultCellClass: "open", orientations: [0] },
-    { id: "pod", defaultCellClass: "charging", orientations: [0] },
-    // An arrival column on the tile's east side, with a passable stretch onto the open ground west of it.
+    // Sealed on its west face, toward the open ground beside it.
+    { id: "pod", defaultCellClass: "charging", orientations: [0], segments: face(0) },
+    // An arrival column on the tile's east side, with a passable stretch onto the open ground west
+    // of it, and its east face sealed.
     { id: "arrival-west", defaultCellClass: "open", cells: column("a"), legend: { a: "arrival" }, orientations: [0],
-      segments: passable("v:5,2", "v:5,3") },
+      segments: { ...face(5, 2, 3), ...face(6) } },
   ] satisfies ChainTileDesign[],
 };
 const PLAYGROUND: ChainParams = { ...GAME, mode: "playground", zoneWidth: 1, zoneHeight: 1 };

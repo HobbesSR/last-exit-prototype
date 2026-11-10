@@ -314,7 +314,9 @@ region check refuse anything else.
 ## Library modules and authored sizes
 
 Schema version 3 libraries declare `name`, `zonePlan`, `zoneWidth` and
-`zoneHeight`. Game mode requires its zone dimensions to match that library;
+`zoneHeight`, and state the rules they are authored under: `passabilityRules: "matched"`
+(51.4) and `fitPlacedSetPieces: true` (51.3). Those are the only rules; a library or saved map
+that omits them or states another is refused with what to state (#922). Game mode requires its zone dimensions to match that library;
 playground dimensions remain free. Version 2 is refused by name.
 
 A library may include named, versioned modules through
@@ -378,7 +380,7 @@ catalogue, and it grows from here. The fixture libraries in
     `hut`). The `open` asks close the group, so it can't spread across the
     fill.
   - `ruins-ground`, `hall-ground`, `depot-ground`, `compound-ground`,
-    `block-ground`, `market-ground`, `plant-ground`, and `checkpoint-ground`: a whole tile of their type, with the same aligned three-segment passable stretch and complementary hint as `cover-ground`. They are weighted 0, so only set pieces place
+    `block-ground`, `market-ground`, `plant-ground`, and `checkpoint-ground`: a whole tile of their type, with the same aligned three-segment passable stretch and complementary hint as `cover-ground`. They are not fillable, so only set pieces place
     them (below).
   - `park-ground`: a whole tile of `park`, with the same perimeter pattern, weighted
     0.6 since #214 (`cover-ground` is 0.4). The earlier weight and 224-map sample are in [42.3](42.3-generation-and-delegation-evidence.md#park-weight-221-sample). Park's own strategy places a tree at most in a lone tile, so the
@@ -415,19 +417,15 @@ catalogue, and it grows from here. The fixture libraries in
   alone does not prove their resolved geometry. Placement checks conflicting asks
   and portal widths, and `tests/map-clear-tiles.test.js` exercises actual resolution
   and built access.
-- **Fill weights:** each orientation is its own fill option, so a design
-  with four orientations gets four times its weight. Hut quarters have weight
-  0.3 since #214; their adjacency asks need compatible ground around the cluster,
-  so their frequency also depends on the other weights. A
-  design weighted 0 is no fill option: only a set piece places it. A design can say so
-  directly with `fillable: false` (default true; Corey, 2026-11-06, 17.2.2, #849), which
-  is meant to replace weight 0 when the content is migrated. A lone
-  6 × 6 tile of a structure type is too small for its builder, so those
-  grounds are weighted 0, `park-ground` since #221 excepted.
+- **Fill weights:** a design's weight is positive, 1 by default, and shared evenly by its
+  orientations, so a rotatable design is drawn as often as a fixed one (17.2.2, #850).
+  `fillable: false` (default true; Corey, 2026-11-06, 17.2.2, #849) keeps a design out of the
+  fill: only a set piece places it. It is the only way to say so; weight 0 once meant the same
+  and is refused since #922, naming `fillable: false`. A lone 6 × 6 tile of a structure type is
+  too small for its builder, so those grounds are not fillable, `park-ground` since #221 excepted.
 - **Clear fill tiles (#214):** `clear-rubble-bank` paints a three-cell-wide rubble
   band; `clear-rubble-bend` paints three quarters of the tile as an L. Their remaining
-  cells are `any`, including parts of the perimeter. Each has four rotations at
-  weight 0.15 per rotation and explicitly defers perimeter passability. A three-cell
+  cells are `any`, including parts of the perimeter. Each has four rotations and explicitly defers perimeter passability. A three-cell
   internal opening connects the rubble to the deferred ground. Neighbor adjacency
   asks settle individual `any` cells; unasked cells become `open`. Neither an `any`
   cell nor a concrete painted cell manufactures an adjacency prescription: an
@@ -440,14 +438,14 @@ catalogue, and it grows from here. The fixture libraries in
   cell alone cannot secure that clearance. Under the implemented margin policy
   ([20.6](20.6-passable-margins.md)), all four rotations pass composed portal
   diagnosis and actual hunter movement in a surrounding-cover fixture.
-  It has weight zero and is placed by `rubble-court`, a 3 by 3 small set piece
+  It is not fillable and is placed by `rubble-court`, a 3 by 3 small set piece
   with eight surrounding cover grounds, available at all three authored sizes.
   As an unconstrained fill option, the centered border can adopt class requests
   that create one-segment corner portals; the large playground's placement then
   backtracks excessively. The courtyard supplies the validated surroundings
   without weakening portal checks or changing the solver.
 - **Structure joins (#214):** block, depot and compound slots in common and district
-  set pieces use zero-weight ground variants. Sides joining the same ground class
+  set pieces use ground variants the fill does not place. Sides joining the same ground class
   carry occupancy hints rather than repeating guaranteed openings every six cells.
   Exposed sides retain the original prescriptions exactly. This deliberately authors
   larger fill areas for buildings without removing any retained guarantee from the
@@ -455,8 +453,8 @@ catalogue, and it grows from here. The fixture libraries in
   convention to market, plant, hall, park, ruins and checkpoint in common,
   district and local set pieces. Joins suppress guarantees only between
   adjacent slots of the same ground family; mixed-family and exposed sides
-  retain their original prescriptions. All inward variants have zero fill
-  weight, including park variants; the original park ground retains weight 0.6.
+  retain their original prescriptions. No inward variant, park's included,
+  is fillable.
   **Local quarters (#340, #347):** the 36×18 top-level library defines three
   enormous set pieces locally, outside the included modules checked by the original
   tool. `military-quarter`'s 312 compound slots (#340), `city-centre`'s 240 block

@@ -94,22 +94,23 @@ test("region ids and seeds follow the region's own cells, so an unrelated change
 
 /** Tiles for the rules below. Library keys: `h:y,x` (line first), `v:x,y`. */
 const column5 = (mark: string) => Array.from({ length: 6 }, () => `.....${mark}`);
+// A column's west face at `line`, a hint on every row but the given ones: an unstated face
+// reads as `any`, which passes between two regions, so a hint is what keeps it sealed.
+const west = (line: number, ...portals: number[]) => Object.fromEntries([0, 1, 2, 3, 4, 5].map((row) =>
+  [`v:${line},${row}`, { passability: portals.includes(row) ? "passable" as const : "not-passable-hint" as const }]));
 const HAND_TILES: ChainTileDesign[] = [
   { id: "field", defaultCellClass: "open", orientations: [0] },
   // A hut column on the tile's east side, with passable segments on its west face.
-  { id: "hut-low", defaultCellClass: "open", cells: column5("h"), legend: { h: "hut" }, orientations: [0],
-    segments: { "v:5,5": { passability: "passable" } } },
-  { id: "hut-high", defaultCellClass: "open", cells: column5("h"), legend: { h: "hut" }, orientations: [0],
-    segments: { "v:5,0": { passability: "passable" } } },
-  { id: "hut-mid", defaultCellClass: "open", cells: column5("h"), legend: { h: "hut" }, orientations: [0],
-    segments: { "v:5,2": { passability: "passable" }, "v:5,3": { passability: "passable" } } },
+  { id: "hut-low", defaultCellClass: "open", cells: column5("h"), legend: { h: "hut" }, orientations: [0], segments: west(5, 5) },
+  { id: "hut-high", defaultCellClass: "open", cells: column5("h"), legend: { h: "hut" }, orientations: [0], segments: west(5, 0) },
+  { id: "hut-mid", defaultCellClass: "open", cells: column5("h"), legend: { h: "hut" }, orientations: [0], segments: west(5, 2, 3) },
   // The same pair, but the region across changes between its two segments.
   { id: "hut-shed", defaultCellClass: "open", cells: [".....h", ".....h", ".....h", ".....s", ".....s", ".....s"],
-    legend: { h: "hut", s: "shed" }, orientations: [0],
-    segments: { "v:5,2": { passability: "passable" }, "v:5,3": { passability: "passable" } } },
-  // A passable pair between two hut cells: a guarantee inside one region.
+    legend: { h: "hut", s: "shed" }, orientations: [0], segments: west(5, 2, 3) },
+  // A passable pair between two hut cells: a guarantee inside one region, where only a stated
+  // `passable` guarantees. The hut's west face is sealed, so the pair is its only guarantee.
   { id: "hut-inner", defaultCellClass: "open", cells: column5("h").map(() => "....hh"), legend: { h: "hut" }, orientations: [0],
-    segments: { "v:5,2": { passability: "passable" }, "v:5,3": { passability: "passable" } } },
+    segments: { ...west(4), "v:5,2": { passability: "passable" }, "v:5,3": { passability: "passable" } } },
   // A passable pair on the north edge, and an `any` stated on the east edge.
   { id: "gate-north", defaultCellClass: "open", orientations: [0],
     segments: { "h:0,2": { passability: "passable" }, "h:0,3": { passability: "passable" }, "v:6,1": { passability: "any" } } },

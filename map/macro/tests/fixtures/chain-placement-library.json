@@ -4,6 +4,8 @@
   "zonePlan": "diamond",
   "zoneWidth": 12,
   "zoneHeight": 6,
+  "passabilityRules": "matched",
+  "fitPlacedSetPieces": true,
   "cellClasses": {
     "open": { "regionType": "open-field" },
     "hut": { "regionType": "hut" },
@@ -24,6 +26,10 @@
       "cells": ["hhh...", "hhh...", "hhh...", "......", "......", "......"],
       "legend": { "h": "hut" },
       "segments": {
+        "v:3,0": { "passability": "not-passable-hint" },
+        "h:3,0": { "passability": "not-passable-hint" },
+        "h:3,1": { "passability": "not-passable-hint" },
+        "h:3,2": { "passability": "not-passable-hint" },
         "h:0,0": { "adjacency": "hut" },
         "h:0,1": { "adjacency": "hut" },
         "h:0,2": { "adjacency": "hut" },
@@ -41,6 +47,10 @@
       "cells": [".....h", ".....h", ".....h", ".....h", ".....h", ".....h"],
       "legend": { "h": "hut" },
       "segments": {
+        "v:5,0": { "passability": "not-passable-hint" },
+        "v:5,1": { "passability": "not-passable-hint" },
+        "v:5,2": { "passability": "not-passable-hint" },
+        "v:5,3": { "passability": "not-passable-hint" },
         "v:6,0": { "adjacency": "hut" },
         "v:6,1": { "adjacency": "hut" },
         "v:6,2": { "adjacency": "hut" },
@@ -59,6 +69,12 @@
       "cells": [".....h", ".....h", ".....h", ".....h", ".....h", ".....h"],
       "legend": { "h": "hut" },
       "segments": {
+        "v:5,0": { "passability": "not-passable-hint" },
+        "v:5,1": { "passability": "not-passable-hint" },
+        "v:5,2": { "passability": "not-passable-hint" },
+        "v:5,3": { "passability": "not-passable-hint" },
+        "v:5,4": { "passability": "not-passable-hint" },
+        "v:5,5": { "passability": "not-passable-hint" },
         "v:6,0": { "adjacency": "hut" },
         "v:6,1": { "adjacency": "hut" },
         "v:6,2": { "adjacency": "hut" },
@@ -88,6 +104,14 @@
       "defaultCellClass": "open",
       "cells": [".....a", ".....a", ".....a", ".....a", ".....a", ".....a"],
       "legend": { "a": "any" },
+      "segments": {
+        "v:5,0": { "passability": "not-passable-hint" },
+        "v:5,1": { "passability": "not-passable-hint" },
+        "v:5,2": { "passability": "not-passable-hint" },
+        "v:5,3": { "passability": "not-passable-hint" },
+        "v:5,4": { "passability": "not-passable-hint" },
+        "v:5,5": { "passability": "not-passable-hint" }
+      },
       "orientations": [0, 90, 180, 270],
       "eligibleTiers": [1, 2, 3, 4]
     },
@@ -96,13 +120,29 @@
       "defaultCellClass": "open",
       "cells": ["......", "......", "..aa..", "..aa..", "......", "......"],
       "legend": { "a": "arrival" },
-      "segments": { "h:2,2": { "passability": "passable" }, "h:2,3": { "passability": "passable" } },
+      "segments": { "h:2,2": { "passability": "passable" }, "h:2,3": { "passability": "passable" }, "h:4,2": { "passability": "not-passable-hint" }, "h:4,3": { "passability": "not-passable-hint" }, "v:2,2": { "passability": "not-passable-hint" }, "v:2,3": { "passability": "not-passable-hint" }, "v:4,2": { "passability": "not-passable-hint" }, "v:4,3": { "passability": "not-passable-hint" } },
       "orientations": [0]
     },
     {
       "id": "departure-pad",
       "defaultCellClass": "departure",
       "segments": {
+        "v:0,0": { "passability": "not-passable-hint" },
+        "v:0,1": { "passability": "not-passable-hint" },
+        "v:0,4": { "passability": "not-passable-hint" },
+        "v:0,5": { "passability": "not-passable-hint" },
+        "v:6,0": { "passability": "not-passable-hint" },
+        "v:6,1": { "passability": "not-passable-hint" },
+        "v:6,4": { "passability": "not-passable-hint" },
+        "v:6,5": { "passability": "not-passable-hint" },
+        "h:0,0": { "passability": "not-passable-hint" },
+        "h:0,1": { "passability": "not-passable-hint" },
+        "h:0,4": { "passability": "not-passable-hint" },
+        "h:0,5": { "passability": "not-passable-hint" },
+        "h:6,0": { "passability": "not-passable-hint" },
+        "h:6,1": { "passability": "not-passable-hint" },
+        "h:6,4": { "passability": "not-passable-hint" },
+        "h:6,5": { "passability": "not-passable-hint" },
         "v:0,2": { "passability": "passable" }, "v:0,3": { "passability": "passable" },
         "v:6,2": { "passability": "passable" }, "v:6,3": { "passability": "passable" },
         "h:0,2": { "passability": "passable" }, "h:0,3": { "passability": "passable" },
@@ -115,7 +155,7 @@
       "defaultCellClass": "open",
       "cells": ["......", ".cc...", ".cc...", "......", "......", "......"],
       "legend": { "c": "charging" },
-      "segments": { "h:3,1": { "passability": "passable" }, "h:3,2": { "passability": "passable" } },
+      "segments": { "h:3,1": { "passability": "passable" }, "h:3,2": { "passability": "passable" }, "h:1,1": { "passability": "not-passable-hint" }, "h:1,2": { "passability": "not-passable-hint" }, "v:1,1": { "passability": "not-passable-hint" }, "v:1,2": { "passability": "not-passable-hint" }, "v:3,1": { "passability": "not-passable-hint" }, "v:3,2": { "passability": "not-passable-hint" } },
       "orientations": [0, 90, 180, 270]
     }
   ],

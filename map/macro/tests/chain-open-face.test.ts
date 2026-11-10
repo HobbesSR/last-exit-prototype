@@ -21,7 +21,8 @@ import type { TileOption, WfcGrid } from "../src/wfc.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
 const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
-const SEEDS = ["open-face-1", "open-face-2", "open-face-3", "open-face-4"];
+// Seeds whose unruled layouts seal a hut (the draw is seeded, so the list is what it was found to be).
+const SEEDS = ["open-face-1", "open-face-2", "open-face-4", "open-face-6"];
 
 function violations(layout: Layout, library: ChainLibrary): string[] {
   const found = regions(resolution(layout, library), layout.seed);
@@ -51,19 +52,24 @@ test("where nothing is refused, the rule changes no draw", () => {
 
 const column = (mark: string) => Array.from({ length: 6 }, () => `.....${mark}`);
 const asksHut = Object.fromEntries([0, 1, 2, 3, 4, 5].map((k) => [`v:6,${k}`, { adjacency: "hut" as const }]));
+// The hut column's faces to open ground, sealed except on the given rows of its west face:
+// an unstated face reads as `any`, which passes between two regions, so a hint states it sealed.
+const hint = { passability: "not-passable-hint" as const };
+const sealed = (...portals: number[]) => ({
+  ...Object.fromEntries([0, 1, 2, 3, 4, 5].map((k) => [`v:5,${k}`, portals.includes(k) ? { passability: "passable" as const } : hint])),
+  "h:0,5": hint, "h:6,5": hint,
+});
 const HAND_TILES: ChainTileDesign[] = [
   { id: "field", defaultCellClass: "open", orientations: [0] },
   // A hut column that asks for hut across its east edge, without a portal, or with one
   // into its own open ground.
-  { id: "annex", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, segments: asksHut, orientations: [0, 180] },
+  { id: "annex", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, segments: { ...sealed(), ...asksHut }, orientations: [0, 180] },
   { id: "annex-door", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0, 180],
-    segments: { ...asksHut, "v:5,2": { passability: "passable" }, "v:5,3": { passability: "passable" } } },
+    segments: { ...sealed(2, 3), ...asksHut } },
   // A hut column whose west face is passable on its last row, or its first.
-  { id: "door-foot", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0],
-    segments: { "v:5,5": { passability: "passable" } } },
-  { id: "door-head", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0],
-    segments: { "v:5,0": { passability: "passable" } } },
-  { id: "plain-column", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0] },
+  { id: "door-foot", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0], segments: sealed(5) },
+  { id: "door-head", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0], segments: sealed(0) },
+  { id: "plain-column", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0], segments: sealed() },
 ];
 const HAND: ChainLibrary = { ...LIBRARY, tiles: HAND_TILES, tileSets: [], setPieces: [], setPieceClasses: [] };
 
@@ -121,8 +127,13 @@ test("a sealed component is refused by its cut, not by every slot inside it", ()
   assert.deepEqual(cause, [3]);
 });
 
-// A hut tile with no portal at all, for pockets the lookahead refuses (#857).
-const HUT_BLOCK: ChainTileDesign = { id: "hut-block", defaultCellClass: "hut", orientations: [0, 180] };
+// A hut tile with no portal at all, for pockets the lookahead refuses (#857): every edge
+// states a hint, so open ground beside it is not guaranteed to pass.
+const HUT_BLOCK: ChainTileDesign = {
+  id: "hut-block", defaultCellClass: "hut", orientations: [0, 180],
+  segments: Object.fromEntries(["h:0", "h:6", "v:0", "v:6"].flatMap((line) =>
+    [0, 1, 2, 3, 4, 5].map((k) => [`${line},${k}`, hint]))),
+};
 const POCKETS: ChainLibrary = { ...HAND, tiles: [...HAND_TILES, HUT_BLOCK] };
 const one = (templateId: string, orientation: 0 | 180 = 0): TileOption => ({ templateId, orientation, difficulty: 0, weight: 1 });
 const HUTS = [one("hut-block"), one("hut-block", 180)];

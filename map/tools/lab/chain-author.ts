@@ -32,6 +32,8 @@ const starter: ChainLibrary = {
   zonePlan: "diamond",
   zoneWidth: 12,
   zoneHeight: 6,
+  passabilityRules: "matched",
+  fitPlacedSetPieces: true,
   cellClasses: {
     open: { regionType: "open-field" },
     hut: { regionType: "hut" },

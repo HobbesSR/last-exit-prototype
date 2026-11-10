@@ -110,7 +110,6 @@ export function placementSeams(library: ChainLibrary, slots: readonly PlacementS
     }
   }
 
-  const rules = library.passabilityRules ?? "either-side";
   const result: PlacementSeam[] = [];
   for (const key of candidates) {
     const { axis, x, y } = parseKey(key);
@@ -122,9 +121,9 @@ export function placementSeams(library: ChainLibrary, slots: readonly PlacementS
       !stated(l.slot!, l.design!, key)) continue;
     let kind: ConnectivityKind;
     if (lower.state === "outside" || upper.state === "outside") kind = "outside";
-    else if (l.conflict || u.conflict || (lower.state === "placed" && upper.state === "placed" && rules === "matched" && !passabilityFits(lower.passability, upper.passability))) kind = "conflict";
+    else if (l.conflict || u.conflict || (lower.state === "placed" && upper.state === "placed" && !passabilityFits(lower.passability, upper.passability))) kind = "conflict";
     else if (lower.state === "unplaced" || upper.state === "unplaced") kind = "unresolved";
-    else if (guaranteesPassability(lower.passability, upper.passability, rules,
+    else if (guaranteesPassability(lower.passability, upper.passability,
       lower.resolved === undefined || upper.resolved === undefined || lower.resolved === upper.resolved)) kind = "guaranteed";
     else if (lower.resolved !== undefined && lower.resolved === upper.resolved) {
       kind = lower.passability === "not-passable-hint" || upper.passability === "not-passable-hint" ? "internal-hint" : "same-region";

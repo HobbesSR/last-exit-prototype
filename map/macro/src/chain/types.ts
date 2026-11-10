@@ -137,8 +137,8 @@ export interface ResolvedLayout extends StageMark<"resolved-layout"> {
   height: number;
   cells: ResolvedClass[];
   /**
-   * Only segments a side states passability on, and under `matched` rules every other
-   * class boundary, which is guaranteed (17.2.2). An absent segment is `none`, with
+   * Only segments a side states passability on, and every other class boundary, which
+   * is guaranteed (17.2.2). An absent segment is `none`, with
    * nothing stated on either side.
    */
   segments: Partial<Record<SegmentKey, ResolvedSegment>>;

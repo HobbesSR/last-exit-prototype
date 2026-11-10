@@ -119,26 +119,22 @@ test("core element classes stand only inside their owning set pieces, and the fi
   }
 });
 
-test("a design weighted 0 is its set pieces' alone: the fill never places it", () => {
-  const unowned = (layout: Layout, id: string) => {
-    const owned = new Set(layout.setPieces.flatMap((instance) => instance.slots.map((s) => `${s.col},${s.row}`)));
-    return layout.slots.filter((slot) => slot.design === id && !owned.has(`${slot.col},${slot.row}`));
-  };
-  // Weighted 1 by default, hut-corner also stands in the fill.
-  assert.ok(SEEDS.some((seed) => unowned(layouts.get(seed)!, "hut-corner").length > 0));
-
-  const reserved = copy();
-  reserved.tiles.find((t) => t.id === "hut-corner")!.weight = 0;
-  assert.deepEqual(validateLibrary(reserved, REGION_TYPES), { valid: true, errors: [] });
-  for (const seed of SEEDS) {
-    const layout = placement(seed, GAME, reserved);
-    assert.deepEqual(unowned(layout, "hut-corner"), [], seed);
-    assert.ok(layout.slots.some((slot) => slot.design === "hut-corner"), `${seed}: the hut cluster still places it`);
-  }
+test("a design's weight must be positive: weight 0 is refused and names fillable: false instead", () => {
+  // Weight 0 once meant "not fillable"; it is refused, with what to state instead (#922).
+  const zero = copy();
+  zero.tiles.find((t) => t.id === "hut-corner")!.weight = 0;
+  const refused = validateLibrary(zero, REGION_TYPES);
+  assert.equal(refused.valid, false);
+  assert.match(refused.errors.join("; "), /tile hut-corner: weight 0 no longer leaves a design to set pieces.*"fillable": false/);
 
   const negative = copy();
   negative.tiles.find((t) => t.id === "hut-corner")!.weight = -1;
   assert.match(validateLibrary(negative, REGION_TYPES).errors.join("; "), /tile hut-corner: malformed weight/);
+
+  // A positive weight is read.
+  const heavy = copy();
+  heavy.tiles.find((t) => t.id === "hut-corner")!.weight = 3;
+  assert.deepEqual(validateLibrary(heavy, REGION_TYPES), { valid: true, errors: [] });
 });
 
 test("every design is eligible in its slot's zone, in set pieces as in the fill", () => {
@@ -266,7 +262,8 @@ test("the declared grid keeps each side's prescriptions apart, and marks outside
   assert.deepEqual(grid.segments["v:0,17"], { upper: { adjacency: "hut" } });
   for (const key of ["v:1,12", "v:1,13"] as const)
     assert.deepEqual(grid.segments[key], { lower: { passability: "passable" }, upper: { passability: "passable" } });
-  assert.equal(grid.segments["v:1,14"], undefined);
+  // The tile's remaining hut faces are hinted, on both sides.
+  assert.deepEqual(grid.segments["v:1,14"], { lower: { passability: "not-passable-hint" }, upper: { passability: "not-passable-hint" } });
 });
 
 test("violations name unmet adjacency, but a prescription facing the outside is met", () => {
@@ -296,7 +293,7 @@ test("an any cell may be asked for one class from two sides, never two classes",
  */
 const CORNER_LIBRARY: ChainLibrary = {
   version: CHAIN_LIBRARY_VERSION,
-  name: "test", zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
+  name: "test", zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6, passabilityRules: "matched", fitPlacedSetPieces: true,
   cellClasses: { open: { regionType: "open-field" }, hut: { regionType: "hut" } },
   tiles: [
     { id: "corner-any", defaultCellClass: "open", cells: ["a.....", "......", "......", "......", "......", "......"], legend: { a: "any" }, orientations: [0] },
@@ -336,7 +333,7 @@ test("pre-screens isolated single-tile dead ends from option domains (#894)", ()
     Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`${axis}:${line},${i}`, { passability: val }]));
   const lib: ChainLibrary = {
     version: CHAIN_LIBRARY_VERSION, name: "dead-end-test", zonePlan: "diamond", zoneWidth: 1, zoneHeight: 1,
-    passabilityRules: "matched",
+    passabilityRules: "matched", fitPlacedSetPieces: true,
     cellClasses: { open: { regionType: "open" }, rubble: { regionType: "rubble" } },
     tiles: [
       { id: "connected", defaultCellClass: "open", orientations: [0] },
@@ -370,7 +367,7 @@ test("adjacencyConnects rejects 1-segment authored openings and split class pair
     Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`${axis}:${line},${i}`, { passability: val }]));
   const lib: ChainLibrary = {
     version: CHAIN_LIBRARY_VERSION, name: "dead-end-review-test", zonePlan: "diamond", zoneWidth: 1, zoneHeight: 1,
-    passabilityRules: "matched",
+    passabilityRules: "matched", fitPlacedSetPieces: true,
     cellClasses: { open: { regionType: "open" }, rubble: { regionType: "rubble" }, hut: { regionType: "hut" } },
     tiles: [
       { id: "connected", defaultCellClass: "open", orientations: [0] },
@@ -435,7 +432,7 @@ test("adjacencyConnects rejects 1-segment authored openings and split class pair
 
 test("game mode checks the library's authored size instead of a fixed zone limit", () => {
   const library: ChainLibrary = { version: CHAIN_LIBRARY_VERSION, name: "authored-test", zonePlan: "diamond",
-    zoneWidth: 24, zoneHeight: 12, cellClasses: { open: { regionType: "open" } },
+    zoneWidth: 24, zoneHeight: 12, passabilityRules: "matched", fitPlacedSetPieces: true, cellClasses: { open: { regionType: "open" } },
     tiles: [{ id: "field", defaultCellClass: "open", orientations: [0] }], tileSets: [], setPieces: [], setPieceClasses: [] };
   const params = { ...PLAYGROUND, mode: "game" as const, zoneWidth: 24, zoneHeight: 12 };
   assert.equal(placement("authored-size", params, library).slots.length, 13 * 24 * 12);

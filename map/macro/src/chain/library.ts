@@ -12,14 +12,28 @@ export const CHAIN_MODULE_SCHEMA = 1;
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any" | "not-passable-hint";
 /**
- * How stated passability resolves (51.4). `either-side`, the default, lets `passable` on
- * either side win, and `any` meeting `any` passes. `matched` is Corey's 2026-11-06 answer
- * (17.2.2): where two tiles meet, `any` fits anything and other values match like with
- * like; an unstated side reads as `any`; and `any` meeting `any` passes only between two
- * regions, never inside one. A library opts in, so libraries without it are unchanged.
+ * Why a top-level library's rule fields can't be read, or `undefined` (#922). Passability is
+ * matched (51.4), and placement fits a set piece against pieces placed beside it (51.3). A
+ * library states both, so what it means is written in it; the older rules a library got by
+ * leaving them out are retired, and a library still relying on them is refused, not migrated.
  */
-export type PassabilityRules = "either-side" | "matched";
-export const PASSABILITY_RULES: ReadonlySet<PassabilityRules> = new Set<PassabilityRules>(["either-side", "matched"]);
+function retiredRuleProblem(raw: Record<string, unknown>): string | undefined {
+  const rules = raw.passabilityRules;
+  if (rules === undefined)
+    return `states no passabilityRules; the either-side rule this used to mean is retired (#922). State "passabilityRules": "matched" (51.4)`;
+  if (rules === "either-side")
+    return `states passabilityRules either-side, which is retired (#922). State "passabilityRules": "matched" (51.4)`;
+  if (rules !== "matched") return `unknown passabilityRules ${String(rules)}; state "passabilityRules": "matched" (51.4)`;
+  if (raw.fitPlacedSetPieces !== true)
+    return `${raw.fitPlacedSetPieces === undefined ? "states no fitPlacedSetPieces" : `states fitPlacedSetPieces ${String(raw.fitPlacedSetPieces)}`}; placing set pieces without fitting their neighbours is retired (#922). State "fitPlacedSetPieces": true (51.3)`;
+  return undefined;
+}
+/** Why a tile's weight can't be read, or `undefined`. Weight 0 once meant "not fillable" (#922). */
+function weightProblem(weight: unknown): string | undefined {
+  if (weight === undefined) return undefined;
+  if (weight === 0) return "weight 0 no longer leaves a design to set pieces (#922); state \"fillable\": false and drop the weight";
+  return typeof weight === "number" && Number.isFinite(weight) && weight > 0 ? undefined : "malformed weight";
+}
 /** Map params a core element count may name, resolved from the Layout's params (52). */
 export const COUNT_PARAMS = ["exitCount", "contestantCount", "hunterCount"] as const;
 export type CountParam = typeof COUNT_PARAMS[number];
@@ -52,13 +66,9 @@ export interface ChainTileDesign {
   eligibleTiers?: number[];
   eligibleBonus?: number[];
   labels?: string[];
-  /** The fill weight, 1 by default. A design weighted 0 is no fill option: only set pieces place it (52). */
+  /** The fill weight, positive, 1 by default (52). */
   weight?: number;
-  /**
-   * Whether the fill may place this design; true when absent (Corey, 2026-11-06, 17.2.2).
-   * `false` leaves it to set pieces. Weight 0 still excludes it too, for content written
-   * before this flag.
-   */
+  /** Whether the fill may place this design; true when absent. `false` leaves it to set pieces (17.2.2). */
   fillable?: boolean;
 }
 
@@ -101,14 +111,14 @@ export interface ChainLibrary {
   tileSets: ChainTileSet[];
   setPieces: ChainSetPiece[];
   setPieceClasses: ChainSetPieceClass[];
-  /** Absent means `either-side`; present only when the top-level library states it. */
-  passabilityRules?: PassabilityRules;
   /**
-   * #856: placement refuses a set piece anchor, member or orientation whose sides don't fit a set
-   * piece already placed beside it. Present only when stated, so a library without it keeps its
-   * fingerprint; every bundled library states it since the sparse-sides adoption (#851, #895).
+   * Matched passability, the only rule (51.4, 17.2.2): where two tiles meet, `any` fits anything
+   * and other values match like with like; an unstated side reads as `any`; and `any` meeting
+   * `any` passes only between two regions, never inside one. Stated so the library says it.
    */
-  fitPlacedSetPieces?: boolean;
+  passabilityRules: "matched";
+  /** Placement refuses a set piece member or orientation whose sides don't fit a piece already placed beside it (51.3, #856). */
+  fitPlacedSetPieces: true;
   /** Experimental (#883): forced-open spanning tree over slots. */
   connectivitySkeleton?: boolean | ConnectivitySkeletonConfig;
 }
@@ -134,10 +144,13 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
   if (top.zonePlan !== "diamond" || !integer(top.zoneWidth) || top.zoneWidth < 1 ||
     !integer(top.zoneHeight) || top.zoneHeight < 1)
     throw new Error(`library ${top.name}: requires diamond and positive authored zoneWidth/zoneHeight`);
+  const retired = retiredRuleProblem(top);
+  if (retired) throw new Error(`library ${top.name}: ${retired}`);
   const resolved: ChainLibrary = {
     name: top.name, version: CHAIN_LIBRARY_VERSION, zonePlan: "diamond",
     zoneWidth: top.zoneWidth, zoneHeight: top.zoneHeight,
     cellClasses: {}, tiles: [], tileSets: [], setPieces: [], setPieceClasses: [],
+    passabilityRules: "matched", fitPlacedSetPieces: true,
   };
   const sources = new Map<string, string>();
   const loaded = new Set<string>();
@@ -168,15 +181,6 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
     if (isTop) {
       if (!Array.isArray(raw.setPieceClasses)) throw new Error(`${source}: setPieceClasses must be an array`);
       resolved.setPieceClasses = structuredClone(raw.setPieceClasses) as ChainSetPieceClass[];
-      // Set only when stated, so a library without it keeps its fingerprint.
-      if (raw.passabilityRules !== undefined) {
-        if (!PASSABILITY_RULES.has(raw.passabilityRules as PassabilityRules)) throw new Error(`${source}: unknown passabilityRules ${String(raw.passabilityRules)}`);
-        resolved.passabilityRules = raw.passabilityRules as PassabilityRules;
-      }
-      if (raw.fitPlacedSetPieces !== undefined) {
-        if (typeof raw.fitPlacedSetPieces !== "boolean") throw new Error(`${source}: fitPlacedSetPieces must be a boolean`);
-        resolved.fitPlacedSetPieces = raw.fitPlacedSetPieces;
-      }
       if (raw.connectivitySkeleton !== undefined) {
         if (typeof raw.connectivitySkeleton !== "boolean" && !object(raw.connectivitySkeleton))
           throw new Error(`${source}: connectivitySkeleton must be a boolean or object`);
@@ -301,15 +305,12 @@ function tileClasses(tile: Record<string, unknown>, declared: Set<string>, path:
   return result;
 }
 
-function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], minRun: number, path: string, errors: string[],
-  rules: PassabilityRules = "either-side"): void {
-  if (!object(tile.segments) && rules === "either-side") return;
+function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], minRun: number, path: string, errors: string[]): void {
   const segments: Record<string, unknown> = object(tile.segments) ? tile.segments : {};
-  // Whether a segment on a class boundary inside the tile passes: stated `passable` or
-  // `any`, or under `matched` anything but a hint, since unstated reads as `any` (17.2.2).
-  const passes = (prescription: unknown): boolean => rules === "matched"
-    ? !(object(prescription) && prescription.passability === "not-passable-hint")
-    : object(prescription) && (prescription.passability === "passable" || prescription.passability === "any");
+  // Whether a segment on a class boundary inside the tile passes: anything but a hint,
+  // since unstated reads as `any` (17.2.2).
+  const passes = (prescription: unknown): boolean =>
+    !(object(prescription) && prescription.passability === "not-passable-hint");
   // The shared finder splits whenever either class changes. A passable stretch
   // is then a contiguous subset of one boundary run, never a bridge across
   // distinct class pairs.
@@ -379,10 +380,8 @@ export function validateLibrary(
         errors.push("library: connectivitySkeleton shortcutPriority must be a boolean");
     }
   }
-  if (library.fitPlacedSetPieces !== undefined && typeof library.fitPlacedSetPieces !== "boolean")
-    errors.push("library: fitPlacedSetPieces must be a boolean");
-  if (library.passabilityRules !== undefined && !PASSABILITY_RULES.has(library.passabilityRules as PassabilityRules))
-    errors.push(`library: unknown passabilityRules ${String(library.passabilityRules)}`);
+  const retired = retiredRuleProblem(library);
+  if (retired) errors.push(`library: ${retired}`);
   if (library.version !== CHAIN_LIBRARY_VERSION) errors.push(`library: unsupported version ${String(library.version)}`);
   if (!name(library.name)) errors.push("library: missing name");
   if (library.zonePlan !== "diamond") errors.push(`library: unknown zone plan ${String(library.zonePlan)}`);
@@ -419,8 +418,8 @@ export function validateLibrary(
       if (raw[field] !== undefined && (!Array.isArray(raw[field]) || !raw[field].every((v: unknown) => integer(v) && v >= (field === "eligibleTiers" ? 1 : 0) && v <= 5)))
         errors.push(`${path}: malformed ${field}`);
     if (raw.labels !== undefined && !names(raw.labels)) errors.push(`${path}: malformed labels`);
-    if (raw.weight !== undefined && !(typeof raw.weight === "number" && Number.isFinite(raw.weight) && raw.weight >= 0))
-      errors.push(`${path}: malformed weight`);
+    const weight = weightProblem(raw.weight);
+    if (weight) errors.push(`${path}: ${weight}`);
     if (raw.fillable !== undefined && typeof raw.fillable !== "boolean") errors.push(`${path}: malformed fillable`);
     if (raw.segments !== undefined && !object(raw.segments)) errors.push(`${path}: segments must be an object`);
     if (object(raw.segments)) for (const [key, value] of Object.entries(raw.segments)) {
@@ -441,7 +440,7 @@ export function validateLibrary(
         errors.push(`${path}: malformed passability ${key}: ${String(value.passability)}`);
     }
     if (integer(minPassableRun) && minPassableRun > 0 && classes.every(name))
-      shortInteriorRuns(raw, classes, minPassableRun, path, errors, library.passabilityRules as PassabilityRules | undefined);
+      shortInteriorRuns(raw, classes, minPassableRun, path, errors);
   }
 
   const tileSetIds = uniqueIds(library.tileSets, "tileSets", errors);

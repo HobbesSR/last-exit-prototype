@@ -145,8 +145,9 @@ function hand(slots: Record<string, string>): { found: LayoutRegions; list: Regi
 }
 
 test("a hand-placed brief has global cells, its class rule's parameters, and the portal on its edge", () => {
-  // Slot 1,1 covers cells 6..11 by 6..11; its hut column is x = 11.
-  const { list } = hand({ "1,1": "hut-west" });
+  // Slot 1,1 covers cells 6..11 by 6..11; its hut column is x = 11. The rest of its west face is
+  // hinted, since an unstated segment between two classes passes (17.2.2); the doorway is the portal.
+  const { list } = hand({ "1,1": "hut-hinted" });
   const hut = list.find((b) => b.id === "hut@11,6")!;
   assert.deepEqual(hut.cells, [6, 7, 8, 9, 10, 11].map((y) => ({ x: 11, y })));
   assert.deepEqual(hut.parameters, { doors: 2, style: "tin", lit: true });
@@ -178,7 +179,8 @@ test("a hint facing no region, here an unplaced slot, is one run, and is not a p
   const { list } = hand({ "1,1": "hut-edge" });
   const hut = list.find((b) => b.type === "hut")!;
   assert.deepEqual(hut.hints, [{ axis: "v", x: 6, y: 6, length: 6, stated: { inside: "not-passable-hint", across: null } }]);
-  assert.deepEqual(hut.portals, []);
+  // The only portal is the hut's unstated far face, which reads as `any` against the field; the hint is none.
+  assert.deepEqual(hut.portals.map(({ id: _, ...run }) => run), [{ axis: "v", x: 7, y: 6, length: 6 }]);
 });
 
 test("a hint is split where a concave region passes to the other side of its line", () => {
@@ -206,13 +208,16 @@ test("a hint is split where a concave region passes to the other side of its lin
 });
 
 test("a hint under a passable side is a portal, not a hint", () => {
+  // The rest of the face is hinted too, so only the passable segment is a portal.
   const library: ChainLibrary = { ...HAND, tiles: [...HAND.tiles, { id: "hut-both", defaultCellClass: "open", cells: column("h"),
-    legend: { h: "hut" }, orientations: [0], segments: { "v:5,2": { passability: "passable" }, "v:5,3": { passability: "not-passable-hint" } } }] };
+    legend: { h: "hut" }, orientations: [0], segments: { ...hinted("v:5,0", "v:5,1", "v:5,3", "v:5,4", "v:5,5"), ...passable("v:5,2") } }] };
   const layout: Layout = { seed: "hand", params: PLAYGROUND, library: "hand",
     slots: [{ col: 1, row: 1, design: "hut-both", orientation: 0 }], setPieces: [] };
   const [first] = briefs(layout, resolution(layout, library), derive(layout, library), chainZones(PLAYGROUND), library, 3);
   assert.deepEqual(first!.portals.map(({ id: _, ...run }) => run), [{ axis: "v", x: 11, y: 8, length: 1 }]);
-  assert.deepEqual(first!.hints, [{ axis: "v", x: 11, y: 9, length: 1, stated: { inside: "not-passable-hint", across: "not-passable-hint" } }]);
+  // The hint under the passable segment is one run with the hinted ones below it; the portal is none of them.
+  const stated = { inside: "not-passable-hint", across: "not-passable-hint" };
+  assert.deepEqual(first!.hints, [{ axis: "v", x: 11, y: 6, length: 2, stated }, { axis: "v", x: 11, y: 9, length: 3, stated }]);
 });
 
 test("a hint carries what each side stated, and is split where that changes (#406)", () => {
