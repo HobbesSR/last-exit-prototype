@@ -15,12 +15,25 @@ const side = (tile, s) => Array.from({ length: 6 }, (_, i) => {
   return p === 'passable' ? 'P' : p === 'not-passable-hint' ? 'h' : p === 'any' ? 'a' : '.';
 }).join('');
 const HALF = ['hhhPPP', 'PPPhhh'];
+const WHOLE_SIDE = new Set(['aaaaaa', 'hhhhhh', 'PPPPPP', ...HALF, 'hhhaaa', 'aaahhh']);
 
-test('the bundled libraries are valid, fit their set pieces, and fillable tiles keep sparse sides', () => {
+test('the bundled libraries are valid, fit their set pieces, and sparse variants change sides whole', () => {
   for (const library of CHAIN_LIBRARIES) {
     assert.deepEqual(validateLibrary(library).errors, [], library.name);
     assert.deepEqual(setPieceSeamProblems(library), [], library.name);
     assert.equal(library.fitPlacedSetPieces, true, `${library.name} fits pieces placed side by side (#856)`);
+    // A side changes whole (the width rule, 52.1): base tiles keep whole-block sides and sparse variants stay as base or become fully hinted.
+    const tiles = new Map(library.tiles.map(tile => [tile.id, tile]));
+    for (const tile of library.tiles) {
+      const base = tile.id.replace(/-(open|sp)-[nesw]+$/, '');
+      const source = tiles.get(base);
+      assert.ok(source, `${library.name}: ${tile.id} has base tile ${base}`);
+      for (const s of SIDES) {
+        const pattern = side(tile, s);
+        assert.ok(WHOLE_SIDE.has(pattern), `${library.name}: ${tile.id} ${s} has valid side pattern ${pattern}`);
+        if (base !== tile.id) assert.ok([side(source, s), 'hhhhhh'].includes(pattern), `${library.name}: ${tile.id} ${s} is ${pattern}`);
+      }
+    }
     // No fillable tile keeps two or more half-and-half sides unless it is a family's 10% fallback.
     const families = new Set(library.tiles.filter(tile => /-open-[nesw]+$/.test(tile.id)).map(tile => tile.id.replace(/-open-[nesw]+$/, '')));
     for (const tile of library.tiles) if (tile.fillable !== false && !/-open-[nesw]+$/.test(tile.id) && SIDES.filter(s => HALF.includes(side(tile, s))).length >= 2)
