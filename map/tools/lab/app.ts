@@ -166,8 +166,7 @@ function chosenLibrary(): unknown {
 let solveWorker: Worker | null = null;
 const solveView = mountPlacementView($("solveView"), () => {
   try {
-    const seed = input("seed").value, params = recipeParams(), chosen = chosenLibrary() as ChainLibrary;
-    const library: ChainLibrary = chosen;
+    const seed = input("seed").value, params = recipeParams(), library = chosenLibrary() as ChainLibrary;
     const skeletonAlgo = select("skeleton").value;
     solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value} · largest first${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("skeletonExtraOpen").value) || 0) * 100)}% open)` : ''}`);
     solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
