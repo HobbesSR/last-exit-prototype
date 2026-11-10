@@ -72,6 +72,10 @@ Deferred within map generation, by Corey's answers in [17](17-open-questions.md)
     that reach across regions (M22)
   - how to reason about locked doors (M23)
   - what an `open` region may hold. For now it is pure open cells (M25)
+- **The connectivity skeleton** (#883, [42.42](42.42-connectivity-skeleton-experiment.md)):
+  off by default, until after the Foundation Pass (2026-11-09: "Since it's not clearly helping
+  our goals, perhaps it is appropriate to defer it after the foundation pass after all"). What a
+  forced seam guarantees, and route width, are #910's.
 
 Playable
 elevation (2½D), overlapping floors and finished art remain incomplete under F-04.

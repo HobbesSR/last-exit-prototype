@@ -101,6 +101,21 @@
                 <option value="bundled">As bundled</option>
               </select></label
             >
+            <label title="Connectivity skeleton (experimental, #883): before the fill, a random spanning tree of seams is forced open, so every slot connects. Applies to any library source, in World and in Placement."
+              >Skeleton<select id="skeleton">
+                <option value="off" selected>Off</option>
+                <option value="kruskal">Kruskal (balanced)</option>
+                <option value="wilson">Wilson (long, winding)</option>
+                <option value="prim">Prim (short spurs)</option>
+              </select></label
+            >
+            <label title="Skeleton only (#883): the share of other seams also forced open, those joining slots farthest apart on the tree first."
+              >Extra open<select id="skeletonExtraOpen" disabled>
+                <option value="0">0%</option>
+                <option value="0.15" selected>15%</option>
+                <option value="0.30">30%</option>
+              </select></label
+            >
             <div class="pair">
               <button id="generate" type="button" class="primary">Generate</button
               ><button id="random" type="button">New seed</button>

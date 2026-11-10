@@ -30,6 +30,7 @@ import type { Part } from "./parts.ts";
 import { renderPlaceables } from "./placeables.ts";
 import { mountPlacementView } from "./placement-view.ts";
 import type { ChainLibrary } from "../../macro/src/chain/library.ts";
+import type { SkeletonAlgorithm } from "../../macro/src/chain/skeleton.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -149,28 +150,29 @@ function recipeParams(): ChainParams {
   return chainParams(raw);
 }
 
+/** The library World and Placement both use: the chosen source, then the experimental skeleton (#883) if on. */
 function chosenLibrary(): unknown {
-  if (select("librarySource").value === "bundled") return bundledLibrary(recipeParams());
+  const skeleton = select("skeleton").value;
+  // "Off" is stated, so it also clears a skeleton a Chain Library draft authored (review 721).
+  const withSkeleton = ({ connectivitySkeleton: _, ...library }: ChainLibrary): ChainLibrary => skeleton === "off" ? library : { ...library,
+    connectivitySkeleton: { algorithm: skeleton as SkeletonAlgorithm, extraOpenShare: Number(select("skeletonExtraOpen").value) || 0, shortcutPriority: true } };
+  if (select("librarySource").value === "bundled") return withSkeleton(bundledLibrary(recipeParams()));
   // Experimental (#851): the bundled library with sparser tile sides.
-  if (select("librarySource").value === "sparse") return sparseSidesLibrary(bundledLibrary(recipeParams()),
-    { fill: select("fillSides").value as FillSides, setPieces: select("setPieceSides").value as SetPieceSides });
+  if (select("librarySource").value === "sparse") return withSkeleton(sparseSidesLibrary(bundledLibrary(recipeParams()),
+    { fill: select("fillSides").value as FillSides, setPieces: select("setPieceSides").value as SetPieceSides }));
   const draft = chainDraft();
   const checked = validateLibrary(draft);
   if (!checked.valid) throw new Error(`the Chain Library tab's draft isn't valid for the game: ${checked.errors.join("; ")}`);
-  return draft;
+  return withSkeleton(draft as ChainLibrary);
 }
 
 let solveWorker: Worker | null = null;
 const solveView = mountPlacementView($("solveView"), () => {
   try {
     const seed = input("seed").value, params = recipeParams(), chosen = chosenLibrary() as ChainLibrary;
-    let library: ChainLibrary = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
-    const skeletonAlgo = select("solveSkeleton").value;
-    if (skeletonAlgo !== "off") {
-      const extraOpenShare = Number(select("solveExtraOpen").value) || 0;
-      library = { ...library, connectivitySkeleton: { algorithm: skeletonAlgo as "wilson" | "prim" | "kruskal", extraOpenShare, shortcutPriority: true } };
-    }
-    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("solveExtraOpen").value) || 0) * 100)}% open)` : ''}`);
+    const library: ChainLibrary = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
+    const skeletonAlgo = select("skeleton").value;
+    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("skeletonExtraOpen").value) || 0) * 100)}% open)` : ''}`);
     solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
       solveWorker = null;
       if (reply.kind === "placement") solveView.received(reply.recording, library, reply.ms);
@@ -212,8 +214,6 @@ select("solveSize").onchange = () => {
   select("zoneSize").dispatchEvent(new Event("change"));
 };
 select("solveOrder").onchange = () => solveView.recipeEdited();
-select("solveSkeleton").onchange = () => solveView.recipeEdited();
-select("solveExtraOpen").onchange = () => solveView.recipeEdited();
 $("solveRandom").onclick = () => {
   solveView.recipeEdited();
   cancelStaleWorldGeneration();
@@ -225,6 +225,8 @@ $("solveRandom").onclick = () => {
 function useRoomRecipe(): void {
   fillParams(liveChainParams());
   select("librarySource").value = "bundled";
+  select("skeleton").value = "off";
+  select("skeletonExtraOpen").disabled = true;
   showSparseControls();
   if (liveSeed(input("seed").value) === null)
     input("seed").value = String(1 + (crypto.getRandomValues(new Uint32Array(1))[0]! % MAX_ARENA_SEED));
@@ -1379,6 +1381,8 @@ function showSparseControls(): void {
 }
 select("librarySource").onchange = showSparseControls;
 showSparseControls();
+/** The extra-open share (#883) applies only with a skeleton. */
+select("skeleton").onchange = () => { select("skeletonExtraOpen").disabled = select("skeleton").value === "off"; };
 select("zoneSize").onchange = () => {
   const library = CHAIN_LIBRARIES.find((l) => sizeKey(l.zoneWidth, l.zoneHeight) === select("zoneSize").value);
   if (!library) return;
