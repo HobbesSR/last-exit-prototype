@@ -104,9 +104,9 @@ export interface ChainLibrary {
   /** Absent means `either-side`; present only when the top-level library states it. */
   passabilityRules?: PassabilityRules;
   /**
-   * Experimental (#856, #851): placement refuses a set piece anchor, member or orientation whose
-   * sides don't fit a set piece already placed beside it. Present only when stated, so bundled
-   * libraries keep their fingerprints and maps; the Map Lab's sparse-sides libraries state it.
+   * #856: placement refuses a set piece anchor, member or orientation whose sides don't fit a set
+   * piece already placed beside it. Present only when stated, so a library without it keeps its
+   * fingerprint; every bundled library states it since the sparse-sides adoption (#851, #895).
    */
   fitPlacedSetPieces?: boolean;
   /** Experimental (#891): place start and end pieces before the remaining largest-first pieces. */

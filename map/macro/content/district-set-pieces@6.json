@@ -1,0 +1,4543 @@
+{
+  "schema": 1,
+  "name": "district-set-pieces",
+  "version": 6,
+  "includes": [
+    {
+      "name": "common-primitives",
+      "version": 7
+    }
+  ],
+  "setPieces": [
+    {
+      "id": "market-district",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-es-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 12,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 0,
+          "tileSetId": "market-ground-inward-sw-tiles-sp-94"
+        },
+        {
+          "dx": 14,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-es-tiles-sp-95"
+        },
+        {
+          "dx": 15,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles-sp-74"
+        },
+        {
+          "dx": 16,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles-sp-74"
+        },
+        {
+          "dx": 18,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-sw-tiles-sp-75"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nes-tiles-sp-28"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 1,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 2,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nes-tiles-sp-28"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 3,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 4,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nes-tiles-sp-28"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 5,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nes-tiles-sp-28"
+        },
+        {
+          "dx": 1,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 14,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 15,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-ne-tiles-sp-59"
+        },
+        {
+          "dx": 1,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 2,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 4,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 6,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 8,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 10,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 12,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 9,
+          "tileSetId": "market-ground-inward-nw-tiles-sp-96"
+        },
+        {
+          "dx": 14,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-ne-tiles-sp-78"
+        },
+        {
+          "dx": 15,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles-sp-79"
+        },
+        {
+          "dx": 16,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles-sp-79"
+        },
+        {
+          "dx": 18,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-nw-tiles-sp-80"
+        }
+      ],
+      "primaryRegionClass": "market"
+    },
+    {
+      "id": "industrial-estate",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-es-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles-sp-32"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles-sp-32"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles-sp-32"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles-sp-32"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "plant-ground-inward-sw-tiles-sp-97"
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-es-tiles-sp-98"
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-esw-tiles-sp-46"
+        },
+        {
+          "dx": 12,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-esw-tiles-sp-46"
+        },
+        {
+          "dx": 14,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-esw-tiles-sp-46"
+        },
+        {
+          "dx": 16,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 0,
+          "tileSetId": "depot-ground-inward-sw-tiles-sp-99"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nes-tiles-sp-34"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 1,
+          "tileSetId": "depot-ground-inward-nsw-tiles-sp-48"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 2,
+          "tileSetId": "depot-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nes-tiles-sp-34"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 3,
+          "tileSetId": "depot-ground-inward-nsw-tiles-sp-48"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 4,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 4,
+          "tileSetId": "depot-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nes-tiles-sp-34"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 5,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 5,
+          "tileSetId": "depot-ground-inward-nsw-tiles-sp-48"
+        },
+        {
+          "dx": 0,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 6,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 6,
+          "tileSetId": "depot-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nes-tiles-sp-34"
+        },
+        {
+          "dx": 1,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 7,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 7,
+          "tileSetId": "depot-ground-inward-nsw-tiles-sp-48"
+        },
+        {
+          "dx": 0,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 8,
+          "tileSetId": "plant-ground-inward-nsw-tiles-sp-35"
+        },
+        {
+          "dx": 10,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nes-tiles-sp-47"
+        },
+        {
+          "dx": 11,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 8,
+          "tileSetId": "depot-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-ne-tiles-sp-36"
+        },
+        {
+          "dx": 1,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles-sp-37"
+        },
+        {
+          "dx": 2,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles-sp-37"
+        },
+        {
+          "dx": 4,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles-sp-37"
+        },
+        {
+          "dx": 6,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles-sp-37"
+        },
+        {
+          "dx": 8,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-new-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 9,
+          "tileSetId": "plant-ground-inward-nw-tiles-sp-38"
+        },
+        {
+          "dx": 10,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-ne-tiles-sp-49"
+        },
+        {
+          "dx": 11,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-new-tiles-sp-50"
+        },
+        {
+          "dx": 12,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-new-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-new-tiles-sp-50"
+        },
+        {
+          "dx": 14,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-new-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-new-tiles-sp-50"
+        },
+        {
+          "dx": 16,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-new-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 9,
+          "tileSetId": "depot-ground-inward-nw-tiles-sp-100"
+        }
+      ],
+      "primaryRegionClass": "plant"
+    },
+    {
+      "id": "downtown",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-es-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 12,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 14,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 16,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles-sp-39"
+        },
+        {
+          "dx": 18,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 0,
+          "tileSetId": "block-ground-inward-sw-tiles-sp-40"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nes-tiles-sp-41"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 1,
+          "tileSetId": "block-ground-inward-nsw-tiles-sp-42"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 2,
+          "tileSetId": "block-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nes-tiles-sp-41"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 3,
+          "tileSetId": "block-ground-inward-nsw-tiles-sp-42"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 4,
+          "tileSetId": "block-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-ne-tiles-sp-101"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 8,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 9,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 10,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 11,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 12,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 13,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 14,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 15,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 16,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 17,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 18,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-new-tiles-sp-44"
+        },
+        {
+          "dx": 19,
+          "dy": 5,
+          "tileSetId": "block-ground-inward-nw-tiles-sp-45"
+        },
+        {
+          "dx": 0,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-es-tiles-sp-102"
+        },
+        {
+          "dx": 1,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 2,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 3,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 4,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 5,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 6,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 7,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 8,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 9,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 10,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 11,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 12,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 13,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 14,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 15,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 16,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 17,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 18,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-esw-tiles-sp-26"
+        },
+        {
+          "dx": 19,
+          "dy": 6,
+          "tileSetId": "market-ground-inward-sw-tiles-sp-27"
+        },
+        {
+          "dx": 0,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nes-tiles-sp-28"
+        },
+        {
+          "dx": 1,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 18,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 7,
+          "tileSetId": "market-ground-inward-nsw-tiles-sp-29"
+        },
+        {
+          "dx": 0,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-ne-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 2,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 4,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 6,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 8,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 10,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 12,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 14,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 16,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles-sp-30"
+        },
+        {
+          "dx": 18,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-new-tiles"
+        },
+        {
+          "dx": 19,
+          "dy": 8,
+          "tileSetId": "market-ground-inward-nw-tiles-sp-31"
+        }
+      ],
+      "primaryRegionClass": "block"
+    },
+    {
+      "id": "garrison",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-es-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles-sp-52"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles-sp-52"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles-sp-52"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles-sp-52"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles-sp-52"
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles-sp-52"
+        },
+        {
+          "dx": 12,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles-sp-52"
+        },
+        {
+          "dx": 14,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 0,
+          "tileSetId": "compound-ground-inward-sw-tiles-sp-53"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nes-tiles-sp-54"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 1,
+          "tileSetId": "compound-ground-inward-nsw-tiles-sp-55"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 2,
+          "tileSetId": "compound-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nes-tiles-sp-54"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 3,
+          "tileSetId": "compound-ground-inward-nsw-tiles-sp-55"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 4,
+          "tileSetId": "compound-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nes-tiles-sp-54"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 5,
+          "tileSetId": "compound-ground-inward-nsw-tiles-sp-55"
+        },
+        {
+          "dx": 0,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-ne-tiles-sp-103"
+        },
+        {
+          "dx": 1,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 2,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 3,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 4,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 5,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 6,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 7,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 8,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 9,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 10,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 11,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 12,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 13,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 14,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-new-tiles-sp-57"
+        },
+        {
+          "dx": 15,
+          "dy": 6,
+          "tileSetId": "compound-ground-inward-nw-tiles-sp-104"
+        },
+        {
+          "dx": 0,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-es-tiles-sp-105"
+        },
+        {
+          "dx": 1,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 2,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 3,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 4,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 5,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 6,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 7,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 8,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 9,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 10,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 11,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 12,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 13,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 14,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-esw-tiles-sp-61"
+        },
+        {
+          "dx": 15,
+          "dy": 7,
+          "tileSetId": "checkpoint-ground-inward-sw-tiles-sp-106"
+        },
+        {
+          "dx": 0,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 6,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 12,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 8,
+          "tileSetId": "checkpoint-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-ne-tiles-sp-107"
+        },
+        {
+          "dx": 1,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles-sp-65"
+        },
+        {
+          "dx": 2,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles-sp-65"
+        },
+        {
+          "dx": 4,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles-sp-65"
+        },
+        {
+          "dx": 6,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles"
+        },
+        {
+          "dx": 7,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles-sp-65"
+        },
+        {
+          "dx": 8,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles-sp-65"
+        },
+        {
+          "dx": 10,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles-sp-65"
+        },
+        {
+          "dx": 12,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles"
+        },
+        {
+          "dx": 13,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles-sp-65"
+        },
+        {
+          "dx": 14,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-new-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 9,
+          "tileSetId": "checkpoint-ground-inward-nw-tiles-sp-108"
+        }
+      ],
+      "primaryRegionClass": "compound"
+    },
+    {
+      "id": "old-town",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "ruins-ground-inward-es-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "ruins-ground-inward-esw-tiles-sp-81"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "ruins-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "ruins-ground-inward-esw-tiles-sp-81"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "ruins-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "ruins-ground-inward-sw-tiles-sp-109"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-es-tiles-sp-110"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles-sp-67"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles-sp-67"
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "hall-ground-inward-sw-tiles-sp-111"
+        },
+        {
+          "dx": 12,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-es-tiles-sp-95"
+        },
+        {
+          "dx": 13,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles-sp-74"
+        },
+        {
+          "dx": 14,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles-sp-74"
+        },
+        {
+          "dx": 16,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-esw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 0,
+          "tileSetId": "park-ground-inward-sw-tiles-sp-75"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "ruins-ground-inward-nes-tiles-sp-82"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 1,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "ruins-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 2,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "ruins-ground-inward-nes-tiles-sp-82"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 3,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 3,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "ruins-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 4,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 4,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "ruins-ground-inward-nes-tiles-sp-82"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 5,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 5,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 5,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 5,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 5,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 6,
+          "tileSetId": "ruins-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 6,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 6,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 6,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 6,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 6,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 6,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 6,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 6,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 6,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 6,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 6,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 6,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 7,
+          "tileSetId": "ruins-ground-inward-nes-tiles-sp-82"
+        },
+        {
+          "dx": 1,
+          "dy": 7,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 7,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 7,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 7,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 7,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 7,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 7,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 7,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 7,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 7,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 7,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 7,
+          "tileSetId": "park-ground-inward-nsw-tiles-sp-77"
+        },
+        {
+          "dx": 0,
+          "dy": 8,
+          "tileSetId": "ruins-ground-inward-nes-tiles"
+        },
+        {
+          "dx": 1,
+          "dy": 8,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 2,
+          "dy": 8,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 8,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 4,
+          "dy": 8,
+          "tileSetId": "ruins-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 8,
+          "tileSetId": "ruins-ground-inward-nsw-tiles-sp-83"
+        },
+        {
+          "dx": 6,
+          "dy": 8,
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
+        },
+        {
+          "dx": 7,
+          "dy": 8,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 8,
+          "dy": 8,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 8,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 10,
+          "dy": 8,
+          "tileSetId": "hall-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 8,
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
+        },
+        {
+          "dx": 12,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nes-tiles-sp-76"
+        },
+        {
+          "dx": 13,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 14,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 16,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nesw-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 8,
+          "tileSetId": "park-ground-inward-nsw-tiles"
+        },
+        {
+          "dx": 0,
+          "dy": 9,
+          "tileSetId": "ruins-ground-inward-ne-tiles-sp-84"
+        },
+        {
+          "dx": 1,
+          "dy": 9,
+          "tileSetId": "ruins-ground-inward-new-tiles-sp-85"
+        },
+        {
+          "dx": 2,
+          "dy": 9,
+          "tileSetId": "ruins-ground-inward-new-tiles"
+        },
+        {
+          "dx": 3,
+          "dy": 9,
+          "tileSetId": "ruins-ground-inward-new-tiles-sp-85"
+        },
+        {
+          "dx": 4,
+          "dy": 9,
+          "tileSetId": "ruins-ground-inward-new-tiles"
+        },
+        {
+          "dx": 5,
+          "dy": 9,
+          "tileSetId": "ruins-ground-inward-nw-tiles-sp-112"
+        },
+        {
+          "dx": 6,
+          "dy": 9,
+          "tileSetId": "hall-ground-inward-ne-tiles-sp-113"
+        },
+        {
+          "dx": 7,
+          "dy": 9,
+          "tileSetId": "hall-ground-inward-new-tiles-sp-71"
+        },
+        {
+          "dx": 8,
+          "dy": 9,
+          "tileSetId": "hall-ground-inward-new-tiles"
+        },
+        {
+          "dx": 9,
+          "dy": 9,
+          "tileSetId": "hall-ground-inward-new-tiles-sp-71"
+        },
+        {
+          "dx": 10,
+          "dy": 9,
+          "tileSetId": "hall-ground-inward-new-tiles"
+        },
+        {
+          "dx": 11,
+          "dy": 9,
+          "tileSetId": "hall-ground-inward-nw-tiles-sp-114"
+        },
+        {
+          "dx": 12,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-ne-tiles-sp-78"
+        },
+        {
+          "dx": 13,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles-sp-79"
+        },
+        {
+          "dx": 14,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles"
+        },
+        {
+          "dx": 15,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles-sp-79"
+        },
+        {
+          "dx": 16,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-new-tiles"
+        },
+        {
+          "dx": 17,
+          "dy": 9,
+          "tileSetId": "park-ground-inward-nw-tiles-sp-80"
+        }
+      ],
+      "primaryRegionClass": "ruins"
+    }
+  ]
+}

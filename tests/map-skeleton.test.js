@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CHAIN_LIBRARIES, validateLibrary, bundledLibrary } from '../map/chain.ts';
-import { sparseSidesLibrary } from '../map/sparse-sides.ts';
 import { placer, DEFAULT_CHAIN_PARAMS, adjacencyCompatibility } from '../map/macro/src/chain/placement.ts';
 import { buildSkeleton, filterSlotDomains, skeletonPartRule } from '../map/macro/src/chain/skeleton.ts';
 import { zonePlan, planTiles } from '../map/macro/src/chain/zone-plan.ts';
@@ -41,7 +40,7 @@ test('buildSkeleton produces valid spanning trees across all three algorithms (w
   const plan = zonePlan(params);
   const mask = layoutSlots(params, plan);
   const zones = new Map(makeZones(params, plan).map(z => [z.id, z]));
-  const library = sparseSidesLibrary(bundledLibrary(params), { fill: 'sparse', setPieces: 'alternate' });
+  const library = bundledLibrary(params); // sparse / alternate since #895
   const fillByZone = (zone) => library.tiles.filter(t => t.fillable !== false && t.weight !== 0);
 
   // Pick set pieces via placer stream 0
@@ -515,10 +514,9 @@ test('buildSkeleton rejects seams between unassigned fill slots when no zone opt
   assert.equal(res.forcedSeams.length, 0, 'no candidate seam between zones that cannot connect');
 });
 
-test('placer with connectivitySkeleton solves sparse/face maps with zero sealed pocket refusals', () => {
+test('placer with connectivitySkeleton solves the bundled sparse / alternate maps with zero sealed pocket refusals', () => {
   const params = { ...DEFAULT_CHAIN_PARAMS, zoneWidth: 12, zoneHeight: 6 };
-  const baseLib = bundledLibrary(params);
-  const library = sparseSidesLibrary(baseLib, { fill: 'sparse', setPieces: 'face' });
+  const library = structuredClone(bundledLibrary(params));
   library.connectivitySkeleton = { algorithm: 'kruskal', extraOpenShare: 0.15 };
 
   let pocketRefusals = 0;

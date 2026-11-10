@@ -3,8 +3,8 @@
  * `mapViews` (51.12), with the report beside the game's `diagnoseBuiltMap`. It generates, saves and
  * loads through the same core as the CLI and MCP, so all three agree on a map.
  */
-import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, sparseSidesLibrary, validateLibrary } from "../core.ts";
-import type { FillSides, MapCheck, SetPieceSides, ToolMap } from "../core.ts";
+import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, validateLibrary } from "../core.ts";
+import type { MapCheck, ToolMap } from "../core.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import type { MapViews } from "../../macro/src/chain/map.ts";
@@ -157,9 +157,6 @@ function chosenLibrary(): unknown {
   const withSkeleton = ({ connectivitySkeleton: _, ...library }: ChainLibrary): ChainLibrary => skeleton === "off" ? library : { ...library,
     connectivitySkeleton: { algorithm: skeleton as SkeletonAlgorithm, extraOpenShare: Number(select("skeletonExtraOpen").value) || 0, shortcutPriority: true } };
   if (select("librarySource").value === "bundled") return withSkeleton(bundledLibrary(recipeParams()));
-  // Experimental (#851): the bundled library with sparser tile sides.
-  if (select("librarySource").value === "sparse") return withSkeleton(sparseSidesLibrary(bundledLibrary(recipeParams()),
-    { fill: select("fillSides").value as FillSides, setPieces: select("setPieceSides").value as SetPieceSides }));
   const draft = chainDraft();
   const checked = validateLibrary(draft);
   if (!checked.valid) throw new Error(`the Chain Library tab's draft isn't valid for the game: ${checked.errors.join("; ")}`);
@@ -172,7 +169,7 @@ const solveView = mountPlacementView($("solveView"), () => {
     const seed = input("seed").value, params = recipeParams(), chosen = chosenLibrary() as ChainLibrary;
     const library: ChainLibrary = select("solveOrder").value === "start-end" ? { ...chosen, startEndFirst: true } : chosen;
     const skeletonAlgo = select("skeleton").value;
-    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value}${select("librarySource").value === "sparse" ? ` · fill ${select("fillSides").value}, set pieces ${select("setPieceSides").value}` : ''} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("skeletonExtraOpen").value) || 0) * 100)}% open)` : ''}`);
+    solveView.pending(`Seed ${seed} · ${params.mode} · ${params.zoneWidth} × ${params.zoneHeight} · ${library.name} · source ${select("librarySource").value} · ${library.startEndFirst ? 'landing/evac first (experiment)' : 'largest first'}${skeletonAlgo !== 'off' ? ` · skeleton ${skeletonAlgo} (+${Math.round((Number(select("skeletonExtraOpen").value) || 0) * 100)}% open)` : ''}`);
     solveWorker = ask(solveWorker, { kind: "placement", seed, params, library }, reply => {
       solveWorker = null;
       if (reply.kind === "placement") solveView.received(reply.recording, library, reply.ms);
@@ -227,7 +224,6 @@ function useRoomRecipe(): void {
   select("librarySource").value = "bundled";
   select("skeleton").value = "off";
   select("skeletonExtraOpen").disabled = true;
-  showSparseControls();
   if (liveSeed(input("seed").value) === null)
     input("seed").value = String(1 + (crypto.getRandomValues(new Uint32Array(1))[0]! % MAX_ARENA_SEED));
   generateMap();
@@ -1373,14 +1369,6 @@ input("load").onchange = async () => {
 // ── Controls ────────────────────────────────────────────────────────────────
 
 $("generate").onclick = generateMap;
-/** The sparse-sides menus (#851) apply only to their library source. */
-function showSparseControls(): void {
-  const off = select("librarySource").value !== "sparse";
-  select("fillSides").disabled = off;
-  select("setPieceSides").disabled = off;
-}
-select("librarySource").onchange = showSparseControls;
-showSparseControls();
 /** The extra-open share (#883) applies only with a skeleton. */
 select("skeleton").onchange = () => { select("skeletonExtraOpen").disabled = select("skeleton").value === "off"; };
 select("zoneSize").onchange = () => {

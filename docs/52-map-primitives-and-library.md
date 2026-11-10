@@ -517,6 +517,22 @@ Map Lab (42.36, step 7), and every authored-size top-level library states
 
 Placement shares a tile's weight among its orientations (#850). The measurements are in 42.37.
 
+**Sparse-sides adoption (#851, #895, `common-primitives@7`).** `common-primitives@7`,
+`common-set-pieces@7` and `district-set-pieces@6` carry #851's `sparse / alternate` scheme
+(42.40), which Corey adopted, and every authored-size top-level library states
+`fitPlacedSetPieces: true` (51.3, #856). Against `@6`/`@5`, only sides authored half-and-half
+(`hhhPPP`) change, and each changes whole: as authored, or fully hinted (52.1):
+- each fillable tile with two or more half-and-half sides becomes a family
+  (`<tile>-open-<sides>`) keeping one or two of them open; the authored tile keeps 10% of the
+  family's weight as the fallback, and the `-closed-*` variants give way to the family;
+- the seams between a set piece's own slots are hinted, and walking each outer face every other
+  slot side stays open, from the first. Rewritten slots take `fillable: false` variants
+  (`<tile>-sp-<sides>`) in new tile sets (`<set>-sp-<n>`); a top-level library's own set pieces
+  take theirs in that library's file. Slots whose orientation placement chooses keep their tiles.
+
+The resolved libraries equal what the retired `sparseSidesLibrary` built from `@6`/`@5` (fill
+tiles, slot contents and settings; only new tile-set ids differ). Results are in 42.44.
+
 Larger fill areas do not ensure a warehouse in every depot. The #325
 route-reservation diagnosis and bounded sample are in [42.3](42.3-generation-and-delegation-evidence.md#depot-route-reservation-sample).
 
