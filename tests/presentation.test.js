@@ -1,27 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { describeContent, readPresentation, resolveRecordingPresentation, LEGACY_DISPLAY_ID } from '../shared/presentation.ts';
-import { contentById, defaultContent } from '../shared/simulation/content.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 import { createGame } from '../shared/simulation.ts';
+import { generatedMap } from './helpers/room-harness.js';
 
 const frozenThrough = value => Object.isFrozen(value) && Object.values(value).every(v => !v || typeof v !== 'object' || frozenThrough(v));
 
 test('a descriptor lists display data in table order and nothing private', () => {
-  const p = describeContent(contentById('content-1'));
+  const p = describeContent(defaultContent());
   assert.deepEqual(p, {
-    contentId: 'content-1',
+    contentId: 'content-7',
     weapons: [{ id: 'pistol', name: 'Pistol', ammo: 48 }, { id: 'rifle', name: 'Rifle', ammo: 90 }, { id: 'scattergun', name: 'Scattergun', ammo: 24 }],
-    kits: [{ id: 'warden', name: 'Warden', skill: 'Shockwave', color: 0xff6b70 }, { id: 'specter', name: 'Specter', skill: 'Pulse scan', color: 0xb39aff }, { id: 'striker', name: 'Striker', skill: 'Overdrive', color: 0xffba62 }],
-    capacity: { contestant: 8, gladiator: 2 },
+    kits: [{ id: 'warden', name: 'Warden', skill: 'Shockwave', color: 0xff6b70 }, { id: 'specter', name: 'Specter', skill: 'Pulse scan', color: 0xb39aff },
+      { id: 'striker', name: 'Striker', skill: 'Overdrive', color: 0xffba62 }, { id: 'hook', name: 'Hook', skill: 'Hook / release', color: 0x77dddd }],
+    capacity: { contestant: 8, gladiator: 3 },
     durationTicks: 12000,
     cellChargeTicks: 100,
+    actorGeometry: {
+      contestant: { headRadius: 14.109375, bodyRadius: 11.2875, hurtRadius: 12 },
+      gladiator: { headRadius: 20.3125, bodyRadius: 16.25, hurtRadius: 23 },
+    },
   });
-  assert.equal(describeContent(defaultContent()).capacity.gladiator, 3);
   assert.ok(frozenThrough(p));
 });
 
 test('describing content consumes no randomness and leaves the match as it was', () => {
-  const s = createGame(4217), before = structuredClone({ rng: s.rng, serial: s.serial, players: s.players.map(q => q.id) });
+  const s = createGame(4217, generatedMap(), defaultContent()), before = structuredClone({ rng: s.rng, serial: s.serial, players: s.players.map(q => q.id) });
   describeContent(s.content);
   assert.deepEqual({ rng: s.rng, serial: s.serial, players: s.players.map(q => q.id) }, before);
 });

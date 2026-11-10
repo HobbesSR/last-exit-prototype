@@ -9,7 +9,8 @@ import { generate } from '../../map/chain.ts';
 import { composeRegions } from '../../map/micro/compose.ts';
 import { builtMapCollision, builtMapFrame } from '../../map/micro/adapter.ts';
 import { generateLiveMap, liveChainParams } from '../../map/live.ts';
-import { createGame } from '../../shared/simulation.ts';
+import { createPhysicsGame, disposePhysics } from '../../shared/simulation.ts';
+import { defaultContent } from '../../shared/simulation/content.ts';
 import { DEFAULT_CELL_SIZE } from '../../map/engines.ts';
 import { buildPortalGraph } from '../../map/navigation.ts';
 
@@ -36,11 +37,12 @@ test('on a live map every promised pair connects over the mesh, and routes stay 
   }
 });
 
-test('a live map carries its portal graph beside it, never in it', () => {
+test('a live map carries its portal graph beside it, never in it', async () => {
   const map = generateLiveMap(1), graph = portalGraphOf(map);
   assert.ok(graph?.portals.length, 'live assembly attaches the graph');
   assert.equal(Object.keys(map).some(key => map[key] === graph), false, 'not a field of the map');
   assert.equal(JSON.stringify(map).includes('"owner"'), false, 'so no recording or projection serializes it');
   assert.equal(portalGraphOf(structuredClone(map)), undefined, 'and no clone carries it');
-  assert.equal(portalGraphOf(createGame(1, map).map), graph, 'the game holds the same map, graph and all');
+  const game = await createPhysicsGame(1, map, defaultContent());
+  try { assert.equal(portalGraphOf(game.map), graph, 'the game holds the same map, graph and all'); } finally { disposePhysics(game); }
 });

@@ -3,9 +3,14 @@ import assert from 'node:assert/strict';
 import { createGame } from '../shared/simulation.ts';
 import { attack, utilityApplies, utilityOutcome } from '../shared/simulation/combat.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
+import { generatedMap } from './helpers/room-harness.js';
+
+// Neither case steps the match, so the game is built without its physics world.
+const game = () => createGame(438, generatedMap(), defaultContent());
 
 test('utility preview and actual attack share capped effects and full-state refusal', () => {
-  const s = createGame(438), p = s.players[0];
+  const s = game(), p = s.players[0];
   for (const [kind, hp, shield, expected] of [
     ['med', 40, 10, { hp: 80, shield: 10 }],
     ['med', 95, 10, { hp: 100, shield: 10 }],
@@ -30,7 +35,7 @@ test('utility preview and actual attack share capped effects and full-state refu
 });
 
 test('bot intent respects utility applicability and cooldown without consuming items', () => {
-  const s = createGame(438), p = s.players[0];
+  const s = game(), p = s.players[0];
   for (const actor of s.players) actor.bot = false;
   p.bot = true;
   for (const [hp, maxHp, attackCd, applies] of [[40, 50, 0, true], [40, 50, 1, false], [40, 40, 0, false]]) {

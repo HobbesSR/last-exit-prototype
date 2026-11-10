@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, snapshot, playerView } from '../shared/simulation.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
+import { generatedMap } from './helpers/room-harness.js';
 
 test('unlisted internal fields stay out of own, other-player and directed frame projections', () => {
-  const game = createGame(9), me = game.players[0];
+  const game = createGame(9, generatedMap(9), defaultContent()), me = game.players[0];
   me.serverSecret = 'private'; game.map.gates[0].serverSecret = 'private'; me.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 7, serverSecret: 'private' };
   const frame = snapshot(game); frame.serverSecret = 'private';
   frame.players[1].x = me.x + 40; frame.players[1].y = me.y;

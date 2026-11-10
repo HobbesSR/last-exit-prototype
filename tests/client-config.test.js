@@ -51,6 +51,6 @@ test('player names keep the 16-unit cut and each layer keeps its own default nam
     assert.equal(name(named).length, MAX_PLAYER_NAME);
     assert.deepEqual([name(unnamed), name(blank)], ['Player', 'Player'], 'the transport\'s default');
   } finally { await h.service.close(); }
-  const s = createGame(4217);
+  const s = createGame(4217, generatedMap(), defaultContent());
   assert.equal(joinGame(s, 'direct')?.name, 'You', 'the simulation\'s own default');
 });
