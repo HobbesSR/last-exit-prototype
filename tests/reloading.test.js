@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { createGame, createPhysicsGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, createPhysicsGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
@@ -13,6 +12,7 @@ import { Writable } from 'node:stream';
 import { SCHEMA, minimumReaderForMatch, recordingFit } from '../shared/recording.ts';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
+import { generatedMap } from './helpers/room-harness.js';
 
 const AMMO = contentById('content-ammo-1');
 const arena = () => ({ width: 600, height: 400,
@@ -21,8 +21,10 @@ const arena = () => ({ width: 600, height: 400,
   stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
   modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = (id = 'content-ammo-1') => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A', 'B'], gladiators: [] }, discovery: false });
-function fixture(map) {
-  const s = createGame(17, map ?? arena(), content());
+/** A physics match on the arena, disposed when test `t` ends. */
+async function fixture(t, id) {
+  const s = await createPhysicsGame(17, arena(), content(id));
+  t.after(() => disposePhysics(s));
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0], q: s.players[1] };
 }
@@ -44,20 +46,20 @@ function rounds(s, family) {
   return total;
 }
 
-test('L2 is opt-in, versioned, requires L0 and leaves loot-1 without reserves', () => {
-  const { s, p } = fixture();
-  assert.equal(s.version, 'last-exit-0.8-ammo-1');
+test('reloading is opt-in on the one physics rules version, requires item instances and leaves loot-1 without reserves', async t => {
+  const { s, p } = await fixture(t);
+  assert.equal(s.version, PHYSICS_VERSION);
   assert.deepEqual(p.reserves, { pistol: 0, rifle: 0, shell: 0 });
-  assert.equal(s.players.find(q => q.role === 'gladiator')?.reserves, undefined);
-  const loot = createGame(17, arena(), content('content-loot-1'));
-  assert.equal(loot.version, 'last-exit-0.8-loot-1');
+  const { s: loot } = await fixture(t, 'content-loot-1');
+  assert.equal(loot.version, PHYSICS_VERSION);
   assert.equal(loot.players[0].reserves, undefined);
   assert.throws(() => createGame(17, arena(), { ...content(), itemInstances: undefined }), /requires L0/);
 });
 
-test('the physics tick refuses L2 content rather than silently never reloading', async () => {
-  const physical = { ...contentById('content-6'), reloading: contentById('content-ammo-1').reloading };
-  await assert.rejects(createPhysicsGame(17, arena(), physical), /no physics tick/);
+test('gladiators carry no reserves', () => {
+  // Setup needs no engine, so the shared constructor stands in for a match.
+  const s = createGame(17, arena(), { ...content(), roster: { contestants: ['A'], gladiators: [{ name: 'G', kit: 'warden' }] } });
+  assert.equal(s.players.find(q => q.role === 'gladiator').reserves, undefined);
 });
 
 test('spawn migration splits each map weapon into a full magazine and an ammo pickup, never duplicating', () => {
@@ -75,8 +77,8 @@ test('spawn migration splits each map weapon into a full magazine and an ammo pi
   assert.deepEqual(['pistol', 'rifle', 'shell'].map(family => rounds(s, family)), [48, 90, 4]);
 });
 
-test('a completed reload transfers min(missing, reserve) once and keeps unused loaded rounds', () => {
-  const { s, p } = fixture();
+test('a completed reload transfers min(missing, reserve) once and keeps unused loaded rounds', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = pistol(5); p.reserves.pistol = 20;
   tick(s, p, { reload: true });
   assert.ok(p.reload);
@@ -99,8 +101,8 @@ test('a completed reload transfers min(missing, reserve) once and keeps unused l
   assert.equal(p.reload, null, 'a full magazine does not reload');
 });
 
-test('movement continues while reloading, and the reload completes on the move', () => {
-  const { s, p } = fixture();
+test('movement continues while reloading, and the reload completes on the move', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = pistol(0); p.reserves.pistol = 30;
   const x = p.x;
   tick(s, p, { reload: true, x: 1 });
@@ -109,7 +111,7 @@ test('movement continues while reloading, and the reload completes on the move',
   assert.deepEqual([p.inventory[0].ammo, p.reserves.pistol], [12, 18]);
 });
 
-test('switch, move, drop and stun cancel before transfer; every round is conserved', () => {
+test('switch, move, drop and stun cancel before transfer; every round is conserved', async t => {
   const cases = {
     switch: (s, p) => tick(s, p, { slot: 1 }),
     move: (s, p) => tick(s, p, { moveSlot: { from: 0, to: 2 } }),
@@ -117,7 +119,7 @@ test('switch, move, drop and stun cancel before transfer; every round is conserv
     stun: (s, p) => { p.stun = 5; tick(s, p); },
   };
   for (const [name, interrupt] of Object.entries(cases)) {
-    const { s, p } = fixture();
+    const { s, p } = await fixture(t);
     p.inventory[0] = pistol(4); p.inventory[1] = { kind: 'med', count: 1, instanceId: 'med', lineageId: 'med' }; p.reserves.pistol = 30;
     const before = rounds(s, 'pistol');
     tick(s, p, { reload: true });
@@ -128,7 +130,7 @@ test('switch, move, drop and stun cancel before transfer; every round is conserv
     assert.equal(p.reserves.pistol, 30, `${name}: nothing transferred`);
     assert.equal(rounds(s, 'pistol'), before, name);
   }
-  const { s, p } = fixture();
+  const { s, p } = await fixture(t);
   p.inventory[0] = pistol(4); p.reserves.pistol = 30;
   tick(s, p, { reload: true }); tick(s, p, { drop: true });
   const dropped = s.map.items.find(item => item.id === 'gun');
@@ -136,8 +138,8 @@ test('switch, move, drop and stun cancel before transfer; every round is conserv
   assert.equal(p.reserves.pistol, 30, 'and not the player\'s reserve');
 });
 
-test('selecting the reloading slot again does not cancel; a switch and reload in one input reloads the new slot', () => {
-  const { s, p } = fixture();
+test('selecting the reloading slot again does not cancel; a switch and reload in one input reloads the new slot', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = pistol(4); p.inventory[1] = pistol(2, 'other'); p.reserves.pistol = 30;
   tick(s, p, { reload: true });
   tick(s, p, { slot: 0 });
@@ -148,8 +150,8 @@ test('selecting the reloading slot again does not cancel; a switch and reload in
   assert.deepEqual([p.inventory[0].ammo, p.inventory[1].ammo, p.reserves.pistol], [4, 12, 20]);
 });
 
-test('R and M in one input: the move applies first, then the reload fills the moved, still-selected weapon', () => {
-  const { s, p } = fixture();
+test('R and M in one input: the move applies first, then the reload fills the moved, still-selected weapon', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = pistol(4); p.reserves.pistol = 30;
   tick(s, p, { moveSlot: { from: 0, to: 2 }, reload: true });
   assert.deepEqual([p.selectedSlot, p.reload?.slot, p.reload?.instanceId], [2, 2, 'gun']);
@@ -159,8 +161,8 @@ test('R and M in one input: the move applies first, then the reload fills the mo
   assert.deepEqual([p.inventory[2].ammo, p.reserves.pistol], [12, 22]);
 });
 
-test('death drops every reserve family and the magazines as recoverable pickups', () => {
-  const { s, p, q } = fixture();
+test('death drops every reserve family and the magazines as recoverable pickups', async t => {
+  const { s, p, q } = await fixture(t);
   p.inventory[0] = pistol(7); p.inventory[1] = { kind: 'weapon', weaponType: 'rifle', ammo: 3, instanceId: 'r', lineageId: 'r' };
   Object.assign(p.reserves, { pistol: 40, rifle: 0, shell: 9 });
   tick(s, p, { reload: true });
@@ -177,8 +179,8 @@ test('death drops every reserve family and the magazines as recoverable pickups'
   assert.deepEqual(['pistol', 'rifle', 'shell'].map(family => rounds(s, family)), before);
 });
 
-test('ammo pickups fill reserves with six full slots, leave the remainder, and a full reserve leaves them untouched', () => {
-  const { s, p } = fixture();
+test('ammo pickups fill reserves with six full slots, leave the remainder, and a full reserve leaves them untouched', async t => {
+  const { s, p } = await fixture(t);
   for (let slot = 0; slot < 6; slot++) p.inventory[slot] = { kind: 'med', count: 3, instanceId: `m${slot}`, lineageId: `m${slot}` };
   p.reserves.pistol = 60;
   const pile = { id: 'pile', kind: 'ammo', family: 'pistol', count: 20, x: p.x, y: p.y };
@@ -197,8 +199,8 @@ test('ammo pickups fill reserves with six full slots, leave the remainder, and a
   assert.equal(collectAmmo(s, p, { id: 'bad', kind: 'ammo', family: 'laser', count: 3, x: 0, y: 0 }), false);
 });
 
-test('a matching weapon feeds its family reserve; its magazine never merges into the carried one', () => {
-  const { s, p } = fixture();
+test('a matching weapon feeds its family reserve; its magazine never merges into the carried one', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = pistol(3); p.reserves.pistol = 65;
   const spare = { id: 'spare', kind: 'weapon', weaponType: 'pistol', ammo: 12, x: p.x, y: p.y };
   s.map.items.push(spare);
@@ -207,8 +209,8 @@ test('a matching weapon feeds its family reserve; its magazine never merges into
   assert.equal(p.inventory.filter(Boolean).length, 1);
 });
 
-test('the ammo-drop intent drops a bounded reserve quantity as one pickup; a self-drop waits a second', () => {
-  const { s, p } = fixture();
+test('the ammo-drop intent drops a bounded reserve quantity as one pickup; a self-drop waits a second', async t => {
+  const { s, p } = await fixture(t);
   p.reserves.rifle = 50;
   tick(s, p, { dropAmmo: { family: 'rifle', count: 20 } });
   const pile = s.map.items.find(item => item.kind === 'ammo');
@@ -218,10 +220,12 @@ test('the ammo-drop intent drops a bounded reserve quantity as one pickup; a sel
   assert.equal(rounds(s, 'rifle'), 50);
   tick(s, p, { dropAmmo: { family: 'rifle', count: 5 } });
   assert.equal(s.map.items.filter(item => item.kind === 'ammo').length, 2, 'an empty reserve drops nothing');
-  for (const item of s.map.items) { item.x = p.x; item.y = p.y; }
-  tick(s, p);
+  // A pickup has a body, which holds its place, so the player goes to it.
+  const collect = () => { const item = s.map.items.find(item => item.kind === 'ammo'); if (item) { p.x = item.x; p.y = item.y; } tick(s, p); };
+  collect();
   assert.equal(p.reserves.rifle, 0, 'own drop is not recollected at once');
   for (let i = 0; i < 20; i++) tick(s, p);
+  collect(); collect();
   assert.equal(p.reserves.rifle, 50);
 });
 
@@ -238,8 +242,8 @@ test('wire input: L2 commands are validated and absent unless sent, so older inp
   assert.deepEqual(queueInput(p, { seq: 9, dropAmmo: { family: 'shell', count: 6, extra: 1 } }, 0).dropAmmo, { family: 'shell', count: 6 });
 });
 
-test('the owner sees reserves and reload progress; other players and older content do not', () => {
-  const { s, p, q } = fixture();
+test('the owner sees reserves and reload progress; other players and older content do not', async t => {
+  const { s, p, q } = await fixture(t);
   q.x = p.x + 40;
   p.inventory[0] = pistol(1); p.reserves.pistol = 9;
   tick(s, p, { reload: true });
@@ -252,12 +256,12 @@ test('the owner sees reserves and reload progress; other players and older conte
   s.map.items = [...s.map.items, { id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
   const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === 'box');
   assert.equal(box.family, 'shell');
-  const legacy = createGame(17, arena(), content('content-5'));
-  assert.equal(Object.hasOwn(snapshot(legacy).players[0], 'reserves'), false);
+  const plain = createGame(17, arena(), content('content-7'));
+  assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);
 });
 
-test('a full inventory E swap stages reserves: a rejected swap leaves them unchanged', () => {
-  const { s, p } = fixture();
+test('a full inventory E swap stages reserves: a rejected swap leaves them unchanged', async t => {
+  const { s, p } = await fixture(t);
   for (let slot = 0; slot < 6; slot++) p.inventory[slot] = pistol(2, `g${slot}`);
   p.inventory[1] = { kind: 'med', count: 1, instanceId: 'm', lineageId: 'm' };
   p.selectedSlot = 1; p.reserves.pistol = 70;
@@ -268,9 +272,9 @@ test('a full inventory E swap stages reserves: a rejected swap leaves them uncha
   assert.deepEqual([p.reserves.pistol, spare.ammo, p.inventory[1].kind], [70, 5, 'med']);
 });
 
-test('bots reload from their reserves, and a whole bot match conserves every round it does not fire', () => {
-  const fixtures = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-seat-1.json.gz', import.meta.url))));
-  const s = createGame(17, structuredClone(Object.values(fixtures.maps)[0]), contentById('content-ammo-1'));
+test('bots reload from their reserves, and a whole bot match conserves every round it does not fire', async t => {
+  const s = await createPhysicsGame(17, generatedMap(9), contentById('content-ammo-1'));
+  t.after(() => disposePhysics(s));
   const contestants = new Set(s.players.filter(p => p.role === 'contestant').map(p => p.id));
   // One attack spends one round however many pellets it fires, so count shooter-ticks.
   const shots = new Set();
@@ -288,8 +292,8 @@ test('bots reload from their reserves, and a whole bot match conserves every rou
   assert.equal(total(), start - shots.size);
 });
 
-test('current recordings keep reserves, reloads and ammo pickups exactly through backward seeks', async () => {
-  const { s, p } = fixture();
+test('current recordings keep reserves, reloads and ammo pickups exactly through backward seeks', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = pistol(2); p.reserves.pistol = 30;
   const chunks = [], frames = [];
   const header = { id: 'ammo-roundtrip', version: s.version, contentId: s.content.id, schema: SCHEMA,

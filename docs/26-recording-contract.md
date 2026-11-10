@@ -17,9 +17,11 @@ identity/atomic-transfer/player-order rules `last-exit-0.8-equipment-1`; default
 retain `last-exit-0.7`. Playback consumes stored item/inventory states, never
 allocates IDs or resimulates transfers. Persisting the allocation counter retains
 the history of IDs no longer present in the current frame. See [14](14-match-rules.md).
-Explicit `content-loot-1` and `content-ammo-1` select `last-exit-0.8-loot-1` and
-`last-exit-0.8-ammo-1`. L2 (#444) raises the writer schema to **13**: frames of
-the latter carry player `reserves` and `reload`, `ammo` ground items and
+Explicit `content-loot-1` and `content-ammo-1` descend from the shipped set and
+record under the one physics rules version (#920); archives made before that name
+`last-exit-0.8-loot-1` and `last-exit-0.8-ammo-1` and stay readable, since playback
+never resimulates. L2 (#444) raises the writer schema to **13**: frames of
+`content-ammo-1` carry player `reserves` and `reload`, `ammo` ground items and
 `reload`/`dropAmmo` commands; older readers ignore the fields and draw an ammo
 pickup as an unknown item, so the floor stays.
 

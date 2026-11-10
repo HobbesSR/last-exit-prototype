@@ -2,6 +2,7 @@ import { AMMO_FAMILIES, equipped, isAmmoFamily } from '../equipment.ts';
 import { allocateItemId } from '../item-instances.ts';
 import { planAmmoDrop, scatterPoint } from './loot.ts';
 import { addItems } from './ground-items.ts';
+import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
 import type { AmmoFamily, Game, GroundItem, Player, PlayerInput, WeaponItem } from '../types.ts';
 
 // L2 reloading (14 "Reloading", #444): weapon-owned magazines, per-player reserves outside the six
@@ -82,9 +83,11 @@ export function dropReserve(s: Game, p: Player, family: AmmoFamily, count: numbe
   const rounds = Math.min(count, p.reserves[family]);
   if (rounds <= 0) return false;
   const plan = planAmmoDrop(s, p, family, rounds, mandatory);
-  if (!plan) return false;
+  // An optional drop also needs a body for its pickup where items are physical, as a slot drop does.
+  if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
   s.itemSerial = plan.itemSerial; addItems(s, ...plan.records);
   p.reserves[family] -= rounds;
+  launchPhysicalDrops(s, plan.records, p);
   return true;
 }
 

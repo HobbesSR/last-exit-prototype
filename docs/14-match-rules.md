@@ -318,11 +318,12 @@ body admission fails. L0 creates no bodies or joints. Reloading remains later wo
 
 ### Weapon quality (L1, #443)
 
-`contentById('content-loot-1')` selects `last-exit-0.8-loot-1`: L0 plus weapon
-quality. It requires L0, which already keeps quality through pickup, drop,
-death, snapshots and schema-11 recordings, and never merges or refills across
-qualities (an omitted quality is 1). Default rooms and the frozen fixture are
-unchanged; legacy equipment ignores quality.
+`contentById('content-loot-1')` is the shipped set (`content-7`) plus weapon
+quality, on the physics engine and its one rules version (#920). It is selectable
+and not the default. It requires item instances (L0), which already keep quality
+through pickup, drop, death, snapshots and schema-11 recordings, and never merge
+or refill across qualities (an omitted quality is 1). Default rooms and the frozen
+fixtures are unchanged; legacy equipment ignores quality.
 
 At match creation each map weapon without a quality gets one; other kinds get
 none. A weapon within 100 units of a contestant spawn is the spawn kit and is
@@ -362,11 +363,14 @@ reservations. The chain places no traps yet (16), so no danger curve is defined.
 
 ### Reloading (L2, #444)
 
-`contentById('content-ammo-1')` selects `last-exit-0.8-ammo-1`: L1 plus reloads.
-It requires L0. Default rooms and the frozen fixture are unchanged. R reloads in
-every match but only this content has reloads; M moves/merges everywhere.
-The physics tick (P5) has no reload phase yet, so `createPhysicsGame` refuses
-reloading content rather than run it without reloads.
+`contentById('content-ammo-1')` is `content-loot-1` plus reloads, on the physics
+engine and its one rules version (#920). It is selectable and not the default. It
+requires item instances (L0). Default rooms and the frozen fixtures are unchanged.
+R reloads in every match but only this content has reloads; M moves/merges
+everywhere. The physics tick drops reserve ammo and advances the reload among each
+player's actions, after the slot drop and before attack; a dropped reserve pickup
+is a physical item like any other drop, and an optional drop is refused when no
+body can be admitted for it.
 
 A weapon's `ammo` is its loaded magazine and travels with the weapon instance:
 a dropped, swapped or death-dropped weapon keeps it, never the player's reserve.
