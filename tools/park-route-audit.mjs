@@ -58,22 +58,11 @@ const provenance = await captureSourceProvenance(['map/micro/strategies/park.ts'
   'map/micro/region-types.ts', 'map/micro/growth.ts', 'map/micro/placeables/park-hedge-block.ts', 'tools/park-route-audit.mjs', 'tools/experiments/park-pocket-routes.mjs', 'tools/lib/covered-samples.mjs',
   ...type === 'park' ? [] : [`map/micro/strategies/${type}.ts`, 'map/micro/hint-walls.ts', 'map/micro/strategies/infill.ts']]);
 
-// #750: the base strategy, with its imports resolved to today's modules. Only park.ts changes its
-// placement path; `protectedRoutes` resolves as below, and the pocket's commit never
-// fails on a frozen-route canvas, so the base build is the base commit's.
 // #649: today's park on both sides, the after side with hedge fronts.
-let before = buildRegion, build = buildRegion;
-if (fronts === undefined) {
-  // #787 retired `protectedRoutes` from scatter; a base that reads it gets the same function,
-  // kept for tools in the frozen-routes module.
-  const source = execFileSync('git', ['show', `${base}:map/micro/strategies/${type}.ts`], { encoding: 'utf8' })
-    .replace(/import \{([^}]*)protectedRoutes,? ?([^}]*)\} from '\.\/scatter\.ts';/, (_, a, b) =>
-      `import {${a}${b}} from './scatter.ts';
-import { frozenRoutes as protectedRoutes } from '../experiments/frozen-routes.ts';`)
-    .replace(/from '([^']+)'/g, (_, spec) => `from '${pathToFileURL(resolve('map/micro/strategies', spec)).href}'`);
-  writeFileSync(`test-results/issue-${issue}-before-${type}.mts`, source);
-  before = (await import(pathToFileURL(resolve(`test-results/issue-${issue}-before-${type}.mts`)).href))[STRATEGIES[type]];
-} else build = brief => buildRegion({ ...brief, parameters: { ...brief.parameters, hedgeFronts: fronts } });
+// Note: the former frozen-route base comparison (#750) was retired with the frozen-route control (#923).
+if (fronts === undefined) throw new Error('Frozen-route base comparison retired (#923); specify --fronts to audit hedge fronts.');
+const build = brief => buildRegion({ ...brief, parameters: { ...brief.parameters, hedgeFronts: fronts } });
+const before = buildRegion;
 
 const solid = region => region.elements.some(e => elementShapes(e, true).length);
 const obstacles = region => region.elements.flatMap(e => elementShapes(e, true));

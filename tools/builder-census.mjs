@@ -2,7 +2,7 @@
 /**
  * #749: per-builder census over the real briefs of the #716/#717 panel, size-{12,24,36}-{1,2,3}.
  * Per type: region sizes, how many regions hold no collision geometry, how much fill obstacles
- * cover, and how much of each region clear margins and `protectedRoutes` take. Per mechanism:
+ * cover, and how much of each region clear margins take. Per mechanism:
  * how often it fires, from manifests, element labels, and two observers where those can't tell
  * (cover's lattice from its #717 fallback; hut and compound yard handoff outcomes).
  *
@@ -18,7 +18,6 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import { generate } from '../map/tools/core.ts';
 import { buildRegion, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
 import { elementShapes, createRegionMask } from '../map/micro/geometry.ts';
-import { frozenRoutes as protectedRoutes } from '../map/micro/experiments/frozen-routes.ts';
 import { sitedCover } from '../map/micro/strategies/cover.ts';
 import { buildHutGeneration } from '../map/micro/strategies/hut.ts';
 import { buildCompoundGeneration } from '../map/micro/strategies/compound.ts';
@@ -29,15 +28,8 @@ const dir = process.argv[2] ?? 'docs/reports/issue-749';
 const cache = 'test-results/issue-749';
 mkdirSync(dir, { recursive: true }); mkdirSync(cache, { recursive: true });
 
-/** How each strategy calls `protectedRoutes` (mode, and the portal limit above which it skips them). */
-const ROUTED = { cover: ['root', 32], plant: ['root', 32], hall: ['root', Infinity],
-  rubble: ['root', Infinity], ruins: ['root', Infinity], depot: ['nearby', Infinity], market: ['nearby', Infinity] };
-const routeMode = brief => {
-  const routed = ROUTED[brief.type];
-  if (!routed) return null;
-  return brief.portals.length <= routed[1] ? routed[0] : null;
-};
 /**
+ * What a panel map depends on: the working tree's generation sources (macro, micro, kernel and the
  * What a panel map depends on: the working tree's generation sources (macro, micro, kernel and the
  * shared core, tracked or not, as they stand on disk), the lockfiles, and Node. Any change misses
  * the cache, so a cached map never stands in for sources it wasn't made from.
@@ -88,20 +80,12 @@ for (const width of [12, 24, 36]) for (const n of [1, 2, 3]) {
   for (const region of map.results) {
     const brief = region.brief, size = brief.cellSize, fill = brief.fillCells ?? brief.cells;
     const t = types[brief.type] ??= { regions: 0, cells: [], fill: [], totalCells: 0, totalFill: 0, empty: 0, emptyFill: 0,
-      covered: 0, routed: 0, routeCovered: 0, routedFill: 0, mechanisms: {}, manifest: {}, outcomes: {} };
+      covered: 0, mechanisms: {}, manifest: {}, outcomes: {} };
     t.regions++; t.cells.push(brief.cells.length); t.fill.push(fill.length);
     t.totalCells += brief.cells.length; t.totalFill += fill.length;
     const obstacles = region.elements.flatMap(e => elementShapes(e));
     if (!solid(region)) { t.empty++; t.emptyFill += fill.length; }
     t.covered += coveredSamples(fill, size, obstacles);
-    const mode = fill.length ? routeMode(brief) : null;
-    // A strategy that exits before protecting routes never asks for them, and may have no route to find.
-    let routes;
-    if (mode) try { routes = protectedRoutes(brief, brief.type, mode); } catch { bump(t.outcomes, 'no protected route (builder exits first)'); }
-    if (routes) {
-      t.routed++; t.routedFill += fill.length;
-      t.routeCovered += coveredSamples(fill, size, routes);
-    }
 
     // Manifest counters beyond the common ones: regions where each fired, and its total.
     for (const [key, value] of Object.entries(region.manifest))
@@ -154,7 +138,6 @@ const byType = Object.fromEntries(Object.entries(types).sort(([, a], [, b]) => b
   panelCellShare: share(t.totalCells, panelCells), marginShare: share(t.totalCells - t.totalFill, t.totalCells),
   emptyRegions: t.empty, emptyShare: share(t.empty, t.regions), emptyFillShare: share(t.emptyFill, t.totalFill),
   coveredFillShare: share(t.covered, t.totalFill),
-  routes: t.routed ? { regions: t.routed, fillShare: share(t.routeCovered, t.routedFill) } : null,
   manifest: sorted(t.manifest), mechanisms: sorted(t.mechanisms), outcomes: sorted(t.outcomes),
 }]));
 
