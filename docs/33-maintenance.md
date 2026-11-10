@@ -142,7 +142,10 @@ belong in one place, linked by the guide and by the parts that need them.
 - On a split, keep the old filename and number as a guide. Move the source
   content, including status, dates, answers and historical IDs, without changing
   decisions. Keep landing links for moved heading anchors in the old file; update
-  same-file references such as "above" to point to their new home.
+  same-file references such as "above" to point to their new home. `node tools/check-doc-links.mjs`
+  (also `tests/doc-links.test.js`, in the `tooling` set) lists every broken local link and `#fragment`
+  in `docs/` and the READMEs with its file and line; run it after a split or a move. It skips external
+  URLs and Forgejo issue links, and checks only an archived record's links within `docs/archive/`.
 - Update 00, relevant reading guides and task instructions in the same change.
   Existing broad citations stay valid through the parent. Refine active task
   routes to specific children; archived records and old Forgejo comments need

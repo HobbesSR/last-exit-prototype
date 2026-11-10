@@ -22,7 +22,7 @@ import { pathToFileURL } from 'node:url';
 export const SETS = {
   tooling: {
     about: 'the test and CI tooling, documentation and licence checks',
-    fast: ['brief-reporter', 'ci-cancel-pr-runs', 'ci-slow-failures', 'doc-reads', 'forgejo-usage', 'machine-lock',
+    fast: ['brief-reporter', 'ci-cancel-pr-runs', 'ci-slow-failures', 'doc-links', 'doc-reads', 'forgejo-usage', 'machine-lock',
       'third-party-notices', 'vendor-modules', 'source-provenance', 'timing', 'profiler', 'depot-cord-source', 'sets'],
     sources: ['tests/*.mjs', 'tests/helpers/**', 'tools/**', '.forgejo/**', 'docs/**', 'AGENTS.md', 'package.json', 'THIRD_PARTY_NOTICES*', 'shared/profiler.ts'],
   },
