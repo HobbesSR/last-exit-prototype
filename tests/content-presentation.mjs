@@ -6,15 +6,21 @@ import { createArenaServer } from '../server/index.js';
 import { createMapGenerator } from '../server/map-generator.js';
 import { listen } from './helpers/listen.js';
 import { createGame, snapshot, VERSION } from '../shared/simulation.ts';
-import { legacyContent } from '../shared/simulation/content.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
+import { generatedMap } from './helpers/room-harness.js';
 
 // Two content sets this browser does not ship, sharing weapon and kit ids but labelled differently (22.7). They start from
-// the legacy set: this check is about display data, and the shipped default is physics content (#523).
-// B is what the live server runs; A is what a recording embeds.
+// the shipped set without its hook, so the kits these checks name are warden, specter and striker; a hook kit needs the
+// hook mechanic (phased.ts), so both go. B is what the live server runs; A is what a recording embeds.
+function shippedWithoutHook() {
+  const c = structuredClone(defaultContent());
+  delete c.kits.hook; delete c.hook;
+  return c;
+}
 function contentB() {
-  const c = structuredClone(legacyContent());
+  const c = shippedWithoutHook();
   c.id = 'browser-content-b';
   c.weapons.pistol.name = 'Sidearm'; c.weapons.pistol.ammo = 7; c.weapons.rifle.name = 'Carbine'; c.weapons.rifle.ammo = 21;
   c.kits.warden.name = 'Guard'; c.kits.warden.skill = 'Stomp'; c.kits.specter.name = 'Shade'; c.kits.specter.skill = 'Flicker';
@@ -25,7 +31,7 @@ function contentB() {
   return c;
 }
 function contentA() {
-  const c = structuredClone(legacyContent());
+  const c = shippedWithoutHook();
   c.id = 'browser-content-a';
   c.weapons.pistol.name = 'Blaster'; c.weapons.pistol.ammo = 11; c.weapons.rifle.name = 'Longarm'; c.weapons.rifle.ammo = 33;
   c.kits.warden.name = 'Sentinel'; c.kits.warden.skill = 'Quake'; c.kits.specter.name = 'Wraith'; c.kits.specter.skill = 'Echo';
@@ -34,7 +40,7 @@ function contentA() {
 }
 // A recording of content A whose frames state their own duration, which must beat A's descriptor.
 function recordingA() {
-  const content = contentA(), game = createGame(4217, undefined, content), p = game.players[0];
+  const content = contentA(), game = createGame(4217, generatedMap(), content), p = game.players[0];
   p.inventory = [{ kind: 'weapon', weaponType: 'pistol', ammo: 0 }, { kind: 'weapon', weaponType: 'rifle' }, null, null, null, null];
   p.selectedSlot = 0;
   const frame = tick => { const state = snapshot(game); state.tick = tick; state.duration = 6000; return { state, commands: [] }; };
@@ -50,7 +56,7 @@ async function checkControls(browser, base) {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   const html = (await readFile('public/index.html', 'utf8')).replace('<script type="module" src="/client.js"></script>', '');
   await page.route('**/content-fixture', route => route.fulfill({ contentType: 'text/html', body: html }));
-  const game = createGame(4217), me = game.players[0], hunter = game.players.find(p => p.role === 'gladiator');
+  const game = createGame(4217, generatedMap(), defaultContent()), me = game.players[0], hunter = game.players.find(p => p.role === 'gladiator');
   me.inventory = [{ kind: 'weapon', weaponType: 'pistol' }, { kind: 'weapon', weaponType: 'rifle', ammo: 0 }, { kind: 'cell', charge: 30 }, null, null, null];
   game.map.gates = [];
   try {
