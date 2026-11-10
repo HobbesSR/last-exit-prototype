@@ -29,7 +29,16 @@ const tileOf = library => {
   return slot => tiles.get(sets.get(slot.tileSetId));
 };
 
-test('authored inward seams lose their guarantee while every exposed region edge keeps its original prescription', () => {
+const HINT = 'not-passable-hint';
+/** Whether a tile's side, by its six segments, is the half-and-half pattern (`hhhPPP` either way). */
+const halfAndHalf = (tile, spec) => {
+  const side = Array.from({ length: 6 }, (_, i) => tile.segments?.[spec.segment(i)]?.passability);
+  const half = (a, b) => side.slice(0, 3).every(p => p === a) && side.slice(3).every(p => p === b);
+  return half(HINT, 'passable') || half('passable', HINT);
+};
+
+// Since the sparse-sides adoption (#851, #895), an exposed half-and-half side may also be hinted whole (52.1).
+test('authored inward seams lose their guarantee while every exposed region edge keeps its original prescription or is hinted whole', () => {
   for (const library of CHAIN_LIBRARIES) {
     let affected = 0, internal = 0, exposed = 0;
     const tile = tileOf(library), originals = new Map(library.tiles.map(t => [t.id, t]));
@@ -42,6 +51,7 @@ test('authored inward seams lose their guarantee while every exposed region edge
         const original = originals.get(`${kind}-ground`);
         assert.ok(original, `${library.name} ${piece.id}: original ${kind} ground`);
         for (const [side, spec] of Object.entries(SIDES)) {
+          const hintedWhole = halfAndHalf(original, spec) && Array.from({ length: 6 }, (_, i) => current.segments?.[spec.segment(i)]?.passability).every(p => p === HINT);
           const neighbor = slots.get(`${slot.dx + spec.dx},${slot.dy + spec.dy}`);
           const across = neighbor && tile(neighbor);
           for (let i = 0; i < 6; i++) {
@@ -53,7 +63,7 @@ test('authored inward seams lose their guarantee while every exposed region edge
               assert.equal(guaranteesPassability(actual?.passability, facing), false, `${where} must not reserve a same-class seam`);
             } else {
               exposed++;
-              assert.deepEqual(actual, before, `${where} keeps its original external prescription`);
+              if (!hintedWhole) assert.deepEqual(actual, before, `${where} keeps its original external prescription`);
             }
           }
         }
@@ -91,7 +101,10 @@ function pieceBrief(pieceId, type, originalGround = false) {
 test('representative set pieces retain external portals and regain contiguous building fill', () => {
   for (const [piece, type] of PIECES) {
     const current = pieceBrief(piece, type), original = pieceBrief(piece, type, true);
-    assert.deepEqual(current.portals, original.portals, `${piece}: derived external portal runs and ids`);
+    // Alternate borders (#851) keep some of the original's external portals, never new ones.
+    const before = new Set(original.portals.map(portal => JSON.stringify(portal)));
+    assert.ok(current.portals.length > 0, `${piece}: keeps an external portal`);
+    for (const portal of current.portals) assert.ok(before.has(JSON.stringify(portal)), `${piece}: ${portal.id} is one of the original runs`);
     assert.ok(original.internalGuaranteed.length > 0, `${piece}: original repeated seams were guaranteed`);
     assert.deepEqual(current.internalGuaranteed, [], `${piece}: variant seams are no longer guaranteed`);
     assert.ok(current.fillCells.length > original.fillCells.length, `${piece}: fill grows`);

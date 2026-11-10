@@ -115,7 +115,8 @@ test('centered rubble leaves a clear ring that carries hunter movement through a
   // The four cover tiles beside the centre face it with a passable side, so the ring is
   // guaranteed all round under matched passability (#849); the corners are plain cover.
   const facing = { 1: 's', 3: 'e', 5: 'w', 7: 'n' };
-  assert.deepEqual(court.tiles, Array.from({ length: 9 }, (_, i) => ({ dx: i % 3, dy: Math.floor(i / 3),
+  // Sparse sides (#851, #895) give the court's slots their own `-sp-<n>` sets; the authored set is the stem.
+  assert.deepEqual(court.tiles.map(slot => ({ ...slot, tileSetId: slot.tileSetId.replace(/-sp-\d+$/, '') })), Array.from({ length: 9 }, (_, i) => ({ dx: i % 3, dy: Math.floor(i / 3),
     tileSetId: i === 4 ? 'clear-rubble-centers' : facing[i] ? `cover-ground-court-${facing[i]}-tiles` : 'cover-grounds' })),
     'the shipped courtyard supplies the tested surrounding cover');
   const member = id => CHAIN_LIBRARY.tileSets.find(set => set.id === id).members[0];
