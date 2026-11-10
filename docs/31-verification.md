@@ -56,7 +56,7 @@ fixture, bots completing whole matches, and the builder sweeps below. Its 19 fil
 2026-11-05, #808; each set's share is in
 [Integration checks per set](#integration-checks-per-set)), and their evidence only moves when
 generation or simulation moves.
-`tests/slow/room-sizes.test.js` and `room-sizes-physics.test.js` run only the 12 × 6 room unless asked
+`tests/slow/room-sizes.test.js` runs only the 12 × 6 room unless asked
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
 the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
 merged on the fast tier; `npm run test:slow` runs it locally when a change is likely to move
@@ -362,9 +362,9 @@ contract runs, `reorderedBrief`), `block-masks.js`, the per-type `plant-fixtures
 slow files share), `map-library-game.js` (the game-size library map's checks, which the `map-library`
 files and `map-tools` share), `stands.js` (`standNear`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
-(the bench and demo `--key=value` map), `room-harness.js` (which pins the legacy mover, `content-5` and
-the synchronous `createMatch`, because its tests are about room policy and not an engine; a physics room
-passes `content: defaultContent, matchFactory: createMatchFor` and awaits `room.ready`), `room-sizes.js`
+(the bench and demo `--key=value` map), `room-harness.js` (rooms on the shipped content and its
+physics engine; a match is built asynchronously, so `room()`, `live()` and `created()` wait for
+`room.ready`, and a test that drives the directory itself awaits it, #920), `room-sizes.js`
 and `machine-lock.js`. The
 maintained command-line tools share `tools/options.mjs`; the one-off audit scripts
 under `tools/` are evidence and keep their own parsing.
@@ -614,7 +614,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) | 31 s |
 | Simulation rules, bots, snapshots and projections | `tests/characterization.test.js` and `characterization-physics.test.js`; the unit file for the rule | `characterization-bots`, `characterization-physics-bots` (31 s), `live-map`; `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 33 s, 64 s with `map-sweep` |
 | Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser`; the frozen physics baselines, `npm run brief -- test:set simulation:characterization-physics --slow` (`shared/physics/` is a `simulation` source too, so `changed` names both sets) | 56 s beyond the fast set, plus 33 s |
-| Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`, `room-sizes-physics`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |
+| Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |
 | The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-physics`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
 | Shared geometry and math (`test:set geometry`) | the unit file | the full chain sweep (shapes reach every builder); the physics Node/Chrome equality scripts (`physics-world`, `-hook`, `-hook-live`, `-navigation`, 8 s), since simulation math must be bit-equal in Chrome | 167 s |
 | Tooling and docs | the unit file; `test:set tooling` | none; `npm run test:browser` when the browser runner changes | |
@@ -700,8 +700,7 @@ the sweep and the physics equality scripts (the table above).
 | `live-recipe` (slow) | 29.7 s | the Map Lab's live-recipe check: only a seed's own map is a room's, refusing an edited layout or result (#822, #849) | `map/live.ts`, generation |
 | `map-generator` (slow) | 18.9 s | the map worker's answer is exactly the inline map, graph and packed tiles included, and each request gets its own seed's (#849) | the worker, the live adapter |
 | `room-arena` (slow) | 8.9 s | the pregenerated room arena is still seed 9's live map and graph (#849) | anything that moves seed 9's live map: then recapture it |
-| `room-sizes` (slow) | 6.8 s | a whole legacy room through the server loop: every tick recorded once in order, and the sparse replay timeline | rooms, recording, the replay timeline; size-dependent generation under `ROOM_SIZES` |
-| `room-sizes-physics` (slow) | 10.1 s | the same for the shipped default, plus the recording's physics version and the map within ground capacity | the same, physics, item capacity |
+| `room-sizes` (slow) | 21 s | a whole room on the shipped content through the server loop: every tick recorded once in order, the sparse replay timeline, the recording's physics version and the map within ground capacity | rooms, recording, the replay timeline, item capacity; size-dependent generation under `ROOM_SIZES` |
 | `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
 
 **`macro`** (slow 33 s, browser at least 131 s; and the chain sweep, 159 s)
@@ -772,7 +771,7 @@ A behaviour question is answered in the smallest scene that still shows it (#697
   `tools/navigation/hunter-report.mjs`; arenas do not replace them.
 - **The pregenerated room arena** when a test needs a real live map but not a particular one: seed 9's live map
   and portal graph at 12 × 6, stored in `tests/fixtures/room-arena-9.v8.gz` by `tools/room-arena.mjs` (#849).
-  `generatedMap(9)` in `tests/helpers/room-harness.js` reads it, so `reuseMaps` rooms and `createMatch(9, …,
+  `generatedMap(9)` in `tests/helpers/room-harness.js` reads it, so `reuseMaps` rooms and `createPhysicsMatch(9, …,
   generatedMap(9))` cost no generation. `tests/slow/room-arena.test.js` fails when it is no longer seed 9's map;
   recapture it in the change that moved the map.
 
@@ -1068,7 +1067,8 @@ regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bo
 match to its end in a room at each authored size (14), the owner disconnected and
 an owner spectator keeping it from abandonment, checks each tick reaches the
 recorder once and in order, and reads sparse frames back through the replay timeline; it
-takes about 11 s, 1 min and 4.5 min at 12 × 6, 24 × 12 and 36 × 18. Only 12 × 6 runs
+takes about 21 s at 12 × 6 (the larger sizes, last timed on the legacy mover, took about 1 min and
+4.5 min at 24 × 12 and 36 × 18). Only 12 × 6 runs
 by default, since the larger sizes rarely find what it misses; set `ROOM_SIZES` when a change
 targets size-dependent generation, room limits or recording. These samples do not establish human balance or
 exhaustive seed coverage.

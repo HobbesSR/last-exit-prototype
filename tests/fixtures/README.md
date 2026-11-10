@@ -45,13 +45,14 @@ engine, when this fixture replaces it as the only one.
 
 ## Pregenerated room arena (#849)
 
-`room-arena-9.v8.gz` is seed 9's live map at 12 × 6 with the legacy content, and its portal graph,
+`room-arena-9.v8.gz` is seed 9's live map at 12 × 6 with the shipped content, and its portal graph,
 as `v8.serialize({ map, graph })` gzipped (the graph holds typed arrays). Room and networking tests
 play on it through `generatedMap(9)` (`tests/helpers/room-harness.js`) instead of building a map
 (31, "Test arenas"). It is not a behaviour baseline: `tests/slow/room-arena.test.js` fails when it
 is no longer seed 9's map, and the change that moved the map recaptures it with
 `node tools/room-arena.mjs` (`--check` compares without writing). Last recaptured for the
-sparse-sides and lighting batch (#895, `types-67`).
+sparse-sides and lighting batch (#895, `types-67`). It was captured with the legacy content; #920 moved
+the tool to the shipped content, which gives the same map and graph, so the file was not recaptured.
 
 ## Focused compound siting input (#340)
 

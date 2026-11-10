@@ -62,7 +62,7 @@ export const SETS = {
     about: 'the server: rooms, matchmaking, recording and replay, the map pool and live-map wiring',
     fast: ['server', 'server-*', 'room-*', 'recording', 'recording-failure', 'replay-*', 'waiting', 'shutdown', 'http-json',
       'client-config', 'latency', 'map-pool', 'map-generator', 'live-map', 'live-map-adapter'],
-    slow: ['live-map', 'live-map-adapter', 'live-recipe', 'map-generator', 'room-arena', 'room-sizes', 'room-sizes-physics'],
+    slow: ['live-map', 'live-map-adapter', 'live-recipe', 'map-generator', 'room-arena', 'room-sizes'],
     browser: ['browser'],
     sources: ['server/**', 'shared/recording.ts', 'map/live*.ts'],
   },

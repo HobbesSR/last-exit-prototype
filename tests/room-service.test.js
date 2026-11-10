@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
-import { createMatch } from '../server/match.js';
-import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
+import { createPhysicsMatch } from '../server/match.js';
+import { createGame, createPhysicsGame, disposePhysics, joinGame, setInput, step, snapshot, synchronizePhysics, PHYSICS_VERSION } from '../shared/simulation.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
-  const h = roomHarness({ reuseMaps: true }), room = h.directory.createRoom(9);
+  const h = roomHarness({ reuseMaps: true }), room = await h.created(9);
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey });
     const hunters = ['warden', 'specter', 'striker'].map(kit => h.joined(room, { role: 'gladiator', kit }));
@@ -27,17 +28,17 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     assert.equal(room.match.player(welcome.id).kit, 'striker');
     owner.send({ type: 'start' });
     const writer = h.writers.get(room.id);
-    assert.equal(writer.header.contentId, 'content-5');
-    assert.equal(writer.header.version, 'last-exit-0.7');
+    assert.equal(writer.header.contentId, defaultContent().id);
+    assert.equal(writer.header.version, PHYSICS_VERSION);
     assert.equal(writer.header.schema, 16);
-    assert.equal(writer.header.minSchema, 4);
+    assert.equal(writer.header.minSchema, 10);
     assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
     assert.equal(writer.frames[0].state.slots, 3);
   } finally { await h.service.close(); }
 });
 
 test('a player changes role and kit in the lobby, freeing their place to its roster bot, until the start', async () => {
-  const h = roomHarness({ reuseMaps: true }), room = h.directory.createRoom(9);
+  const h = roomHarness({ reuseMaps: true }), room = await h.created(9);
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), id = runner.session.playerId;
@@ -83,7 +84,7 @@ test('a player changes role and kit in the lobby, freeing their place to its ros
 test('a private match already under way admits only the role asked for', async () => {
   const h = roomHarness({ reuseMaps: true });
   try {
-    const { room } = h.live();
+    const { room } = await h.live();
     for (let i = 0; i < 3; i++) h.joined(room, { role: 'gladiator' });
     const late = h.joined(room, { role: 'gladiator' });
     assert.match(late.messages[0].message, /No gladiator places/);
@@ -96,6 +97,7 @@ test('matchmaking balances occupied fractions against three hunter places and fi
   try {
     const match = role => { const p = h.peer(); p.send({ type: 'match', role }); return p; };
     const first = match('gladiator'), room = first.session.room;
+    await room.ready;
     // 3/8 contestants is above 1/3 hunters, but below the obsolete 1/2 fraction.
     for (let i = 0; i < 3; i++) match('contestant');
     const balanced = match('any');
@@ -110,10 +112,12 @@ test('matchmaking balances occupied fractions against three hunter places and fi
   } finally { await h.service.close(); }
 });
 
-test('match boundary preserves simulation output and returns detached commands, identities and maps', () => {
-  const match = createMatch(9, undefined, generatedMap(9)), game = createGame(9, match.map());
+test('match boundary preserves simulation output and returns detached commands, identities and maps', async () => {
+  const match = await createPhysicsMatch(9, undefined, generatedMap(9)), game = await createPhysicsGame(9, generatedMap(9), defaultContent());
+  try {
   const actor = match.join('human', 'contestant', 'warden', 'Runner');
-  joinGame(game, 'human', 'contestant', 'warden', 'Runner'); actor.name = 'Changed';
+  // A match reconciles the physics world after every seat change; the bare game is given the same.
+  joinGame(game, 'human', 'contestant', 'warden', 'Runner'); synchronizePhysics(game); actor.name = 'Changed';
   const command = { seq: 1, x: 1, interact: true, hp: 999 };
   const accepted = match.acceptInput('human', command); setInput(game, 'human', command);
   for (let i = 0; i < 15; i++) { step(game); assert.deepEqual(match.advance(), snapshot(game)); }
@@ -123,10 +127,11 @@ test('match boundary preserves simulation output and returns detached commands, 
   const frame = match.snapshot(); frame.players[0].hp = 0;
   assert.ok(match.map().items.length); assert.equal(match.snapshot().players[0].hp, 100);
   assert.equal(match.player('human').name, 'Runner');
+  } finally { match.dispose(); disposePhysics(game); }
 });
 
 test('fake clock preserves debt, catch-up cap, every recorded tick and newest-only delivery', async () => {
-  const h = roomHarness({ reuseMaps: true }), { owner, writer, room } = h.live(); owner.messages.length = 0;
+  const h = roomHarness({ reuseMaps: true }), { owner, writer, room } = await h.live(); owner.messages.length = 0;
   h.wake(25); assert.equal(room.match.tick, 0);
   h.wake(25); assert.equal(room.match.tick, 1);
   h.wake(450); assert.equal(room.match.tick, 6);
@@ -138,7 +143,7 @@ test('fake clock preserves debt, catch-up cap, every recorded tick and newest-on
 });
 
 test('room command recording owns each sanitized input independently of later ticks', async () => {
-  const h = roomHarness({ reuseMaps: true }), { owner, writer } = h.live();
+  const h = roomHarness({ reuseMaps: true }), { owner, writer } = await h.live();
   owner.send({ type: 'input', seq: 1, interact: true, moveSlot: { from: 0, to: 5 }, hp: 999 });
   owner.send({ type: 'input', seq: 2, x: 1 }); h.wake(50);
   const inputs = writer.frames.at(-1).commands.filter(c => c.type === 'input');
@@ -154,7 +159,7 @@ test('room command recording owns each sanitized input independently of later ti
 });
 
 test('inventory gesture commands preserve source items in authoritative frames and recordings', async () => {
-  const h = roomHarness({ reuseMaps: true }), { room, owner, writer } = h.live();
+  const h = roomHarness({ reuseMaps: true }), { room, owner, writer } = await h.live();
   try {
     const game = room.game, player = game.players.find(p => p.id === owner.session.playerId);
     for (const actor of game.players) { actor.bot = false; actor.input = {}; }
@@ -186,7 +191,7 @@ test('inventory gesture commands preserve source items in authoritative frames a
 });
 
 test('fake sessions retain owner checks, spectator delay and safe live-session replacement', async () => {
-  const h = roomHarness({ reuseMaps: true }), { room, owner } = h.live();
+  const h = roomHarness({ reuseMaps: true }), { room, owner } = await h.live();
   const denied = h.joined(room, { role: 'spectator' }); assert.match(denied.messages[0].message, /owner key/);
   const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
   assert.equal(eye.messages[0].state.tick, 0); assert.equal(eye.session.playerId, null);

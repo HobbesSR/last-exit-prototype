@@ -5,7 +5,7 @@ import { roomHarness } from './helpers/room-harness.js';
 for (const retire of [false, true]) test(`shutdown awaits already-started finalization${retire ? ' even after room retirement' : ''}`, async () => {
   let release;
   const pending = new Promise(resolve => release = resolve);
-  const h = roomHarness({ finalize: () => pending, reuseMaps: true }), { owner, room, writer } = h.live();
+  const h = roomHarness({ finalize: () => pending, reuseMaps: true }), { owner, room, writer } = await h.live();
   owner.send({ type: 'finish' }); assert.equal(room.finished, true);
   if (retire) { h.service.disconnect(owner.session); h.wake(0, 180001); assert.equal(h.service.rooms.size, 0); }
   let closed = false;
@@ -19,7 +19,7 @@ for (const retire of [false, true]) test(`shutdown awaits already-started finali
 });
 
 test('room shutdown is idempotent and stops accepting or advancing work', async () => {
-  const h = roomHarness({ reuseMaps: true }), { writer, room, owner } = h.live();
+  const h = roomHarness({ reuseMaps: true }), { writer, room, owner } = await h.live();
   const first = h.service.close(); assert.equal(h.service.close(), first); await first;
   assert.equal(writer.finishCalls, 1); const frames = writer.frames.length;
   h.wake(500); owner.send({ type: 'input', seq: 1, x: 1 });
@@ -31,7 +31,7 @@ test('a failed pending archive reports failure once and allows shutdown to settl
   let reject;
   const errors = [], pending = new Promise((_resolve, fail) => reject = fail);
   const h = roomHarness({ finalize: () => pending, reportError: error => errors.push(error.message), reuseMaps: true });
-  const { owner, writer } = h.live(); owner.send({ type: 'finish' });
+  const { owner, writer } = await h.live(); owner.send({ type: 'finish' });
   const closing = h.service.close(); reject(new Error('archive unavailable')); await closing;
   assert.deepEqual(errors, ['archive unavailable']); assert.equal(writer.finishCalls, 1);
   assert.equal(owner.messages.filter(m => m.type === 'saved').length, 0);

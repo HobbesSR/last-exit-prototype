@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, deliverable, MAX_BUFFERED_BYTES, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
 
-test('a backed-up socket skips state frames but never a one-off message', () => {
+test('a backed-up socket skips state frames but never a one-off message', async () => {
   assert.equal(deliverable(MAX_BUFFERED_BYTES, true), false);
   assert.equal(deliverable(MAX_BUFFERED_BYTES - 1, true), true);
   assert.equal(deliverable(MAX_BUFFERED_BYTES * 4, false), true);
-  const h = roomHarness({ reuseMaps: true }), { room } = h.live(), flags = [];
+  const h = roomHarness({ reuseMaps: true }), { room } = await h.live(), flags = [];
   const session = h.service.connect({ deliver: (payload, droppable) => flags.push([JSON.parse(payload).type, droppable]), close() {} });
   h.service.receive(session, { type: 'join', room: room.id }); h.wake(50);
   assert.deepEqual(flags.filter(([type]) => type !== 'ping'), [['welcome', undefined], ['lobby', undefined], ['state', true]]);
@@ -22,7 +22,7 @@ test('the dev tools policy accepts only its named values', () => {
 
 test('matchmaking deadlines and abandonment are testable without sockets or real waiting', async () => {
   const h = roomHarness({ reuseMaps: true }), player = h.peer(); player.send({ type: 'match', role: 'gladiator' });
-  const room = player.session.room;
+  const room = player.session.room; await room.ready;
   h.wake(0, 14999); assert.equal(room.started, false);
   h.wake(0, 1); assert.equal(room.started, true);
   h.service.disconnect(player.session); h.wake(0);
@@ -50,7 +50,7 @@ test('transport decoding, message budget and seed coercion retain existing accep
 test('a catch-up past the cap leaves a server-stall marker on the recording, and normal wakes leave none', async () => {
   const h = roomHarness({ reuseMaps: true });
   try {
-    const { writer } = h.live();
+    const { writer } = await h.live();
     h.wake(50); h.wake(50);
     assert.deepEqual(writer.marks, []);
     h.wake(50 * 9);
@@ -66,7 +66,7 @@ test('a catch-up past the cap leaves a server-stall marker on the recording, and
 test('a stall marker counts the ticks actually simulated when the match ends mid catch-up', async () => {
   const h = roomHarness({ reuseMaps: true });
   try {
-    const { room, writer } = h.live();
+    const { room, writer } = await h.live();
     h.wake(50);
     room.game.tick = room.game.content.durationTicks - 1;
     const before = writer.frames.length;
@@ -82,7 +82,7 @@ test('a stall marker counts the ticks actually simulated when the match ends mid
 test('client diagnostics become recorded marks, never commands, and are validated and limited', async () => {
   const h = roomHarness({ reuseMaps: true });
   try {
-    const { room, owner, writer } = h.live();
+    const { room, owner, writer } = await h.live();
     for (let i = 0; i < 12; i++) h.wake(50, 300);
     const tick = writer.frames.at(-1).state.tick, pending = room.inputs.length;
     owner.send({ type: 'diagnostic', kind: 'frame-drop', tick: tick - 3, startTick: tick - 9, count: 7.4, worstMs: 120.6 });
@@ -112,7 +112,7 @@ test('client diagnostics become recorded marks, never commands, and are validate
 test('diagnostic reports are capped per session', async () => {
   const h = roomHarness({ reuseMaps: true });
   try {
-    const { owner, writer } = h.live();
+    const { owner, writer } = await h.live();
     for (let i = 0; i < MAX_DIAGNOSTICS_PER_SESSION + 5; i++) { h.wake(50, 300); owner.send({ type: 'diagnostic', kind: 'manual', tick: 0 }); }
     assert.equal(writer.marks.length, MAX_DIAGNOSTICS_PER_SESSION);
   } finally { await h.service.close(); }
@@ -121,7 +121,7 @@ test('diagnostic reports are capped per session', async () => {
 test('an admitted spectator has no diagnostic authority, independent of any cap or rate limit', async () => {
   const h = roomHarness({ reuseMaps: true });
   try {
-    const { room, writer } = h.live();
+    const { room, writer } = await h.live();
     // Refused admission is a different boundary: that session never reaches the room at all.
     const outsider = h.joined(room, { role: 'spectator' });
     assert.match(outsider.messages[0].message, /owner key/); assert.equal(outsider.session.room, undefined);
@@ -139,14 +139,16 @@ test('an admitted spectator has no diagnostic authority, independent of any cap 
   } finally { await h.service.close(); }
 });
 
-test('a room created at a larger size starts, advertises it and records that map', () => {
+test('a room created at a larger size starts, advertises it and records that map', async () => {
   const generateMap = (seed, size) => ({ ...generatedMap(seed), width: size.zoneWidth * 1440, height: size.zoneHeight * 1440 });
   const size = { zoneWidth: 24, zoneHeight: 12 };
   const h = roomHarness({ reuseMaps: true, generateMap });
-  const room = h.directory.createRoom(9, false, size), owner = h.joined(room, { ownerKey: room.ownerKey });
-  assert.equal(owner.messages.find(m => m.type === 'lobby').size, '24x12');
-  owner.send({ type: 'start' });
-  const { header } = h.writers.get(room.id);
-  assert.deepEqual([header.map.width, header.map.height], [34560, 17280]);
-  assert.equal(room.game.map.width, 34560);
+  try {
+    const room = await h.created(9, false, size), owner = h.joined(room, { ownerKey: room.ownerKey });
+    assert.equal(owner.messages.find(m => m.type === 'lobby').size, '24x12');
+    owner.send({ type: 'start' });
+    const { header } = h.writers.get(room.id);
+    assert.deepEqual([header.map.width, header.map.height], [34560, 17280]);
+    assert.equal(room.game.map.width, 34560);
+  } finally { await h.service.close(); }
 });

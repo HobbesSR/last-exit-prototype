@@ -51,7 +51,7 @@ test('a room naming no seed opens on a pooled map at once; a named seed or an em
   try {
     pooled.held[0].resolve(); await settle();
     const room = h.directory.createRoom();
-    assert.equal(room.seed, 101, 'the pooled map\'s seed'); assert.ok(room.match, 'its match exists at once');
+    assert.equal(room.seed, 101, 'the pooled map\'s seed'); await room.ready; assert.ok(room.match, 'its match is built from the pooled map');
     assert.deepEqual(h.service.summaries()[0].ready, true); assert.deepEqual(onDemand, []);
     assert.equal(pooled.held.length, 2, 'and the pool refills');
 
