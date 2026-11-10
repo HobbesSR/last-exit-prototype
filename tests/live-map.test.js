@@ -6,7 +6,7 @@ import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapFrame } from '../map/micro/adapter.ts';
 import { canOccupy, moveBody } from '../shared/movement.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
-import { createGame, setInput, step } from '../shared/simulation.ts';
+import { createPhysicsGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
@@ -53,8 +53,9 @@ test('JSON map transfer keeps the mask and both roles can move from authored sta
   }
 });
 
-test('live sites allow charging, extraction, and safe hunter redeployment', () => {
-  const map = structuredClone(live()), game = createGame(1, map), contestant = game.players[0];
+test('live sites allow charging, extraction, and safe hunter redeployment', async t => {
+  const map = structuredClone(live()), game = await createPhysicsGame(1, map, defaultContent()), contestant = game.players[0];
+  t.after(() => disposePhysics(game));
   for (const player of game.players) player.bot = false;
   game.map.traps = [];
   Object.assign(contestant, map.chargers[0]);
@@ -71,7 +72,8 @@ test('live sites allow charging, extraction, and safe hunter redeployment', () =
   hunter.status = 'respawning'; hunter.respawnAt = game.tick + 1;
   step(game);
   assert.equal(hunter.status, 'active');
-  assert.ok(map.stations.some(site => distance(hunter, site) === 0));
+  // On a station, to the engine's single-precision positions.
+  assert.ok(map.stations.some(site => distance(hunter, site) < 0.01));
 });
 
 test('each live site and item keeps its own source region, place and tier', () => {

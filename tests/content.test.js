@@ -1,26 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
+import { createGame, disposePhysics, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';
 import { defaultContent, legacyContent, contentById, CONTENT_ID, LEGACY_CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectEquipment, WEAPONS } from '../shared/equipment.ts';
 import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
+import { openField } from './helpers/arena.js';
+import { generatedMap } from './helpers/room-harness.js';
+import { stagePhysics } from './helpers/scenario.js';
 
-function fixture(content) {
-  const s = createGame(4217, undefined, content);
-  for (const p of s.players) { p.bot = false; p.input = {}; }
-  s.map.items = []; s.map.traps = [];
-  return { s, p: s.players[0] };
+// On the shipped content and the room arena (#920). Cases that never step build the game without its physics
+// world; cases that step stage the engine on open ground. The content lineage and the legacy defaults are
+// stage 4's, which retires them.
+const game = (content = defaultContent()) => createGame(4217, generatedMap(), content);
+/** Two idle contestants on open ground, on the engine; dispose of it with `disposePhysics`. */
+async function stepped(content = defaultContent()) {
+  const { map } = openField(1200);
+  const { s, players } = await stagePhysics(map, { content, actors: [{ role: 'contestant', bot: false, x: 300, y: 576 }, { role: 'contestant', bot: false, x: 900, y: 576 }] });
+  return { s, p: players[0], players };
 }
 
 test('a match is pinned to a content set that names itself', () => {
-  const { s } = fixture();
-  assert.equal(s.content.id, LEGACY_CONTENT_ID, 'createGame is the legacy mover, so it defaults to the legacy set');
+  const s = game();
+  assert.equal(s.content.id, CONTENT_ID, 'what a live room ships is the default');
   assert.equal(s.content.durationTicks, 600 * 20);
-  assert.equal(defaultContent().id, CONTENT_ID, 'what a live room ships is the default, and it is a different set');
-  assert.notEqual(CONTENT_ID, LEGACY_CONTENT_ID);
+  assert.notEqual(CONTENT_ID, LEGACY_CONTENT_ID, 'and the legacy set is a different one');
+});
+
+test('createGame without content defaults to the legacy set (legacy mover, #920 stage 4)', () => {
+  assert.equal(createGame(4217).content.id, LEGACY_CONTENT_ID);
 });
 
 test('shipped content ids return independent deeply frozen retained and current rosters', () => {
@@ -69,12 +79,12 @@ test('compatibility exports are detached copies of the shipped tables', () => {
   assert.deepEqual(KITS, shipped.kits);
   assert.deepEqual([DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS], [shipped.durationTicks, shipped.cellChargeTicks, shipped.gladiatorRespawnTicks, shipped.hazardGraceTicks]);
   assert.ok(!Object.isFrozen(WEAPONS.scattergun.spread), 'standalone callers may still edit them');
-  const existing = createGame(4217);
+  const existing = game();
   const saved = structuredClone({ WEAPONS, KITS });
   try {
     WEAPONS.pistol.damage = 999; WEAPONS.scattergun.spread.push(1); WEAPONS.scattergun.spread[0] = 5;
     KITS.warden.cooldown = 1; KITS.specter.name = 'Changed';
-    for (const id of ['content-1', 'content-2']) {
+    for (const id of ['content-1', 'content-2', CONTENT_ID]) {
       const content = contentById(id);
       assert.equal(content.weapons.pistol.damage, 10, id);
       assert.deepEqual(content.weapons.scattergun.spread, [-0.18, -0.09, 0, 0.09, 0.18], id);
@@ -82,15 +92,15 @@ test('compatibility exports are detached copies of the shipped tables', () => {
       assert.equal(content.kits.specter.name, 'Specter', id);
     }
     assert.deepEqual(existing.content.weapons.scattergun.spread, [-0.18, -0.09, 0, 0.09, 0.18], 'nor a match already created');
-    assert.equal(createGame(4217).content.kits.warden.cooldown, 110, 'nor one created afterwards');
+    assert.equal(game().content.kits.warden.cooldown, 110, 'nor one created afterwards');
   } finally {
     for (const [name, table] of Object.entries({ WEAPONS, KITS })) for (const key of Object.keys(table)) table[key] = saved[name][key];
   }
   assert.deepEqual(WEAPONS, shipped.weapons);
 });
 
-test('content-2 defaults to eight contestants and three hunters at the retained transit order', () => {
-  const s = createGame(4217);
+test('the shipped content defaults to eight contestants and three hunters, each hunter at its authored start', () => {
+  const s = game();
   const contestants = s.players.filter(p => p.role === 'contestant');
   const hunters = s.players.filter(p => p.role === 'gladiator');
   assert.equal(contestants.length, 8);
@@ -104,37 +114,37 @@ test('content-2 defaults to eight contestants and three hunters at the retained 
   ]);
   const blaze = hunters[2];
   assert.deepEqual([blaze.id, blaze.name, blaze.kit], ['g2', 'BLAZE', 'striker']);
-  assert.deepEqual([blaze.x, blaze.y], [s.map.stations.at(-3).x, s.map.stations.at(-3).y]);
+  assert.deepEqual([blaze.x, blaze.y], [s.map.hunterSpawns[2].x, s.map.hunterSpawns[2].y]);
 });
 
 test('the current roster permits all three hunter claims and rejects a fourth', () => {
-  const s = createGame(4217);
+  const s = game();
   const claims = ['warden', 'specter', 'striker'].map((kit, i) => joinGame(s, `hunter-${i}`, 'gladiator', kit, `Hunter ${i}`));
   assert.deepEqual(claims.map(p => p?.id), ['hunter-0', 'hunter-1', 'hunter-2']);
   assert.equal(joinGame(s, 'hunter-3', 'gladiator', 'warden', 'Hunter 3'), null);
 });
 
-test('content choice does not change the generated map', () => {
+test('content choice does not change the generated map (legacy generator, #920 stage 4)', () => {
   const legacy = createGame(4217, undefined, contentById('content-1'));
   const current = createGame(4217, undefined, contentById('content-2'));
   assert.deepEqual(current.map, legacy.map);
 });
 
 test('two matches hold independent copies', () => {
-  const a = createGame(1), b = createGame(1);
+  const a = game(), b = game();
   assert.notEqual(a.content, b.content, 'not the same object');
   assert.deepEqual(a.content, b.content, 'but the same values');
   assert.notEqual(a.content.weapons, b.content.weapons, 'tables are copied, not shared');
 });
 
 test('a match cannot edit the balance it is running under', () => {
-  const { s } = fixture();
+  const s = game();
   assert.throws(() => { s.content.weapons.pistol.damage = 999; }, TypeError, 'weapon specs are frozen');
   assert.throws(() => { s.content.durationTicks = 1; }, TypeError, 'so are the tick rules');
   assert.throws(() => { s.content.kits.warden.cooldown = 0; }, TypeError, 'and the kit table');
 });
 
-test('the simulation reads the pinned content, not the shipped constants', () => {
+test('the simulation reads the pinned content, not the shipped constants', async () => {
   // A match given a harder-hitting pistol must hit harder, which is only true if the read goes
   // through the match rather than through the module the defaults live in.
   const content = structuredClone(defaultContent());
@@ -142,26 +152,28 @@ test('the simulation reads the pinned content, not the shipped constants', () =>
   content.weapons.pistol.damage = 90;
   Object.freeze(content);
 
-  const shoot = game => {
-    const shooter = game.players[1], target = game.players[2];
-    game.map.items = []; game.map.traps = []; game.map.obstacles = []; game.map.gates = [];
-    for (const q of game.players) { q.bot = false; q.input = {}; }
-    Object.assign(shooter, { x: 6000, y: 6000, heading: 0, attackCd: 0 });
-    Object.assign(target, { x: 6080, y: 6000, hp: 100, shield: 0 });
-    for (const q of game.players) if (q !== shooter && q !== target) Object.assign(q, { x: 1000, y: 1000 });
-    collectEquipment(shooter, { kind: 'weapon', weaponType: 'pistol' }, game.content.weapons);
-    shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');
-    attack(game, shooter);
-    for (let i = 0; i < 6; i++) step(game);
-    return target.hp;
+  // A third contestant, out of the way, keeps the match live if the target falls.
+  const shoot = async content => {
+    const { s, players: [shooter, target] } = await stagePhysics(openField(1200).map, { content,
+      actors: [{ role: 'contestant', bot: false, x: 300, y: 576 }, { role: 'contestant', bot: false, x: 380, y: 576 }, { role: 'contestant', bot: false, x: 1000, y: 200 }] });
+    try {
+      Object.assign(shooter, { heading: 0, attackCd: 0 });
+      Object.assign(target, { hp: 100, shield: 0 });
+      collectEquipment(shooter, { kind: 'weapon', weaponType: 'pistol' }, s.content.weapons);
+      shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');
+      attack(s, shooter);
+      for (let i = 0; i < 6; i++) step(s);
+      return target.hp;
+    } finally { disposePhysics(s); }
   };
-  const standard = shoot(createGame(4217));
-  const harder = shoot(createGame(4217, undefined, content));
+  const standard = await shoot(defaultContent());
+  const harder = await shoot(content);
   assert.ok(harder < standard, `pinned content decides damage, got ${harder} against ${standard}`);
 });
 
-test('content stays out of every frame, and is named once instead', () => {
-  const { s } = fixture();
+test('content stays out of every frame, and is named once instead', async t => {
+  const { s } = await stepped();
+  t.after(() => disposePhysics(s));
   step(s);
   const frame = snapshot(s);
   assert.equal(Object.hasOwn(frame, 'content'), false, 'a frame does not repeat the tables');
@@ -178,7 +190,7 @@ test('a kit is validated against the match content rather than the shipped table
   const content = structuredClone(defaultContent());
   delete content.kits.striker;
   Object.freeze(content);
-  const s = createGame(4217, undefined, content);
+  const s = game(content);
   const p = joinGame(s, 'human', 'gladiator', 'striker', 'Runner');
   assert.notEqual(p.kit, 'striker', 'a kit this match does not carry is refused');
   assert.ok(Object.hasOwn(content.kits, p.kit), 'and the fallback is one it does');
@@ -190,7 +202,7 @@ test('the roster is the one place a capacity is stated', () => {
   content.roster.contestants = ['Solo', 'Duo'];
   content.roster.gladiators = [{ name: 'ONE', kit: 'warden' }];
   Object.freeze(content);
-  const s = createGame(4217, undefined, content);
+  const s = game(content);
 
   const contestants = s.players.filter(p => p.role === 'contestant');
   const gladiators = s.players.filter(p => p.role === 'gladiator');
@@ -204,7 +216,7 @@ test('the roster is the one place a capacity is stated', () => {
 });
 
 test('a contestant roster place is recorded and every view carries the frame\'s place (#792)', () => {
-  const s = createGame(4217);
+  const s = game();
   const contestants = s.players.filter(p => p.role === 'contestant');
   const gladiators = s.players.filter(p => p.role === 'gladiator');
   assert.deepEqual(contestants.map(p => p.seat), contestants.map((_, i) => i), 'a place starts at its roster index');
@@ -233,7 +245,7 @@ test('a contestant roster place is recorded and every view carries the frame\'s 
 });
 
 test('a delayed spectator view carries the seat of the frame it shows, not the join after it (#792)', () => {
-  const s = createGame(4217);
+  const s = game();
   const before = snapshot(s); // c0 still holds seat 0
   const joined = joinGame(s, 'late', 'contestant', 'warden', 'Late'); // takes seat 0 after the frame
   assert.equal(joined.id, 'late');
@@ -246,7 +258,7 @@ test('a delayed spectator view carries the seat of the frame it shows, not the j
 });
 
 test('a frame from before schema 16 projects without a seat and keeps the id fallback tint (#792)', () => {
-  const s = createGame(4217);
+  const s = game();
   const old = snapshot(s);
   for (const p of old.players) delete p.seat; // what a recording written before schema 16 looks like
   const view = playerView(s, old, 'spectator');
@@ -258,7 +270,7 @@ test('a frame from before schema 16 projects without a seat and keeps the id fal
   }
 });
 
-test('trap balance is read from the match, not from the module it defaults in', () => {
+test('trap balance is read from the match, not from the module it defaults in', async () => {
   // A mine set to hit harder must hit harder. Reach, damage and cadence are balance; the arithmetic
   // that makes the trap work is not, and stays in traps.ts.
   const content = structuredClone(defaultContent());
@@ -266,22 +278,24 @@ test('trap balance is read from the match, not from the module it defaults in', 
   content.traps.mine.damage = 80;
   Object.freeze(content);
 
-  const detonate = game => {
-    game.map.obstacles = []; game.map.items = []; game.map.gates = []; game.map.buildings = [];
-    for (const [i, q] of game.players.entries()) { q.bot = false; q.input = {}; q.x = 10000 + i * 700; q.y = 6000; }
-    const victim = game.players[0];
-    game.map.traps = [{ id: 'trap', kind: 'mine', x: victim.x + 40, y: victim.y, homeX: victim.x + 40, homeY: victim.y, heading: Math.PI, cooldown: 0, offset: 0 }];
-    setInput(game, victim.id, { seq: 1, x: 1 });
-    step(game);
-    return victim.hp;
+  // A second contestant, out of the mine's reach, keeps the match live if the victim falls.
+  const detonate = async content => {
+    const { s, players: [victim] } = await stepped(content);
+    try {
+      s.map.traps = [{ id: 'trap', kind: 'mine', x: victim.x + 40, y: victim.y, homeX: victim.x + 40, homeY: victim.y, heading: Math.PI, cooldown: 0, offset: 0 }];
+      setInput(s, victim.id, { seq: 1, x: 1 });
+      step(s);
+      return victim.hp;
+    } finally { disposePhysics(s); }
   };
-  const standard = detonate(createGame());
-  const heavier = detonate(createGame(4217, undefined, content));
+  const standard = await detonate(defaultContent());
+  const heavier = await detonate(content);
   assert.ok(heavier < standard, `pinned trap content decides damage, got ${heavier} against ${standard}`);
 });
 
-test('a match keeps its content across a full tick', () => {
-  const { s } = fixture();
+test('a match keeps its content across a full tick', async t => {
+  const { s } = await stepped();
+  t.after(() => disposePhysics(s));
   const before = s.content;
   for (let i = 0; i < 30; i++) step(s);
   assert.equal(s.content, before, 'the same pinned object, not re-read per tick');

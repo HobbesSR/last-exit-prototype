@@ -1,15 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, createPhysicsGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
 import { botInput, joinRoute, passed, tickAllowance } from '../shared/simulation/bots.ts';
-import { canOccupy, movePlayer, sweptClear } from '../shared/movement.ts';
-import { createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_INTERVAL, DISCOVERY_RADIUS } from '../shared/discovery.ts';
+import { canOccupy, sweptClear } from '../shared/movement.ts';
+import { createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_RADIUS } from '../shared/discovery.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
-import { contentById } from '../shared/simulation/content.ts';
-import { generateLiveMap } from '../map/live.ts';
+import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
+import { generatedMap } from './helpers/room-harness.js';
+import { stagePhysics } from './helpers/scenario.js';
 
-// Contestant bots know what they have discovered, like people (15, #230).
+// Contestant bots know what they have discovered, like people (15, #230). On the shipped content and its
+// engine (#920); content-6 and -7 keep content-5's tiles and route repair. What is labelled stage 4 holds
+// the legacy planners' contrasts, which go with them.
 
 const openMap = (items, buildings = []) => arena({ cols: 10, rows: 5, items, buildings }).map;
 
@@ -32,11 +35,10 @@ test('a remembered item is forgotten once its spot is seen empty, and kept while
   assert.deepEqual([...memory.items.keys()], ['roofed']);
 });
 
-// A live chain map, as rooms play: no street-block graph, so a route runs to its target.
-let liveMap;
-function lone(seed = 4217) {
-  liveMap ??= generateLiveMap(seed);
-  const s = createGame(seed, structuredClone(liveMap));
+// A live chain map, as rooms play (the room arena): no street-block graph, so a route runs to its target.
+// Dispose of the game with `disposePhysics`.
+async function lone(seed = 4217) {
+  const s = await createPhysicsGame(seed, generatedMap(), defaultContent());
   for (const p of s.players) { p.bot = false; p.input = {}; }
   s.map.traps = []; s.map.items = [];
   for (const p of s.players) p.discovery?.items?.clear();
@@ -50,8 +52,9 @@ function plan(s, p) {
   return p.route.at(-1);
 }
 
-test('a bot routes to a cell it has seen and not to one it has not', () => {
-  const { s, p } = lone();
+test('a bot routes to a cell it has seen and not to one it has not', async t => {
+  const { s, p } = await lone();
+  t.after(() => disposePhysics(s));
   let spot;
   for (let r = 2600; !spot && r < 4000; r += 200)
     for (let a = 0; a < 16 && !spot; a++) {
@@ -72,16 +75,18 @@ test('a bot routes to a cell it has seen and not to one it has not', () => {
   assert.ok(Math.hypot(known.x - spot.x, known.y - spot.y) < 150, 'a seen cell is');
 });
 
-test('a bot that knows of nothing it needs explores', () => {
-  const { s, p } = lone();
+test('a bot that knows of nothing it needs explores', async t => {
+  const { s, p } = await lone();
+  t.after(() => disposePhysics(s));
   const start = { x: p.x, y: p.y }, before = p.discovery.discovered.size;
   for (let i = 0; i < 300; i++) step(s);
   assert.ok(p.discovery.discovered.size > before + 10, `discovered ${before} → ${p.discovery.discovered.size}`);
   assert.ok(Math.hypot(p.x - start.x, p.y - start.y) > 500, 'it went looking');
 });
 
-test('item, door and survey memory stay out of snapshots and every projection', () => {
-  const { s, p } = lone();
+test('item, door and survey memory stay out of snapshots and every projection', async t => {
+  const { s, p } = await lone();
+  t.after(() => disposePhysics(s));
   p.discovery.items.set('remembered-cell', { id: 'remembered-cell', kind: 'cell', x: p.x + 5000, y: p.y });
   // Door observations and surveyed cells, which navigation's knowledge filter reads (22.6, #423), stay private too.
   p.discovery.gates = new Map([['remembered-door', { open: false, locked: true }]]);
@@ -93,41 +98,38 @@ test('item, door and survey memory stay out of snapshots and every projection', 
   }
 });
 
-for (const content of ['content-2', 'content-3', 'content-4']) test(`a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review, ${content})`, () => {
+test('a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review)', async t => {
   // Open ground with one roofed room. Everything has been seen but the room's cell, index 84, whose centre
   // (864, 1632) stays concealed until the bot stands under the roof. The room holds the only cell.
   const cell = { id: 'indoor-cell', kind: 'cell', x: 864, y: 1632, charge: 0 };
-  const map = { width: 1920, height: 3840, nodes: [], streets: [], obstacles: [], gates: [], hazards: [], traps: [],
-    buildings: [{ id: 'room', x: 768, y: 1536, w: 192, h: 192 }], items: [cell], chargers: [], stations: [], exit: { x: 1800, y: 100 } };
+  const { map } = arena({ cols: 10, rows: 20, items: [cell], buildings: [{ id: 'room', x: 768, y: 1536, w: 192, h: 192 }] });
   assert.ok(canOccupy(map, cell.x, cell.y, 14), 'the room is walkable');
-  const p = { id: 'c0', name: 'contestant-1', role: 'contestant', kit: 'warden', bot: true, x: 576, y: 1632, hp: 100, maxHp: 100, shield: 0, keys: 0,
-    weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
-    input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0, path: [] };
+  // A second contestant, idle and far off, keeps the match live.
+  const { s, players: [p] } = await stagePhysics(map, { content: defaultContent(),
+    actors: [{ role: 'contestant', x: 576, y: 1632 }, { role: 'contestant', bot: false, x: 1800, y: 3700 }] });
+  t.after(() => disposePhysics(s));
   const memory = createDiscovery();
   memory.seen = new Set();
   for (let i = 0; i < 200; i++) { memory.discovered.add(i); if (i !== 84) memory.seen.add(i); }
   attachDiscovery(p, memory);
-  const s = { tick: 0, phase: 'live', content: contentById(content), map, players: [p], projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
-  for (; s.tick < 400 && !memory.seen.has(84); s.tick++) {
-    movePlayer(map, p, botInput(s, p));
-    if (s.tick % DISCOVERY_INTERVAL === 0) discover(memory, map, p, undefined, true);
-  }
+  for (let i = 0; i < 400 && !memory.seen.has(84); i++) step(s);
   assert.ok(memory.seen.has(84), 'the roofed cell is seen by going in');
-  assert.ok(memory.items.has('indoor-cell'), 'and the cell inside is seen');
+  // A physical body reaches the cell as it sees it, and may pick it up on that tick.
+  assert.ok(memory.items.has('indoor-cell') || p.inventory.some(item => item?.kind === 'cell'), 'and the cell inside is seen, or already taken');
 });
 
 // The bot-level information test (22.6, #424): a contestant planning over tiles chooses its targets,
 // ranks them, judges ground and doors and steers from what it knows. Run a bot on a live map, then on
 // a twin that agrees wherever it looked and has nothing beyond: no obstacles or doors, and no ground.
 // The two walks must match tick for tick. The bot remembers a cell far across unseen ground,
-// so its route runs where the twins differ; the grid planner, which reads the truth, parts.
-for (const [content, alike] of [['content-5', true], ['content-4', true], ['content-3', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content})`, () => {
-  const seed = 4217;
-  liveMap ??= generateLiveMap(seed);
+// so its route runs where the twins differ; the grid planner, which reads the truth, parts (stage 4 retires it
+// with the legacy mover it runs on).
+for (const [content, alike] of [['content-7', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content}${alike ? '' : ', legacy mover, #920 stage 4'})`, async () => {
+  const seed = 4217, liveMap = generatedMap();
   const spawn = liveMap.spawns[0], far = { id: 'far-cell', kind: 'cell', x: spawn.x + 6000, y: spawn.y, charge: 0 };
   for (let dy = 48; !canOccupy(liveMap, far.x, far.y, 25); dy += 48) far.y = spawn.y + (dy % 96 ? dy : -dy);
-  const walk = map => {
-    const s = createGame(seed, structuredClone(map), contentById(content));
+  const walk = async map => {
+    const s = alike ? await createPhysicsGame(seed, structuredClone(map), contentById(content)) : createGame(seed, structuredClone(map), contentById(content));
     for (const p of s.players) if (p.id !== 'c0') { p.bot = false; p.input = {}; }
     s.map.traps = []; s.map.items = [];
     const p = s.players[0], trace = [], eyes = [];
@@ -137,9 +139,10 @@ for (const [content, alike] of [['content-5', true], ['content-4', true], ['cont
       trace.push(JSON.stringify([p.x, p.y, p.heading, p.route, p.inventory]));
       eyes.push({ x: p.x, y: p.y });
     }
+    disposePhysics(s);
     return { trace, eyes, memory: p.discovery, s };
   };
-  const truth = walk(liveMap);
+  const truth = await walk(liveMap);
   const { cols, size } = discoveryGrid(liveMap), memory = truth.memory;
   // What the bot could have read: cells it knows, and anything within sight of where it looked.
   const known = cell => memory.discovered.has(cell) || memory.surveyed.has(cell);
@@ -149,7 +152,11 @@ for (const [content, alike] of [['content-5', true], ['content-4', true], ['cont
       for (let col = Math.floor(box.x / size); col <= Math.floor((box.x + box.w) / size); col++) if (known(row * cols + col)) return true;
     return false;
   };
-  const kept = box => touchesKnown(box) || sighted(box);
+  // The engine places every actor at its start, so the twin keeps the ground round each one too: more
+  // than the bot knew can only make the twins agree where it did not look, which the claim allows.
+  const starts = [...liveMap.spawns, ...liveMap.hunterSpawns];
+  const nearStart = box => starts.some(e => Math.hypot(Math.max(box.x, Math.min(box.x + box.w, e.x)) - e.x, Math.max(box.y, Math.min(box.y + box.h, e.y)) - e.y) <= 96);
+  const kept = box => touchesKnown(box) || sighted(box) || nearStart(box);
   // The playable area's own cells, which are finer than discovery's.
   const area = liveMap.playableArea, unit = area.cellSize;
   const rows = area.rows.map(({ y, runs: truthRuns }) => {
@@ -164,7 +171,7 @@ for (const [content, alike] of [['content-5', true], ['content-4', true], ['cont
   assert.ok(twin.obstacles.length < liveMap.obstacles.length / 2, 'most of the map differs');
   const cells = list => list.reduce((n, r) => n + r.runs.reduce((m, [a, b]) => m + b - a, 0), 0);
   assert.ok(cells(rows) < cells(area.rows) / 2, 'ground the bot never saw is void');
-  const other = walk(twin);
+  const other = await walk(twin);
   const first = other.trace.findIndex((t, i) => t !== truth.trace[i]);
   if (!alike) return assert.ok(first >= 0, 'the grid planner reads the truth, so its walk parts');
   assert.equal(first, -1, `the walks part at tick ${first + 1}: ${truth.trace[first]?.slice(0, 300)} vs ${other.trace[first]?.slice(0, 300)}`);
@@ -204,9 +211,11 @@ test('under sliced replanning a bot turns short of a waypoint only within the ma
   const game = content => ({ map, content: contentById(content) }), corner = { x: 186, y: 100 }, end = { x: 186, y: 900 };
   // 10 units off a leg along the wall, the first 24 units toward its end are clear but the rest is not.
   const beside = { role: 'contestant', x: 196, y: 100 };
+  // Shipped repair replanning slices its searches, so it keeps the sliced rule.
+  assert.equal(passed(game('content-7'), beside, corner, end), false);
+  assert.equal(passed(game('content-7'), { role: 'contestant', x: 187.5, y: 100 }, corner, end), true);
+  // Legacy mover, #920 stage 4: content-3's unsliced rule goes with it.
   assert.equal(passed(game('content-3'), beside, corner, end), true, 'content-3 keeps its rule');
-  assert.equal(passed(game('content-4'), beside, corner, end), false);
-  assert.equal(passed(game('content-4'), { role: 'contestant', x: 187.5, y: 100 }, corner, end), true);
 });
 
 // A wall at x 600–640 with a door in it, and a gap at its foot. Each bot saw the door locked, so it
@@ -240,7 +249,7 @@ function doorScene(content, positions) {
   return { s, players, through, see };
 }
 
-test('under content-5 a door seen opening near a bot reroutes it at once, and one further off at its next repath (#470 part 2)', () => {
+test('under repair replanning a door seen opening near a bot reroutes it at once, and one further off at its next repath (#470 part 2)', () => {
   const run = (content, x, y) => {
     const { s, players: [p], through, see } = doorScene(content, [[x, y]]);
     see();
@@ -249,16 +258,17 @@ test('under content-5 a door seen opening near a bot reroutes it at once, and on
     assert.ok(through(p), `it takes the door in the end (${content}): ${JSON.stringify(p.route)}`);
     return s.tick - seenAt;
   };
-  assert.equal(run('content-5', 420, 330), 1, 'near: repaired on the tick it is seen');
+  assert.equal(run('content-7', 420, 330), 1, 'near: repaired on the tick it is seen');
+  // Legacy mover, #920 stage 4: the sliced contrast goes with content-4.
   assert.ok(run('content-4', 420, 330) >= 19, 'content-4 waits for its turn');
-  const later = run('content-5', 100, 330);
+  const later = run('content-7', 100, 330);
   assert.ok(later >= 19, `further off: at its next repath, not after ${later}`);
 });
 
-test(`under content-5 a repair reserves its budget from the tick's shared allowance, and waits a tick when it is short (#470 part 2)`, () => {
+test(`under repair replanning a repair reserves its budget from the tick's shared allowance, and waits a tick when it is short (#470 part 2)`, () => {
   // Whatever earlier bots left this tick: none, or one short of a repair's budget.
   for (const left of [0, 499]) {
-    const { s, players: [p], through, see } = doorScene('content-5', [[420, 330]]);
+    const { s, players: [p], through, see } = doorScene('content-7', [[420, 330]]);
     see();
     tickAllowance(s).left = left;
     botInput(s, p);
@@ -270,7 +280,7 @@ test(`under content-5 a repair reserves its budget from the tick's shared allowa
   }
   // Two near bots and one further off, whose sliced repath competes with the repairs, with each tick
   // starting 520 short of nothing: the first repair leaves too little for the second, which waits.
-  const { s, players, through, see } = doorScene('content-5', [[420, 330], [420, 300], [100, 330]]);
+  const { s, players, through, see } = doorScene('content-7', [[420, 330], [420, 300], [100, 330]]);
   see();
   const took = new Map();
   for (const seenAt = s.tick; s.tick < seenAt + 40 && took.size < players.length; s.tick++) {
