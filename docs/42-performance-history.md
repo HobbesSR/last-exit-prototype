@@ -59,6 +59,8 @@ limit no longer fires on the measured seeds, and what it costs, is in
 
 The sparse-sides experiment, fill and set-piece schemes with fewer passable halves, their portals,
 one-portal regions and placement cost, is in [42.40](42.40-sparse-sides-experiment.md) (#851).
+Its `sparse / alternate` adoption, together with #878's regional lighting, is in
+[42.44](42.44-sparse-lighting-adoption.md) (#895).
 Landing/evac-first placement's matched 30-seed attempt counts and shifted packing
 failures are in [42.41](42.41-set-piece-order.md) (#891); the flag stays off by default.
 The connectivity skeleton experiment, a pre-fill spanning tree of forced-open seams preventing
@@ -66,7 +68,7 @@ sealed pockets under sparse tile sides, with Wilson/Prim/Kruskal algorithms and 
 measures, is in [42.42](42.42-connectivity-skeleton-experiment.md) (#883).
 
 The opt-in regional lighting recipe and its multi-region cache/rebuild evidence
-are in [42.39](42.39-regional-lighting.md) (#771).
+are in [42.43](42.43-regional-lighting.md) (#771).
 
 The current unresolved slowdown is recorded below. Historical runtime measurements are in [42.2](42.2-runtime-performance.md), generation and delegation measurements in [42.3](42.3-generation-and-delegation-evidence.md), and map chain captures in [42.4](42.4-chain-checkpoint-history.md). The navigation experiment remains in [42.1](42.1-navigation-experiment.md), the portal graph's first measurements are in [42.5](42.5-portal-graph.md), its free-space mesh bottom level in [42.7](42.7-navigation-mesh.md), bots' adoption of the tile planner in [42.8](42.8-bot-adoption.md), replanning spread over ticks in [42.10](42.10-sliced-replanning.md), and local repair in [42.13](42.13-local-repair.md).
 

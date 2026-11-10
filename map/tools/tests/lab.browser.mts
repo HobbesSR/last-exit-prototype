@@ -8,7 +8,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { CHAIN_LIBRARY, chainParams, checkMap, generate } from "../core.ts";
+import { CHAIN_LIBRARY, chainParams, checkMap, generate, generateMacro } from "../core.ts";
 import { libraryFingerprint } from "../../macro/src/coding.ts";
 import { planBlock } from "../../micro/strategies/block.ts";
 import { buildRegion } from "../../micro/region-types.ts";
@@ -2175,8 +2175,9 @@ try {
   assert.match(await page.locator("#status").innerText(), /isn't valid for the game/);
 
   // Drilling into a region rebuilds it in the worker with an observer (53 "Region drill-down").
-  // A hut on last-exit-006 shows its house (the matched libraries rarely place huts, #849, so the
-  // default seed has none); a block on last-exit-009 its lots, and the
+  // A hut shows its house: the first `last-exit-NNN` seed whose briefs hold one, found from macro
+  // alone, since the matched and sparse libraries rarely place huts (#849, #895) and a fixed seed is
+  // a lottery each content batch; a block its lots, and the
   // compound one of them holds. Each rebuild equals the stored result, so its traces are drawn.
   const drillPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   drillPage.on("pageerror", (error: Error) => errors.push(error.message));
@@ -2196,10 +2197,13 @@ try {
     return drillSnapshot();
   };
   await drillShown("last-exit-001");
-  await drillPage.locator("#seed").fill("last-exit-006");
+  const hutSeed = Array.from({ length: 60 }, (_, i) => `last-exit-${String(i + 1).padStart(3, "0")}`)
+    .find((seed) => mapViews(generateMacro(seed)).briefs.some((brief) => brief.type === "hut"));
+  assert.ok(hutSeed, "some last-exit seed in 1 to 60 places a hut");
+  await drillPage.locator("#seed").fill(hutSeed);
   await drillPage.locator("#generate").click();
-  await drillShown("last-exit-006");
-  const hutBrief = mapViews(generate("last-exit-006")).briefs.find((brief) => brief.type === "hut")!;
+  await drillShown(hutSeed);
+  const hutBrief = mapViews(generate(hutSeed)).briefs.find((brief) => brief.type === "hut")!;
   for (const id of ["allocation", "spans", "openings", "graph"]) await drillPage.locator(`#layer-${id}`).check();
   const hutDrill = await drillInto(hutBrief);
   assert.equal(hutDrill.drill.difference, null, "the hut rebuilds equal to the stored result");

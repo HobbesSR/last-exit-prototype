@@ -2083,7 +2083,7 @@ try {
       cellSize: 40, cells, zones: [{ tier: 2, bonus: 0, lootChance: 0, cells }], portals: [] }));
   }
   const lightingContext = createGenerationContext(771);
-  stampLightingMap(lightingContext, composeLightingRegions(lightingRegions), { x: 0, y: 0 }, { regionalLighting: true });
+  stampLightingMap(lightingContext, composeLightingRegions(lightingRegions), { x: 0, y: 0 });
   const { map: proceduralMap } = arena({ cols: 30, rows: 20, cellSize: 40, seed: 771,
     obstacles: lightingContext.map.obstacles, gates: lightingContext.map.gates,
     buildings: lightingContext.map.buildings, roofs: lightingContext.map.roofs, appearance: lightingContext.map.appearance });

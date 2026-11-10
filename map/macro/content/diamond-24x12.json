@@ -5,18 +5,112 @@
   "zoneWidth": 24,
   "zoneHeight": 12,
   "passabilityRules": "matched",
+  "fitPlacedSetPieces": true,
   "includes": [
     {
       "name": "common-primitives",
-      "version": 6
+      "version": 7
     },
     {
       "name": "common-set-pieces",
-      "version": 6
+      "version": 7
     },
     {
       "name": "district-set-pieces",
-      "version": 5
+      "version": 6
+    }
+  ],
+  "tiles": [
+    {
+      "id": "hall-ground-inward-nw-sp-e",
+      "defaultCellClass": "hall",
+      "segments": {
+        "h:0,0": {
+          "passability": "not-passable-hint"
+        },
+        "h:0,1": {
+          "passability": "not-passable-hint"
+        },
+        "h:0,2": {
+          "passability": "not-passable-hint"
+        },
+        "h:0,3": {
+          "passability": "not-passable-hint"
+        },
+        "h:0,4": {
+          "passability": "not-passable-hint"
+        },
+        "h:0,5": {
+          "passability": "not-passable-hint"
+        },
+        "v:6,0": {
+          "passability": "not-passable-hint"
+        },
+        "v:6,1": {
+          "passability": "not-passable-hint"
+        },
+        "v:6,2": {
+          "passability": "not-passable-hint"
+        },
+        "v:6,3": {
+          "passability": "not-passable-hint"
+        },
+        "v:6,4": {
+          "passability": "not-passable-hint"
+        },
+        "v:6,5": {
+          "passability": "not-passable-hint"
+        },
+        "h:6,0": {
+          "passability": "not-passable-hint"
+        },
+        "h:6,1": {
+          "passability": "not-passable-hint"
+        },
+        "h:6,2": {
+          "passability": "not-passable-hint"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "not-passable-hint"
+        },
+        "v:0,1": {
+          "passability": "not-passable-hint"
+        },
+        "v:0,2": {
+          "passability": "not-passable-hint"
+        },
+        "v:0,3": {
+          "passability": "not-passable-hint"
+        },
+        "v:0,4": {
+          "passability": "not-passable-hint"
+        },
+        "v:0,5": {
+          "passability": "not-passable-hint"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 1,
+      "fillable": false
+    }
+  ],
+  "tileSets": [
+    {
+      "id": "hall-ground-inward-nw-tiles-sp-115",
+      "members": [
+        "hall-ground-inward-nw-sp-e"
+      ]
     }
   ],
   "setPieceClasses": [
@@ -127,7 +221,7 @@
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "hall-ground-inward-esw-tiles"
+          "tileSetId": "hall-ground-inward-esw-tiles-sp-67"
         },
         {
           "dx": 2,
@@ -137,7 +231,7 @@
         {
           "dx": 3,
           "dy": 0,
-          "tileSetId": "hall-ground-inward-esw-tiles"
+          "tileSetId": "hall-ground-inward-esw-tiles-sp-67"
         },
         {
           "dx": 4,
@@ -147,12 +241,12 @@
         {
           "dx": 5,
           "dy": 0,
-          "tileSetId": "hall-ground-inward-sw-tiles"
+          "tileSetId": "hall-ground-inward-sw-tiles-sp-68"
         },
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "hall-ground-inward-nes-tiles"
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
         },
         {
           "dx": 1,
@@ -167,17 +261,17 @@
         {
           "dx": 3,
           "dy": 1,
-          "tileSetId": "hall-ground-inward-new-tiles"
+          "tileSetId": "hall-ground-inward-new-tiles-sp-71"
         },
         {
           "dx": 4,
           "dy": 1,
-          "tileSetId": "hall-ground-inward-new-tiles"
+          "tileSetId": "hall-ground-inward-new-tiles-sp-71"
         },
         {
           "dx": 5,
           "dy": 1,
-          "tileSetId": "hall-ground-inward-nw-tiles"
+          "tileSetId": "hall-ground-inward-nw-tiles-sp-114"
         },
         {
           "dx": 0,
@@ -192,7 +286,7 @@
         {
           "dx": 2,
           "dy": 2,
-          "tileSetId": "hall-ground-inward-nsw-tiles"
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
         },
         {
           "dx": 3,
@@ -212,7 +306,7 @@
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "hall-ground-inward-nes-tiles"
+          "tileSetId": "hall-ground-inward-nes-tiles-sp-69"
         },
         {
           "dx": 1,
@@ -222,7 +316,7 @@
         {
           "dx": 2,
           "dy": 3,
-          "tileSetId": "hall-ground-inward-nsw-tiles"
+          "tileSetId": "hall-ground-inward-nsw-tiles-sp-70"
         },
         {
           "dx": 3,
@@ -247,12 +341,12 @@
         {
           "dx": 1,
           "dy": 4,
-          "tileSetId": "hall-ground-inward-new-tiles"
+          "tileSetId": "hall-ground-inward-new-tiles-sp-71"
         },
         {
           "dx": 2,
           "dy": 4,
-          "tileSetId": "hall-ground-inward-nw-tiles"
+          "tileSetId": "hall-ground-inward-nw-tiles-sp-115"
         },
         {
           "dx": 3,

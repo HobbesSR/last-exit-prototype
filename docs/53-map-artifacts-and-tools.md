@@ -18,7 +18,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
-| Region strategy content | `types-66` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results; architectural appearance kits for remaining region catalogue types (#770) over `landmark` (#769) and the matched libraries of #849 |
+| Region strategy content | `types-67` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results; regional lighting at map emission (#878) and the sparse-sides libraries (`common-primitives@7`, #851, #895) over architectural appearance kits (#770), `landmark` (#769) and the matched libraries of #849 |
 | Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
@@ -140,7 +140,7 @@ things stay documents.
 ## Proving a change: the sweep
 
 `node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
-(from the repository root, about ten minutes since the matched libraries: 595 s, 42.37) reruns the pinned seed set and compares
+(from the repository root, about ten minutes since the matched libraries: 595 s, 42.37; 448 s capturing the sparse-sides batch, 42.44) reruns the pinned seed set and compares
 per-view content hashes: 224 entries, including 161 game-mode cases (120
 default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
@@ -150,13 +150,13 @@ Four more entries are macro alone at the larger authored sizes (`macro-24x12` an
 `macro-36x18`, seeds `size-24-1`, `size-24-2`, `size-36-1` and `size-36-2`, `stages: 'macro'`): the Layout and macro's views
 through the briefs, with nothing built (`generateMacro` in `map/chain.ts`; #821). What builders
 make of those sizes is checked from stored briefs instead (31).
-The current baseline provenance is commit `4a38e17631f0fac87327603e2ac9fcba651136ab`, captured
-2026-11-08 under Node v24.15.0: placement's reachability lookahead (`06b912a`, #857, 42.39) over
-the architectural appearance kits (`types-66`, #770), `landmark` (#769) and the matched libraries
-(`common-primitives@6`, #849). The lookahead refuses some search branches sooner, so 61 of the
-228 maps place differently and every view of them moves, Layout and briefs included: 17 of the 120
-game maps, 4 crowded, 4 sparse, and 36 playgrounds. The other 167, and every macro-only entry, are
-unchanged. A full lookup is still the pinned seed set; `npm test` pins its quick cases against this
+The current baseline provenance is commit `84d2553760c69a7cec04bb52c734b238a9525d66`, captured
+2026-11-09 under Node v24.15.0: the sparse-sides and lighting adoption batch (#895, 42.44), that
+is #851's `sparse / alternate` libraries (`common-primitives@7`, `common-set-pieces@7`,
+`district-set-pieces@6`, with `fitPlacedSetPieces`) and #878's default regional lighting, under
+`types-67`. Every one of the 228 entries moves, Layout included, macro-only entries too. The
+previous capture, `4a38e17` (2026-11-08), was placement's reachability lookahead (#857, 42.39)
+over `types-66`. A full lookup is still the pinned seed set; `npm test` pins its quick cases against this
 file.
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the

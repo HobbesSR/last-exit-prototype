@@ -8,7 +8,9 @@ import process from 'node:process';
  * names: `common-primitives@5`, `common-set-pieces@5`, `district-set-pieces@4`. The #849
  * adoption migrated them into later versions by hand (weights, `fillable`, hints), which the
  * tool doesn't author, so its checks read that set. A committed top-level library now pins the
- * later set; its local set pieces are unchanged, so these checks read a copy pinned back.
+ * later set, so these checks read a copy pinned back. The sparse-sides adoption (#851, #895)
+ * pointed its local set pieces' slots at `<set>-sp-<n>` sets of its own; the copy points them
+ * back at the authored `<set>` and drops those sets and their tiles.
  */
 export const INWARD_MODULES = ['common-primitives@5.json', 'common-set-pieces@5.json', 'district-set-pieces@4.json'];
 const PINS = { 'common-primitives': 5, 'common-set-pieces': 5, 'district-set-pieces': 4 };
@@ -23,6 +25,11 @@ export function inwardSourceLibrary(name) {
   const library = JSON.parse(readFileSync(resolve('map/macro/content', name), 'utf8'));
   library.includes = library.includes.map(ref => ({ ...ref, version: PINS[ref.name] ?? ref.version }));
   delete library.passabilityRules;
+  delete library.fitPlacedSetPieces;
+  delete library.tiles;
+  delete library.tileSets;
+  for (const piece of library.setPieces ?? [])
+    piece.tiles = piece.tiles.map(slot => ({ ...slot, tileSetId: slot.tileSetId.replace(/-sp-\d+$/, '') }));
   const file = join(dir, name);
   writeFileSync(file, JSON.stringify(library, null, 2) + '\n');
   return file;

@@ -17,11 +17,9 @@ constraints (51 track B).
 
 ## What every type shares
 
-Experimental map-level appearance option (#771): the emission adapter accepts
-`regionalLighting: true` (off by default), aggregating regional land use into at most
-six coherent lighting districts. It is an adapter option, not a builder obligation
-or per-tile palette draw; see 29.4 and 51.9. Default adoption remains a content-batch
-decision under 31.
+Map-level regional lighting (#771, adopted in #878) is emitted by default, aggregating
+regional land use into at most six coherent lighting districts. This is adapter-owned
+appearance, not a builder obligation or per-tile palette draw; see 29.4 and 51.9.
 
 These hold for every entry in the catalogue's parts (54.1 to 54.4), so the entries don't repeat them.
 

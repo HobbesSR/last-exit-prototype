@@ -79,7 +79,7 @@ test('regional field count is bounded by six and appearance variation uses regio
   assert.notDeepEqual(otherSeededAppearance, fields, 'changing region seeds changes the named presentation recipe');
 });
 
-test('stampBuiltMap opts into fields without changing geometry, RNG draws, or IDs', () => {
+test('stampBuiltMap emits fields by default without changing geometry, RNG draws, or IDs', () => {
   const map = fixture();
   const disabled = createGenerationContext(7462);
   const defaulted = createGenerationContext(7462);
@@ -89,13 +89,16 @@ test('stampBuiltMap opts into fields without changing geometry, RNG draws, or ID
   defaulted.map.appearance = structuredClone(disabled.map.appearance);
   enabled.map.appearance = structuredClone(disabled.map.appearance);
 
-  stampBuiltMap(disabled, map, origin, { regionalLighting: false });
+  // Empty ownership suppresses lighting, while retaining identical elements and loot.
+  const unowned = structuredClone(map);
+  for (const region of unowned.regions) region.brief.cells = [];
+  stampBuiltMap(disabled, unowned, origin);
   stampBuiltMap(defaulted, map, origin);
-  stampBuiltMap(enabled, map, origin, { regionalLighting: true });
-  assert.deepEqual(disabled.map, defaulted.map, 'omitted and false options preserve the same map');
+  stampBuiltMap(enabled, map, origin);
+  assert.deepEqual(enabled.map, defaulted.map, 'ordinary emission consistently includes regional fields');
   const enabledWithoutFields = structuredClone(enabled.map);
   enabledWithoutFields.appearance.lighting.fields = enabledWithoutFields.appearance.lighting.fields.slice(0, 1);
-  assert.deepEqual(enabledWithoutFields, disabled.map, 'opting in adds only lighting fields');
+  assert.deepEqual(enabledWithoutFields, disabled.map, 'ownership-derived appearance adds only lighting fields');
   assert.deepEqual(enabled.map.appearance.lighting.fields[0], authored, 'existing authored fields stay first');
   assert.deepEqual(enabled.map.appearance.lighting.fields.slice(1), regionalLightingFields(map, origin), 'generated fields append to authored fields');
   assert.deepEqual(enabled.map.obstacles.map(shapeOf), disabled.map.obstacles.map(shapeOf));

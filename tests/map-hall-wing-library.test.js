@@ -16,6 +16,12 @@ const isHall = (x,y) => x >= 0 && x < 6 && y >= 0 && y < 5 && (y < 2 || x < 3);
 const names = ['diamond-12x6','diamond-24x12','diamond-36x18'];
 const paths = names.map(n => resolve(`map/macro/content/${n}.json`));
 const libraries = paths.map(p => readLibraryFile(p));
+const HINT = 'not-passable-hint';
+const halfAndHalf = (tile, prefix) => {
+  const side = Array.from({ length: 6 }, (_, i) => tile.segments?.[`${prefix},${i}`]?.passability);
+  const half = (a, b) => side.slice(0, 3).every(p => p === a) && side.slice(3).every(p => p === b);
+  return half(HINT, 'passable') || half('passable', HINT);
+};
 const find = (list, id) => { const value = list.find(item => item.id === id); assert.ok(value, id); return value; };
 
 test('all resolved libraries contain the L variant alongside their rectangular hall, with compatible prescriptions', () => {
@@ -34,13 +40,16 @@ test('all resolved libraries contain the L variant alongside their rectangular h
       const {dx:x,dy:y,tileSetId} = slot;
       if (!isHall(x,y)) { assert.equal(tileSetId, 'fields'); continue; }
       const mask = sides.filter(([,dx,dy]) => isHall(x+dx,y+dy)).map(([d]) => d).join('');
-      assert.equal(tileSetId, `hall-ground-inward-${mask}-tiles`);
+      // Sparse sides (#851, #895) give rewritten slots their own `-sp-<n>` sets; the authored set is the stem.
+      assert.equal(tileSetId.replace(/-sp-\d+$/, ''), `hall-ground-inward-${mask}-tiles`);
       const tile = find(library.tiles, find(library.tileSets, tileSetId).members[0]);
       assert.equal(tile.defaultCellClass, 'hall');
       for (const [d,dx,dy,prefix] of sides) for (let k=0;k<6;k++) {
         const key = `${prefix},${k}`;
         if (isHall(x+dx,y+dy)) assert.equal(tile.segments[key].passability, 'not-passable-hint', `${names[i]} ${x},${y} ${d}`);
-        else assert.deepEqual(tile.segments[key], original.segments[key], `${names[i]} exposed ${x},${y} ${d}`);
+        // An exposed side stays as authored, or (alternate borders) is hinted whole where it was half-and-half.
+        else if (!(halfAndHalf(original, prefix) && Array.from({ length: 6 }, (_, j) => tile.segments[`${prefix},${j}`]?.passability).every(p => p === HINT)))
+          assert.deepEqual(tile.segments[key], original.segments[key], `${names[i]} exposed ${x},${y} ${d}`);
       }
     }
     const tool = resolve('map/tools/author-inward-grounds.mts');
@@ -71,6 +80,7 @@ test('a placed winged variant becomes an L-shaped hall brief with real portals a
   const result = buildRegion(input);
   const wings = result.elements.filter(e => e.label.startsWith('hall-wing-'));
   assert.ok(wings.some(e => e.template.parts.length > 0), seed);
-  assert.deepEqual(validatePortalReach({ ...input, blockers:result.elements.flatMap(e => elementShapes(e)) }).errors, [], seed);
+  // Thorough, as the map diagnosis is: under alternate borders the grid search misses a gap (as in #849).
+  assert.deepEqual(validatePortalReach({ ...input, blockers:result.elements.flatMap(e => elementShapes(e)) }, { search: 'thorough' }).errors, [], seed);
   }
 });

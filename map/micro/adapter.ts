@@ -31,12 +31,12 @@ function stamp(context: BaseGenerationContext, elements: readonly RegionElement[
  * Nothing is validated first: a builder's promise is its own to check (51 principle 9).
  * Core element sites stay in the map for the report; map/live.ts applies gameplay placement policy.
  */
-export function stampBuiltMap(context: BaseGenerationContext, map: BuiltMap<RegionElement>, origin: Vec2,
-  options: { regionalLighting?: boolean } = {}): void {
+export function stampBuiltMap(context: BaseGenerationContext, map: BuiltMap<RegionElement>, origin: Vec2): void {
   for (const region of map.regions) stamp(context, region.elements, region.loot, origin, region.brief.id as NodeId);
-  if (options.regionalLighting) {
+  const fields = regionalLightingFields(map, origin);
+  if (fields.length) {
     const appearance = (context.map.appearance ??= {}), lighting = (appearance.lighting ??= {});
-    lighting.fields = [...(lighting.fields ?? []), ...regionalLightingFields(map, origin)];
+    lighting.fields = [...(lighting.fields ?? []), ...fields];
   }
 }
 
