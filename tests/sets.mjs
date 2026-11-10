@@ -39,15 +39,17 @@ export const SETS = {
   },
   simulation: {
     about: 'game rules, items, bots, navigation, sight and projections, and the legacy generator',
-    fast: ['simulation', 'characterization', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'traps', 'transit',
+    fast: ['simulation', 'characterization', 'characterization-physics', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'traps', 'transit',
       'utility-use', 'hearing', 'hearing-bots', 'hunting', 'hunter-planning', 'discovery', 'visibility', 'view', 'view-items',
       'projection-contract', 'presentation', 'frame-gates', 'frame-layers', 'rewind', 'reloading', 'input-queue',
       'movement-speed', 'movement-preparation', 'bot-discovery', 'bot-memory', 'navigation-*', 'route', 'boundaries', 'arena', 'playability', 'shared-rules', 'content'],
-    slow: ['characterization-bots', 'map-sweep', 'view-live-map'],
+    slow: ['characterization-bots', 'characterization-physics-bots', 'map-sweep', 'view-live-map'],
     browser: ['hearing', 'transit'],
     sources: ['shared/simulation*', 'shared/simulation/**', 'shared/movement.ts', 'shared/view.ts', 'shared/discovery.ts', 'shared/equipment.ts',
       'shared/item-instances.ts', 'shared/loot-tiers.ts', 'shared/traps.ts', 'shared/gate-query.ts', 'shared/presentation.ts',
-      'shared/frame-layers.ts', 'shared/navigation/**', 'shared/map.ts', 'shared/map/**', 'shared/types.ts', 'shared/waiting-yard.ts'],
+      'shared/frame-layers.ts', 'shared/navigation/**', 'shared/map.ts', 'shared/map/**', 'shared/types.ts', 'shared/waiting-yard.ts',
+      // The engine too: the physics characterization baselines are this set's (#920).
+      'shared/physics/**'],
   },
   physics: {
     about: 'the Rapier physics engine, its items, hook, ballistics and physical navigation',

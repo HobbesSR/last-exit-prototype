@@ -612,8 +612,8 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too and refuses a defective map; `slow/map-library`'s diagnosis; for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves `slow/map-library` to the slow tier on `main` (below) | 170 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
 | The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) | 31 s |
-| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js`; the unit file for the rule | `characterization-bots`, `live-map`; `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 33 s, 64 s with `map-sweep` |
-| Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser` | 56 s beyond the fast set |
+| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js` and `characterization-physics.test.js`; the unit file for the rule | `characterization-bots`, `characterization-physics-bots` (31 s), `live-map`; `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 33 s, 64 s with `map-sweep` |
+| Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser`; the frozen physics baselines, `npm run brief -- test:set simulation:characterization-physics --slow` (`shared/physics/` is a `simulation` source too, so `changed` names both sets) | 56 s beyond the fast set, plus 33 s |
 | Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`, `room-sizes-physics`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |
 | The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-physics`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
 | Shared geometry and math (`test:set geometry`) | the unit file | the full chain sweep (shapes reach every builder); the physics Node/Chrome equality scripts (`physics-world`, `-hook`, `-hook-live`, `-navigation`, 8 s), since simulation math must be bit-equal in Chrome | 167 s |
@@ -669,11 +669,12 @@ the sweep and the physics equality scripts (the table above).
 | `overhead` | 25.0 s (its seam pixel check fails in some worktrees, #818) | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
 | `dev-view` | 23.0 s | a player tab, the dev tab it opens and what the dev tab does to the room | the dev view (client and server), room dev tools |
 
-**`simulation`** (slow 17 s, browser 17 s)
+**`simulation`** (slow 48 s, browser 17 s)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `characterization-bots` | 13.4 s | every tick's snapshot and three projections of four whole bot matches on the fixture's stored arenas; the fast tier has the map hashes and one scripted trace | simulation rules, bots, snapshot and projection shapes; not generation |
+| `characterization-physics-bots` | 31.2 s (2026-11-10) | the same for two whole `content-7` physics matches on the physics fixture's stored chain arenas, the private engine state included (#920); the fast tier has its scripted trace | physics rules, bots, the engine, snapshot and projection shapes; not generation |
 | `map-sweep` | 4.0 s | legacy maps, seeds 1 to 20 and the fixture's four, keep a no-key route for both body sizes and clearance sampled along every route; its loot and charger checks reuse the predicate that placed them, so a broken `canOccupy` passes them (review 658). `LEGACY_MAP_SEEDS=200` runs the full sweep (31 s) for a change to the legacy generator, movement or the navigation grid (#822) | the legacy generator, movement, the navigation grid; not rules or bots |
 | `view-live-map` | 20.8 s | roof, gate and item ids stay pinned on live maps 1 and 2, and their roofs are distinct and conceal (#343); moved from `view` (#849) | the live adapter, builders' element order, roofs |
 | `hearing` (browser) | 10.1 s | a heard-gunfire cue reaches the player's frame and is drawn as a ring, an edge arrow and on the minimap | hearing, its projection, the HUD and minimap |
@@ -886,6 +887,13 @@ bot witnesses; their measured scope and outstanding human gates are [42.20](42.2
 The current frozen characterization fixture is `behavior-seat-1.json.gz`.
 Its complete lineage, capture and introduction commits, digests and reconstruction
 instructions belong to [the fixture README](../tests/fixtures/README.md).
+
+The live engine has its own: `behavior-physics-1.v8.gz` (#920 stage 1) freezes what
+`content-7` physics matches do on two stored chain arenas, read by
+`characterization-physics.test.js` (a scripted trace, fast tier) and
+`slow/characterization-physics-bots.test.js` (two whole bot matches). The same rules
+apply to it as to `seat-1` below. It replaces `seat-1` when #920 retires the legacy mover;
+until then both are frozen, and a change reaching both engines must reproduce both.
 
 The fixture separates what the generator emits from what the simulation does.
 Complete ordered map hashes characterize generation. The bot and scripted traces

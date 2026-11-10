@@ -1,5 +1,48 @@
 # Frozen behavior baseline
 
+## Physics behavior baseline (#920)
+
+`behavior-physics-1.v8.gz` freezes what the live engine does: `content-7` matches under
+`last-exit-0.8-physics`, built by `createPhysicsGame`. It is `v8.serialize` of
+`{ checkpoint, version, content, arenas, bots, scripted }`, gzipped, because each arena keeps the
+portal graph bots plan with, and the graph holds typed arrays that JSON drops.
+
+- `arenas` — seeds 9 and 4217's chain maps at the default live size (12 × 6), each
+  `{ map, graph }`, stored so generation moving on never moves the traces.
+- `bots` — 100-tick digest blocks over every snapshot (the private `physics` state included)
+  and the `c0`, `g0` and directed projections of each seed's whole bot match: 3,557 ticks for
+  seed 9 and 3,103 for seed 4217.
+- `scripted` — 20 labelled snapshots, each with four projections, from a scene on seed 4217's
+  arena: two queued inputs, carried instances merged and used, a physical drop and its automatic
+  pickup, charging, a cancel and a full charge, a door opened, refused while occupied and closed,
+  a contestant and a gladiator killed, a respawn, a hook pull, a hunter's ability and melee,
+  transit, extraction and completion. Loot and traps are cleared and every other player stands
+  still, so only the script acts. Each label was checked once by hand to do what it says.
+
+`tests/characterization-physics.test.js` checks the version and content and replays the scripted
+trace (1.3 s); `tests/slow/characterization-physics-bots.test.js` replays the bot matches
+(31 s). Both run from `tests/characterization-physics-scenarios.js`.
+
+Captured at `69561ae` (main after #921), whose simulation, physics and map code the
+capturing branch left unchanged. Gzip SHA-256
+`088ef3ca6f3e2b76b661f381d9813d658a24e714addbdcf14ba3551df6e03891`; the SHA-256 of
+`JSON.stringify(scripted)` is `86795393e104d9b57311ec1dd0543728ef5380d2a82392145b970d2776204e80`.
+The capture ran on freshly generated arenas; the tests, in other processes and from the
+deserialized arenas, reproduce every digest, and each trace repeated within one process too.
+
+The rules below for `seat-1` apply unchanged: tests only read this fixture, a
+behaviour-preserving change reproduces it exactly, and a recapture belongs to a decided rules,
+content, recorded-state or wire change, named for its new checkpoint. A physics rules version
+change is one: the fast test fails on the stored `version` first. To recapture, build the object
+above from the scenario module: `traceArenas()` (or the previous fixture's `arenas`, carried
+forward unless the arenas themselves are meant to change), one `await botTrace(seed, arenas[seed])`
+per exported seed, and `JSON.parse(JSON.stringify(await scriptedTrace(arenas[4217])))`, with
+`version: PHYSICS_VERSION` and `content: CONTENT`; serialize, gzip and record the new digests
+here. To audit, deserialize it in an isolated checkout of its checkpoint and compare.
+
+`behavior-seat-1.json.gz` below stays frozen for the legacy mover until #920 retires that
+engine, when this fixture replaces it as the only one.
+
 ## Pregenerated room arena (#849)
 
 `room-arena-9.v8.gz` is seed 9's live map at 12 × 6 with the legacy content, and its portal graph,
