@@ -31,7 +31,8 @@ test('a selector narrows a set by name, and an unknown set is refused', () => {
 
 test('changed paths map to the sets they should prompt', () => {
   assert.deepEqual(setsFor(['map/micro/strategies/depot.ts']), ['micro']);
-  assert.deepEqual(setsFor(['shared/physics/world.ts']), ['physics']);
+  // The engine also prompts simulation, which owns the frozen physics characterization (#920).
+  assert.deepEqual(setsFor(['shared/physics/world.ts']), ['simulation', 'physics']);
   assert.deepEqual(setsFor(['map/kernel/scale.ts']).sort(), ['macro', 'micro']);
   assert.deepEqual(setsFor(['server/room-service.js', 'public/palette.js']).sort(), ['client', 'rooms']);
   assert.deepEqual(setsFor(['README.md']), []);
