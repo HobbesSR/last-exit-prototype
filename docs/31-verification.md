@@ -273,11 +273,11 @@ so it can be iterated on in seconds. `npm run test:browser` runs them all, one a
 and reports each with its time; a failure does not stop the scripts after it. It is the
 union of the sets' browser members ([Test sets](#test-sets)).
 
-The shipped default is physics content (#523), and `tests/browser.mjs` pins the legacy set and factory it was
-written for: its fixtures swap a room's map and place actors by assigning positions on the server's game, which a
-physics world does not accept. `tests/default-physics.browser.mjs` is the default room's core client flow (lobby,
-start, walking, dropping an item); the `physics-*` scripts cover the physics client's other features. A new browser
-check of default behavior goes in one of those, not in `browser.mjs`. `tests/hearing.browser.mjs` runs a `content-8` room and draws an arranged heard-gunfire cue (#684). `tests/transit.browser.mjs` runs a `content-10` room, places the player's gladiator at a station and transits by clicking a minimap ring (#692).
+`tests/browser.mjs` is the client's long regression, over the shipped content on its physics engine (#920). Its
+fixtures place actors by assigning positions on the server's game, which the engine takes as a teleport between
+ticks; checks that need fixed geometry stand on hand-built scene maps, served for their own seeds, because the
+engine pins a map when its match is built. `tests/default-physics.browser.mjs` is the default room's core client
+flow (lobby, start, walking, dropping an item); the `physics-*` scripts cover the physics client's other features. `tests/hearing.browser.mjs` runs a `content-8` room and draws an arranged heard-gunfire cue (#684). `tests/transit.browser.mjs` runs a `content-10` room, places the player's gladiator at a station and transits by clicking a minimap ring (#692).
 
 `npm run test:times` times every unit test file alone, slowest first, and marks files over
 budget (15 s fast tier, 60 s slow tier) with their slowest tests; `-- --strict` exits 1 on

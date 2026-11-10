@@ -1,30 +1,54 @@
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import { generateMap } from '../shared/map.ts';
 import { serveWithBrowser } from './helpers/browser.js';
+import { arena } from './helpers/arena.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
 import { checkContentPresentation } from './content-presentation.mjs';
 import { checkReloadControls } from './reload-controls.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
-import { createMatch } from '../server/match.js';
-import { legacyContent } from '../shared/simulation/content.ts';
 
 await mkdir('test-results', { recursive: true });
-// The real worker, except that a check can hold the next generation and fail it when it chooses.
+// Hand-built scenes for the checks that place geometry. The engine pins a map when its match is built, so a scene is
+// the map its room is generated with, served for its own seed rather than swapped in afterwards (#920). Each is open
+// ground with room for the whole roster's starts, away from where the checks stand.
+const SCENE = { geometry: 9001, art: 9002, walls: 9003 };
+const STARTS = { spawns: Array.from({ length: 8 }, (_, i) => ({ x: 1000 + i * 300, y: 1000 })), hunterSpawns: [0, 1, 2].map(i => ({ x: 1000 + i * 300, y: 2000 })) };
+const scene = extra => arena({ cols: 90, rows: 64, ...STARTS, ...extra }).map;
+/** A 400 x 300 building at (x, y) with a door in its south wall and a cell inside. */
+function hall(id, x, y) {
+  const w = 400, h = 300, t = 26, half = 27, wall = (part, box) => ({ id: `${id}-${part}`, kind: 'building', buildingId: id, ...box });
+  return {
+    buildings: [{ id, x, y, w, h }],
+    obstacles: [wall('north', { x, y, w, h: t }), wall('west', { x, y, w: t, h }), wall('east', { x: x + w - t, y, w: t, h }),
+      wall('south-west', { x, y: y + h - t, w: w / 2 - half, h: t }), wall('south-east', { x: x + w / 2 + half, y: y + h - t, w: w / 2 - half, h: t })],
+    gates: [{ id: `${id}-door`, kind: 'door', buildingId: id, x: x + w / 2, y: y + h - t / 2, w: 2 * half, h: t, open: false, locked: false }],
+    items: [{ id: `${id}-cell`, kind: 'cell', buildingId: id, x: x + w / 2, y: y + 120 }],
+  };
+}
+const SCENES = {
+  // Fixed-coordinate sight and projectile probes: one container of cover, two chargers and the exit.
+  [SCENE.geometry]: () => scene({ obstacles: [{ id: 'visibility-fixture', kind: 'container', color: 0, x: 12080, y: 5930, w: 60, h: 140 }],
+    chargers: [{ id: 'charger-0', x: 3000, y: 3000 }, { id: 'charger-1', x: 15000, y: 6600 }], exit: { x: 15400, y: 6600 } }),
+  // Roof and door interaction needs an occupied building with an unlocked entrance and indoor loot.
+  [SCENE.art]: () => scene(hall('hall', 4000, 4000)),
+  // A building's floor under three interior partitions, for the draw-order check.
+  [SCENE.walls]: () => scene({ buildings: [{ id: 'floor-wall-fixture', x: 11800, y: 5800, w: 400, h: 400 }],
+    obstacles: [11970, 11920, 11870].map((x, i) => ({ id: `floor-wall-${i}`, buildingId: 'floor-wall-fixture', kind: 'building', x, y: 5850, w: 12, h: 220 })) }),
+};
+// The real worker for every other seed, except that a check can hold the next generation and fail it when it chooses.
 const maps = createMapGenerator();
 let holdNextGeneration = false, failHeldGeneration = null;
 const failableMaps = (seed, size) => {
-  if (!holdNextGeneration) return maps.generate(seed, size);
+  // A held generation comes first: a page deploys with the seed of the room it was in, which may be a scene's.
+  if (!holdNextGeneration) return SCENES[seed] ? Promise.resolve(SCENES[seed]()) : maps.generate(seed, size);
   holdNextGeneration = false;
   return new Promise((_resolve, reject) => { failHeldGeneration = () => reject(new Error('generation failure arranged by the browser suite')); });
 };
-// This is the client's regression over the legacy mover's rooms (content 1 to 5). Its fixtures swap a room's map and place
-// actors by assigning positions on the server's game, which only the legacy mover allows: a physics world keeps positions
-// of its own. The shipped default is physics (#523), so the physics client is covered by default-physics.browser.mjs and the
-// physics-* scripts, and this one pins the legacy factory and set it was written for.
-const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps,
-  content: legacyContent, matchFactory: createMatch });
+// The client's long regression, over the rooms a player gets: the shipped content on its physics engine (#920). Its
+// fixtures place actors by assigning positions on the server's game, which the engine takes as a teleport between ticks,
+// and stand checks that need fixed geometry on the scenes above.
+const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
 const errors = [];
 /** Wait until a player has stopped moving on the server and the page shows them where they stopped. */
 async function settled(page, player, timeout = 10000) {
@@ -40,9 +64,12 @@ async function ready(page, url = base) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto(url);
+  // A physics match is built once its map arrives, so allow what default-physics.browser.mjs allows for the same step.
   const start = page.getByRole('button', { name: 'Start match', exact: true });
-  if (await start.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) await start.click();
-  await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3, null, { timeout: 15000 });
+  const live = () => window.arenaDebug?.().phase === 'live';
+  await Promise.race([start.waitFor({ state: 'visible', timeout: 60000 }), page.waitForFunction(live, null, { timeout: 60000 })]);
+  if (await start.isVisible()) await start.click();
+  await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3, null, { timeout: 120000 });
 }
 try {
   await checkClientControllers(browser, base);
@@ -94,15 +121,11 @@ try {
   // Real pointer gestures travel through the client, wire validation and fixed tick.
   const inventoryGame = server.rooms.get(ownerRoom).game;
   const inventoryPlayer = inventoryGame.players.find(p => p.id === ownerPlayer);
-  // As in the touch fixture below, keep other players from collecting the
-  // dropped weapon before the browser observes its authoritative ground record.
-  const inventoryAway = inventoryGame.map.chargers[0];
-  const inventoryOthers = inventoryGame.players.filter(p => p.id !== inventoryPlayer.id)
-    .map(player => ({ player, bot: player.bot, x: player.x, y: player.y }));
-  for (const { player } of inventoryOthers) {
-    player.bot = false; player.x = inventoryAway.x; player.y = inventoryAway.y;
-  }
-  inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
+  // As in the touch fixture below, keep other players from collecting the dropped weapon before the browser
+  // observes its authoritative ground record: stopped, they spend no input, and the engine collects only on one.
+  const inventoryOthers = inventoryGame.players.filter(p => p.id !== inventoryPlayer.id).map(player => ({ player, bot: player.bot }));
+  for (const { player } of inventoryOthers) { player.bot = false; player.input = {}; }
+  inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: 'browser-rifle' };
   inventoryPlayer.selectedSlot = 0;
   await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7);
   const slotCenter = async index => {
@@ -124,7 +147,7 @@ try {
   const gestureDrop = server.rooms.get(ownerRoom).game.map.items.find(item => item.droppedBy === ownerPlayer && item.weaponType === 'rifle');
   assert.equal(gestureDrop?.ammo, 7, 'world drag drops the unselected source with its ammunition');
   // Live guest admission below needs its replaceable bot slots back.
-  for (const { player, bot, x, y } of inventoryOthers) Object.assign(player, { bot, x, y });
+  for (const { player, bot } of inventoryOthers) player.bot = bot;
   await page.screenshot({ path: 'test-results/desktop.png' });
   
   await page.waitForTimeout(200);
@@ -357,9 +380,15 @@ try {
   const otherPlace = { x: savedRecording.map.width / 2, y: savedRecording.map.height / 2 };
   const absentFrame = (tick, a, b) => {
     const state = fixtureState(tick);
-    state.players = state.players.filter(p => (p.id !== absentA || a) && (p.id !== absentB || b));
+    // A physics frame draws actors from their bodies, so a subject leaves or moves with its body too.
+    const kept = id => (id !== absentA || a) && (id !== absentB || b);
+    state.players = state.players.filter(p => kept(p.id));
+    if (state.bodies) state.bodies = state.bodies.filter(body => body.actorId === undefined || kept(body.actorId));
     for (const [id, place] of [[absentA, a], [absentB, b]]) {
-      if (place) Object.assign(state.players.find(p => p.id === id), place);
+      if (!place) continue;
+      Object.assign(state.players.find(p => p.id === id), place);
+      const body = state.bodies?.find(body => body.actorId === id);
+      if (body) Object.assign(body, place);
     }
     return { state, commands: [] };
   };
@@ -377,7 +406,10 @@ try {
       const d = window.arenaDebug();
       return d.cameraWidth < d.mapWidth / 2 && Math.abs(d.camera.x + d.cameraWidth / 2 - x) < 60
         && Math.abs(d.camera.y + d.cameraHeight / 2 - y) < 60;
-    }, place);
+    }, place, { timeout: 10000 }).catch(async error => {
+      const d = await page.evaluate(() => window.arenaDebug());
+      assert.fail(`${label}: camera ${JSON.stringify({ ...d.camera, width: d.cameraWidth, height: d.cameraHeight, mapWidth: d.mapWidth, mapHeight: d.mapHeight })} never centred on ${JSON.stringify(place)} (${error.message})`);
+    });
     const d = await page.evaluate(() => window.arenaDebug());
     assert.ok(d.cameraWidth < d.mapWidth / 2, `${label}: the held camera keeps followed zoom`);
   };
@@ -547,12 +579,9 @@ try {
   const mobileGame = server.rooms.get(mobileInfo.room).game;
   const mobilePlayer = mobileGame.players.find(p => p.id === mobileInfo.me.id);
   // Inventory gestures need the dropped item to survive until the assertion;
-  // nearby bots can otherwise collect it within the same server tick.
-  const away = mobileGame.map.chargers[0];
-  for (const other of mobileGame.players) if (other.id !== mobilePlayer.id) {
-    other.bot = false; other.x = away.x; other.y = away.y;
-  }
-  mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
+  // nearby bots can otherwise collect it within the same server tick, so they stop.
+  for (const other of mobileGame.players) if (other.id !== mobilePlayer.id) { other.bot = false; other.input = {}; }
+  mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: 'browser-mobile-rifle' };
   mobilePlayer.inventory[4] = null;
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7 && !window.arenaDebug().me.inventory[4]);
   const touchSlotCenter = async index => {
@@ -575,16 +604,14 @@ try {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
   assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.droppedBy === mobilePlayer.id && item.weaponType === 'rifle')?.ammo, 7, 'touch world drag preserves source ammo');
-  const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":4217}' })).json();
+  // Fixed-coordinate sight and projectile probes stand on the geometry scene; the normal rooms above and the
+  // spectator below exercise the live chain map.
+  const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: SCENE.geometry }) })).json();
   await server.rooms.get(vr.id).ready;
   const geometryGame = server.rooms.get(vr.id).game;
-  // Fixed-coordinate sight/projectile probes exercise the legacy recording geometry.
-  // The normal rooms above and spectator below exercise the live chain map.
-  geometryGame.map = generateMap(4217);
   for (const p of geometryGame.players) p.bot = false;
-  Object.assign(geometryGame.players[0], { bot: true, x: 11980, y: 6000, weapon: 1, selectedSlot: 0, inventory: [{ kind: 'weapon', weaponType: 'pistol' }, null, null, null, null] });
-  geometryGame.map.gates = []; geometryGame.map.buildings = []; geometryGame.map.traps = []; geometryGame.map.items = [];
-  geometryGame.map.obstacles = [{ id: 'visibility-fixture', kind: 'container', color: 0, x: 12080, y: 5930, w: 60, h: 140 }];
+  Object.assign(geometryGame.players[0], { bot: true, x: 11980, y: 6000, weapon: 1, selectedSlot: 0,
+    inventory: [{ kind: 'weapon', weaponType: 'pistol', instanceId: 'browser-pistol' }, null, null, null, null, null] });
   const visionPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await ready(visionPage, `${base}/?room=${vr.id}&ownerKey=${encodeURIComponent(vr.ownerKey)}`);
   await visionPage.mouse.move(1100, 420);
@@ -657,13 +684,14 @@ try {
   assert.equal(inTheOpen.visible, true, 'the same enemy in the open is drawn');
   const runnerId = await visionPage.evaluate(() => window.arenaDebug().me.id);
   const runner = geometryGame.players.find(p => p.id === runnerId);
-  runner.x = 15000; runner.y = 6000; geometryGame.map.traps = [];
-  lurker.x = 15720; lurker.y = 6300;
-  
+  runner.x = 15000; runner.y = 6000;
+  // Beyond the former 620-unit circle yet inside the shipped camera's view (about 1290 x 830 at its zoom).
+  lurker.x = 15560; lurker.y = 6300;
+
   await visionPage.waitForFunction(id => window.arenaDebug().me.x > 14900 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
   assert.ok(Math.hypot(lurker.x - runner.x, lurker.y - runner.y) > 620, 'visible actor is beyond the former circular cutoff');
   await visionPage.screenshot({ path: 'test-results/viewport-visibility.png' });
-  runner.inventory[1] = { kind: 'cell', charge: 99 }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
+  runner.inventory[1] = { kind: 'cell', charge: 99, instanceId: 'browser-cell' }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
   await visionPage.waitForFunction(() => window.arenaDebug().me.inventory?.[1]?.charge === 99);
   await visionPage.keyboard.press('KeyE');
   await visionPage.waitForFunction(() => document.getElementById('objective').textContent.includes('CELL CHARGED'));
@@ -681,14 +709,15 @@ try {
   assert.equal(cast.vision, null, 'a directed view computes no personal visibility polygon');
   assert.ok(cast.cameraWidth >= cast.mapWidth, `directed camera frames the whole arena: ${cast.cameraWidth} vs ${cast.mapWidth}`);
   await caster.screenshot({ path: 'test-results/spectator.png' });
-  // Roof and door interaction needs an occupied building, independent of whether
-  // automatic internal margins permit one in a live seed. Install the retained
-  // geometry fixture before a resumed welcome; earlier checks use the live chain.
-  const artRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
-  artRoom.game.map = generateMap(4217);
-  await ready(page, page.url());
+  // Roof and door interaction needs an occupied building, independent of whether automatic internal margins permit
+  // one in a live seed, so it stands on the art scene; earlier checks use the live chain.
+  const artInfo = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: SCENE.art }) })).json();
+  const artRoom = server.rooms.get(artInfo.id);
+  await artRoom.ready;
+  const artPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  await ready(artPage, `${base}/?room=${artInfo.id}&ownerKey=${encodeURIComponent(artInfo.ownerKey)}`);
   for (const player of artRoom.game.players) player.bot = false;
-  const artId = await page.evaluate(() => window.arenaDebug().me.id);
+  const artId = await artPage.evaluate(() => window.arenaDebug().me.id);
   const artPlayer = artRoom.game.players.find(p => p.id === artId);
   // Several archetypes are in the catalogue, so every position here comes from the building rather
   // than a fixed offset: one lands inside a partition or a stack and the body is separated straight
@@ -700,27 +729,34 @@ try {
   Object.assign(artPlayer, { x: indoors.x, y: indoors.y });
   // The body may be separated out of a partition, so wait for wherever it settles rather than for the
   // exact spot: rooms have random seeds, so which buildings put loot against a partition varies.
-  await settled(page, artPlayer);
-  await page.waitForTimeout(150);
-  await page.screenshot({ path: 'test-results/ruins.png' });
+  await settled(artPage, artPlayer);
+  await artPage.waitForTimeout(150);
+  await artPage.screenshot({ path: 'test-results/ruins.png' });
   // The roof fades away rather than vanishing, so wait for it to finish (#291).
-  await page.waitForFunction(id => !window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id, { timeout: 5000 });
+  await artPage.waitForFunction(id => !window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id, { timeout: 5000 });
   // Stand 55 outside the door, on whichever wall it is, and walk in through it. A gate's x and y are its centre.
   const doorX = entrance.x, doorY = entrance.y;
   const across = entrance.w > entrance.h, outward = across ? Math.sign(doorY - (interior.y + interior.h / 2)) : Math.sign(doorX - (interior.x + interior.w / 2));
   const approach = across ? { x: doorX, y: outward > 0 ? interior.y + interior.h + 55 : interior.y - 55, key: outward > 0 ? 'KeyW' : 'KeyS' }
     : { x: outward > 0 ? interior.x + interior.w + 55 : interior.x - 55, y: doorY, key: outward > 0 ? 'KeyA' : 'KeyD' };
   Object.assign(artPlayer, { x: approach.x, y: approach.y });
-  await page.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible, interior.id);
-  await page.waitForTimeout(150);
-  await page.screenshot({ path: 'test-results/building-roof.png' });
+  await artPage.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible, interior.id);
+  await artPage.waitForTimeout(150);
+  await artPage.screenshot({ path: 'test-results/building-roof.png' });
   artPlayer.keys = 1;
-  await page.keyboard.press('KeyE');
-  await page.keyboard.down(approach.key); await page.waitForTimeout(850); await page.keyboard.up(approach.key);
-  await page.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible === false, interior.id);
+  await artPage.keyboard.press('KeyE');
+  await artPage.keyboard.down(approach.key); await artPage.waitForTimeout(850); await artPage.keyboard.up(approach.key);
+  await artPage.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible === false, interior.id);
   assert.ok(artPlayer.x > interior.x && artPlayer.x < interior.x + interior.w && artPlayer.y > interior.y && artPlayer.y < interior.y + interior.h,
     'opened door and walked into a real building');
-  await guest.close(); await mobile.close(); await visionPage.close(); await caster.close();
+  // The art scene is a room of its own, so end its match: a finished room frees its slot under the room cap.
+  await artPage.getByRole('button', { name: 'Replays', exact: true }).click();
+  await artPage.getByRole('button', { name: 'End match & save replay' }).click();
+  for (let waited = 0; !artRoom.finished; waited += 50) {
+    assert.ok(waited < 10000, 'the art room finishes');
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  await guest.close(); await mobile.close(); await visionPage.close(); await caster.close(); await artPage.close();
   // The deploy dialog lists open rooms (#254): a named room is listed to everyone, its Join usable, and a
   // server without a dev tools policy offers no dev view.
   const namedRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7,"name":"Night shift"}' })).json();
@@ -756,17 +792,11 @@ try {
   await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().phase === 'live' && window.arenaDebug().tick > 3);
   // A building's floor must sit under its walls: tiles replay drawings in the order recorded, and a floor
   // recorded after the obstacles once painted over every interior wall (#207), leaving the doors floating.
-  const wallRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7}' })).json();
+  // A fixed floor/partition witness, the walls scene, keeps the draw-order regression independent
+  // of which multi-room houses a live seed can fit under internal clear margins.
+  const wallRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: SCENE.walls }) })).json();
   await server.rooms.get(wallRoom.id).ready;
   const wallGame = server.rooms.get(wallRoom.id).game;
-  // A fixed floor/partition witness keeps the draw-order regression independent
-  // of which multi-room houses a live seed can fit under internal clear margins.
-  wallGame.map = generateMap(7);
-  wallGame.map.buildings = [{ id: 'floor-wall-fixture', x: 11800, y: 5800, w: 400, h: 400 }];
-  wallGame.map.obstacles = [11970, 11920, 11870].map((x, i) => ({
-    id: `floor-wall-${i}`, buildingId: 'floor-wall-fixture', kind: 'building', x, y: 5850, w: 12, h: 220,
-  }));
-  wallGame.map.gates = []; wallGame.map.items = []; wallGame.map.traps = [];
   const inside = b => wallGame.map.obstacles.filter(o => !o.points && o.kind === 'building' && o.x >= b.x + 20 && o.x < b.x + b.w - 20 && o.y >= b.y + 20 && o.y < b.y + b.h - 20);
   const walled = wallGame.map.buildings.find(b => b.w < 700 && inside(b).length > 2);
   assert.ok(walled, 'the floor/partition fixture has a building with interior walls');
@@ -788,7 +818,10 @@ try {
   await wallPage.getByRole('button', { name: 'Lobbies', exact: true }).click();
   await wallPage.getByRole('tab', { name: 'Create Room', exact: true }).click();
   await wallPage.getByRole('button', { name: 'Deploy', exact: true }).click();
-  await wallPage.waitForFunction(() => document.getElementById('lobby-dialog').open && /Generating/.test(document.getElementById('lobby-waiting').textContent));
+  await wallPage.waitForFunction(() => document.getElementById('lobby-dialog').open && /Generating/.test(document.getElementById('lobby-waiting').textContent))
+    .catch(async error => assert.fail(`no held generation shown: ${JSON.stringify(await wallPage.evaluate(() => ({ lobby: document.getElementById('lobby-dialog').open,
+      waiting: document.getElementById('lobby-waiting').textContent, hidden: document.getElementById('lobby-waiting').hidden, error: document.getElementById('deploy-error').textContent,
+      deploy: document.getElementById('loadout-dialog').open, room: window.arenaDebug?.().room })))} held=${holdNextGeneration} (${error.message})`));
   failHeldGeneration();
   // The error text is set whatever the page then does with it, so wait for that before asking what is open.
   await wallPage.waitForFunction(() => !document.getElementById('deploy-error').hidden && /could not be generated/.test(document.getElementById('deploy-error').textContent));
