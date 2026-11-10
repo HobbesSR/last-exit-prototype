@@ -13,9 +13,10 @@ decision belong to [42.24](../../42.24-static-barrier.md).
 The generated preview is retained with LF endings for its byte digest; blank
 SVG interpolation lines are part of that generated artifact.
 
-Run from the repository root:
+Historical reproduction commands (retired in #926; `tools/static-barrier-experiment.mjs` last ran for `review-526` committed at `5ad5470` / merge `dd3b56e`, with `review-526/manifest.json` recording base `sourceRevision` `754ed8c` from the initial capture commit, and last existed on `main` at `f84ed93`):
 
 ```powershell
+# Historical commands for the pre-retirement revision; not supported on current main.
 node tools/static-barrier-experiment.mjs --out=test-results/my-static-barrier
 node tools/static-barrier-experiment.mjs --out=docs/reports/issue-694/review-526 --verify
 ```

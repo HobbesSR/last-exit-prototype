@@ -8,9 +8,10 @@ named (`PATTERN.minOwnerCells = 900`) and preview cell dimensions use the brief'
 cell size. Geometry, selected owners, inputs, targets and metric definitions are
 unchanged. The optional per-source batching optimization was not adopted.
 
-Run from the repository root:
+Historical reproduction commands (retired in #926; `tools/static-barrier-experiment.mjs` last ran at `5ad5470` / merge `dd3b56e`, with `manifest.json` recording `sourceRevision` `754ed8c`, and last existed on `main` at `f84ed93`):
 
 ```powershell
+# Historical commands for the pre-retirement revision; not supported on current main.
 node tools/static-barrier-experiment.mjs --out=test-results/static-barrier-new
 node tools/static-barrier-experiment.mjs --out=docs/reports/issue-694/review-526 --verify
 ```

@@ -38,12 +38,13 @@ without error, requiring no wire version bump (`CHAIN_WIRE_VERSION` stays 8).
 Tile rasterisation cache identity is governed separately by client-only
 `APPEARANCE_RECIPE_VERSION` ([29.4](29.4-drawing.md), [52](52-map-primitives-and-library.md)).
 
-The separate #705 comparison uses an unregistered experimental type and a build
-identity naming both its current builders and preserved historical input
-results. Its complete saves can be inspected by the structural low-level
-reader; the production tool reader and ordinary layout-only regeneration refuse
-them. It changes none of the active domains above. Reproduction and the mixed
-result limitation are recorded in [42.26](42.26-macro-boundary.md) and its report.
+The retired #705 comparison (#927) used an unregistered experimental type and
+a build identity naming both its current builders and preserved historical input
+results. Its retained complete saves can still be inspected by the structural
+low-level reader; the production tool reader and ordinary layout-only
+regeneration refuse them. It changed none of the active domains above; its
+evidence and the mixed-result limitation remain in
+[42.26](42.26-macro-boundary.md) and `docs/reports/issue-705`.
 
 ## One seed decides the whole map
 

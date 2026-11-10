@@ -125,9 +125,9 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.21-jelly-squish.md](42.21-jelly-squish.md) | Lab-only native-spring jelly, fixed-core compression signals and engine-free playback (#455); gameplay decisions remain open |
 | [42.22-tick-cost-attribution.md](42.22-tick-cost-attribution.md) | Server tick cost by stage at each size and engine, per-stage scaling exponents, over-budget tick classification, viewers, rooms and history memory (#637) |
 | [42.23-navigation-structure.md](42.23-navigation-structure.md) | Saved-map navigation measurement and the three-size detour, dead-end, empty-space and boundary baseline (#688) |
-| [42.24-static-barrier.md](42.24-static-barrier.md) | Opt-in connected static barrier: matched detour/pocket witnesses, retained target failures and adoption limits (#694) |
+| [42.24-static-barrier.md](42.24-static-barrier.md) | Retired connected static-barrier experiment: matched detour/pocket witnesses, retained target failures and adoption limits (#694, #926) |
 | [42.25-park-pocket.md](42.25-park-pocket.md) | One production park hedge pocket: paired detour, access, loot, structure, cost and compatibility evidence (#698) |
-| [42.26-macro-boundary.md](42.26-macro-boundary.md) | Opt-in macro curtain boundary/crossing experiment: fixed targets, physical versus guaranteed boundaries and adoption limits (#705) |
+| [42.26-macro-boundary.md](42.26-macro-boundary.md) | Retired macro curtain boundary/crossing experiment: fixed targets, physical versus guaranteed boundaries and adoption limits (#705, #927) |
 | [42.27-empty-region-fallback.md](42.27-empty-region-fallback.md) | Geometry-empty regions by reason on the nine-map panel, and cover/park's single-piece fallback: uptake, navigation effect, cost and remaining gaps (#717) |
 | [42.28-builder-census.md](42.28-builder-census.md) | Per-builder census on the same panel: region sizes, empty share, fill covered, margin and protected-route share, and how often each mechanism fires, with candidates (#749) |
 | [42.29-park-perturbable-routes.md](42.29-park-perturbable-routes.md) | Park on a live cord witness instead of frozen protected routes: detour, dead ends, empty share, fill, proofs and cost against the old builder, and what other builders would need (#750) |

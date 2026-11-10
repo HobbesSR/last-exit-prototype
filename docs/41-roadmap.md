@@ -185,10 +185,11 @@ No main lever is selected by that baseline; use matched before/after reports
 to assess a subsequent named mechanics experiment.
 
 The bounded connected static-barrier experiment (#694,
-[42.24](42.24-static-barrier.md)) retains one opt-in pocket/detour witness and
-exposes post-siting overlay loot collisions. It did not itself promote production
-geometry or general #649 growth. Production builders already filter loot after
-composition; the overlay's blocked loot did not identify a missing ordering capability.
+[42.24](42.24-static-barrier.md); retired in #926 after park's hedge pocket
+landed in #698) supplied one opt-in pocket/detour witness and exposed
+post-siting overlay loot collisions; production builders already filter loot
+after composition, so the overlay's blocked loot did not identify a missing
+ordering capability.
 
 One bounded production static-barrier adoption now gives eligible parks a
 connected hedge pocket (#698, types-56). Matched local targets detour and gain
@@ -199,16 +200,12 @@ shares remain high. Stop at this one-family capability: general #649 growth,
 macro boundary/portal control and other builder adoptions remain separate
 candidates, with no main lever or automatic successor selected.
 
-The bounded opt-in macro boundary experiment (#705,
-[42.26](42.26-macro-boundary.md)) now supplies the contrasting map-scale witness:
-one physical curtain and controlled crossing derived from a separate authored
-plan. Some long-route tails increase, while median progression stays fairly
-direct and empty-space shares barely move. All stated portal/core and final
-target checks pass; old-target failures, disconnected mesh pieces, ownership/
-regeneration confounders and material construction/proof costs are retained.
-Keep it experimental. Broader purposeful topology, exploration/backtracking and
-much-less-empty space remain open under #529; production promotion, extra
-curtain variants and general #649 growth are not automatic successors.
+The bounded macro curtain experiment (#705, [42.26](42.26-macro-boundary.md)) shifted
+some long-route tails while keeping median progression nearly direct and
+empty-space shares nearly flat; it was retired (#927) after Corey's follow-up
+chose cross-region incidental joins instead (#716,
+[17.2.11](17.2.11-navigation-structure-direction.md)), with evidence retained in
+[42.26](42.26-macro-boundary.md) and [the report](reports/issue-705/README.md).
 
 After the bounded macro curtain experiment (#705 / PR #713), Corey's follow-up
 selects a different missing capability: independently authored content from
