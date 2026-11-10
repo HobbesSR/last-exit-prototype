@@ -104,20 +104,25 @@ test('a door blocks both bodies until it is opened, and then admits them', async
 test('dropping a selected charged cell frees a slot, preserves charge, and does not immediately collect it again', async () => {
   await dispose(await stage(openField(LENGTH).map, [{ role: 'contestant', bot: false, x: 1500, y: Y }]), ({ s, players: [p] }) => {
     p.inventory[0] = { kind: 'cell', charge: CELL_CHARGE_TICKS, instanceId: 'held-cell', lineageId: 'held-cell' };
+    // The dropper may not take it back for one second (14 "Equipment"), counted from the tick the drop is spent on,
+    // which a step numbers before it runs: stated here rather than read off the dropped record, so a shortened
+    // delay fails.
+    const droppedOn = s.tick + 1, free = droppedOn + HZ;
     press(s, p, { drop: true });
     assert.equal(carriedCell(p), null);
     const cell = s.map.items.find(i => i.kind === 'cell');
     assert.equal(cell.charge, CELL_CHARGE_TICKS);
+    assert.equal(cell.pickupAfter, free, 'the record carries the one-second delay');
     assert.ok(canOccupy(s.map, cell.x, cell.y, actorRadius(s, p)));
-    // Standing on it, the dropper is refused until the item's own delay has passed; then it is theirs again, charge intact.
+    // Standing on it, the dropper is refused until the delay has passed; then it is theirs again, charge intact.
     let collected = null;
     for (let i = 0; i < 3 * HZ && !collected; i++) {
       Object.assign(p, { x: cell.x, y: cell.y });
       step(s);
       if (carriedCell(p)) collected = s.tick;
-      else assert.ok(s.tick < cell.pickupAfter, `refused only until its delay: tick ${s.tick}`);
+      else assert.ok(s.tick < free, `refused on tick ${s.tick}, past the delay`);
     }
-    assert.ok(collected >= cell.pickupAfter, `collected at ${collected}, not before ${cell.pickupAfter}`);
+    assert.equal(collected, free, `collected on the first tick the delay allows, not ${collected}`);
     assert.equal(carriedCell(p).charge, CELL_CHARGE_TICKS);
   });
 });
