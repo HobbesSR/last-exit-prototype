@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLayerEncoder, createLayerDecoder } from '../shared/frame-layers.ts';
-import { createMatch } from '../server/match.js';
+import { createPhysicsMatch } from '../server/match.js';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 
 // What one session is sent of an encoded frame: the keyframe when it lacks it, else the changes.
@@ -15,19 +15,21 @@ function wire(encoded, frame, held) {
   return JSON.parse(JSON.stringify(out));
 }
 
-test('a directed view rebuilds exactly from keyframes and changes, at a fraction of its size (#250)', () => {
+test('a directed view rebuilds exactly from keyframes and changes, at a fraction of its size (#250)', async () => {
   // On the pregenerated arena (#849): the encoding, not the map, is under test.
-  const match = createMatch(9, undefined, generatedMap(9)), encoder = createLayerEncoder(), decoder = createLayerDecoder(), held = {};
+  const match = await createPhysicsMatch(9, undefined, generatedMap(9)), encoder = createLayerEncoder(), decoder = createLayerDecoder(), held = {};
   let whole = 0, sent = 0, keyframes = 0;
-  for (let tick = 0; tick < 300; tick++) {
-    const view = match.project(match.advance(), null), encoded = encoder.encode(view);
-    const payload = wire(encoded, view, held);
-    if ('all' in payload.items) keyframes++;
-    whole += JSON.stringify(view).length; sent += JSON.stringify(payload).length;
-    assert.deepEqual(decoder.decode(payload), JSON.parse(JSON.stringify(view)), `tick ${tick}`);
-  }
-  assert.ok(sent < whole / 10, `sent ${sent} of ${whole} bytes`);
-  assert.ok(keyframes < 10, `${keyframes} item keyframes`);
+  try {
+    for (let tick = 0; tick < 300; tick++) {
+      const view = match.project(match.advance(), null), encoded = encoder.encode(view);
+      const payload = wire(encoded, view, held);
+      if ('all' in payload.items) keyframes++;
+      whole += JSON.stringify(view).length; sent += JSON.stringify(payload).length;
+      assert.deepEqual(decoder.decode(payload), JSON.parse(JSON.stringify(view)), `tick ${tick}`);
+    }
+    assert.ok(sent < whole / 10, `sent ${sent} of ${whole} bytes`);
+    assert.ok(keyframes < 10, `${keyframes} item keyframes`);
+  } finally { match.dispose(); }
 });
 
 test('a layer is rekeyed when its changes outgrow the budget or its order would not rebuild', () => {
@@ -74,7 +76,7 @@ test('changes against a keyframe the decoder lacks keep the last list and say wh
 });
 
 test('a session is sent the keyframe after a skipped frame, while others keep sharing changes', async () => {
-  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room } = h.live();
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room } = await h.live();
   try {
     const watcher = () => {
       const sizes = [], frames = [], decoder = createLayerDecoder(); let skip = false;

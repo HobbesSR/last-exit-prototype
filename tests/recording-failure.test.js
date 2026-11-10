@@ -16,7 +16,7 @@ for (const failure of ['start', 'append', 'async']) test(`${failure} recording f
     }, abort() { aborts++; }, async finish() { return { id: header.id }; } };
   } });
   try {
-    const { room, owner } = h.live(), other = h.live();
+    const { room, owner } = await h.live(), other = await h.live();
     // Guards the setup, not the server: the injected failure must land on `room`, or the test would pass vacuously.
     assert.equal(failing, room.id, 'the first room is the failing one');
     if (failure === 'async') { fail(new Error('async failed')); fail(new Error('duplicate failure')); }
@@ -48,7 +48,7 @@ test('partial recording transitions notify once and successful recovery retains 
     async finish({ ticks }) { return { id: header.id, recording: { complete: false, droppedFrames, endTick: ticks } }; }
   }; } });
   try {
-    const { room, owner } = h.live();
+    const { room, owner } = await h.live();
     omit = true; h.wake(50); h.wake(50);
     omit = false; h.wake(50);
     assert.equal(room.match.tick, 3); assert.equal(room.debt, 0);
@@ -67,7 +67,7 @@ test('stalled adapter finalization has a deadline and cannot report late success
     setTimer(fn) { deadlines.set(++serial, fn); return serial; }, clearTimer(id) { deadlines.delete(id); },
     startWriter() { return { append() {}, finish: () => pending, abort() { aborted++; } }; }
   });
-  const { room, owner } = h.live(), second = h.live();
+  const { room, owner } = await h.live(), second = await h.live();
   const closing = h.service.close();
   assert.equal(h.service.close(), closing);
   assert.equal(deadlines.size, 2, 'finalization starts concurrently for every room');
@@ -89,7 +89,7 @@ test('synchronous callback failure during start and failed cleanup are contained
     return { abort() { throw new Error('cleanup failed'); }, append() { assert.fail('failed writer must not append'); },
       finish() { throw new Error('finish failed'); } };
   } });
-  const { room, owner } = h.live(); h.wake(50); await h.service.close();
+  const { room, owner } = await h.live(); h.wake(50); await h.service.close();
   assert.equal(room.match.tick, 1); assert.deepEqual(errors, ['early failure']);
   assert.equal(owner.messages.filter(m => m.type === 'replay-status').length, 1);
 });

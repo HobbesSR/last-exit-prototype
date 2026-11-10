@@ -1,11 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
+import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMap, minimumReaderForMatch } from '../shared/recording.ts';
 import { roomHarness } from './helpers/room-harness.js';
-import { LEGACY_CONTENT_ID } from '../shared/simulation/content.ts';
-import { VERSION } from '../shared/simulation/rules.ts';
-import { contentById } from '../shared/simulation/content.ts';
-import { createGame, snapshot } from '../shared/simulation.ts';
+import { contentById, defaultContent } from '../shared/simulation/content.ts';
+import { createGame, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 
 const playable = { map: { obstacles: [{ id: 'o0' }] } };
@@ -54,20 +52,22 @@ test('malformed or hostile version fields fall back to the oldest meaning rather
   assert.equal(recordingFit(undefined), 'pre-vector');
 });
 
-test('the server stamps every recording with the schema pair its readers check', () => {
+test('the server stamps every recording with the schema pair its readers check', async () => {
   const harness = roomHarness({ reuseMaps: true });
-  const { writer } = harness.live(9);
+  const { writer } = await harness.live(9);
   assert.equal(writer.header.schema, SCHEMA);
-  assert.equal(writer.header.minSchema, minimumReaderForMap(writer.header.map));
-  assert.equal(writer.header.minSchema, 4, 'masked maps require a reader that draws their playable area');
+  // The shipped rules run on the physics engine, so the floor is the physics reader's; it is above the masked-map floor, which the map still needs.
+  assert.equal(writer.header.minSchema, minimumReaderForMatch(writer.header.map, true));
+  assert.equal(minimumReaderForMap(writer.header.map), 4, 'masked maps require a reader that draws their playable area');
+  assert.ok(writer.header.minSchema >= minimumReaderForMap(writer.header.map));
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
 });
 
-test('a recording names the content set its match was pinned to', () => {
+test('a recording names the content set its match was pinned to', async () => {
   const harness = roomHarness({ reuseMaps: true });
-  const { writer } = harness.live(9);
+  const { writer } = await harness.live(9);
   // `version` says which rules produced the recording; this says which numbers they ran over. A
   // reader looking at an old archive needs both to say what its contents meant.
-  assert.equal(writer.header.contentId, LEGACY_CONTENT_ID, 'the harness pins the legacy mover');
-  assert.equal(writer.header.version, VERSION, 'and the rules alongside it');
+  assert.equal(writer.header.contentId, defaultContent().id, 'the harness runs the shipped content');
+  assert.equal(writer.header.version, PHYSICS_VERSION, 'and the physics rules alongside it');
 });

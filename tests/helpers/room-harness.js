@@ -2,15 +2,13 @@ import { createRoomService } from '../../server/room-service.js';
 import { createRoomDirectory } from '../../server/room-directory.js';
 import { createLayerDecoder } from '../../shared/frame-layers.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../../map/live.ts';
-import { legacyContent } from '../../shared/simulation/content.ts';
-import { createMatch } from '../../server/match.js';
+import { defaultContent } from '../../shared/simulation/content.ts';
 import { attachPortalGraph, portalGraphOf } from '../../shared/navigation/portal-graph.ts';
 import { ARENA_SEED, readArena } from '../../tools/room-arena.mjs';
 
-// These tests are about room policy with a fake clock, not about an engine. They pin the legacy mover and
-// its synchronous match so a room has its match at once, as characterization pins `content-1`; physics
-// rooms are exercised by physics-integration.test.js, physics-match.test.js and the browser suite.
-export { legacyContent };
+// These tests are about room policy with a fake clock, on the shipped content and the engine it runs (#920).
+// A physics match is built asynchronously, so a room is usable once `room.ready` settles: `room()`, `live()`
+// and `created()` wait for it, and a test that drives the directory itself awaits `room.ready`.
 
 const generated = new Map();
 /**
@@ -30,7 +28,7 @@ export function generatedMap(seed = 9, size = DEFAULT_LIVE_ZONE_SIZE) {
       const { map, graph } = readArena();
       attachPortalGraph(map, graph);
       generated.set(key, map);
-    } else generated.set(key, generateLiveMap(seed, legacyContent(), size));
+    } else generated.set(key, generateLiveMap(seed, defaultContent(), size));
   }
   const original = generated.get(key), copy = structuredClone(original), graph = portalGraphOf(original);
   if (graph) attachPortalGraph(copy, structuredClone(graph));
@@ -70,7 +68,7 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, p
     };
     writers.set(header.id, writer); return writer;
   } };
-  const service = createRoomService({ replays, wallNow: () => wall, reportError, content: legacyContent, matchFactory: createMatch, ...serviceOptions });
+  const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
   const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
   const peer = () => {
     const messages = [], closes = [], layers = createLayerDecoder();
@@ -83,13 +81,18 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, p
   const joined = (room, extra = {}) => {
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;
   };
-  // A room with its match at once: on a copy of the seed's shared map with `reuseMaps`, else generated inline.
+  // A room with its match built: on a copy of the seed's shared map with `reuseMaps`, else generated inline.
   // It never asks `generateMap`, which only the directory's rooms use: with both set, `h.room()` still takes the copy.
-  const room = (seed = 9) => service.makeRoom(seed, false, DEFAULT_LIVE_ZONE_SIZE, reuseMaps ? generatedMap(seed) : undefined);
+  const room = async (seed = 9) => {
+    const made = service.makeRoom(seed, false, DEFAULT_LIVE_ZONE_SIZE, reuseMaps ? generatedMap(seed) : undefined);
+    await made.ready; return made;
+  };
   return { service, directory, writers, peer, joined, room,
+    /** A directory room (`createRoom`'s arguments), once its match is built. */
+    async created(...args) { const made = directory.createRoom(...args); await made?.ready; return made; },
     wake(elapsed, wallElapsed = elapsed) { wall += wallElapsed; monotonic += elapsed; service.advance(elapsed, monotonic); },
-    live(seed = 9) {
-      const made = room(seed), owner = joined(made, { ownerKey: made.ownerKey });
+    async live(seed = 9) {
+      const made = await room(seed), owner = joined(made, { ownerKey: made.ownerKey });
       owner.send({ type: 'start' }); return { room: made, owner, writer: writers.get(made.id) };
     }
   };

@@ -3,21 +3,21 @@ import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 
 test('the dev view follows the server policy and sees the current directed frame', async () => {
-  const closed = roomHarness({ reuseMaps: true }), shut = closed.live();
+  const closed = roomHarness({ reuseMaps: true }), shut = await closed.live();
   try {
     const refused = closed.joined(shut.room, { role: 'dev', ownerKey: shut.room.ownerKey });
     assert.match(refused.messages[0].message, /not enabled/);
     assert.equal(shut.owner.messages.find(m => m.type === 'welcome').devTools, false, 'players are told when the dev view is off');
   } finally { await closed.service.close(); }
 
-  const owned = roomHarness({ devTools: 'owner', reuseMaps: true }), mine = owned.live();
+  const owned = roomHarness({ devTools: 'owner', reuseMaps: true }), mine = await owned.live();
   try {
     assert.match(owned.joined(mine.room, { role: 'dev' }).messages[0].message, /owner key/);
     assert.equal(owned.joined(mine.room, { role: 'dev', ownerKey: mine.room.ownerKey }).session.dev, true);
     assert.equal(owned.joined(mine.room, {}).messages.find(m => m.type === 'welcome').devTools, false, 'a joiner without the key is not offered it');
   } finally { await owned.service.close(); }
 
-  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = h.live();
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = await h.live();
   try {
     assert.equal(owner.messages.find(m => m.type === 'welcome').devTools, true);
     const dev = h.joined(room, { role: 'dev' }), welcome = dev.messages[0];
@@ -37,7 +37,7 @@ test('the dev view follows the server policy and sees the current directed frame
 });
 
 test('a dev pause stops only its own room, drops owed time and leaves one mark', async () => {
-  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = h.live(), other = h.live();
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = await h.live(), other = await h.live();
   try {
     const dev = h.joined(room, { role: 'dev' });
     h.wake(100); const tick = room.match.tick;
@@ -59,7 +59,7 @@ test('a dev pause stops only its own room, drops owed time and leaves one mark',
     assert.equal(writer.marks.filter(m => m.kind === 'pause').length, 2, 'ending a paused match settles its pause');
   } finally { await h.service.close(); }
 
-  const closed = roomHarness({ devTools: 'owner', reuseMaps: true }), shut = closed.live();
+  const closed = roomHarness({ devTools: 'owner', reuseMaps: true }), shut = await closed.live();
   try {
     const guest = closed.joined(shut.room, {}), before = shut.room.match.tick;
     guest.send({ type: 'dev', action: 'pause' }); closed.wake(100);
@@ -70,36 +70,48 @@ test('a dev pause stops only its own room, drops owed time and leaves one mark',
 });
 
 test('a dev teleport moves any active player to open ground, is recorded, and shows while paused', async () => {
-  const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner, writer } = h.live();
+  const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner, writer } = await h.live();
   try {
     const id = owner.session.playerId, bot = room.game.players.find(p => p.bot && p.status === 'active');
-    const open = room.game.map.spawns[0];
-    const guest = h.joined(room, {}); guest.send({ type: 'dev', action: 'teleport', id: bot.id, x: open.x, y: open.y });
+    // Every spawn holds an actor, and a body is refused a point that overlaps another, so open ground is found by asking:
+    // the first point near the spawn the room accepts (the answer, not the search, is what is checked).
+    const spawn = room.game.map.spawns[0], used = new Set();
+    const offsets = []; for (let r = 1; r <= 6; r++) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) offsets.push([dx * r * 60, dy * r * 60]);
+    const land = target => {
+      for (const [dx, dy] of offsets) {
+        if (used.has(`${dx} ${dy}`)) continue;
+        owner.send({ type: 'dev', action: 'teleport', id: target, x: spawn.x + dx + 0.4, y: spawn.y + dy });
+        const answer = owner.messages.findLast(m => m.type === 'teleport');
+        if (answer.ok) { used.add(`${dx} ${dy}`); return { answer, x: spawn.x + dx, y: spawn.y + dy }; }
+      }
+      assert.fail('no open ground near the spawn');
+    };
+    const guest = h.joined(room, {}); guest.send({ type: 'dev', action: 'teleport', id: bot.id, x: spawn.x + 60, y: spawn.y });
     assert.ok(!guest.messages.some(m => m.type === 'teleport'), 'a session the policy does not admit cannot teleport');
-    owner.send({ type: 'dev', action: 'teleport', id: bot.id, x: open.x + 0.4, y: open.y });
-    assert.deepEqual(owner.messages.at(-1), { type: 'teleport', ok: true, id: bot.id, x: Math.round(open.x + 0.4), y: open.y });
-    assert.equal(bot.x, Math.round(open.x + 0.4)); assert.deepEqual(bot.path, [], 'a bot plans again from where it lands');
+    const first = land(bot.id);
+    assert.deepEqual(first.answer, { type: 'teleport', ok: true, id: bot.id, x: Math.round(first.x + 0.4), y: first.y });
+    assert.equal(bot.x, Math.round(first.x + 0.4)); assert.equal(bot.y, first.y); assert.deepEqual(bot.path, [], 'a bot plans again from where it lands');
     h.wake(50);
-    assert.deepEqual(writer.frames.at(-1).commands.find(c => c.type === 'teleport'), { type: 'teleport', id: bot.id, x: Math.round(open.x + 0.4), y: open.y });
-    // Arrange a solid collider independently of the generated content's current mix.
-    const wall = { id: 'teleport-test-wall', kind: 'building', x: open.x - 40, y: open.y - 40, w: 80, h: 80 };
-    room.game.map.obstacles.push(wall);
+    assert.deepEqual(writer.frames.at(-1).commands.find(c => c.type === 'teleport'), { type: 'teleport', id: bot.id, x: Math.round(first.x + 0.4), y: first.y });
+    land(id);
+    // The map is immutable, so the solid collider is the map's largest building rather than one arranged here.
+    const wall = room.game.map.obstacles.filter(o => o.kind === 'building').reduce((a, b) => b.w * b.h > a.w * a.h ? b : a);
     owner.send({ type: 'dev', action: 'teleport', id, x: wall.x + wall.w / 2, y: wall.y + wall.h / 2 });
     assert.equal(owner.messages.at(-1).ok, false, 'a body cannot be put inside a wall');
-    room.game.map.obstacles.pop();
     for (const bad of [{ id: 'nobody' }, { id, x: NaN }, { id, x: 1e9, y: 1e9 }]) {
-      owner.send({ type: 'dev', action: 'teleport', x: open.x, y: open.y, ...bad });
+      owner.send({ type: 'dev', action: 'teleport', x: first.x, y: first.y, ...bad });
       assert.equal(owner.messages.at(-1).ok, false, JSON.stringify(bad));
     }
     owner.send({ type: 'dev', action: 'pause' }); const tick = room.match.tick;
-    owner.send({ type: 'dev', action: 'teleport', id, x: open.x, y: open.y + 30 });
+    const moved = land(id);
     const shown = owner.messages.filter(m => m.type === 'state').at(-1).state;
-    assert.equal(shown.tick, tick); assert.equal(shown.players.find(p => p.id === id).y, open.y + 30, 'a paused room shows the move at once');
+    assert.equal(shown.tick, tick); assert.equal(shown.players.find(p => p.id === id).y, moved.y, 'a paused room shows the move at once');
+    assert.equal(shown.players.find(p => p.id === id).x, Math.round(moved.x + 0.4));
   } finally { await h.service.close(); }
 });
 
 test('teleports in a paused room never shorten the spectator delay', async () => {
-  const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner } = h.live();
+  const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner } = await h.live();
   try {
     for (let i = 0; i < 100; i++) h.wake(50);
     const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });

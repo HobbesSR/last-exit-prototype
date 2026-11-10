@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The pregenerated room arena (#849): seed 9's live map at the default size with the legacy
+ * The pregenerated room arena (#849): seed 9's live map at the default size with the shipped
  * content, and its portal graph, which room and networking tests play on instead of generating
  * one each (`tests/helpers/room-harness.js`). They test rooms, not maps; generation keeps its
  * own witnesses. `tests/slow/room-arena.test.js` checks the fixture against a fresh generation.
@@ -19,7 +19,7 @@ import { deserialize, serialize } from 'node:v8';
 import { isDeepStrictEqual } from 'node:util';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { generateLiveMap } from '../map/live.ts';
-import { legacyContent } from '../shared/simulation/content.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 
 export const ARENA_SEED = 9;
@@ -27,7 +27,7 @@ export const ARENA_FILE = 'tests/fixtures/room-arena-9.v8.gz';
 
 /** Seed 9's live map and portal graph, generated now. */
 export function generateArena() {
-  const map = generateLiveMap(ARENA_SEED, legacyContent());
+  const map = generateLiveMap(ARENA_SEED, defaultContent());
   return { map, graph: portalGraphOf(map) };
 }
 

@@ -22,8 +22,7 @@ export function selectedSizes() {
 // match and disconnects, which hands the seat to its bot, while an owner spectator keeps the room
 // watched so it is not abandoned (14). The recording keeps the header, every 200th frame and the
 // last, which the replay timeline holds sparse frames for, so a 36 x 18 match does not have to fit
-// in memory twice. `serviceOptions` choose the engine: the harness pins the legacy mover, and a
-// physics room needs its content and factory and a moment for its world to start.
+// in memory twice. The room runs the shipped content on its engine, as the harness does (#920).
 export async function playsToItsEnd(size, serviceOptions = {}) {
   const kept = [];
   let header, last, count = 0, outOfOrder = null;

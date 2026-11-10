@@ -43,8 +43,8 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
 
 test('players wait in the yard, never see the match map before the start, and walking there changes no match', async () => {
   // Two rooms with the same seed: in one the players walk about before the start, in the other they do not.
-  const run = walk => {
-    const h = roomHarness({ reuseMaps: true }), room = h.room();
+  const run = async walk => {
+    const h = roomHarness({ reuseMaps: true }), room = await h.room();
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner', role: 'gladiator', kit: 'specter' });
     for (const peer of [owner, runner]) {
@@ -65,11 +65,13 @@ test('players wait in the yard, never see the match map before the start, and wa
     h.wake(50 * 3);
     return { h, waited, recorded: h.writers.get(room.id).frames, runner };
   };
-  const walked = run(true), still = run(false);
+  const walked = await run(true), still = await run(false);
   try {
     assert.ok(walked.waited.players.find(p => p.name === 'Runner').x < still.waited.players.find(p => p.name === 'Runner').x, 'walking moved them');
     // Ids are per connection, so compare the match with them taken out.
-    const neutral = frames => JSON.parse(JSON.stringify(frames).replace(/"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"/g, '"id"'));
+    // The physics world's body list is ordered by those ids, so it is taken out as well; the players and the rest of the frame are compared.
+    const neutral = frames => JSON.parse(JSON.stringify(frames).replace(/"(actor:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"/g, '"id"'),
+      (key, value) => key === 'physics' || key === 'bodies' ? undefined : value);
     assert.deepEqual(neutral(walked.recorded), neutral(still.recorded), 'the recording is the same either way');
     assert.ok(!walked.recorded.flatMap(f => f.commands).some(c => c.type === 'input' && c.input.y === 1 && c.input.x === -1), 'walking is never recorded');
     assert.equal(frames(walked.runner).at(-1).phase, 'live');
@@ -77,7 +79,7 @@ test('players wait in the yard, never see the match map before the start, and wa
 });
 
 test('someone who leaves before the start leaves the yard, and a resume brings them back', async () => {
-  const h = roomHarness({ reuseMaps: true }), room = h.room();
+  const h = roomHarness({ reuseMaps: true }), room = await h.room();
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), welcome = runner.messages.find(m => m.type === 'welcome');
@@ -108,7 +110,7 @@ test('a room still generating its map already has a waiting yard', async () => {
 });
 
 test('a resume replacing a live connection starts the yard input afresh, where the old one stood', async () => {
-  const h = roomHarness({ reuseMaps: true }), room = h.room();
+  const h = roomHarness({ reuseMaps: true }), room = await h.room();
   try {
     h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), welcome = runner.messages.find(m => m.type === 'welcome');

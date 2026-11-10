@@ -140,9 +140,9 @@ test('a newly joined slot starts with no queue and its own sequence numbering', 
 });
 
 test('a resumed slot spends only the new session input, from its own low sequence numbers', async () => {
-  const h = roomHarness();
+  const h = roomHarness({ reuseMaps: true });
   try {
-    const { room, owner } = h.live();
+    const { room, owner } = await h.live();
     h.wake(50);
     const id = owner.session.playerId, p = room.game.players.find(q => q.id === id);
     // Queued but never spent: the old client goes away with these still waiting.
