@@ -473,31 +473,11 @@ catalogue, and it grows from here. The fixture libraries in
   the set pieces; its increased fill weight is intended to form larger joined
   cover regions.
 
-`map/tools/author-inward-grounds.mts` checks or regenerates these explicit
+The retired `map/tools/author-inward-grounds.mts` tool originally authored these explicit
 structure variants and their blueprint references from the original grounds
-and same-class slot adjacency. It is an offline authoring tool; library loading
-does not rewrite prescriptions. It authors the `common-primitives@5` module set, which the
-#849 adoption then migrated by hand into `@6` (below); it neither reads nor writes `@6`, and
-a later inward revision would first teach it the migration. For the set it authored, with a
-top-level library whose includes name that set (the committed tops now name `@6`, so the
-tests pin a copy back, `tests/helpers/inward-source.js`), run:
-
-```sh
-node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@5.json --common map/macro/content/common-set-pieces@5.json --district map/macro/content/district-set-pieces@4.json --local-library <top-level library including that set> --check
-```
-
-To regenerate, replace `--check` with `--out-dir <new-directory>`. Inputs and
-existing outputs are never overwritten. The current inputs reconstruct 81
-variants and 3,513 slot references, including 2,009 local slots. Omit the optional
-`--local-library` to check only the included modules (1,504 references). The
-library input authors all nine ground families in its local set pieces. Other
-slot families stay as supplied. #530 adds immutable `common-primitives@5`,
-`common-set-pieces@5` and `district-set-pieces@4`; all three authored-size
-libraries pin these revisions. Earlier module files remain unchanged, and
-saved maps retain their embedded library. This authored content change needs
-no strategy, macro algorithm or wire version bump (53). Future content changes
-still require reviewed module versions; the tool supports authored copies with
-matching includes.
+and same-class slot adjacency for the `common-primitives@5` module set (#530).
+The #849 and #895 adoptions then migrated them into the bundled libraries (`@6` and `@7`;
+earlier revisions stay reachable in git, and 42.4 keeps the checkpoint history).
 
 **Matched adoption (#849, `common-primitives@6`).** `common-primitives@6`,
 `common-set-pieces@6` and `district-set-pieces@5` carry the content Corey approved in the

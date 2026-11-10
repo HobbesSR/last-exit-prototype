@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CHAIN_LIBRARIES, CHAIN_LIBRARY } from '../map/chain.ts';
 import { gridSize } from '../map/macro/src/chain/declared-grid.ts';
-import { briefs } from '../map/macro/src/chain/briefs.ts';
+import { briefs, chainZones } from '../map/macro/src/chain/briefs.ts';
 import { regions } from '../map/macro/src/chain/regions.ts';
 import { guaranteesPassability, resolution } from '../map/macro/src/chain/resolution.ts';
 import { buildRegion } from '../map/micro/region-types.ts';
+import { elementShapes } from '../map/micro/geometry.ts';
+import { validatePortalReach } from '../map/micro/portals.ts';
 
 const SIDES = {
   N: { dx: 0, dy: -1, opposite: 'S', segment: i => `h:0,${i}` },
@@ -113,5 +115,74 @@ test('representative set pieces retain external portals and regain contiguous bu
     assert.ok(built.manifest.structures > 0, `${piece}: current fill builds structures`);
     if (type === 'block') assert.ok(built.elements.some(element => /\/lot-\d+\//.test(element.label)), 'block builds a designed child building');
     if (type === 'compound') assert.ok(built.manifest.rooms > 0, 'compound builds rooms');
+  }
+});
+
+test('authored inward variants stay out of the random fill', () => {
+  for (const library of CHAIN_LIBRARIES) {
+    const variants = library.tiles.filter(tile => /-ground-inward-/.test(tile.id));
+    assert.ok(variants.length > 0, `${library.name} has inward variants`);
+    assert.ok(variants.every(tile => tile.fillable === false), `${library.name} inward variants have fillable: false`);
+  }
+});
+
+test('all resolved libraries contain the L variant alongside their rectangular hall, with compatible prescriptions', () => {
+  const sides = [['n', 0, -1, 'h:0'], ['e', 1, 0, 'v:6'], ['s', 0, 1, 'h:6'], ['w', -1, 0, 'v:0']];
+  const isHall = (x, y) => x >= 0 && x < 6 && y >= 0 && y < 5 && (y < 2 || x < 3);
+  for (const library of CHAIN_LIBRARIES) {
+    const piece = library.setPieces.find(p => p.id === 'pillar-hall-winged');
+    assert.ok(piece, `${library.name} has pillar-hall-winged`);
+    const owner = library.setPieceClasses.find(c => c.setPieces.includes('pillar-hall'));
+    assert.ok(owner.setPieces.includes(piece.id));
+    assert.ok(library.setPieces.some(p => p.id === 'pillar-hall'));
+    assert.equal(piece.primaryRegionClass, 'hall');
+    assert.equal(piece.tiles.length, 30);
+    const original = library.tiles.find(t => t.id === 'hall-ground');
+    assert.ok(original);
+    const fieldSet = library.tileSets.find(s => s.id === 'fields');
+    const field = library.tiles.find(t => t.id === fieldSet.members[0]);
+    assert.equal(field.defaultCellClass, 'open');
+    assert.ok(Object.values(field.segments).every(s => s.passability === 'any' && Object.keys(s).length === 1));
+    for (const slot of piece.tiles) {
+      const { dx: x, dy: y, tileSetId } = slot;
+      if (!isHall(x, y)) { assert.equal(tileSetId, 'fields'); continue; }
+      const mask = sides.filter(([, dx, dy]) => isHall(x + dx, y + dy)).map(([d]) => d).join('');
+      assert.equal(tileSetId.replace(/-sp-\d+$/, ''), `hall-ground-inward-${mask}-tiles`);
+      const set = library.tileSets.find(s => s.id === tileSetId);
+      const tile = library.tiles.find(t => t.id === set.members[0]);
+      assert.equal(tile.defaultCellClass, 'hall');
+      for (const [d, dx, dy, prefix] of sides) for (let k = 0; k < 6; k++) {
+        const key = `${prefix},${k}`;
+        if (isHall(x + dx, y + dy)) assert.equal(tile.segments[key].passability, 'not-passable-hint', `${library.name} ${x},${y} ${d}`);
+        else if (!(halfAndHalf(original, { segment: j => `${prefix},${j}` }) && Array.from({ length: 6 }, (_, j) => tile.segments[`${prefix},${j}`]?.passability).every(p => p === HINT)))
+          assert.deepEqual(tile.segments[key], original.segments[key], `${library.name} exposed ${x},${y} ${d}`);
+      }
+    }
+  }
+});
+
+test('a placed winged variant becomes an L-shaped hall brief with real portals and structural wings', () => {
+  const library = CHAIN_LIBRARY, piece = library.setPieces.find(p => p.id === 'pillar-hall-winged');
+  assert.ok(piece);
+  const ox = 25, oy = 12, slots = [];
+  for (let y = -1; y <= 5; y++) for (let x = -1; x <= 6; x++) {
+    const slot = piece.tiles.find(t => t.dx === x && t.dy === y);
+    const set = library.tileSets.find(s => s.id === (slot?.tileSetId ?? 'fields'));
+    slots.push({ col: ox + x, row: oy + y, design: set.members[0], orientation: 0 });
+  }
+  const params = { mode: 'playground', zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
+  for (const seed of ['1', '7', '533']) {
+    const layout = { seed, params, library: library.name, slots, setPieces: [] };
+    const resolved = resolution(layout, library), found = regions(resolved, layout.seed);
+    const region = found.regions.find(r => r.class === 'hall');
+    assert.ok(region);
+    assert.equal(region.cells.length, 21 * 36);
+    const input = briefs(layout, resolved, found, chainZones(params), library, 40).find(b => b.id === region.id);
+    assert.ok(input.portals.length > 0);
+    assert.equal(input.internalGuaranteed.length, 0);
+    const result = buildRegion(input);
+    const wings = result.elements.filter(e => e.label.startsWith('hall-wing-'));
+    assert.ok(wings.some(e => e.template.parts.length > 0), seed);
+    assert.deepEqual(validatePortalReach({ ...input, blockers: result.elements.flatMap(e => elementShapes(e)) }, { search: 'thorough' }).errors, [], seed);
   }
 });

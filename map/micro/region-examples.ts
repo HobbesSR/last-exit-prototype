@@ -80,7 +80,7 @@ export function regionExample({ type = 'cover', seed = 4217, shape = 'rectangle'
       x => `${x},0`, x => owned.has(`${x},1`));
     portals.push({ id: 'contestant-north', axis: 'h', x: northX, y: 0, length: 2 });
   }
-  // Type/site pairings follow map/macro/content/common-primitives@4.json cellClasses.
+  // Type/site pairings follow map/macro/content/common-primitives@7.json cellClasses.
   // Live arrival/departure counts resolve contestantCount/exitCount/hunterCount there;
   // 8/3/3 here are small lab presets (docs 20.5), not the live roster or recipe.
   // Keep new core-bearing types in sync without importing macro into micro.

@@ -67,7 +67,7 @@ export const SETS = {
   macro: {
     about: 'macro generation, the chain and its library, map tools and the Map Lab (also npm run test:mapgen)',
     fast: ['map-access-conservatism', 'map-authored-seams', 'map-block-library-audit', 'map-boundary', 'map-clear-tiles',
-      'map-entrypoint', 'map-hall-wing-library', 'map-inward-authoring', 'map-inward-seams',
+      'map-entrypoint',
       'map-lab-draft-safety', 'map-lab-routes', 'map-library', 'map-navigation-structure', 'map-navigation-structure-cli',
       'map-passable-margins', 'map-placement-trace', 'map-portal-thorough', 'map-skeleton', 'map-sparse-sides', 'map-sweep', 'map-tools', 'portal-graph',
       'macro-curtain', 'static-barrier-composition', 'static-barrier-routes', 'appearance-descriptor'],
