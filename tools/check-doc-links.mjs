@@ -58,9 +58,12 @@ export function anchors(text) {
     const h = /^ {0,3}#{1,6}[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/.exec(line);
     if (h) {
       const base = slug(h[1]);
-      const n = seen.get(base) ?? 0;
+      // GitHub gives a repeat the next free `-N`, so a suffixed slug can collide with a later heading's own.
+      let n = seen.get(base) ?? 0;
+      let id = n ? `${base}-${n}` : base;
+      while (headings.has(id)) id = `${base}-${++n}`;
       seen.set(base, n + 1);
-      headings.add(n ? `${base}-${n}` : base);
+      headings.add(id);
     }
     for (const a of line.matchAll(/<a\s[^>]*?\b(?:id|name)\s*=\s*["']([^"']+)["']/gi)) ids.add(a[1]);
     for (const a of line.matchAll(/<[a-z][^>]*?\bid\s*=\s*["']([^"']+)["']/gi)) ids.add(a[1]);

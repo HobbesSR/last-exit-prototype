@@ -11,6 +11,8 @@ test('slugs follow GitHub: punctuation dropped, spaces hyphenated, repeats suffi
   const { headings, ids } = anchors('# Same\n\n## Same ##\n\n```\n# not a heading\n```\n<a id="landing"></a>\n');
   assert.deepEqual([...headings], ['same', 'same-1']);
   assert.deepEqual([...ids], ['landing']);
+  // A repeat takes the next free suffix: `Foo-1` after two `Foo` becomes foo-1-1, not a second foo-1.
+  assert.deepEqual([...anchors('# Foo\n# Foo\n# Foo-1\n# Foo\n').headings], ['foo', 'foo-1', 'foo-1-1', 'foo-2']);
 });
 
 test('links skips code, external URLs and Forgejo site paths, and keeps line numbers', () => {
