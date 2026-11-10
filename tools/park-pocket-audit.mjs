@@ -19,9 +19,6 @@ import { hunterClearance, portalStands, validatePortalReach } from '../map/micro
 import { measureNavigationStructure, summarizeRoutes } from '../map/tools/navigation-structure.ts';
 import { measurePocketRoutes, pocketPairs } from './experiments/park-pocket-routes.mjs';
 import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
-import { createBuilderCanvas } from '../map/micro/canvas.ts';
-import { frozenRoutes as protectedRoutes } from '../map/micro/experiments/frozen-routes.ts';
-import { siteParkPocket } from '../map/micro/strategies/park-pocket.ts';
 
 const dir = process.argv[2] ?? 'docs/reports/issue-698';
 const base = '63fb8aa', hash = value => createHash('sha256').update(value).digest('hex');
@@ -67,10 +64,6 @@ try {
     const sites = changed.map(i => {
       const region = after.results[i], element = region.elements.find(e => e.label === 'park-pocket');
       assert.ok(element, 'every changed real park admits a pocket');
-      const admission = timed(`${width}/${region.brief.id}/siting-with-route-preparation`, () => {
-        const b = region.brief;
-        return siteParkPocket(b, createBuilderCanvas(b, protectedRoutes(b, 'Park', b.portals.length <= 32 ? 'root' : 'nearby')));
-      });
       const blockers = region.elements.flatMap(e => elementShapes(e, true));
       const validation = timed(`${width}/${region.brief.id}/final-owner-proof`, () => {
         const fillErrors = validateFillConstraints(region.brief, blockers);
@@ -88,7 +81,7 @@ try {
       assert.deepEqual(again.elements, region.elements); assert.deepEqual(again.loot, region.loot);
       const oldLoot = before.results[i].loot;
       const sameSite = (p, q) => p.x === q.x && p.y === q.y;
-      return { index: i, owner: b.id, element, admission, validation, beforeLoot: oldLoot.length, afterLoot: region.loot.length,
+      return { index: i, owner: b.id, element, validation, beforeLoot: oldLoot.length, afterLoot: region.loot.length,
         removedLoot: oldLoot.filter(p => !region.loot.some(q => sameSite(p,q))).length,
         addedLoot: region.loot.filter(p => !oldLoot.some(q => sameSite(p,q))).length };
     });

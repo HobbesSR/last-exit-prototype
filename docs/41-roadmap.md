@@ -267,15 +267,7 @@ a composition opportunity, not evidence that prior deliveries are defective.
 transaction as a separate measured milestone, preserving its ring/court/gates
 while admitting peripheral and interior yard rectangles with movable routes.
 Review both builders' visual, geometry, recovery and cost evidence in 42.3.
-The tool-only depot comparison (#663) supplies the contrasting fixed-route case:
-matched fixed/movable primary composition with explicit warehouse doorsteps,
-local aisle/side-pocket bypasses, independent geometry, determinism/recovery and
-source-bound cost evidence. Its stronger bypass policy and omitted secondary
-crate pass are experimental controls, not new requirements for every builder.
-That comparison left production unchanged. The separate #533 warehouse delivery
-now increases its budget without promoting the costly adapter; the subsequent
-structural-wing delivery uses the existing fixed-route policy and an authored
-L-shaped library variant. Findings and limitations of the experiment are in
+The tool-only depot comparison (#663) is retired; its measurements and evidence remain in
 [42.3](42.3-generation-and-delegation-evidence.md#depot-movable-cord-comparison-663)
 and [the retained report](reports/issue-663/README.md).
 
@@ -289,7 +281,7 @@ Disposition after the representative cord comparisons:
   A measured experimental gain does not itself authorize production promotion.
 - **Defer:** automatic all-builder migration, generic preparation/cache work,
   guard/budget changes and further compound-offset research absent a demonstrated
-  blocker. Do not expand #663 into quota tuning or exhaustive pocket refinement.
+  blocker.
 
 For the next functional selection, compare #532's secondary exterior structures
 and demonstrated larger-hut authoring prerequisite with the still-missing broader

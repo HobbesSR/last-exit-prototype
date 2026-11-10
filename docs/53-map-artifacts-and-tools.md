@@ -366,22 +366,9 @@ results from both `compound-yard-2` and `compound-yard-3` remain readable;
 omitted historical results require their recorded implementation. No wire,
 macro, library, crossing, executor encoding or frozen simulation fixture change.
 
-## Tool-only depot cord comparison (#663)
+## Tool-only depot cord comparison (#663, retired)
 
-The depot experiment is not registered in `GAME_ENGINES` and cannot be selected
-through saved production region parameters. `types-50`, wire 8, macro 3, library 3,
-`region-2` and the delegation algorithm remain unchanged. No chain baseline or
-frozen characterization fixture is regenerated.
-
-Experimental owning snapshots use separate registry identities
-`depot-cord-comparison-1:fixed` and `depot-cord-comparison-1:movable`.
-Full-result snapshots recover saved geometry without an engine; omitted results
-require the matching experimental implementation and refuse the other identity.
-Tests exercise both recovery forms and canonical reordered briefs. The audit's
-source hashes and exact input briefs bind its raw outputs; it does not label
-experimental geometry as production content or promise historical regeneration
-under a future changed experiment. A production adoption would require its own
-content/compatibility decision and evidence under 20.7 and this document.
+The tool-only depot comparison (#663) is retired; its measurements and evidence remain in [42.3](42.3-generation-and-delegation-evidence.md#depot-movable-cord-comparison-663) and [docs/reports/issue-663](reports/issue-663/README.md).
 
 ## Multi-house hut content (#532)
 
@@ -409,9 +396,8 @@ in 20.3.4, authored evidence in 42.3, and capture provenance in 42.4.
 `types-53` intentionally increases production warehouse budgets and changes
 depot geometry, loot and subsequent generated IDs. All production pieces now
 keep a two-cell exterior bypass; warehouse doorsteps are protected canvas access.
-The fixed nearby-portal route tree remains. The tool-only #663 experiment retains
-its quarter-density quota and existing execution identities; its expensive
-coordinator is not promoted. Placeable output/versions, delegation encoding,
+The retired tool-only #663 experiment's evidence remains in 42.3 and docs/reports/issue-663.
+Placeable output/versions, delegation encoding,
 wire/macro/library versions and the frozen simulation fixture are unchanged.
 Saved Layout-only maps require their matching strategy version; saved full
 results retain their own geometry under the existing compatibility rules.
