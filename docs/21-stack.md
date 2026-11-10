@@ -17,8 +17,7 @@ References: [Phaser](https://github.com/phaserjs/phaser), [SAT.js collision resp
 Physics uses Rapier 2D/WASM as the selected development direction, pinned at
 Apache-2.0 `@dimforge/rapier2d-compat` **0.21.0**. This selection does not activate
 physics in default matches or replace SAT.js in production. The custom solver is
-retired as a candidate; its code and tests remain only as an archival comparison
-baseline. Planck.js is the reserve if Rapier integration fails or becomes
+retired ([42.6](42.6-physics-comparison.md)). Planck.js is the reserve if Rapier integration fails or becomes
 unsustainable. The P0 comparison and retained failures are in
 [42.6](42.6-physics-comparison.md); reviewed remediation gates are in
 [42.9](42.9-physics-remediation.md). The explicit experimental P1 adapter is a

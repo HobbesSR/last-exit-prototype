@@ -17,7 +17,7 @@ if(!['correctness','node','browser','all'].includes(mode))throw Error('mode must
 const samples=Number(args.get('samples')??100),warmup=Number(args.get('warmup')??20);
 if(!Number.isInteger(samples)||samples<1||!Number.isInteger(warmup)||warmup<0)throw Error('Invalid sample count');
 const names=(args.get('candidates')??'rapier').split(',');
-if (names.some(name => name !== 'rapier')) throw Error('Revised #451 reports evaluate Rapier only; custom is an archived P0 baseline');
+if (names.some(name => name !== 'rapier')) throw Error('Revised #451 reports evaluate Rapier only; custom solver was retired after P0');
 const prior=args.has('resume')?JSON.parse(await readFile(args.get('resume'),'utf8')):null;
 const lock=await acquireMachineLock('bench');
 const report={schema:2,suite:'451-revised-gates',date:new Date().toISOString(),command:process.argv.slice(2),
