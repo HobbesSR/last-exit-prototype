@@ -64,7 +64,7 @@ async function ready(page, url = base) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto(url);
-  // A physics match is built once its map arrives, so allow what default-physics.browser.mjs allows for the same step.
+  // A match is built once its map arrives, so allow what default-room.browser.mjs allows for the same step.
   const start = page.getByRole('button', { name: 'Start match', exact: true });
   const live = () => window.arenaDebug?.().phase === 'live';
   await Promise.race([start.waitFor({ state: 'visible', timeout: 60000 }), page.waitForFunction(live, null, { timeout: 60000 })]);

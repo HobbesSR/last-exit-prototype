@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, createPhysicsGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { generatedMap } from './helpers/room-harness.js';
 import { broadcast, viewEncoders } from '../server/room-views.js';
 import {
@@ -256,7 +256,7 @@ test('keyframe-then-changes deltas add up to the keyframe', () => {
 });
 
 test('room broadcast: dropped frames and catch-up batches preserve client discovery', async () => {
-  const match = await createPhysicsMatch(4217, undefined, generatedMap(), defaultContent());
+  const match = await createMatch(4217, undefined, generatedMap(), defaultContent());
   try {
     const c0 = match.diagnosticState.players[0];
 

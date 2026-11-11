@@ -26,7 +26,7 @@ import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LI
 import { contentById, CONTENT_ID } from '../shared/simulation/content.ts';
 import { prebuiltTiles } from '../shared/simulation/bots.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { remember, broadcast, viewEncoders } from '../server/room-views.js';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
@@ -70,7 +70,7 @@ async function buildRoom(i) {
   const built = performance.now();
   for (const packed of prebuiltTiles(map, content)) adoptPackedTiles(map, packed);
   const tilesMs = performance.now() - built;
-  const match = await createPhysicsMatch(seed + i, size, map, content);
+  const match = await createMatch(seed + i, size, map, content);
   const room = { match, history: [], clients: new Set(), ...viewEncoders(), items: map.items.length, obstacles: map.obstacles.length, tilesMs };
   const players = match.diagnosticState.players;
   for (let c = 0; c < clients; c++) room.clients.add({ playerId: players[c % players.length].id, deliver: () => true });

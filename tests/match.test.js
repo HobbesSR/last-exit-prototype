@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createPhysicsGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
@@ -14,8 +14,8 @@ const arena = (x = 0, y = 0) => ({ width: x + 600, height: y + 400, playableArea
   obstacles: [], gates: [], hazards: [], spawns: [{ x: x + 100, y: y + 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], modules: [], buildings: [], exit: { x: x + 550, y: y + 200 }, entry: { x: x + 50, y: y + 200 }, gaps: [] });
 
 test('experimental match owns, isolates and disposes its world while retaining detached final frames', async () => {
-  const a = await createPhysicsMatch(1, undefined, arena(), content());
-  const b = await createPhysicsMatch(1, undefined, arena(), content());
+  const a = await createMatch(1, undefined, arena(), content());
+  const b = await createMatch(1, undefined, arena(), content());
   const world = physicsRuntime(a.diagnosticState).world;
   try {
     a.join('human', 'contestant'); b.join('human', 'contestant');
@@ -58,7 +58,7 @@ test('prepared map payloads match detached map queries at live and historical bo
   map.gates.push({ id: 'gate', x: 300, y: 100, w: 20, h: 20, kind: 'door', open: false, locked: false });
   map.items.push({ id: 'cell', x: 400, y: 200, kind: 'cell', charge: 0 });
   map.physicsProps = [{ id: 'authored', x: 450, y: 250, profile: 'crate' }];
-  const match = await createPhysicsMatch(1, undefined, map, content());
+  const match = await createMatch(1, undefined, map, content());
   try {
     const old = match.snapshot();
     const check = (kind, expected, frame) => {
@@ -100,7 +100,7 @@ test('room welcomes and recording start use prepared maps without changing start
   const frames = [], messages = [];
   const service = createRoomService({ devTools: 'all', content,
     matchFactory: async (...args) => {
-      match = await createPhysicsMatch(...args);
+      match = await createMatch(...args);
       return { ...match, map() { throw new Error('full map clone'); } };
     },
     replays: { start(value) { header = structuredClone(value); return {
@@ -159,7 +159,7 @@ test('cooperative physics preparation yields between static geometry batches wit
 
 test('room shutdown during cooperative construction awaits and disposes the unadopted world', async () => {
   let world;
-  const factory = (...args) => createPhysicsMatch(...args).then(match => {
+  const factory = (...args) => createMatch(...args).then(match => {
     world = physicsRuntime(match.diagnosticState).world;
     return match;
   });

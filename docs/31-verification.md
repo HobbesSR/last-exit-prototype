@@ -276,7 +276,7 @@ union of the sets' browser members ([Test sets](#test-sets)).
 `tests/browser.mjs` is the client's long regression, over the shipped content on its physics engine (#920). Its
 fixtures place actors by assigning positions on the server's game, which the engine takes as a teleport between
 ticks; checks that need fixed geometry stand on hand-built scene maps, served for their own seeds, because the
-engine pins a map when its match is built. `tests/default-physics.browser.mjs` is the default room's core client
+engine pins a map when its match is built. `tests/default-room.browser.mjs` is the default room's core client
 flow (lobby, start, walking, dropping an item); the `physics-*` scripts cover the physics client's other features. `tests/hearing.browser.mjs` runs a `content-8` room and draws an arranged heard-gunfire cue (#684). `tests/transit.browser.mjs` runs a `content-10` room, places the player's gladiator at a station and transits by clicking a minimap ring (#692).
 
 `npm run test:times` times every unit test file alone, slowest first, and marks files over
@@ -614,7 +614,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Simulation rules, bots, snapshots and projections | `characterization-physics.test.js`; the unit file for the rule | `characterization-physics-bots` (31 s), `live-map`; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 31 s, plus `live-map` |
 | Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser`; the frozen physics baselines, `npm run brief -- test:set simulation:characterization-physics --slow` (`shared/physics/` is a `simulation` source too, so `changed` names both sets) | 56 s beyond the fast set, plus 33 s |
 | Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |
-| The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-physics`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
+| The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-room`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
 | Shared geometry and math (`test:set geometry`) | the unit file | the full chain sweep (shapes reach every builder); the physics Node/Chrome equality scripts (`physics-world`, `-hook`, `-hook-live`, `-navigation`, 8 s), since simulation math must be bit-equal in Chrome | 167 s |
 | Tooling and docs | the unit file; `test:set tooling` | none; `npm run test:browser` when the browser runner changes | |
 
@@ -682,7 +682,6 @@ the sweep and the physics equality scripts (the table above).
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `physics-navigation` (slow) | 13.1 s | physical contestants complete a live-chain match, seed 4217 | physics, physical navigation, bots on physics; chain output only as a stall |
-| `default-physics` (browser) | 7.0 s | the shipped default room's lobby, start, walking and item drop in Chrome | the client, physics content, room start |
 | `physics-world`, `-hook`, `-hook-live`, `-navigation` | 2.0 to 2.2 s each | the production Rapier WASM bootstrap in Chrome, and Node and Chrome producing identical world, authoritative and projected frames | `shared/physics/`, the Rapier version, simulation math |
 | `physics-prediction` | 4.2 s | the production prediction module replays pending input after a delayed correction | `public/physics-prediction*`, the motor |
 | `physics-playback`, `physics-geometry` | 1.6 s, 12.2 s | physics drawn from a retained frame without an engine; display circles only in an authorized dev view | the renderer's physics drawing, the projection |
@@ -699,6 +698,7 @@ the sweep and the physics equality scripts (the table above).
 | `room-arena` (slow) | 8.9 s | the pregenerated room arena is still seed 9's live map and graph (#849) | anything that moves seed 9's live map: then recapture it |
 | `room-sizes` (slow) | 21 s | a whole room on the shipped content through the server loop: every tick recorded once in order, the sparse replay timeline, the recording's physics version and the map within ground capacity | rooms, recording, the replay timeline, item capacity; size-dependent generation under `ROOM_SIZES` |
 | `browser` (browser) | 90.2 s | the client's long regression over shipped rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
+| `default-room` (browser) | 7.0 s | the shipped default room's lobby, start, walking and item drop in Chrome | the client, shipped content, room start |
 
 **`macro`** (slow 33 s, browser at least 131 s; and the chain sweep, 159 s)
 
@@ -768,7 +768,7 @@ A behaviour question is answered in the smallest scene that still shows it (#697
   `tools/navigation/hunter-report.mjs`; arenas do not replace them.
 - **The pregenerated room arena** when a test needs a real live map but not a particular one: seed 9's live map
   and portal graph at 12 × 6, stored in `tests/fixtures/room-arena-9.v8.gz` by `tools/room-arena.mjs` (#849).
-  `generatedMap(9)` in `tests/helpers/room-harness.js` reads it, so `reuseMaps` rooms and `createPhysicsMatch(9, …,
+  `generatedMap(9)` in `tests/helpers/room-harness.js` reads it, so `reuseMaps` rooms and `createMatch(9, …,
   generatedMap(9))` cost no generation. `tests/slow/room-arena.test.js` fails when it is no longer seed 9's map;
   recapture it in the change that moved the map.
 
@@ -866,7 +866,7 @@ CPU-heavy gates finish. Evidence and limits belong to [42.19](42.19-physics-p8.m
 
 ## P9 integration and playtest
 
-P9's `tests/physics-integration.test.js` exercises an actual experimental room's
+P9's `tests/room-integration.test.js` exercises a room's
 creation-pinned mode, withheld distant body, delayed spectator pose, reconnect
 body keyframe and disposal. `tests/physics-diagnostics.test.js` verifies detached
 world-unit contact/force diagnostics without changing gameplay capture.

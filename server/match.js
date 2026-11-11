@@ -82,7 +82,7 @@ export function createLobby(content = defaultContent()) {
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
-export async function createPhysicsMatch(seed, size, map, content = defaultContent()) {
+export async function createMatch(seed, size, map, content = defaultContent()) {
   const game = await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content,
     () => preparationPause());
   try {

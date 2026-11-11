@@ -7,7 +7,7 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 // The shipped default (#523) is physics content, so a room made with no options is the room a player gets. This is its
 // core client flow end to end: lobby, start, walking, and dropping an item, which a real map's item bodies once made
 // impossible. browser.mjs is the long regression; the physics-* scripts cover the rest.
-const { server, base, browser } = await serveWithBrowser({ profileSummary: false, replayDir: path.resolve('test-results/default-physics-replays') });
+const { server, base, browser } = await serveWithBrowser({ profileSummary: false, replayDir: path.resolve('test-results/default-room-replays') });
 const errors = [];
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
