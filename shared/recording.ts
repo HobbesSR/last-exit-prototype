@@ -23,10 +23,10 @@
 /** The schema this build writes. Bump on any change to recorded structure. */
 export const SCHEMA = 16;
 /**
- * The oldest schema this build can read. Zero, because recordings predating the schema field carry
- * no `schema` at all and are still playable; raise it only when support is deliberately dropped.
+ * The oldest schema this build can read. Schema 10 (P3, #440) is the first format with both
+ * cell-masked chain maps (schema 4+) and required engine-free physics presentation.
  */
-export const MIN_SCHEMA = 0;
+export const MIN_SCHEMA = 10;
 
 /** Older renderers assume a diamond, so a recording of a cell-masked arena needs this reader. */
 export function minimumReaderForMap(map: { playableArea?: unknown }): number {
