@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createGame, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
+import { generatedMap } from './helpers/room-harness.js';
 
 // L2 controls (#444): R reloads, M moves/merges, and the reserve chips and Reload button are the touch path.
 export async function checkReloadControls(browser, base) {
@@ -9,7 +10,8 @@ export async function checkReloadControls(browser, base) {
   page.on('pageerror', e => { throw e; });
   const html = (await readFile('public/index.html', 'utf8')).replace('<script type="module" src="/client.js"></script>', '');
   await page.route('**/reload-fixture', route => route.fulfill({ contentType: 'text/html', body: html }));
-  const game = createGame(4217, undefined, contentById('content-ammo-1')), me = game.players[0];
+  // The controls need a state to draw, not an engine: the shared constructor on the room arena.
+  const game = createGame(4217, generatedMap(9), contentById('content-ammo-1')), me = game.players[0];
   Object.assign(me, { inventory: [{ kind: 'weapon', weaponType: 'pistol', ammo: 3, instanceId: 'gun' }, { kind: 'med', count: 1 }, null, null, null, null], selectedSlot: 0,
     reserves: { pistol: 36, rifle: 0, shell: 4 } });
   game.players = [me];

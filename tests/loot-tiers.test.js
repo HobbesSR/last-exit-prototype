@@ -1,9 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { gunzipSync } from 'node:zlib';
-import { createGame, setInput, step, snapshot } from '../shared/simulation.ts';
-import { contentById } from '../shared/simulation/content.ts';
+import { createGame, createPhysicsGame, disposePhysics, setInput, step, snapshot } from '../shared/simulation.ts';
+import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment } from '../shared/equipment.ts';
 import { dropInventorySlot } from '../shared/simulation/loot.ts';
 import { generateLiveMap } from '../map/live.ts';
@@ -16,12 +14,13 @@ const arena = () => ({ width: 600, height: 400,
   stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
   modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = (id = 'content-loot-1') => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A', 'B'], gladiators: [] }, discovery: false });
-const fixture = map => {
-  const s = createGame(17, map ?? arena(), content());
+/** A physics match on the arena (or `map`), disposed when test `t` ends. */
+const fixture = async (t, map) => {
+  const s = await createPhysicsGame(17, map ?? arena(), content());
+  t.after(() => disposePhysics(s));
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0] };
 };
-const fixtureMaps = () => Object.values(JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/behavior-seat-1.json.gz', import.meta.url)))).maps);
 
 test('the 5 x 5 selector reproduces the diamond drawing and caps at mix 5', () => {
   const grid = [0, 1, 2, 3, 4].map(row => [0, 1, 2, 3, 4].map(col => spatialMix({ col, row })));
@@ -65,32 +64,21 @@ test('item rolls are keyed by seed and id, not by order', () => {
   assert.deepEqual(byId(a), byId(b));
 });
 
-test('stored diamond maps: the population improves with mix, the spawn kit is quality 1, tier metadata is untouched', () => {
-  const byMix = [[], [], [], [], []];
-  for (const stored of fixtureMaps()) {
-    const s = createGame(4217, structuredClone(stored), contentById('content-loot-1'));
-    const l0 = createGame(4217, structuredClone(stored), contentById('content-equipment-1'));
-    assert.equal(s.version, 'last-exit-0.8-loot-1');
-    for (const [i, item] of s.map.items.entries()) {
-      const before = l0.map.items[i];
-      assert.deepEqual({ ...item, quality: undefined }, { ...before, quality: undefined }, 'only quality is added');
-      if (item.kind !== 'weapon') { assert.equal(item.quality, undefined); continue; }
-      assert.ok(Number.isInteger(item.quality) && item.quality >= 1 && item.quality <= 5);
-      if (s.map.spawns.some(sp => Math.hypot(item.x - sp.x, item.y - sp.y) <= STARTER_RESERVE)) assert.equal(item.quality, 1, 'spawn kit');
-      else byMix[spatialMix(virtualZone(s.map, item)) - 1].push(item.quality);
-    }
-  }
-  const means = byMix.map(q => q.length ? q.reduce((a, b) => a + b, 0) / q.length : null).filter(m => m !== null);
-  assert.ok(means.length >= 4, `mixes sampled: ${means.length}`);
-  for (let i = 1; i < means.length; i++) assert.ok(means[i] > means[i - 1], `mean quality rises with mix: ${means.map(m => m.toFixed(2))}`);
-});
-
-test('a live chain map: virtual columns are the generator zone tiers, and weapon quality rises with mix', () => {
+test('a live chain map: virtual columns are the generator zone tiers, only quality is added, the spawn kit is quality 1, and weapon quality rises with mix', () => {
   const map = generateLiveMap(1), loot = map.items.filter(item => item.nodeId);
   assert.ok(loot.length > 500, `generated loot: ${loot.length}`);
   for (const item of loot) assert.equal(virtualZone(map, item).col + 1, item.tier, `${item.id} at ${item.x},${item.y}`);
+  // Item setup needs no engine, so the shared constructor stands in for a match.
+  const plain = createGame(1, structuredClone(map), defaultContent());
   const s = createGame(1, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
-  for (const item of s.map.items) if (item.kind === 'weapon' && item.nodeId) byMix[spatialMix(virtualZone(s.map, item)) - 1].push(item.quality);
+  let kit = 0;
+  for (const [i, item] of s.map.items.entries()) {
+    assert.deepEqual({ ...item, quality: undefined }, { ...plain.map.items[i], quality: undefined }, 'only quality is added');
+    if (item.kind !== 'weapon') { assert.equal(item.quality, undefined); continue; }
+    if (s.map.spawns.some(sp => Math.hypot(item.x - sp.x, item.y - sp.y) <= STARTER_RESERVE)) { kit++; assert.equal(item.quality, 1, 'spawn kit'); }
+    else if (item.nodeId) byMix[spatialMix(virtualZone(s.map, item)) - 1].push(item.quality);
+  }
+  assert.ok(kit > 0, 'the map has a spawn kit');
   // Non-entry regions in mix 1 roll loot too, and the #530 layouts place weapons there. Every sampled quality must be
   // possible under that mix's weights, regardless of the chosen layout (#530).
   for (const [mixIndex, qualities] of byMix.entries()) for (const quality of qualities)
@@ -103,25 +91,26 @@ test('a live chain map: virtual columns are the generator zone tiers, and weapon
   for (let i = 1; i < means.length; i++) assert.ok(means[i] > means[i - 1], `mean quality rises over mixes 2..5: ${means.map(m => m.toFixed(2))}`);
 });
 
-test('L1 is explicit: default and L0 content assign no quality and consume the same RNG', () => {
-  const [stored] = fixtureMaps();
-  const legacy = createGame(4217, structuredClone(stored));
-  assert.ok(legacy.map.items.every(i => i.quality === undefined));
-  const l0 = createGame(4217, structuredClone(stored), contentById('content-equipment-1'));
-  const l1 = createGame(4217, structuredClone(stored), contentById('content-loot-1'));
-  assert.ok(l0.map.items.every(i => i.quality === undefined));
-  assert.equal(l1.rng, l0.rng);
-  assert.equal(l1.itemSerial, l0.itemSerial);
-  assert.equal(qualityDamage(legacy.content, { quality: 5 }), 1);
+test('weapon quality is explicit: the default content assigns none and consumes the same RNG and item ids', () => {
+  const map = arena();
+  for (let i = 0; i < 6; i++) map.items.push({ id: `w-${i}`, kind: 'weapon', weaponType: 'rifle', x: 130 + i * 70, y: 40 + i * 60 });
+  const plain = createGame(4217, structuredClone(map), defaultContent());
+  const tiered = createGame(4217, structuredClone(map), contentById('content-loot-1'));
+  assert.ok(plain.map.items.every(i => i.quality === undefined));
+  assert.ok(tiered.map.items.every(i => Number.isInteger(i.quality)));
+  assert.equal(tiered.rng, plain.rng);
+  assert.equal(tiered.itemSerial, plain.itemSerial);
+  assert.equal(qualityDamage(plain.content, { quality: 5 }), 1);
   assert.throws(() => createGame(1, arena(), { ...content(), itemInstances: undefined }), /requires L0/);
 });
 
-test('an authored quality is kept; quality scales damage only', () => {
+test('an authored quality is kept; quality scales damage only', async t => {
   const map = arena();
   map.items.push({ id: 'rifle-q4', kind: 'weapon', weaponType: 'rifle', x: 120, y: 200, quality: 4 });
-  const { s, p } = fixture(map);
+  const { s, p } = await fixture(t, map);
   assert.equal(s.map.items[0].quality, 4);
-  step(s);
+  // A pickup needs a tick that spends an input.
+  setInput(s, p.id, { seq: 0 }); step(s);
   const carried = p.inventory.find(Boolean);
   assert.deepEqual([carried.instanceId, carried.quality], ['rifle-q4', 4]);
   setInput(s, p.id, { seq: 1, attack: true, aim: 0 }); step(s);
@@ -131,8 +120,8 @@ test('an authored quality is kept; quality scales damage only', () => {
   assert.equal(p.attackCd, rifle.cooldown);
 });
 
-test('different qualities never merge or refill; quality survives drop and pickup', () => {
-  const { s, p } = fixture();
+test('different qualities never merge or refill; quality survives drop and pickup', async t => {
+  const { s, p } = await fixture(t);
   const take = item => { s.map.items.push(item); const done = collectInstanceEquipment(s, p, item); if (done) s.map.items = s.map.items.filter(i => i !== item); return done; };
   assert.equal(take({ id: 'p1', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 10, quality: 1 }), true);
   assert.equal(take({ id: 'p3', kind: 'weapon', weaponType: 'pistol', x: 120, y: 200, ammo: 10, quality: 3 }), true);
@@ -144,15 +133,15 @@ test('different qualities never merge or refill; quality survives drop and picku
   assert.deepEqual([dropped.quality, dropped.ammo, dropped.lineageId], [3, 15, 'p3']);
 });
 
-test('the same match replays to identical quality-bearing frames', () => {
-  const run = () => {
+test('the same match replays to identical quality-bearing frames', async t => {
+  const run = async () => {
     const map = arena();
     for (let i = 0; i < 6; i++) map.items.push({ id: `w-${i}`, kind: 'weapon', weaponType: 'scattergun', x: 130 + i * 70, y: 40 + i * 60 });
-    const { s, p } = fixture(map), frames = [];
+    const { s, p } = await fixture(t, map), frames = [];
     for (let t = 0; t < 30; t++) { setInput(s, p.id, { seq: t + 1, x: 1, attack: t % 5 === 0, aim: 0 }); step(s); frames.push(JSON.stringify(snapshot(s))); }
     return frames;
   };
-  const frames = run();
-  assert.deepEqual(run(), frames);
+  const frames = await run();
+  assert.deepEqual(await run(), frames);
   assert.ok(JSON.parse(frames[0]).items.every(i => Number.isInteger(i.quality)));
 });

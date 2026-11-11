@@ -96,21 +96,7 @@ const CONTENT_4: MatchContent = { ...CONTENT_3, id: 'content-4', replanning: 'sl
 const CONTENT_5: MatchContent = { ...CONTENT_4, id: 'content-5', replanning: 'repair' };
 // L0 remains explicit while physical loot and its rollout gates are developed.
 const CONTENT_EQUIPMENT_1: MatchContent = { ...CONTENT_5, id: 'content-equipment-1', itemInstances: { groundCapacity: 4096 } };
-// L1 weapon quality over L0 (#443, 14); the weights and damage-only multipliers are 41.1's provisional proposal.
-const CONTENT_LOOT_1: MatchContent = { ...CONTENT_EQUIPMENT_1, id: 'content-loot-1', lootTiers: {
-  mixes: [[70, 25, 5, 0, 0], [35, 45, 18, 2, 0], [10, 30, 40, 18, 2], [0, 10, 30, 45, 15], [0, 0, 10, 40, 50]],
-  damage: [1, 1.08, 1.16, 1.24, 1.32],
-} };
-// L2 reloads over L1 (#444, 14). Magazines, reserves and times are 41.1's placeholders; the user will rebalance ammo (17.3 Q4).
-const CONTENT_AMMO_1: MatchContent = { ...CONTENT_LOOT_1, id: 'content-ammo-1', reloading: {
-  weapons: {
-    pistol: { family: 'pistol', magazine: 12, reloadTicks: 20 },
-    rifle: { family: 'rifle', magazine: 30, reloadTicks: 30 },
-    scattergun: { family: 'shell', magazine: 6, reloadTicks: 30 },
-  },
-  reserves: { pistol: 72, rifle: 120, shell: 30 },
-} };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-loot-1': CONTENT_LOOT_1, 'content-ammo-1': CONTENT_AMMO_1 };
+const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-equipment-1': CONTENT_EQUIPMENT_1 };
 
 // The first physics set (#523): content-5's numbers with narrow character bodies, physical items and props, the hook
 // kit, and temporary body detours for planning (#921 folded in the P2 to P8 stage sets it was built from; 42.12 to 42.19).
@@ -137,6 +123,20 @@ SHIPPED['content-6'] = { ...CONTENT_5, id: 'content-6',
 };
 // Gladiators plan trips across regions over the portal graph, a leg at a time (#682); otherwise content-6.
 SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlanning: 'portals' };
+// Weapon quality (L1; #443, 14) over the shipped set, selectable and not the default (#920); the weights and damage-only multipliers are 41.1's provisional proposal.
+SHIPPED['content-loot-1'] = { ...SHIPPED['content-7'], id: 'content-loot-1', lootTiers: {
+  mixes: [[70, 25, 5, 0, 0], [35, 45, 18, 2, 0], [10, 30, 40, 18, 2], [0, 10, 30, 45, 15], [0, 0, 10, 40, 50]],
+  damage: [1, 1.08, 1.16, 1.24, 1.32],
+} };
+// Reloading (L2; #444, 14) over weapon quality. Magazines, reserves and times are 41.1's placeholders; the user will rebalance ammo (17.3 Q4).
+SHIPPED['content-ammo-1'] = { ...SHIPPED['content-loot-1'], id: 'content-ammo-1', reloading: {
+  weapons: {
+    pistol: { family: 'pistol', magazine: 12, reloadTicks: 20 },
+    rifle: { family: 'rifle', magazine: 30, reloadTicks: 30 },
+    scattergun: { family: 'shell', magazine: 6, reloadTicks: 30 },
+  },
+  reserves: { pistol: 72, rifle: 120, shell: 30 },
+} };
 // Gunfire is heard (#684); otherwise content-7. Placeholders, deliberately detuned (17.3 #26): ranges far beyond a fair
 // game's, so gladiators hear shots on today's maps, set by `tools/navigation/hunter-report.mjs` (42.22); four seconds' fade.
 SHIPPED['content-8'] = { ...SHIPPED['content-7'], id: 'content-8', hearing: { ticks: 4 * 20, ranges: { pistol: 8000, rifle: 10000, scattergun: 12000 } } };

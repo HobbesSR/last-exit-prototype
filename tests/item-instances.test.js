@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
 import { gunzipSync } from 'node:zlib';
-import { createGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, createPhysicsGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment, rearrangeInstanceEquipment } from '../shared/equipment.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
@@ -19,10 +19,12 @@ const arena = () => ({ width: 600, height: 400,
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 120, y: 200 }, { x: 400, y: 200 }],
   stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
   modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
-const content = (capacity = 4096) => ({ ...structuredClone(contentById('content-equipment-1')),
+const content = (capacity = 4096) => ({ ...structuredClone(contentById('content-7')),
   roster: { contestants: ['A', 'B'], gladiators: [] }, itemInstances: { groundCapacity: capacity }, discovery: false });
-function fixture(capacity) {
-  const s = createGame(17, arena(), content(capacity));
+/** A physics match on the arena, disposed when test `t` ends. */
+async function fixture(t, capacity, map = arena()) {
+  const s = await createPhysicsGame(17, map, content(capacity));
+  t.after(() => disposePhysics(s));
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0], q: s.players[1] };
 }
@@ -33,19 +35,19 @@ const take = (s, p, item) => {
   return consumed;
 };
 
-test('L0 is opt-in; old content and its snapshots keep their format', () => {
-  const old = createGame(17, arena(), { ...content(), id: 'content-1', itemInstances: undefined });
-  assert.notEqual(old.version, 'last-exit-0.8-equipment-1');
+test('item instances are stated by content: a set without them keeps no counter in its state or snapshots', async t => {
+  // Setup needs no engine, so the shared constructor stands in for a match.
+  const old = createGame(17, arena(), { ...content(), itemInstances: undefined });
   assert.equal(old.itemSerial, undefined);
   assert.equal(Object.hasOwn(snapshot(old), 'itemSerial'), false);
-  const { s } = fixture();
-  assert.equal(s.version, 'last-exit-0.8-equipment-1');
+  const { s } = await fixture(t);
+  assert.equal(s.version, PHYSICS_VERSION);
   assert.equal(s.itemSerial, 0);
   assert.equal(snapshot(s).itemSerial, 0);
 });
 
-test('ground identity survives pickup/drop; stack split keeps a common lineage and conserves units', () => {
-  const { s, p } = fixture();
+test('ground identity survives pickup/drop; stack split keeps a common lineage and conserves units', async t => {
+  const { s, p } = await fixture(t);
   const med = ground('map-med', 'med', { count: 3, quality: 2 });
   s.map.items.push(med);
   assert.equal(take(s, p, med), true);
@@ -60,8 +62,8 @@ test('ground identity survives pickup/drop; stack split keeps a common lineage a
   assert.equal(s.itemSerial, before + 2);
 });
 
-test('partial ground transfers preserve the remainder; same-quality merges retain target identity', () => {
-  const { s, p } = fixture();
+test('partial ground transfers preserve the remainder; same-quality merges retain target identity', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = { kind: 'med', count: 2, quality: 3, instanceId: 'target', lineageId: 'target' };
   const source = ground('source', 'med', { count: 3, quality: 3 });
   s.map.items.push(source);
@@ -85,8 +87,8 @@ test('partial ground transfers preserve the remainder; same-quality merges retai
   assert.deepEqual([p.inventory[0].quality, p.inventory[2].quality], [4, 3], 'different qualities swap without blending');
 });
 
-test('taking part of an oversized ground stack gives the carried part a child identity', () => {
-  const { s, p } = fixture();
+test('taking part of an oversized ground stack gives the carried part a child identity', async t => {
+  const { s, p } = await fixture(t);
   const source = ground('five', 'shield', { count: 5, quality: 2 });
   s.map.items.push(source);
   assert.equal(take(s, p, source), false);
@@ -104,8 +106,8 @@ test('taking part of an oversized ground stack gives the carried part a child id
   assert.equal(p.inventory.reduce((n, item) => n + (item?.count ?? 0), 0), 5);
 });
 
-test('ammo transfer conserves rounds and leaves the partly used weapon on the ground', () => {
-  const { s, p } = fixture();
+test('ammo transfer conserves rounds and leaves the partly used weapon on the ground', async t => {
+  const { s, p } = await fixture(t);
   const max = s.content.weapons.pistol.maxAmmo;
   p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: max - 2, instanceId: 'carried', lineageId: 'carried' };
   const source = ground('spare', 'weapon', { weaponType: 'pistol', ammo: 7 });
@@ -121,8 +123,8 @@ test('ammo transfer conserves rounds and leaves the partly used weapon on the gr
   assert.equal(source.ammo, 5);
 });
 
-test('optional capacity failure and invalid slot/payload do not mutate inventory or counters', () => {
-  const { s, p } = fixture(1);
+test('optional capacity failure and invalid slot/payload do not mutate inventory or counters', async t => {
+  const { s, p } = await fixture(t, 1);
   p.inventory[0] = { kind: 'shield', count: 2, instanceId: 'shield', lineageId: 'shield' };
   const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
   assert.equal(dropInventorySlot(s, p, 0), false);
@@ -139,8 +141,8 @@ test('optional capacity failure and invalid slot/payload do not mutate inventory
   }
 });
 
-test('mandatory death drops exceed optional capacity, retain charge, and remain collectable', () => {
-  const { s, p, q } = fixture(1);
+test('mandatory death drops exceed optional capacity, retain charge, and remain collectable', async t => {
+  const { s, p, q } = await fixture(t, 1);
   p.inventory[0] = { kind: 'med', count: 3, instanceId: 'med', lineageId: 'med' };
   p.inventory[1] = { kind: 'cell', charge: s.content.cellChargeTicks, instanceId: 'cell', lineageId: 'cell', quality: 4 };
   eliminate(s, p, null);
@@ -158,9 +160,9 @@ test('mandatory death drops exceed optional capacity, retain charge, and remain 
   assert.equal(s.map.items.length, 3);
 });
 
-test('E swap is atomic at capacity and a successful swap cannot repick its own drop this tick', () => {
+test('E swap is atomic at capacity and a successful swap cannot repick its own drop this tick', async t => {
   for (const capacity of [1, 2]) {
-    const { s, p } = fixture(capacity);
+    const { s, p } = await fixture(t, capacity);
     p.inventory[0] = { kind: 'med', count: 2, instanceId: 'owned-0', lineageId: 'owned-0' };
     for (let i = 1; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 10, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
     const incoming = ground('incoming', 'cell', { charge: 73 });
@@ -179,8 +181,8 @@ test('E swap is atomic at capacity and a successful swap cannot repick its own d
   }
 });
 
-test('failed E preview leaves a partially refillable pistol and the outgoing stack untouched', () => {
-  const { s, p } = fixture(1);
+test('failed E preview leaves a partially refillable pistol and the outgoing stack untouched', async t => {
+  const { s, p } = await fixture(t, 1);
   const max = s.content.weapons.pistol.maxAmmo;
   p.inventory[0] = { kind: 'med', count: 2, instanceId: 'old-med', lineageId: 'old-med' };
   p.inventory[1] = { kind: 'weapon', weaponType: 'pistol', ammo: max - 2, instanceId: 'old-pistol', lineageId: 'old-pistol' };
@@ -193,8 +195,8 @@ test('failed E preview leaves a partially refillable pistol and the outgoing sta
   assert.equal(s.map.items[0].ammo, 7);
 });
 
-test('a successful E swap stages only the pickup: the map and other ground entries are untouched', () => {
-  const { s, p } = fixture();
+test('a successful E swap stages only the pickup: the map and other ground entries are untouched', async t => {
+  const { s, p } = await fixture(t);
   for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 1, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
   const bystander = ground('bystander', 'med', { x: 500, y: 300 });
   s.map.items.push(bystander, ground('incoming', 'cell', { charge: 9 }));
@@ -206,8 +208,8 @@ test('a successful E swap stages only the pickup: the map and other ground entri
   assert.deepEqual(s.map.items.map(i => i.id).sort(), ['bystander', 'owned-0']);
 });
 
-test('E cannot swap back a fresh self-drop even when all slots are filled again', () => {
-  const { s, p } = fixture(2);
+test('E cannot swap back a fresh self-drop even when all slots are filled again', async t => {
+  const { s, p } = await fixture(t, 2);
   for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 1, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
   assert.equal(dropInventorySlot(s, p, 0), true);
   assert.equal(s.map.items.length, 1);
@@ -218,8 +220,8 @@ test('E cannot swap back a fresh self-drop even when all slots are filled again'
   assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
 });
 
-test('a malformed carried entry cannot halt elimination; well-formed value still drops', () => {
-  const { s, p } = fixture();
+test('a malformed carried entry cannot halt elimination; well-formed value still drops', async t => {
+  const { s, p } = await fixture(t);
   p.inventory[0] = { kind: 'cell', charge: 12, instanceId: 'good', lineageId: 'good' };
   p.inventory[1] = { kind: 'weapon', weaponType: 'pistol', ammo: Number.NaN, instanceId: 'bad', lineageId: 'bad' };
   assert.doesNotThrow(() => eliminate(s, p, null));
@@ -227,12 +229,14 @@ test('a malformed carried entry cannot halt elimination; well-formed value still
   assert.ok(p.inventory.every(i => i === null));
 });
 
-test('failed optional scattering leaves all state intact; mandatory drop keeps a logical fallback', () => {
-  const { s, p, q } = fixture();
+test('failed optional scattering leaves all state intact; mandatory drop keeps a logical fallback', async t => {
+  // The engine pins the map at creation, so the corridor is built into it.
+  const map = arena();
+  map.obstacles.push(
+    { id: 'upper-wall', kind: 'wall', x: 0, y: 0, w: map.width, h: 187 },
+    { id: 'lower-wall', kind: 'wall', x: 0, y: 213, w: map.width, h: map.height - 213 });
+  const { s, p, q } = await fixture(t, undefined, map);
   p.inventory[0] = { kind: 'cell', charge: s.content.cellChargeTicks, instanceId: 'sealed-cell', lineageId: 'sealed-cell' };
-  s.map.obstacles.push(
-    { id: 'upper-wall', kind: 'wall', x: 0, y: 0, w: s.map.width, h: 187 },
-    { id: 'lower-wall', kind: 'wall', x: 0, y: 213, w: s.map.width, h: s.map.height - 213 });
   q.x = 140; q.y = 200;
   assert.equal(canOccupy(s.map, p.x, p.y, 12), true, 'the actor fits in the corridor');
   assert.equal(canOccupy(s.map, q.x, q.y, 12), true);
@@ -250,8 +254,8 @@ test('failed optional scattering leaves all state intact; mandatory drop keeps a
   assert.equal(q.inventory.find(Boolean).charge, s.content.cellChargeTicks);
 });
 
-test('forty transfers between players conserve all units, ammo and charge with unique IDs', () => {
-  const { s, p, q } = fixture();
+test('forty transfers between players conserve all units, ammo and charge with unique IDs', async t => {
+  const { s, p, q } = await fixture(t);
   s.map.items.push(ground('three-meds', 'med', { count: 3 }),
     ground('loaded', 'weapon', { weaponType: 'rifle', ammo: 7 }),
     ground('charged', 'cell', { charge: s.content.cellChargeTicks }));
@@ -279,8 +283,8 @@ test('forty transfers between players conserve all units, ammo and charge with u
   }
 });
 
-test('snapshot is detached; only the owner sees carried identity and counter stays private', () => {
-  const { s, p, q } = fixture();
+test('snapshot is detached; only the owner sees carried identity and counter stays private', async t => {
+  const { s, p, q } = await fixture(t);
   p.inventory[0] = { kind: 'cell', charge: 63, instanceId: 'cell-1', lineageId: 'root-1', quality: 5 };
   q.x = 130; q.y = 200;
   const frame = snapshot(s), own = playerView(s, frame, p.id), other = playerView(s, frame, q.id);
@@ -295,8 +299,8 @@ test('snapshot is detached; only the owner sees carried identity and counter sta
   assert.equal(p.inventory[0].charge, 63);
 });
 
-test('legacy tick resolves a contested pickup by player id despite reversed array order', () => {
-  const { s, p, q } = fixture();
+test('the tick resolves a contested pickup by player id despite reversed array order', async t => {
+  const { s, p, q } = await fixture(t);
   p.x = q.x = 120; p.y = q.y = 200;
   s.players.reverse();
   s.map.items.push(ground('contested', 'cell', { charge: 11 }));
@@ -306,31 +310,32 @@ test('legacy tick resolves a contested pickup by player id despite reversed arra
   assert.equal(s.map.items.length, 0);
 });
 
-test('identical traces yield identical identities, counters, quantities and snapshots', () => {
-  function trace() {
-    const { s, p } = fixture();
+test('identical traces yield identical identities, counters, quantities and snapshots', async t => {
+  async function trace() {
+    const { s, p } = await fixture(t);
     s.map.items.push(ground('med', 'med', { count: 2 }), ground('cell', 'cell', { charge: 41, x: 300 }));
     step(s);
     setInput(s, p.id, { seq: 1, slot: 0, drop: true }); step(s);
     return { inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial,
       rng: s.rng, serial: s.serial, frame: snapshot(s) };
   }
-  assert.deepEqual(trace(), trace());
+  assert.deepEqual(await trace(), await trace());
 });
 
-test('L0 recording roundtrip and backward seeks retain exact item-instance frames', async () => {
+test('recording roundtrip and backward seeks retain exact item-instance frames', async t => {
   const map = arena();
   map.items.push(ground('med-root', 'med', { count: 3, quality: 3 }),
     ground('rifle-root', 'weapon', { weaponType: 'rifle', ammo: 7, quality: 2 }),
     ground('cell-root', 'cell', { charge: 100, quality: 4 }));
-  const s = createGame(17, map, content());
+  const s = await createPhysicsGame(17, map, content());
+  t.after(() => disposePhysics(s));
   for (const player of s.players) { player.bot = false; player.input = {}; }
   const p = s.players[0], chunks = [];
   const header = { id: 'item-roundtrip', version: s.version, contentId: s.content.id,
-    schema: SCHEMA, minSchema: minimumReaderForMatch(map, false), seed: s.seed,
+    schema: SCHEMA, minSchema: minimumReaderForMatch(map, true), seed: s.seed,
     hz: 20, createdAt: 1, map: structuredClone(map) };
   assert.equal(header.schema, 16);
-  assert.equal(header.minSchema, 4);
+  assert.equal(header.minSchema, 10);
   assert.equal(recordingFit(header), 'ok');
   assert.equal(recordingFit({ ...header, schema: 10, minSchema: 10 }), 'ok');
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });

@@ -15,6 +15,7 @@ import { prepareHooks, finishHooks, reconcileHooks } from './hook.ts';
 import { interact, advanceCharging } from './interactions.ts';
 import { arrive, transit } from './transit.ts';
 import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
+import { advanceReload, dropReserve } from './ammo.ts';
 import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { recordRewind } from './rewind.ts';
@@ -36,7 +37,6 @@ const stepping = new WeakSet<Game>();
  * not publish or mutate that map while construction is pending. It never runs in a tick. */
 export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
   if (content?.itemInstances && !content.worldPhysics) throw new RangeError('physical item integration requires P5; use createGame for L0');
-  if (content?.reloading) throw new RangeError('L2 reloading has no physics tick yet; use createGame for content-ammo-1');
   // Preparation is private until the factory resolves. Only the server supplies
   // event-loop yields; shared/browser callers retain the ordinary construction path.
   if (map && yieldControl) await prepareMovementGeometry(map, yieldControl);
@@ -237,6 +237,9 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     if (intent.utilitySlot !== undefined && p.selectedSlot === intent.utilitySlot) attack(s, p);
     const discard = intent.discardSlot ?? (input.drop ? p.selectedSlot : undefined);
     if (discard !== undefined) dropInventorySlot(s, p, discard);
+    if (input.dropAmmo) dropReserve(s, p, input.dropAmmo.family, input.dropAmmo.count);
+    // After the tick's selection, move and drops, so each cancels a reload before it transfers; before attack, which it blocks.
+    advanceReload(s, p, input);
     if (input.skill && p.kit !== 'warden') skill(s, p);
     if (input.attack && p.role === 'contestant') attack(s, p);
     const speed = movementSpeed(p, input, HZ);
