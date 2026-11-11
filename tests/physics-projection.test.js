@@ -4,13 +4,13 @@ import { createPhysicsGame, disposePhysics, snapshot, playerView, PHYSICS_VERSIO
 import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { minimumReaderForMatch, minimumReaderForMap, SCHEMA } from '../shared/recording.ts';
-import { createMatch, createPhysicsMatch } from '../server/match.js';
+import { createPhysicsMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
 import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 
-const content = () => ({ ...structuredClone(contentById('content-1')), roster: { contestants: ['A'], gladiators: [] } });
+const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = () => ({ width: 600, height: 400, playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 6]] })) },
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 100, y: 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const body = (id, x, y, shape = { kind: 'circle', radius: 5 }, extra = {}) => ({ id, kind: 'prop', shape, x, y, angle: 0.4, vx: 2, vy: -3, omega: 0.2, sleeping: false, generation: 4, ...extra });
@@ -111,9 +111,6 @@ test('physics recording floor is explicit and stamped by the room writer', async
     assert.equal(minimumReaderForMatch(map, true), 10);
     assert.equal(minimumReaderForMatch(map, false), minimumReaderForMap(map));
   }
-  const legacy = createMatch(1, undefined, arena(), content());
-  assert.equal(legacy.hasPhysics, false);
-  legacy.dispose();
   let header;
   const service = createRoomService({ content, matchFactory: async (...args) => {
     const match = await createPhysicsMatch(...args);

@@ -12,7 +12,7 @@ The project is in active development. It has moved well past an initial proof of
 
 ## Current State at a Glance
 
-| Area | Implemented and Active (`last-exit-0.7` / `content-5`) | Experimental or In Progress |
+| Area | Implemented and Active (`last-exit-0.8-physics` / `content-7`) | Experimental or In Progress |
 | --- | --- | --- |
 | **Core Gameplay** | 8 contestants vs. 3 gladiators (Warden, Specter, Striker), 3 shared extraction slots, 5-second power-cell charging, 6-slot inventory with drag-and-drop and stack merging, doors and windows, west-to-east hazard wall. | Spatial weapon quality tiers (`content-loot-1`, #443) and magazine reloading with ammo reserves (`content-ammo-1`, #444) are implemented as opt-in content pending balance signoff ([14](docs/14-match-rules.md)). |
 | **Map Generation** | Unified macro-to-micro generation chain ([50](docs/50-map-generation.md), [51](docs/51-generation-chain.md)): tile placement, layout regions, reachability proofs, region briefs, and bespoke micro builders (`depot`, `compound`, `block`, `hut`, `ruins`, etc.) at `12x6` (default), `24x12`, and `36x18` zone sizes. | Recursive execution of explored decomposition trees ([19](docs/19-decomposition-design.md)), second building-library milestone ([56](docs/56-buildings.md)), and live-chain trap/sensor/locked-door authoring ([16](docs/16-deferred.md)). |
@@ -163,7 +163,7 @@ npm run test:times    # Measures per-file execution times against the 15s (fast)
 
 Forgejo CI runs `check`, `typecheck`, `npm test` and `test:mapgen` on every pull request and on `main`; the slow, browser and benchmark tiers stay manual ([31](docs/31-verification.md#continuous-integration)). Forgejo is the source of truth; GitHub is the public copy, where `main` is published by hand and branches started there come back to Forgejo for review ([34](docs/34-forgejo-workflow.md#github)).
 
-Full verification gates, coverage details, and the frozen characterization baseline policy (`tests/fixtures/behavior-seat-1.json.gz`, which guards against unintended simulation regressions across refactors) are documented in [31](docs/31-verification.md) and [tests/fixtures/README.md](tests/fixtures/README.md).
+Full verification gates, coverage details, and the frozen characterization baseline policy (`tests/fixtures/behavior-physics-1.v8.gz`, which guards against unintended simulation regressions across refactors) are documented in [31](docs/31-verification.md) and [tests/fixtures/README.md](tests/fixtures/README.md).
 
 ---
 

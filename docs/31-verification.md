@@ -50,7 +50,7 @@ spec reporter; `test:times` stays the isolated per-file measurement against the 
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`. Dated counts and timings are in
 [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). `npm run test:all` adds
-`tests/slow/`: the legacy route sweep, the bot-match traces against the frozen
+`tests/slow/`: the bot-match traces against the frozen
 fixture, bots completing whole matches, and the builder sweeps below. Its 19 files took
 235 s timed one at a time on 2026-11-06, after #822 fitted each to its claim (26 files and 871 s on
 2026-11-05, #808; each set's share is in
@@ -63,15 +63,15 @@ merged on the fast tier; `npm run test:slow` runs it locally when a change is li
 it, such as generation or simulation work. An integration checkpoint runs the slow files its
 area can move, not the whole tier by default ([Choosing checks by changed area](#choosing-checks-by-changed-area)). A test belongs in `tests/slow/` when it costs seconds and sweeps
 seeds or plays whole matches. The fast tier keeps a cheap witness of the same
-contract where one exists: the fixture's map hashes and scripted trace stay in
-`characterization.test.js`.
+contract where one exists: the frozen fixture's scripted trace stays in
+`characterization-physics.test.js`.
 
 **A test that generates a map down to building is slow-tier work** (Corey, 2026-11-07, on review 672
 of #853). Under the matched libraries a 12 × 6 game map takes about 10 s to build (42.37), so the fast
 tier keeps macro, brief and synthetic-brief tests, and building ones move to `tests/slow/`, whole
 files or the tests that build. A test that needs a map only as a place to play uses an arena sized
 to the task ([Test arenas](#test-arenas)): room and networking tests read the pregenerated room
-arena. The playground quick cases stay pinned in `map-sweep`; the game quick case is in
+arena. The playground quick cases stay pinned in the fast `map-sweep`; the game quick case is in
 `slow/map-chain-sweep`.
 
 Large end-to-end builder timing witnesses also belong in the slow tier when
@@ -611,8 +611,8 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
 | Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too and refuses a defective map; `slow/map-library`'s diagnosis; for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves `slow/map-library` to the slow tier on `main` (below) | 170 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
-| The legacy generator (`shared/map/generate.ts`) | the map hashes in `tests/characterization.test.js` | `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) | 31 s |
-| Simulation rules, bots, snapshots and projections | `tests/characterization.test.js` and `characterization-physics.test.js`; the unit file for the rule | `characterization-bots`, `characterization-physics-bots` (31 s), `live-map`; `map-sweep` at all 200 seeds (`LEGACY_MAP_SEEDS=200`) too for movement or the navigation grid; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 33 s, 64 s with `map-sweep` |
+| The legacy generator (`shared/map/generate.ts`), which nothing live runs and #920 retires | the unit file | none since its sweep and map hashes went with the legacy mover (#920) | |
+| Simulation rules, bots, snapshots and projections | `characterization-physics.test.js`; the unit file for the rule | `characterization-physics-bots` (31 s), `live-map`; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 31 s, plus `live-map` |
 | Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser`; the frozen physics baselines, `npm run brief -- test:set simulation:characterization-physics --slow` (`shared/physics/` is a `simulation` source too, so `changed` names both sets) | 56 s beyond the fast set, plus 33 s |
 | Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |
 | The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-physics`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
@@ -669,13 +669,11 @@ the sweep and the physics equality scripts (the table above).
 | `overhead` | 25.0 s (its seam pixel check fails in some worktrees, #818) | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
 | `dev-view` | 23.0 s | a player tab, the dev tab it opens and what the dev tab does to the room | the dev view (client and server), room dev tools |
 
-**`simulation`** (slow 48 s, browser 17 s)
+**`simulation`** (slow 52 s, browser 17 s)
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| `characterization-bots` | 13.4 s | every tick's snapshot and three projections of four whole bot matches on the fixture's stored arenas; the fast tier has the map hashes and one scripted trace | simulation rules, bots, snapshot and projection shapes; not generation |
 | `characterization-physics-bots` | 31.2 s (2026-11-10) | the same for two whole `content-7` physics matches on the physics fixture's stored chain arenas, the private engine state included (#920); the fast tier has its scripted trace | physics rules, bots, the engine, snapshot and projection shapes; not generation |
-| `map-sweep` | 4.0 s | legacy maps, seeds 1 to 20 and the fixture's four, keep a no-key route for both body sizes and clearance sampled along every route; its loot and charger checks reuse the predicate that placed them, so a broken `canOccupy` passes them (review 658). `LEGACY_MAP_SEEDS=200` runs the full sweep (31 s) for a change to the legacy generator, movement or the navigation grid (#822) | the legacy generator, movement, the navigation grid; not rules or bots |
 | `view-live-map` | 20.8 s | roof, gate and item ids stay pinned on live maps 1 and 2, and their roofs are distinct and conceal (#343); moved from `view` (#849) | the live adapter, builders' element order, roofs |
 | `hearing` (browser) | 10.1 s | a heard-gunfire cue reaches the player's frame and is drawn as a ring, an edge arrow and on the minimap | hearing, its projection, the HUD and minimap |
 | `transit` (browser) | 6.6 s | a gladiator at a station sees its rings on the minimap and a click transits | transit, its projection, minimap input |
@@ -695,13 +693,13 @@ the sweep and the physics equality scripts (the table above).
 
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
-| `live-map` (slow) | 19.9 s | legacy-mover bots fill all three extraction slots on two live chain maps; at the larger authored size macro states a room's recipe and the frame its briefs give is the room's size (the regions are not built, so no per-run test converts a composed 24 × 12 map; `micro-large-briefs` builds each type's extreme stored brief at that size, not these, #822) | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
+| `live-map` (slow) | 19.9 s | bots on the shipped content and its engine fill all three extraction slots on two live chain maps; at the larger authored size macro states a room's recipe and the frame its briefs give is the room's size (the regions are not built, so no per-run test converts a composed 24 × 12 map; `micro-large-briefs` builds each type's extreme stored brief at that size, not these, #822) | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
 | `live-map-adapter` (slow) | 29.9 s | a room's match map is seed 1's chain map, the adapter is deterministic, and a content's roster sizes its sites (#849) | the live adapter, generation |
 | `live-recipe` (slow) | 29.7 s | the Map Lab's live-recipe check: only a seed's own map is a room's, refusing an edited layout or result (#822, #849) | `map/live.ts`, generation |
 | `map-generator` (slow) | 18.9 s | the map worker's answer is exactly the inline map, graph and packed tiles included, and each request gets its own seed's (#849) | the worker, the live adapter |
 | `room-arena` (slow) | 8.9 s | the pregenerated room arena is still seed 9's live map and graph (#849) | anything that moves seed 9's live map: then recapture it |
 | `room-sizes` (slow) | 21 s | a whole room on the shipped content through the server loop: every tick recorded once in order, the sparse replay timeline, the recording's physics version and the map within ground capacity | rooms, recording, the replay timeline, item capacity; size-dependent generation under `ROOM_SIZES` |
-| `browser` (browser) | 90.2 s | the client's long regression over legacy rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
+| `browser` (browser) | 90.2 s | the client's long regression over shipped rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
 
 **`macro`** (slow 33 s, browser at least 131 s; and the chain sweep, 159 s)
 
@@ -738,8 +736,8 @@ output is not what they check: with hut's box changed from 4 to 5, `micro-hut` f
 contrast, pins some builder output by name, so a content change can fail it (#816).
 `npm run test:micro` is the `micro` set's fast files, four at a time, then these four scripts.
 
-A builder or strategy change does not run `test:all`. `characterization-bots`
-and `map-sweep` never build a chain map. `map-library`, `live-map`, `physics-navigation` and
+A builder or strategy change does not run `test:all`. `characterization-physics-bots`
+never builds a chain map: its arenas are stored. `map-library`, `live-map`, `physics-navigation` and
 `room-sizes` build one only to report its defects or play a match, so all they can see is a
 defect, a crash or a stalled bot, which the sweep's `built` and `report` hashes and
 `diagnoseBuiltMap` show first. The exceptions are the type's own slow files and `micro-large-briefs`:
@@ -784,8 +782,8 @@ needs something the builder can't express, and its PR says what. Per-file scenes
 than kept alongside it. A generated-region option is not built yet: no first user needed one, so it waits for a
 test that does.
 
-`tests/helpers/scenario.js` stages a game on an arena: `stage` (the legacy mover, the fast path) or `stagePhysics`
-(physics content) places exactly the actors asked for, each a bot or scripted. `know` sets what a contestant knows,
+`tests/helpers/scenario.js` stages a game on an arena: `stagePhysics` (the shipped content unless given)
+places exactly the actors asked for, each a bot or scripted. `know` sets what a contestant knows,
 `run` steps with events scripted per tick (a shot every N ticks, a door changing) and returns the tick a condition
 first held, and `gunfight` is the first preset scenario. Reports import the same helpers
 (`tools/navigation/gunfight-arena.mjs`).
@@ -883,42 +881,22 @@ bot witnesses; their measured scope and outstanding human gates are [42.20](42.2
 
 ## The frozen fixture
 
-The current frozen characterization fixture is `behavior-seat-1.json.gz`.
-Its complete lineage, capture and introduction commits, digests and reconstruction
-instructions belong to [the fixture README](../tests/fixtures/README.md).
-
-The live engine has its own: `behavior-physics-1.v8.gz` (#920 stage 1) freezes what
+The frozen characterization fixture is `behavior-physics-1.v8.gz` (#920 stage 1). It freezes what
 `content-7` physics matches do on two stored chain arenas, read by
 `characterization-physics.test.js` (a scripted trace, fast tier) and
-`slow/characterization-physics-bots.test.js` (two whole bot matches). The same rules
-apply to it as to `seat-1` below. It replaces `seat-1` when #920 retires the legacy mover;
-until then both are frozen, and a change reaching both engines must reproduce both.
+`slow/characterization-physics-bots.test.js` (two whole bot matches). Its complete lineage, capture
+commit, digests and reconstruction instructions belong to [the fixture README](../tests/fixtures/README.md).
+It replaced `behavior-seat-1.json.gz`, which froze the legacy mover, when #920 retired that engine.
 
-The fixture separates what the generator emits from what the simulation does.
-Complete ordered map hashes characterize generation. The bot and scripted traces
-characterize the simulation, and they run against **arenas stored in the fixture
-itself** — `createGame(seed, map)` takes the stored one — rather than against
-whatever the generator currently emits. So a deliberate content change re-baselines
-four hashes and leaves every trace intact, instead of destroying the evidence that
-the simulation is unchanged along with the content it happened to run on. Map
-diversity stays covered by those hashes and by `slow/live-map.test.js`, which routes
-bots to completion over generated chain maps.
-
-The frozen tests select legacy `content-1` through `contentById` while running under
-simulation version `last-exit-0.7`. `content-2` adds the third hunter, and the shipped
-default `content-5` plans bots over free-space tiles, each search spread over ticks and nearby changes repaired at once; see [14](14-match-rules.md) for the
-roster and [26](26-recording-contract.md) for the version decisions. `seat-1` replaced `nav-1` when a
-contestant's roster place joined recorded player state and every projection (#792): each snapshot and
-each player record now carries the optional `seat`, so every trace moved. The recapture belongs to that
-reviewed player-and-recording change (#792, PR #793), not to a refactor; the merge is the decision.
-Within this checkpoint, no further change may alter the fixture's bytes.
-
-What the `generated` hashes cover is the **legacy generator**, `generateMap` in
-`shared/map/generate.ts`, not the chain. So changes to the chain's library,
-placement or strategies never move this fixture. They move the chain's own seed
-sweep, `map/tools/fixtures/chain-baseline.json`, and `REGION_TYPES_VERSION`
-([53](53-map-artifacts-and-tools.md)). Only simulation and projection changes (bot
-behaviour, state added to a player, or a field added to a live projection) move the traces.
+The traces run against **arenas stored in the fixture itself** (`createPhysicsGame(seed, map)` takes
+the stored one) rather than against whatever generation currently emits. So a change to the chain's
+library, placement or strategies never moves this fixture: those move the chain's own seed sweep,
+`map/tools/fixtures/chain-baseline.json`, and `REGION_TYPES_VERSION`
+([53](53-map-artifacts-and-tools.md)). Only simulation and projection changes (bot behaviour, state
+added to a player, or a field added to a live projection) and a physics rules version move the traces.
+Map diversity stays covered by `slow/live-map.test.js`, which routes bots to completion over generated
+chain maps. The fixture records its content and rules version, and the fast test checks both first;
+see [14](14-match-rules.md) for the content and [26](26-recording-contract.md) for the version decisions.
 
 **Batching baseline-moving work.** The sweep is a drift diagnostic for any change that
 touches the chain (about ten minutes, 42.37; a builder change iterates on the replay
@@ -1074,11 +1052,10 @@ targets size-dependent generation, room limits or recording. These samples do no
 exhaustive seed coverage.
 
 The browser suite uses live-chain rooms for normal play, replay, mobile controls
-and buildings. Its fixed-coordinate occlusion/projectile fixture explicitly uses
-a legacy map. The projectile probe waits for the receive buffer to fill and fires
+and buildings. Its fixed-coordinate occlusion and projectile probes stand on a
+small authored scene (#944). The projectile probe waits for the receive buffer to fill and fires
 past its cover so the sampled projectile survives long enough to measure.
 
-`npm run bench` now measures a live-chain match; `--legacy` keeps a comparable
-legacy workload available, and `--content=<id>` runs an earlier content set, such as
-`content-2`'s grid planner or `content-3`'s whole-tick searches or `content-4`'s sliced searches without repair against the default `content-5` (#424, #470). Like a room, it adopts the tiles a map worker would build, untimed; `--cold` leaves bots to build them on their first plans (42.8). Client crowd fixtures use a central transit site when
+`npm run bench` measures a live-chain match on the physics engine, and `--content=<id>` runs another
+shipped content set. Like a room, it adopts the tiles a map worker would build, untimed; `--cold` leaves bots to build them on their first plans (42.8). Client crowd fixtures use a central transit site when
 there is no street graph, and the dense fixture uses a real building loot site.

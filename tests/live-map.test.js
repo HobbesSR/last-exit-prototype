@@ -10,7 +10,7 @@ import { createPhysicsGame, disposePhysics, setInput, step } from '../shared/sim
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
-// tests/slow/live-map-adapter.test.js's claim (createMatch(1).map() against this same chain). The Map Lab's
+// tests/slow/live-map-adapter.test.js's claim (a match's map against this same chain). The Map Lab's
 // live-recipe check, which regenerates the chain, is in tests/slow/live-map.test.js (#849).
 let defaultMap, defaultChain, defaultBuilt;
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());

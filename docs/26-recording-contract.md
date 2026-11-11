@@ -26,7 +26,9 @@ never resimulates. L2 (#444) raises the writer schema to **13**: frames of
 pickup as an unknown item, so the floor stays.
 
 Recording failure must never reach gameplay. Default content is `content-7` under
-`last-exit-0.8-physics` ([below](#physics-rules-version-921)); the legacy mover's rules are `last-exit-0.7`. Recordings use schema 16 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+`last-exit-0.8-physics` ([below](#physics-rules-version-921)); the legacy mover's rules were `last-exit-0.7`.
+#920 retired that engine and contents 1 to 5. Their recordings still play, since playback reads recorded frames
+and never resimulates, and their labels come from frozen descriptors ([22.7](22.7-content-and-presentation.md)). Recordings use schema 16 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0. Optional appearance descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Schema 16 adds an optional contestant roster place to recorded player state (#792): identity rather than
@@ -164,8 +166,8 @@ It retains `last-exit-0.7`: the roster data changes, not the rules interpreting 
 Schema remained 3/minimum 0 at that change because player arrays already support arbitrary lengths;
 an extra roster entry is data, not a new field or format. Playback uses recorded
 maps and frames, not a resimulation with today's default content, so both old and
-new rosters remain playable without a content lookup. `content-1` remains explicitly
-selectable for simulation characterization; this does not restore a 0.6 engine.
+new rosters remain playable without a content lookup. `content-1` stayed explicitly
+selectable for simulation characterization until #920 retired it; this did not restore a 0.6 engine.
 
 `content-3` (#424, Corey 2026-10-23) changes the default again: bots plan over free-space
 tiles, contestants over what they know ([22.6](22.6-hierarchical-navigation.md)). Its numbers
@@ -174,7 +176,7 @@ not a rule a player's inputs are judged by, and the content id names the change.
 over tiles keeps its route as world points in `route`, where the grid planner keeps tile steps
 in `path`. The field is new recorded player state, so schema rose to 7 and `minSchema` stayed:
 playback reads recorded frames and never the route, so any reader plays these recordings.
-`content-2` stays selectable and keeps its grid planner.
+`content-2` stayed selectable with its grid planner until #920 retired both.
 
 `content-4` (#470, Corey 2026-10-23) spreads each bot's repath over several ticks. It changes
 when a bot's route changes, not what is recorded: still world points in `route`, so the schema

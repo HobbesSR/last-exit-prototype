@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { botInput } from '../shared/simulation/bots.ts';
+import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import * as profiler from '../shared/profiler.ts';
 import { arena } from './helpers/arena.js';
@@ -25,32 +25,32 @@ function hunterScene(contentId, planning) {
 
 /** Run the bot until it has a route, without moving it. */
 function firstRoute({ s, p }) {
-  for (; s.tick < 200 && !p.route?.length; s.tick++) { botInput(s, p); profiler.frame(); }
+  for (; s.tick < 200 && !p.route?.length; s.tick++) { collectBotIntent(s, p); profiler.frame(); }
   return p.route;
 }
 
 test('a gladiator plans only as far as the crossing after next, then on to the goal', () => {
-  const scene = hunterScene('content-5', 'portals'), { s, p, crossings } = scene;
+  const scene = hunterScene('content-6', 'portals'), { s, p, crossings } = scene;
   const route = firstRoute(scene);
   assert.ok(route?.length, 'it plans');
   assert.deepEqual(route.at(-1), crossings[1], 'the first leg ends at the second crossing');
   // Standing in the third region, the next crossing leads into the goal's region, so the leg is the trip's end.
   p.x = 2 * WIDTH + 200; p.y = 480; p.route = [];
-  for (const end = s.tick + 40; s.tick < end && !(p.route?.length && p.route.at(-1).x === s.map.exit.x); s.tick++) botInput(s, p);
+  for (const end = s.tick + 40; s.tick < end && !(p.route?.length && p.route.at(-1).x === s.map.exit.x); s.tick++) collectBotIntent(s, p);
   assert.deepEqual(p.route.at(-1), s.map.exit, 'it plans to the exit');
 });
 
 test('without the setting, or on a map without a portal graph, a gladiator plans the whole way', () => {
-  const scene = hunterScene('content-5');
+  const scene = hunterScene('content-6');
   assert.deepEqual(firstRoute(scene).at(-1), scene.s.map.exit);
-  const bare = hunterScene('content-5', 'portals');
+  const bare = hunterScene('content-6', 'portals');
   bare.s.map = { ...bare.s.map };
   assert.deepEqual(firstRoute(bare).at(-1), bare.s.map.exit, 'a copied map carries no graph');
 });
 
 test('a leg searches less than the whole trip', () => {
   const expansions = planning => {
-    const scene = hunterScene('content-5', planning);
+    const scene = hunterScene('content-6', planning);
     profiler.reset(); profiler.enable(true);
     firstRoute(scene);
     const row = profiler.report().find(r => r.name === 'work.route.expansions');

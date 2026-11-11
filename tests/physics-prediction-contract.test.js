@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, createPhysicsGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
+import { createPhysicsGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
+import { p1Content } from './helpers/scenario.js';
 import { actorMotor, characterMotor } from '../shared/simulation/actor-physics.ts';
 
 const arena = () => ({ width: 600, height: 400,
@@ -25,7 +26,7 @@ test('shared motor keeps the authoritative surface priority, tie break and fallb
     characterMotor(profile, surfaces, p, 3, 4, 200));
 });
 
-test('own physics view publishes only pinned motor tuning; directed and legacy views omit it', async () => {
+test('own physics view publishes only pinned motor tuning; directed views omit it', async () => {
   const tuned = content('content-6');
   Object.assign(tuned.actorPhysics, { acceleration: 4200, braking: 2200, maxSpeed: 540 });
   tuned.actorPhysics.maxImpulse = 777;
@@ -49,12 +50,9 @@ test('own physics view publishes only pinned motor tuning; directed and legacy v
     assert.equal(Object.hasOwn(playerView(game, frame, 'missing'), 'predictionTethered'), false);
   } finally { disposePhysics(game); }
 
-  const p1 = await createPhysicsGame(1, arena(), content('content-1'));
+  const p1 = await createPhysicsGame(1, arena(), { ...p1Content(), roster: { contestants: ['A'], gladiators: [] } });
   try {
     assert.deepEqual(playerView(p1, snapshot(p1), p1.players[0].id).predictionMotor,
       { acceleration: 3600, braking: 3600, maxSpeed: 768, surfaces: false }, 'without a profile the authority reads no surfaces');
   } finally { disposePhysics(p1); }
-
-  const legacy = createGame(1, arena(), content('content-1'));
-  assert.equal(Object.hasOwn(playerView(legacy, snapshot(legacy), legacy.players[0].id), 'predictionMotor'), false);
 });

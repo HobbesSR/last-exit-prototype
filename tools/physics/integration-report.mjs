@@ -8,7 +8,7 @@ import { performance } from 'node:perf_hooks';
 import { gzipSync } from 'node:zlib';
 import os from 'node:os';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
-import { createGame, createPhysicsGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
+import { createPhysicsGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';
 
@@ -55,11 +55,15 @@ function arena(seed, actors, props, loot, layout) {
 }
 
 function contentFor(stage, actors) {
-  // A: content-4 with the shipped character profile and no physical items. B and C: the shipped physics set, with no
-  // bodies held back for drops so the cap rows fill all 128.
-  const content = stage === 'legacy' ? structuredClone(contentById('content-5'))
-    : stage === 'A' ? { ...structuredClone(contentById('content-4')), actorPhysics: structuredClone(contentById('content-6').actorPhysics) }
-    : structuredClone(contentById('content-6'));
+  // A: the shipped set cut back to character bodies alone (no hook kit, physical items, world physics or dynamic
+  // navigation, no portal hunter planning), with sliced replanning; its own id, since no shipped set is this. B and C:
+  // the shipped physics set, with no bodies held back for drops so the cap rows fill all 128.
+  const content = structuredClone(contentById('content-7'));
+  if (stage === 'A') {
+    delete content.kits.hook; delete content.hook; delete content.itemInstances; delete content.worldPhysics;
+    delete content.dynamicNavigation; delete content.hunterPlanning;
+    content.id = 'physics-p9-stage-a'; content.replanning = 'sliced';
+  }
   if (content.worldPhysics) delete content.worldPhysics.dropReserve;
   content.discovery = false;
   content.roster = { contestants: Array.from({ length: actors - 3 }, (_, i) => `C${i}`),
@@ -73,7 +77,7 @@ async function runCase(config, options, repeat) {
   const { stage, actors, props, loot, layout } = config;
   const map = arena(options.seed, actors, props, loot, layout), content = contentFor(stage, actors);
   collect(); const beforeInitialization = memory(), initialAt = performance.now();
-  const game = stage === 'legacy' ? createGame(options.seed, map, content) : await createPhysicsGame(options.seed, map, content);
+  const game = await createPhysicsGame(options.seed, map, content);
   const initializationMs = performance.now() - initialAt, afterInitialization = memory();
   const times = { input: [], step: [], snapshot: [], projection: [], serialization: [], total: [] };
   const sizes = { raw: [], projected: [], rawGzip: [], projectedGzip: [] };
@@ -86,20 +90,18 @@ async function runCase(config, options, repeat) {
   let disposalMs, afterDisposal, finalTick, finalPhase;
   try {
     for (const player of game.players) player.bot = false;
-    if (stage !== 'legacy') {
-      initialBodies = runtime.world.snapshot({ includeStatic: false }).bodies.length;
-      if (initialBodies !== actors + props + loot || initialBodies > 128)
-        throw new Error(`${stage}/${actors}/${layout}: expected ${actors + props + loot} dynamic bodies, observed ${initialBodies}`);
-      if (stage === 'C') {
-        // The real bounded constraint API; these are synthetic rope load, not eight successful hook shots.
-        for (let i = 0; i < 8; i++) runtime.world.queueAddConstraint({ id: `p9-rope-${i}`,
-          kind: 'rope', a: `actor:c${i}`, b: `actor:c${(i + 1) % (actors - 3)}`, maxDistance: 240,
-          maxForce: 6000, stiffness: 120, damping: 30 });
-        runtime.world.commitMutations();
-        initialConstraints = runtime.world.counts().constraints;
-        if (initialConstraints !== 8) throw new Error(`Expected eight admitted constraints, observed ${initialConstraints}`);
-      } else initialConstraints = runtime.world.counts().constraints;
-    }
+    initialBodies = runtime.world.snapshot({ includeStatic: false }).bodies.length;
+    if (initialBodies !== actors + props + loot || initialBodies > 128)
+      throw new Error(`${stage}/${actors}/${layout}: expected ${actors + props + loot} dynamic bodies, observed ${initialBodies}`);
+    if (stage === 'C') {
+      // The real bounded constraint API; these are synthetic rope load, not eight successful hook shots.
+      for (let i = 0; i < 8; i++) runtime.world.queueAddConstraint({ id: `p9-rope-${i}`,
+        kind: 'rope', a: `actor:c${i}`, b: `actor:c${(i + 1) % (actors - 3)}`, maxDistance: 240,
+        maxForce: 6000, stiffness: 120, damping: 30 });
+      runtime.world.commitMutations();
+      initialConstraints = runtime.world.counts().constraints;
+      if (initialConstraints !== 8) throw new Error(`Expected eight admitted constraints, observed ${initialConstraints}`);
+    } else initialConstraints = runtime.world.counts().constraints;
     for (let tick = 0; tick < options.warmup + options.samples; tick++) {
       if (game.phase !== 'live') throw new Error(`${stage}/${actors}/${layout}: match ended at tick ${game.tick}`);
       const totalAt = performance.now();
@@ -177,8 +179,8 @@ export async function main(argv = process.argv.slice(2)) {
         lockPort: lock.port, hashes },
       workload: { seed: chosen.seed, warmup: chosen.warmup, samples: chosen.samples, tickMs: 50,
         map: 'synthetic open 17280x8640 room, 120-unit playable cells', layouts: ['sparse', 'clustered'],
-        stages: { A: 'content-4 with content-6 actorPhysics; no authored props', B: 'content-6 without dropReserve; warden roster',
-          C: 'content-6 without dropReserve; hook roster and eight synthetic bounded ropes', legacy: 'content-5 control' },
+        stages: { A: 'content-7 cut back to character bodies (no hook, items, world physics or dynamic navigation, sliced replanning); no authored props', B: 'content-7 without dropReserve; warden roster',
+          C: 'content-7 without dropReserve; hook roster and eight synthetic bounded ropes' },
         actors: [11, 27], cap: '128 total dynamic bodies including actors; cap rows use 64 solid crates and 53 or 37 sensor loot bodies',
         inputs: 'one accepted deterministic movement input per actor per tick; alternating magnitude-2 prop impulses keep props awake; bots disabled; damage set to zero' },
       targets: { stepP95Ms: 5, stepP99Ms: 10, wholeTickP99Ms: 25,
@@ -190,7 +192,7 @@ export async function main(argv = process.argv.slice(2)) {
       rows: [], comparisons: [], failures: [] };
     const cases = [];
     for (const layout of ['sparse', 'clustered']) for (const actors of [11, 27]) {
-      cases.push({ stage: 'legacy', actors, props: 0, loot: 0, layout }, { stage: 'A', actors, props: 0, loot: 0, layout },
+      cases.push({ stage: 'A', actors, props: 0, loot: 0, layout },
         { stage: 'B', actors, props: 64, loot: 128 - actors - 64, layout },
         { stage: 'C', actors, props: 64, loot: 128 - actors - 64, layout });
     }

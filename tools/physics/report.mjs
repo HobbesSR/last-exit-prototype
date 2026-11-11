@@ -81,12 +81,6 @@ try{
       }
     }
   }
-  if(mode==='node'||mode==='all'){
-    report.node.legacy={benchmarks:[]};
-    for(const actors of [11,27,64])for(const clustered of [false,true]){
-      report.node.legacy.benchmarks.push(await attempt(()=>benchmark('legacy',{actors,bodies:0,tethers:0,clustered,sleeping:0,seed:437},1,{samples,warmup,projectiles:0})));
-    }await save();
-  }
   if(mode==='browser'||mode==='all'||args.has('browser')){
     const root=process.cwd();
     const server=createServer(async(req,res)=>{

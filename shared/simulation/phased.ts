@@ -32,7 +32,7 @@ const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, b.id));
 /** Games inside stepPhysics; a synchronize anywhere else is between ticks. */
 const stepping = new WeakSet<Game>();
 
-/** Explicit opt-in. Legacy createGame stays synchronous and never initializes WASM.
+/** The only game that steps (#920): `createGame` builds its record, and this adds the physics world.
  * `yieldControl` is for private preparation of a caller-owned map; the caller must
  * not publish or mutate that map while construction is pending. It never runs in a tick. */
 export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
@@ -44,7 +44,9 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
-  if (s.content.dynamicNavigation && (!s.content.actorPhysics || s.content.navigation !== 'tiles')) throw new RangeError('dynamic navigation requires actor physics and tiles');
+  // Bots plan over tiles, a repath spread over ticks: the only planner since #920 retired the grid search and one-tick repaths.
+  if (s.content.navigation !== 'tiles' || (s.content.replanning !== 'sliced' && s.content.replanning !== 'repair')) throw new RangeError('physics content plans over tiles with sliced or repair replanning');
+  if (s.content.dynamicNavigation && !s.content.actorPhysics) throw new RangeError('dynamic navigation requires actor physics');
   if (s.content.hook) {
     const h = s.content.hook;
     if (!s.content.actorPhysics || !s.content.kits.hook || ![h.range, h.speed, h.maxForce, h.stiffness, h.damping,

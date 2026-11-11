@@ -5,7 +5,7 @@ import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { clearRoute } from '../shared/simulation/geometry.ts';
 import { generateLiveMap } from '../map/live.ts';
-import { defaultContent, legacyContent } from '../shared/simulation/content.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { createPhysicsGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
 import { setImmediate as preparationPause } from 'node:timers/promises';
@@ -83,31 +83,20 @@ export function createLobby(content = defaultContent()) {
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
-export function createMatch(seed, size, map, content = legacyContent()) {
-  const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
-  return matchOf(game);
-}
-
-/** The engine a content set is built for: physics content needs the physics world, the rest the legacy mover. */
-export function createMatchFor(seed, size, map, content = defaultContent()) {
-  return content.actorPhysics ? createPhysicsMatch(seed, size, map, content) : createMatch(seed, size, map, content);
-}
-
-/** Experimental explicit rules selection; not offered by the public room protocol. */
 export async function createPhysicsMatch(seed, size, map, content = defaultContent()) {
   const game = await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content,
     () => preparationPause());
   try {
     const payloads = await prepareMapPayload(game.map, () => preparationPause());
-    return matchOf(game, true, payloads);
+    return matchOf(game, payloads);
   } catch (error) { disposePhysics(game); throw error; }
 }
 
-function matchOf(game, hasPhysics = false, payloads) {
+function matchOf(game, payloads) {
   let disposedFrame;
   return {
-    /** Pinned capability, independent of rules-version spelling and world disposal. */
-    get hasPhysics() { return hasPhysics; },
+    /** Pinned capability, independent of rules-version spelling and world disposal. Every match has had physics since #920. */
+    get hasPhysics() { return true; },
     get version() { return game.version; },
     get tick() { return game.tick; },
     get phase() { return game.phase; },

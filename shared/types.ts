@@ -251,19 +251,19 @@ export interface MatchContent {
   hazardGraceTicks: Tick;
   discovery?: boolean | undefined;
   /**
-   * How bots plan routes: `grid`, the default, is the windowed tile search of `content-1` and
-   * `content-2`; `tiles` plans over the free-space tiles, contestants over what they know (22.6).
+   * How bots plan routes: over the free-space tiles, contestants over what they know (22.6). The
+   * only planner since #920 retired the legacy mover's grid search; a physics game requires it.
    */
-  navigation?: 'grid' | 'tiles' | undefined;
+  navigation?: 'tiles' | undefined;
   /** Experimental P8 local avoidance and actor/solid-prop drop placement. */
   dynamicNavigation?: boolean | undefined;
   /**
-   * How a tile planner's repath runs: `whole`, the default, searches within one tick; `sliced`
-   * spreads one search over several ticks, a fixed number of expansions each, while the bot walks
-   * its current route (#470); `repair` is `sliced` with changes near a contestant repaired at once
-   * by a short search round them (#470 part 2).
+   * How a tile planner's repath runs: `sliced` spreads one search over several ticks, a fixed
+   * number of expansions each, while the bot walks its current route (#470); `repair` is `sliced`
+   * with changes near a contestant repaired at once by a short search round them (#470 part 2). A
+   * physics game requires one; the one-tick `whole` search went with the legacy mover (#920).
    */
-  replanning?: 'whole' | 'sliced' | 'repair' | undefined;
+  replanning?: 'sliced' | 'repair' | undefined;
   /**
    * How a gladiator bot plans a trip that leaves its region: `portals` routes it over the portal
    * graph and searches tiles only for the stretch to the crossing after next (#682, 22.6); unset,
@@ -789,7 +789,10 @@ export interface Player extends Vec2 {
   reserves?: Record<AmmoFamily, number> | undefined;
   /** An L2 reload in progress: the slot and weapon instance it fills, and the tick it completes. */
   reload?: { slot: SlotIndex; instanceId: ItemId; until: Tick } | null | undefined;
-  /** Remaining bot route, in absolute tile coordinates. Not world units. */
+  /**
+   * The retired grid planner's route, in absolute tile coordinates. Nothing plans into it since #920,
+   * but clearing a route still writes an empty one, and recorded frames carry it.
+   */
   path?: TileStep[] | undefined;
   /** Remaining bot route in world points, for content that plans over free-space tiles (22.6). */
   route?: Vec2[] | undefined;

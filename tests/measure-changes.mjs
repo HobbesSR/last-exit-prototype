@@ -11,7 +11,7 @@ import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LI
 import { contentById, CONTENT_ID } from '../shared/simulation/content.ts';
 import { prebuiltTiles } from '../shared/simulation/bots.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
-import { createMatchFor } from '../server/match.js';
+import { createPhysicsMatch } from '../server/match.js';
 import { cliArgs } from './helpers/args.js';
 
 const args = cliArgs();
@@ -23,7 +23,7 @@ const content = contentById(args.get('content') ?? CONTENT_ID);
 
 const map = generateLiveMap(seed, content, size);
 for (const packed of prebuiltTiles(map, content)) adoptPackedTiles(map, packed);
-const match = await createMatchFor(seed, size, map, content);
+const match = await createPhysicsMatch(seed, size, map, content);
 
 // Each collection of the frame, as entries keyed by their identity.
 const collections = {

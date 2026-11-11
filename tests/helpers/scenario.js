@@ -1,7 +1,7 @@
-import { createGame, createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
+import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { hearShot } from '../../shared/simulation/hearing.ts';
-import { legacyContent } from '../../shared/simulation/content.ts';
+import { defaultContent } from '../../shared/simulation/content.ts';
 import { openField } from './arena.js';
 
 // The scenario layer over test arenas (31 "Test arenas", #697): put chosen actors on an arena, give them
@@ -26,14 +26,20 @@ function settle(s, actors, players) {
   return { s, players };
 }
 
-/** A legacy-mover game on `map` with exactly `actors`, each a bot unless `bot: false`; legacy content unless given. */
-export function stage(map, { seed = 4217, content = legacyContent(), actors }) {
-  const { content: cast_, place } = cast(map, content, actors), s = createGame(seed, map, cast_);
-  return settle(s, actors, place(s));
+/**
+ * P1 content: the engine without character physics, so bodies keep the hurt radii and items stay off the world. No
+ * shipped set is P1 since #920 retired the legacy mover's content, so it is `content` without character physics and
+ * what needs it: the hook, body detours and physical items.
+ */
+export function p1Content(content = defaultContent()) {
+  const p1 = structuredClone(content), kits = { ...p1.kits };
+  delete kits.hook;
+  for (const field of ['actorPhysics', 'hook', 'dynamicNavigation', 'worldPhysics', 'itemInstances']) delete p1[field];
+  return { ...p1, kits };
 }
 
-/** The same on the physics engine, for physics content; dispose of it with `disposePhysics`. */
-export async function stagePhysics(map, { seed = 4217, content, actors }) {
+/** A physics game on `map` with exactly `actors`, each a bot unless `bot: false`; the shipped content unless given. Dispose of it with `disposePhysics`. */
+export async function stagePhysics(map, { seed = 4217, content = defaultContent(), actors }) {
   const { content: cast_, place } = cast(map, content, actors), s = await createPhysicsGame(seed, map, cast_);
   return settle(s, actors, place(s));
 }

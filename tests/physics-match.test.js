@@ -9,7 +9,7 @@ import { insideMap } from '../shared/movement.ts';
 import { stringifyWithMap } from '../server/map-payload.js';
 import { replaceItem } from '../shared/simulation/ground-items.ts';
 
-const content = () => ({ ...structuredClone(contentById('content-1')), roster: { contestants: ['A'], gladiators: [] } });
+const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = (x = 0, y = 0) => ({ width: x + 600, height: y + 400, playableArea: { cellSize: 100, rows: Array.from({ length: (y + 400) / 100 }, (_, y) => ({ y, runs: [[0, (x + 600) / 100]] })) },
   obstacles: [], gates: [], hazards: [], spawns: [{ x: x + 100, y: y + 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], modules: [], buildings: [], exit: { x: x + 550, y: y + 200 }, entry: { x: x + 50, y: y + 200 }, gaps: [] });
 

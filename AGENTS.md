@@ -43,11 +43,10 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
 
 ## Project invariants and verification
 
-- The frozen characterization fixtures are `behavior-physics-1.v8.gz` (the live
-  physics engine) and `behavior-seat-1.json.gz` (the legacy mover, until #920 retires it).
-  [31](docs/31-verification.md) owns verification policy; the
+- The frozen characterization fixture is `behavior-physics-1.v8.gz`, the physics
+  engine every match runs. [31](docs/31-verification.md) owns verification policy; the
   [fixture README](tests/fixtures/README.md) owns the full provenance and digests.
-  Never regenerate one to make a refactor pass. Separate intentional gameplay
+  Never regenerate it to make a refactor pass. Separate intentional gameplay
   changes and their new expectations/version decisions from behavior-preserving
   extraction.
 - Preserve fixed-tick order, one-input-per-tick ordering, RNG/ID order, snapshot and replay

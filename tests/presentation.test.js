@@ -67,6 +67,10 @@ test('recording headers resolve embedded, retained, legacy and unknown display i
   assert.equal(resolveRecordingPresentation({ contentId: 'future-9', presentation: embedded }).presentation.weapons[0].name, 'Future pistol');
   assert.deepEqual(resolve({ contentId: 'content-1' }), ['retained', 'content-1']);
   assert.deepEqual(resolve({ contentId: 'content-2' }), ['retained', 'content-2']);
+  // The legacy mover's sets are retired (#920); their recordings keep their labels, each with its own roster.
+  const capacity = contentId => resolveRecordingPresentation({ contentId }).presentation.capacity;
+  assert.deepEqual([capacity('content-1'), capacity('content-5'), capacity('content-equipment-1')],
+    [{ contestant: 8, gladiator: 2 }, { contestant: 8, gladiator: 3 }, { contestant: 8, gladiator: 3 }]);
   assert.deepEqual(resolve({ contentId: 'content-1', presentation: embedded }), ['retained', 'content-1'], 'a mismatched descriptor is ignored');
   assert.deepEqual(resolve({ contentId: 'content-2', presentation: { contentId: 'content-2' } }), ['retained', 'content-2'], 'so is an invalid one');
   assert.deepEqual(resolve({ contentId: 'future-9' }), ['unknown', null]);

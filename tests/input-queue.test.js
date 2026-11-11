@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
-import { movePlayer } from '../shared/movement.ts';
+import { disposePhysics, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { roomHarness } from './helpers/room-harness.js';
@@ -16,14 +15,6 @@ const scene = body => async () => {
   const p = joinGame(s, 'human', 'contestant', 'warden', 'Runner');
   try { await body({ s, p }); } finally { disposePhysics(s); }
 };
-/** The legacy mover's client prediction, which stage 4 of #920 deletes with the mover; physics-prediction states the engine's. */
-function legacyFixture() {
-  const s = createGame(4217);
-  const p = joinGame(s, 'human', 'contestant', 'warden', 'Runner');
-  s.map.items = []; s.map.traps = [];
-  return { s, p };
-}
-
 test('a tick spends exactly one input and acknowledges only that one', scene(({ s, p }) => {
   for (const seq of [1, 2, 3]) assert.ok(setInput(s, p.id, { seq, x: 1 }));
   assert.equal(p.lastSeq, -1, 'nothing is acknowledged before a tick spends it');
@@ -40,44 +31,6 @@ test('acknowledgement follows consumption, not arrival', scene(({ s, p }) => {
   assert.equal(p.lastSeq, 7);
   assert.equal(playerView(s, snapshot(s), p.id).players.find(v => v.id === p.id).lastSeq, 7);
 }));
-
-test('legacy mover (#920 stage 4): a client replaying unacknowledged inputs lands exactly where the server put it', () => {
-  const { s, p } = legacyFixture();
-  const start = { x: p.x, y: p.y };
-  // A client sends about one input per tick, so the queue stays shallow. Sending more than it can
-  // hold is a different case with its own test below, and would drop the oldest here.
-  const sent = [{ seq: 1, x: 1, y: 0 }, { seq: 2, x: 1, y: 0.5 }, { seq: 3, x: 0.3, y: 1 }, { seq: 4, x: -1, y: 1 }];
-  for (const input of sent) setInput(s, p.id, input);
-  for (let i = 0; i < sent.length; i++) step(s);
-
-  // The client predicts with the same shared movement code, from the same start, over the same
-  // inputs. Exactness here is what reconciliation depends on: any drift would reach the player as a
-  // correction indistinguishable from a real one.
-  const predicted = { ...p, ...start };
-  for (const input of sent) movePlayer(s.map, predicted, input);
-  assert.equal(predicted.x, p.x);
-  assert.equal(predicted.y, p.y);
-
-  // And the acknowledgement is what tells the client it may stop replaying them.
-  assert.equal(p.lastSeq, 4);
-  const unacknowledged = sent.filter(input => input.seq > p.lastSeq);
-  assert.deepEqual(unacknowledged, [], 'every input the server spent is acknowledged');
-});
-
-test('legacy mover (#920 stage 4): reconciling from the acknowledgement reproduces the server mid-stream', () => {
-  const { s, p } = legacyFixture();
-  const sent = [{ seq: 1, x: 1 }, { seq: 2, x: 1, y: 1 }, { seq: 3, y: 1 }, { seq: 4, x: -1 }];
-  for (const input of sent) setInput(s, p.id, input);
-  step(s); step(s); // only two of the four are spent
-
-  const authoritative = snapshot(s).players.find(v => v.id === p.id);
-  const predicted = { ...authoritative };
-  for (const input of sent.filter(i => i.seq > authoritative.lastSeq)) movePlayer(s.map, predicted, input);
-  // Letting the server catch up must land on the position the client already predicted.
-  step(s); step(s);
-  assert.equal(predicted.x, p.x);
-  assert.equal(predicted.y, p.y);
-});
 
 test('a starved queue repeats movement but never re-fires a one-shot press', scene(({ s, p }) => {
   p.x = s.map.exit.x; p.y = s.map.exit.y;

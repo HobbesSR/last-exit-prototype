@@ -4,7 +4,7 @@ import { createGame, disposePhysics, step, snapshot, playerView, joinGame, setIn
 import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';
-import { defaultContent, legacyContent, contentById, CONTENT_ID, LEGACY_CONTENT_ID } from '../shared/simulation/content.ts';
+import { defaultContent, contentById, CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectEquipment, WEAPONS } from '../shared/equipment.ts';
 import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
 import { openField } from './helpers/arena.js';
@@ -12,8 +12,7 @@ import { generatedMap } from './helpers/room-harness.js';
 import { stagePhysics } from './helpers/scenario.js';
 
 // On the shipped content and the room arena (#920). Cases that never step build the game without its physics
-// world; cases that step stage the engine on open ground. The content lineage and the legacy defaults are
-// stage 4's, which retires them.
+// world; cases that step stage the engine on open ground.
 const game = (content = defaultContent()) => createGame(4217, generatedMap(), content);
 /** Two idle contestants on open ground, on the engine; dispose of it with `disposePhysics`. */
 async function stepped(content = defaultContent()) {
@@ -26,51 +25,31 @@ test('a match is pinned to a content set that names itself', () => {
   const s = game();
   assert.equal(s.content.id, CONTENT_ID, 'what a live room ships is the default');
   assert.equal(s.content.durationTicks, 600 * 20);
-  assert.notEqual(CONTENT_ID, LEGACY_CONTENT_ID, 'and the legacy set is a different one');
 });
 
-test('createGame without content defaults to the legacy set (legacy mover, #920 stage 4)', () => {
-  assert.equal(createGame(4217).content.id, LEGACY_CONTENT_ID);
+test('createGame without content takes the shipped set', () => {
+  assert.equal(createGame(4217, generatedMap()).content.id, CONTENT_ID);
 });
 
-test('shipped content ids return independent deeply frozen retained and current rosters', () => {
-  const legacy = contentById('content-1');
-  const legacyAgain = contentById('content-1');
-  const current = contentById('content-2');
-  assert.equal(legacy.id, 'content-1');
-  assert.equal(current.id, 'content-2');
-  assert.equal(defaultContent().id, 'content-7', 'the shipped default advances without changing legacy content');
-  assert.equal(legacyContent().id, 'content-5', 'and the legacy mover keeps the last set it runs');
-  // content-3 changes only how bots plan (#424): content-2's numbers and roster, over free-space tiles.
-  const { id, navigation, ...tuning } = contentById('content-3'), { id: _, ...previous } = current;
-  assert.deepEqual([id, navigation, tuning], ['content-3', 'tiles', previous]);
-  assert.equal(current.navigation, undefined, 'content-2 keeps the grid planner');
-  // content-4 changes only how a repath runs (#470): content-3, with searches spread over ticks.
-  const { id: id4, replanning, ...rest } = contentById('content-4'), { id: _3, ...three } = contentById('content-3');
-  assert.deepEqual([id4, replanning, rest], ['content-4', 'sliced', three]);
-  // content-5 repairs a contestant's route round nearby changes at once (#470 part 2); otherwise content-4.
-  const { id: id5, replanning: replanning5, ...rest5 } = contentById('content-5'), { id: _4, replanning: _r4, ...four } = contentById('content-4');
-  assert.deepEqual([id5, replanning5, rest5], ['content-5', 'repair', four]);
-  // content-6 is the shipped physics set (#523, #921): content-5's numbers with narrow character bodies, physical items
-  // and props, the hook kit and temporary body detours, stated as fields. Ground capacity covers every live zone size
-  // (the lab's 4096 refuses a 36x18 map's 8,608 items) and the drop reserve lets a real map's items fill the body slots.
-  const { id: id6, ...six } = contentById('content-6');
-  assert.deepEqual([id6, six.replanning, six.itemInstances, six.worldPhysics.dropReserve, six.dynamicNavigation, six.kits.hook?.name],
-    ['content-6', 'repair', { groundCapacity: 65536 }, 48, true, 'Hook']);
+test('shipped content ids return independent deeply frozen copies, and retired ids none', () => {
+  const six = contentById('content-6'), sixAgain = contentById('content-6'), current = contentById(CONTENT_ID);
+  assert.equal(defaultContent().id, 'content-7');
+  // content-6 is the first physics set (#523, #921): narrow character bodies, physical items and props, the hook kit
+  // and temporary body detours, stated as fields. Ground capacity covers every live zone size (the lab's 4096 refuses
+  // a 36x18 map's 8,608 items) and the drop reserve lets a real map's items fill the body slots.
+  assert.deepEqual([six.navigation, six.replanning, six.itemInstances, six.worldPhysics.dropReserve, six.dynamicNavigation, six.kits.hook?.name],
+    ['tiles', 'repair', { groundCapacity: 65536 }, 48, true, 'Hook']);
   assert.ok(six.actorPhysics && six.hook, 'it carries the character, world and hook physics');
-  assert.equal(rest5.actorPhysics, undefined, 'content-5 stays on the legacy mover');
-  assert.notEqual(legacy, legacyAgain);
-  assert.notEqual(legacy.roster, legacyAgain.roster);
-  assert.notEqual(legacy.roster, current.roster);
-  assert.ok(Object.isFrozen(legacy.roster));
-  assert.ok(Object.isFrozen(current.roster));
-  assert.ok(Object.isFrozen(legacy.roster.gladiators));
-  assert.ok(Object.isFrozen(legacy.roster.gladiators[0]));
-  assert.throws(() => { legacy.roster.gladiators.push({ name: 'NOPE', kit: 'warden' }); }, TypeError);
-  assert.deepEqual(current.roster.contestants, legacy.roster.contestants);
-  assert.deepEqual(current.roster.gladiators.slice(0, 2), legacy.roster.gladiators);
-  assert.deepEqual(current.roster.gladiators[2], { name: 'BLAZE', kit: 'striker' });
-  assert.throws(() => contentById('missing-content'), RangeError);
+  assert.notEqual(six, sixAgain);
+  assert.notEqual(six.roster, sixAgain.roster);
+  assert.notEqual(six.roster, current.roster);
+  assert.ok(Object.isFrozen(six.roster));
+  assert.ok(Object.isFrozen(six.roster.gladiators));
+  assert.ok(Object.isFrozen(six.roster.gladiators[0]));
+  assert.throws(() => { six.roster.gladiators.push({ name: 'NOPE', kit: 'warden' }); }, TypeError);
+  assert.deepEqual(current.roster, six.roster);
+  // The legacy mover's sets are retired (#920); recordings that name them are labelled from presentation.ts.
+  for (const id of ['content-1', 'content-5', 'content-equipment-1', 'missing-content']) assert.throws(() => contentById(id), RangeError, id);
 });
 
 test('compatibility exports are detached copies of the shipped tables', () => {
@@ -84,7 +63,7 @@ test('compatibility exports are detached copies of the shipped tables', () => {
   try {
     WEAPONS.pistol.damage = 999; WEAPONS.scattergun.spread.push(1); WEAPONS.scattergun.spread[0] = 5;
     KITS.warden.cooldown = 1; KITS.specter.name = 'Changed';
-    for (const id of ['content-1', 'content-2', CONTENT_ID]) {
+    for (const id of ['content-6', CONTENT_ID]) {
       const content = contentById(id);
       assert.equal(content.weapons.pistol.damage, 10, id);
       assert.deepEqual(content.weapons.scattergun.spread, [-0.18, -0.09, 0, 0.09, 0.18], id);
@@ -122,12 +101,6 @@ test('the current roster permits all three hunter claims and rejects a fourth', 
   const claims = ['warden', 'specter', 'striker'].map((kit, i) => joinGame(s, `hunter-${i}`, 'gladiator', kit, `Hunter ${i}`));
   assert.deepEqual(claims.map(p => p?.id), ['hunter-0', 'hunter-1', 'hunter-2']);
   assert.equal(joinGame(s, 'hunter-3', 'gladiator', 'warden', 'Hunter 3'), null);
-});
-
-test('content choice does not change the generated map (legacy generator, #920 stage 4)', () => {
-  const legacy = createGame(4217, undefined, contentById('content-1'));
-  const current = createGame(4217, undefined, contentById('content-2'));
-  assert.deepEqual(current.map, legacy.map);
 });
 
 test('two matches hold independent copies', () => {

@@ -15,7 +15,7 @@ node tests/bench-client.mjs --physics --json
 
 The integration report accepts `--warmup=N --samples=N --output=path` through
 the direct `node --expose-gc tools/physics/integration-report.mjs` invocation.
-It compares legacy/A/B/C at 11/27 actors, with 128 **total** dynamic bodies in
+It compares A/B/C at 11/27 actors, with 128 **total** dynamic bodies in
 B/C (64 crates plus actors and loose loot), and eight direct bounded ropes in C.
 This is an open synthetic arena with scripted input; generated-map bot and real
 browser costs require their own existing witnesses. Source/settings and observed
@@ -50,8 +50,8 @@ matrix, plus separate sleeping populations. `browser` runs all correctness
 scenarios at 2/4/8 substeps, then the diagonal capacity envelope at four substeps
 in installed headless Chrome. `all` runs Node then Chrome. `--diagonal` reduces
 only Node timing coverage; it is recorded in the command. `--samples=N` and
-`--warmup=N` default to 100 and 20 ticks. Revised reports evaluate Rapier only,
-plus the legacy timing control; the custom solver was retired after P0
+`--warmup=N` default to 100 and 20 ticks. Revised reports evaluate Rapier only;
+the custom solver was retired after P0
 ([42.6](../../docs/42.6-physics-comparison.md)). Every invocation acquires the machine benchmark lock.
 
 With `correctness`, `--browser` adds Chrome correctness without the full timing
@@ -76,11 +76,6 @@ An interrupted Node sweep can resume with `--mode=node --resume=<saved.json>
 --out=<saved.json>`. It refuses changed solver/witness/runner/lockfile hashes or
 different sample settings, records the restart and source manifest, warms the
 candidate again, and skips only saved cells with the same complete configuration.
-
-The legacy control invokes actual `moveBody` once per 20 Hz tick on the same
-actor-only workload. It does not implement dynamics, new-body collisions,
-constraints or projectile queries, so its timing is not an equivalent engine
-score. Its synthetic map is translated into a large legacy diamond.
 
 Limits that constrain interpretation:
 
@@ -162,13 +157,11 @@ promotion choices are in [42.21](../../docs/42.21-jelly-squish.md).
 ## Experimental P1 evidence (#438)
 
 The production adapter now lives in `shared/physics/`, separately from these lab
-implementations. Default matches stay legacy. Reproduce the retained paired tick
-traces with `node tools/physics/phase-traces.mjs <output.json>`; run focused tests
-with `npm run test:physics` and the actual shared adapter's Chrome witness with
-`node tests/physics-world.browser.mjs`.
+implementations. Run focused tests with `npm run test:physics` and the actual
+shared adapter's Chrome witness with `node tests/physics-world.browser.mjs`.
 
 `node tools/physics/bench-integration.mjs <output.json>` takes the machine benchmark
-lock and runs a short seeded legacy/experimental whole-match comparison sequentially.
+lock and runs a short seeded whole-match sample sequentially.
 It measures step, authoritative snapshot and one projection over 500 samples after
 100 warmup ticks. Frame sizing is outside the timed interval. It is not the P0
 physics-only workload or P9 capacity qualification. Findings and limits are in

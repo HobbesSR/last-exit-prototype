@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics, step, snapshot } from '../shared/simulation.ts';
-import { botInput, isOpportunistic } from '../shared/simulation/bots.ts';
+import { collectBotIntent, isOpportunistic } from '../shared/simulation/bots.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { hearShot } from '../shared/simulation/hearing.ts';
 import { cellCenter, cellIndexAt } from '../shared/discovery.ts';
@@ -75,7 +75,7 @@ test('a contestant chooses where to go from what it knows, not from geometry it 
     try {
       assert.ok(isOpportunistic(p), 'the first contestant is the opportunistic one');
       hearShot(s, { ...other, id: 'arranged', ...cue }, 'pistol');
-      const steps = [0, 1, 2].map(() => { const input = botInput(s, p); s.tick++; return input; });
+      const steps = [0, 1, 2].map(() => { const input = collectBotIntent(s, p).input; s.tick++; return input; });
       inputs.push({ steps, goal: p.route?.at(-1) });
     } finally { disposePhysics(s); }
   }

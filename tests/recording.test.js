@@ -1,16 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMap, minimumReaderForMatch } from '../shared/recording.ts';
-import { roomHarness } from './helpers/room-harness.js';
+import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { createGame, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 
 const playable = { map: { obstacles: [{ id: 'o0' }] } };
 
+// content-1 seated two hunters and content-2 three. Both sets are retired (#920), so their frames are built from the
+// shipped set with each one's roster; what is checked is that playback keeps the recorded roster.
 test('both content rosters play from their recorded frames under the same schema and rules', () => {
   for (const [contentId, hunters] of [['content-1', 2], ['content-2', 3]]) {
-    const game = createGame(9, undefined, contentById(contentId));
+    const content = contentById('content-7');
+    const game = createGame(9, generatedMap(), { ...content, roster: { ...content.roster, gladiators: content.roster.gladiators.slice(0, hunters) } });
     const state = JSON.parse(JSON.stringify(snapshot(game)));
     const archive = { version: 'last-exit-0.7', schema: 3, minSchema: 0, contentId,
       map: game.map, frames: [{ state, commands: [] }] };

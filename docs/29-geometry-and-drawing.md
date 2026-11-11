@@ -42,8 +42,8 @@ shapes must be decomposed into convex pieces before they become geometry, with s
 
 Collision is the physics engine's: Rapier 2D 0.21.0 behind one adapter, `shared/physics/world.ts`,
 which the server and the browser both run. The shipped default, `content-7` ([14](14-match-rules.md),
-#865; `content-6` since #523), runs on it. Contents 1 to 5 still run the legacy mover, described last in this section for
-characterization and old recordings. The design is [29.1](29.1-physics-design.md), its state,
+#865; `content-6` since #523), runs on it, as every match has since #920 retired the legacy mover. That
+mover survives as the swept mover described last in this section. The design is [29.1](29.1-physics-design.md), its state,
 networking and replay [29.2](29.2-physics-state-networking.md), and the plan and gates
 [41.1](41.1-physics-plan.md).
 
@@ -71,9 +71,11 @@ the sweep's box. The candidates stay in list order (static shapes, then closed g
 shape's bisection is bracketed by the contacts met before it, so a different order changes the result
 in its last bits (#668).
 
-### The legacy mover (contents 1 to 5)
+### The swept mover
 
-`shared/movement.ts` is the only module that decides whether something may occupy a place.
+`shared/movement.ts` is the only module that decides whether something may occupy a place. Its
+`movePlayer` moved every body in contents 1 to 5, the legacy mover #920 retired; it still moves
+bodies in the waiting yard, and its occupancy queries serve placement, planning and sight.
 
 Bodies are circles: a contestant has radius 12, a gladiator 23, a projectile its own. World geometry
 is any shape. Every test is therefore circle-against-shape, dispatched by `separate()`.
@@ -89,11 +91,10 @@ every call.
 `movePlayer` is position-based, not velocity-based: it steps the body to its desired position, then
 runs three separation passes over the nearby colliders, subtracting each overlap vector. That is what
 produces sliding along walls and around corners. There is no velocity, no mass, no restitution and no
-angular term anywhere in the legacy simulation, and no continuous sweep — a body that moves further than
-its own radius in a tick can pass through thin geometry. Speeds are well under that for these contents.
+angular term anywhere in it, and no continuous sweep — a body that moves further than its own radius
+in a tick can pass through thin geometry. Walking speeds are well under that.
 
-Final position is rounded to three decimals, which is part of the frozen fixture: changing it changes
-recorded outcomes.
+Final position is rounded to three decimals; changing it changes what the mover produces.
 
 ## Sight
 
