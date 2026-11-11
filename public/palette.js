@@ -20,7 +20,7 @@ export function mix(a, b, t) {
   return Math.round(ar + (br - ar) * t) << 16 | Math.round(ag + (bg - ag) * t) << 8 | Math.round(ab + (bb - ab) * t);
 }
 /** WCAG relative luminance of an sRGB color. */
-export function luminance(c) {
+function luminance(c) {
   const [r, g, b] = channels(c).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }

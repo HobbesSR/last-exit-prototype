@@ -107,13 +107,12 @@ test('a starved buffer holds the last state instead of extrapolating past it', (
   assert.ok(h.buffer.stats().starved > 0, 'starvation is reported rather than hidden');
 });
 
-test('anything advanced from alpha holds too, so a held projectile does not fly on alone', () => {
+// Consumers advance projectiles and effects from `alpha`, so a held frame must not carry one.
+test('a held frame has no elapsed fraction, so nothing advanced from alpha flies on alone', () => {
   const h = harness();
-  const shot = { id: 1, x: 0, y: 0, dx: 40, dy: 0, life: 30 };
   prime(h, 3, () => []);
   h.advance(TICK_MS * 8);
   assert.equal(h.buffer.frame().alpha, 0, 'a held frame has no elapsed fraction to advance by');
-  assert.equal(shot.x, 0, 'the consumer advances from alpha; the buffer never mutates the record');
 });
 
 test('alpha measures elapsed ticks since the drawn frame, so constant-rate motion stays correct', () => {

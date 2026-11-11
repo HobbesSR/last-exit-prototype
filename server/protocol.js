@@ -43,7 +43,7 @@ export function roomName(body) {
 
 // Who may open the dev view (24): nobody, a room's owner, or anyone. The view is a wallhack, so a
 // server started without a policy offers it to nobody; `npm run dev` asks for `all`.
-export const DEV_TOOLS_POLICIES = ['none', 'owner', 'all'];
+const DEV_TOOLS_POLICIES = ['none', 'owner', 'all'];
 export function devToolsPolicy(value) {
   if (value === undefined || value === '') return 'none';
   if (!DEV_TOOLS_POLICIES.includes(value)) throw new Error(`DEV_TOOLS must be one of ${DEV_TOOLS_POLICIES.join(', ')}, not ${JSON.stringify(value)}.`);
@@ -53,8 +53,8 @@ export function devToolsPolicy(value) {
 // Client-reported diagnostics end up in a recording others download, so every field is checked
 // and clamped here. A report names the tick the client was rendering, which lags the server by
 // the receive buffer and round trip, so it is held within a bound of the tick it arrived at.
-export const DIAGNOSTIC_KINDS = ['frame-drop', 'packet-gap', 'manual'];
-export const MAX_DIAGNOSTIC_LAG_TICKS = 150;
+const DIAGNOSTIC_KINDS = ['frame-drop', 'packet-gap', 'manual'];
+const MAX_DIAGNOSTIC_LAG_TICKS = 150;
 export const MAX_DIAGNOSTICS_PER_SESSION = 64;
 export const MIN_DIAGNOSTIC_INTERVAL_MS = 250;
 const wholeNumber = (value, max) => Number.isFinite(value) ? Math.min(max, Math.max(0, Math.round(value))) : undefined;

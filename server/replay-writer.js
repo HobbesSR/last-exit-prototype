@@ -37,8 +37,8 @@ function frameParts(state, commands, kept, referenceKept = false) {
   return { parts, tail, bytes };
 }
 
-// Compatibility helper for callers that explicitly need a complete line. The live
-// writer sends fragments instead, so assembly and UTF-8 encoding belong to the worker.
+// A frame as the complete line the worker assembles, for checking the byte contract (26) without
+// a worker. The live writer sends fragments, so assembly and UTF-8 encoding belong to the worker.
 export function frameLine(state, commands, kept) {
   const frame = frameParts(state, commands, kept);
   return { line: frame.line ?? `{"state":{${frame.parts.join(',')}${frame.tail}`, bytes: frame.bytes };

@@ -5,7 +5,7 @@ import { HZ } from '/shared/simulation/rules.ts';
 import { firstContact, solidBlockers } from '/shared/simulation/swept.ts';
 import { SQUISH, squishShell, stepSquish } from './squish-shell.js';
 
-export const LAB_FORMAT = 'last-exit-physics-lab-1';
+const LAB_FORMAT = 'last-exit-physics-lab-1';
 export const TICK_HZ = HZ;
 export const TICK_MS = 1000 / HZ;
 export const MAX_TICKS = 2400;
@@ -34,7 +34,7 @@ function addJelly(game, at) {
   }
   world.commitMutations();
 }
-export const SCENES = Object.freeze({
+const SCENES = Object.freeze({
   A: { name: 'A · character collision and crowd', spawns: [{ x: 240, y: 400 }, { x: 350, y: 400 }, { x: 460, y: 400 }, { x: 350, y: 500 }],
     obstacles: [{ id: 'doorway-top', x: 540, y: 0, w: 20, h: 370 }, { id: 'doorway-bottom', x: 540, y: 430, w: 20, h: 370 }], props: [], hook: false },
   B: { name: 'B · physical prop', spawns: [{ x: 220, y: 400 }], props: [{ id: 'crate', profile: 'crate', x: 370, y: 400, angle: Math.PI / 8 }], hook: false },

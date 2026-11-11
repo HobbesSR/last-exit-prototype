@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
+import { MAX_ROOMS } from '../server/room-directory.js';
 
 /** A generator whose maps arrive only when the test says, so the time between can be observed. */
 function heldGenerator() {
@@ -71,7 +72,7 @@ test('matchmakers share the room being generated, and its countdown waits for th
     const room = first.session.room;
     assert.ok(room); assert.equal(second.session.room, room, 'both are admitted at once');
     assert.equal(first.messages.find(m => m.type === 'welcome').matchmade, true);
-    for (let i = 0; i < 7; i++) assert.ok(h.directory.createRoom(9));
+    for (let i = 1; i < MAX_ROOMS; i++) assert.ok(h.directory.createRoom(9));
     assert.equal(h.directory.createRoom(9), null, 'a room still generating counts against the cap');
     h.wake(0, 15000); assert.equal(room.started, false, 'the countdown has run out, but there is no map');
     held[0].resolve(); await room.ready;

@@ -65,14 +65,10 @@ export function createCameraDirector({ getState, getSubject, getPosition, active
     if (followId) {
       const known = getPosition?.(followId);
       const position = focus || (known === undefined ? positions.get(followId) : known);
-      if (position) {
-        // Their sight is cut to their own screen, so a fogged follow keeps their zoom exactly.
-        const zoom = fog || !view ? playerZoom(width, height) : view.zoom;
-        return { x: position.x, y: position.y, zoom };
-      }
-      return { x: map.width / 2, y: map.height / 2, zoom: Math.min((width - 40) / map.width, (height - 150) / map.height) };
-    }
-    if (view) return view;
+      // Their sight is cut to their own screen, so a fogged follow keeps their zoom exactly.
+      if (position) return { x: position.x, y: position.y, zoom: fog || !view ? playerZoom(width, height) : view.zoom };
+    } else if (view) return view;
+    // The whole arena, which is also where a followed player not yet placed is looked for.
     return { x: map.width / 2, y: map.height / 2, zoom: Math.min((width - 40) / map.width, (height - 150) / map.height) };
   }
   /** Advance held pan keys by one frame of `delta` ms. A stall longer than a quarter second pans no further. */
