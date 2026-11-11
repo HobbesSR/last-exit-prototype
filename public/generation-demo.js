@@ -10,7 +10,7 @@ import { portalStands } from '/map/micro/sdk.ts';
 import { planBlock } from '/map/micro/strategies/block.ts';
 
 const $ = id => document.getElementById(id), canvas = $('preview'), ctx = canvas.getContext('2d');
-let result, collision, walker = null, stage = 'walk', selectedId, scale = 1, offset = { x: 0, y: 0 }, timer;
+let result, collision, walker = null, stage = 'walk', selectedId, scale = 1, offset = { x: 0, y: 0 };
 /** The block shown: its brief and what it built, from a link (20.5) or the example controls. */
 let shown = null, linked = false;
 /** The example block's size, in cells: room for several lots and the alleys between them. */
@@ -29,7 +29,7 @@ function currentPiece() { if (!walker || !result) return null; const p = local(w
 function populate() { $('piece').replaceChildren(...result.assignments.map(a => { const o = document.createElement('option'); o.value = a.pieceId; o.textContent = `${a.pieceId} — ${a.generator} / ${a.builder}`; return o; })); $('piece').value = selectedId; $('reset').disabled = stage !== 'walk'; $('download').disabled = false; inspect(); }
 function rows(target, values) { $(target).replaceChildren(...values.flatMap(([k, v]) => { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; return [dt, dd]; })); }
 function inspect() { if (!result) return; const r = region(selectedId), a = assignment(selectedId); rows('inspector', [['Role', a.role], ['Generator', a.generator], ['Builder', a.builder], ['Owned cells', r.spec.cells.length], ['Structures', r.manifest.structures], ['Roof geometry', r.elements.filter(e => e.template.encloses).length], ['Walls / cover', r.manifest.obstacles], ['Loot', r.loot.length], ['Anchor', result.anchors.some(x => x.pieceId === selectedId) ? 'available' : 'none']]); rows('counts', [['Child regions', result.regions.length], ['Physical portals', result.portals.length], ['Gates', collision.map.gates.length], ['Routes', result.routes.length], ['Active piece', currentPiece() || 'none']]); }
-function regenerate(reason) { clearTimeout(timer); clearKeys(); linked = false; try { const brief = regionExample({ type: 'block', seed: Number($('seed').value), shape: $('shape').value, ...EXAMPLE }); show(brief); selectedId = result.assignments[0].pieceId; walker = null; if (stage === 'walk') resetWalker(); populate(); $('status').textContent = `${reason}: a block of ${result.regions.length - 1} lots and their alleys.`; draw(); } catch (error) { shown = result = collision = walker = null; clearDisplay(); $('status').textContent = `Could not build this example: ${error.message}`; draw(); } }
+function regenerate(reason) { clearKeys(); linked = false; try { const brief = regionExample({ type: 'block', seed: Number($('seed').value), shape: $('shape').value, ...EXAMPLE }); show(brief); selectedId = result.assignments[0].pieceId; walker = null; if (stage === 'walk') resetWalker(); populate(); $('status').textContent = `${reason}: a block of ${result.regions.length - 1} lots and their alleys.`; draw(); } catch (error) { shown = result = collision = walker = null; clearDisplay(); $('status').textContent = `Could not build this example: ${error.message}`; draw(); } }
 function project(p) { return { x: offset.x + p.x * scale, y: offset.y + p.y * scale }; }
 function path(points) { ctx.beginPath(); points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.closePath(); }
 function setupView() { const cells = stage === 'region' ? result.plan.context.cells : result.regions.flatMap(r => r.spec.cells), size = result.plan.context.cellSize, xs = cells.map(c => c.x), ys = cells.map(c => c.y), minX = Math.min(...xs) * size, minY = Math.min(...ys) * size, w = (Math.max(...xs) + 1) * size - minX, h = (Math.max(...ys) + 1) * size - minY, pad = 38; scale = Math.min((viewWidth - pad * 2) / w, (viewHeight - pad * 2) / h); offset = { x: (viewWidth - w * scale) / 2 - minX * scale, y: (viewHeight - h * scale) / 2 - minY * scale }; }
@@ -85,7 +85,7 @@ async function openLinked() {
   try { brief = await briefFromFragment(location.hash); } catch (error) { $('status').textContent = `The link's brief can't be read (${error.message}).`; return false; }
   if (!brief) return false;
   if (brief.type !== 'block') { $('status').textContent = `Region ${brief.id} is a ${brief.type}, which doesn't decompose; the demo shows a block's. Open it in the micro lab instead.`; return false; }
-  clearTimeout(timer); clearKeys();
+  clearKeys();
   try { show(brief); linked = true; } catch (error) { $('status').textContent = `Could not build the linked block: ${error.message}`; return false; }
   selectedId = result.assignments[0].pieceId; walker = null; if (stage === 'walk') resetWalker(); populate();
   $('status').textContent = `Block ${brief.id}, seed ${brief.seed}, from a link: ${result.regions.length - 1} lots and their alleys. Example controls make a new example.`;

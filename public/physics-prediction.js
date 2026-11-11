@@ -2,6 +2,7 @@ import { createPhysicsWorldFactory } from '../shared/physics/world.ts';
 import { buildPhysicsGeometry, physicsGate } from '../shared/simulation/physics-geometry.ts';
 import { characterMotor } from '../shared/simulation/actor-physics.ts';
 import { movementSpeed } from '../shared/movement.ts';
+import { HZ } from '../shared/simulation/rules.ts';
 import { bodyRadius } from '../shared/physics/presentation-geometry.ts';
 
 import { PREDICTION_LIMITS } from './physics-prediction-limits.js';
@@ -18,7 +19,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
   const close = () => { world?.dispose(); world = null; };
   // Entire maximum-speed replay horizon, including speculative contact distance.
   const near = body => {
-    const reach = bodyRadius(own.shape) + motor.maxSpeed * PREDICTION_LIMITS.replay / 20 + 48;
+    const reach = bodyRadius(own.shape) + motor.maxSpeed * PREDICTION_LIMITS.replay / HZ + 48;
     const radius = bodyRadius(body.shape);
     return Math.abs(body.x - own.x) <= reach + radius && Math.abs(body.y - own.y) <= reach + radius;
   };
@@ -35,7 +36,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     value.boost = Math.max(0, (value.boost ?? 0) - 1);
     value.stun = Math.max(0, (value.stun ?? 0) - 1);
     world.setMotor(own.id, characterMotor(motor, motor.surfaces ? map.motorSurfaces : undefined, value,
-      input.x ?? 0, input.y ?? 0, movementSpeed(value, input, 20)));
+      input.x ?? 0, input.y ?? 0, movementSpeed(value, input, HZ)));
     world.step(); world.drainContacts();
     Object.assign(value, world.getTransform(own.id)); tick++;
     poses.set(tick, { x: value.x, y: value.y });

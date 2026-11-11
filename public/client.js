@@ -39,7 +39,7 @@ function correctPhysicsPrediction(frame) {
     }
   }).catch(error => {
     if (epoch === predictionEpoch) {
-      // Keep server-driven motion if initialization is unavailable. No legacy motor fallback.
+      // Keep server-driven motion if initialization is unavailable; nothing else predicts a physics match.
       console.error('Physics prediction unavailable', error);
     }
   });
@@ -384,6 +384,8 @@ function acceptState(next) {
     predicted = { ...me };
     if (state.physicsProfile) correctPhysicsPrediction(state);
     else {
+      // The waiting area (#236) is the frame without a physics profile: its simulation moves players with
+      // `movePlayer` (shared/simulation/waiting.ts), so it is predicted the same way, here and in `inputTick`.
       if (physicsPrediction || predictionLoading) resetPhysicsPrediction();
       if (me.status === 'active') for (const input of pending) movePlayer(arenaMap, predicted, input);
     }
@@ -462,8 +464,8 @@ const ArenaScene = makeArenaScene({
   localPhysics: () => !directed() && !!state?.physicsProfile,
   predictionCut: () => physicsPrediction?.stats().cuts,
   replay: () => replayController.active(), directed, aim: () => inputController.aim(),
-  // Geometry is match display data, shown only after a dev welcome has authorized this view. The
-  // physics check stays: a legacy match factory can carry the same descriptor without the bodies.
+  // Geometry is match display data, shown only after a dev welcome has authorized this view, and
+  // only over a frame that carries physics bodies.
   geometryOverlay: () => !replayController.active() && !!presentationFrame()?.physicsProfile
     && (devView || devFeed && devPresentation)
     ? displayPresentation()?.actorGeometry ?? null : null,

@@ -56,7 +56,6 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
   listen(document, 'visibilitychange', () => { if (document.hidden) clearInput(); });
   listen(window, 'pointerup', e => { if (e.pointerType !== 'touch') { pointerFire = false; sneakHeld = false; } });
   listen($('sneak'), 'pointerdown', e => { sneakHeld = true; e.currentTarget.setPointerCapture(e.pointerId); });
-  // The original onpointerup/onpointercancel handlers returned false, cancelling default handling.
   for (const type of ['pointerup', 'pointercancel']) listen($('sneak'), type, e => { sneakHeld = false; e.preventDefault(); });
   function bindStick(id, stick) {
     const element = $(id), thumb = element.querySelector('span'); let activePointer;

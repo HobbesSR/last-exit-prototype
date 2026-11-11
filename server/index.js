@@ -86,11 +86,10 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel'), true));
     app.use('/map/macro', serveSharedModules(path.join(ROOT, 'map/macro'), true));
     app.use('/map/macro/content', express.static(path.join(ROOT, 'map/macro/content')));
+    // Covers the modules under map/tools/lab too; that folder's other files are served as they are.
     app.use('/map/tools', serveSharedModules(path.join(ROOT, 'map/tools'), true));
-    app.use('/map/tools/lab', serveSharedModules(path.join(ROOT, 'map/tools/lab'), true));
     app.use('/map/tools/lab', express.static(path.join(ROOT, 'map/tools/lab')));
-    
-    // Serve top-level Map files used by the lab (like chain.ts, engines.ts, etc.)
+    // The top-level map files the lab imports (chain.ts, engines.ts and so on).
     app.get(/^\/map\/[^/]+\.ts$/, serveSharedModules(ROOT, true));
     app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
     app.get('/dev/physics', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/physics-lab.html')));

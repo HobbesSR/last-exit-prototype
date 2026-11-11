@@ -1,4 +1,4 @@
-export function renderDevNav() {
+function renderDevNav() {
   const wrapper = document.createElement('div');
   wrapper.className = 'global-tool-wrapper';
 

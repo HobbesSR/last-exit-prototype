@@ -1,4 +1,4 @@
-import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, createPhysicsGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { resetInput } from '../shared/simulation/input.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
@@ -7,7 +7,6 @@ import { clearRoute } from '../shared/simulation/geometry.ts';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
-import { createPhysicsGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
 import { setImmediate as preparationPause } from 'node:timers/promises';
 import { prepareMapPayload } from './map-payload.js';
 import { publishItems, itemsJson } from '../shared/simulation/ground-items.ts';

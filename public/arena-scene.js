@@ -1,8 +1,7 @@
 import { visibilityPolygon, gateShape, insideMap, sweptClear } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, buildingOpenings, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, buildingOpenings, createShapeVisibility, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { bodyRadius, bodyShape } from '/shared/physics/presentation-geometry.ts';
-import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
@@ -21,7 +20,6 @@ import {
   recordAppearanceOps,
 } from './appearance.js';
 import { resolveEventLights, drawEventLights, eventLightAt, liftByEventLight } from './event-light.js';
-
 
 // Heard gunfire's ring and edge arrow (#684).
 const HEARD = 0xffba62;
@@ -711,12 +709,10 @@ export function makeArenaScene(api) {
       const itemBodies = new Map((state.bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
       const selfBody = rawSelf && actorBodies.get(rawSelf.id);
       const self = selfBody && !api.localPhysics?.() ? { ...rawSelf, x: selfBody.x, y: selfBody.y } : rawSelf;
-      // Camera, own sprite, fog and cover all read one eased eye. Previously the fog sampled the raw
-      // predicted position while the camera and sprite eased toward it, so the shadows led the world
-      // by the easing lag and stepped at the 20 Hz input tick instead of gliding with the frame.
-      // Exponential, so the eye settles on the same time constant whatever the frame rate. A plain
-      // fraction of the frame delta eases faster on a slow client than a fast one, which is the same
-      // frame-rate dependence the remote-actor filter had before the receive buffer replaced it.
+      // Camera, own sprite, fog and cover all read one eased eye: fog sampled from the raw predicted
+      // position would lead the world by the easing lag and step at the input tick.
+      // Exponential, so the eye settles on the same time constant whatever the frame rate; a plain
+      // fraction of the frame delta eases faster on a slow client than a fast one.
       const ease = 1 - Math.exp(-delta / EYE_TAU_MS);
       // A followed replay subject drives the same eased eye the player's own view uses, so a followed
       // camera glides exactly like a live one and cuts only when the subject changes or teleports.
@@ -819,7 +815,7 @@ export function makeArenaScene(api) {
       }
       if (fogged && !eye) { this.shade.fillStyle(this.colors.shade, 0.46); this.shade.fillRect(-500, -500, map.width + 1000, map.height + 1000); }
       api.onSight?.();
-      // The server now sends a wider set than the eye can reach, so the renderer resolves the geometry.
+      // The server sends a wider set than the eye can reach, so the renderer resolves the geometry.
       // Sight itself is a shared rule; an unfogged view opts out of it rather than reimplementing it.
       const lit = (x, y) => !fogged || seesPoint(this.sight, map, x, y);
       const g = this.dynamic; g.clear();
@@ -1051,8 +1047,7 @@ export function makeArenaScene(api) {
         actor.container.setVisible(p.status === 'active' && shown);
         // Everyone but the viewer is drawn where the frame says, with no filter of its own. The
         // position already arrived interpolated between two authoritative states, so easing toward
-        // it a second time would only add back the lag the buffer exists to remove — and the filter
-        // this replaced converted every irregular arrival into a velocity spike besides.
+        // it a second time would only add back the lag the buffer exists to remove.
         if (controlled && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
         else { actor.container.x = p.x; actor.container.y = p.y; }
         const rot = controlled ? api.aim() : p.heading;

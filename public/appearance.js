@@ -3,7 +3,7 @@
 // viewer's art mode into material fills, structural edges, and a bounded list of decorative marks.
 // Never allocates game IDs, consumes simulation RNG, modifies `shapeOf`, or reads dynamic state.
 
-import { SWATCHES, DEFAULT_THEME, themeColors, mix, U, L, T, G } from './palette.js';
+import { DEFAULT_THEME, themeColors, mix, U, L, T, G } from './palette.js';
 
 export const APPEARANCE_RECIPE_VERSION = 2;
 
@@ -53,7 +53,6 @@ export const TINT_SWATCH = Object.freeze({
   toxicLime: T.toxicLime,
   signalCyan: G.signalCyan,
   hazardRed: G.hazardRed,
-  sodiumAmber: G.sodiumAmber,
   prizeGold: G.prizeGold,
   extractionMint: G.extractionMint,
   broadcastPink: G.broadcastPink,
@@ -93,7 +92,7 @@ export function appearanceUnit(id, channel = 'default', version = APPEARANCE_REC
 /**
  * Normalize art mode options (`lighting` and `wear` default to `true`; `palette` defaults to `DEFAULT_THEME` ('signature')).
  */
-export function resolveArtOptions(options = {}) {
+function resolveArtOptions(options = {}) {
   const palette = typeof options.palette === 'string' ? options.palette : DEFAULT_THEME;
   const lighting = options.lighting !== false;
   const wear = options.wear !== false;

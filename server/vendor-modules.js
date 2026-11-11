@@ -27,7 +27,7 @@ function packageOf(file) {
 }
 
 /** Every file a wrapped package's entry pulls in through `require()`, entry first. */
-export function vendorSources(name) {
+function vendorSources(name) {
   const files = [];
   const visit = (file) => {
     if (files.includes(file)) return;
