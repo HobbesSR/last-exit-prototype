@@ -32,7 +32,7 @@ The reference is what TypeScript computes today: `shared/math.ts`, ports of fdli
 The acceptance tests already exist:
 
 - `tests/math.test.js` pins a digest of the math module's output bits. The crate's math must produce the same digest before anything is built on it.
-- `behavior-seat-1.json.gz` is the port's acceptance test for the simulation: every tick's snapshot and projections of its bot matches must equal the stored digests ([31](31-verification.md#the-frozen-fixture)). Its arenas are stored, so it does not exercise generation. Generation's target is the chain's seed sweep, `map/tools/fixtures/chain-baseline.json` ([31](31-verification.md), [53](53-map-artifacts-and-tools.md)).
+- `behavior-physics-1.v8.gz` is the port's acceptance test for the simulation: every tick's snapshot, the private engine state included, and projections of its bot matches must equal the stored digests ([31](31-verification.md#the-frozen-fixture)). Its arenas are stored, so it does not exercise generation. Generation's target is the chain's seed sweep, `map/tools/fixtures/chain-baseline.json` ([31](31-verification.md), [53](53-map-artifacts-and-tools.md)).
 
 A port never regenerates either to pass. A mismatch is a bug in the port or a decision about the TypeScript, taken separately from the extraction ([31](31-verification.md#the-frozen-fixture)).
 

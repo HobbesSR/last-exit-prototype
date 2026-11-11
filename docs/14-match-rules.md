@@ -4,9 +4,9 @@ Every number here is a tuning default, not a design constant. The shipped defaul
 `content-7` under `last-exit-0.8-physics` rules: the physics engine, described in the
 sections below. Every physics match carries that one rules version; which physics features it
 has (character profile, physical items, the hook, body detours) is stated by its content alone
-(#921). Contents 1 to 5, under `last-exit-0.7`, run the legacy mover and stay
-selectable for characterization and old recordings. Numbers outside the physics sections are
-`content-5`'s, which `content-6` and `content-7` share unless a physics section says otherwise. When one
+(#921). Every match runs on the physics engine: #920 retired the legacy mover, its rules version
+`last-exit-0.7` and contents 1 to 5, whose recordings keep their labels ([22.7](22.7-content-and-presentation.md)).
+Numbers outside the physics sections are shared by every shipped set unless a physics section says otherwise. When one
 changes, it must stay named in code and updated here in the same change.
 Accepted-but-unimplemented changes live in [13](13-accepted-features.md).
 
@@ -16,47 +16,27 @@ Contestants must complete the power-cell objective before spending one of the th
 
 The default match contains eight contestant slots, three gladiator slots, three extraction slots, a seeded generated map, and bot occupants for unclaimed player slots. A connection is a viewer until it explicitly claims a contestant or gladiator slot. Spectators consume no slot, start no recording, and have no input authority.
 
-`content-2` implements F-11 by appending BLAZE (Striker) after IRONCLAD (Warden)
-and VESPER (Specter). The chain's departure region supplies each hunter's initial spawn; transit
-stations are separate redeployment and fast-travel sites. The name and one-of-each-kit roster
-are tuning choices for this checkpoint. Contestant and extraction capacities stay
-unchanged. `contentById('content-1')` retains the two-hunter baseline for frozen
-characterization. Each selection returns
-an independent deeply frozen copy, and unknown content IDs are rejected. This is
-a content revision, with unchanged simulation rules and recording structure; see
-[26](26-recording-contract.md) and [31](31-verification.md).
+`content-6`, the first physics set (#523) and the default until #865, states whole what the legacy
+mover's sets had arrived at. Its roster appends BLAZE (Striker) after IRONCLAD (Warden) and VESPER
+(Specter), F-11 (`content-2`). Bots plan over free-space tiles, contestants from what they know
+([22.6](22.6-hierarchical-navigation.md), #424, `content-3`). Each bot's repath is spread over several
+ticks while it walks its current route, so a bot turns a corner early only within the 2-unit margin the
+planner keeps beyond its body (`replanning: 'sliced'`, #470, `content-4`). And a contestant that learns of
+a door or ground near itself or on the next stretch of its route searches round the change at once and
+keeps the rest of its route, rather than walking on until its next sliced repath (`replanning: 'repair'`,
+`content-5`). #920 retired those five sets with the legacy mover. The chain's departure region supplies
+each hunter's initial spawn; transit stations are separate redeployment and fast-travel sites. The name
+and one-of-each-kit roster are tuning choices. Each selection returns an independent deeply frozen copy,
+and unknown or retired content IDs are rejected.
 
-`content-3`, the default (`defaultContent()`), keeps `content-2`'s numbers and roster and
-changes how bots plan: over free-space tiles, contestants from what they know
-([22.6](22.6-hierarchical-navigation.md), #424). `content-2` remains selectable with the
-grid planner.
-
-`content-4`, the default from #470 part 1 to part 2, is `content-3` with each bot's repath spread over several
-ticks while it walks its current route (`replanning: 'sliced'`, 22.6). Because a route arrives
-after the bot has moved on, a bot turns a corner early only when it is within the 2-unit margin
-the planner keeps beyond its body. Its numbers and roster are unchanged; `content-3` remains
-selectable with whole-tick searches.
-
-`content-5`, the default since #470 part 2, is `content-4` with local repair
-(`replanning: 'repair'`, 22.6): when a contestant learns of a door or ground near itself or on
-the next stretch of its route, it searches round the change at once and keeps the rest of its
-route, rather than walking on until its next sliced repath. Its numbers and roster are unchanged;
-`content-4` remains selectable.
-
-`content-6`, the default from #523 to #865, is `content-5`'s
-numbers, roster and planner over the physics engine of the sections below. A live room builds it
-with `createPhysicsMatch`; the room service chooses the engine by content, physics content for
-the physics world and the rest for the legacy mover. Its lobby therefore offers the Hook kit
-alongside Warden, Specter and Striker, while the default roster's gladiators keep their kits.
-It was built from the experimental stage sets `content-physics-2` to `-8` ([42.12](42.12-physics-p2.md) to
+`content-6` adds the Hook kit, so its lobby offers it alongside Warden, Specter and Striker, while the
+default roster's gladiators keep their kits. It was built from the experimental stage sets `content-physics-2` to `-8` ([42.12](42.12-physics-p2.md) to
 [42.19](42.19-physics-p8.md)), which #921 retired, and differed from the last in two values that real maps
 need and the lab's small scenes did not: ground capacity 65,536 (a 36x18 map has 8,608 items; a synthetic 72x36 measured in
 [42.22](42.22-tick-cost-attribution.md) has about 31,000. It was 16,384 while physics stopped at 36x18; no
 map that could start then reaches either) and `worldPhysics.dropReserve` 48, the dynamic-body
 slots that ordinary map items leave free so a player's drop can be admitted ([42.20](42.20-physics-p9.md)).
-`createGame`, `createMatch` and the legacy tools default to `content-5` (`legacyContent()`),
-because they are the legacy engine's entry points, so characterization, the frozen fixture and
-old recordings are unchanged ([31](31-verification.md)). Tuning is as it was in the experimental
+Tuning is as it was in the experimental
 profiles: the human feel review of 2026-10-28 ([42.20](42.20-physics-p9.md)) accepted it as it
 stands and deferred tuning, so nothing here was rebalanced for the switch.
 
@@ -231,8 +211,8 @@ refusal, transit preflight and occupied gate-close refusal remain in force.
 ## Character profile (#439)
 
 Content with `actorPhysics` gives the physics engine the character profile below; every
-shipped physics set has it. Without one, `createPhysicsGame` runs content-1 through content-5
-with legacy body radii and the default motor (P1). The values are provisional, accepted as they
+shipped physics set has it. Without one, `createPhysicsGame` runs the content with the hurt radii
+as body radii and the default motor (P1); no shipped set does since #920. The values are provisional, accepted as they
 stand with tuning deferred.
 
 | Role | Nominal head radius | Movement radius | Retained combat radius |
@@ -276,13 +256,11 @@ authoritative; the UI does not move items before the server responds.
 
 E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. Default content has no reload mechanic or reserve ammunition; see "Reloading (L2)" below. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
 
-### Explicit L0 item instances (#442)
+### Item instances (L0, #442)
 
-`createGame(seed, map, contentById('content-equipment-1'))` selects
-`last-exit-0.8-equipment-1`. Default rooms, retained content sets and the frozen
-fixture keep their existing behavior. L0 uses the ordinary movement loop without
-a solver; `createPhysicsGame` refuses this selection until P5 integrates it.
-The content otherwise retains content-5 tuning and six-slot controls.
+Content with `itemInstances` gives every item a persistent identity. Every shipped physics set has
+it, and `createPhysicsGame` requires world physics beside it (P5). `content-equipment-1`, which
+selected it on the legacy mover, is retired (#920).
 
 Ground `id` is the persistent instance identity. Carried entries retain it as
 `instanceId`, with a `lineageId` naming the original root. A whole pickup/drop

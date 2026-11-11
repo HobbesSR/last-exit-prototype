@@ -14,7 +14,7 @@ import { isOpportunistic, prebuiltTiles } from '../../shared/simulation/bots.ts'
 import { visibleTo } from '../../shared/simulation/visibility.ts';
 import { heardBy } from '../../shared/simulation/hearing.ts';
 import { adoptPackedTiles } from '../../shared/free-space.ts';
-import { createMatchFor } from '../../server/match.js';
+import { createPhysicsMatch } from '../../server/match.js';
 import * as profiler from '../../shared/profiler.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 
@@ -32,7 +32,7 @@ async function playMatch(size, seed, contentId) {
   const [zoneWidth, zoneHeight] = size.split('x').map(Number), zone = liveZoneSize({ zoneWidth, zoneHeight }), content = contentById(contentId);
   const map = generateLiveMap(seed, content, zone);
   for (const tiles of prebuiltTiles(map, content)) adoptPackedTiles(map, tiles);
-  const match = await createMatchFor(seed, zone, map, content), s = match.diagnosticState;
+  const match = await createPhysicsMatch(seed, zone, map, content), s = match.diagnosticState;
   const gladiators = s.players.filter(p => p.role === 'gladiator'), anchor = new Map(gladiators.map(p => [p, { x: p.x, y: p.y, tick: 0 }]));
   let travelled = 0, still = 0, seeing = 0, hearing = 0, active = 0, ticks = 0, lastShot = s.serial, reached = 0, transits = 0;
   const shotDistances = [], arrivals = [], contacts = [], heardCues = new Map(gladiators.map(p => [p, new Map()]));

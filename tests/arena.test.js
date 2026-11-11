@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { arena } from './helpers/arena.js';
-import { gunfight, run, stage, stagePhysics } from './helpers/scenario.js';
+import { gunfight, run, stagePhysics } from './helpers/scenario.js';
 import { canOccupy } from '../shared/movement.ts';
 import { disposePhysics } from '../shared/simulation.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
@@ -64,14 +64,4 @@ test('an event without a period acts every tick', async () => {
     run(s, { ticks: 5, events: [{ act: s => ticks.push(s.tick) }, { from: 2, until: 3, act: s => ticks.push(-s.tick) }] });
     assert.deepEqual(ticks, [0, 1, 2, -2, 3, 4]);
   } finally { disposePhysics(s); }
-});
-
-// Stage 4 retires the legacy mover and this half with it (#920).
-test('a stage without content is on the legacy mover (legacy mover, #920 stage 4)', () => {
-  const { s } = stage(arena({ cols: 4, rows: 2 }).map, { actors: [{ role: 'contestant', bot: false, x: 300, y: 200 }] });
-  assert.equal(s.content.roster.contestants.length, 1);
-  assert.ok(s.content.weapons, 'a whole content');
-  const ticks = [];
-  run(s, { ticks: 5, events: [{ act: s => ticks.push(s.tick) }, { from: 2, until: 3, act: s => ticks.push(-s.tick) }] });
-  assert.deepEqual(ticks, [0, 1, 2, -2, 3, 4]);
 });

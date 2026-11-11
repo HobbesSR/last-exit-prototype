@@ -7,6 +7,8 @@ import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createGame } from '../shared/simulation/state.ts';
 import { stepTraps } from '../shared/traps.ts';
+import { openField } from './helpers/arena.js';
+import { p1Content } from './helpers/scenario.js';
 
 function parts(contentId = 'content-6', obstacles = []) {
   const map = { seed: 445, width: 800, height: 800,
@@ -81,12 +83,12 @@ test('explosion impulse uses linear falloff, deterministic zero-distance directi
   } finally { disposePhysics(s); }
 });
 
-test('legacy mine remains damage-only', () => {
-  const s = createGame();
+test('a mine without world physics only deals damage', () => {
+  const s = createGame(4217, openField(1200).map, p1Content());
   const p = s.players.find(player => player.role === 'contestant');
-  s.map.obstacles = []; s.map.gates = []; s.map.items = [];
-  p.x = 10000; p.y = 6000; p.movedThisTick = 1; p.shield = 60;
-  s.map.traps = [mineAt(9980, 6000)];
+  s.map.items = [];
+  p.x = 600; p.y = 576; p.movedThisTick = 1; p.shield = 60;
+  s.map.traps = [mineAt(580, 576)];
   stepTraps(s, damage, () => {});
   assert.equal(p.shield, 15);
   assert.equal(p.hp, 100);

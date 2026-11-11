@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, createPhysicsGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { movePlayer, lineClear, visibilityPolygon } from '../shared/movement.ts';
 import { collectEquipment, carriedCell } from '../shared/equipment.ts';
-import { contentById, defaultContent } from '../shared/simulation/content.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 import { arena, openField } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
 import { stagePhysics } from './helpers/scenario.js';
@@ -11,8 +11,7 @@ import { stagePhysics } from './helpers/scenario.js';
 // The core rules on the shipped content and its engine (#920). Scenes stand on open ground, people rather than
 // bots unless a case says otherwise; cases that need a whole match play the room arena, and cases that never
 // step build the game without its physics world. What the street generator alone promised (seeded maps, route
-// lengths) went with its stage of #920; what is labelled stage 4 goes with the legacy mover. That a gap admits
-// contestants and stops gladiators is physics-openings' claim.
+// lengths) went with its stage of #920. That a gap admits contestants and stops gladiators is physics-openings' claim.
 
 const Y = 576;
 const door = (id, x, y, extra = {}) => ({ id, x, y, w: 26, h: 54, open: false, locked: false, kind: 'door', ...extra });
@@ -175,8 +174,8 @@ test('sneaking avoids sensors, contestants have no innate skill, hazard affects 
   } finally { disposePhysics(s); }
 });
 
-for (const [content, field] of [['content-7', 'route'], ['content-2', 'path']]) test(`snapshots are independent copies including bot ${field}s and accepted input (${content}${field === 'path' ? ', legacy mover, #920 stage 4' : ''})`, async t => {
-  const s = field === 'path' ? createGame(4217, undefined, contentById(content)) : await createPhysicsGame(4217, generatedMap(), contentById(content));
+test('snapshots are independent copies including bot routes and accepted input', async t => {
+  const field = 'route', s = await createPhysicsGame(4217, generatedMap(), defaultContent());
   t.after(() => disposePhysics(s));
   const human = s.players[0]; human.bot = false; human.input = {};
   // A tile planner's first plans are staggered across its bots' turns, and a sliced one's may span ticks.
@@ -189,7 +188,7 @@ for (const [content, field] of [['content-7', 'route'], ['content-2', 'path']]) 
   assert.deepEqual(theirs[field], bot[field]); assert.ok(theirs[field].length > 0);
   assert.deepEqual(mine.input, human.input); assert.equal(mine.input.x, 1); assert.equal(mine.lastSeq, human.lastSeq);
   const route = structuredClone(theirs[field]), accepted = structuredClone(mine.input), before = JSON.stringify(frame);
-  if (field === 'path') { bot.path[0][0] += 99; bot.path.push([...bot.path[0]]); } else { bot.route[0].x += 99; bot.route.push({ ...bot.route[0] }); }
+  bot.route[0].x += 99; bot.route.push({ ...bot.route[0] });
   human.input.x = -1;
   for (let i = 0; i < 20; i++) step(s);
   assert.deepEqual(theirs[field], route); assert.deepEqual(mine.input, accepted);
@@ -314,7 +313,8 @@ test('the vision polygon stops at solid cover', () => {
   assert.ok(Math.abs(ray.x - at.x - 60) < 0.01);
 });
 
-test('continuous analog movement is normalized (legacy mover, #920 stage 4)', () => {
+// The swept mover the waiting yard still uses (waiting.ts); matches move on the engine.
+test('continuous analog movement is normalized', () => {
   const { map } = openField(2400), p = { role: 'contestant', x: 600, y: Y }, start = { ...p };
   movePlayer(map, p, { x: 1, y: 1 }); assert.ok(Math.abs(Math.hypot(p.x - start.x, p.y - start.y) - 9) < 0.002);
   assert.notEqual(p.x % TILE, 0);

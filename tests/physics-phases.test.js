@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, createPhysicsGame, disposePhysics, enqueuePhysicsAttachment,
+import { createPhysicsGame, disposePhysics, enqueuePhysicsAttachment,
   enqueuePhysicsImpulse, setInput, snapshot, step } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { contentById } from '../shared/simulation/content.ts';
+import { p1Content } from './helpers/scenario.js';
 
-// A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace.
+// A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace. P1 content keeps loose
+// items off the world, so a phase's pickup shows in the map's list. These traces were once paired with the legacy
+// mover's, which #920 retired.
 function fixtureParts(contestants = 2) {
   const map = { seed: 438, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
@@ -14,17 +16,16 @@ function fixtureParts(contestants = 2) {
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: Array.from({ length: contestants }, (_, i) => ({ x: 150 + i * 70, y: 400 })),
     hunterSpawns: [{ x: 650, y: 400 }] };
-  const content = structuredClone(contentById('content-1'));
+  const content = p1Content();
   content.roster = { contestants: Array.from({ length: contestants }, (_, i) => `C${i}`), gladiators: [{ name: 'G', kit: 'warden' }] };
   return { map, content };
 }
 
 async function pair(contestants = 2) {
   const { map, content } = fixtureParts(contestants);
-  const legacy = createGame(438, structuredClone(map), structuredClone(content));
-  const physics = await createPhysicsGame(438, structuredClone(map), structuredClone(content));
-  for (const s of [legacy, physics]) for (const p of s.players) p.bot = false;
-  return { legacy, physics };
+  const physics = await createPhysicsGame(438, map, content);
+  for (const p of physics.players) p.bot = false;
+  return { physics };
 }
 
 function input(s, id, fields = {}) {
@@ -37,49 +38,42 @@ function trace(s) {
     bullets: s.projectiles.map(p => p.id) };
 }
 
-test('paired trace: bot utility commits in phase 3 and legacy still heals', async () => {
-  const { legacy, physics } = await pair(1);
+test('bot utility commits in phase 3', async () => {
+  const { physics } = await pair(1);
   try {
-    for (const s of [legacy, physics]) {
-      const p = s.players[0]; p.bot = true; p.hp = 40;
-      p.inventory[0] = { kind: 'med', count: 1 }; p.inventory[1] = { kind: 'weapon', weaponType: 'pistol', ammo: 2 };
-    }
-    step(legacy); step(physics);
-    assert.deepEqual([legacy.players[0].hp, physics.players[0].hp], [80, 80], JSON.stringify([trace(legacy), trace(physics)]));
-    assert.deepEqual([legacy.players[0].inventory[0], physics.players[0].inventory[0]], [null, null]);
+    const p = physics.players[0]; p.bot = true; p.hp = 40;
+    p.inventory[0] = { kind: 'med', count: 1 }; p.inventory[1] = { kind: 'weapon', weaponType: 'pistol', ammo: 2 };
+    step(physics);
+    assert.equal(p.hp, 80, JSON.stringify(trace(physics)));
+    assert.equal(p.inventory[0], null);
     assert.equal(physics.players[0].selectedSlot, 0);
   } finally { disposePhysics(physics); }
 });
 
-test('paired trace: early roster stun acts now in legacy and next tick in physics', async () => {
-  const { legacy, physics } = await pair(1);
+test('a stun from earlier in the roster lands this tick and stops movement from the next', async () => {
+  const { physics } = await pair(1);
   try {
-    for (const s of [legacy, physics]) {
-      const c = s.players[0], g = s.players[1];
-      c.x = 300; c.y = 400; g.x = 350; g.y = 400;
-      s.players.reverse(); // The warden acts before the contestant in the legacy roster loop.
-      input(s, g.id, { skill: true }); input(s, c.id, { x: 1 });
-    }
-    step(legacy); step(physics);
-    const lc = legacy.players.find(p => p.id === 'c0'), pc = physics.players.find(p => p.id === 'c0');
-    assert.ok(lc.stun > 0 && pc.stun > 0, JSON.stringify([trace(legacy), trace(physics)]));
-    assert.ok(pc.movedThisTick > lc.movedThisTick + 2, JSON.stringify([trace(legacy), trace(physics)]));
+    const c = physics.players[0], g = physics.players[1];
+    c.x = 300; c.y = 400; g.x = 350; g.y = 400;
+    physics.players.reverse(); // The warden comes first in the roster.
+    input(physics, g.id, { skill: true }); input(physics, c.id, { x: 1 });
+    step(physics);
+    const pc = physics.players.find(p => p.id === 'c0');
+    assert.ok(pc.stun > 0, JSON.stringify(trace(physics)));
+    assert.ok(pc.movedThisTick > 2, `the movement already collected still happens: ${JSON.stringify(trace(physics))}`);
     input(physics, pc.id, { x: 1 }); step(physics);
     assert.ok(pc.movedThisTick < 5, JSON.stringify(trace(physics)));
   } finally { disposePhysics(physics); }
 });
 
-test('paired trace: blocked input keeps physics charge, while legacy cancels on requested movement', async () => {
-  const { legacy, physics } = await pair(1);
+test('input blocked by the map edge keeps charging: it cancels on movement made, not asked for', async () => {
+  const { physics } = await pair(1);
   try {
-    for (const s of [legacy, physics]) {
-      const c = s.players[0]; c.x = 12; c.y = 400;
-      c.inventory[0] = { kind: 'cell', charge: 0 }; c.selectedSlot = 0;
-      c.charging = 'charger'; s.map.chargers = [{ id: 'charger', x: 40, y: 400 }];
-      input(s, c.id, { x: -1 });
-    }
-    step(legacy); step(physics);
-    assert.equal(legacy.players[0].charging, null, JSON.stringify(trace(legacy)));
+    const c = physics.players[0]; c.x = 12; c.y = 400;
+    c.inventory[0] = { kind: 'cell', charge: 0 }; c.selectedSlot = 0;
+    c.charging = 'charger'; physics.map.chargers = [{ id: 'charger', x: 40, y: 400 }];
+    input(physics, c.id, { x: -1 });
+    step(physics);
     assert.equal(physics.players[0].charging, 'charger', JSON.stringify(trace(physics)));
     assert.equal(physics.players[0].inventory[0].charge, 1);
   } finally { disposePhysics(physics); }
@@ -145,20 +139,16 @@ test('phase 6 actual push distance cancels charging even without requested movem
   } finally { disposePhysics(physics); }
 });
 
-test('paired trace: finalized melee death precedes physics pickup, unlike an earlier legacy roster turn', async () => {
-  const { legacy, physics } = await pair(1);
+test('a melee death is final before pickups, whatever the roster order', async () => {
+  const { physics } = await pair(1);
   try {
-    for (const s of [legacy, physics]) {
-      const c = s.players[0], g = s.players[1];
-      c.x = 300; c.y = 400; c.hp = 10;
-      g.x = 350; g.y = 400;
-      s.map.items = [{ id: 'before-death', kind: 'med', x: 300, y: 400 }];
-      input(s, g.id, { attack: true, aim: Math.PI });
-    }
-    step(legacy); step(physics);
-    assert.equal(legacy.players[0].status, 'eliminated', JSON.stringify(trace(legacy)));
+    const c = physics.players[0], g = physics.players[1];
+    c.x = 300; c.y = 400; c.hp = 10;
+    g.x = 350; g.y = 400;
+    physics.map.items = [{ id: 'before-death', kind: 'med', x: 300, y: 400 }];
+    input(physics, g.id, { attack: true, aim: Math.PI });
+    step(physics);
     assert.equal(physics.players[0].status, 'eliminated', JSON.stringify(trace(physics)));
-    assert.equal(legacy.map.items.some(i => i.id === 'before-death'), false);
     assert.equal(physics.map.items.some(i => i.id === 'before-death'), true);
   } finally { disposePhysics(physics); }
 });

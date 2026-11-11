@@ -45,8 +45,6 @@ test('hook tuning rejects missing/invalid values and is detached from caller edi
     content.hook.maxForce = 1;
     assert.equal(s.content.hook.maxForce, 6000);
     assert.ok(Object.isFrozen(s.content.hook));
-    assert.equal(contentById('content-5').kits.hook, undefined);
-    assert.equal(contentById('content-5').hook, undefined);
   } finally { disposePhysics(s); }
 });
 

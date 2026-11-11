@@ -1,20 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
-import { defaultContent, legacyContent } from '../shared/simulation/content.ts';
-import { createMatchFor } from '../server/match.js';
+import { defaultContent } from '../shared/simulation/content.ts';
+import { createPhysicsMatch } from '../server/match.js';
 import { describeContent, readPresentation } from '../shared/presentation.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 
-// Content this build does not ship, differing from the legacy set in every displayed value. It runs on the
-// legacy mover like the harness's rooms, so it starts from the legacy set rather than the physics default.
+// Content this build does not ship, differing from the shipped set in every displayed value.
 function differing() {
-  const content = structuredClone(legacyContent());
+  const content = structuredClone(defaultContent());
   content.id = 'test-content-b';
   content.weapons.pistol.name = 'Sidearm'; content.weapons.pistol.ammo = 7;
   content.kits.warden.name = 'Guard'; content.kits.warden.skill = 'Stomp';
-  delete content.kits.striker;
+  // A set without a kit drops what needs it: the hook kit takes its profile (phased.ts).
+  delete content.kits.striker; delete content.kits.hook; delete content.hook;
   content.roster.contestants = ['Ada', 'Bo', 'Cy'];
   content.roster.gladiators = [{ name: 'ONE', kit: 'warden' }, { name: 'TWO', kit: 'specter' }];
   content.durationTicks = 3000; content.cellChargeTicks = 60;
@@ -79,7 +79,7 @@ test('a room describes the content it pins, on every welcome and ready and once 
 
 test('rooms created by the default service describe the shipped content', async () => {
   // The shipped default is physics content, so this room runs the physics engine and its world starts asynchronously.
-  const h = roomHarness({ content: defaultContent, matchFactory: createMatchFor });
+  const h = roomHarness({ content: defaultContent, matchFactory: createPhysicsMatch });
   // The shipped content's rosters generate the same seed 9 map as the harness's, so the file's one generation serves.
   const room = h.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generatedMap(9));
   const owner = h.joined(room, { ownerKey: room.ownerKey });

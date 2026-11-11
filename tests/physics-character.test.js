@@ -3,6 +3,7 @@ import test from 'node:test';
 import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse,
   setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
+import { p1Content } from './helpers/scenario.js';
 import { teleport } from '../shared/simulation/dev.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { solvePhysicsProjectiles } from '../shared/simulation/physics-projectiles.ts';
@@ -20,6 +21,11 @@ function parts(contestants = 2, contentId = 'content-6') {
   content.roster = { contestants: Array.from({ length: contestants }, (_, i) => `C${i}`),
     gladiators: [{ name: 'G', kit: 'warden' }] };
   return { map, content };
+}
+
+function p1Parts(contestants) {
+  const { map, content } = parts(contestants, 'content-7');
+  return { map, content: p1Content(content) };
 }
 
 async function game(parts = undefined) {
@@ -48,9 +54,9 @@ test('projectiles retain their old hit envelope beyond the narrower movement bod
   } finally { disposePhysics(s); }
 });
 
-test('content-6 pins measured narrow bodies while content-1 keeps its radius', async () => {
+test('content-6 pins measured narrow bodies while P1 keeps the hurt radius', async () => {
   const p2 = await game();
-  const p1 = await game(parts(2, 'content-1'));
+  const p1 = await game(p1Parts(2));
   try {
     assert.equal(p2.version, PHYSICS_VERSION);
     assert.equal(p1.version, PHYSICS_VERSION, 'one rules version, whatever the content');
@@ -293,7 +299,7 @@ test('a gladiator respawn defers while a solid prop blocks every nearby placemen
 });
 
 test('P1 ignores motor surfaces, so it does not validate them', async () => {
-  const { map, content } = parts(1, 'content-1');
+  const { map, content } = p1Parts(1);
   map.motorSurfaces = [{ id: '', x: 0, y: 0, w: -1, h: 0, priority: NaN, speed: 2, traction: 2, braking: 2 }];
   const p1 = await game({ map, content });
   try {

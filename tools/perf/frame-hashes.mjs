@@ -2,7 +2,7 @@
 // (#664, #641). Each line is one match: a sha256 over JSON.stringify of its first snapshot and every advance().
 // Compare a run on the base commit with one on the branch:
 //   node tools/perf/frame-hashes.mjs --out=base.txt   (then, on the branch)   --out=branch.txt
-// --size=12x6 --contents=content-5,content-6,content-7,... --seeds=4217,11,902 --out=<file>
+// --size=12x6 --contents=content-6,content-7,... --seeds=4217,11,902 --out=<file>
 // --views also hashes every frame's projection for each player and the directed view, in a second digest.
 // --payloads exercises recording/live/delayed map queries and hashes their JSON at
 // tick 0, 600, 1200 and match end. --root=PATH selects archived match/cache modules.
@@ -19,7 +19,7 @@ import { cliArgs } from '../../tests/helpers/args.js';
 const args = cliArgs();
 const root = resolve(args.get('root') ?? fileURLToPath(new URL('../../', import.meta.url)));
 const fromRoot = file => import(pathToFileURL(resolve(root, file)).href);
-const { createMatchFor } = await fromRoot('server/match.js');
+const { createPhysicsMatch } = await fromRoot('server/match.js');
 const { attachPortalGraph } = await fromRoot('shared/navigation/portal-graph.ts');
 const { adoptPackedTiles } = await fromRoot('shared/free-space.ts');
 // Reuse the startup diagnostic's worker-prepared maps for exact comparisons,
@@ -28,7 +28,7 @@ const cache = args.has('maps-cache') ? deserialize(await readFile(args.get('maps
 const [zoneWidth, zoneHeight] = (args.get('size') ?? '12x6').split('x').map(Number);
 const size = liveZoneSize({ zoneWidth, zoneHeight });
 if (!size) { console.error('unknown --size'); process.exit(2); }
-const contents = (args.get('contents') ?? 'content-5,content-6,content-7,content-ammo-1,content-loot-1').split(',');
+const contents = (args.get('contents') ?? 'content-6,content-7,content-ammo-1,content-loot-1').split(',');
 const seeds = (args.get('seeds') ?? '4217,11,902').split(',').map(Number);
 const views = args.has('views');
 if (cache && (cache.size !== `${zoneWidth}x${zoneHeight}` || contents.some(id => id !== cache.content)))
@@ -46,7 +46,7 @@ for (const id of contents) for (const seed of seeds) {
     if (cloned.navigation) attachPortalGraph(map, cloned.navigation);
     for (const packed of cloned.tiles) adoptPackedTiles(map, packed);
   }
-  const match = await createMatchFor(seed, size, map, contentById(id));
+  const match = await createPhysicsMatch(seed, size, map, contentById(id));
   const hash = createHash('sha256'), viewHash = createHash('sha256'), mapHash = createHash('sha256');
   let previousMapFrame;
   const maps = frame => {

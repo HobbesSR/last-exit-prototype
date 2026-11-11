@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sequential measurement set for #637 (42.22). Outputs land in a fresh directory, test-results/637/ by default,
+# Sequential measurement set for #637 (42.22); its legacy-mover rows went with that engine (#920). Outputs land in a fresh directory, test-results/637/ by default,
 # and the set stops at the first failed run, so a report never mixes results from different attempts.
 cd "$(dirname "$0")/../.." || exit 1
 out=${1:-test-results/637}
@@ -13,21 +13,16 @@ run() {
 }
 # A/B: real sizes, whole match, one viewer, recording on.
 for size in 12x6 24x12 36x18; do
-  run "real-$size-legacy" --size=$size --content=content-5
   for r in 1 2 3; do run "real-$size-physics-r$r" --size=$size --content=content-6; done
 done
 # C: constant-density ladder from the 12x6 map, first 1200 ticks.
 for tile in 1x1 2x1 2x2 3x2 3x3; do
-  run "ladder-$tile-legacy" --size=12x6 --tile=$tile --ticks=1200 --content=content-5
   run "ladder-$tile-physics" --size=12x6 --tile=$tile --ticks=1200 --content=content-6
 done
-# Legacy stops at 48x24: at 72x36 its heap reached about 2.5 GiB beside the rest of the set (42.22, before #655).
-run "ladder-4x4-legacy" --size=12x6 --tile=4x4 --ticks=1200 --content=content-5
 # Physics past 36x18 (42.22 "Physics past 36x18"); 96x48's heap peaks near 5 GiB between collections.
 for tile in 4x4 6x6 8x8; do NODE_OPTIONS=--max-old-space-size=8192 run "ladder-$tile-physics" --size=12x6 --tile=$tile --ticks=1200 --content=content-6; done
 # Real sizes over the same first 1200 ticks, to set against the ladder.
 for size in 24x12 36x18; do
-  run "early-$size-legacy" --size=$size --ticks=1200 --content=content-5
   run "early-$size-physics" --size=$size --ticks=1200 --content=content-6
 done
 # D: viewers and rooms.

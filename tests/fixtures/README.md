@@ -2,7 +2,7 @@
 
 ## Physics behavior baseline (#920)
 
-`behavior-physics-1.v8.gz` freezes what the live engine does: `content-7` matches under
+`behavior-physics-1.v8.gz` is the frozen characterization fixture. It freezes what the live engine does: `content-7` matches under
 `last-exit-0.8-physics`, built by `createPhysicsGame`. It is `v8.serialize` of
 `{ checkpoint, version, content, arenas, bots, scripted }`, gzipped, because each arena keeps the
 portal graph bots plan with, and the graph holds typed arrays that JSON drops.
@@ -30,18 +30,17 @@ capturing branch left unchanged. Gzip SHA-256
 The capture ran on freshly generated arenas; the tests, in other processes and from the
 deserialized arenas, reproduce every digest, and each trace repeated within one process too.
 
-The rules below for `seat-1` apply unchanged: tests only read this fixture, a
-behaviour-preserving change reproduces it exactly, and a recapture belongs to a decided rules,
-content, recorded-state or wire change, named for its new checkpoint. A physics rules version
-change is one: the fast test fails on the stored `version` first. To recapture, build the object
+Tests only read this fixture. Do not regenerate it to accommodate refactor changes: a
+behaviour-preserving change reproduces it exactly. A recapture belongs to a decided rules, content,
+recorded-state or wire change, is named for its new checkpoint, and costs the continuity of the
+evidence, so it is a decision rather than a step. A physics rules version change is one: the fast
+test fails on the stored `version` first. Because the fixture carries its own arenas, a change to
+generation alone never moves the traces. To recapture, build the object
 above from the scenario module: `traceArenas()` (or the previous fixture's `arenas`, carried
 forward unless the arenas themselves are meant to change), one `await botTrace(seed, arenas[seed])`
 per exported seed, and `JSON.parse(JSON.stringify(await scriptedTrace(arenas[4217])))`, with
 `version: PHYSICS_VERSION` and `content: CONTENT`; serialize, gzip and record the new digests
 here. To audit, deserialize it in an isolated checkout of its checkpoint and compare.
-
-`behavior-seat-1.json.gz` below stays frozen for the legacy mover until #920 retires that
-engine, when this fixture replaces it as the only one.
 
 ## Pregenerated room arena (#849)
 
@@ -95,117 +94,17 @@ that map's layout. The SHA-256 of `JSON.stringify(brief)` is
 `tests/micro-compound-delegation.test.js` reads it, so the measured compound stays measured whatever
 later content does to the generated map.
 
-## Behavior baseline contents
+## Retired: the legacy mover's baseline (#920)
 
-`behavior-seat-1.json.gz` holds two independent things, and that separation is
-the point of its shape:
-
-- `generated` — SHA-256 hashes of complete JSON maps, property and array order
-  included. This characterizes the **generator**, and a deliberate content change
-  re-baselines it alone.
-- `maps`, `bots`, `scripted` — the four arenas the traces ran in, stored verbatim,
-  plus 100-tick digest blocks over every snapshot and contestant/gladiator/directed
-  projection in four complete bot matches and full scripted snapshots/projections.
-  These characterize the **simulation**. Because the fixture carries its own maps,
-  they keep their meaning when content changes: the traces only move if the
-  simulation moves.
-
-Before the split, every trace ran on a freshly generated map, so any content change
-invalidated all of them at once and the evidence that the simulation was unchanged
-was destroyed along with it. Map diversity is still covered — by `generated` here,
-and by `slow/live-map.test.js`, which routes bots to completion over generated chain maps.
-
-The scripted cases exercise the input queue, equipment merging/use/drop/pickup,
-charge interruption/completion, occupied doors, PvP, death/respawn, abilities,
-transit, extraction and match completion. JSON serialization is the wire boundary.
-
-Tests only read this fixture. Do not regenerate it to accommodate refactor
-changes: a behaviour-preserving change must reproduce it exactly. Regenerating is
-only correct for a deliberate content or rules change that has been decided, and
-it costs the continuity below, so it is a decision rather than a step.
-
-## Provenance
-
-`seat-1` replaced `nav-1` when a contestant's roster place (`seat`, #792) joined recorded player
-state and every live projection. Each stored snapshot and each stored projection now carries a
-`seat` for every contestant, so every trace digest moved; the recapture belongs to that reviewed
-player-and-recording change (#792, PR #793), not to a refactor. `generated` and `maps`
-were carried forward unchanged, and that was checked rather than assumed. The superseded
-`behavior-nav-1.json.gz` remains in git history.
-
-`nav-1` replaced `netcode-1` when route ends stopped snapping across walls thinner than a
-tile (#351). It was captured at `5e83119`, against `content-1` and the stored arenas. `generated` and
-`maps` were carried forward. Of the traces, only the bot trace for seed 4217 moved: the other three
-bot traces and the scripted trace were recomputed on that tree and are byte-identical to
-`netcode-1`'s. The superseded `behavior-netcode-1.json.gz` remains in git history.
-
-`netcode-1` replaced `elements-1` when input handling and bot routing changed: a tick now spends
-exactly one queued input instead of coalescing whatever arrived, and a grid route is straightened
-before a bot walks it. Both move what the simulation does, so both move the traces. Neither touches
-the generator, and that was checked rather than assumed — `generated` carried forward unchanged, and
-so did `maps`.
-
-`netcode-1` was the `95b7f1b` checkpoint; `nav-1` followed it, captured
-from simulation tree `5e83119` and introduced in commit `fa6c143`; `seat-1` captures the tree that
-introduced #792. The full historical chain is
-`5dd7d61` (captured at `0cd204e`) → `elements-1` (`9fe2d94`) → the stored-arenas
-split (`aa833a6`) → hash-only cover update (`dede8fe`) → `netcode-1` → `nav-1` → `seat-1`.
-The historical fixture names remain in git history;
-the current tests select legacy `content-1` through `contentById` under rules version
-`last-exit-0.7`, so the default `content-2` does not rewrite this evidence.
-
-Carrying `maps` forward matters more than it looks. Those arenas already predated `elements-1`'s
-`generated` hashes, because an earlier pure-content change replaced those hashes alone, as the rule
-above allows. Recapturing the arenas here would have folded that content change into this one and
-destroyed the evidence that only the simulation moved. The traces are therefore directly comparable
-to `elements-1`: same arenas, same scenarios, different simulation. The superseded
-`behavior-elements-1.json.gz` remains in git history at the commits that carried it.
-
-The scripted `latched-merge-and-use` capture is gone, replaced by `queued-first-spent` and
-`queued-second-spent`. It characterized the merge that a queue removes, so there was nothing left for
-it to describe.
-
-`elements-1` replaced `5dd7d61` when the element catalogue landed: block corners
-began drawing structures from per-region template sets (hut, lodge, warehouse,
-ruin, compound) instead of stamping one hardcoded building, which changes every
-seeded map and therefore every map-dependent trace. The superseded
-`behavior-5dd7d61.json.gz` remains in git history at the commits that carried it.
-
-`5dd7d61` had been captured before any gameplay extraction and survived several
-refactors unchanged, which is what made it evidence that those refactors were
-behaviour-preserving. `elements-1` starts that evidence over: it proves nothing
-about the code that predates it. Each checkpoint is treated the way `5dd7d61` was.
-
-To regenerate after a decided change, build
-`{ checkpoint, generated, maps, bots, scripted }` from
-`tests/characterization-scenarios.js` using an explicitly selected content set
-obtained through `contentById`: `mapHashes()`, `traceMaps()`, one
-`botTrace(seed, maps[seed], content)` per exported seed, and
-`JSON.parse(JSON.stringify(scriptedTrace(maps[4217], content)))` — gzip it,
-and name it for the new checkpoint.
-
-To audit the existing `seat-1` fixture on this tree, select `content-1` and use
-its stored maps, never today's default content or freshly generated arenas.
-The three-hunter checkpoint preserved the then-current `behavior-netcode-1.json.gz`
-bytes (present at `95b7f1b` and `5e83119`), SHA-256
-`b8734d7cbf1292f8e5fad5c5f7007ed368bc33fc7d82b5965b23d71303a48ea2`.
-`behavior-nav-1.json.gz`, introduced at `fa6c143`, has gzip SHA-256
-`708222c5e226019b2d601e4574f2d83c3832ed1b0cb09827bc5e9866e83ed7c8`.
-The current `behavior-seat-1.json.gz` has gzip SHA-256
-`a4a6856b4bb082f92ee8ee64a6bdc5273fc2384ed28f0e38684460b6c242d488`.
-`nav-1` changed the seed-4217 bot trace when route ends stopped snapping across
-walls thinner than a tile (#351); generated hashes, stored arenas, other bot traces
-and the scripted trace carried forward byte-identical. `seat-1` moved every bot and
-scripted trace, because each snapshot and each contestant record in each projection gained its
-roster place (#792); generated hashes and stored arenas carried forward byte-identical.
-
-Carry `maps` over from the previous fixture unless the arenas themselves are meant to
-change: regenerating them folds whatever the generator has done since into a change
-that was supposed to be about the simulation. A pure content change needs only
-`generated` replaced; rebuild the traces only when they are meant to move. There is
-deliberately no script in the repository for this. To audit a fixture's provenance, run the scenario module
-in an isolated checkout of its checkpoint and compare the decompressed JSON.
-
+`behavior-seat-1.json.gz` froze the legacy mover (`content-1` under `last-exit-0.7`) and, in its
+`generated` hashes, the legacy street generator. #920 retired that engine and its content, and the
+fixture with them; `behavior-physics-1` above replaced it. It remains in git history, last at
+`03af19a`, with gzip SHA-256
+`a4a6856b4bb082f92ee8ee64a6bdc5273fc2384ed28f0e38684460b6c242d488`. Its chain was `5dd7d61`
+(captured at `0cd204e`) → `elements-1` (`9fe2d94`) → the stored-arenas split (`aa833a6`) →
+hash-only cover update (`dede8fe`) → `netcode-1` (`95b7f1b`) → `nav-1` (`fa6c143`) → `seat-1`
+(#792). Its idea carries over: a fixture stores the arenas its traces ran in, so the traces move
+only when the simulation does. To audit it, run that checkout's `tests/characterization-scenarios.js`.
 
 ## Compound yard review input (#647 / #657)
 

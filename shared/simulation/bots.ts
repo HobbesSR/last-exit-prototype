@@ -1,24 +1,21 @@
 import { bodyRadius, canOccupy, gatesNear, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_CELL_SIZE, DISCOVERY_INTERVAL } from '../discovery.ts';
-import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { navigationClearance } from '../map/navigation.ts';
-import { gridRoute } from '../map/route.ts';
 import { contestantKnowledge, createKnowledgePlanner, frozenKnowledge, packedTilesFor, type Knowledge, type KnownRoute, type KnownRouteStatus, type RouteSearch } from '../navigation/knowledge.ts';
 import { closestOnSegment, type PackedTiles } from '../free-space.ts';
 import { createPortalPlanner, portalGraphOf, regionAt, type PortalGraph, type Reach } from '../navigation/portal-graph.ts';
 import { count, start, stop } from '../profiler.ts';
-import { carriedCell, sameQuality, syncWeapon } from '../equipment.ts';
+import { carriedCell, sameQuality } from '../equipment.ts';
 import { GATE_REACH, HZ, TRANSIT_REACH } from './rules.ts';
 import { giveUpSweep, noteHunterTarget, sweepTarget, transitPlan } from './hunting.ts';
-import { distance, center, clearRoute } from './geometry.ts';
+import { distance, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { dynamicWaypoint } from './dynamic-navigation.ts';
-import { attack, utilityApplies, utilityOutcome } from './combat.ts';
-import { dropEquipment, dropInventorySlot } from './loot.ts';
+import { utilityApplies, utilityOutcome } from './combat.ts';
 import { reloadableRounds, reserveRoom } from './ammo.ts';
 import { heardBy } from './hearing.ts';
 import { rememberedItems, seenCells } from './bot-memory.ts';
-import type { BuildingId, CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, StationId, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
+import type { BuildingId, CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, StationId, Tick, Vec2, WeaponItem, World } from '../types.ts';
 import { atan2, cos, hypot, sin } from '../math.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
@@ -93,18 +90,16 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory, avoid: reado
   }
   if (best < 0) return null;
   state.cell = best; state.entered = -1;
-  // A new destination: route to it now rather than finish the old route first. Over tiles a moved goal is replanned anyway.
-  if (s.content.navigation !== 'tiles') clearRoute(p);
   return cellCenter(s.map, best);
 }
 
 /**
- * Whether a cell may be ground worth exploring. Planning over tiles reads only what the bot knows: a
- * cell the view window has covered shows whether its centre is ground, and any other is assumed to be,
- * inside the public world bounds (22.6). The grid planner reads the truth, as it always has.
+ * Whether a cell may be ground worth exploring. A bot reads only what it knows: a cell the view window
+ * has covered shows whether its centre is ground, and any other is assumed to be, inside the public
+ * world bounds (22.6).
  */
 function ground(s: Game, memory: DiscoveryMemory, cell: number, centre: Vec2): boolean {
-  if (s.content.navigation === 'tiles' && !memory.surveyed?.has(cell)) return true;
+  if (!memory.surveyed?.has(cell)) return true;
   return insideMap(s.map, centre.x, centre.y);
 }
 
@@ -213,13 +208,7 @@ const REPATH = 20;
 /** A route still standing this long is replanned at the next scheduled repath regardless. */
 const REPLAN_AFTER = 5 * HZ;
 /**
- * Expansions one repath may make. A query across a 36 × 18 map with everything known makes about
- * 60,000 (about 110 ms), too long for one tick; at the budget the bot walks to the place searched
- * nearest its goal and plans on from there (22.6, "budget-exhausted").
- */
-const BOT_ROUTE_BUDGET = 12_000;
-/**
- * Under `replanning: 'sliced'` (#470), a repath runs as one search of up to SLICED_BUDGET
+ * A repath runs as one search of up to SLICED_BUDGET
  * expansions, at most SLICE of them a tick, while the bot walks the route it has. Its knowledge is
  * frozen when it starts, so the result is the route a whole search would have found then; what is
  * learnt meanwhile is caught by the usual checks once it is adopted. All bots' searches share
@@ -257,16 +246,14 @@ interface Search {
   doors: string;
 }
 const searches = new WeakMap<Player, Search>();
-/** Whether repaths spread over ticks: `sliced`, and `repair`, which adds local repair. */
-const sliced = (s: Game): boolean => s.content.replanning === 'sliced' || s.content.replanning === 'repair';
 
 /**
  * The tiles bots would otherwise build on their first plans, for whoever generates a map to build
  * beside it and the room to adopt (`adoptPackedTiles`). A gladiator plans over the whole map, so
  * its first plan reads every tile; a contestant reads only what it has discovered, a few at a time.
  */
-export function prebuiltTiles(map: CollisionMap, content: MatchContent): PackedTiles[] {
-  return content.navigation === 'tiles' ? [packedTilesFor(map, 'gladiator')] : [];
+export function prebuiltTiles(map: CollisionMap, _content: MatchContent): PackedTiles[] {
+  return [packedTilesFor(map, 'gladiator')];
 }
 
 function plannerOf(map: CollisionMap, role: Role) {
@@ -353,7 +340,7 @@ export function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean 
   const d = distance(p, waypoint);
   if (d < 2) return true;
   if (d >= 11) return false;
-  if (sliced(s) && distance(p, closestOnSegment(p, waypoint, next)) > margin(p)) return false;
+  if (distance(p, closestOnSegment(p, waypoint, next)) > margin(p)) return false;
   const length = distance(p, next), t = Math.min(1, TURN_AHEAD / Math.max(length, 1e-9));
   return sweptClear(s.map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p));
 }
@@ -382,14 +369,7 @@ function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus | null 
     due = p.route?.length ? scheduled && (changed || s.tick - plan.at >= REPLAN_AFTER)
       : changed || short && distance(plan.from, p) >= 11 || scheduled && s.tick - plan.at >= REPATH;
   }
-  if (sliced(s)) return repathSliced(s, p, target, due, contestant, knowledge, planner);
-  if (!due) return null;
-  start('sim.repath'); count('work.repath');
-  const route = planner.route(knowledge, p, target, BOT_ROUTE_BUDGET);
-  count('work.route.expansions', route.expansions);
-  adopt(s, p, planner, route, knowledge, target, contestant ? doorsSeen(p) : '', route.points.filter((point, i) => i > 0 || distance(p, point) >= 11));
-  stop('sim.repath');
-  return route.status;
+  return repathSliced(s, p, target, due, contestant, knowledge, planner);
 }
 
 /**
@@ -586,12 +566,7 @@ export interface BotIntent {
 // and under `hearingResponse` follow gunfire (#685).
 export const isOpportunistic = (p: Pick<Player, 'id'>): boolean => p.id.charCodeAt(p.id.length - 1) % 3 === 0;
 
-export function collectBotIntent(s: Game, p: Player): BotIntent { return decideBot(s, p, true); }
-
-/** Legacy bot behavior, including its pre-movement side effects. */
-export function botInput(s: Game, p: Player): PlayerInput { return decideBot(s, p, false).input; }
-
-function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
+export function collectBotIntent(s: Game, p: Player): BotIntent {
   const intent: BotIntent = { input: {} };
   const cell = carriedCell(p);
   let spentUtility = -1;
@@ -602,23 +577,17 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     // Under L2 an empty weapon that a reload can fill is still worth holding.
     const weapon = loaded >= 0 || !s.content.reloading ? loaded : p.inventory.findIndex(i => i?.kind === 'weapon' && reloadableRounds(s, p, i) > 0);
     const selected = utility >= 0 ? utility : weapon >= 0 ? weapon : 0;
-    if (collecting) {
-      intent.input.slot = selected;
-      if (utility >= 0 && p.attackCd <= 0 && p.role === 'contestant') {
-        const item = p.inventory[utility]!;
-        const outcome = utilityOutcome(p, item);
-        if (outcome && utilityApplies(p, item)) {
-          effectiveHp = outcome.hp;
-          intent.utilitySlot = utility;
-          if (item.count <= 1) spentUtility = utility;
-        }
+    intent.input.slot = selected;
+    if (utility >= 0 && p.attackCd <= 0 && p.role === 'contestant') {
+      const item = p.inventory[utility]!;
+      const outcome = utilityOutcome(p, item);
+      if (outcome && utilityApplies(p, item)) {
+        effectiveHp = outcome.hp;
+        intent.utilitySlot = utility;
+        if (item.count <= 1) spentUtility = utility;
       }
-    } else {
-      p.selectedSlot = selected; syncWeapon(p, s.content.weapons);
-      if (utility >= 0) attack(s, p);
     }
   }
-  if (!collecting) effectiveHp = p.hp;
   const effectiveInventory = () => p.inventory!.map((item, slot) => slot === spentUtility ? null : item);
   const opportunistic = isOpportunistic(p);
   start('sim.bots.sight');
@@ -644,7 +613,6 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     if (plan) { via = target; target = plan.from; if (p.railCd === 0 && distance(p, plan.from) < TRANSIT_REACH) transitTo = plan.to.id; }
   }
   let exploring = false;
-  const tiles = s.content.navigation === 'tiles';
   if (p.role === 'contestant') {
     // A contestant knows what it has discovered (15, #230). Without discovery (content-1) it keeps the
     // whole map, which is what the frozen characterization traces recorded.
@@ -660,8 +628,8 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       scanned += listed.length;
       return listed.filter(i => i.kind === 'cell' && !setAside(i));
     };
-    // Over tiles, a door is locked when the bot last saw it locked; the grid planner reads the doors as they stand.
-    const locked = (g: Gate) => { const seen = tiles ? memory?.gates?.get(g.id) : g; return !!seen && !!seen.locked && !seen.open; };
+    // A door is locked when the bot last saw it locked.
+    const locked = (g: Gate) => { const seen = memory?.gates?.get(g.id); return !!seen && !!seen.locked && !seen.open; };
     const buildingGates = botGates(s.map).byBuilding;
     const accessible = (i: GroundItem) => p.keys > 0 || !i.buildingId || !(buildingGates.get(i.buildingId)?.some(locked));
     const charged = !!cell && cell.charge >= s.content.cellChargeTicks;
@@ -678,20 +646,14 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       else if (frontier) { target = frontier; exploring = true; } else if (!known(s.map.exit)) target = p;
     }
     if (objective.length) {
-      // Over tiles, nearest first: the street graph is truth, and a chain map has none anyway.
-      const from = tiles ? null : blockAt(s.map, p);
-      const cost = (t: Vec2) => from === null ? distance(p, t) : blockRoute(s.map, from, blockAt(s.map, t)).length * 1000 + distance(p, t) * 0.05;
-      target = objective.sort((a, b) => cost(a) - cost(b))[0];
-      if (!cell && (collecting ? effectiveInventory() : p.inventory!).every(Boolean)) {
-        const discard = (collecting ? effectiveInventory() : p.inventory!).findIndex(item => item?.kind !== 'weapon' || item.ammo === 0 && !reloadableRounds(s, p, item));
-        if (discard >= 0) {
-          if (collecting) intent.discardSlot = discard;
-          else if (s.content.itemInstances) dropInventorySlot(s, p, discard);
-          else { dropEquipment(s, p, p.inventory![discard]!); p.inventory![discard] = null; }
-        }
+      // Nearest first.
+      target = objective.sort((a, b) => distance(p, a) - distance(p, b))[0];
+      if (!cell && effectiveInventory().every(Boolean)) {
+        const discard = effectiveInventory().findIndex(item => item?.kind !== 'weapon' || item.ammo === 0 && !reloadableRounds(s, p, item));
+        if (discard >= 0) intent.discardSlot = discard;
       }
     }
-    const inventory = collecting ? effectiveInventory().map((item, slot) => slot === intent.discardSlot ? null : item) : p.inventory!;
+    const inventory = effectiveInventory().map((item, slot) => slot === intent.discardSlot ? null : item);
     // A matching weapon refills its magazine, or under L2 the family reserve it would feed.
     const room = (slot: WeaponItem) => reserveRoom(s, p, s.content.reloading!.weapons[slot.weaponType].family);
     const refills = (slot: WeaponItem) => s.content.reloading ? room(slot) > 0 : slot.ammo < s.content.weapons[slot.weaponType]?.maxAmmo;
@@ -714,44 +676,22 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     }
   }
   start('sim.bots.plan');
-  if (tiles) {
-    const leg = p.role === 'gladiator' && s.content.hunterPlanning === 'portals' ? legGoal(s, p, target) : target;
-    const status = repathTiles(s, p, leg);
-    if (leg !== target && (status === 'no-known-route' || status === 'invalid-endpoint')) abandonLeg(p);
-    if (status === 'no-known-route' || status === 'invalid-endpoint') {
-      if (exploring) abandonExploration(p);
-      // A station it can't reach gives up what it was transiting toward, as a goal it can't reach would.
-      if (lead && (target === lead || via === lead)) abandonLead(p);
-      if (sweep && (target === sweep || via === sweep)) giveUpSweep(s, p);
-      // A known dead end sets the item aside, as a stall would; it is not given up for good (22.6).
-      const item = target as Partial<GroundItem>, pursuit = pursuits.get(p);
-      if (pursuit && item.kind && item.id) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }
-    }
-  // The replan phase comes from the name's length (B04, #368). That is recorded behaviour: changing it
-  // is a deliberate gameplay change with its own version and fixture decision, never cleanup.
-  } else if (!p.path?.length || s.tick % 20 === p.name.length % 20) {
-    start('sim.repath'); count('work.repath');
-    // The coarse street graph supplies the next block; local collision-aware A* handles its passage.
-    const route = blockRoute(s.map, blockAt(s.map, p), blockAt(s.map, target));
-    const localTarget = route.length > 1 ? route[1] : target;
-    // `bx`/`by` are the search's origin in absolute tiles.
-    const bx = Math.max(0, Math.floor((Math.min(p.x, localTarget.x) - 600) / TILE)) as TileIndex;
-    const by = Math.max(0, Math.floor((Math.min(p.y, localTarget.y) - 600) / TILE)) as TileIndex;
-    const bounds = { x: bx, y: by, width: Math.min(Math.ceil((Math.max(p.x, localTarget.x) + 600) / TILE), Math.ceil(s.map.width / TILE)) - bx as TileCount, height: Math.min(Math.ceil((Math.max(p.y, localTarget.y) + 600) / TILE), Math.ceil(s.map.height / TILE)) - by as TileCount };
-    const found = gridRoute(s.map, p.role, bounds, p, localTarget, p.keys > 0 ? 'all' : true);
-    if (!found && exploring) abandonExploration(p);
-    const steps = found ?? [];
-    // A grid route is a staircase wherever it runs at an angle the grid cannot express. Walking it
-    // waypoint by waypoint is what makes a bot visibly wobble, so the redundant steps come out here
-    // rather than being smoothed over by the renderer, which could not remove real turning anyway.
-    p.path = straightenPath(s.map, p.role, p, steps, p.keys > 0 ? 'all' : true);
-    stop('sim.repath');
+  const leg = p.role === 'gladiator' && s.content.hunterPlanning === 'portals' ? legGoal(s, p, target) : target;
+  const status = repathTiles(s, p, leg);
+  if (leg !== target && (status === 'no-known-route' || status === 'invalid-endpoint')) abandonLeg(p);
+  if (status === 'no-known-route' || status === 'invalid-endpoint') {
+    if (exploring) abandonExploration(p);
+    // A station it can't reach gives up what it was transiting toward, as a goal it can't reach would.
+    if (lead && (target === lead || via === lead)) abandonLead(p);
+    if (sweep && (target === sweep || via === sweep)) giveUpSweep(s, p);
+    // A known dead end sets the item aside, as a stall would; it is not given up for good (22.6).
+    const item = target as Partial<GroundItem>, pursuit = pursuits.get(p);
+    if (pursuit && item.kind && item.id) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }
   }
   stop('sim.bots.plan'); start('sim.bots.steer');
-  let waypoint = tiles ? p.route?.[0] ?? target : p.path?.[0] ? center(...p.path[0]) : target;
+  let waypoint = p.route?.[0] ?? target;
   if (distance(p, target) < 55 && lineClear(s.map, p, target)) waypoint = target;
-  else if (tiles) { while (p.route?.length && passed(s, p, p.route[0]!, p.route[1] ?? target)) p.route.shift(); waypoint = p.route?.[0] ?? target; }
-  else if (distance(p, waypoint) < 11 && p.path?.length) { p.path.shift(); waypoint = p.path[0] ? center(...p.path[0]) : target; }
+  else { while (p.route?.length && passed(s, p, p.route[0]!, p.route[1] ?? target)) p.route.shift(); waypoint = p.route?.[0] ?? target; }
   let dx = waypoint.x - p.x, dy = waypoint.y - p.y;
   stop('sim.bots.steer'); start('sim.bots.sight');
   const hunter = p.role === 'contestant' && s.players.find(t => t.role === 'gladiator' && t.status === 'active' && distance(p, t) < 170 && visibleTo(s, p, t));
@@ -784,7 +724,7 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   });
   if (s.content.reloading && p.role === 'contestant') {
     // Reload when empty, or topping up when no one is in sight. Never automatic for humans (14).
-    const held = p.inventory?.[(collecting ? intent.input.slot : p.selectedSlot) ?? -1];
+    const held = p.inventory?.[intent.input.slot ?? -1];
     if (held?.kind === 'weapon' && reloadableRounds(s, p, held) > 0 && (held.ammo === 0 || !nearest)) intent.input.reload = true;
   }
   if (transitTo) intent.input.transit = transitTo;

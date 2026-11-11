@@ -4,7 +4,7 @@ import { dirname } from 'node:path';
 import { cpus, platform, release } from 'node:os';
 import { createHash } from 'node:crypto';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
-import { createGame, createPhysicsGame, step, snapshot, playerView, disposePhysics } from '../../shared/simulation.ts';
+import { createPhysicsGame, step, snapshot, playerView, disposePhysics } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { prebuiltTiles } from '../../shared/simulation/bots.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../../map/live.ts';
@@ -13,12 +13,12 @@ import { adoptPackedTiles } from '../../shared/free-space.ts';
 const output = process.argv[2] ?? 'test-results/physics-438-integration.json';
 const hash = data => createHash('sha256').update(data).digest('hex');
 await acquireMachineLock('bench');
-const content = contentById('content-3'), map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
+const content = contentById('content-7'), map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
 const rows = [];
-for (const mode of ['legacy', 'physics']) {
+for (const mode of ['physics']) {
   const arena = structuredClone(map);
   for (const tiles of prebuiltTiles(arena, content)) adoptPackedTiles(arena, tiles);
-  const s = mode === 'physics' ? await createPhysicsGame(4217, arena, content) : createGame(4217, arena, content);
+  const s = await createPhysicsGame(4217, arena, content);
   try {
     const samples = [], sizes = [];
     for (let tick = 0; tick < 600 && s.phase === 'live'; tick++) {

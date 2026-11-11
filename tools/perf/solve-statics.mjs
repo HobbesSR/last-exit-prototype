@@ -9,7 +9,7 @@ import { prebuiltTiles } from '../../shared/simulation/bots.ts';
 import { adoptPackedTiles } from '../../shared/free-space.ts';
 import { buildPhysicsGeometry } from '../../shared/simulation/physics-geometry.ts';
 import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';
-import { createMatchFor } from '../../server/match.js';
+import { createPhysicsMatch } from '../../server/match.js';
 import * as profiler from '../../shared/profiler.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { cliArgs } from '../../tests/helpers/args.js';
@@ -22,7 +22,7 @@ const repeats = number('repeats', 3), content = contentById(args.get('content') 
 async function play(prune) {
   const map = generateLiveMap(seed, content, zone);
   for (const tiles of prebuiltTiles(map, content)) adoptPackedTiles(map, tiles);
-  const match = await createMatchFor(seed, zone, map, content), s = match.diagnosticState, world = physicsRuntime(s).world;
+  const match = await createPhysicsMatch(seed, zone, map, content), s = match.diagnosticState, world = physicsRuntime(s).world;
   const statics = buildPhysicsGeometry(s.map);
   const sums = { solve: 0, tick: 0 }, trace = [];
   let kept = statics.length;

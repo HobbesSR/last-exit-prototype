@@ -41,13 +41,13 @@ const show = (names) => {
   }
 };
 const present = names => names.filter(n => summary[n]);
-console.log('\n## Real sizes, whole match'); show(present(['real-12x6-legacy', 'real-12x6-physics-r1', 'real-24x12-legacy', 'real-24x12-physics-r1', 'real-36x18-legacy', 'real-36x18-physics-r1']));
+console.log('\n## Real sizes, whole match'); show(present(['real-12x6-physics-r1', 'real-24x12-physics-r1', 'real-36x18-physics-r1']));
 console.log('\n## Repeats (tick mean / p99 / max / over)');
 for (const n of Object.keys(summary).filter(n => n.startsWith('real-'))) console.log(`${n}: ${f(summary[n].tick.mean)} / ${f(summary[n].tick.p99)} / ${f(summary[n].tick.max)} / ${summary[n].tick.over} of ${summary[n].meta.ticks}; gc ${summary[n].gc.count} ${f(summary[n].gc.ms)} ms max ${f(summary[n].gc.max)}; recorder drain mean ${f(summary[n].recorder?.drainMs.mean)} max ${f(summary[n].recorder?.drainMs.max)} ms, dropped ${summary[n].recorder?.droppedFrames.join("/")}`);
 // 2. Exponents along the constant-density ladder, against items.
 const fit = points => { const xs = points.map(p => Math.log(p[0])), ys = points.map(p => Math.log(Math.max(p[1], 1e-4))); const mx = mean(xs), my = mean(ys);
   return xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / xs.reduce((s, x) => s + (x - mx) ** 2, 0); };
-for (const engine of ['legacy', 'physics']) {
+for (const engine of ['physics']) {
   const ladder = Object.keys(summary).filter(n => n.startsWith('ladder-') && n.endsWith(engine)).sort((a, b) => summary[a].meta.items[0] - summary[b].meta.items[0]);
   if (!ladder.length) continue;
   console.log(`\n## Ladder ${engine} (first 1200 ticks): mean ms by items; exponent vs items`);

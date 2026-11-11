@@ -3,7 +3,7 @@ import { createMetrics } from './metrics.mjs';
 import { DT, quantiles, stateText, digest, actionsAt, doorStats } from './common.mjs';
 
 export async function loadCandidate(name) {
-  if (!['rapier', 'legacy'].includes(name)) throw new Error(`Unknown candidate ${name}`);
+  if (name !== 'rapier') throw new Error(`Unknown candidate ${name}`);
   return (await import(`./${name}.mjs`)).createWorld;
 }
 
@@ -111,12 +111,12 @@ export async function benchmark(name, config, substeps, {warmup=20,samples=100,p
       for(let i=0;i<substeps;i++) world.step(DT/substeps);
       const elapsed=performance.now()-t;
       const q=performance.now();
-      if(name!=='legacy') for(let i=0;i<projectiles;i++) world.cast({x:-400+(i%16)*50,y:-400+Math.floor(i/16)*50,dx:90,dy:30,radius:1});
+      for(let i=0;i<projectiles;i++) world.cast({x:-400+(i%16)*50,y:-400+Math.floor(i/16)*50,dx:90,dy:30,radius:1});
       const casts=performance.now()-q;
       const z=performance.now(), frame=stateText(world.states()), serialization=performance.now()-z;
       if(tick>=warmup) {times.push(elapsed);castTimes.push(casts);serializeTimes.push(serialization);frameBytes.push(new TextEncoder().encode(frame).length);}
     }
-    return {config,substeps,warmup,samples,projectiles:name==='legacy'?0:projectiles,startupMs,
+    return {config,substeps,warmup,samples,projectiles,startupMs,
       stepMs:quantiles(times),castMs:quantiles(castTimes),serializationMs:quantiles(serializeTimes),
       frameBytes:quantiles(frameBytes),raw:{stepMs:times,castMs:castTimes,serializationMs:serializeTimes,frameBytes},
       heap:{before:heapBefore,after:heap(),note:'Unforced readings; includes allocation and GC noise, no WASM census'},

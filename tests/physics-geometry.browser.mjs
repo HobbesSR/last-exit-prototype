@@ -6,7 +6,7 @@ import { createArenaServer } from '../server/index.js';
 import { serveWithBrowser } from './helpers/browser.js';
 import { listen } from './helpers/listen.js';
 import { contentById } from '../shared/simulation/content.ts';
-import { createMatch, createPhysicsMatch } from '../server/match.js';
+import { createPhysicsMatch } from '../server/match.js';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
 const scratch = path.resolve('test-results');
@@ -59,25 +59,6 @@ try {
   assert.equal(returned.visible, false, 'stepping back to the player view hides the overlay');
   assert.deepEqual(returned.commands, [], 'ordinary view exposes no geometry draw commands');
 
-  // A room can carry the same experimental descriptor while using the legacy match factory.
-  // Its bodies still use legacy movement, so the geometry circles must stay hidden even in dev view.
-  const legacyReplayDir = await mkdtemp(path.join(scratch, 'legacy-geometry-'));
-  const legacyServer = await createArenaServer({ replayDir: legacyReplayDir,
-    content: () => contentById('content-6'), matchFactory: createMatch, devTools: 'all', profileSummary: false });
-  try {
-    const legacyBase = await listen(legacyServer);
-    const legacy = await browser.newPage({ viewport: { width: 1000, height: 700 } });
-    legacy.on('pageerror', error => errors.push(error.message));
-    await legacy.goto(legacyBase);
-    await legacy.waitForFunction(() => window.arenaDebug?.().content === 'content-6');
-    await legacy.getByRole('button', { name: 'Start match', exact: true }).click();
-    await legacy.waitForFunction(() => window.arenaDebug().phase === 'live');
-    assert.notEqual(await legacy.evaluate(() => window.arenaDebug().version), PHYSICS_VERSION);
-    await legacy.getByRole('button', { name: 'Dev view', exact: true }).click();
-    await legacy.waitForFunction(() => window.arenaDebug().devFeed && window.arenaDebug().actors?.length);
-    assert.ok((await legacy.evaluate(() => window.arenaDebug())).actors.every(a => !a.geometry.visible && !a.geometry.commands.length),
-      'a legacy match never displays experimental body geometry');
-  } finally { await legacyServer.close(); await rm(legacyReplayDir, { recursive: true, force: true }); }
   assert.deepEqual(errors, []);
   console.log('Physics geometry browser checks passed');
 } finally {

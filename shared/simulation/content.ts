@@ -26,15 +26,10 @@ import type { MatchContent } from '../types.ts';
  * same rules over different numbers, and a reader looking at an old recording needs to tell which.
  *
  * `content-7` adopts portal-graph planning for gladiators (#682, #865). `content-6` was the first set built
- * for the physics engine (#523); content 1 to 5 run the legacy mover.
+ * for the physics engine (#523). Content 1 to 5 and `content-equipment-1` ran the retired legacy mover (#920);
+ * old recordings that name them are labelled from `presentation.ts`, and this module no longer builds them.
  */
 export const CONTENT_ID = 'content-7';
-
-/**
- * The last content set the legacy mover runs. `createGame` and `createMatch` default to it, because they
- * are the legacy engine's entry points and characterization pins legacy content, not the live default.
- */
-export const LEGACY_CONTENT_ID = 'content-5';
 
 /** Recursively freeze, so a match cannot edit the balance it is running under. */
 function deepFreeze<T>(value: T): T {
@@ -45,14 +40,18 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-// Keep this complete literal separate from the shipped default. Its values and roster are the
-// retained `content-1` contract used by the frozen characterization fixture; later default edits
-// and mutable exported tables must not silently rewrite what that fixture exercises.
-const CONTENT_1: MatchContent = {
-  id: 'content-1',
+// The first physics set (#523). It kept the legacy mover's last set's numbers (content-5) and added narrow character
+// bodies, physical items and props, the hook kit, and temporary body detours for planning (#921 folded in the P2 to P8
+// stage sets it was built from; 42.12 to 42.19). Written out whole since #920 retired content 1 to 5; its key order is
+// theirs, which recordings and the frozen fixture keep. Ground capacity covers every live zone size: 65,536 holds a
+// 72x36 map (about 31,000 items) twice over. The drop reserve exists because a real 12x6 map has 974 items, which fill
+// the world's 128 dynamic bodies (11 actors and 117 items) at tick 0, so no player could drop anything. The hook tuning
+// is provisional.
+const CONTENT_6: MatchContent = {
+  id: 'content-6',
   roster: {
     contestants: ['Mica', 'Juno', 'Patch', 'Pip', 'Nova', 'Rook', 'Echo', 'Sol'],
-    gladiators: [{ name: 'IRONCLAD', kit: 'warden' }, { name: 'VESPER', kit: 'specter' }],
+    gladiators: [{ name: 'IRONCLAD', kit: 'warden' }, { name: 'VESPER', kit: 'specter' }, { name: 'BLAZE', kit: 'striker' }],
   },
   weapons: {
     pistol: { name: 'Pistol', ammo: 48, maxAmmo: 192, cooldown: 8, damage: 10, speed: 35, life: 24, spread: [0] },
@@ -63,6 +62,7 @@ const CONTENT_1: MatchContent = {
     warden: { name: 'Warden', color: 0xff6b70, damage: 24, cooldown: 110, skill: 'Shockwave' },
     specter: { name: 'Specter', color: 0xb39aff, damage: 19, cooldown: 150, skill: 'Pulse scan' },
     striker: { name: 'Striker', color: 0xffba62, damage: 29, cooldown: 95, skill: 'Overdrive' },
+    hook: { name: 'Hook', color: 0x77dddd, damage: 24, cooldown: 140, skill: 'Hook / release' },
   },
   traps: {
     mine: { trigger: 65, blast: 120, damage: 45 },
@@ -74,37 +74,11 @@ const CONTENT_1: MatchContent = {
   cellChargeTicks: 5 * 20,
   gladiatorRespawnTicks: 20 * 20,
   hazardGraceTicks: 60 * 20,
-  discovery: false,
-};
-
-// Preserve the first ten players' ordering from `content-1`; F-11 adds only this third hunter.
-const CONTENT_2: MatchContent = {
-  ...CONTENT_1,
-  id: 'content-2',
-  roster: {
-    ...CONTENT_1.roster,
-    gladiators: [...CONTENT_1.roster.gladiators, { name: 'BLAZE', kit: 'striker' }],
-  },
+  // Contestants know what they have discovered (15); bots plan over free-space tiles (22.6, #424), spreading a repath
+  // over ticks and repairing a change near them at once (#470).
   discovery: true,
-};
-
-// Bots plan over free-space tiles, contestants over what they know (#424, 22.6); the numbers are content-2's.
-const CONTENT_3: MatchContent = { ...CONTENT_2, id: 'content-3', navigation: 'tiles' };
-// A repath spreads over ticks while the bot walks its current route (#470, 22.6); otherwise content-3.
-const CONTENT_4: MatchContent = { ...CONTENT_3, id: 'content-4', replanning: 'sliced' };
-// A change near a contestant is repaired at once by a short search; further on, it waits for the sliced repath (#470 part 2).
-const CONTENT_5: MatchContent = { ...CONTENT_4, id: 'content-5', replanning: 'repair' };
-// L0 remains explicit while physical loot and its rollout gates are developed.
-const CONTENT_EQUIPMENT_1: MatchContent = { ...CONTENT_5, id: 'content-equipment-1', itemInstances: { groundCapacity: 4096 } };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-equipment-1': CONTENT_EQUIPMENT_1 };
-
-// The first physics set (#523): content-5's numbers with narrow character bodies, physical items and props, the hook
-// kit, and temporary body detours for planning (#921 folded in the P2 to P8 stage sets it was built from; 42.12 to 42.19).
-// Ground capacity covers every live zone size: 65,536 holds a 72x36 map (about 31,000 items) twice over. The drop reserve
-// exists because a real 12x6 map has 974 items, which fill the world's 128 dynamic bodies (11 actors and 117 items) at
-// tick 0, so no player could drop anything. The hook tuning is provisional.
-SHIPPED['content-6'] = { ...CONTENT_5, id: 'content-6',
-  kits: { ...CONTENT_5.kits, hook: { name: 'Hook', color: 0x77dddd, damage: 24, cooldown: 140, skill: 'Hook / release' } },
+  navigation: 'tiles',
+  replanning: 'repair',
   actorPhysics: {
     geometry: {
       contestant: { headRadius: 14.109375, bodyRadius: 11.2875, hurtRadius: 12 },
@@ -121,6 +95,7 @@ SHIPPED['content-6'] = { ...CONTENT_5, id: 'content-6',
     durationTicks: 60, cooldownTicks: 140, standoff: 55, targetDistance: 35, breakDistance: 550 },
   dynamicNavigation: true,
 };
+const SHIPPED: Record<string, MatchContent> = { 'content-6': CONTENT_6 };
 // Gladiators plan trips across regions over the portal graph, a leg at a time (#682); otherwise content-6.
 SHIPPED['content-7'] = { ...SHIPPED['content-6'], id: 'content-7', hunterPlanning: 'portals' };
 // Weapon quality (L1; #443, 14) over the shipped set, selectable and not the default (#920); the weights and damage-only multipliers are 41.1's provisional proposal.
@@ -160,9 +135,4 @@ export function contentById(id: string): MatchContent {
 /** A match's own copy of the shipped default content. */
 export function defaultContent(): MatchContent {
   return contentById(CONTENT_ID);
-}
-
-/** A match's own copy of the content the legacy mover runs. */
-export function legacyContent(): MatchContent {
-  return contentById(LEGACY_CONTENT_ID);
 }

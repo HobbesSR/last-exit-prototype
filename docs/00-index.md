@@ -1,8 +1,8 @@
 # Last Exit documentation index
 
 Status: living documentation
-Prototype rules version: `last-exit-0.7`; default content: `content-5`
-Updated: 2026-10-25
+Prototype rules version: `last-exit-0.8-physics`; default content: `content-7`
+Updated: 2026-11-10
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of

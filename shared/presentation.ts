@@ -95,13 +95,35 @@ export function readPresentation(value: unknown, expectedContentId?: string): Co
 export const LEGACY_DISPLAY_ID = 'legacy-display';
 
 /**
+ * How recordings of the content sets the retired legacy mover ran (#920) are labelled. The sets
+ * themselves are gone, so these are their descriptors as `describeContent` gave them, frozen: they
+ * all shared one table of weapons and kits, and content-1 seated two hunters where the rest seated three.
+ */
+const retiredDescriptor = (contentId: string, gladiators: number): ContentPresentation => freeze({
+  contentId,
+  weapons: [{ id: 'pistol', name: 'Pistol', ammo: 48 }, { id: 'rifle', name: 'Rifle', ammo: 90 }, { id: 'scattergun', name: 'Scattergun', ammo: 24 }],
+  kits: [
+    { id: 'warden', name: 'Warden', skill: 'Shockwave', color: 0xff6b70 },
+    { id: 'specter', name: 'Specter', skill: 'Pulse scan', color: 0xb39aff },
+    { id: 'striker', name: 'Striker', skill: 'Overdrive', color: 0xffba62 },
+  ],
+  capacity: { contestant: 8, gladiator: gladiators },
+  durationTicks: 12000,
+  cellChargeTicks: 100,
+});
+const RETIRED: ReadonlyMap<string, ContentPresentation> = new Map(
+  ['content-1', 'content-2', 'content-3', 'content-4', 'content-5', 'content-equipment-1'].map(id => [id, retiredDescriptor(id, id === 'content-1' ? 2 : 3)]));
+
+/**
  * How an archive without a content id has always been shown: content-1's vocabulary and ammo, and
  * the client's old 2400-tick clock and 100-tick charge fallbacks. Historical display compatibility,
  * not a claim that such an archive ran content-1 or today's rules.
  */
-const LEGACY = freeze({ ...describeContent(contentById('content-1')), contentId: LEGACY_DISPLAY_ID, durationTicks: 2400, cellChargeTicks: 100 });
+const LEGACY = freeze({ ...retiredDescriptor(LEGACY_DISPLAY_ID, 2), durationTicks: 2400, cellChargeTicks: 100 });
 
 function retained(contentId: string): ContentPresentation | null {
+  const retired = RETIRED.get(contentId);
+  if (retired) return retired;
   try { return describeContent(contentById(contentId)); } catch { return null; }
 }
 
