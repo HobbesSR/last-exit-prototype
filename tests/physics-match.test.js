@@ -38,13 +38,13 @@ test('experimental match owns, isolates and disposes its world while retaining d
 
 test('room composition awaits explicit physics factory, stamps pinned rules and disposes on shutdown', async () => {
   let header;
-  const service = createRoomService({ content, matchFactory: createPhysicsMatch,
+  const service = createRoomService({ content,
     replays: { start(h) { header = h; return { append() { return true; }, finish() { return {}; } }; } } });
   const room = service.makeRoom(1, false, undefined, arena());
   await room.ready;
   const world = physicsRuntime(room.game).world;
   const peer = service.connect({ deliver() { return true; }, close() {} });
-  // Joining is the same public protocol as legacy; only server construction selects rules.
+  // Match admission and room creation share the public room protocol.
   service.receive(peer, { type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'contestant', name: 'Test' });
   assert.ok(peer.room);
   service.receive(peer, { type: 'start' });

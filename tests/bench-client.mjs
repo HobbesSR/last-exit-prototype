@@ -16,7 +16,6 @@ import { canOccupy } from '../shared/movement.ts';
 import path from 'node:path';
 import { arrangeCrowd } from './crowd-workload.mjs';
 import { cliArgs } from './helpers/args.js';
-import { createPhysicsMatch } from '../server/match.js';
 import { contentById } from '../shared/simulation/content.ts';
 
 const args = cliArgs();
@@ -29,7 +28,7 @@ const physicsContent = args.has('physics') ? args.get('content') ?? 'content-6' 
 await acquireMachineLock('bench');
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'),
-  ...(physicsContent ? { content: () => contentById(physicsContent), matchFactory: createPhysicsMatch } : {}),
+  ...(physicsContent ? { content: () => contentById(physicsContent) } : {}),
   ...(args.has('server-profile') ? { profile: true, profileSummary: false } : {}) });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('headed'), args: args.has('software-gl') ? ['--disable-gpu'] : [] });

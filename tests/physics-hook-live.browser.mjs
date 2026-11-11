@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { serveWithBrowser } from './helpers/browser.js';
-import { createPhysicsMatch } from '../server/match.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
@@ -19,7 +18,7 @@ const content = structuredClone(contentById('content-6'));
 content.roster = { contestants: ['Near', 'Far'], gladiators: [{ name: 'Caster', kit: 'hook' }] };
 const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-p6-live-'));
 const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false,
-  content: () => structuredClone(content), matchFactory: createPhysicsMatch,
+  content: () => structuredClone(content),
   generateMap: () => structuredClone(map) });
 try {
   const created = await (await fetch(`${base}/api/rooms`, { method: 'POST',

@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRoomService } from '../server/room-service.js';
-import { createPhysicsMatch } from '../server/match.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { PHYSICS_VERSION, physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -30,7 +29,7 @@ function peer(service) {
 
 test('physics room pins mode at creation, withholds hidden dynamics, delays spectators, and rebuilds on reconnect', async () => {
   let header;
-  const service = createRoomService({ content, matchFactory: createPhysicsMatch,
+  const service = createRoomService({ content,
     replays: { start(value) { header = value; return { append() { return true; }, finish() { return {}; } }; } } });
   const room = service.makeRoom(449, false, undefined, map());
   const owner = peer(service);
@@ -39,7 +38,6 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     owner.send({ type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'contestant' });
     const welcome = owner.messages.find(message => message.type === 'welcome');
     assert.ok(welcome?.resumeKey);
-    assert.equal(room.match.hasPhysics, true);
 
     const game = room.match.diagnosticState;
     const runtime = physicsRuntime(game);
@@ -50,7 +48,6 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     // Mode/version fields are untrusted protocol data. The room's creation-time factory owns both.
     owner.send({ type: 'start', mode: 'legacy', version: 'forged-version', contentId: 'content-1' });
     assert.equal(room.started, true);
-    assert.equal(room.match.hasPhysics, true);
     assert.equal(room.match.version, VERSION);
     assert.equal(header.version, VERSION);
     assert.equal(header.contentId, 'content-6');

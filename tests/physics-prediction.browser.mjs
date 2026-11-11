@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { serveWithBrowser } from './helpers/browser.js';
 import { contentById } from '../shared/simulation/content.ts';
-import { createPhysicsMatch } from '../server/match.js';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
 // Delivery is scheduled here, not sent through a real WebSocket. Chrome loads
@@ -16,7 +15,7 @@ const map = { seed: 441, width: 1200, height: 800,
   spawns: [{ x: 300, y: 400 }, { x: 900, y: 400 }], hunterSpawns: [] };
 const { server, base, browser } = await serveWithBrowser({ profileSummary: false,
   replayDir: 'test-results/physics-p4-replays', content: () => structuredClone(content),
-  matchFactory: createPhysicsMatch, generateMap: () => structuredClone(map) });
+  generateMap: () => structuredClone(map) });
 try {
   const page = await browser.newPage();
   const errors = [];

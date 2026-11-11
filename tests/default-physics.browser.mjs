@@ -23,7 +23,6 @@ try {
   assert.equal(live.content, 'content-7', 'a room with no options runs the shipped default');
   assert.equal(live.version, PHYSICS_VERSION, 'on the physics rules');
   const game = server.rooms.get(room).game;
-  assert.equal(server.rooms.get(room).match.hasPhysics, true, 'the server built a physics match');
   // Walking: the client predicts and the server's physics world agrees.
   const before = live.me.x;
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
