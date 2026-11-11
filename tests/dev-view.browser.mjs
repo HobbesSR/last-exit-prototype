@@ -183,28 +183,49 @@ try {
   await dev.keyboard.press('KeyV');
   await dev.waitForFunction(() => window.arenaDebug().viewer === null && window.arenaDebug().vision === null && window.arenaDebug().follow);
   // A palette (11.1) recolours the arena in place: the camera and actors carry on where they were.
-  const groundPixels = rgb => dev.evaluate(rgb => {
+  const { THEMES, mix } = await import('../public/palette.js');
+  const { resolveGroundAppearance } = await import('../public/appearance.js');
+  const rgbOf = c => [c >> 16 & 255, c >> 8 & 255, c & 255];
+  const screenRgbCounts = () => dev.evaluate(() => {
     const gl = document.querySelector('#game canvas').getContext('webgl') || document.querySelector('#game canvas').getContext('webgl2');
     const data = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
     gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    let n = 0; for (let i = 0; i < data.length; i += 4) if (data[i] === rgb[0] && data[i + 1] === rgb[1] && data[i + 2] === rgb[2]) n++;
-    return n;
-  }, rgb);
-  const rgbOf = c => [c >> 16 & 255, c >> 8 & 255, c & 255];
-  const { THEMES } = await import('../public/palette.js');
+    const counts = new Map();
+    for (let i = 0; i < data.length; i += 4) {
+      const k = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    return [...counts.entries()];
+  });
+  const countRgb = (counts, rgb) => counts.find(([k]) => k === rgb.join(','))?.[1] ?? 0;
+  // Live maps cover occupied cells in regional lighting washes (42.43), so match the lit ground color.
+  const subj = room.game.players.find(p => p.id === subject);
+  const district = (room.game.map.appearance?.lighting?.fields ?? [])
+    .find(f => f.id?.startsWith('district-') && subj.x >= f.bounds.x && subj.x <= f.bounds.x + f.bounds.w && subj.y >= f.bounds.y && subj.y <= f.bounds.y + f.bounds.h);
+  const wash = district
+    ? resolveGroundAppearance({ lighting: { fields: [district] } }, { palette: 'signature', wear: false })[0]?.ops[0]
+    : null;
+  const expectedGround = id => rgbOf(wash ? mix(THEMES[id].colors.ground, wash.color, wash.alpha) : THEMES[id].colors.ground);
+  const dominantNear = (counts, target) => counts
+    .map(([k, n]) => [k.split(',').map(Number), n])
+    .filter(([rgb]) => Math.max(...rgb.map((c, i) => Math.abs(c - target[i]))) <= 2)
+    .sort((a, b) => b[1] - a[1])[0] ?? [target, 0];
   const unstyled = await dev.evaluate(() => window.arenaDebug());
   assert.equal(unstyled.palette, 'signature');
-  assert.ok(await groundPixels(rgbOf(THEMES.signature.colors.ground)) > 1000, 'the signature ground is on screen');
+  const [sigGround, sigGroundCount] = dominantNear(await screenRgbCounts(), expectedGround('signature'));
+  assert.ok(sigGroundCount > 1000, 'the signature ground is on screen');
   await dev.locator('#dev-palette').selectOption('prototype');
   // Tiles redraw over a few frames; wait for the old ground to go rather than a fixed 300 ms (#699).
   let staleGround;
-  for (const deadline = Date.now() + 3000; (staleGround = await groundPixels(rgbOf(THEMES.signature.colors.ground))) > 0 && Date.now() < deadline;) {
+  for (const deadline = Date.now() + 3000; (staleGround = countRgb(await screenRgbCounts(), sigGround)) >= 100 && Date.now() < deadline;) {
     await dev.waitForTimeout(50);
   }
   const styled = await dev.evaluate(() => window.arenaDebug());
+  const [protoGround, protoGroundCount] = dominantNear(await screenRgbCounts(), expectedGround('prototype'));
   assert.equal(styled.palette, 'prototype');
-  assert.ok(await groundPixels(rgbOf(THEMES.prototype.colors.ground)) > 1000, 'the prototype ground replaced it');
-  assert.equal(staleGround, 0, 'no stale tile keeps the old ground');
+  assert.ok(protoGroundCount > 1000, 'the prototype ground replaced it');
+  assert.notDeepEqual(protoGround, sigGround, 'prototype ground color differs from signature');
+  assert.ok(staleGround < 100, `no stale tile keeps the old ground (${staleGround})`);
   assert.equal(styled.follow, unstyled.follow); assert.equal(styled.actorCount, unstyled.actorCount);
   assert.ok(Math.abs(styled.camera.zoom - unstyled.camera.zoom) < 1e-6, 'restyling leaves the camera alone');
   await dev.locator('#dev-palette').selectOption('signature');

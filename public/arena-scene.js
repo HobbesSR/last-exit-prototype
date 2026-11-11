@@ -160,7 +160,10 @@ export function makeArenaScene(api) {
       const pixelRight = Math.ceil(Math.min(tileLeft + span, box ? box.x + box.w : tileLeft + span) * resolution);
       const pixelBottom = Math.ceil(Math.min(tileTop + span, box ? box.y + box.h : tileTop + span) * resolution);
       if (pixelRight <= pixelLeft || pixelBottom <= pixelTop) { tile.empty = true; return; }
-      const width = pixelRight - pixelLeft + 2, height = pixelBottom - pixelTop + 2, texel = 1 / resolution;
+      const rawWidth = pixelRight - pixelLeft + 2, rawHeight = pixelBottom - pixelTop + 2, texel = 1 / resolution;
+      // Phaser 3.90 RenderTexture defaults to forceEven=true, which rounds the frame to even without
+      // resizing its RenderTarget (autoResize=false) and stretches odd-sized cropped overhead textures.
+      const width = rawWidth + (rawWidth & 1), height = rawHeight + (rawHeight & 1);
       // A new texture rather than resize(), which left content clipped and offset in Phaser 3.90.
       if (tile.texture?.width !== width || tile.texture?.height !== height) {
         if (overhead && tile.texture) this.overheadGroups.get(tile.group).textures.delete(tile.texture);
@@ -264,7 +267,7 @@ export function makeArenaScene(api) {
     buildMap() {
       const map = api.map();
       if (!map?.obstacles) return;
-      this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null;
+      this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null; this.insideBlend = 0;
       this.sight = null; this.visionPoints = null; this.vision.clear(); this.sightMap = { ...map };
       this.actors.forEach(a => a.container.destroy()); this.actors.clear();
       // Chain starts can be right by the western edge. Follow must still centre on
