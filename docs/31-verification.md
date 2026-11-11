@@ -912,6 +912,14 @@ changes, and the new expectations and version decision they require, from
 behaviour-preserving extraction. `tests/fixtures/README.md` records provenance, how
 to regenerate and how to audit.
 
+**Recaptures batch too.** A recapture restarts the evidence, so decided changes that would move this
+fixture wait and land together, as content changes do (below). They collect in one open issue
+titled "Physics recapture batch". It lists each change, its issue and whether it is decided. The
+first agent with such a change opens it if none is open, and later ones add to it. Corey says when
+to cut the batch. One PR then lands the changes, makes any version decisions they need (26) and
+recaptures once, last. A change that cannot wait goes in alone, with its own recapture, and its PR
+says why.
+
 `npm run check` recursively checks every module in the directories listed under
 the verification tiers above: JavaScript is parsed as Node would load it, and
 TypeScript is verified to erase cleanly, which is what Node does instead of parsing
