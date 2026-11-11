@@ -1,5 +1,4 @@
 // Public compatibility surface and the fixed-tick entry point. The tick itself is `simulation/phased.ts`.
-export { generateMap } from './map.ts';
 export { TILE } from './movement.ts';
 export { VERSION, HZ, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS, KITS } from './simulation/rules.ts';
 export { createGame, joinGame, setInput } from './simulation/state.ts';

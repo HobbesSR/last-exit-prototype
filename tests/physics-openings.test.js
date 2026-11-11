@@ -5,11 +5,18 @@ import { elementShapes } from '../map/micro/geometry.ts';
 import { buildPhysicsGeometry } from '../shared/simulation/physics-geometry.ts';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { generateMap } from '../shared/map.ts';
 
-test('the authored 32-unit legacy shortcut still admits contestants and blocks gladiators', async () => {
-  const map = generateMap(4217), gap = map.gaps[0];
-  assert.ok(gap, 'actual generator supplies the shortcut');
+// A 40-unit wall split by a 32-unit slit, as the street generator authored its shortcuts before #920
+// retired it: narrower than a gladiator's body, wider than a contestant's.
+const SLIT = 32, WALL = 40;
+const slitMap = () => {
+  const x = 500, y = 500, rect = (id, top, bottom) => ({ id, x: x - WALL / 2, y: top, w: WALL, h: bottom - top, kind: 'ruin-wall' });
+  return { width: 1000, height: 1000, gates: [], gaps: [{ x, y }],
+    obstacles: [rect('upper', 0, y - SLIT / 2), rect('lower', y + SLIT / 2, 1000)] };
+};
+
+test('a 32-unit slit admits contestants and blocks gladiators', async () => {
+  const map = slitMap(), gap = map.gaps[0];
   const specs = buildPhysicsGeometry(map);
   for (const [role, profile] of Object.entries(contentById('content-6').actorPhysics.geometry)) {
     const world = await createPhysicsWorld();
@@ -23,7 +30,7 @@ test('the authored 32-unit legacy shortcut still admits contestants and blocks g
       world.commitMutations(); world.setMotor(role, { x: 180, y: 0, accel: 3600 });
       for (let tick = 0; tick < 16; tick++) world.step();
       const end = world.getTransform(role);
-      if (role === 'contestant') assert.ok(end.x > gap.x + 30, 'contestant crosses the actual gap');
+      if (role === 'contestant') assert.ok(end.x > gap.x + 30, 'contestant crosses the slit');
       else assert.ok(end.x < gap.x - 20, 'gladiator stays on its original side');
     } finally { world.dispose(); }
   }

@@ -44,7 +44,7 @@ and are history.
 | Machinery builders share: masks, shapes, swept routes, spacing, interface runs, access validation | the SDK, `map/micro/sdk.ts`. Macro calls it where a mechanism fits both scopes | 20, 22 |
 | What macro and micro must share: the contract between them (a region brief and its result), body scale and passage widths, the definition of a run, and a cell's key and row-major order | the **shared map space**, which neither level owns (Corey, 2026-09-29, M1). It is the kernel, `map/kernel/` (51 C0): `contract.ts`, `scale.ts`, `cell.ts` and `run.ts` | 51, 52 |
 | The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, using the shared map-level assembly (Corey, 2026-10-02, 17 "Where the tools live") | [53.1](53.1-map-lab-and-tools.md) |
-| The live game's current map | `map/live.ts` consumes the authored generation chain; `shared/map/generate.ts` remains the legacy generator | 22 |
+| The live game's current map | `map/live.ts` consumes the authored generation chain, the only map generator since #920 | 22 |
 
 ## The SDK is a library
 
@@ -114,8 +114,7 @@ The completed migration ledger is retained in
 - **The game:** live rooms run the generation chain: macro placement, then each
   region type's strategy from `map/micro/` (`map/live.ts`;
   [22.2](22.2-map-generation.md#live-map-assembly), [51.14.5](51.14.5-switch-over.md)).
-  The interim street maze in `shared/map/` is no longer live; it remains
-  `createGame`'s default for explicit legacy callers and the frozen fixture (31).
+  #920 deleted the interim street maze that was in `shared/map/`.
   Recursive execution of explored decomposition trees, and moving decomposition's
   walled ports to portals, are still pending
   ([20.5](20.5-tools-and-next-boundaries.md#next-boundaries)).

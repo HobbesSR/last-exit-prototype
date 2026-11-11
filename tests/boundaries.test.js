@@ -4,11 +4,10 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as simulation from '../shared/simulation.ts';
 import * as map from '../shared/map.ts';
-import { invalidateGraph } from '../shared/map/graph.ts';
 
 test('public simulation/map exports and acyclic shared dependencies remain stable', () => {
-  assert.deepEqual(Object.keys(simulation).sort(), ['VERSION', 'HZ', 'DURATION', 'CELL_CHARGE_TICKS', 'GLADIATOR_RESPAWN_TICKS', 'HAZARD_GRACE_TICKS', 'KITS', 'POTENTIAL', 'TILE', 'generateMap', 'createGame', 'joinGame', 'setInput', 'couldSee', 'visibleTo', 'playerView', 'step', 'snapshot', 'PHYSICS_VERSION', 'createPhysicsGame', 'disposePhysics', 'enqueuePhysicsImpulse', 'enqueuePhysicsAttachment', 'synchronizePhysics'].sort());
-  assert.deepEqual(Object.keys(map).sort(), ['WORLD_WIDTH', 'WORLD_HEIGHT', 'BLOCK_SIZE', 'blockAt', 'blockRoute', 'generateMap', 'navigationGrid', 'straightenPath'].sort());
+  assert.deepEqual(Object.keys(simulation).sort(), ['VERSION', 'HZ', 'DURATION', 'CELL_CHARGE_TICKS', 'GLADIATOR_RESPAWN_TICKS', 'HAZARD_GRACE_TICKS', 'KITS', 'POTENTIAL', 'TILE', 'createGame', 'joinGame', 'setInput', 'couldSee', 'visibleTo', 'playerView', 'step', 'snapshot', 'PHYSICS_VERSION', 'createPhysicsGame', 'disposePhysics', 'enqueuePhysicsImpulse', 'enqueuePhysicsAttachment', 'synchronizePhysics'].sort());
+  assert.deepEqual(Object.keys(map).sort(), ['WORLD_WIDTH', 'WORLD_HEIGHT', 'navigationGrid', 'straightenPath'].sort());
   const files = readdirSync('shared', { recursive: true }).filter(f => f.endsWith('.ts') && !f.endsWith('.d.ts')).map(f => path.resolve('shared', f));
   const graph = new Map(files.map(file => {
     const refs = [...readFileSync(file, 'utf8').matchAll(/(?:from\s*|import\s*)['"](\.[^'"]+)['"]/g)].map(m => path.resolve(path.dirname(file), m[1]));
@@ -42,13 +41,4 @@ test('navigation caches follow map identity, doors, obstacle replacement and app
   const unlocked = map.navigationGrid(m, 'contestant', bounds, true);
   m.gates[0].locked = true;
   assert.notDeepEqual(map.navigationGrid(m, 'contestant', bounds, true), unlocked);
-});
-
-test('graph routing retains neighbor tie-breaking and explicit generation invalidation', () => {
-  const nodes = [{ id: 'a', neighbors: ['b', 'c'] }, { id: 'b', neighbors: ['a', 'd'] }, { id: 'c', neighbors: ['a', 'd'] }, { id: 'd', neighbors: ['b', 'c'] }];
-  const m = { nodes }, route = () => map.blockRoute(m, nodes[0], nodes[3]);
-  assert.deepEqual(route().map(n => n.id), ['a', 'b', 'd']);
-  assert.equal(route(), route());
-  nodes[0].neighbors.reverse(); invalidateGraph(m);
-  assert.deepEqual(route().map(n => n.id), ['a', 'c', 'd']);
 });

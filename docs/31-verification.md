@@ -560,7 +560,7 @@ that directory added to `BROWSER_DIRS`.
 | `tooling` | the test and CI tooling, documentation and licence checks |
 | `geometry` | shapes, clipping, math and free-space meshes every system shares |
 | `client` | what the browser draws, and how it presents and buffers frames |
-| `simulation` | game rules, items, bots, navigation, sight and projections, the legacy generator |
+| `simulation` | game rules, items, bots, navigation, sight and projections |
 | `physics` | the Rapier engine, its items, hook, ballistics and physical navigation |
 | `rooms` | the server: rooms, matchmaking, recording and replay, the map pool, live-map wiring |
 | `macro` | macro generation, the chain and its library, map tools and the Map Lab |
@@ -611,7 +611,6 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | A micro lab page (`public/micro-lab*`, `decomposition-*`, `generation-demo*`), `region-examples`, `brief-link`, building drawing | the page's browser script | `npm run brief -- test:set micro --browser` (or `npm run test:micro`) | browser 41 s |
 | Macro stages, the chain's authored library | `npm run test:mapgen` | the full chain sweep, which holds the larger sizes' macro too and refuses a defective map; `slow/map-library`'s diagnosis; for a content change the recapture, and `node tools/large-briefs.mjs --check`, recapturing with `--out` when it reports the stored briefs behind (tests/fixtures README). A behaviour-preserving change leaves `slow/map-library` to the slow tier on `main` (below) | 170 s, plus 90 s for the brief check; the sweep alone behaviour-preserving |
 | Map tools (`map/tools/`), the Map Lab, the saved map format | `tests/map-tools.test.js`, `map-container` | the full chain sweep when the change reaches what it hashes (`mapViews`, the saved format); the Map Lab script for the lab or the format | lab script at least 131 s |
-| The legacy generator (`shared/map/generate.ts`), which nothing live runs and #920 retires | the unit file | none since its sweep and map hashes went with the legacy mover (#920) | |
 | Simulation rules, bots, snapshots and projections | `characterization-physics.test.js`; the unit file for the rule | `characterization-physics-bots` (31 s), `live-map`; the browser script of a feature whose presentation the change reaches (`hearing`, `transit`) | 31 s, plus `live-map` |
 | Physics (`shared/physics/`) and the physics labs | `npm run test:physics` | `npm run brief -- test:set physics --slow --browser`; the frozen physics baselines, `npm run brief -- test:set simulation:characterization-physics --slow` (`shared/physics/` is a `simulation` source too, so `changed` names both sets) | 56 s beyond the fast set, plus 33 s |
 | Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`; `live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s and 90 s |

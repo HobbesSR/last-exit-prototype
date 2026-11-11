@@ -1,4 +1,4 @@
-import { generateMap, WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
+import { WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
 import { DEFAULT_KIT, INITIAL_ESCAPE_SLOTS, MAX_PLAYER_NAME, ROLES, VERSION } from './rules.ts';
 import { queueInput, resetInput } from './input.ts';
@@ -11,14 +11,13 @@ import { loadMapWeapons, seedAmmo } from './ammo.ts';
 import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
 
 /**
- * `map` defaults to the one `seed` generates. Supplying it instead pins the arena a game runs in,
- * which is what lets behaviour be characterized against a stored map rather than against whatever
- * the current generator emits — see [31](../../docs/31-verification.md). The game mutates what it is
- * given (items are taken, gates open), so a caller reusing a map passes a copy.
+ * `map` is the arena the game runs in, which is what lets behaviour be characterized against a stored
+ * map rather than against whatever the current generator emits — see [31](../../docs/31-verification.md).
+ * The game mutates what it is given (items are taken, gates open), so a caller reusing a map passes a copy.
  * `content` defaults to the shipped set. This builds the record only: `createPhysicsGame` builds on it
  * and is what steps, so a game from here alone suits code that reads a match without running it.
  */
-export function createGame(seed = 4217, map: GameMap = generateMap(seed), content = defaultContent()): Game {
+export function createGame(seed: number, map: GameMap, content = defaultContent()): Game {
   const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
   // Identifier and iteration order are part of the recorded contract, so both are derived from the
   // roster's own order rather than from anything that could reorder independently of it.
