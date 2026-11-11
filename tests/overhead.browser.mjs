@@ -14,7 +14,8 @@ try {
   await page.goto(`${base}/overhead-fixture`);
   await page.evaluate(async () => {
     const { makeArenaScene } = await import('/arena-scene.js');
-    const map = { seed: 1, width: 5000, height: 3000, modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [],
+    const map = { seed: 1, width: 5000, height: 3000, hazards: [], gaps: [], stations: [], sensors: [], gates: [],
+      playableArea: { cellSize: 40, rows: Array.from({ length: 75 }, (_, y) => ({ y, runs: [[0, 125]] })) },
       // The roof ends exactly at a tile boundary: seam indexing also visits an empty cropped tile.
       buildings: [{ id: 'house', x: 100, y: 100, w: 412, h: 200 }], obstacles: [{ id: 'tree', kind: 'tree', x: 450, y: 400, r: 32 }] };
     const player = { id: 'self', name: 'Tester', role: 'contestant', x: 500, y: 400, heading: 0, status: 'active', hp: 100, maxHp: 100 };
@@ -274,7 +275,8 @@ try {
   await page.evaluate(() => {
     const f = window.fixture;
     f.map = {
-      seed: 1, width: 5000, height: 3000, modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [],
+      seed: 1, width: 5000, height: 3000, hazards: [], gaps: [], stations: [], sensors: [], gates: [],
+      playableArea: { cellSize: 40, rows: Array.from({ length: 75 }, (_, y) => ({ y, runs: [[0, 125]] })) },
       buildings: [{ id: 'house', x: 100, y: 100, w: 412, h: 200 }], obstacles: [{ id: 'tree', kind: 'tree', x: 450, y: 400, r: 32 }],
     };
     f.scene.buildMap();

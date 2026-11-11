@@ -22,7 +22,8 @@ try {
   await page.goto(`${base}/physics-visibility-fixture`);
   await page.evaluate(async () => {
     const { makeArenaScene } = await import('/arena-scene.js');
-    const map = { seed: 1, width: 5000, height: 3000, modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [], buildings: [],
+    const map = { seed: 1, width: 5000, height: 3000, hazards: [], gaps: [], stations: [], sensors: [], gates: [], buildings: [],
+      playableArea: { cellSize: 40, rows: Array.from({ length: 75 }, (_, y) => ({ y, runs: [[0, 125]] })) },
       obstacles: [{ id: 'wall', kind: 'wall', x: 700, y: 200, w: 10, h: 400 }] };
     const player = { id: 'self', name: 'Viewer', role: 'contestant', x: 500, y: 400, heading: 0, status: 'active', hp: 100, maxHp: 100 };
     const state = { tick: 1, physicsProfile: 'synthetic-visibility', players: [player], gates: [], items: [], traps: [], projectiles: [], effects: [], bodies: [], tethers: [] };

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMap, minimumReaderForMatch } from '../shared/recording.ts';
+import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { createGame, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
@@ -8,33 +8,32 @@ import { createReplayTimeline } from '../public/replay-timeline.js';
 
 const playable = { map: { obstacles: [{ id: 'o0' }] } };
 
-// content-1 seated two hunters and content-2 three. Both sets are retired (#920), so their frames are built from the
-// shipped set with each one's roster; what is checked is that playback keeps the recorded roster.
-test('both content rosters play from their recorded frames under the same schema and rules', () => {
-  for (const [contentId, hunters] of [['content-1', 2], ['content-2', 3]]) {
-    const content = contentById('content-7');
-    const game = createGame(9, generatedMap(), { ...content, roster: { ...content.roster, gladiators: content.roster.gladiators.slice(0, hunters) } });
-    const state = JSON.parse(JSON.stringify(snapshot(game)));
-    const archive = { version: 'last-exit-0.7', schema: 3, minSchema: 0, contentId,
-      map: game.map, frames: [{ state, commands: [] }] };
-    assert.equal(recordingFit(archive), 'ok');
-    const timeline = createReplayTimeline(archive);
-    assert.equal(timeline.roster.filter(p => p.role === 'gladiator').length, hunters);
-    assert.deepEqual(timeline.at(0).state, state, 'playback retains the recorded roster without substituting defaults');
+// Recordings from before schema 10 (pre-chain-map and pre-physics) are refused, while supported
+// schemas keep playing with whatever roster their frames record without substituting defaults.
+test('pre-physics and pre-chain-map schemas are refused, and supported schemas retain their recorded roster', () => {
+  const content = contentById('content-7');
+  const game = createGame(9, generatedMap(), { ...content, roster: { ...content.roster, gladiators: content.roster.gladiators.slice(0, 2) } });
+  const state = JSON.parse(JSON.stringify(snapshot(game)));
+  for (const oldSchema of [undefined, 0, 3, 4, 9]) {
+    assert.equal(recordingFit({ version: 'last-exit-0.7', ...(oldSchema !== undefined ? { schema: oldSchema } : {}), minSchema: 0, contentId: 'content-1', map: game.map }), 'too-old');
   }
+  const archive = { version: 'last-exit-0.8-physics', schema: MIN_SCHEMA, minSchema: MIN_SCHEMA, contentId: content.id,
+    map: game.map, frames: [{ state, commands: [] }] };
+  assert.equal(recordingFit(archive), 'ok');
+  const timeline = createReplayTimeline(archive);
+  assert.equal(timeline.roster.filter(p => p.role === 'gladiator').length, 2);
+  assert.deepEqual(timeline.at(0).state, state, 'playback retains the recorded roster without substituting defaults');
 });
 
-test('a recording states what it is and the reader decides, with legacy archives still playable', () => {
+test('a recording states what it is and the reader decides, refusing formats below the schema floor', () => {
   assert.equal(recordingFit({ ...playable, schema: SCHEMA, minSchema: MIN_SCHEMA }), 'ok');
-  // Archives written before the schema field carry neither number. They must keep playing, which is
-  // why the floor is zero rather than one: introducing the field cannot retire what already exists.
-  assert.equal(recordingFit(playable), 'ok');
-  // The grid prototype has to be recognised by its contents, having no schema to check. The probe
-  // is for the obstacle field's presence, not its length: a vector map with nothing in it is still
-  // a vector map, and this preserves exactly what the client checked before the schema existed.
-  assert.equal(recordingFit({ map: {} }), 'pre-vector');
-  assert.equal(recordingFit({ schema: SCHEMA }), 'pre-vector');
-  assert.equal(recordingFit({ map: { obstacles: [] } }), 'ok');
+  assert.equal(recordingFit({ ...playable, schema: MIN_SCHEMA, minSchema: MIN_SCHEMA }), 'ok');
+  // Archives missing `schema` or below MIN_SCHEMA (schemas 0..9) read below the floor and are refused.
+  assert.equal(recordingFit(playable), 'too-old');
+  assert.equal(recordingFit({ ...playable, schema: MIN_SCHEMA - 1, minSchema: 0 }), 'too-old');
+  assert.equal(recordingFit({ map: {} }), 'too-old');
+  assert.equal(recordingFit({ schema: SCHEMA }), 'ok');
+  assert.equal(recordingFit({ ...playable, schema: SCHEMA, minSchema: 0 }), 'ok');
 });
 
 // The reason the header carries two numbers instead of one. A later build that adds a field without
@@ -47,22 +46,21 @@ test('an additive future recording stays readable, and only a breaking one is re
   assert.equal(recordingFit({ ...playable, schema: SCHEMA + 40, minSchema: SCHEMA }), 'ok', 'a reader exactly at the declared floor still reads it');
 });
 
-test('malformed or hostile version fields fall back to the oldest meaning rather than throwing', () => {
+test('malformed or hostile version fields fall back safely rather than throwing', () => {
   for (const bad of [null, undefined, 'nine', Number.NaN, Infinity, -3, 1.5, {}, []]) {
-    assert.equal(recordingFit({ ...playable, schema: bad, minSchema: bad }), 'ok', `schema ${String(bad)} reads as pre-schema`);
+    assert.equal(recordingFit({ ...playable, schema: bad, minSchema: bad }), 'too-old', `schema ${String(bad)} reads below MIN_SCHEMA`);
   }
-  assert.equal(recordingFit(null), 'pre-vector');
-  assert.equal(recordingFit(undefined), 'pre-vector');
+  assert.equal(recordingFit(null), 'too-old');
+  assert.equal(recordingFit(undefined), 'too-old');
 });
 
 test('the server stamps every recording with the schema pair its readers check', async () => {
   const harness = roomHarness({ reuseMaps: true });
   const { writer } = await harness.live(9);
   assert.equal(writer.header.schema, SCHEMA);
-  // The shipped rules run on the physics engine, so the floor is the physics reader's; it is above the masked-map floor, which the map still needs.
+  // The shipped rules run on the physics engine, so the floor is the physics reader's, matching MIN_SCHEMA.
   assert.equal(writer.header.minSchema, minimumReaderForMatch(writer.header.map, true));
-  assert.equal(minimumReaderForMap(writer.header.map), 4, 'masked maps require a reader that draws their playable area');
-  assert.ok(writer.header.minSchema >= minimumReaderForMap(writer.header.map));
+  assert.equal(writer.header.minSchema, MIN_SCHEMA);
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
 });
 

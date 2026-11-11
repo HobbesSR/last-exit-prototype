@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createPhysicsGame, disposePhysics, snapshot, playerView, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
-import { minimumReaderForMatch, minimumReaderForMap, SCHEMA } from '../shared/recording.ts';
+import { minimumReaderForMatch, MIN_SCHEMA, SCHEMA } from '../shared/recording.ts';
 import { createPhysicsMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
 import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
@@ -109,7 +109,7 @@ test('physics recording floor is explicit and stamped by the room writer', async
   assert.equal(SCHEMA, 16);
   for (const map of [arena(), { obstacles: [] }]) {
     assert.equal(minimumReaderForMatch(map, true), 10);
-    assert.equal(minimumReaderForMatch(map, false), minimumReaderForMap(map));
+    assert.equal(minimumReaderForMatch(map, false), MIN_SCHEMA);
   }
   let header;
   const service = createRoomService({ content, matchFactory: async (...args) => {

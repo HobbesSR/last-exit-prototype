@@ -318,7 +318,7 @@ export interface ContentPresentation {
 
 /** Where a recording's display metadata came from; `presentation` is null for unknown content. */
 export interface RecordingPresentation {
-  source: 'embedded' | 'retained' | 'legacy' | 'unknown';
+  source: 'embedded' | 'retained' | 'unknown';
   presentation: ContentPresentation | null;
 }
 

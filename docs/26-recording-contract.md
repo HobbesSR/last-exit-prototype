@@ -10,31 +10,27 @@ payloads omit private prop authoring; the recorded source map retains it.
 
 L0 (#442) raises the writer schema to **11** for optional item `instanceId`,
 `lineageId`, `quality` and private authoritative `itemSerial` allocation state.
-These fields do not change drawing requirements, so minimum readers remain
-unchanged (10 for physics, 4 for masked maps, otherwise 0). Old archives remain
-readable without migration. Explicit `content-equipment-1` selects intentional
-identity/atomic-transfer/player-order rules `last-exit-0.8-equipment-1`; defaults
-retain `last-exit-0.7`. Playback consumes stored item/inventory states, never
-allocates IDs or resimulates transfers. Persisting the allocation counter retains
-the history of IDs no longer present in the current frame. See [14](14-match-rules.md).
+These fields do not change drawing requirements, so `minSchema` remains 10 for physics matches.
+Explicit `content-equipment-1` selected intentional identity/atomic-transfer/player-order rules
+`last-exit-0.8-equipment-1`; defaults before #523 retained `last-exit-0.7`. Playback consumes
+stored item/inventory states, never allocates IDs or resimulates transfers. Persisting the
+allocation counter retains the history of IDs no longer present in the current frame. See [14](14-match-rules.md).
 Explicit `content-loot-1` and `content-ammo-1` descend from the shipped set and
 record under the one physics rules version (#920); archives made before that name
 `last-exit-0.8-loot-1` and `last-exit-0.8-ammo-1` and stay readable, since playback
 never resimulates. L2 (#444) raises the writer schema to **13**: frames of
 `content-ammo-1` carry player `reserves` and `reload`, `ammo` ground items and
 `reload`/`dropAmmo` commands; older readers ignore the fields and draw an ammo
-pickup as an unknown item, so the floor stays.
+pickup as an unknown item, so `minSchema` stays at 10.
 
 Recording failure must never reach gameplay. Default content is `content-7` under
 `last-exit-0.8-physics` ([below](#physics-rules-version-921)); the legacy mover's rules were `last-exit-0.7`.
-#920 retired that engine and contents 1 to 5. Their recordings still play, since playback reads recorded frames
-and never resimulates, and their labels come from frozen descriptors ([22.7](22.7-content-and-presentation.md)). Recordings use schema 16 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
-display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
-minimum schema 0. Optional appearance descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
-Schema 16 adds an optional contestant roster place to recorded player state (#792): identity rather than
-gameplay, so an older reader ignores it and the floor stays at zero.
-Schema 10 adds required engine-free physics presentation for experimental physics
-matches; those matches require reader 10. Ordinary match reader floors stay unchanged.
+#920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
+archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
+experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
+existing `"no longer reads"` message while remaining downloadable. Recordings write schema 16
+and `minSchema` 10 (matching `minimumReaderForMatch`). Optional appearance descriptors on map
+buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
 ## Physics rules version (#921)
@@ -90,13 +86,13 @@ the renderer, and no exact engine checkpoint is required or sent live.
 
 Schema rises to 10 and `minimumReaderForMatch` requires 10 whenever the match's
 pinned `hasPhysics` capability is true, independently of its rules-version string.
-The physics match factory sets this capability; legacy matches keep it false,
-and disposal does not change it. An older renderer would omit props/tethers
-and misrepresent physical poses. No rules or content ID changes accompany this
-representation change, and existing schema 0–9 archives remain readable unchanged.
+The physics match factory sets this capability; before #920 legacy matches kept it false.
+An older reader would omit props/tethers and misrepresent physical poses. Since #953 raised
+`MIN_SCHEMA` to 10, archives below schema 10 are refused with `"no longer reads"` while
+remaining downloadable.
 
-How a reader labels a recording's weapons, kits and timers, including archives
-without a descriptor, follows [22.7](22.7-content-and-presentation.md#recording-compatibility)
+How a reader labels a recording's weapons, kits and timers
+follows [22.7](22.7-content-and-presentation.md#recording-compatibility)
 ([Presentation descriptor](#presentation-descriptor-schema-6) below).
 
 ## Versioning and compatibility
@@ -119,10 +115,14 @@ number cannot express that: every bump would lock out every older client whether
 not, and widening compatibility again would mean migrating the format a second time.
 
 The reader's policy is deliberately the simplest one that works — a floor, `MIN_SCHEMA`, currently
-zero so that archives predating the fields keep playing. That is policy, not format. Because both
-sides record integers, a reader can later apply a range, a set of supported versions, or a
-per-feature table without recordings changing shape again. Policy belongs to the reader; a recording
-only states facts about itself.
+**10** (#953), matching the schema-10 floor stamped by physics matches (`minimumReaderForMatch`).
+Schema 10 (`P3`, #440) is the first format supporting required engine-free physics presentation
+(`bodies`, `tethers`, `physicsProfile`, alongside cell-masked chain maps introduced at schema 4);
+while both engines coexisted, non-physics matches could still write schema 10+ with an earlier
+`minSchema`, so 10 is the chosen supported floor rather than a guarantee about every historical schema-10 header.
+Archives recorded under schemas 0–9 (including schema-less recordings, pre-chain-map diamond arenas, and
+`last-exit-0.7` legacy-mover matches) are refused as `'too-old'` while staying downloadable via `/api/replays/:id`. Policy
+belongs to the reader; a recording only states facts about itself.
 
 The schema history, with the sections that explain each step:
 
@@ -223,11 +223,9 @@ input carries it. `minSchema` stays as before, so older readers ignore it.
 A reader resolves display metadata with `resolveRecordingPresentation` in
 `shared/presentation.ts`, in order: a valid embedded descriptor naming the
 header's `contentId` (even content this build does not ship); the retained
-descriptor of a known id; for a header with no `contentId`, the local
-`legacy-display` profile (`content-1` vocabulary and ammo, 2400-tick clock,
-100-tick charge); otherwise none, shown as raw ids and unavailable values.
+descriptor of a known shipped id; otherwise none (`source: 'unknown'`, shown as raw ids and unavailable values).
 Present frame values (ammo, `duration`, `cellChargeTicks`) beat all of these.
-An unusable descriptor never makes a playable archive a format error;
+An unusable or missing descriptor never makes a playable schema 10+ archive a format error;
 `recordingFit` alone decides that.
 
 ## Diagnostic markers (schema 5)
@@ -298,7 +296,7 @@ Playback advances by recorded ticks, chooses the latest retained frame at or
 before the playhead (last duplicate wins), and holds it through missing intervals.
 Before the first retained tick it shows that first frame with a missing-data
 indicator. Gaps and incomplete tails are labelled; do not extrapolate projectiles
-through missing intervals. Legacy dense recordings remain playable. Archive rows
+through missing intervals. Dense schema 10+ recordings remain playable. Archive rows
 label partial recordings. Sparse playback must not pretend omitted outcomes or
 commands are known.
 
@@ -345,27 +343,24 @@ salvage remain separate follow-ups.
 
 `GameMap.playableArea` records the owned cells as sorted row runs, including
 holes, at a stated `cellSize`. Collision, prediction, the arena floor and the
-minimap use it. Its absence retains the old diamond semantics. Maps also carry
-optional `hunterSpawns`, a `generator` label (`chain-live-1`), and generated loot
-`tier` metadata. Old archives keep their original map and frames.
+minimap use it. Maps also carry optional `hunterSpawns`, a `generator` label
+(`chain-live-1`), and generated loot `tier` metadata.
 
-Schema 4 identifies these additions. `minimumReaderForMap` requires reader 4 for
-masked maps because older renderers would draw a diamond with the wrong floor;
-legacy maps keep minimum 0, and this reader still accepts those older archives.
-Simulation rules remain `last-exit-0.7` and tuning remains `content-2`: fixed-tick
-order, input consumption, player sizes, combat and timers are unchanged. The
-intentional new map content is named by `generator` and embedded in full, rather
-than rebuilding an old recording with today's chain. Frozen characterization
-continues to use its stored legacy maps and is not regenerated.
+Schema 4 introduced these additions (`minimumReaderForMap` then required 4 for
+masked maps, leaving diamond archives at 0); #953 raised `MIN_SCHEMA` to 10,
+deleted `minimumReaderForMap` and the client's diamond/route/module fallbacks,
+and requires `playableArea` on drawn maps and replays. Simulation rules at the
+time stayed `last-exit-0.7` and tuning stayed `content-2`. Frozen simulation
+characterization continues to use its stored legacy maps offline and is not
+regenerated.
 
 ## Schema 16: contestant roster place (#792)
 
 Schema 16 adds an optional `seat` to recorded player state: a contestant's roster place, which a client
 uses to assign the same identity hue before and after a human takeover, a reconnect or a callsign change.
 It is presentation identity, not gameplay, and it changes nothing about how a match runs. The change is
-additive, so the minimum reader stays at zero; an older reader ignores the field and draws the hue from
-the id or callsign as before, and a recording that predates the field plays the same way. Rules stay
-`last-exit-0.7` and no content id changes.
+additive, so `minSchema` stays at 10; a reader between 10 and 15 ignores the field and draws the hue from
+the id or callsign as before. Rules stay `last-exit-0.8-physics` and no content id changes.
 
 ## Schema 15: transit route selection (#692)
 
@@ -378,10 +373,9 @@ for that player, as for any player that is not active.
 ## Schema 14: experimental hook (#446)
 
 Schema 14 adds optional private `physics.hooks`, explicit bounded spring/rope
-constraint fields, and optional `hookFlights` presentation records. This is
-the next writer revision after L2's schema 13; both explicit content sets remain
-independently selectable. The change is additive: the general minimum reader remains 0 and experimental physics keeps
-its schema-10 visual floor. New P6 simulation behavior was separately identified
+constraint fields, and optional `hookFlights` presentation records. This was
+the next writer revision after L2's schema 13; the physics reader floor remains 10.
+New P6 simulation behavior was separately identified
 by `last-exit-0.8-physics-6` and `content-physics-6` until #921; no legacy content is changed.
 P8 added explicit `last-exit-0.8-physics-8` / `content-physics-8` for local dynamic
 navigation and drop-placement behavior. It keeps P6's frame representation,

@@ -272,8 +272,7 @@ export function makeArenaScene(api) {
       this.actors.forEach(a => a.container.destroy()); this.actors.clear();
       // Chain starts can be right by the western edge. Follow must still centre on
       // that subject at every viewport/zoom; its authoritative position is bounded.
-      if (map.playableArea) this.cameras.main.removeBounds();
-      else this.cameras.main.setBounds(-400, -400, map.width + 800, map.height + 800);
+      this.cameras.main.removeBounds();
       this.recordStatic(map);
       this.updateCamera(true);
     }
@@ -298,39 +297,12 @@ export function makeArenaScene(api) {
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
       this.labels.forEach(l => l.destroy()); this.labels = [];
       this.roofs.clear();
-      if (map.playableArea) {
-        const { cellSize, rows } = map.playableArea;
-        for (const row of rows) for (const [start, end] of row.runs)
-          this.staticAt(start * cellSize, row.y * cellSize, end * cellSize, (row.y + 1) * cellSize).fillStyle(ink.ground).fillRect(start * cellSize, row.y * cellSize, (end - start) * cellSize, cellSize);
-      } else {
-        const diamond = [{ x: 40, y: map.height / 2 }, { x: map.width / 2, y: 40 }, { x: map.width - 40, y: map.height / 2 }, { x: map.width / 2, y: map.height - 40 }];
-        g = this.staticAt(0, 0, map.width, map.height); g.fillStyle(ink.ground); g.fillPoints(diamond, true);
-        g.lineStyle(8, ink.groundEdge); g.strokePoints(diamond, true);
-      }
-      // Broad paths connect generated sections. There are no visible grid cells.
-      for (const route of map.streets?.map(st => ({ points: [st.a, st.port, st.b] })) || map.routes || [{ points: [{ x: 160, y: map.height / 2 }, ...map.modules, map.exit] }]) {
-        for (let i = 1; i < route.points.length; i++) {
-          const a = route.points[i - 1], b = route.points[i], half = map.streets ? 80 : 50;
-          g = this.staticAt(Math.min(a.x, b.x) - half, Math.min(a.y, b.y) - half, Math.max(a.x, b.x) + half, Math.max(a.y, b.y) + half);
-          g.lineStyle(map.streets ? 160 : 100, ink.street); g.lineBetween(a.x, a.y, b.x, b.y);
-          g.lineStyle(2, ink.streetLine, 0.35); g.lineBetween(a.x, a.y, b.x, b.y);
-        }
-      }
-      for (const m of map.modules) {
-        g = this.staticAt(m.x - 130, m.y - 270, m.x + 130, m.y - 90);
-        // These are ground markings, not fake building silhouettes.
-        if (m.kind === 'depot') {
-          g.lineStyle(2, ink.marking, 0.3);
-          for (let dx = -120; dx <= 120; dx += 60) g.lineBetween(m.x + dx, m.y - 130, m.x + dx, m.y - 100);
-        } else if (m.kind === 'garden') {
-          g.fillStyle(ink.garden, 0.45); g.fillEllipse(m.x, m.y - 210, 220, 100);
-        }
-        this.label(m.x, m.y - 75, ['SERVICE YARD', 'RUINED DEPOT', 'OVERGROWN BLOCK'][['yard', 'depot', 'garden'].indexOf(m.kind)], css(ink.zoneLabel), 13);
-        if (m.interior) { g = this.staticAt(m.interior.x, m.interior.y, m.interior.x + m.interior.w, m.interior.y + m.interior.h); g.fillStyle(ink.interior); g.fillRect(m.interior.x, m.interior.y, m.interior.w, m.interior.h); }
-      }
+      const { cellSize, rows } = map.playableArea;
+      for (const row of rows) for (const [start, end] of row.runs)
+        this.staticAt(start * cellSize, row.y * cellSize, end * cellSize, (row.y + 1) * cellSize).fillStyle(ink.ground).fillRect(start * cellSize, row.y * cellSize, (end - start) * cellSize, cellSize);
       for (let i = 0; i < 430; i++) {
         const x = (i * 479 + map.seed * 7) % map.width, y = (i * 193 + map.seed * 13) % map.height;
-        if (map.playableArea ? !insideMap(map, x, y, 5) : Math.abs(x - map.width / 2) / (map.width / 2 - 70) + Math.abs(y - map.height / 2) / (map.height / 2 - 70) > 1 || Math.abs(y - map.height / 2) < 70) continue;
+        if (!insideMap(map, x, y, 5)) continue;
         g = this.staticAt(x - 8, y - 8, x + 4, y + 6);
         g.lineStyle(2, ink.tuft, 0.55); g.lineBetween(x - 3, y + 3, x - 5, y - 3); g.lineBetween(x, y + 3, x + 2, y - 5);
       }

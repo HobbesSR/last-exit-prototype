@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeContent, readPresentation, resolveRecordingPresentation, LEGACY_DISPLAY_ID } from '../shared/presentation.ts';
+import { describeContent, readPresentation, resolveRecordingPresentation } from '../shared/presentation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { createGame } from '../shared/simulation.ts';
 import { generatedMap } from './helpers/room-harness.js';
@@ -37,7 +37,7 @@ test('reading a descriptor validates the whole shape and copies it', () => {
   assert.deepEqual(copy, good);
   assert.ok(frozenThrough(copy));
   assert.equal(readPresentation(good, good.contentId)?.contentId, good.contentId);
-  assert.equal(readPresentation(good, 'content-1'), null, 'expected id must match');
+  assert.equal(readPresentation(good, 'content-8'), null, 'expected id must match');
   const unknown = readPresentation({ ...structuredClone(good), contentId: 'brand-new' }, 'brand-new');
   assert.equal(unknown?.contentId, 'brand-new', 'unknown content is still describable');
   assert.equal(readPresentation({ ...structuredClone(good), weapons: [{ id: 'pistol', name: 'P', ammo: 0 }] })?.weapons[0].ammo, 0, 'zero ammo is valid');
@@ -59,26 +59,23 @@ test('reading a descriptor validates the whole shape and copies it', () => {
   for (const value of broken) assert.equal(readPresentation(value), null, JSON.stringify(value));
 });
 
-test('recording headers resolve embedded, retained, legacy and unknown display in order', () => {
+test('recording headers resolve embedded, retained and unknown display in order', () => {
   const embedded = { ...structuredClone(describeContent(defaultContent())), contentId: 'future-9' };
   embedded.weapons[0].name = 'Future pistol';
   const resolve = header => { const r = resolveRecordingPresentation(header); return [r.source, r.presentation?.contentId ?? null]; };
   assert.deepEqual(resolve({ contentId: 'future-9', presentation: embedded }), ['embedded', 'future-9']);
   assert.equal(resolveRecordingPresentation({ contentId: 'future-9', presentation: embedded }).presentation.weapons[0].name, 'Future pistol');
-  assert.deepEqual(resolve({ contentId: 'content-1' }), ['retained', 'content-1']);
-  assert.deepEqual(resolve({ contentId: 'content-2' }), ['retained', 'content-2']);
-  // The legacy mover's sets are retired (#920); their recordings keep their labels, each with its own roster.
-  const capacity = contentId => resolveRecordingPresentation({ contentId }).presentation.capacity;
-  assert.deepEqual([capacity('content-1'), capacity('content-5'), capacity('content-equipment-1')],
-    [{ contestant: 8, gladiator: 2 }, { contestant: 8, gladiator: 3 }, { contestant: 8, gladiator: 3 }]);
-  assert.deepEqual(resolve({ contentId: 'content-1', presentation: embedded }), ['retained', 'content-1'], 'a mismatched descriptor is ignored');
-  assert.deepEqual(resolve({ contentId: 'content-2', presentation: { contentId: 'content-2' } }), ['retained', 'content-2'], 'so is an invalid one');
+  assert.deepEqual(resolve({ contentId: 'content-7' }), ['retained', 'content-7']);
+  assert.deepEqual(resolve({ contentId: 'content-ammo-1' }), ['retained', 'content-ammo-1']);
+  assert.deepEqual(resolve({ contentId: 'content-7', presentation: embedded }), ['retained', 'content-7'], 'a mismatched descriptor is ignored');
+  assert.deepEqual(resolve({ contentId: 'content-ammo-1', presentation: { contentId: 'content-ammo-1' } }), ['retained', 'content-ammo-1'], 'so is an invalid one');
+  // Retired legacy sets and headers lacking contentId resolve as unknown now that MIN_SCHEMA = 10 refuses pre-physics recordings.
+  for (const retired of ['content-1', 'content-2', 'content-5', 'content-equipment-1']) {
+    assert.deepEqual(resolve({ contentId: retired }), ['unknown', null]);
+  }
   assert.deepEqual(resolve({ contentId: 'future-9' }), ['unknown', null]);
   assert.deepEqual(resolve({ contentId: 'future-9', presentation: { ...embedded, durationTicks: -1 } }), ['unknown', null]);
-  for (const contentId of ['', 7, null, 'legacy-display', 'toString', '__proto__']) assert.deepEqual(resolve({ contentId }), ['unknown', null], String(contentId));
-  const legacy = resolveRecordingPresentation({ schema: 2 });
-  assert.equal(legacy.source, 'legacy');
-  assert.equal(legacy.presentation.contentId, LEGACY_DISPLAY_ID);
-  assert.deepEqual([legacy.presentation.durationTicks, legacy.presentation.cellChargeTicks, legacy.presentation.weapons[0].ammo, legacy.presentation.kits.length], [2400, 100, 48, 3]);
-  assert.deepEqual(resolve(null), ['legacy', LEGACY_DISPLAY_ID]);
+  for (const contentId of ['', 7, null, 'toString', '__proto__']) assert.deepEqual(resolve({ contentId }), ['unknown', null], String(contentId));
+  assert.deepEqual(resolve({ schema: 2 }), ['unknown', null]);
+  assert.deepEqual(resolve(null), ['unknown', null]);
 });

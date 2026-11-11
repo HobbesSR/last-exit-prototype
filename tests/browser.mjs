@@ -533,6 +533,17 @@ try {
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
   assert.match((await downloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
   await page.getByRole('button', { name: 'Exit replay' }).click();
+  // Archives from before schema 10 are refused cleanly and stay downloadable (#953).
+  routedReplay = { ...savedRecording, schema: 9, minSchema: 0 };
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
+  await page.waitForFunction(() => /no longer reads/.test(document.getElementById('toast').textContent) && !document.getElementById('toast').hidden);
+  assert.match(await page.locator('#toast').textContent(), /This broadcast uses a recording format this build no longer reads\. Its JSON can still be downloaded\./);
+  assert.equal(await page.evaluate(() => window.arenaDebug().replay), false);
+  const oldDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download arena 4217', exact: true }).first().click();
+  assert.match((await oldDownloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  await page.locator('#archive-dialog .close-dialog').click();
   await page.getByRole('button', { name: 'Lobbies', exact: true }).click();
   assert.equal(await page.locator('#tab-join').getAttribute('tabindex'), '0');
   assert.equal(await page.locator('#tab-create').getAttribute('tabindex'), '-1');

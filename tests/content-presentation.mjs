@@ -8,7 +8,7 @@ import { listen } from './helpers/listen.js';
 import { createGame, snapshot, VERSION } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
-import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
+import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
 // Two content sets this browser does not ship, sharing weapon and kit ids but labelled differently (22.7). They start from
@@ -44,7 +44,7 @@ function recordingA() {
   p.inventory = [{ kind: 'weapon', weaponType: 'pistol', ammo: 0 }, { kind: 'weapon', weaponType: 'rifle' }, null, null, null, null];
   p.selectedSlot = 0;
   const frame = tick => { const state = snapshot(game); state.tick = tick; state.duration = 6000; return { state, commands: [] }; };
-  return { version: VERSION, schema: SCHEMA, minSchema: minimumReaderForMap(game.map), contentId: content.id, presentation: describeContent(content),
+  return { version: VERSION, schema: SCHEMA, minSchema: MIN_SCHEMA, contentId: content.id, presentation: describeContent(content),
     id: 'content-a', seed: 777, hz: 20, createdAt: Date.now(), map: game.map, frames: [0, 20, 40].map(frame),
     recording: { complete: true, droppedFrames: 0, endTick: 40 } };
 }
@@ -76,10 +76,6 @@ async function checkControls(browser, base) {
       hud.render({ ...base, state: bare, presentation: null }); const unknown = read();
       hud.render({ ...base, state: { ...state, cellChargeTicks: undefined }, presentation: null }); const unknownTimed = read();
       hud.render({ ...base, state: bare, presentation: a }); const fallback = read();
-      // An archive from before content ids and inventories: a dedicated cell, timed by the legacy profile.
-      const { resolveRecordingPresentation } = await import('/shared/presentation.ts');
-      const legacyState = { ...bare, players: [{ ...state.players[0], inventory: undefined, cell: { charge: 50 } }, ...state.players.slice(1)] };
-      hud.render({ ...base, state: legacyState, view: 'replay', presentation: resolveRecordingPresentation({ schema: 1 }).presentation }); const legacy = read();
       const gladiator = { ...base, playerId: hunterId };
       hud.render({ ...gladiator, presentation: a }); const kitA = [$('player-name').textContent, $('skill').dataset.tip];
       hud.render({ ...gladiator, presentation: null }); const kitUnknown = [$('player-name').textContent, $('skill').dataset.tip];
@@ -96,7 +92,7 @@ async function checkControls(browser, base) {
       fillFollowOptions(follow, roster, a); const followA = follow.options[1].textContent;
       fillFollowOptions(follow, roster, null); const followUnknown = follow.options[1].textContent;
       fillFollowOptions(follow, roster); const followShipped = follow.options[1].textContent;
-      return { first, replaced, unknown, unknownTimed, fallback, legacy, kitA, kitUnknown, kept, withoutStriker, withoutWarden, none, events, followA, followUnknown, followShipped };
+      return { first, replaced, unknown, unknownTimed, fallback, kitA, kitUnknown, kept, withoutStriker, withoutWarden, none, events, followA, followUnknown, followShipped };
     }, { state: snapshot(game), arenaMap: game.map, hunterId: hunter.id, a: describeContent(contentA()), b: describeContent(contentB()) });
     assert.deepEqual(result.first.slots, [['Slot 1: Blaster 11', 'Blaster · 11 rounds'], ['Slot 2: Longarm 0', 'Longarm · 0 rounds'], ['Slot 3: Power cell 30%', 'Power cell']], 'descriptor ammo fills in; recorded zero stays zero');
     assert.deepEqual(result.replaced.slots, [['Slot 1: Sidearm 7', 'Sidearm · 7 rounds'], ['Slot 2: Carbine 0', 'Carbine · 0 rounds'], ['Slot 3: Power cell 30%', 'Power cell']], 'labels follow a replaced descriptor');
@@ -108,8 +104,6 @@ async function checkControls(browser, base) {
     assert.equal(result.unknownTimed.clock, '10:00', 'unknown content still shows a recorded clock');
     assert.equal(result.fallback.clock, '07:30', 'a frame without a duration uses the descriptor');
     assert.match(result.fallback.objective, /CELL 30%/, '30 of A\'s 100 charge ticks');
-    assert.match(result.legacy.objective, /CELL 50%/, 'legacy dedicated cell over the 100-tick legacy charge');
-    assert.equal(result.legacy.clock, '02:00', 'and the legacy 2400-tick clock');
     assert.deepEqual(result.kitA, ['SENTINEL', 'Quake (Q)']);
     assert.deepEqual(result.kitUnknown, ['WARDEN', '— (Q)']);
     assert.deepEqual(result.kept, ['specter', ['Sentinel / Quake', 'Wraith / Echo', 'Striker / Overdrive']]);
@@ -154,7 +148,7 @@ export async function checkContentPresentation(browser) {
       await page.routeWebSocket(/.*/, ws => ws.onMessage(message => {
         if (JSON.parse(message).type !== 'join') return;
         ws.send(JSON.stringify({ type: 'welcome', id: 'p0', room: 'forged', owner: false, ready: true, started: true, contentId, presentation,
-          map: { width: 777, height: 100, obstacles: [], gates: [], items: [], modules: [] }, state: { tick: 1, phase: 'live', players: [] } }));
+          map: { width: 777, height: 100, obstacles: [], gates: [], items: [] }, state: { tick: 1, phase: 'live', players: [] } }));
       }));
       await page.goto(`${base}/?room=forged`);
       await page.waitForFunction(() => document.getElementById('connection-text').textContent === 'UNAVAILABLE');

@@ -32,6 +32,10 @@ const lumContrast = (h1, h2) => {
   const l2 = toLuminance(h2) + 0.05;
   return Number((Math.max(l1, l2) / Math.min(l1, l2)).toFixed(2));
 };
+const fullPlayableArea = (width, height, cellSize = 40) => ({
+  cellSize,
+  rows: Array.from({ length: Math.ceil(height / cellSize) }, (_, y) => ({ y, runs: [[0, Math.ceil(width / cellSize)]] })),
+});
 
 const VIEWPORT = { width: 1200, height: 800 };
 const PLAY_ZOOM = playerZoom(VIEWPORT.width, VIEWPORT.height); // 1.12
@@ -208,18 +212,6 @@ function createWitnessScene() {
     { id: 'gate-unknown', x: 1120, y: 140, open: false, locked: true },
   ];
 
-  // Modules (`yard`, `depot`, `garden` + `interior`):
-  const modules = [
-    { id: 'mod-depot', kind: 'depot', x: 320, y: 240, interior: { x: 200, y: 115, w: 90, h: 55 } },
-    { id: 'mod-garden', kind: 'garden', x: 560, y: 340 },
-    { id: 'mod-yard', kind: 'yard', x: 780, y: 240 },
-  ];
-
-  // Streets (`map.streets` draws 160px wide `ink.street` + 2px `ink.streetLine` at alpha 0.35):
-  const streets = [
-    { a: { x: 120, y: 450 }, port: { x: 640, y: 450 }, b: { x: 1180, y: 450 } },
-  ];
-
   // Static hazard pad, gap chevron, sensor, transit station, charger, entry & exit:
   const hazards = [{ id: 'haz-pad', x: 120, y: 220, w: 76, h: 54 }];
   const gaps = [{ x: 180, y: 310 }];
@@ -230,6 +222,7 @@ function createWitnessScene() {
   const exit = { x: 1130, y: 450 };
 
   // Authored retail frontage and service lane slice (41.2 step 2, #585 + #583):
+  // - Authored asphalt street lane (`witness-street` across y: 370..530)
   // - Slate paving service apron (x: 845..1165, y: 495..555)
   // - Warm masonry storefront walls & interior floor (`shop-room`)
   // - Broad legacy-teal painted rooftop (`storefrontTeal`) with commercial sign block
@@ -238,6 +231,7 @@ function createWitnessScene() {
   // - Two explicit spatial lighting fields: broad cobalt intersection field + warm amber focal edge
   const appearance = {
     surfaces: [
+      { id: 'witness-street', bounds: { x: 120, y: 370, w: 1060, h: 160 }, material: 'nightAsphalt', segmentSpan: 64 },
       { id: 'service-lane-apron', bounds: { x: 845, y: 495, w: 460, h: 60 }, material: 'slatePaving', weathered: true, curb: true, segmentSpan: 115 },
     ],
     commercial: [
@@ -302,11 +296,9 @@ function createWitnessScene() {
     roofs,
     decals,
     appearance,
-    modules,
     hazards,
     gaps,
     sensors,
-    streets,
     stations,
     chargers,
     entry,
@@ -499,11 +491,10 @@ function createWitnessScene() {
     hookFlights,
   };
 
-  // Pure surface reference coordinates (clear of obstacles, street center line, tufts, and shadows):
+  // Pure surface reference coordinates (clear of obstacles, tufts, and shadows):
   const surfaceRefs = {
     ground: { x: 205, y: 260 },
     street: { x: 205, y: 400 },
-    streetLine: { x: 205, y: 450 },
     floor: { x: 215, y: 660 },
     shadedGround: { x: 1120, y: 175 },
   };
@@ -1315,13 +1306,14 @@ try {
       seed: 99,
       width: 2000,
       height: 2000,
+      playableArea: { cellSize: 40, rows: Array.from({ length: 50 }, (_, y) => ({ y, runs: [[0, 50]] })) },
       buildings: [],
       roofs: [],
       obstacles: [
         { id: 'wh-shelf', kind: 'container', x: 400, y: 300, w: 40, h: 20, appearance: { material: 'oxidizedMetal' } },
         { id: 'wh-crate', kind: 'container', color: 0, x: 400, y: 340, w: 40, h: 20 },
       ],
-      modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [], streets: [],
+      hazards: [], gaps: [], stations: [], sensors: [], gates: [],
     };
     f.map = depotMap;
     s.recordStatic(depotMap);
@@ -1682,10 +1674,8 @@ try {
     await window.witness.settle({ palette: 'signature', lighting: true, wear: true, selfPos: { x: 600, y: 380 } });
   });
 
-  // Verify that sampled theme-owned substrates actually vary across themes (#737 review)
-  const streetColors = new Set(Object.values(paletteFieldSweep).map(d => d.streetCobaltLit));
+  // Verify that sampled theme-owned ground substrate actually varies across themes (#737 review)
   const groundColors = new Set(Object.values(paletteFieldSweep).map(d => d.groundMagentaLit));
-  assert.ok(streetColors.size >= 4, `Sampled theme street colors vary across themes (${streetColors.size} distinct colors >= 4)`);
   assert.ok(groundColors.size >= 4, `Sampled theme ground colors vary across themes (${groundColors.size} distinct colors >= 4)`);
 
   const paletteSweepSummary = {};
@@ -1825,17 +1815,16 @@ try {
     seed: 98765,
     width: 1400,
     height: 1000,
+    playableArea: fullPlayableArea(1400, 1000),
     buildings: storefrontCtx.map.buildings,
     roofs: storefrontCtx.map.roofs,
     obstacles: storefrontCtx.map.obstacles,
     decals: storefrontCtx.map.decals || [],
-    modules: [],
     hazards: [],
     gaps: [],
     stations: [],
     sensors: [],
     gates: [],
-    routes: [{ points: [{ x: 200, y: 710 }, { x: 1100, y: 710 }] }],
     appearance: {
       surfaces: [
         { id: 'sf-street-surf', bounds: { x: 200, y: 660, w: 900, h: 100 }, material: 'nightAsphalt' },
@@ -2142,9 +2131,10 @@ try {
   }
   const lmMap = {
     seed: 24680, width: 1400, height: 1000,
+    playableArea: fullPlayableArea(1400, 1000),
     buildings: landmarkCtx.map.buildings, roofs: landmarkCtx.map.roofs,
     obstacles: landmarkCtx.map.obstacles, decals: landmarkCtx.map.decals || [],
-    modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [],
+    hazards: [], gaps: [], stations: [], sensors: [], gates: [],
     appearance: { surfaces: [{ id: 'lm-apron', bounds: { x: 160, y: 760, w: 1080, h: 120 }, material: 'nightAsphalt' }] },
   };
   assert.equal(lmMap.roofs.length, 3, 'one roof contour per landmark');
@@ -2306,7 +2296,7 @@ try {
     seed: 585,
     width: 2400,
     height: 1600,
-    modules: [],
+    playableArea: fullPlayableArea(2400, 1600),
     buildings: [
       // Compound residential room (intact)
       { id: 'exp-compound-room', x: 160, y: 240, w: 160, h: 120, appearance: COMPOUND_RESIDENTIAL_INTACT },
@@ -2361,9 +2351,6 @@ try {
     sensors: [],
     items: [],
     traps: [],
-    routes: [],
-    nodes: [],
-    streets: [],
     appearance: {
       surfaces: [
         { id: 'exp-market-plaza', bounds: { x: 160, y: 80, w: 600, h: 120 }, material: 'slatePaving', weathered: true },
@@ -2635,21 +2622,6 @@ try {
     }
   }
 
-  // Also check Neon Aftermath `broadcastPink` (`#D94BC6`) street center line (drawn at 0.35 alpha over `street`)
-  // against active gameplay signals (mine `#ff778c`, turret `#ff879f`, gladiator ring `#ff7d8a`, advancing hazard `#d65065`):
-  const neonStreetHex = themeMeasurements.neonAftermath.lit.surfaces.street;
-  const neonStreetLineRenderedHex = themeMeasurements.neonAftermath.lit.surfaces.streetLine;
-  const broadcastPinkAssessment = {
-    rawSwatch: '#d94bc6',
-    streetHex: css(neonStreetHex),
-    renderedStreetLineHex: css(neonStreetLineRenderedHex),
-    renderedLineVsStreetContrast: Number(contrast(neonStreetLineRenderedHex, neonStreetHex).toFixed(2)),
-    contrastAgainstMinePink: Number(contrast(neonStreetLineRenderedHex, 0xff778c).toFixed(2)),
-    contrastAgainstGladiatorRing: Number(contrast(neonStreetLineRenderedHex, 0xff7d8a).toFixed(2)),
-    status: 'observation-for-step-2',
-    note: 'Observation for later steps (#585/#583/#593): street line is drawn at 2px width and 0.35 alpha over cobalt-concrete street, rendering as #846ba5 (1.00 luminance ratio vs street; 1.79 vs #ff778c mine ring; 1.85 vs #ff7d8a gladiator ring). Luminance ratio alone cannot establish hue-based signal separation; visual evaluation against active pink/magenta gameplay signals remains part of the promotion gate.',
-  };
-
   // Record all cases where fill-only contrast is below 1.15 (near-equal luminance fill) so later steps (#585/#583/#593) have complete evidence:
   const lowFillCandidates = branchSummary.filter(r => r.fillRatio < 1.15);
   const amberOverStreetFinding = {
@@ -2691,7 +2663,6 @@ try {
     step5StorefrontSummary,
     step5ExpandedKitsSummary,
     ochreUnderCobaltAssessment,
-    broadcastPinkAssessment,
     lowFillCandidates,
     branchSummary,
   };
@@ -2846,9 +2817,6 @@ try {
   </ul>
 </div>
 
-<h2>Neon Aftermath <code>broadcastPink</code> Street Line Observation</h2>
-<p>Raw swatch: <code>${broadcastPinkAssessment.rawSwatch}</code> · Rendered at <code>0.35</code> alpha on street (<code>${broadcastPinkAssessment.streetHex}</code>) → <code>${broadcastPinkAssessment.renderedStreetLineHex}</code> (line vs street luminance ratio <code>${broadcastPinkAssessment.renderedLineVsStreetContrast}</code>; luminance ratio vs mine <code>#ff778c</code>: <code>${broadcastPinkAssessment.contrastAgainstMinePink}</code>; vs gladiator ring <code>#ff7d8a</code>: <code>${broadcastPinkAssessment.contrastAgainstGladiatorRing}</code>). ${broadcastPinkAssessment.note}</p>
-
 <h2>Paired Captures</h2>
 <div class="grid">
   ${captures.map(c => `<figure>
@@ -2867,7 +2835,6 @@ try {
     report: path.relative(process.cwd(), path.join(outDir, 'report.json')),
     contactSheet: path.relative(process.cwd(), path.join(outDir, 'index.html')),
     comment6317Candidates,
-    broadcastPinkAssessment,
     step4SpatialSummary,
     step5PaletteFieldContrastSweep: paletteSweepSummary,
     lowFillCount: lowFillCandidates.length,
