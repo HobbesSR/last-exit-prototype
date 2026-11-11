@@ -12,7 +12,7 @@ export function createReplayController({
   downloadReplay, icon, icons, director,
 }) {
   let replay = null, replayTimeline = null, playback = 0, playing = true;
-  // The open recording's display metadata (22.7): embedded, retained, legacy or unknown (null).
+  // The open recording's display metadata (22.7): embedded, retained or unknown (null).
   let described = null;
   // Where playback was when the clock was last anchored, and when that was. Every jump re-anchors.
   let playbackFrom = 0, playbackAt = 0;

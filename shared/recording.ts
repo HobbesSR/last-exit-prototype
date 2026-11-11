@@ -23,12 +23,13 @@
 /** The schema this build writes. Bump on any change to recorded structure. */
 export const SCHEMA = 16;
 /**
- * The oldest schema this build can read. Schema 10 (P3, #440) is the first format with both
- * cell-masked chain maps (schema 4+) and required engine-free physics presentation.
+ * The oldest schema this build can read (#953). Schema 10 (P3, #440, matching physics matches'
+ * `minSchema` floor) is the chosen supported floor and the first format supporting required
+ * engine-free physics presentation alongside cell-masked chain maps (schema 4+).
  */
 export const MIN_SCHEMA = 10;
 
-/** Every match since #440 requires schema 10 (`MIN_SCHEMA`). `#954` owns removing `hasPhysics`. */
+/** Physics matches since #440 require schema 10 (`MIN_SCHEMA`). `#954` owns removing `hasPhysics`. */
 export function minimumReaderForMatch(_map: { playableArea?: unknown }, hasPhysics: boolean): number {
   return hasPhysics ? 10 : MIN_SCHEMA;
 }
@@ -38,7 +39,7 @@ export function minimumReaderForMatch(_map: { playableArea?: unknown }, hasPhysi
  * returns the reason rather than a sentence.
  *
  * - `too-new` — written by a later build that declared older readers cannot cope.
- * - `too-old` — below this build's supported floor (schemas 0–9 before chain maps and required physics).
+ * - `too-old` — below this build's supported floor (schemas 0–9).
  */
 export type RecordingFit = 'ok' | 'too-new' | 'too-old';
 

@@ -115,11 +115,13 @@ number cannot express that: every bump would lock out every older client whether
 not, and widening compatibility again would mean migrating the format a second time.
 
 The reader's policy is deliberately the simplest one that works — a floor, `MIN_SCHEMA`, currently
-**10** (#953). Schema 10 (`P3`, #440, matching `minimumReaderForMatch`) is the first format that
-guarantees both cell-masked chain maps (`playableArea`, added at schema 4) and required engine-free
-physics presentation (`bodies`, `tethers`, `physicsProfile`). Archives recorded under schemas 0–9
-(including schema-less recordings, pre-chain-map diamond arenas, and `last-exit-0.7` legacy-mover
-matches) are refused as `'too-old'` while staying downloadable via `/api/replays/:id`. Policy
+**10** (#953), matching the schema-10 floor stamped by physics matches (`minimumReaderForMatch`).
+Schema 10 (`P3`, #440) is the first format supporting required engine-free physics presentation
+(`bodies`, `tethers`, `physicsProfile`, alongside cell-masked chain maps introduced at schema 4);
+while both engines coexisted, non-physics matches could still write schema 10+ with an earlier
+`minSchema`, so 10 is the chosen supported floor rather than a guarantee about every historical schema-10 header.
+Archives recorded under schemas 0–9 (including schema-less recordings, pre-chain-map diamond arenas, and
+`last-exit-0.7` legacy-mover matches) are refused as `'too-old'` while staying downloadable via `/api/replays/:id`. Policy
 belongs to the reader; a recording only states facts about itself.
 
 The schema history, with the sections that explain each step:
