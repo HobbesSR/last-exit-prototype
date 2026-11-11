@@ -5,7 +5,7 @@ import { attack, skill } from '../shared/simulation/combat.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { viewLagFrom, MAX_REWIND_TICKS } from '../shared/simulation/rewind.ts';
 import { HZ, INTERPOLATION_DELAY_TICKS } from '../shared/simulation/rules.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { openField } from './helpers/arena.js';
 
 // On the shipped content and its engine (#920). A gladiator facing +x on open ground, a contestant in reach
@@ -130,7 +130,7 @@ test('history is bounded rather than growing with the match', duel(({ s }) => {
 
 test('a player who leaves stops being compensated', async () => {
   // Through the match's own leave, which is what the room calls on a disconnect.
-  const { map, content } = parts(), match = await createPhysicsMatch(4217, undefined, map, content);
+  const { map, content } = parts(), match = await createMatch(4217, undefined, map, content);
   try {
     const { s, attacker, target } = seat(match.diagnosticState);
     settle(s);

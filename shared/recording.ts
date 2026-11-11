@@ -29,9 +29,9 @@ export const SCHEMA = 16;
  */
 export const MIN_SCHEMA = 10;
 
-/** Physics matches since #440 require schema 10 (`MIN_SCHEMA`). `#954` owns removing `hasPhysics`. */
-export function minimumReaderForMatch(_map: { playableArea?: unknown }, hasPhysics: boolean): number {
-  return hasPhysics ? 10 : MIN_SCHEMA;
+/** Recordings since #440 require schema 10 (`MIN_SCHEMA`). */
+export function minimumReaderForMatch(): number {
+  return MIN_SCHEMA;
 }
 
 /**

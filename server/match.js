@@ -82,7 +82,7 @@ export function createLobby(content = defaultContent()) {
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
-export async function createPhysicsMatch(seed, size, map, content = defaultContent()) {
+export async function createMatch(seed, size, map, content = defaultContent()) {
   const game = await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content,
     () => preparationPause());
   try {
@@ -94,8 +94,6 @@ export async function createPhysicsMatch(seed, size, map, content = defaultConte
 function matchOf(game, payloads) {
   let disposedFrame;
   return {
-    /** Pinned capability, independent of rules-version spelling and world disposal. Every match has had physics since #920. */
-    get hasPhysics() { return true; },
     get version() { return game.version; },
     get tick() { return game.tick; },
     get phase() { return game.phase; },
@@ -139,17 +137,9 @@ function matchOf(game, payloads) {
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
     project: (frame, id) => playerView(game, frame, id),
     map: () => structuredClone(game.map),
-    liveMap: () => { const map = structuredClone({ ...game.map, traps: [] }); delete map.physicsProps; return map; },
-    spectatorMap: frame => { const map = structuredClone({ ...game.map, gates: frame.gates, items: frame.items, traps: [] }); delete map.physicsProps; return map; },
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
-      if (!payloads) {
-        const source = kind === 'spectator' ? { ...game.map, gates: frame.gates, items: frame.items, traps: [] }
-          : kind === 'recording' ? game.map : { ...game.map, traps: [] };
-        const copy = structuredClone(source);
-        if (kind !== 'recording') delete copy.physicsProps;
-        return copy;
-      }
+      if (!payloads) throw new Error('match disposed');
       const source = { ...game.map, gates: kind === 'spectator' ? frame.gates : publishGates(game),
         items: kind === 'spectator' ? frame.items : publishItems(game), ...(kind !== 'recording' ? { traps: [] } : {}) };
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });

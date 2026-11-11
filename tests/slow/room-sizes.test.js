@@ -10,7 +10,6 @@ import { playsToItsEnd, selectedSizes } from '../helpers/room-sizes.js';
 for (const size of selectedSizes()) {
   test(`a ${zoneSizeName(size)} physics room plays to its end, records and replays`, async () => {
     const { room, header } = await playsToItsEnd(size);
-    assert.equal(room.match.hasPhysics, true, 'the default runs on the physics engine');
     assert.equal(header.contentId, defaultContent().id);
     assert.equal(header.version, PHYSICS_VERSION, 'and the recording names the physics rules it ran');
     assert.ok(room.game.map.items.length <= defaultContent().itemInstances.groundCapacity, 'the map fits the content\'s ground capacity');

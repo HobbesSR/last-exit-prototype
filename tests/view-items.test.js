@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { liveZoneSize } from '../map/live.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
@@ -11,7 +11,7 @@ import { distance } from '../shared/simulation/geometry.ts';
 // reach; the potential-visibility rule still decides, so a view holds exactly what the whole-list filter gives:
 // nothing hidden gained, nothing visible lost.
 test('a player view holds exactly the items within potential visibility, in list order (#641)', async () => {
-  const match = await createPhysicsMatch(4217, liveZoneSize({ zoneWidth: 12, zoneHeight: 6 }), undefined, contentById('content-6'));
+  const match = await createMatch(4217, liveZoneSize({ zoneWidth: 12, zoneHeight: 6 }), undefined, contentById('content-6'));
   try {
     const s = match.diagnosticState;
     // A ring at the view's edge around each player's start, a hair inside, on and outside it, so movement carries

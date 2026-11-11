@@ -4,7 +4,7 @@ import { createPhysicsGame, disposePhysics, snapshot, playerView, PHYSICS_VERSIO
 import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { minimumReaderForMatch, MIN_SCHEMA, SCHEMA } from '../shared/recording.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
 import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -108,12 +108,11 @@ test('projection gates actors, prop bounds, item associations and both tether en
 test('physics recording floor is explicit and stamped by the room writer', async () => {
   assert.equal(SCHEMA, 16);
   for (const map of [arena(), { obstacles: [] }]) {
-    assert.equal(minimumReaderForMatch(map, true), 10);
-    assert.equal(minimumReaderForMatch(map, false), MIN_SCHEMA);
+    assert.equal(minimumReaderForMatch(), MIN_SCHEMA);
   }
   let header;
   const service = createRoomService({ content, matchFactory: async (...args) => {
-    const match = await createPhysicsMatch(...args);
+    const match = await createMatch(...args);
     // A future version must inherit the format floor through capability, without editing a version list.
     Object.defineProperty(match, 'version', { value: 'future-physics-rules' });
     return match;
@@ -128,6 +127,5 @@ test('physics recording floor is explicit and stamped by the room writer', async
     assert.equal(header.schema, 16);
     assert.equal(header.minSchema, 10);
     assert.equal(header.version, 'future-physics-rules');
-    assert.equal(room.match.hasPhysics, true);
   } finally { await service.close(); }
 });

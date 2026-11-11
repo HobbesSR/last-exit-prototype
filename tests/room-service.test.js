@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { createGame, createPhysicsGame, disposePhysics, joinGame, setInput, step, snapshot, synchronizePhysics, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 
@@ -113,7 +113,7 @@ test('matchmaking balances occupied fractions against three hunter places and fi
 });
 
 test('match boundary preserves simulation output and returns detached commands, identities and maps', async () => {
-  const match = await createPhysicsMatch(9, undefined, generatedMap(9)), game = await createPhysicsGame(9, generatedMap(9), defaultContent());
+  const match = await createMatch(9, undefined, generatedMap(9)), game = await createPhysicsGame(9, generatedMap(9), defaultContent());
   try {
   const actor = match.join('human', 'contestant', 'warden', 'Runner');
   // A match reconciles the physics world after every seat change; the bare game is given the same.

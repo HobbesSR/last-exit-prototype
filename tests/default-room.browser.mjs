@@ -7,7 +7,7 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 // The shipped default (#523) is physics content, so a room made with no options is the room a player gets. This is its
 // core client flow end to end: lobby, start, walking, and dropping an item, which a real map's item bodies once made
 // impossible. browser.mjs is the long regression; the physics-* scripts cover the rest.
-const { server, base, browser } = await serveWithBrowser({ profileSummary: false, replayDir: path.resolve('test-results/default-physics-replays') });
+const { server, base, browser } = await serveWithBrowser({ profileSummary: false, replayDir: path.resolve('test-results/default-room-replays') });
 const errors = [];
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -23,7 +23,6 @@ try {
   assert.equal(live.content, 'content-7', 'a room with no options runs the shipped default');
   assert.equal(live.version, PHYSICS_VERSION, 'on the physics rules');
   const game = server.rooms.get(room).game;
-  assert.equal(server.rooms.get(room).match.hasPhysics, true, 'the server built a physics match');
   // Walking: the client predicts and the server's physics world agrees.
   const before = live.me.x;
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');

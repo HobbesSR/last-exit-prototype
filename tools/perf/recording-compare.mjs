@@ -9,7 +9,7 @@ import { deserialize } from 'node:v8';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createReplayWriter } from '../../server/replay-writer.js';
-import { createPhysicsMatch } from '../../server/match.js';
+import { createMatch } from '../../server/match.js';
 import { liveZoneSize } from '../../map/live.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
@@ -29,10 +29,10 @@ const lock = await acquireMachineLock('bench');
 const entry = structuredClone(cache.maps[0]), map = entry.map;
 if (entry.navigation) attachPortalGraph(map, entry.navigation);
 for (const packed of entry.tiles ?? []) adoptPackedTiles(map, packed);
-const match = await createPhysicsMatch(cache.seed, size, map, contentById(cache.content));
+const match = await createMatch(cache.seed, size, map, contentById(cache.content));
 const header = { id: 'recording-comparison', seed: cache.seed, createdAt: 0, hz: 20,
   version: match.version, contentId: match.contentId, schema: SCHEMA,
-  minSchema: minimumReaderForMatch(map, match.hasPhysics === true), map: match.map() };
+  minSchema: minimumReaderForMatch(), map: match.map() };
 const digests = [createHash('sha256'), createHash('sha256')], bytes = [0, 0];
 // The changed writer receives the prepared map that production room startup uses;
 // the baseline receives the existing detached-map header. Both must be identical.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLayerEncoder, createLayerDecoder } from '../shared/frame-layers.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 
 // What one session is sent of an encoded frame: the keyframe when it lacks it, else the changes.
@@ -17,7 +17,7 @@ function wire(encoded, frame, held) {
 
 test('a directed view rebuilds exactly from keyframes and changes, at a fraction of its size (#250)', async () => {
   // On the pregenerated arena (#849): the encoding, not the map, is under test.
-  const match = await createPhysicsMatch(9, undefined, generatedMap(9)), encoder = createLayerEncoder(), decoder = createLayerDecoder(), held = {};
+  const match = await createMatch(9, undefined, generatedMap(9)), encoder = createLayerEncoder(), decoder = createLayerDecoder(), held = {};
   let whole = 0, sent = 0, keyframes = 0;
   try {
     for (let tick = 0; tick < 300; tick++) {

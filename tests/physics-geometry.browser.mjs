@@ -6,13 +6,12 @@ import { createArenaServer } from '../server/index.js';
 import { serveWithBrowser } from './helpers/browser.js';
 import { listen } from './helpers/listen.js';
 import { contentById } from '../shared/simulation/content.ts';
-import { createPhysicsMatch } from '../server/match.js';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
 const scratch = path.resolve('test-results');
 await mkdir(scratch, { recursive: true });
 const replayDir = await mkdtemp(path.join(scratch, 'physics-geometry-'));
-const { server, base, browser } = await serveWithBrowser({ replayDir, content: () => contentById('content-6'), matchFactory: createPhysicsMatch,
+const { server, base, browser } = await serveWithBrowser({ replayDir, content: () => contentById('content-6'),
   devTools: 'all', profileSummary: false });
 const errors = [];
 const expected = contentById('content-6').actorPhysics.geometry.contestant;

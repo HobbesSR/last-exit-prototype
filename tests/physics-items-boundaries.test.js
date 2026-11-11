@@ -5,7 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
 import { teleport } from '../shared/simulation/dev.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch } from '../server/match.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics.ts';
 
@@ -51,10 +51,10 @@ test('many same-boundary explosions keep one bounded impulse per body/generation
 
 test('client maps omit crate authoring while recordings retain engine-free physical frames', async () => {
   const { map, content } = parts();
-  const match = await createPhysicsMatch(445, undefined, map, content);
+  const match = await createMatch(445, undefined, map, content);
   try {
-    assert.equal(Object.hasOwn(match.liveMap(), 'physicsProps'), false);
-    assert.equal(Object.hasOwn(match.spectatorMap(match.snapshot()), 'physicsProps'), false);
+    assert.equal(Object.hasOwn(match.payloadMap('live'), 'physicsProps'), false);
+    assert.equal(Object.hasOwn(match.payloadMap('spectator', match.snapshot()), 'physicsProps'), false);
     assert.equal(match.map().physicsProps[0].id, 'hidden');
     const a = match.snapshot(), b = match.advance();
     const timeline = createReplayTimeline({ schema: 12, minSchema: 10, map: match.map(), frames: [{ state: a }, { state: b }] });

@@ -39,7 +39,7 @@ export const SETS = {
   },
   simulation: {
     about: 'game rules, items, bots, navigation, sight and projections, and the legacy generator',
-    fast: ['simulation', 'characterization-physics', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'traps', 'transit',
+    fast: ['simulation', 'tick-phases', 'characterization-physics', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'traps', 'transit',
       'utility-use', 'hearing', 'hearing-bots', 'hunting', 'hunter-planning', 'discovery', 'visibility', 'view', 'view-items',
       'projection-contract', 'presentation', 'frame-gates', 'frame-layers', 'rewind', 'reloading', 'input-queue',
       'movement-speed', 'movement-preparation', 'bot-discovery', 'bot-memory', 'navigation-*', 'route', 'boundaries', 'arena', 'playability', 'shared-rules', 'content'],
@@ -55,15 +55,15 @@ export const SETS = {
     about: 'the Rapier physics engine, its items, hook, ballistics and physical navigation',
     fast: ['physics-*', 'bot-intents'],
     slow: ['physics-navigation'],
-    browser: ['default-physics', 'physics-*'],
+    browser: ['physics-*'],
     sources: ['shared/physics/**', 'public/physics-*', 'public/dev/physics-lab*', 'public/dev/squish-shell.js'],
   },
   rooms: {
     about: 'the server: rooms, matchmaking, recording and replay, the map pool and live-map wiring',
-    fast: ['server', 'server-*', 'room-*', 'recording', 'recording-failure', 'replay-*', 'waiting', 'shutdown', 'http-json',
+    fast: ['server', 'server-*', 'match', 'room-*', 'recording', 'recording-failure', 'replay-*', 'waiting', 'shutdown', 'http-json',
       'client-config', 'latency', 'map-pool', 'map-generator', 'live-map', 'live-map-adapter'],
     slow: ['live-map', 'live-map-adapter', 'live-recipe', 'map-generator', 'room-arena', 'room-sizes'],
-    browser: ['browser'],
+    browser: ['browser', 'default-room'],
     sources: ['server/**', 'shared/recording.ts', 'map/live*.ts'],
   },
   macro: {

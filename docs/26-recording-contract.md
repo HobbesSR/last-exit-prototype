@@ -84,10 +84,9 @@ backward seeks, partial tails and held omitted ticks. It never reconstructs spri
 motion. The private `physics` field remains diagnostic gameplay state, unused by
 the renderer, and no exact engine checkpoint is required or sent live.
 
-Schema rises to 10 and `minimumReaderForMatch` requires 10 whenever the match's
-pinned `hasPhysics` capability is true, independently of its rules-version string.
-The physics match factory sets this capability; before #920 legacy matches kept it false.
-An older reader would omit props/tethers and misrepresent physical poses. Since #953 raised
+`minimumReaderForMatch` always returns 10 (`MIN_SCHEMA`), independently of the rules-version string
+(before #920/#954, a match boundary `hasPhysics` capability distinguished physics matches from legacy
+matches). An older reader would omit props/tethers and misrepresent physical poses. Since #953 raised
 `MIN_SCHEMA` to 10, archives below schema 10 are refused with `"no longer reads"` while
 remaining downloadable.
 
