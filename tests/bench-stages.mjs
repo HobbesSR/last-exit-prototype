@@ -77,7 +77,7 @@ async function buildRoom(i) {
   for (let c = 0; c < spectators; c++) room.clients.add({ playerId: undefined, deliver: () => true });
   if (recording) {
     const fullMap = match.map();
-    room.writer = createReplayWriter({ header: { version: match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(fullMap, match.hasPhysics === true), contentId: match.contentId, id: `bench-${i}`, seed: seed + i, hz: HZ, createdAt: 0, map: fullMap },
+    room.writer = createReplayWriter({ header: { version: match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(), contentId: match.contentId, id: `bench-${i}`, seed: seed + i, hz: HZ, createdAt: 0, map: fullMap },
       output: discard(), publish: async () => {}, onError: error => { throw error; } });
     room.writer.append(match.snapshot(), [{ type: 'start' }]);
   }

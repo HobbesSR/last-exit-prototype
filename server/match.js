@@ -94,8 +94,6 @@ export async function createPhysicsMatch(seed, size, map, content = defaultConte
 function matchOf(game, payloads) {
   let disposedFrame;
   return {
-    /** Pinned capability, independent of rules-version spelling and world disposal. Every match has had physics since #920. */
-    get hasPhysics() { return true; },
     get version() { return game.version; },
     get tick() { return game.tick; },
     get phase() { return game.phase; },
@@ -139,8 +137,6 @@ function matchOf(game, payloads) {
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
     project: (frame, id) => playerView(game, frame, id),
     map: () => structuredClone(game.map),
-    liveMap: () => { const map = structuredClone({ ...game.map, traps: [] }); delete map.physicsProps; return map; },
-    spectatorMap: frame => { const map = structuredClone({ ...game.map, gates: frame.gates, items: frame.items, traps: [] }); delete map.physicsProps; return map; },
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
       if (!payloads) {

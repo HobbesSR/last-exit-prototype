@@ -53,8 +53,8 @@ test('client maps omit crate authoring while recordings retain engine-free physi
   const { map, content } = parts();
   const match = await createPhysicsMatch(445, undefined, map, content);
   try {
-    assert.equal(Object.hasOwn(match.liveMap(), 'physicsProps'), false);
-    assert.equal(Object.hasOwn(match.spectatorMap(match.snapshot()), 'physicsProps'), false);
+    assert.equal(Object.hasOwn(match.payloadMap('live'), 'physicsProps'), false);
+    assert.equal(Object.hasOwn(match.payloadMap('spectator', match.snapshot()), 'physicsProps'), false);
     assert.equal(match.map().physicsProps[0].id, 'hidden');
     const a = match.snapshot(), b = match.advance();
     const timeline = createReplayTimeline({ schema: 12, minSchema: 10, map: match.map(), frames: [{ state: a }, { state: b }] });

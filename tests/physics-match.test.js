@@ -67,15 +67,20 @@ test('prepared map payloads match detached map queries at live and historical bo
       assert.deepEqual(payload, expected);
       return payload;
     };
+    const stripped = (source, overrides = {}) => {
+      const copy = structuredClone({ ...source, traps: [], ...overrides });
+      delete copy.physicsProps;
+      return copy;
+    };
     const initial = check('recording', match.map());
-    check('live', match.liveMap());
-    check('spectator', match.spectatorMap(old), old);
+    check('live', stripped(match.map()));
+    check('spectator', stripped(match.map(), { gates: old.gates, items: old.items }), old);
     map.gates[0].open = true;
     replaceItem(match.diagnosticState, map.items[0], { ...map.items[0], x: 420 });
     map.traps.push({ id: 'private-trap', x: 20, y: 20 });
     const current = check('recording', match.map());
-    check('live', match.liveMap());
-    const delayed = check('spectator', match.spectatorMap(old), old);
+    check('live', stripped(match.map()));
+    const delayed = check('spectator', stripped(match.map(), { gates: old.gates, items: old.items }), old);
     assert.equal(delayed.gates[0].open, false);
     assert.equal(delayed.items[0].x, 400);
     assert.deepEqual(delayed.traps, []);
@@ -96,8 +101,7 @@ test('room welcomes and recording start use prepared maps without changing start
   const service = createRoomService({ devTools: 'all', content,
     matchFactory: async (...args) => {
       match = await createPhysicsMatch(...args);
-      return { ...match, map() { throw new Error('full map clone'); }, liveMap() { throw new Error('live map clone'); },
-        spectatorMap() { throw new Error('spectator map clone'); } };
+      return { ...match, map() { throw new Error('full map clone'); } };
     },
     replays: { start(value) { header = structuredClone(value); return {
       append(state, commands) { frames.push(structuredClone({ state, commands })); return true; }, finish() { return {}; }
@@ -112,13 +116,13 @@ test('room welcomes and recording start use prepared maps without changing start
     await room.ready;
     assert.equal(room.started, true);
     const ready = messages.find(message => message.type === 'ready');
-    assert.deepEqual(ready.map, match.liveMap());
+    assert.deepEqual(ready.map, match.payloadMap('live'));
     assert.deepEqual(header.map, match.map());
     assert.deepEqual(frames[0].commands.map(command => command.type), ['join', 'start']);
     assert.equal(frames[0].state.tick, 0);
     const watcher = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
     service.receive(watcher, { type: 'join', room: room.id, role: 'dev' });
-    assert.deepEqual(messages.at(-1).map, match.spectatorMap(match.snapshot()));
+    assert.deepEqual(messages.at(-1).map, match.payloadMap('spectator', match.snapshot()));
   } finally { await service.close(); }
 });
 

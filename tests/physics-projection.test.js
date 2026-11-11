@@ -108,8 +108,7 @@ test('projection gates actors, prop bounds, item associations and both tether en
 test('physics recording floor is explicit and stamped by the room writer', async () => {
   assert.equal(SCHEMA, 16);
   for (const map of [arena(), { obstacles: [] }]) {
-    assert.equal(minimumReaderForMatch(map, true), 10);
-    assert.equal(minimumReaderForMatch(map, false), MIN_SCHEMA);
+    assert.equal(minimumReaderForMatch(), 10);
   }
   let header;
   const service = createRoomService({ content, matchFactory: async (...args) => {

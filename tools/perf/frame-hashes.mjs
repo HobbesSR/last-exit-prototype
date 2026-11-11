@@ -50,16 +50,13 @@ for (const id of contents) for (const seed of seeds) {
   const hash = createHash('sha256'), viewHash = createHash('sha256'), mapHash = createHash('sha256');
   let previousMapFrame;
   const maps = frame => {
-    const query = (kind, reference) => match.payloadMap ? match.payloadMap(kind, reference)
-      : kind === 'recording' ? match.map() : kind === 'live' ? match.liveMap() : match.spectatorMap(reference);
     for (const kind of ['recording', 'live', 'spectator'])
-      mapHash.update(stringifyWithMap({ map: query(kind, previousMapFrame ?? frame) }));
+      mapHash.update(stringifyWithMap({ map: match.payloadMap(kind, previousMapFrame ?? frame) }));
     previousMapFrame = frame;
   };
   // Recording start publishes its source map before capturing the first frame.
   if (args.has('payloads')) {
-    const map = match.payloadMap ? match.payloadMap('recording') : match.map();
-    mapHash.update(stringifyWithMap({ map }));
+    mapHash.update(stringifyWithMap({ map: match.payloadMap('recording') }));
   }
   const record = frame => {
     hash.update(JSON.stringify(frame));

@@ -59,7 +59,7 @@ test('the server stamps every recording with the schema pair its readers check',
   const { writer } = await harness.live(9);
   assert.equal(writer.header.schema, SCHEMA);
   // The shipped rules run on the physics engine, so the floor is the physics reader's, matching MIN_SCHEMA.
-  assert.equal(writer.header.minSchema, minimumReaderForMatch(writer.header.map, true));
+  assert.equal(writer.header.minSchema, minimumReaderForMatch());
   assert.equal(writer.header.minSchema, MIN_SCHEMA);
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
 });

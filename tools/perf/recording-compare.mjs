@@ -32,7 +32,7 @@ for (const packed of entry.tiles ?? []) adoptPackedTiles(map, packed);
 const match = await createPhysicsMatch(cache.seed, size, map, contentById(cache.content));
 const header = { id: 'recording-comparison', seed: cache.seed, createdAt: 0, hz: 20,
   version: match.version, contentId: match.contentId, schema: SCHEMA,
-  minSchema: minimumReaderForMatch(map, match.hasPhysics === true), map: match.map() };
+  minSchema: minimumReaderForMatch(), map: match.map() };
 const digests = [createHash('sha256'), createHash('sha256')], bytes = [0, 0];
 // The changed writer receives the prepared map that production room startup uses;
 // the baseline receives the existing detached-map header. Both must be identical.

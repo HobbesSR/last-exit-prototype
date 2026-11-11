@@ -81,7 +81,7 @@ try {
   // present frame, told apart by how far past it they declare they run; each is listed as an arena
   // named for that.
   const frame = room.match.snapshot();
-  const recording = extra => ({ id: `held-${extra}`, schema: SCHEMA, minSchema: MIN_SCHEMA, hz: 20, map: room.match.spectatorMap(frame),
+  const recording = extra => ({ id: `held-${extra}`, schema: SCHEMA, minSchema: MIN_SCHEMA, hz: 20, map: room.match.payloadMap('spectator', frame),
     frames: [{ state: room.match.project(frame, null), commands: [] }], recording: { complete: true, droppedFrames: 0, endTick: frame.tick + extra } });
   await page.evaluate(({ recordings, rows }) => {
     const held = window.heldReplays = {}, realFetch = window.realFetch = window.fetch;
