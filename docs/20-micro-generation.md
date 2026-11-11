@@ -3,8 +3,8 @@
 The game now has a standalone micro-generation implementation in
 `map/micro/`. It accepts briefs for regions and resolves them into the same
 obstacles, roofs, windows and doors used by the live game. Live matches consume
-the chain through `map/live.ts`; the legacy street generator remains available
-for characterization. The macro generator, formerly the sibling
+the chain through `map/live.ts`, the only map generator since #920 deleted the
+legacy street generator. The macro generator, formerly the sibling
 `last_exit_map` repository, now lives in `map/macro/` with its own tests and docs.
 The server invokes the chain before creating the simulation and consumes its
 completed results (22). Cell masks and replay compatibility are described in 26.

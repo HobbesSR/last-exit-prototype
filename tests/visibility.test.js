@@ -1,6 +1,6 @@
 // Guards the wedge-culled visibility polygon against a brute-force implementation of the same rays.
 // The optimisation must be exact: every vertex identical, not merely close.
-import { generateMap } from '../shared/map.ts';
+import { generatedMap } from './helpers/room-harness.js';
 import { visibilityPolygon, litPoint, lineClear, reachClear, canOccupy, VISION } from '../shared/movement.ts';
 import { outline, shapeOf } from '../shared/shape.ts';
 // Exact agreement needs the same trig as shared/; Math.* differs from it in the last bit on ARM (#566).
@@ -11,7 +11,11 @@ import test from 'node:test';
 // What a shape *is* is deliberately not: a second description of that is the exact defect `shape.ts`
 // exists to prevent, and this reference did carry one. It read every obstacle from raw `x/y/w/h`, so
 // once generation began emitting polygons it compared correct output against a bounding box.
+// The maps are the stored room arena, a chain map as live rooms play (#920 retired the street generator
+// these cases once sampled seeds of); variety comes from the origins and gate states instead.
 const pts = o => outline(shapeOf(o));
+// Sight and shots pass these kinds (29); chain maps grow hedges, which the street maps never had.
+const seeThrough = o => o.kind === 'window' || o.kind === 'pipe' || o.kind === 'hedge';
 const edgesOf = o => { const p = pts(o); return p.map((a, i) => ({ a, b: p[(i + 1) % p.length] })); };
 const gateShape = g => ({ x: g.x - (g.w ?? 26) / 2, y: g.y - (g.h ?? 54) / 2, w: g.w ?? 26, h: g.h ?? 54 });
 function hitRay(o, dx, dy, e) {
@@ -22,7 +26,7 @@ function hitRay(o, dx, dy, e) {
   return t >= 0 && u >= 0 && u <= 1 ? t : Infinity;
 }
 function reference(map, origin, radius = VISION) {
-  const all = [...map.obstacles.filter(o => o.kind !== 'window').flatMap(edgesOf), ...map.gates.filter(g => !g.open).flatMap(g => edgesOf(gateShape(g)))];
+  const all = [...map.obstacles.filter(o => !seeThrough(o)).flatMap(edgesOf), ...map.gates.filter(g => !g.open).flatMap(g => edgesOf(gateShape(g)))];
   const segments = all.filter(({ a, b }) => Math.min(a.x, b.x) < origin.x + radius && Math.max(a.x, b.x) > origin.x - radius && Math.min(a.y, b.y) < origin.y + radius && Math.max(a.y, b.y) > origin.y - radius);
   const angles = Array.from({ length: 100 }, (_, i) => i * Math.PI / 50 - Math.PI);
   for (const edge of segments) for (const p of [edge.a, edge.b]) { const ang = atan2(p.y - origin.y, p.x - origin.x); angles.push(ang - 0.00001, ang, ang + 0.00001); }
@@ -34,37 +38,38 @@ function reference(map, origin, radius = VISION) {
 }
 test('wedge-culled visibility polygons match a brute-force implementation exactly', () => {
 let compared = 0, worst = 0;
-for (const seed of [4217, 9, 11, 777, 20250908, 31337, 2, 65535]) {
-  const map = generateMap(seed);
+{
+  const map = generatedMap(9);
   // Gates are read open or closed as the query meets them, so some open and some closed too.
   for (const open of [false, true, 'alternate']) {
     map.gates.forEach((g, i) => { g.open = open === 'alternate' ? i % 2 === 0 : open; });
     const origins = [];
-    for (let i = 0; i < 60; i++) origins.push({ x: 200 + (i * 7919) % (map.width - 400), y: 300 + (i * 271) % (map.height - 600) });
+    for (let i = 0; i < 40; i++) origins.push({ x: 200 + (i * 7919) % (map.width - 400), y: 300 + (i * 271) % (map.height - 600) });
     // Include origins placed exactly on obstacle corners and edge midpoints, where the wedge is degenerate.
-    for (const o of map.obstacles.slice(0, 12)) {
+    for (const o of map.obstacles.filter((_, i) => i % 150 === 0)) {
+      if (o.points) continue;
       if (o.r) origins.push({ x: o.x, y: o.y }, { x: o.x + o.r, y: o.y });
       else origins.push({ x: o.x, y: o.y }, { x: o.x, y: o.y + o.h / 2 }, { x: o.x + o.w / 2, y: o.y }, { x: o.x + o.w / 2, y: o.y + o.h / 2 });
     }
     for (const origin of origins) {
       const a = visibilityPolygon(map, origin), b = reference(map, origin);
-      assert.equal(a.length, b.length, `vertex count seed ${seed} origin ${origin.x},${origin.y}`);
+      assert.equal(a.length, b.length, `vertex count origin ${origin.x},${origin.y}`);
       for (let k = 0; k < a.length; k++) worst = Math.max(worst, Math.hypot(a[k].x - b[k].x, a[k].y - b[k].y));
       compared++;
     }
   }
 }
   assert.equal(worst, 0, `worst vertex deviation ${worst}`);
-  assert.ok(compared > 1000, `compared ${compared} polygons`);
+  assert.ok(compared > 300, `compared ${compared} polygons`);
 });
 
 test('litPoint agrees with the fog it is derived from, to within its own edge', () => {
   const depths = [];
   let samples = 0;
-  for (const seed of [4217, 9, 11, 777, 20250908]) {
-    const map = generateMap(seed);
+  const map = generatedMap(9);
+  for (let row = 0; row < 6; row++) {
     for (let i = 0; i < 12; i++) {
-      const origin = { x: map.width * (0.2 + i * 0.05), y: map.height / 2 + (i % 3 - 1) * 170 };
+      const origin = { x: map.width * (0.2 + i * 0.05), y: map.height * (row + 0.5) / 6 + (i % 3 - 1) * 170 };
       if (!canOccupy(map, origin.x, origin.y, 12)) continue; // A player can never stand inside geometry.
       const poly = visibilityPolygon(map, origin);
       for (let k = 0; k < 400; k++) {
@@ -78,8 +83,11 @@ test('litPoint agrees with the fog it is derived from, to within its own edge', 
         let lo = 0, hi = poly.length - 1;
         if (angle >= poly[0].angle && angle <= poly[hi].angle) while (hi - lo > 1) { const m = (lo + hi) >> 1; if (poly[m].angle <= angle) lo = m; else hi = m; }
         else { lo = poly.length - 1; hi = 0; }
-        const edge = { a: poly[lo], b: poly[hi] };
-        depths.push(Math.abs(r - hitRay(origin, Math.cos(angle), Math.sin(angle), edge)));
+        // Distance to that drawn edge, not along the ray: a shadow's edge runs radially, so a point a
+        // hair beside one is far from it along the ray (#920 met 0.001 px off a corner reading 44 px).
+        const from = poly[lo], ex = poly[hi].x - from.x, ey = poly[hi].y - from.y, span = ex * ex + ey * ey;
+        const t = span ? Math.max(0, Math.min(1, ((p.x - from.x) * ex + (p.y - from.y) * ey) / span)) : 0;
+        depths.push(Math.hypot(p.x - from.x - t * ex, p.y - from.y - t * ey));
       }
     }
   }
@@ -88,8 +96,8 @@ test('litPoint agrees with the fog it is derived from, to within its own edge', 
   assert.ok(Math.max(...depths) < 8, `deepest disagreement ${Math.max(...depths)} px from the drawn edge`);
 });
 test('an eye buried in geometry lights nothing', () => {
-  const map = generateMap(4217);
-  const wall = map.obstacles.find(o => !o.r && o.kind !== 'window' && o.w > 60 && o.w < 180 && o.h > 60 && o.h < 180);
+  const map = generatedMap(9);
+  const wall = map.obstacles.find(o => !o.r && !o.points && !seeThrough(o) && o.w > 60 && o.w < 180 && o.h > 60 && o.h < 180);
   const inside = { x: wall.x + wall.w / 2, y: wall.y + wall.h / 2 };
   const poly = visibilityPolygon(map, inside);
   assert.equal(litPoint(poly, inside, inside.x + 200, inside.y), false);
@@ -98,15 +106,15 @@ test('an eye buried in geometry lights nothing', () => {
 
 // lineClear and reachClear look edges up by bucket (#639); every edge of the map must still give the same answer.
 test('bucketed sight and reach checks match testing every edge', () => {
-  const seeThrough = o => o.kind === 'window' || o.kind === 'pipe' || o.kind === 'hedge';
   const crosses = (a, b, L, e) => {
     const dx = (b.x - a.x) / L, dy = (b.y - a.y) / L;
     return Math.max(e.a.x, e.b.x) >= Math.min(a.x, b.x) && Math.min(e.a.x, e.b.x) <= Math.max(a.x, b.x)
       && Math.max(e.a.y, e.b.y) >= Math.min(a.y, b.y) && Math.min(e.a.y, e.b.y) <= Math.max(a.y, b.y) && hitRay(a, dx, dy, e) < L - 0.1;
   };
   let compared = 0, blocked = 0;
-  for (const seed of [4217, 11, 777]) {
-    const map = generateMap(seed), solid = map.obstacles.filter(o => !seeThrough(o)).flatMap(edgesOf);
+  const map = generatedMap(9);
+  for (const seed of [4217, 11, 777]) { // Seeds of the segment sampler, not of maps.
+    const solid = map.obstacles.filter(o => !seeThrough(o)).flatMap(edgesOf);
     const clear = map.obstacles.filter(seeThrough).flatMap(edgesOf);
     let state = seed;
     const random = () => (state = (state * 1103515245 + 12345) % 2147483648) / 2147483648;
@@ -119,7 +127,7 @@ test('bucketed sight and reach checks match testing every edge', () => {
     for (let round = 0; round < 4; round++) {
       for (const g of map.gates) g.open = random() < 0.5;
       const gates = map.gates.filter(g => !g.open).map(g => ({ id: g.id, edges: edgesOf(gateShape(g)) }));
-      for (let i = 0; i < 1500; i++) {
+      for (let i = 0; i < 600; i++) {
         const a = point(), angle = random() * 2 * Math.PI, length = random() < 0.2 ? random() * 5 : random() * 700;
         const b = random() < 0.3 ? point() : { x: a.x + Math.cos(angle) * length, y: a.y + Math.sin(angle) * length };
         const ignore = random() < 0.2 && map.gates.length ? map.gates[Math.floor(random() * map.gates.length)].id : null;

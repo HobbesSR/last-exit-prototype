@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { regionalLightingFields } from '../map/micro/lighting.ts';
 import { stampBuiltMap } from '../map/micro/adapter.ts';
 import { createGenerationContext } from '../shared/map/context.ts';
-import { HUT } from '../shared/map/templates.ts';
+import { HUT } from './helpers/hut-template.js';
 import { shapeOf } from '../shared/shape.ts';
 import { getCanonicalFields, resolveGroundAppearance, sampleSpatialLight } from '../public/appearance.js';
 

@@ -35,11 +35,11 @@ const stepping = new WeakSet<Game>();
 /** The only game that steps (#920): `createGame` builds its record, and this adds the physics world.
  * `yieldControl` is for private preparation of a caller-owned map; the caller must
  * not publish or mutate that map while construction is pending. It never runs in a tick. */
-export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
+export async function createPhysicsGame(seed: number, map: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
   if (content?.itemInstances && !content.worldPhysics) throw new RangeError('physical item integration requires P5; use createGame for L0');
   // Preparation is private until the factory resolves. Only the server supplies
   // event-loop yields; shared/browser callers retain the ordinary construction path.
-  if (map && yieldControl) await prepareMovementGeometry(map, yieldControl);
+  if (yieldControl) await prepareMovementGeometry(map, yieldControl);
   const s = createGame(seed, map, content);
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
