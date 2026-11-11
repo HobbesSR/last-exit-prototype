@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMap, minimumReaderForMatch } from '../shared/recording.ts';
+import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { createGame, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
@@ -32,7 +32,7 @@ test('a recording states what it is and the reader decides, refusing formats bel
   assert.equal(recordingFit(playable), 'too-old');
   assert.equal(recordingFit({ ...playable, schema: MIN_SCHEMA - 1, minSchema: 0 }), 'too-old');
   assert.equal(recordingFit({ map: {} }), 'too-old');
-  assert.equal(recordingFit({ schema: SCHEMA }), 'pre-vector');
+  assert.equal(recordingFit({ schema: SCHEMA }), 'ok');
   assert.equal(recordingFit({ ...playable, schema: SCHEMA, minSchema: 0 }), 'ok');
 });
 
@@ -58,10 +58,9 @@ test('the server stamps every recording with the schema pair its readers check',
   const harness = roomHarness({ reuseMaps: true });
   const { writer } = await harness.live(9);
   assert.equal(writer.header.schema, SCHEMA);
-  // The shipped rules run on the physics engine, so the floor is the physics reader's; it is above the masked-map floor, which the map still needs.
+  // The shipped rules run on the physics engine, so the floor is the physics reader's, matching MIN_SCHEMA.
   assert.equal(writer.header.minSchema, minimumReaderForMatch(writer.header.map, true));
-  assert.equal(minimumReaderForMap(writer.header.map), 4, 'masked maps require a reader that draws their playable area');
-  assert.ok(writer.header.minSchema >= minimumReaderForMap(writer.header.map));
+  assert.equal(writer.header.minSchema, MIN_SCHEMA);
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
 });
 

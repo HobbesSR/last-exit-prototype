@@ -28,14 +28,9 @@ export const SCHEMA = 16;
  */
 export const MIN_SCHEMA = 10;
 
-/** Older renderers assume a diamond, so a recording of a cell-masked arena needs this reader. */
-export function minimumReaderForMap(map: { playableArea?: unknown }): number {
-  return map.playableArea ? 4 : MIN_SCHEMA;
-}
-
-/** Physics visuals are required for these explicitly selected rules; ordinary archives keep their floor. */
-export function minimumReaderForMatch(map: { playableArea?: unknown }, hasPhysics: boolean): number {
-  return hasPhysics ? 10 : minimumReaderForMap(map);
+/** Every match since #440 requires schema 10 (`MIN_SCHEMA`). `#954` owns removing `hasPhysics`. */
+export function minimumReaderForMatch(_map: { playableArea?: unknown }, hasPhysics: boolean): number {
+  return hasPhysics ? 10 : MIN_SCHEMA;
 }
 
 /**
@@ -43,19 +38,15 @@ export function minimumReaderForMatch(map: { playableArea?: unknown }, hasPhysic
  * returns the reason rather than a sentence.
  *
  * - `too-new` — written by a later build that declared older readers cannot cope.
- * - `too-old` — below this build's supported floor.
- * - `pre-vector` — the grid prototype, whose maps carry no obstacle geometry the renderer can draw.
- *   Schema alone cannot catch these: they predate the field, so they are indistinguishable by
- *   number from any other pre-schema archive and have to be recognised by their contents.
+ * - `too-old` — below this build's supported floor (schemas 0–9 before chain maps and required physics).
  */
-export type RecordingFit = 'ok' | 'too-new' | 'too-old' | 'pre-vector';
+export type RecordingFit = 'ok' | 'too-new' | 'too-old';
 
 const count = (value: unknown): number => Number.isSafeInteger(value) && (value as number) >= 0 ? value as number : 0;
 
 export function recordingFit(header: unknown): RecordingFit {
-  const record = (header ?? {}) as { schema?: unknown; minSchema?: unknown; map?: { obstacles?: unknown } | null };
+  const record = (header ?? {}) as { schema?: unknown; minSchema?: unknown };
   if (count(record.minSchema) > SCHEMA) return 'too-new';
   if (count(record.schema) < MIN_SCHEMA) return 'too-old';
-  if (!record.map?.obstacles) return 'pre-vector';
   return 'ok';
 }

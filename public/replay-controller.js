@@ -93,7 +93,6 @@ export function createReplayController({
       if (fit !== 'ok') throw new Error(`${{
         'too-new': 'This broadcast was recorded by a newer build of the arena.',
         'too-old': 'This broadcast uses a recording format this build no longer reads.',
-        'pre-vector': 'This broadcast uses the earlier grid prototype.',
       }[fit]} Its JSON can still be downloaded.`);
       // Installed with the recording, after its load is known to be current, before anything is drawn.
       clearInput(); replay = data; replayTimeline = timeline; playback = 0; playing = true;

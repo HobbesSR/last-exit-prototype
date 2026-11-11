@@ -12,7 +12,8 @@ try {
   await page.goto(`${base}/physics-playback-fixture`);
   await page.evaluate(async () => {
     const { makeArenaScene } = await import('/arena-scene.js');
-    const map = { seed: 1, width: 5000, height: 3000, modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [], buildings: [], obstacles: [] };
+    const map = { seed: 1, width: 5000, height: 3000, hazards: [], gaps: [], stations: [], sensors: [], gates: [], buildings: [], obstacles: [],
+      playableArea: { cellSize: 40, rows: Array.from({ length: 75 }, (_, y) => ({ y, runs: [[0, 125]] })) } };
     const player = { id: 'self', name: 'Viewer', role: 'contestant', x: 500, y: 400, heading: 0, status: 'active', hp: 100, maxHp: 100 };
     const near = (id, x, y, shape) => ({ id, kind: 'prop', x, y, angle: 0.5, vx: 0, vy: 0, omega: 0, sleeping: false, generation: 1, shape });
     const cloaked = { id: 'cloaked', name: 'Hidden', role: 'contestant', x: 575, y: 440, heading: 0, status: 'active', hp: 100, maxHp: 100, cloak: true };

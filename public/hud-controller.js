@@ -7,8 +7,6 @@ import { slotPresentation } from '/equipment-ui.js';
 import * as profiler from '/shared/profiler.ts';
 import { $, HZ, kitName, kitSkill, tickRate, time, SHIPPED_PRESENTATION, UNAVAILABLE } from '/ui.js';
 
-// Escape pods in the matches older recordings hold, for their outcome lines; the live count is the rule's.
-const RECORDED_ESCAPE_SLOTS = 3;
 // A frame's own tick value when it has one: present values beat the descriptor, zero included.
 const ticksOf = value => Number.isSafeInteger(value) && value > 0 ? value : null;
 
@@ -147,7 +145,6 @@ export function createHUDController(actions) {
     setText($('clock'), duration === null ? UNAVAILABLE : time(duration - state.tick, hz));
     setText($('slots'), state.slots);
     setText($('seed-label'), arenaMap.seed);
-    setText($('sector'), String(Math.min(arenaMap.modules.length, 1 + Math.floor((me?.x || 0) / arenaMap.width * arenaMap.modules.length))).padStart(2, '0'));
     setText($('remaining'), `${state.contestantsActive ?? state.players.filter(p => p.role === 'contestant' && p.status === 'active').length} CONTESTANTS`);
     
     const feedTexts = state.events.slice(-3).map(e => e.text);
@@ -164,11 +161,11 @@ export function createHUDController(actions) {
       const gladiator = me.role === 'gladiator';
       dragEnabled = !gladiator && isPlay && !document.querySelector('dialog:modal');
       if (!dragEnabled) cancelDrag();
-      const cell = carriedCell(me) || me.cell; // Older recordings stored a dedicated cell.
+      const cell = carriedCell(me);
       setHidden($('drop-item'), gladiator || !isPlay);
       setHidden($('arrange-item'), $('drop-item').hidden);
       setText($('arrange-item'), moveFrom === null ? 'Move / merge · M' : 'Choose destination · M cancels');
-      // Only L2 matches carry reserves; older content and recordings show no reload controls.
+      // Only L2 matches carry reserves; non-L2 content and schema 10–12 recordings show no reload controls.
       setHidden($('ammo-panel'), gladiator || !isPlay || !me.reserves);
       if (me.reserves) {
         setText($('reload-item'), me.reload ? 'Reloading…' : 'Reload · R');
@@ -259,7 +256,7 @@ export function createHUDController(actions) {
         const escaped = me.status === 'escaped';
         setText($('outcome-label'), escaped ? 'EXTRACTION CONFIRMED' : state.phase === 'finished' ? 'BROADCAST COMPLETE' : 'CONTESTANT ELIMINATED');
         setText($('outcome-title'), escaped ? 'You made it out.' : gladiator ? 'The hunt is over.' : 'End of the line.');
-        const pods = view === 'replay' ? RECORDED_ESCAPE_SLOTS : INITIAL_ESCAPE_SLOTS;
+        const pods = INITIAL_ESCAPE_SLOTS;
         setText($('outcome-detail'), gladiator ? `${me.kills} eliminations. ${pods - state.slots} contestants escaped.` : escaped ? `${state.slots} escape slots remain.` : `${pods - state.slots} escaped. ${state.slots} exits unclaimed.`);
         
         const watchDisabled = !savedReplay;
@@ -348,22 +345,15 @@ export function createHUDController(actions) {
       c.clip();
     }
 
-    if (arenaMap.playableArea) {
-      const { cellSize, rows } = arenaMap.playableArea;
-      c.beginPath();
-      for (const row of rows) for (const [start, end] of row.runs)
-        c.rect(start * cellSize * sx, row.y * cellSize * sy, (end - start) * cellSize * sx, cellSize * sy);
-      c.fillStyle = cols.wall; c.fill();
-      if (isContestant) c.restore();
-      c.save(); c.clip();
-      c.fillStyle = cols.hazard; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
-      c.restore();
-    } else {
-      c.beginPath(); c.moveTo(2, 62); c.lineTo(130, 2); c.lineTo(258, 62); c.lineTo(130, 122); c.closePath(); c.fillStyle = cols.wall; c.fill(); c.strokeStyle = cols.border; c.stroke();
-      if (isContestant) c.restore();
-      c.strokeStyle = cols.dash; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(6, 62); c.lineTo(254, 62); c.stroke(); c.setLineDash([]);
-      c.fillStyle = cols.hazard; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
-    }
+    const { cellSize, rows } = arenaMap.playableArea;
+    c.beginPath();
+    for (const row of rows) for (const [start, end] of row.runs)
+      c.rect(start * cellSize * sx, row.y * cellSize * sy, (end - start) * cellSize * sx, cellSize * sy);
+    c.fillStyle = cols.wall; c.fill();
+    if (isContestant) c.restore();
+    c.save(); c.clip();
+    c.fillStyle = cols.hazard; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
+    c.restore();
 
     for (const station of arenaMap.stations) {
       if (isContestant && !isFeatureDiscovered(memory, arenaMap, station)) continue;
