@@ -139,13 +139,7 @@ function matchOf(game, payloads) {
     map: () => structuredClone(game.map),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
-      if (!payloads) {
-        const source = kind === 'spectator' ? { ...game.map, gates: frame.gates, items: frame.items, traps: [] }
-          : kind === 'recording' ? game.map : { ...game.map, traps: [] };
-        const copy = structuredClone(source);
-        if (kind !== 'recording') delete copy.physicsProps;
-        return copy;
-      }
+      if (!payloads) throw new Error('match disposed');
       const source = { ...game.map, gates: kind === 'spectator' ? frame.gates : publishGates(game),
         items: kind === 'spectator' ? frame.items : publishItems(game), ...(kind !== 'recording' ? { traps: [] } : {}) };
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });

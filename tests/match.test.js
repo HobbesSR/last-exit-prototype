@@ -92,6 +92,13 @@ test('prepared map payloads match detached map queries at live and historical bo
     assert.throws(() => current.items.pop(), TypeError);
     assert.throws(() => current.items[0].x = 0, TypeError);
     assert.equal(match.map().items[0].x, 420);
+    const finalFrame = match.snapshot();
+    match.dispose();
+    assert.throws(() => match.payloadMap('recording'), /disposed/);
+    assert.throws(() => match.payloadMap('live'), /disposed/);
+    assert.throws(() => match.payloadMap('spectator', finalFrame), /disposed/);
+    assert.equal(match.map().items[0].x, 420);
+    assert.equal(match.snapshot().tick, finalFrame.tick);
   } finally { match.dispose(); }
 });
 
