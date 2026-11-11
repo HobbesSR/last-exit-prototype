@@ -33,7 +33,8 @@ deserialized arenas, reproduce every digest, and each trace repeated within one 
 Tests only read this fixture. Do not regenerate it to accommodate refactor changes: a
 behaviour-preserving change reproduces it exactly. A recapture belongs to a decided rules, content,
 recorded-state or wire change, is named for its new checkpoint, and costs the continuity of the
-evidence, so it is a decision rather than a step. A physics rules version change is one: the fast
+evidence, so it is a decision rather than a step. Such changes wait in the open "Physics recapture
+batch" issue and land together with one recapture ([31](../../docs/31-verification.md#the-frozen-fixture)). A physics rules version change is one: the fast
 test fails on the stored `version` first. Because the fixture carries its own arenas, a change to
 generation alone never moves the traces. To recapture, build the object
 above from the scenario module: `traceArenas()` (or the previous fixture's `arenas`, carried
