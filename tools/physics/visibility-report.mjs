@@ -92,7 +92,7 @@ try {
   assert.equal(hidden.drawnByCohort.shadow + hidden.drawnByCohort.offscreen, 0, 'hidden case must draw no props');
   assert.equal(baseline.drawnByCohort.visible + baseline.drawnByCohort.edge + baseline.drawnByCohort.shadow + baseline.drawnByCohort.offscreen, 0);
   const files = {};
-  for (const file of ['tools/physics/visibility-report.mjs', 'public/arena-scene.js', 'shared/view.ts', 'shared/shape.ts', 'shared/physics/presentation-geometry.ts']) {
+  for (const file of ['tools/physics/visibility-report.mjs', 'public/arena-scene.js', 'public/frame-drawing.js', 'shared/view.ts', 'shared/shape.ts', 'shared/physics/presentation-geometry.ts']) {
     files[file] = createHash('sha256').update(await readFile(file)).digest('hex');
   }
   const report = { date: new Date().toISOString(), commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),

@@ -70,7 +70,7 @@ try {
     });
   }, views);
   const rendered = await page.evaluate(async frame => {
-    const { drawHookFlight } = await import('/arena-scene.js');
+    const { drawHookFlight } = await import('/frame-drawing.js');
     const commands = [];
     const g = Object.fromEntries(['lineStyle', 'lineBetween', 'fillStyle', 'fillCircle'].map(name =>
       [name, (...args) => { commands.push([name, ...args]); }]));

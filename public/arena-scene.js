@@ -1,54 +1,27 @@
-import { visibilityPolygon, gateShape, insideMap, sweptClear } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, buildingOpenings, createShapeVisibility, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
-import { shapeOf, outline, bounds } from '/shared/shape.ts';
-import { bodyRadius, bodyShape } from '/shared/physics/presentation-geometry.ts';
+import { visibilityPolygon, sweptClear } from '/shared/movement.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesActor, observeGates, roofAt, buildingOpenings, INSIDE_ZOOM, LOD_LABEL_ZOOM } from '/shared/view.ts';
+import { bodyRadius } from '/shared/physics/presentation-geometry.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
-import { DEFAULT_THEME, themeColors, css, mix } from './palette.js';
+import { DEFAULT_THEME, themeColors, css } from './palette.js';
+import { sampleSpatialLight, getCanonicalFields, actorBaseTint, resolveActorTint } from './appearance.js';
+import { resolveEventLights, drawEventLights } from './event-light.js';
+import { TileCache } from './tile-cache.js';
+import { recordStatic } from './static-drawing.js';
 import {
-  APPEARANCE_RECIPE_VERSION,
-  resolveBuildingAppearance,
-  resolveDeclaredRoofs,
-  resolveObstacleAppearance,
-  resolveGroundAppearance,
-  sampleSpatialLight,
-  getCanonicalFields,
-  actorBaseTint,
-  resolveActorTint,
-  resolvePropAppearance,
-  recordAppearanceOps,
-} from './appearance.js';
-import { resolveEventLights, drawEventLights, eventLightAt, liftByEventLight } from './event-light.js';
+  FrameView, fadeRoofs, visibleBodies, drawTethers, drawHookFlights, drawProps, drawGates, drawItems,
+  drawSensors, drawTraps, projectShots, drawShots, drawEffects, drawHazard, drawHeardCues,
+} from './frame-drawing.js';
 
-// Heard gunfire's ring and edge arrow (#684).
-const HEARD = 0xffba62;
-const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a, ammo: 0xc5f16f };
 // Eye settling time constant, chosen to match the previous `delta / 40` at 60 Hz.
 const EYE_TAU_MS = 31;
-// Static world geometry is recorded once and rasterised into cached tile textures, so a frame blits a
-// few quads instead of re-tessellating every shape. Phaser's Graphics replays and re-triangulates its
-// whole command list on every render; it is not a cache. Recorded drawings are indexed by CELL squares.
-const CELL = 512;
-// A tile spans CELL << level world units. The level rises as the camera pulls back, so a tile stays at
-// least this many screen pixels across and a whole-arena view needs a handful of tiles, not hundreds.
-const MIN_TILE_PIXELS = 256;
-// Tiles kept rasterised beyond the view, so walking into a tile rarely has to build it on that frame.
-const PREFETCH_TILES = 1, RETAIN_TILES = 3;
-// Tile building allowed per frame. At least one tile is built, the most urgent first.
-const BUILD_MS = 8;
-// Texels per world unit are multiples of 1/16, so a tile is always a whole number of texels.
-const MIN_RESOLUTION = 1 / 16, MAX_RESOLUTION = 2;
-// Each tile's texture overlaps its neighbours by one texel, or filtering blends its edge with nothing
-// and the tile grid shows as faint seams. Drawings this close to a tile are drawn into it.
-const SEAM = 1 / MIN_RESOLUTION;
-// Each Graphics method the static layer draws with, recorded for replay into the tiles it touches.
-const STATIC_DRAWS = ['fillStyle', 'lineStyle', 'fillPoints', 'strokePoints', 'fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'lineBetween', 'fillCircle', 'fillEllipse', 'fillTriangle'];
-const obstacleFill = (o, ink) => o.kind === 'fence' ? ink.fence : o.kind === 'building' ? ink.wall : ink.crates[o.color || 0];
-export function drawHookFlight(g, caster, flight) {
-  g.lineStyle(3, 0xd6dfbd, 0.85); g.lineBetween(caster.x, caster.y, flight.x, flight.y);
-  g.fillStyle(0xe9f5d4, 0.95); g.fillCircle(flight.x, flight.y, 4);
-}
+
+/**
+ * The arena's Phaser scene: lifecycle, input, the camera and its eased eye, sight and shade, and the
+ * actors. The map's static drawing is in static-drawing.js, baked by tile-cache.js; the per-frame
+ * layers are in frame-drawing.js, drawn by `update` in a fixed order.
+ */
 export function makeArenaScene(api) {
   return class ArenaScene extends Phaser.Scene {
     constructor() { super('arena'); }
@@ -69,9 +42,7 @@ export function makeArenaScene(api) {
       // withheld, and they sit above the shade so anything in view reads at full brightness.
       // Ground and static objects share baked tiles in their recorded draw order; actors join the
       // object plane at runtime. The overhead plane has separate tiles so each group owns its alpha.
-      this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
-      this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups = new Map();
-      this.scratch = this.make.graphics({ x: 0, y: 0, add: false }); this.decor = this.add.container(0, 0);
+      this.decor = this.add.container(0, 0);
       this.fixtures = this.add.graphics(); this.shade = this.add.graphics(); this.dynamic = this.add.graphics();
       // Event light (#594) adds onto the ground below the shade, so a glow spilling past a wall dims
       // with the terrain there, and below actors and items, whose identity colors it must not tint.
@@ -82,6 +53,8 @@ export function makeArenaScene(api) {
       this.overheadLayer = this.add.container(0, 0);
       this.overheadCanopies = this.add.container(0, 0); this.overheadRoofs = this.add.container(0, 0);
       this.overheadLayer.add([this.overheadCanopies, this.overheadRoofs]); this.world.add(this.overheadLayer);
+      this.tileCache = new TileCache(this, this.world, { canopy: this.overheadCanopies, roof: this.overheadRoofs });
+      this.view = new FrameView();
       this.actors = new Map(); this.labels = []; this.eye = null;
       this.marker = 1; this.nameScale = 1 / LABEL_FONT_PX;
       this.vision = this.make.graphics({ x: 0, y: 0, add: false });
@@ -118,152 +91,6 @@ export function makeArenaScene(api) {
       const label = this.add.text(x, y, text, { fontFamily: 'Arial', fontSize: size, fontStyle: 'bold', color }).setOrigin(0.5);
       this.labels.push(label); this.decor.add(label);
     }
-    /**
-     * A recorder for one static drawing inside the given world box. Its calls are replayed into every
-     * tile the box touches, and each tile's texture clips them to its own square, so a shape that
-     * straddles a seam is drawn whole on both sides of it.
-     */
-    staticAt(left, top, right, bottom, group = null) {
-      const drawings = group === null ? this.drawings : this.overheadDrawings;
-      const byCell = group === null ? this.drawingsByCell : this.overheadByCell;
-      const id = drawings.length, calls = [];
-      drawings.push(calls);
-      for (let cy = Math.floor((top - SEAM) / CELL); cy <= Math.floor((bottom + SEAM) / CELL); cy++) for (let cx = Math.floor((left - SEAM) / CELL); cx <= Math.floor((right + SEAM) / CELL); cx++) {
-        const key = `${cx},${cy}`;
-        if (!byCell.has(key)) byCell.set(key, group === null ? [] : new Map());
-        if (group === null) byCell.get(key).push(id);
-        else {
-          if (!byCell.get(key).has(group)) byCell.get(key).set(group, []);
-          byCell.get(key).get(group).push(id);
-        }
-      }
-      const recorder = {};
-      for (const method of STATIC_DRAWS) recorder[method] = (...args) => { calls.push(method, args); return recorder; };
-      return recorder;
-    }
-    /** Rasterise the drawings that touch a tile, in the order they were recorded. */
-    rasterise(tile, resolution) {
-      const cells = 1 << tile.level, span = CELL * cells, tileLeft = tile.tx * span, tileTop = tile.ty * span;
-      const overhead = tile.group !== null;
-      const drawings = overhead ? this.overheadDrawings : this.drawings;
-      const byCell = overhead ? this.overheadByCell : this.drawingsByCell;
-      const ids = new Set();
-      for (let cy = tile.ty * cells; cy < (tile.ty + 1) * cells; cy++) for (let cx = tile.tx * cells; cx < (tile.tx + 1) * cells; cx++)
-        for (const id of (overhead ? byCell.get(`${cx},${cy}`)?.get(tile.group) : byCell.get(`${cx},${cy}`)) || []) ids.add(id);
-      tile.resolution = resolution;
-      if (!ids.size) { tile.empty = true; return; }
-      // The tile plus one texel of its neighbours on every side; see SEAM.
-      // A roof gets only the texels in its footprint, not a full tile's worth of transparent space.
-      const box = overhead ? this.overheadGroups.get(tile.group).bounds : null;
-      const pixelLeft = Math.floor(Math.max(tileLeft, box?.x ?? tileLeft) * resolution);
-      const pixelTop = Math.floor(Math.max(tileTop, box?.y ?? tileTop) * resolution);
-      const pixelRight = Math.ceil(Math.min(tileLeft + span, box ? box.x + box.w : tileLeft + span) * resolution);
-      const pixelBottom = Math.ceil(Math.min(tileTop + span, box ? box.y + box.h : tileTop + span) * resolution);
-      if (pixelRight <= pixelLeft || pixelBottom <= pixelTop) { tile.empty = true; return; }
-      const rawWidth = pixelRight - pixelLeft + 2, rawHeight = pixelBottom - pixelTop + 2, texel = 1 / resolution;
-      // Phaser 3.90 RenderTexture defaults to forceEven=true, which rounds the frame to even without
-      // resizing its RenderTarget (autoResize=false) and stretches odd-sized cropped overhead textures.
-      const width = rawWidth + (rawWidth & 1), height = rawHeight + (rawHeight & 1);
-      // A new texture rather than resize(), which left content clipped and offset in Phaser 3.90.
-      if (tile.texture?.width !== width || tile.texture?.height !== height) {
-        if (overhead && tile.texture) this.overheadGroups.get(tile.group).textures.delete(tile.texture);
-        tile.texture?.destroy();
-        tile.texture = this.add.renderTexture((pixelLeft - 1) * texel, (pixelTop - 1) * texel, width, height).setOrigin(0, 0);
-        if (overhead) {
-          const group = this.overheadGroups.get(tile.group);
-          (group.kind === 'roof' ? this.overheadRoofs : this.overheadCanopies).add(tile.texture);
-          group.textures.add(tile.texture);
-        }
-        else this.world.addAt(tile.texture, 0);
-      }
-      const g = this.scratch.clear().setScale(resolution);
-      for (const id of [...ids].sort((a, b) => a - b)) { const calls = drawings[id]; for (let i = 0; i < calls.length; i += 2) g[calls[i]](...calls[i + 1]); }
-      tile.texture.clear().setScale(texel).draw(g, 1 - pixelLeft, 1 - pixelTop);
-      g.clear();
-      count('work.tileRasterise');
-    }
-    overheadGroup(id, kind, bounds, prior = null) {
-      // A restyled roof keeps the fade it was part way through rather than flashing back to opaque.
-      const group = { kind, bounds, visible: prior?.visible ?? true, alpha: prior?.alpha ?? 1, textures: new Set() };
-      this.overheadGroups.set(id, group);
-      return group;
-    }
-    setOverheadGroup(id, visible, alpha = this.overheadGroups.get(id)?.alpha ?? 1) {
-      const group = this.overheadGroups.get(id);
-      if (!group) return;
-      group.visible = visible; group.alpha = alpha;
-      for (const texture of group.textures) texture.setVisible(visible && texture.overheadShown).setAlpha(alpha);
-    }
-    /**
-     * Show the tiles the camera can see, rasterise what they lack within a frame budget, and release
-     * textures far from the view or at another level.
-     */
-    updateTiles() {
-      // worldView is only refreshed when the camera renders, a frame behind centerOn, so derive it here.
-      const camera = this.cameras.main, zoom = camera.zoom;
-      const view = { width: camera.width / zoom, height: camera.height / zoom };
-      view.x = camera.scrollX + camera.width / 2 - view.width / 2; view.y = camera.scrollY + camera.height / 2 - view.height / 2;
-      // At least one texel per screen pixel, quantised so a window resize does not rebuild every tile.
-      const resolution = Math.min(MAX_RESOLUTION, Math.max(MIN_RESOLUTION, Math.ceil(zoom * 16) / 16));
-      const level = Math.max(0, Math.ceil(Math.log2(MIN_TILE_PIXELS / (CELL * zoom))));
-      const span = CELL << level;
-      const range = margin => ({ left: Math.floor(view.x / span) - margin, top: Math.floor(view.y / span) - margin, right: Math.floor((view.x + view.width) / span) + margin, bottom: Math.floor((view.y + view.height) / span) + margin });
-      const shown = range(0), wanted = range(PREFETCH_TILES), kept = range(RETAIN_TILES);
-      const within = (tile, r) => tile.tx >= r.left && tile.tx <= r.right && tile.ty >= r.top && tile.ty <= r.bottom;
-      for (const cache of [this.tiles, this.overheadTiles]) for (const [key, tile] of cache) {
-        if (tile.level !== level || !within(tile, kept)) {
-          if (tile.group !== null && tile.texture) this.overheadGroups.get(tile.group).textures.delete(tile.texture);
-          tile.texture?.destroy(); cache.delete(key);
-        } else if (tile.texture) {
-          const visible = within(tile, shown);
-          if (tile.group === null) tile.texture.setVisible(visible);
-          else {
-            const group = this.overheadGroups.get(tile.group);
-            tile.texture.overheadShown = visible;
-            tile.texture.setVisible(visible && group.visible).setAlpha(group.alpha);
-          }
-        }
-      }
-      const centre = { x: (view.x + view.width / 2) / span, y: (view.y + view.height / 2) / span };
-      const queue = [];
-      for (let ty = wanted.top; ty <= wanted.bottom; ty++) for (let tx = wanted.left; tx <= wanted.right; tx++) {
-        const key = `${level}:${tx}:${ty}`;
-        let tile = this.tiles.get(key);
-        if (!tile) this.tiles.set(key, tile = { level, tx, ty, group: null, texture: null, resolution: 0, empty: false });
-        const visible = within(tile, shown);
-        tile.texture?.setVisible(visible);
-        // A visible hole first, then a visible tile at a stale resolution, then prefetch.
-        if (!tile.empty && tile.resolution !== resolution) queue.push({ tile, visible, rank: visible ? tile.texture ? 1 : 0 : 2, distance: Math.hypot(tx + 0.5 - centre.x, ty + 0.5 - centre.y) });
-        // Only materialise overhead groups that actually have art in this tile.
-        const groups = new Set(), cells = 1 << level;
-        for (let cy = ty * cells; cy < (ty + 1) * cells; cy++) for (let cx = tx * cells; cx < (tx + 1) * cells; cx++)
-          for (const group of this.overheadByCell.get(`${cx},${cy}`)?.keys() || []) groups.add(group);
-        for (const group of groups) {
-          const overheadKey = `${group}:${key}`;
-          let overheadTile = this.overheadTiles.get(overheadKey);
-          if (!overheadTile) this.overheadTiles.set(overheadKey, overheadTile = { level, tx, ty, group, texture: null, resolution: 0, empty: false });
-          const groupState = this.overheadGroups.get(group);
-          if (overheadTile.texture) overheadTile.texture.overheadShown = visible;
-          overheadTile.texture?.setVisible(visible && groupState.visible).setAlpha(groupState.alpha);
-          if (groupState.visible && !overheadTile.empty && overheadTile.resolution !== resolution)
-            queue.push({ tile: overheadTile, visible, rank: visible ? overheadTile.texture ? 1 : 0 : 2, distance: Math.hypot(tx + 0.5 - centre.x, ty + 0.5 - centre.y) });
-        }
-      }
-      queue.sort((a, b) => a.rank - b.rank || a.distance - b.distance);
-      const started = performance.now();
-      for (const [index, { tile, visible }] of queue.entries()) {
-        if (index && performance.now() - started > BUILD_MS) break;
-        this.rasterise(tile, resolution);
-        if (tile.group === null) tile.texture?.setVisible(visible);
-        else {
-          const group = this.overheadGroups.get(tile.group);
-          if (tile.texture) {
-            tile.texture.overheadShown = visible;
-            tile.texture.setVisible(visible && group.visible).setAlpha(group.alpha);
-          }
-        }
-      }
-    }
     buildMap() {
       const map = api.map();
       if (!map?.obstacles) return;
@@ -283,346 +110,19 @@ export function makeArenaScene(api) {
     setArtOptions({ palette = this.paletteId, lighting = this.lighting, wear = this.wear } = {}) {
       this.paletteId = palette; this.lighting = lighting !== false; this.wear = wear !== false;
       this.colors = themeColors(palette); this.cameras.main.setBackgroundColor(css(this.colors.background));
-      const map = api.map(); if (map?.obstacles && this.sightMap) this.recordStatic(map, new Map(this.overheadGroups));
+      const map = api.map(); if (map?.obstacles && this.sightMap) this.recordStatic(map, new Map(this.tileCache.groups));
     }
     /**
      * Record the map's static drawings and labels in the current palette, replacing any recorded before.
      * `priorGroups` carries roof and canopy fades over a restyle; a new map starts them afresh.
      */
     recordStatic(map, priorGroups = new Map()) {
-      const ink = this.colors, buildingsById = new Map((map.buildings || []).map(b => [b.id, b])), artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById }; let g;
-      this.buildingsById = buildingsById;
-      for (const cache of [this.tiles, this.overheadTiles]) for (const tile of cache.values()) tile.texture?.destroy();
-      this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
-      this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
+      this.tileCache.reset();
       this.labels.forEach(l => l.destroy()); this.labels = [];
-      this.roofs.clear();
-      const { cellSize, rows } = map.playableArea;
-      for (const row of rows) for (const [start, end] of row.runs)
-        this.staticAt(start * cellSize, row.y * cellSize, end * cellSize, (row.y + 1) * cellSize).fillStyle(ink.ground).fillRect(start * cellSize, row.y * cellSize, (end - start) * cellSize, cellSize);
-      for (let i = 0; i < 430; i++) {
-        const x = (i * 479 + map.seed * 7) % map.width, y = (i * 193 + map.seed * 13) % map.height;
-        if (!insideMap(map, x, y, 5)) continue;
-        g = this.staticAt(x - 8, y - 8, x + 4, y + 6);
-        g.lineStyle(2, ink.tuft, 0.55); g.lineBetween(x - 3, y + 3, x - 5, y - 3); g.lineBetween(x, y + 3, x + 2, y - 5);
-      }
-      for (const h of map.hazards) {
-        g = this.staticAt(h.x - 4, h.y - 4, h.x + h.w + 4, h.y + h.h + 4);
-        g.fillStyle(0x56605a); g.fillRoundedRect(h.x, h.y, h.w, h.h, 10);
-        g.lineStyle(3, 0xe9b758); g.strokeRoundedRect(h.x + 4, h.y + 4, h.w - 8, h.h - 8, 7);
-        for (let x = h.x + 13; x < h.x + h.w - 12; x += 22) { g.lineStyle(7, 0xe6b357, 0.65); g.lineBetween(x, h.y + 13, x - 4, h.y + h.h - 13); }
-      }
-      // Floors go down before the obstacles: tiles replay drawings in the order recorded, so a floor
-      // recorded after the walls painted over every interior wall and left only the doors showing.
-      for (const building of map.buildings || []) {
-        const resolved = resolveBuildingAppearance(building, map.appearance, artOpts);
-        const floor = this.staticAt(building.x, building.y, building.x + building.w, building.y + building.h);
-        floor.fillStyle(resolved.floorFill); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
-        if (resolved.floorMarks.length) recordAppearanceOps(floor, resolved.floorMarks);
-      }
-      // Static ground-plane material, commercial markings, neglect, competition scars and static washes (29.4).
-      for (const item of resolveGroundAppearance(map.appearance, artOpts)) {
-        const b = item.bounds;
-        recordAppearanceOps(this.staticAt(b.x, b.y, b.x + b.w, b.y + b.h), item.ops);
-      }
-      // Door and window markings lie on the ground too, reaching past the roof's overhang (56.2).
-      for (const d of map.decals || []) this.decal(this.staticAt(d.x - 2, d.y - 2, d.x + d.w + 2, d.y + d.h + 2), d);
-      for (const o of map.obstacles) {
-        // Wide enough for the drop shadow (+5, +8), the outline stroke and a circle's highlight.
-        const box = bounds(shapeOf(o));
-        this.obstacle(this.staticAt(box.x - 6, box.y - 6, box.x + box.w + 12, box.y + box.h + 14), o, map.appearance, artOpts);
-      }
-      const crownPad = map.obstacles.reduce((pad, o) => o.kind === 'tree' && o.r ? Math.max(pad, o.r * 1.9 + 8) : pad, 8);
-      this.overheadGroup('canopy', 'canopy', { x: -crownPad, y: -crownPad, w: map.width + crownPad * 2, h: map.height + crownPad * 2 }, priorGroups.get('canopy'));
-      for (const o of map.obstacles) if (o.kind === 'tree' && o.r) {
-        // The simulation still sees the original trunk circle. The wider crown is presentation only.
-        const radius = o.r * 1.9, crown = this.staticAt(o.x - radius - 8, o.y - radius - 8, o.x + radius + 8, o.y + radius + 8, 'canopy');
-        crown.fillStyle(ink.canopy[0], 0.5); crown.fillCircle(o.x + 3, o.y + 5, radius);
-        crown.fillStyle(ink.canopy[1], 0.42); crown.fillCircle(o.x - 3, o.y - 3, radius * 0.86);
-        crown.fillStyle(ink.canopy[2], 0.25); crown.fillEllipse(o.x - radius * 0.35, o.y - radius * 0.4, radius * 0.9, radius * 0.65);
-      }
-      this.roofMembers = roofGroups(map);
-      // Buildings a declared roof covers; the update's fade loop skips them as well.
-      const coveredBuildingIds = this.coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
-      // Each declared roof's appearance, and whether it is its building's primary roof (the one carrying marks).
-      for (const { roof, resolved, primary: isPrimaryRoof } of resolveDeclaredRoofs(map, artOpts)) {
-        const key = `roof:${roof.id}`;
-        const overhang = roof.overhang ?? ROOF_OVERHANG;
-        const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
-        const width = roof.bounds.w + overhang * 2, height = roof.bounds.h + overhang * 2;
-        const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height }, priorGroups.get(key));
-        this.roofs.set(roof.id, roofState);
-        const g = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
-
-        for (const c of roof.cells) {
-          const cx0 = roof.origin.x + c.x * roof.cellSize;
-          const cy0 = roof.origin.y + c.y * roof.cellSize;
-          const cx1 = cx0 + roof.cellSize;
-          const cy1 = cy0 + roof.cellSize;
-
-          const b = roofCellBorders(roof, c, map);
-
-          const nwCorner = b.w.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.start <= cx0 + 1);
-          const neCorner = b.e.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.end >= cx1 - 1);
-          const swCorner = b.w.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.start <= cx0 + 1);
-          const seCorner = b.e.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.end >= cx1 - 1);
-
-          g.fillStyle(resolved.roofEave);
-          g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
-          for (const seg of b.w.exposed) g.fillRect(cx0 - overhang, seg.start, overhang, seg.end - seg.start);
-          for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, overhang, seg.end - seg.start);
-          for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - overhang, seg.end - seg.start, overhang);
-          for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, overhang);
-          if (nwCorner) g.fillRect(cx0 - overhang, cy0 - overhang, overhang, overhang);
-          if (neCorner) g.fillRect(cx1, cy0 - overhang, overhang, overhang);
-          if (swCorner) g.fillRect(cx0 - overhang, cy1, overhang, overhang);
-          if (seCorner) g.fillRect(cx1, cy1, overhang, overhang);
-
-          g.fillStyle(resolved.roofFill);
-          g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
-          const inExt = Math.max(0, overhang - 4);
-          for (const seg of b.w.exposed) g.fillRect(cx0 - inExt, seg.start, inExt, seg.end - seg.start);
-          for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, inExt, seg.end - seg.start);
-          for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - inExt, seg.end - seg.start, inExt);
-          for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, inExt);
-          if (nwCorner) g.fillRect(cx0 - inExt, cy0 - inExt, inExt, inExt);
-          if (neCorner) g.fillRect(cx1, cy0 - inExt, inExt, inExt);
-          if (swCorner) g.fillRect(cx0 - inExt, cy1, inExt, inExt);
-          if (seCorner) g.fillRect(cx1, cy1, inExt, inExt);
-
-          g.lineStyle(4, resolved.roofRim);
-          for (const seg of b.w.exposed) {
-            const y0 = seg.start - (seg.start <= cy0 + 1 && nwCorner ? overhang : 0);
-            const y1 = seg.end + (seg.end >= cy1 - 1 && swCorner ? overhang : 0);
-            g.lineBetween(cx0 - overhang, y0, cx0 - overhang, y1);
-            if (seg.start > cy0 + 1) g.lineBetween(cx0 - overhang, seg.start, cx0, seg.start);
-            if (seg.end < cy1 - 1) g.lineBetween(cx0 - overhang, seg.end, cx0, seg.end);
-          }
-          for (const seg of b.e.exposed) {
-            const y0 = seg.start - (seg.start <= cy0 + 1 && neCorner ? overhang : 0);
-            const y1 = seg.end + (seg.end >= cy1 - 1 && seCorner ? overhang : 0);
-            g.lineBetween(cx1 + overhang, y0, cx1 + overhang, y1);
-            if (seg.start > cy0 + 1) g.lineBetween(cx1, seg.start, cx1 + overhang, seg.start);
-            if (seg.end < cy1 - 1) g.lineBetween(cx1, seg.end, cx1 + overhang, seg.end);
-          }
-          for (const seg of b.n.exposed) {
-            const x0 = seg.start - (seg.start <= cx0 + 1 && nwCorner ? overhang : 0);
-            const x1 = seg.end + (seg.end >= cx1 - 1 && neCorner ? overhang : 0);
-            g.lineBetween(x0, cy0 - overhang, x1, cy0 - overhang);
-            if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy0 - overhang, seg.start, cy0);
-            if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy0 - overhang, seg.end, cy0);
-          }
-          for (const seg of b.s.exposed) {
-            const x0 = seg.start - (seg.start <= cx0 + 1 && swCorner ? overhang : 0);
-            const x1 = seg.end + (seg.end >= cx1 - 1 && seCorner ? overhang : 0);
-            g.lineBetween(x0, cy1 + overhang, x1, cy1 + overhang);
-            if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy1, seg.start, cy1 + overhang);
-            if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
-          }
-        }
-        if (resolved.roofMarks.length && isPrimaryRoof) recordAppearanceOps(g, resolved.roofMarks);
-
-        g.lineStyle(2, resolved.roofRidge);
-        for (let ry = roof.bounds.y + 12; ry < roof.bounds.y + roof.bounds.h - 10; ry += 24) {
-          for (const c of roof.cells) {
-            const cy0 = roof.origin.y + c.y * roof.cellSize;
-            if (ry >= cy0 && ry < cy0 + roof.cellSize) {
-              const cx0 = roof.origin.x + c.x * roof.cellSize;
-              g.lineBetween(cx0 + 4, ry, cx0 + roof.cellSize - 4, ry);
-            }
-          }
-        }
-      }
-      for (const building of map.buildings || []) {
-        if (coveredBuildingIds.has(building.id)) continue;
-        const resolved = resolveBuildingAppearance(building, map.appearance, artOpts);
-        const key = `roof:${building.id}`, o = roofOverhang(building, this.roofMembers.get(building.id) || [building]);
-        // The roof overhangs its walls, except along an edge it shares with another room of its group.
-        const left = building.x - o.w, top = building.y - o.n, width = building.w + o.w + o.e, height = building.h + o.n + o.s;
-        const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height }, priorGroups.get(key));
-        this.roofs.set(building.id, roofState);
-        const roof = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
-        roof.fillStyle(resolved.roofEave); roof.fillRoundedRect(left + 2, top + 2, width - 4, height - 4, 5);
-        roof.lineStyle(4, resolved.roofRim); roof.strokeRoundedRect(left + 4, top + 4, width - 8, height - 8, 4);
-        roof.fillStyle(resolved.roofFill); roof.fillRect(left + 19, top + 14, width - 38, height - 28);
-        if (resolved.roofMarks.length) recordAppearanceOps(roof, resolved.roofMarks);
-        roof.lineStyle(2, resolved.roofRidge); for (let y = top + 24; y < top + height - 14; y += 24) roof.lineBetween(left + 19, y, left + width - 19, y);
-        roof.fillStyle(resolved.roofVent); roof.fillRect(building.x + 70, building.y + 70, 60, 40);
-      }
-      for (const gap of map.gaps) {
-        g = this.staticAt(gap.x - 30, gap.y - 10, gap.x - 15, gap.y + 10);
-        g.lineStyle(2, 0xd1f4cd); g.lineBetween(gap.x - 27, gap.y - 8, gap.x - 18, gap.y); g.lineBetween(gap.x - 18, gap.y, gap.x - 27, gap.y + 8);
-      }
-      for (const st of map.stations) {
-        g = this.staticAt(st.x - 43, st.y - 36, st.x + 43, st.y + 36);
-        g.fillStyle(0x274c57); g.fillRoundedRect(st.x - 41, st.y - 34, 82, 68, 11);
-        g.lineStyle(3, 0x9bd6e6); g.strokeRoundedRect(st.x - 36, st.y - 29, 72, 58, 7);
-        g.lineStyle(3, 0x9bd6e6); g.lineBetween(st.x - 12, st.y - 16, st.x - 12, st.y + 16); g.lineBetween(st.x + 12, st.y - 16, st.x + 12, st.y + 16);
-        for (let y = -12; y <= 12; y += 12) g.lineBetween(st.x - 12, st.y + y, st.x + 12, st.y + y);
-        this.label(st.x, st.y + 48, 'TRANSIT', '#24483e', 10);
-      }
-      const ex = map.exit;
-      for (const st of map.chargers || []) {
-        g = this.staticAt(st.x - 37, st.y - 32, st.x + 37, st.y + 32);
-        g.fillStyle(0x273947); g.fillRoundedRect(st.x - 35, st.y - 30, 70, 60, 8);
-        g.lineStyle(3, 0xffe98a); g.strokeRoundedRect(st.x - 30, st.y - 25, 60, 50, 6);
-        g.fillStyle(0xffe98a); g.fillTriangle(st.x + 4, st.y - 19, st.x - 11, st.y + 2, st.x + 6, st.y + 2);
-        g.fillTriangle(st.x - 4, st.y + 19, st.x + 11, st.y - 2, st.x - 6, st.y - 2);
-        this.label(st.x, st.y + 45, 'CHARGE CELL · E', '#ffe98a', 11);
-      }
-      // The waiting area before a match (#236) has no exit and no entry to mark.
-      if (ex) {
-        g = this.staticAt(ex.x - 46, ex.y - 44, ex.x + 46, ex.y + 44);
-        g.fillStyle(0x264f42); g.fillRoundedRect(ex.x - 44, ex.y - 42, 88, 84, 12);
-        g.lineStyle(4, 0xe6f59e); g.strokeRoundedRect(ex.x - 38, ex.y - 36, 76, 72, 8);
-        g.lineStyle(6, 0xe6f59e); g.lineBetween(ex.x - 12, ex.y, ex.x + 14, ex.y); g.lineBetween(ex.x + 3, ex.y - 12, ex.x + 15, ex.y); g.lineBetween(ex.x + 15, ex.y, ex.x + 3, ex.y + 12);
-        this.label(ex.x, ex.y - 60, 'LAST EXIT', '#e6f3a1', 14);
-        this.label(map.entry?.x || 340, (map.entry?.y || map.height / 2) - 70, 'CONTESTANT ENTRY', '#b4d6cf', 12);
-      }
-    }
-    obstacle(g, o, mapAppearance = null, artOpts = null) {
-      const ink = this.colors;
-      const buildingsById = artOpts?.buildingsById || this.buildingsById;
-      const styled = Boolean(mapAppearance || o?.appearance || (o?.buildingId && buildingsById?.get(o.buildingId)?.appearance));
-      const opts = artOpts || { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById };
-      const resolved = styled ? resolveObstacleAppearance(o, mapAppearance, opts) : null;
-      // Generated geometry is drawn from the very description the simulation collides with, so a new
-      // shape needs no matching renderer branch and cannot be drawn as something other than its body.
-      if (o.points?.length) {
-        const points = outline(shapeOf(o));
-        g.fillStyle(ink.shadow, 0.3); g.fillPoints(points.map(p => ({ x: p.x + 5, y: p.y + 8 })), true);
-        g.fillStyle(resolved ? resolved.fill : obstacleFill(o, ink)); g.fillPoints(points, true);
-        g.lineStyle(3, resolved ? resolved.outline : ink.outline); g.strokePoints(points, true);
-        g.lineStyle(2, 0xffffff, 0.22); g.strokePoints(points, true);
-        return;
-      }
-      if (o.kind === 'window') {
-        const fill = resolved ? resolved.fill : ink.glass;
-        const edge = resolved ? resolved.outline : ink.glassEdge;
-        g.fillStyle(fill, 0.65); g.fillRect(o.x, o.y, o.w, o.h);
-        g.lineStyle(2, edge); g.strokeRect(o.x, o.y, o.w, o.h);
-        // Specular graphic reflection highlights (11.1 §6, 29.4)
-        const alongX = o.w >= o.h;
-        g.lineStyle(2, 0xffffff, 0.28);
-        if (alongX && o.w >= 16) {
-          const sx = o.x + Math.round(o.w * 0.22);
-          g.lineBetween(sx - 4, o.y + o.h - 2, sx + 4, o.y + 2);
-          g.lineBetween(sx + 2, o.y + o.h - 2, sx + 10, o.y + 2);
-        } else if (!alongX && o.h >= 16) {
-          const sy = o.y + Math.round(o.h * 0.22);
-          g.lineBetween(o.x + 2, sy + 4, o.x + o.w - 2, sy - 4);
-          g.lineBetween(o.x + 2, sy + 10, o.x + o.w - 2, sy + 2);
-        }
-        return;
-      }
-      const drawFocalRim = () => {
-        if (!resolved?.focalRim) return;
-        g.lineStyle(3, resolved.focalRim.color, resolved.focalRim.alpha);
-        if (o.r) {
-          const angles = { N: [Math.PI * 1.25, Math.PI * 1.75], S: [Math.PI * 0.25, Math.PI * 0.75], W: [Math.PI * 0.75, Math.PI * 1.25], E: [-Math.PI * 0.25, Math.PI * 0.25] };
-          const [start, end] = angles[resolved.focalRim.side || 'N'] || angles.N;
-          g.beginPath(); g.arc(o.x, o.y, o.r, start, end); g.strokePath();
-          return;
-        }
-        if (resolved.focalRim.side === 'N') g.lineBetween(o.x + 2, o.y + 1, o.x + o.w - 2, o.y + 1);
-        else if (resolved.focalRim.side === 'S') g.lineBetween(o.x + 2, o.y + o.h - 1, o.x + o.w - 2, o.y + o.h - 1);
-        else if (resolved.focalRim.side === 'W') g.lineBetween(o.x + 1, o.y + 2, o.x + 1, o.y + o.h - 2);
-        else if (resolved.focalRim.side === 'E') g.lineBetween(o.x + o.w - 1, o.y + 2, o.x + o.w - 1, o.y + o.h - 2);
-      };
-      if (o.kind === 'pipe') {
-        const pipeFill = resolved ? resolved.fill : ink.pipe;
-        g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h);
-        g.fillStyle(pipeFill); g.fillRect(o.x, o.y, o.w, o.h);
-        g.lineStyle(2, ink.pipeEdge, 0.6); o.w > o.h ? g.lineBetween(o.x, o.y + 2, o.x + o.w, o.y + 2) : g.lineBetween(o.x + 2, o.y, o.x + 2, o.y + o.h);
-        drawFocalRim();
-        return;
-      }
-      if (o.kind === 'hedge') {
-        const hedgeFill = resolved ? resolved.fill : ink.hedge;
-        const hedgeEdge = resolved ? (resolved.hedgeEdge ?? ink.hedgeEdge) : ink.hedgeEdge;
-        g.fillStyle(ink.shadow, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h);
-        g.fillStyle(hedgeFill); g.fillRect(o.x, o.y, o.w, o.h);
-        g.lineStyle(2, hedgeEdge, 0.7); g.strokeRect(o.x, o.y, o.w, o.h);
-        drawFocalRim();
-        return;
-      }
-      if (o.kind === 'ruin-wall') {
-        const ruinFill = resolved ? resolved.fill : ink.ruin;
-        const ruinEdge = resolved ? (resolved.ruinEdge ?? ink.ruinEdge) : ink.ruinEdge;
-        g.fillStyle(ink.ruinShadow); g.fillRect(o.x + 5, o.y + 6, o.w, o.h);
-        g.fillStyle(ruinFill); g.fillRect(o.x, o.y, o.w, o.h);
-        g.lineStyle(2, ruinEdge); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2);
-        drawFocalRim();
-        return;
-      }
-      if (o.r) {
-        g.fillStyle(ink.circleShadow, 0.25); g.fillCircle(o.x + 6, o.y + 8, o.r + 2);
-        if (o.kind === 'tree') {
-          const trunkFill = resolved ? resolved.fill : ink.trunk;
-          const trunkTop = resolved ? (resolved.trunkTop ?? mix(trunkFill, 0xffffff, 0.25)) : ink.trunkTop;
-          g.fillStyle(trunkFill); g.fillCircle(o.x, o.y, o.r);
-          g.fillStyle(trunkTop); g.fillCircle(o.x - o.r * 0.18, o.y - o.r * 0.2, o.r * 0.54);
-          drawFocalRim();
-        } else {
-          const rockFill = resolved ? resolved.fill : ink.rock;
-          g.fillStyle(rockFill); g.fillCircle(o.x, o.y, o.r);
-          g.fillStyle(ink.rockMid); g.fillCircle(o.x - 3, o.y - 4, o.r - 5);
-          g.fillStyle(ink.rockTop); g.fillEllipse(o.x - 8, o.y - 9, o.r * 0.9, o.r * 0.65);
-        }
-        return;
-      }
-      g.fillStyle(ink.shadow, 0.3); g.fillRoundedRect(o.x + 5, o.y + 8, o.w, o.h, 6);
-      const fill = resolved ? resolved.fill : obstacleFill(o, ink);
-      const outlineColor = resolved ? resolved.outline : ink.outline;
-      g.fillStyle(outlineColor); g.fillRoundedRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4, 6);
-      g.fillStyle(fill); g.fillRoundedRect(o.x + 1, o.y + 1, o.w - 2, o.h - 2, 4);
-      g.lineStyle(3, 0xffffff, 0.22); g.lineBetween(o.x + 7, o.y + 7, o.x + o.w - 7, o.y + 7);
-      if (o.kind === 'fence') {
-        for (let y = o.y + 12; y < o.y + o.h - 6; y += 23) { g.lineStyle(2, ink.fenceLine); g.lineBetween(o.x + 3, y, o.x + o.w - 3, y); }
-        drawFocalRim();
-      } else if (o.kind === 'building') {
-        g.fillStyle(resolved ? resolved.wallInset : ink.wallInset); g.fillRoundedRect(o.x + o.w * 0.25, o.y + o.h * 0.25, o.w * 0.5, o.h * 0.5, 4);
-        g.lineStyle(2, resolved ? resolved.wallLine : ink.wallLine); g.lineBetween(o.x + 10, o.y + o.h - 12, o.x + o.w - 10, o.y + o.h - 12);
-        drawFocalRim();
-      } else {
-        g.lineStyle(2, ink.crateLine, 0.3); for (let x = o.x + 13; x < o.x + o.w - 5; x += 16) g.lineBetween(x, o.y + 11, x, o.y + o.h - 7);
-        drawFocalRim();
-      }
-    }
-    decal(g, d) {
-      // Drawn in the decal's own frame: `u` runs along its wall, `v` away from the building.
-      const along = d.side === 'N' || d.side === 'S', length = along ? d.w : d.h, depth = along ? d.h : d.w;
-      const at = (u, v) => d.side === 'S' ? { x: d.x + u, y: d.y + v } : d.side === 'N' ? { x: d.x + u, y: d.y + d.h - v }
-        : d.side === 'E' ? { x: d.x + v, y: d.y + u } : { x: d.x + d.w - v, y: d.y + u };
-      const quad = (u0, v0, u1, v1) => [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)];
-      // A window lets light out onto the ground; it is fainter than a door's step in every theme.
-      if (d.marks === 'window') {
-        const tint = { hut: 0x9c8a62, depot: 0xc9d1d4, compound: 0x9a958a }[d.theme] ?? 0xb7bdb4;
-        g.fillStyle(tint, 0.22); g.fillPoints(quad(0, 0, length, depth), true);
-        g.fillStyle(tint, 0.2); g.fillPoints(quad(length * 0.15, 0, length * 0.85, depth * 0.7), true);
-        return;
-      }
-      if (d.theme === 'hut') {
-        // A worn dirt path, widening as it leaves the door.
-        g.fillStyle(0x6b5a44, 0.6); g.fillPoints([at(3, 0), at(length - 3, 0), at(length, depth), at(0, depth)], true);
-        g.fillStyle(0x87724f, 0.35); g.fillPoints([at(length * 0.3, 0), at(length * 0.7, 0), at(length * 0.75, depth - 3), at(length * 0.25, depth - 3)], true);
-      } else if (d.theme === 'depot') {
-        // Hazard stripes: dark bands slanting across a yellow ground, cut to the decal.
-        g.fillStyle(0xe6b357, 0.7); g.fillPoints(quad(0, 0, length, depth), true);
-        g.fillStyle(0x2b2a26, 0.75);
-        const slant = depth * 0.6, band = 6;
-        for (let u = -slant; u < length; u += band * 2) {
-          const clip = x => Math.max(0, Math.min(length, x));
-          g.fillPoints([at(clip(u), 0), at(clip(u + band), 0), at(clip(u + band + slant), depth), at(clip(u + slant), depth)], true);
-        }
-      } else if (d.theme === 'compound') {
-        // A stone step with a darker lip at its outer edge.
-        g.fillStyle(0x8d8a80, 0.85); g.fillPoints(quad(0, 0, length, depth), true);
-        g.fillStyle(0x4e4b45, 0.85); g.fillPoints(quad(0, depth - 3, length, depth), true);
-        g.fillStyle(0xbfbab0, 0.35); g.fillPoints(quad(2, 2, length - 2, 4), true);
-      } else {
-        g.fillStyle(0xa3a89e, 0.38); g.fillPoints(quad(0, 0, length, depth), true);
-      }
+      const recorded = recordStatic(this.tileCache, map, { ink: this.colors, palette: this.paletteId, lighting: this.lighting, wear: this.wear },
+        priorGroups, (x, y, text, color, size) => this.label(x, y, text, color, size));
+      this.roofs = recorded.roofs; this.roofMembers = recorded.roofMembers;
+      this.coveredBuildingIds = recorded.coveredBuildingIds; this.buildingsById = recorded.buildingsById;
     }
     makeActor(p) {
       const size = p.role === 'gladiator' ? 65 : 43;
@@ -674,18 +174,12 @@ export function makeArenaScene(api) {
       this.marker = api.directed() ? markerScale(zoom) : 1;
       this.nameScale = labelScale(zoom, this.marker);
     }
-    update(now, delta) {
-      const rawDelta = noteFrame();
-      start('render.frame'); if (rawDelta !== null) observe('render.delta', rawDelta);
-      api.onFrame(delta);
-      const state = api.state(), map = api.map(), rawSelf = api.self();
-      if (!state || !map) { stop('render.frame'); endProfileFrame(); return; }
-      const actorBodies = new Map((state.bodies || []).filter(body => body.kind === 'actor' && body.actorId != null).map(body => [body.actorId, body]));
-      const itemBodies = new Map((state.bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
-      const selfBody = rawSelf && actorBodies.get(rawSelf.id);
-      const self = selfBody && !api.localPhysics?.() ? { ...rawSelf, x: selfBody.x, y: selfBody.y } : rawSelf;
-      // Camera, own sprite, fog and cover all read one eased eye: fog sampled from the raw predicted
-      // position would lead the world by the easing lag and step at the input tick.
+    /**
+     * Ease the eye toward its focus, or cut to it. Camera, own sprite, fog and cover all read this one
+     * eased eye: fog sampled from the raw predicted position would lead the world by the easing lag and
+     * step at the input tick.
+     */
+    stepEye(state, map, actorBodies, self, selfBody, rawDelta, delta) {
       // Exponential, so the eye settles on the same time constant whatever the frame rate; a plain
       // fraction of the frame delta eases faster on a slow client than a fast one.
       const ease = 1 - Math.exp(-delta / EYE_TAU_MS);
@@ -713,61 +207,10 @@ export function makeArenaScene(api) {
       else if (!this.eye || bodyCut || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150 ||
         api.localPhysics?.() && ((rawDelta ?? delta) > PREDICTION_LIMITS.eyeSnapMs || !sweptClear(map, this.eye, focus, selfBody ? bodyRadius(selfBody.shape) : 12))) this.eye = { x: focus.x, y: focus.y };
       else { this.eye.x = Phaser.Math.Linear(this.eye.x, focus.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, focus.y, ease); }
-      const eye = this.eye;
-      // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed
-      // view, or nobody's, which is the unfogged directed view.
-      const fogged = !api.directed() || api.director.fog() && !!api.director.followId();
-      const rawViewer = api.directed() ? api.director.viewer() : self;
-      const viewerBody = rawViewer && actorBodies.get(rawViewer.id);
-      const viewer = viewerBody ? { ...rawViewer, x: viewerBody.x, y: viewerBody.y } : rawViewer;
-      // Raw frame time, not Phaser's smoothed and clamped delta, so a slow client pans as far as a fast one.
-      // Stepping indoors eases the camera a little closer; a directed camera is the director's alone.
-      const insideCurrent = this.eye && roofAt(map, this.eye);
-      const within = !api.directed() && insideCurrent;
-      this.insideBlend += ((within ? 1 : 0) - this.insideBlend) * (1 - Math.exp(-(rawDelta ?? delta) / 250));
-      if (Math.abs((within ? 1 : 0) - this.insideBlend) < 0.005) this.insideBlend = within ? 1 : 0;
-      start('render.camera'); this.updateCamera(); stop('render.camera');
-      const { x: cx, y: cy, zoom } = this.cameraView();
-      const halfWidth = this.cameras.main.width / zoom / 2;
-      const halfHeight = this.cameras.main.height / zoom / 2;
-      const nearView = (x, y, margin = 400) => Math.abs(x - cx) < halfWidth + margin && Math.abs(y - cy) < halfHeight + margin;
-      const inside = eye && roofAt(map, eye);
-      // A roof is either revealed (inside its group, or at one of its openings) or covered, and fades
-      // between the two at a constant rate. This is cosmetic: concealment is still decided by `roofConceals`.
-      const fadeMs = rawDelta ?? delta;
-      const insideMembers = inside ? (this.roofMembers.get(inside.id) || [inside]) : [];
-      const insideGroupIds = new Set(insideMembers.map(m => 'groupId' in m ? m.groupId : m.id));
-      const insideIds = new Set(insideMembers.map(m => m.id));
-      // Every roof on the map steps its fade each frame, near the view or not, so this grows with map size.
-      start('render.roofs');
-      const openings = buildingOpenings(map);
-
-      if (map.roofs?.length) {
-        for (const roof of map.roofs) {
-          const roofObj = this.roofs.get(roof.id);
-          if (!roofObj) continue;
-          const isInside = insideGroupIds.has(roof.groupId) || insideIds.has(roof.id);
-          const members = this.roofMembers.get(roof.id) || [roof];
-          const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye, openings));
-          roofObj.alpha = stepRoofAlpha(roofObj.alpha, revealed, fadeMs);
-          roofObj.visible = roofObj.alpha > 0 && nearView(roof.bounds.x + roof.bounds.w / 2, roof.bounds.y + roof.bounds.h / 2);
-        }
-      }
-      for (const building of map.buildings || []) {
-        if (this.coveredBuildingIds.has(building.id)) continue;
-        const roof = this.roofs.get(building.id);
-        if (!roof) continue;
-        const isInside = insideIds.has(building.id);
-        const members = this.roofMembers.get(building.id) || [building];
-        const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye, openings));
-        roof.alpha = stepRoofAlpha(roof.alpha, revealed, fadeMs);
-        roof.visible = roof.alpha > 0 && nearView(building.x + building.w / 2, building.y + building.h / 2);
-      }
-      stop('render.roofs');
-      start('render.tiles'); this.updateTiles(); stop('render.tiles');
-      // Sub-pixel map labels become illegible smudge below LOD_LABEL_ZOOM; hide them until the camera zooms in.
-      const showLabels = zoom >= LOD_LABEL_ZOOM;
-      for (const label of this.labels) label.setVisible(showLabels && nearView(label.x, label.y));
+      return this.eye;
+    }
+    /** Cut the eye's sight and lay the shade outside it; an unfogged view has no sight and no shade. */
+    updateSight(state, map, eye, fogged, zoom) {
       this.shade.clear();
       if (!fogged || !eye) {
         this.visionPoints = null; this.sight = null; this.vision.clear();
@@ -789,224 +232,9 @@ export function makeArenaScene(api) {
         stop('render.vision');
       }
       if (fogged && !eye) { this.shade.fillStyle(this.colors.shade, 0.46); this.shade.fillRect(-500, -500, map.width + 1000, map.height + 1000); }
-      api.onSight?.();
-      // The server sends a wider set than the eye can reach, so the renderer resolves the geometry.
-      // Sight itself is a shared rule; an unfogged view opts out of it rather than reimplementing it.
-      const lit = (x, y) => !fogged || seesPoint(this.sight, map, x, y);
-      const g = this.dynamic; g.clear();
-      const fixed = this.fixtures; fixed.clear();
-      const fields = map.appearance?.lighting?.fields || [];
-      const canonicalFields = getCanonicalFields(fields);
-      const artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById: this.buildingsById };
-      start('render.world');
-      // Event light (#594): only sources that pass the same `lit` rule as the shots and effects drawn
-      // below may light anything. Props drawn above the layer take the same lift as the ground beneath.
-      const eventLights = resolveEventLights(state, { lighting: this.lighting, lit, inView: nearView, alpha: api.frameAlpha() });
-      drawEventLights(this.eventLight, eventLights);
-      // An empty additive layer still costs Phaser a blend switch and batch flush each frame.
-      this.eventLight.setVisible(eventLights.length > 0);
-      count('work.eventLights', eventLights.length);
-      // Level of detail thresholds for distant / spectator views:
-      // zoom < LOD_LOW_ZOOM: simplified rects / outlines, skip sub-pixel inner details and rounded arc tessellations.
-      // zoom < LOD_MEDIUM_ZOOM: simplified item geometry without sinusoids or drop shadows.
-      // zoom >= LOD_MEDIUM_ZOOM: full detail with floating animations, drop shadows and glyphs.
-      const lowLod = zoom < LOD_LOW_ZOOM;
-      const medLod = zoom < LOD_MEDIUM_ZOOM;
-      // Physics projections contain authorized endpoints, but current sight can still withhold an
-      // actor (cloak, roof, status). Tethers must use the same actor rule as the sprite they join.
-      const playersById = new Map(state.players.map(player => [player.id, player]));
-      const propVisible = createShapeVisibility(this.sight, map);
-      const visibleBodies = new Map((state.bodies || []).filter(body => {
-        if (body.kind !== 'actor') return !fogged || propVisible(bodyShape(body));
-        const player = playersById.get(body.actorId);
-        if (!player || player.status !== 'active') return false;
-        const atBody = { ...player, x: body.x, y: body.y };
-        return !fogged || player.id === viewer?.id || seesActor(this.sight, map, viewer, atBody);
-      }).map(body => [body.id, body]));
-      for (const tether of state.tethers || []) {
-        const a = visibleBodies.get(tether.a), b = visibleBodies.get(tether.b);
-        if (!a || !b || !nearView((a.x + b.x) / 2, (a.y + b.y) / 2, Math.hypot(a.x - b.x, a.y - b.y) / 2)) continue;
-        // Seeing a prop's edge does not expose its hidden center anchor. Omit that tether rather
-        // than drawing a line into shadow; actor anchors retain their cloak/reveal policy above.
-        if (fogged && (a.kind === 'prop' && !lit(a.x, a.y) || b.kind === 'prop' && !lit(b.x, b.y))) continue;
-        g.lineStyle(3, 0xd6dfbd, 0.85); g.lineBetween(a.x, a.y, b.x, b.y);
-      }
-      for (const flight of state.hookFlights || []) {
-        const caster = visibleBodies.get(flight.a);
-        if (!caster || fogged && !lit(flight.x, flight.y) ||
-          !nearView((caster.x + flight.x) / 2, (caster.y + flight.y) / 2,
-            Math.hypot(caster.x - flight.x, caster.y - flight.y) / 2)) continue;
-        drawHookFlight(g, caster, flight);
-      }
-      const drawnItems = new Set((state.items || []).map(item => item.id));
-      for (const body of visibleBodies.values()) {
-        if (body.kind !== 'prop' || body.itemId != null && drawnItems.has(body.itemId)) continue;
-        const shape = body.shape;
-        if (!nearView(body.x, body.y, bodyRadius(shape))) continue;
-        const propLight = sampleSpatialLight(canonicalFields, body.x, body.y, artOpts);
-        const { fill: propFill, stroke: propStroke } = resolvePropAppearance(0x8fa9a0, 0xdce8d7, propLight, artOpts);
-        const propLift = eventLights.length ? eventLightAt(eventLights, body.x, body.y) : [0, 0, 0];
-        g.fillStyle(liftByEventLight(propFill, propLift), 0.9); g.lineStyle(2, liftByEventLight(propStroke, propLift), 0.95);
-        if (shape.kind === 'circle') {
-          g.fillCircle(body.x, body.y, shape.radius); g.strokeCircle(body.x, body.y, shape.radius);
-        } else {
-          const points = outline(bodyShape(body));
-          g.fillPoints(points, true); g.strokePoints(points, true);
-        }
-      }
-      for (const gate of fogged ? this.rememberedGates : state.gates) {
-        if (!nearView(gate.x, gate.y, 60)) continue;
-        if (gate.kind === 'door') {
-          const box = gateShape(gate);
-          if (lowLod) {
-            if (gate.open) {
-              fixed.lineStyle(2, gate.stale ? 0x687789 : 0xe8bc74);
-              fixed.strokeRect(box.x, box.y, box.w, box.h);
-            } else {
-              fixed.fillStyle(gate.stale ? 0x494451 : 0xa07952);
-              fixed.fillRect(box.x, box.y, box.w, box.h);
-            }
-            continue;
-          }
-          fixed.lineStyle(3, gate.stale ? 0x687789 : 0xe8bc74);
-          if (gate.open) fixed.strokeRect(box.x, box.y - 55, 12, 70);
-          else { fixed.fillStyle(gate.stale ? 0x494451 : 0xa07952); fixed.fillRect(box.x, box.y, box.w, box.h); fixed.strokeRect(box.x, box.y, box.w, box.h); }
-          continue;
-        }
-        if (lowLod) {
-          if (gate.open) {
-            fixed.lineStyle(2, gate.stale ? 0x758583 : 0xa6e5dc, gate.stale ? 0.55 : 1);
-            fixed.strokeRect(gate.x - 13, gate.y - 27, 26, 54);
-          } else {
-            fixed.fillStyle(gate.stale ? 0x263c43 : 0xf5cf76);
-            fixed.fillRect(gate.x - 13, gate.y - 27, 26, 54);
-          }
-          continue;
-        }
-        if (gate.open) {
-          fixed.lineStyle(3, gate.stale ? 0x758583 : 0xa6e5dc, gate.stale ? 0.55 : 1);
-          fixed.strokeRoundedRect(gate.x - 15, gate.y - 29, 30, 58, 3);
-          continue;
-        }
-        fixed.fillStyle(0x304e44); fixed.fillRoundedRect(gate.x - 13, gate.y - 27, 26, 54, 3);
-        fixed.lineStyle(3, 0xf5cf76); fixed.strokeRoundedRect(gate.x - 10, gate.y - 24, 20, 48, 2);
-        fixed.fillStyle(0xf5cf76); fixed.fillCircle(gate.x, gate.y - 3, 4); fixed.fillRect(gate.x - 2, gate.y, 4, 9);
-        if (gate.stale) {
-          fixed.fillStyle(0x263c43, 0.65); fixed.fillRoundedRect(gate.x - 13, gate.y - 27, 26, 54, 3);
-          fixed.lineStyle(2, 0xb2c4c9, 0.8); fixed.strokeCircle(gate.x, gate.y, 7);
-          if (!gate.known) { fixed.lineBetween(gate.x, gate.y - 4, gate.x, gate.y + 1); fixed.fillStyle(0xb2c4c9); fixed.fillCircle(gate.x, gate.y + 4, 1); }
-        }
-      }
-      for (const rawItem of state.items) {
-        const itemBody = itemBodies.get(rawItem.id);
-        const item = itemBody ? { ...rawItem, x: itemBody.x, y: itemBody.y } : rawItem;
-        if (!nearView(item.x, item.y, 30)) continue;
-        if (!lit(item.x, item.y)) continue;
-        if (lowLod) {
-          g.fillStyle(COLORS[item.kind]);
-          g.fillRect(item.x - 8, item.y - 8, 16, 16);
-          continue;
-        }
-        if (medLod) {
-          g.fillStyle(0x28473f); g.fillRect(item.x - 12, item.y - 12, 24, 24);
-          g.fillStyle(COLORS[item.kind]); g.fillRect(item.x - 8, item.y - 8, 16, 16);
-          continue;
-        }
-        const y = item.y + Math.sin(now / 340 + item.x) * 2;
-        g.fillStyle(0x284735, 0.2); g.fillEllipse(item.x + 2, y + 10, 26, 11);
-        g.fillStyle(0x28473f); g.fillRoundedRect(item.x - 12, y - 12, 24, 24, 5);
-        g.lineStyle(2, COLORS[item.kind]); g.strokeRoundedRect(item.x - 12, y - 12, 24, 24, 5); g.fillStyle(COLORS[item.kind]);
-        if (item.kind === 'med') { g.fillRect(item.x - 2, y - 7, 4, 14); g.fillRect(item.x - 7, y - 2, 14, 4); }
-        else if (item.kind === 'access') { g.strokeCircle(item.x - 2, y - 2, 4); g.lineBetween(item.x, y, item.x + 6, y + 6); }
-        else if (item.kind === 'weapon') { g.fillRect(item.x - 7, y - 3, 14, 4); g.fillRect(item.x - 3, y, 4, 6); }
-        else if (item.kind === 'ammo') { for (const dx of [-5, 0, 5]) { g.fillRect(item.x + dx - 1.5, y - 4, 3, 10); g.fillTriangle(item.x + dx - 1.5, y - 4, item.x + dx + 1.5, y - 4, item.x + dx, y - 7); } }
-        else if (item.kind === 'cell') { g.strokeRect(item.x - 5, y - 7, 10, 14); g.fillRect(item.x - 2, y - 10, 4, 3); if (item.charge > 0) g.fillRect(item.x - 3, y - 3, 6, 8); }
-        else g.fillTriangle(item.x - 7, y - 5, item.x + 7, y - 5, item.x, y + 8);
-      }
-      for (const sensor of map.sensors) {
-        if (!nearView(sensor.x, sensor.y, 200)) continue;
-        fixed.fillStyle(0xf2df82, 0.08); fixed.fillCircle(sensor.x, sensor.y, 180); fixed.lineStyle(1, 0xe6d174, 0.5); fixed.strokeCircle(sensor.x, sensor.y, 180);
-        if (!lowLod) {
-          fixed.fillStyle(0x355749); fixed.fillCircle(sensor.x, sensor.y, 11); fixed.fillStyle(0xffeaa0); fixed.fillCircle(sensor.x, sensor.y, 4);
-        }
-        fixed.lineStyle(2, 0xe6d174, 0.5); fixed.lineBetween(sensor.x, sensor.y, sensor.x + Math.cos(now / 1200) * 174, sensor.y + Math.sin(now / 1200) * 174);
-      }
-      const alpha = api.frameAlpha();
-      for (const trap of state.traps || []) {
-        if (trap.spent || !lit(trap.x, trap.y)) continue;
-        const heading = trap.heading || 0;
-        if (trap.kind === 'mine') {
-          if (!nearView(trap.x, trap.y, 20)) continue;
-          g.fillStyle(0x282c39); g.fillCircle(trap.x, trap.y, 15); g.lineStyle(2, 0xff778c); g.strokeCircle(trap.x, trap.y, 12);
-          g.fillStyle(Math.floor(now / 400) % 2 ? 0xff778c : 0x583c48); g.fillCircle(trap.x, trap.y, 4);
-        } else if (trap.kind === 'spider') {
-          // A roaming spider body can chase up to leash (360) from its home ring (240 radius).
-          const ringInView = nearView(trap.homeX, trap.homeY, 240);
-          const spiderInView = nearView(trap.x, trap.y, 30);
-          if (!ringInView && !spiderInView) continue;
-          if (ringInView) {
-            g.lineStyle(1, 0xc5aecf, 0.25); g.strokeCircle(trap.homeX, trap.homeY, 240);
-            if (!lowLod) {
-              for (let i = 0; i < 8; i++) {
-                const a = i * Math.PI / 4;
-                g.lineBetween(trap.homeX, trap.homeY, trap.homeX + Math.cos(a) * 240, trap.homeY + Math.sin(a) * 240);
-              }
-            }
-          }
-          if (spiderInView) {
-            if (!lowLod) {
-              g.lineStyle(3, 0xb297c1);
-              for (let i = 0; i < 8; i++) {
-                const a = i * Math.PI / 4;
-                g.lineBetween(trap.x + Math.cos(a) * 10, trap.y + Math.sin(a) * 10, trap.x + Math.cos(a + 0.25) * 25, trap.y + Math.sin(a + 0.25) * 25);
-              }
-            }
-            g.fillStyle(0x574d6b); g.fillCircle(trap.x, trap.y, 13); g.fillStyle(0xff879f); g.fillCircle(trap.x + Math.cos(heading) * 8, trap.y + Math.sin(heading) * 8, 4);
-          }
-        } else {
-          if (!nearView(trap.x, trap.y, 260)) continue;
-          g.fillStyle(0x282c39); g.fillRoundedRect(trap.x - 19, trap.y - 19, 38, 38, 6);
-          g.lineStyle(3, trap.kind === 'flame' ? 0xffba62 : 0xff879f); g.strokeCircle(trap.x, trap.y, 15);
-          g.lineStyle(8, 0xadb8c2); g.lineBetween(trap.x, trap.y, trap.x + Math.cos(heading) * 28, trap.y + Math.sin(heading) * 28);
-          if (trap.kind === 'flame' && (trap.warning || trap.firing)) {
-            g.fillStyle(trap.firing ? 0xff873e : 0xffd36c, trap.firing ? 0.65 : 0.18);
-            g.fillTriangle(trap.x, trap.y, trap.x + Math.cos(heading - 0.64) * 240, trap.y + Math.sin(heading - 0.64) * 240, trap.x + Math.cos(heading + 0.64) * 240, trap.y + Math.sin(heading + 0.64) * 240);
-          }
-        }
-      }
-      this.shots = state.projectiles.map(b => ({ id: b.id, x: b.x + b.dx * alpha, y: b.y + b.dy * alpha, dx: b.dx, dy: b.dy }));
-      for (const b of this.shots) {
-        if (!lit(b.x, b.y)) continue;
-        g.lineStyle(3, 0xffffd8); g.lineBetween(b.x, b.y, b.x - b.dx * 0.7, b.y - b.dy * 0.7);
-      }
-      for (const e of state.effects) {
-        if (!lit(e.x, e.y)) continue;
-        const a = Math.max(0, e.life - alpha) / 12; g.lineStyle(3, ['shock', 'slash'].includes(e.kind) ? 0xff777e : ['scan', 'rail'].includes(e.kind) ? 0x96dcf4 : 0xeafdc1, a); g.strokeCircle(e.x, e.y, e.radius * (1 - a * 0.7));
-        if (e.kind === 'smoke') { g.fillStyle(0xeaf4de, a * 0.45); g.fillCircle(e.x, e.y, e.radius * (1 - a * 0.6)); }
-      }
-      // The waiting area before a match (#236) has no advancing hazard.
-      if (state.hazardX != null) {
-        fixed.fillStyle(0xd65065, 0.68); fixed.fillRect(-80, -80, Math.max(0, state.hazardX + 80), map.height + 160);
-        fixed.lineStyle(4, 0xffaaa1); fixed.lineBetween(state.hazardX, -80, state.hazardX, map.height + 80);
-      }
-      // Heard gunfire (#684, 15): the player's own cues, an area rather than an actor, so drawn through walls
-      // and fog. On screen a fading ring over the cell; off screen an arrow at the view's edge toward it.
-      // Read from the frame's own record: a predicted copy of the player may not carry the latest cues.
-      for (const cue of api.directed() ? [] : playersById.get(api.playerId())?.heard ?? []) {
-        const fade = Math.max(0, Math.min(1, (cue.until - state.tick) / Math.max(1, cue.until - cue.tick)));
-        const dx = cue.x - cx, dy = cue.y - cy, edge = Math.max(Math.abs(dx) / (halfWidth - 40 / zoom), Math.abs(dy) / (halfHeight - 40 / zoom));
-        if (edge <= 1) {
-          g.lineStyle(3 / zoom, HEARD, 0.85 * fade); g.strokeCircle(cue.x, cue.y, 96);
-          g.lineStyle(2 / zoom, HEARD, 0.5 * fade); g.strokeCircle(cue.x, cue.y, 96 * (1.6 - 0.6 * fade));
-          continue;
-        }
-        const angle = Math.atan2(dy, dx), size = 18 / zoom, tipX = cx + dx / edge, tipY = cy + dy / edge;
-        g.fillStyle(HEARD, 0.35 + 0.6 * fade);
-        g.fillTriangle(tipX, tipY, tipX - Math.cos(angle - 0.5) * size, tipY - Math.sin(angle - 0.5) * size,
-          tipX - Math.cos(angle + 0.5) * size, tipY - Math.sin(angle + 0.5) * size);
-      }
-      stop('render.world');
-      start('render.actors');
+    }
+    /** Place, show and mark every player's sprite, making and destroying them as players come and go. */
+    drawActors(state, map, actorBodies, eye, viewer, fogged, canonicalFields, artOpts) {
       const actorGeometry = api.geometryOverlay?.();
       const ids = new Set();
       for (const rawPlayer of state.players) {
@@ -1069,7 +297,72 @@ export function makeArenaScene(api) {
         }
       }
       for (const [id, actor] of this.actors) if (!ids.has(id)) { actor.container.destroy(); this.actors.delete(id); }
-      stop('render.actors');
+    }
+    update(now, delta) {
+      const rawDelta = noteFrame();
+      start('render.frame'); if (rawDelta !== null) observe('render.delta', rawDelta);
+      api.onFrame(delta);
+      const state = api.state(), map = api.map(), rawSelf = api.self();
+      if (!state || !map) { stop('render.frame'); endProfileFrame(); return; }
+      const actorBodies = new Map((state.bodies || []).filter(body => body.kind === 'actor' && body.actorId != null).map(body => [body.actorId, body]));
+      const itemBodies = new Map((state.bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
+      const selfBody = rawSelf && actorBodies.get(rawSelf.id);
+      const self = selfBody && !api.localPhysics?.() ? { ...rawSelf, x: selfBody.x, y: selfBody.y } : rawSelf;
+      const eye = this.stepEye(state, map, actorBodies, self, selfBody, rawDelta, delta);
+      // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed
+      // view, or nobody's, which is the unfogged directed view.
+      const fogged = !api.directed() || api.director.fog() && !!api.director.followId();
+      const rawViewer = api.directed() ? api.director.viewer() : self;
+      const viewerBody = rawViewer && actorBodies.get(rawViewer.id);
+      const viewer = viewerBody ? { ...rawViewer, x: viewerBody.x, y: viewerBody.y } : rawViewer;
+      // Raw frame time, not Phaser's smoothed and clamped delta, so a slow client pans as far as a fast one.
+      // Stepping indoors eases the camera a little closer; a directed camera is the director's alone.
+      const within = !api.directed() && eye && roofAt(map, eye);
+      this.insideBlend += ((within ? 1 : 0) - this.insideBlend) * (1 - Math.exp(-(rawDelta ?? delta) / 250));
+      if (Math.abs((within ? 1 : 0) - this.insideBlend) < 0.005) this.insideBlend = within ? 1 : 0;
+      start('render.camera'); this.updateCamera(); stop('render.camera');
+      const view = this.view, camera = this.cameras.main;
+      view.map = map; view.fogged = fogged; view.now = now;
+      view.setCamera(this.cameraView(), camera.width, camera.height);
+      start('render.roofs'); fadeRoofs(map, this, eye, buildingOpenings(map), rawDelta ?? delta, view); stop('render.roofs');
+      start('render.tiles'); this.tileCache.update(camera); stop('render.tiles');
+      // Sub-pixel map labels become illegible smudge below LOD_LABEL_ZOOM; hide them until the camera zooms in.
+      const showLabels = view.zoom >= LOD_LABEL_ZOOM;
+      for (const label of this.labels) label.setVisible(showLabels && view.nearView(label.x, label.y));
+      this.updateSight(state, map, eye, fogged, view.zoom);
+      view.sight = this.sight;
+      api.onSight?.();
+      const g = this.dynamic; g.clear();
+      const fixed = this.fixtures; fixed.clear();
+      const fields = map.appearance?.lighting?.fields || [];
+      const canonicalFields = getCanonicalFields(fields);
+      const artOpts = { palette: this.paletteId, lighting: this.lighting, wear: this.wear, buildingsById: this.buildingsById };
+      start('render.world');
+      view.alpha = api.frameAlpha();
+      // Event light (#594): only sources that pass the same `lit` rule as the shots and effects drawn
+      // below may light anything. Props drawn above the layer take the same lift as the ground beneath.
+      const eventLights = resolveEventLights(state, { lighting: this.lighting, lit: view.lit, inView: view.nearView, alpha: view.alpha });
+      drawEventLights(this.eventLight, eventLights);
+      // An empty additive layer still costs Phaser a blend switch and batch flush each frame.
+      this.eventLight.setVisible(eventLights.length > 0);
+      count('work.eventLights', eventLights.length);
+      const playersById = new Map(state.players.map(player => [player.id, player]));
+      const bodies = visibleBodies(state, playersById, viewer, view);
+      drawTethers(g, state.tethers || [], bodies, view);
+      drawHookFlights(g, state.hookFlights || [], bodies, view);
+      drawProps(g, bodies, state.items || [], canonicalFields, artOpts, eventLights, view);
+      drawGates(fixed, fogged ? this.rememberedGates : state.gates, view);
+      drawItems(g, state.items, itemBodies, view);
+      drawSensors(fixed, map.sensors, view);
+      drawTraps(g, state.traps || [], view);
+      this.shots = projectShots(state.projectiles, view.alpha);
+      drawShots(g, this.shots, view);
+      drawEffects(g, state.effects, view);
+      drawHazard(fixed, state.hazardX, map);
+      // Read from the frame's own record: a predicted copy of the player may not carry the latest cues.
+      drawHeardCues(g, api.directed() ? [] : playersById.get(api.playerId())?.heard ?? [], state.tick, view);
+      stop('render.world');
+      start('render.actors'); this.drawActors(state, map, actorBodies, eye, viewer, fogged, canonicalFields, artOpts); stop('render.actors');
       stop('render.frame');
       endProfileFrame();
     }

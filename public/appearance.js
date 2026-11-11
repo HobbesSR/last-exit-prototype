@@ -579,7 +579,7 @@ export function resolveObstacleAppearance(obstacle, mapAppearance, options = {})
  * theatrical wash fields).
  *
  * Returns an ordered list of bounded ground drawings with explicit bounding boxes so `recordStatic()`
- * records them into `staticAt(...)` in exact layer order:
+ * records them into `TileCache.record(...)` in exact layer order:
  *   1. `paving` — ordinary slate/concrete paving pads and service-lane aprons
  *   2. `commercial` — ochre parking stripes, loading bay markings, weathered coral storefront awnings/signage
  *   3. `wear` — long-term neglect (faded panels, water/drain stains, pavement cracks) [when `art.wear` is true]

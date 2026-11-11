@@ -25,12 +25,12 @@ try {
     window.fixture = { map, player, state };
     window.fixture.game = new Phaser.Game({ type: Phaser.WEBGL, width: 900, height: 700, audio: { noAudio: true }, render: { preserveDrawingBuffer: true }, scene: makeArenaScene(api) });
   });
-  await page.waitForFunction(() => window.fixture.scene?.overheadGroups?.size && window.fixture.scene.overheadGroups.get('canopy').textures.size);
+  await page.waitForFunction(() => window.fixture.scene?.tileCache?.groups.size && window.fixture.scene.tileCache.groups.get('canopy').textures.size);
   await page.waitForTimeout(300);
   // Checks below use actual cached textures, not the Graphics command list.
   const initial = await page.evaluate(() => {
     const s = window.fixture.scene;
-    return { groups: [...s.overheadGroups].map(([id, g]) => ({ id, kind: g.kind, textures: [...g.textures].map(t => t.type) })),
+    return { groups: [...s.tileCache.groups].map(([id, g]) => ({ id, layer: g.layer, textures: [...g.textures].map(t => t.type) })),
       roof: s.roofs.get('house').visible };
   });
   assert.ok(initial.groups.find(g => g.id === 'canopy').textures.every(t => t === 'RenderTexture'));
@@ -39,10 +39,10 @@ try {
   await page.evaluate(() => {
     const f = window.fixture, s = f.scene;
     s.scene.pause();
-    f.textures = [...s.overheadGroups.get('canopy').textures];
+    f.textures = [...s.tileCache.groups.get('canopy').textures];
     f.rasterisations = 0;
-    const rasterise = s.rasterise.bind(s);
-    s.rasterise = (...args) => { f.rasterisations++; return rasterise(...args); };
+    const rasterise = s.tileCache.rasterise.bind(s.tileCache);
+    s.tileCache.rasterise = (...args) => { f.rasterisations++; return rasterise(...args); };
     f.pixel = (wx = f.player.x, wy = f.player.y) => {
       const c = s.cameras.main, gl = f.game.renderer.gl, rgba = new Uint8Array(4);
       const px = Math.round((wx - c.worldView.x) * c.zoom), py = Math.round((wy - c.worldView.y) * c.zoom);
@@ -51,17 +51,17 @@ try {
     };
   });
   const covered = await page.evaluate(() => window.fixture.pixel());
-  await page.evaluate(() => window.fixture.scene.setOverheadGroup('canopy', true, 0));
+  await page.evaluate(() => window.fixture.scene.tileCache.setGroup('canopy', true, 0));
   await page.waitForTimeout(60);
   const uncovered = await page.evaluate(() => window.fixture.pixel());
   assert.notDeepEqual(covered, uncovered, 'crown extends past trunk and occludes an actor beneath it');
-  await page.evaluate(() => window.fixture.scene.setOverheadGroup('canopy', true, 0.4));
+  await page.evaluate(() => window.fixture.scene.tileCache.setGroup('canopy', true, 0.4));
   await page.waitForTimeout(60);
   const faded = await page.evaluate(() => window.fixture.pixel());
   assert.notDeepEqual(faded, covered, 'group alpha changes the rendered crown');
   assert.notDeepEqual(faded, uncovered, 'intermediate alpha retains overhead art');
   const retained = await page.evaluate(() => {
-    const f = window.fixture, g = f.scene.overheadGroups.get('canopy');
+    const f = window.fixture, g = f.scene.tileCache.groups.get('canopy');
     return { same: f.textures.every(t => g.textures.has(t)), alpha: [...g.textures].map(t => t.alpha), rasterisations: f.rasterisations };
   });
   assert.equal(retained.same, true, 'alpha changes reuse textures');
@@ -69,14 +69,14 @@ try {
   assert.equal(retained.rasterisations, 0, 'fading does not rasterise');
   const roofAlpha = await page.evaluate(() => {
     const s = window.fixture.scene, group = s.roofs.get('house'), textures = [...group.textures];
-    s.setOverheadGroup('roof:house', true, 0.5);
+    s.tileCache.setGroup('roof:house', true, 0.5);
     return textures.length > 0 && textures.every(t => group.textures.has(t) && t.alpha === 0.5);
   });
   assert.equal(roofAlpha, true, 'roof groups also reuse textures for alpha changes');
   // A palette restyle (11.1, #582) re-records the art but keeps a group part way through its fade.
   await page.evaluate(() => { const s = window.fixture.scene; s.setPalette('signature'); s.update(performance.now(), 16); });
   await page.waitForTimeout(60);
-  assert.equal(await page.evaluate(() => window.fixture.scene.overheadGroups.get('canopy').alpha), 0.4, 'a restyle keeps the fade');
+  assert.equal(await page.evaluate(() => window.fixture.scene.tileCache.groups.get('canopy').alpha), 0.4, 'a restyle keeps the fade');
   assert.deepEqual(await page.evaluate(() => window.fixture.pixel()), faded, 'and draws the same crown at the same alpha');
   // Roof fade and inside zoom: the viewer walks to the door, then in, then out again.
   const frames = (n = 60, id = 'house') => page.evaluate(async ([n, id]) => { const s = window.fixture.scene; s.cutTo(); for (let i = 0; i < n; i++) { s.update(performance.now(), 16); await new Promise(r => setTimeout(r, 20)); } const g = s.roofs.get(id);
@@ -264,7 +264,7 @@ try {
   const compoundOverheadCount = await page.evaluate(() => {
     const s = window.fixture.scene;
     let count = 0;
-    for (const [key, g] of s.overheadGroups) {
+    for (const [key, g] of s.tileCache.groups) {
       if (key.startsWith('roof:') && g.visible && g.textures.size > 0) count++;
     }
     return count;
@@ -286,14 +286,14 @@ try {
   // Pan far enough to release the original textures, then rebuild the map with no overhead art.
   const cleanup = await page.evaluate(() => {
     const f = window.fixture, s = f.scene;
-    s.cameras.main.centerOn(4500, 2500); s.updateTiles();
+    s.cameras.main.centerOn(4500, 2500); s.tileCache.update(s.cameras.main);
     const released = f.textures.every(t => !t.scene);
-    const remaining = [...s.overheadTiles.values()].filter(t => t.texture).length;
+    const remaining = [...s.tileCache.overheadTiles.values()].filter(t => t.texture).length;
     s.cameras.main.centerOn(500, 400);
-    for (let i = 0; i < 8; i++) s.updateTiles();
-    const rebuilt = [...s.overheadGroups.values()].flatMap(g => [...g.textures]);
+    for (let i = 0; i < 8; i++) s.tileCache.update(s.cameras.main);
+    const rebuilt = [...s.tileCache.groups.values()].flatMap(g => [...g.textures]);
     f.map = { ...f.map, obstacles: [], buildings: [], roofs: [] }; s.buildMap();
-    return { released, remaining, mapReleased: rebuilt.length > 0 && rebuilt.every(t => !t.scene), roofCount: s.roofs.size, tileCount: s.overheadTiles.size, drawings: s.overheadDrawings.length };
+    return { released, remaining, mapReleased: rebuilt.length > 0 && rebuilt.every(t => !t.scene), roofCount: s.roofs.size, tileCount: s.tileCache.overheadTiles.size, drawings: s.tileCache.overheadDrawings.length };
   });
   assert.deepEqual(cleanup, { released: true, remaining: 0, mapReleased: true, roofCount: 0, tileCount: 0, drawings: 0 });
   assert.deepEqual(errors, []);
