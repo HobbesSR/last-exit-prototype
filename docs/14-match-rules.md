@@ -5,7 +5,7 @@ Every number here is a tuning default, not a design constant. The shipped defaul
 sections below. Every physics match carries that one rules version; which physics features it
 has (character profile, physical items, the hook, body detours) is stated by its content alone
 (#921). Every match runs on the physics engine: #920 retired the legacy mover, its rules version
-`last-exit-0.7` and contents 1 to 5, whose recordings keep their labels ([22.7](22.7-content-and-presentation.md)).
+`last-exit-0.7` and contents 1 to 5 (recordings below schema 10 were retired by [#953](26-recording-contract.md#versioning-and-compatibility)).
 Numbers outside the physics sections are shared by every shipped set unless a physics section says otherwise. When one
 changes, it must stay named in code and updated here in the same change.
 Accepted-but-unimplemented changes live in [13](13-accepted-features.md).
