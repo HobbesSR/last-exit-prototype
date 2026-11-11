@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { serveWithBrowser } from './helpers/browser.js';
-import { generate } from '../map/tools/core.ts';
+import { generate, generateMacro } from '../map/tools/core.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { briefFragment } from '../map/micro/brief-link.ts';
 import { buildRegion, REGION_TYPES } from '../map/micro/region-types.ts';
@@ -89,7 +89,11 @@ try {
   await page.screenshot({ path: 'test-results/generation-demo.png', fullPage: true });
   // A chain map's block, opened by the Map Lab's link (20.5): its lots and alleys, the geometry
   // the map stored for it, and a walk through it with the game's collision.
-  const blockMap = generate('last-exit-004'), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
+  const findSeed = type => Array.from({ length: 60 }, (_, i) => `last-exit-${String(i + 1).padStart(3, '0')}`)
+    .find(seed => mapViews(generateMacro(seed)).briefs.some(b => b.type === type));
+  const blockSeed = findSeed('block');
+  assert.ok(blockSeed, 'a last-exit seed in 1 to 60 places a block');
+  const blockMap = generate(blockSeed), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
   await page.goto(`${base}/dev/micro/generation${await briefFragment(blockBrief)}`);
   await page.waitForFunction(id => window.generationDemoDebug?.().linked && window.generationDemoDebug().shown?.id === id, blockBrief.id, { timeout: 15000 });
   const block = await page.evaluate(() => window.generationDemoDebug());
@@ -110,7 +114,8 @@ try {
   await page.waitForFunction(x => window.generationDemoDebug().walker.x !== x, walked.x, { timeout: 7000 });
   await page.keyboard.up('KeyD');
   // A region that doesn't decompose says so, and the example shows instead.
-  const hutBrief = mapViews(blockMap).briefs.find(b => b.type === 'hut') ?? mapViews(generate('last-exit-001')).briefs.find(b => b.type === 'hut');
+  const hutBrief = mapViews(blockMap).briefs.find(b => b.type === 'hut')
+    ?? (() => { const seed = findSeed('hut'); assert.ok(seed, 'a last-exit seed in 1 to 60 places a hut'); return mapViews(generateMacro(seed)).briefs.find(b => b.type === 'hut'); })();
   await page.goto(`${base}/dev/micro/generation${await briefFragment(hutBrief)}`);
   await page.waitForFunction(() => window.generationDemoDebug?.().shown && !window.generationDemoDebug().linked);
   assert.match(await page.locator('#status').textContent(), /doesn't decompose/);

@@ -1097,7 +1097,8 @@ try {
     curbVegetation: { x: 1159, y: 539 },
     impactCrater: { x: 1159, y: 513 },
     roofImpactCrater: { x: 870, y: 690 },
-    roofVegetation: { x: 990, y: 735 },
+    // Vegetation sits at y=729..741; sample above the horizontal roofRidge line at y=736 (2px stroke).
+    roofVegetation: { x: 990, y: 732 },
     windowSheen: { x: 846, y: 582 },
     windowBaseGlass: { x: 860, y: 582 },
   };
