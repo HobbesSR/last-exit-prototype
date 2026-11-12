@@ -3,11 +3,11 @@ import * as profiler from '../shared/profiler.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { createDiscoveryEncoder } from '../shared/discovery.ts';
 import { stringifyWithMap } from './map-payload.js';
-import { SERVER_MESSAGE } from './protocol.js';
+import { assertServerMessage, lobbyMessage, stateMessage } from './protocol.js';
 export const SPECTATOR_DELAY_TICKS = 60;
-export const send = (session, value) => session.deliver(stringifyWithMap(value));
-const lobbyPayload = room => ({
-  type: SERVER_MESSAGE.LOBBY, room: room.id, name: room.name, started: room.started, matchmade: !!room.matchmade, size: zoneSizeName(room.size),
+export const send = (session, value) => session.deliver(stringifyWithMap(assertServerMessage(value)));
+const lobbyPayload = room => lobbyMessage({
+  room: room.id, name: room.name, started: room.started, matchmade: !!room.matchmade, size: zoneSizeName(room.size),
   startsAt: room.startsAt || null,
   // Whether the map exists yet (#258), and whether the owner has asked to start as soon as it does.
   ready: !!room.match, starting: !!room.startRequested,
@@ -21,7 +21,7 @@ export function broadcastLobby(room) {
 }
 /** Each player's frame of the waiting area (#236); those watching see the match map, not this. */
 export function broadcastWaiting(room, view) {
-  for (const session of room.clients) if (session.playerId) session.deliver(JSON.stringify({ type: SERVER_MESSAGE.STATE, state: view(room.waiting, session.playerId) }), true);
+  for (const session of room.clients) if (session.playerId) session.deliver(JSON.stringify(stateMessage(view(room.waiting, session.playerId))), true);
 }
 export function spectatorFrame(room) {
   const cutoff = Math.max(0, room.match.tick - SPECTATOR_DELAY_TICKS);
@@ -67,7 +67,7 @@ export function broadcast(room, state) {
         frame.players = frame.players.map(p => p.id === session.playerId ? { ...p, discovered: disc } : p);
       }
       profiler.start('loop.serialize');
-      payloads.set(variant, payload = JSON.stringify({ type: SERVER_MESSAGE.STATE, state: frame }));
+      payloads.set(variant, payload = JSON.stringify(stateMessage(frame)));
       profiler.stop('loop.serialize');
     }
     if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;

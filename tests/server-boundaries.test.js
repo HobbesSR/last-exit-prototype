@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { CLIENT_MESSAGE, SERVER_MESSAGE } from '../shared/protocol.ts';
+import { CLIENT_MESSAGE, CLIENT_MESSAGE_TYPES, SERVER_MESSAGE, SERVER_MESSAGE_TYPES } from '../shared/protocol.ts';
 
 test('server ownership stays acyclic and transport cannot reach mutable simulation or replay streams', () => {
   const files = readdirSync('server').filter(f => f.endsWith('.js'));
@@ -31,42 +31,91 @@ test('server ownership stays acyclic and transport cannot reach mutable simulati
   for (const file of graph.keys()) visit(file);
 });
 
-test('every wire message sent or handled in server/ or public/ is named in shared/protocol.ts', () => {
-  const serverFiles = ['room-service.js', 'room-views.js', 'room-directory.js', 'latency.js'].map(f => [
-    `server/${f}`,
-    readFileSync(path.resolve('server', f), 'utf8'),
-  ]);
-  const clientCode = readFileSync(path.resolve('public', 'client.js'), 'utf8');
-  const allSources = [...serverFiles, ['public/client.js', clientCode]];
+test('every wire message and HTTP payload sent or handled in server/ or public/ uses shared/protocol.ts names and checked builders', () => {
+  const serverSources = readdirSync('server')
+    .filter(f => f.endsWith('.js'))
+    .map(f => [`server/${f}`, readFileSync(path.resolve('server', f), 'utf8')]);
+  const publicSources = readdirSync('public')
+    .filter(f => f.endsWith('.js'))
+    .map(f => [`public/${f}`, readFileSync(path.resolve('public', f), 'utf8')]);
+  const allSources = [...serverSources, ...publicSources];
 
   const clientKeys = new Set(Object.keys(CLIENT_MESSAGE));
   const serverKeys = new Set(Object.keys(SERVER_MESSAGE));
   const usedServerClientKeys = new Set();
-  const usedServerServerKeys = new Set();
+  const usedPublicClientKeys = new Set();
+  const usedPublicServerKeys = new Set();
+
+  const serverBuilderByKey = {
+    WELCOME: ['playerWelcomeMessage', 'spectatorWelcomeMessage', 'devWelcomeMessage'],
+    READY: ['readyMessage'],
+    STATE: ['stateMessage'],
+    LOBBY: ['lobbyMessage'],
+    CHOOSE: ['chooseReplyMessage'],
+    TELEPORT: ['teleportReplyMessage'],
+    PAUSED: ['pausedMessage'],
+    SAVED: ['savedMessage'],
+    REPLAY_STATUS: ['replayStatusMessage'],
+    ERROR: ['errorMessage'],
+    PING: ['pingMessage'],
+  };
+  assert.deepEqual(new Set(Object.keys(serverBuilderByKey)), serverKeys, 'every SERVER_MESSAGE key maps to checked builder(s)');
+  const calledServerBuilders = new Set();
+
+  const wireTypesPattern = [...CLIENT_MESSAGE_TYPES, ...SERVER_MESSAGE_TYPES]
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+  const rawTypeCompare = new RegExp(`\\b(?:data|msg|raw)\\??\\.type\\s*[!=]==?\\s*['"\`](?:${wireTypesPattern})['"\`]`);
 
   for (const [label, code] of allSources) {
     for (const [, key] of code.matchAll(/\bCLIENT_MESSAGE\.([A-Z0-9_]+)\b/g)) {
       assert.ok(clientKeys.has(key), `${label} references unknown CLIENT_MESSAGE.${key}`);
       if (label.startsWith('server/')) usedServerClientKeys.add(key);
+      if (label.startsWith('public/')) usedPublicClientKeys.add(key);
     }
     for (const [, key] of code.matchAll(/\bSERVER_MESSAGE\.([A-Z0-9_]+)\b/g)) {
       assert.ok(serverKeys.has(key), `${label} references unknown SERVER_MESSAGE.${key}`);
-      if (label.startsWith('server/')) usedServerServerKeys.add(key);
+      if (label.startsWith('public/')) usedPublicServerKeys.add(key);
     }
-    assert.doesNotMatch(code, /\b(?:data|msg|raw)\??\.type\s*[!=]==?\s*['"`]/, `${label} compares wire message type to a raw string literal`);
-    assert.doesNotMatch(code, /\bsend\s*\([^;\n]*\btype:\s*['"`]/, `${label} sends a wire message with a raw string literal type`);
+    if (label.startsWith('server/')) {
+      for (const builders of Object.values(serverBuilderByKey)) {
+        for (const builder of builders) {
+          if (new RegExp(`\\b${builder}\\s*\\(`).test(code)) calledServerBuilders.add(builder);
+        }
+      }
+      assert.doesNotMatch(code, /\btype:\s*SERVER_MESSAGE\./, `${label} constructs a raw SERVER_MESSAGE literal instead of using a checked builder`);
+    }
+    assert.doesNotMatch(code, rawTypeCompare, `${label} compares wire message type to a raw string literal`);
+    assert.doesNotMatch(code, /\bsend\s*\(\s*session\b[^;\n]*\btype:\s*['"`]/, `${label} sends a wire message with a raw string literal type`);
     assert.doesNotMatch(code, /JSON\.stringify\s*\(\s*\{\s*type:\s*['"`]/, `${label} serializes a wire message with a raw string literal type`);
   }
 
-  const usedClientSendKeys = new Set([...clientCode.matchAll(/\bCLIENT_MESSAGE\.([A-Z0-9_]+)\b/g)].map(m => m[1]));
-  const usedClientRecvKeys = new Set([...clientCode.matchAll(/\bSERVER_MESSAGE\.([A-Z0-9_]+)\b/g)].map(m => m[1]));
-
   for (const key of clientKeys) {
-    assert.ok(usedClientSendKeys.has(key), `CLIENT_MESSAGE.${key} is not sent in public/client.js`);
+    assert.ok(usedPublicClientKeys.has(key), `CLIENT_MESSAGE.${key} is not sent in public/`);
     assert.ok(usedServerClientKeys.has(key), `CLIENT_MESSAGE.${key} is not handled in server/`);
   }
-  for (const key of serverKeys) {
-    assert.ok(usedServerServerKeys.has(key), `SERVER_MESSAGE.${key} is not sent in server/`);
-    assert.ok(usedClientRecvKeys.has(key), `SERVER_MESSAGE.${key} is not handled in public/client.js`);
+  for (const [key, builders] of Object.entries(serverBuilderByKey)) {
+    for (const builder of builders) {
+      assert.ok(calledServerBuilders.has(builder), `Checked builder ${builder} for SERVER_MESSAGE.${key} is not called in server/`);
+    }
+    assert.ok(usedPublicServerKeys.has(key), `SERVER_MESSAGE.${key} is not handled in public/`);
+  }
+
+  const httpApiCode = readFileSync(path.resolve('server', 'http-api.js'), 'utf8');
+  const httpBuilders = [
+    'healthResponse',
+    'profileResponse',
+    'profileToggleResponse',
+    'clientConfigResponse',
+    'roomsResponse',
+    'createRoomResponse',
+    'replaysResponse',
+    'httpErrorResponse',
+  ];
+  for (const builder of httpBuilders) {
+    assert.match(httpApiCode, new RegExp(`\\.json\\(\\s*${builder}\\s*\\(`), `server/http-api.js must use ${builder}()`);
+  }
+  for (const [, arg] of httpApiCode.matchAll(/\.json\(\s*([A-Za-z0-9_{}[\]'"`]+)/g)) {
+    assert.ok(httpBuilders.includes(arg), `server/http-api.js calls .json(${arg}...) without a checked HTTP response builder`);
   }
 });

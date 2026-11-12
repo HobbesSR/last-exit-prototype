@@ -1,7 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
-import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, deliverable, validateClientMessage, acceptClientMessage, MAX_BUFFERED_BYTES, MAX_DIAGNOSTICS_PER_SESSION, REJECT_LOG_INTERVAL_MS } from '../server/protocol.js';
+import {
+  parseMessage,
+  acceptMessageRate,
+  roomSeed,
+  roomSize,
+  devToolsPolicy,
+  deliverable,
+  validateClientMessage,
+  validateServerMessage,
+  assertServerMessage,
+  acceptClientMessage,
+  pausedMessage,
+  playerWelcomeMessage,
+  spectatorWelcomeMessage,
+  devWelcomeMessage,
+  healthResponse,
+  clientConfigResponse,
+  createRoomResponse,
+  httpErrorResponse,
+  MAX_BUFFERED_BYTES,
+  MAX_DIAGNOSTICS_PER_SESSION,
+  REJECT_LOG_INTERVAL_MS,
+} from '../server/protocol.js';
+import { send } from '../server/room-views.js';
 
 test('a backed-up socket skips state frames but never a one-off message', async () => {
   assert.equal(deliverable(MAX_BUFFERED_BYTES, true), false);
@@ -183,4 +206,49 @@ test('protocol validation counts and rate-limits rejected messages, throws in st
     assert.equal(badJoin.session.rejectedMessages, 1);
     assert.equal(badJoin.messages.at(-1)?.type, 'error');
   } finally { await h.service.close(); }
+});
+
+test('outbound server message and HTTP builders enforce declared wire shapes at construction and delivery', () => {
+  assert.deepEqual(pausedMessage(true), { type: 'paused', paused: true });
+  assert.throws(() => pausedMessage('yes'), /Invalid server message \(paused\)/);
+  assert.throws(() => assertServerMessage({ type: 'paused', isPaused: true }), /Invalid server message \(paused\)/);
+  assert.throws(() => assertServerMessage({ type: 'paused', paused: true, tick: 4 }), /Invalid server message \(paused\)/);
+  assert.throws(() => send({ deliver() {} }, { type: 'paused', isPaused: true }), /Invalid server message \(paused\)/);
+
+  const baseWelcome = {
+    room: 'r1', owner: true, devTools: true, ready: false, paused: false,
+    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null,
+  };
+  assert.equal(validateServerMessage(playerWelcomeMessage({
+    ...baseWelcome, id: 'p1', resumeKey: 'k1', started: false, matchmade: false, startsAt: null,
+  })).ok, true);
+  assert.throws(() => playerWelcomeMessage({
+    ...baseWelcome, id: 'p1', resumeKey: 'k1', started: false, matchmade: false, startsAt: null, role: 'contestant',
+  }), /PlayerWelcomeMessage/);
+  assert.equal(validateServerMessage(spectatorWelcomeMessage({
+    ...baseWelcome, spectatorDelayTicks: 60,
+  })).ok, true);
+  assert.throws(() => spectatorWelcomeMessage({
+    ...baseWelcome, spectatorDelayTicks: 60, started: false,
+  }), /SpectatorWelcomeMessage/);
+  assert.equal(validateServerMessage(devWelcomeMessage({
+    room: 'r1', owner: true, started: true, ready: false, paused: false,
+    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null,
+  })).ok, true);
+
+  assert.equal(healthResponse({
+    rulesVersion: 'r1', physicsVersion: 'p1', tickRate: 20, profiling: false,
+    devTools: 'none', liveRooms: 0, emptyLiveRooms: 0, mapPool: null,
+  }).ok, true);
+  assert.throws(() => healthResponse({
+    rulesVersion: 'r1', physicsVersion: 'p1', tickRate: 20, profiling: false,
+    devTools: 'none', liveRooms: 0, emptyLiveRooms: 0, mapPool: null, version: 'legacy',
+  }), /Invalid \/api\/health/);
+  assert.throws(() => clientConfigResponse({
+    devTools: 'none', presentation: { contentId: 'content-7' }, seed: { min: 1, max: 99 },
+    roomNameMaxLength: 24, playerNameMaxLength: 16, sizes: ['12x6'], defaultSize: '12x6',
+    matchmakingCountdownMs: 15000, rulesVersion: 'unexpected',
+  }), /Invalid \/api\/client-config/);
+  assert.throws(() => createRoomResponse({ id: 'r1', name: null, ownerKey: '', seed: 9, size: '12x6' }), /Invalid POST \/api\/rooms/);
+  assert.throws(() => httpErrorResponse(''), /Invalid HTTP error/);
 });

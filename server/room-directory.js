@@ -1,8 +1,8 @@
 import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
-import { CLIENT_MESSAGE, SERVER_MESSAGE, acceptClientMessage, randomSeed } from './protocol.js';
+import { CLIENT_MESSAGE, acceptClientMessage, errorMessage, randomSeed } from './protocol.js';
 import { send } from './room-views.js';
 export const MAX_ROOMS = 8;
-const FULL = { type: SERVER_MESSAGE.ERROR, message: 'All arena slots are occupied. Try matchmaking again after a match ends.' };
+const FULL = errorMessage('All arena slots are occupied. Try matchmaking again after a match ends.');
 
 /**
  * The directory (22.5): which rooms exist, creating them, and choosing one for a matchmaking player.

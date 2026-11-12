@@ -372,6 +372,422 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface ProfileResponse {
+  enabled: boolean;
+  tickRate: number;
+  budgetMs: number;
+  effectiveHz: number | null;
+  frames: number;
+  rooms: number;
+  series: unknown[];
+}
+
+export interface ProfileToggleResponse {
+  enabled: boolean;
+}
+
+// --- Outbound Server Message & HTTP Payload Validation and Checked Builders ---
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const nonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0;
+
+const nonNegativeInt = (value: unknown): value is number =>
+  safeInteger(value) && value >= 0;
+
+const hasExactKeys = (obj: Record<string, unknown>, expected: readonly string[]): boolean => {
+  const keys = Object.keys(obj);
+  return keys.length === expected.length && expected.every(k => Object.hasOwn(obj, k));
+};
+
+const WELCOME_PLAYER_KEYS = [
+  'type', 'id', 'resumeKey', 'room', 'owner', 'devTools', 'paused',
+  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state',
+] as const;
+
+const WELCOME_SPECTATOR_KEYS = [
+  'type', 'id', 'spectator', 'spectatorDelayTicks', 'room', 'owner', 'devTools',
+  'ready', 'paused', 'contentId', 'presentation', 'map', 'state',
+] as const;
+
+const WELCOME_DEV_KEYS = [
+  'type', 'id', 'spectator', 'dev', 'devTools', 'room', 'owner',
+  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state',
+] as const;
+
+const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state'] as const;
+const STATE_KEYS = ['type', 'state'] as const;
+const LOBBY_KEYS = [
+  'type', 'room', 'name', 'started', 'matchmade', 'size',
+  'startsAt', 'ready', 'starting', 'capacity', 'players',
+] as const;
+const CHOOSE_REPLY_KEYS = ['type', 'ok', 'message'] as const;
+const TELEPORT_REPLY_KEYS = ['type', 'ok', 'id'] as const;
+const PAUSED_KEYS = ['type', 'paused'] as const;
+const SAVED_KEYS = ['type', 'replay'] as const;
+const REPLAY_STATUS_KEYS = ['type', 'status', 'message'] as const;
+const ERROR_KEYS = ['type', 'message'] as const;
+const PING_KEYS = ['type', 'token', 'rtt'] as const;
+
+const validWelcomeCommon = (data: Record<string, unknown>): boolean =>
+  nonEmptyString(data.room) &&
+  typeof data.owner === 'boolean' &&
+  typeof data.devTools === 'boolean' &&
+  typeof data.ready === 'boolean' &&
+  typeof data.paused === 'boolean' &&
+  nonEmptyString(data.contentId) &&
+  isRecord(data.presentation) &&
+  (data.map === null || isRecord(data.map)) &&
+  (data.state === null || isRecord(data.state));
+
+const validRoleCounts = (value: unknown): value is { contestant: number; gladiator: number } =>
+  isRecord(value) &&
+  hasExactKeys(value, ['contestant', 'gladiator']) &&
+  nonNegativeInt(value.contestant) &&
+  nonNegativeInt(value.gladiator);
+
+const validLobbyPlayer = (value: unknown): value is LobbyPlayerSummary =>
+  isRecord(value) &&
+  hasExactKeys(value, ['id', 'name', 'role', 'kit']) &&
+  nonEmptyString(value.id) &&
+  typeof value.name === 'string' &&
+  (ROLES as readonly unknown[]).includes(value.role) &&
+  nonEmptyString(value.kit);
+
+export type ServerMessageValidation =
+  | { ok: true; message: ServerMessage }
+  | { ok: false; type: ServerMessageType | null; reason: string };
+
+/**
+ * Validate one outbound server->client WebSocket message against its declared wire contract.
+ */
+export function validateServerMessage(raw: unknown): ServerMessageValidation {
+  if (!isRecord(raw)) {
+    return { ok: false, type: null, reason: 'Server message must be a JSON object.' };
+  }
+  if (typeof raw.type !== 'string' || !(SERVER_MESSAGE_TYPES as readonly string[]).includes(raw.type)) {
+    return { ok: false, type: null, reason: `Unknown server message type ${JSON.stringify(raw.type)}.` };
+  }
+  const type = raw.type as ServerMessageType;
+  switch (type) {
+    case SERVER_MESSAGE.WELCOME: {
+      if (!validWelcomeCommon(raw)) {
+        return { ok: false, type, reason: 'Welcome message is missing required common fields.' };
+      }
+      if (raw.dev === true) {
+        if (
+          !hasExactKeys(raw, WELCOME_DEV_KEYS) ||
+          raw.id !== null ||
+          raw.spectator !== true ||
+          raw.devTools !== true ||
+          typeof raw.started !== 'boolean'
+        ) {
+          return { ok: false, type, reason: 'Dev welcome message does not match DevWelcomeMessage contract.' };
+        }
+        return { ok: true, message: raw as unknown as DevWelcomeMessage };
+      }
+      if (raw.spectator === true) {
+        if (
+          !hasExactKeys(raw, WELCOME_SPECTATOR_KEYS) ||
+          raw.id !== null ||
+          !nonNegativeInt(raw.spectatorDelayTicks)
+        ) {
+          return { ok: false, type, reason: 'Spectator welcome message does not match SpectatorWelcomeMessage contract.' };
+        }
+        return { ok: true, message: raw as unknown as SpectatorWelcomeMessage };
+      }
+      if (
+        !hasExactKeys(raw, WELCOME_PLAYER_KEYS) ||
+        !nonEmptyString(raw.id) ||
+        !nonEmptyString(raw.resumeKey) ||
+        typeof raw.started !== 'boolean' ||
+        typeof raw.matchmade !== 'boolean' ||
+        (raw.startsAt !== null && !finite(raw.startsAt))
+      ) {
+        return { ok: false, type, reason: 'Player welcome message does not match PlayerWelcomeMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as PlayerWelcomeMessage };
+    }
+    case SERVER_MESSAGE.READY: {
+      if (
+        !hasExactKeys(raw, READY_KEYS) ||
+        !nonEmptyString(raw.contentId) ||
+        !isRecord(raw.presentation) ||
+        (raw.map !== null && !isRecord(raw.map)) ||
+        (raw.state !== null && !isRecord(raw.state))
+      ) {
+        return { ok: false, type, reason: 'Ready message does not match ReadyMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as ReadyMessage };
+    }
+    case SERVER_MESSAGE.STATE: {
+      if (!hasExactKeys(raw, STATE_KEYS) || !isRecord(raw.state)) {
+        return { ok: false, type, reason: 'State message does not match StateMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as StateMessage };
+    }
+    case SERVER_MESSAGE.LOBBY: {
+      if (
+        !hasExactKeys(raw, LOBBY_KEYS) ||
+        !nonEmptyString(raw.room) ||
+        (raw.name !== null && typeof raw.name !== 'string') ||
+        typeof raw.started !== 'boolean' ||
+        typeof raw.matchmade !== 'boolean' ||
+        !nonEmptyString(raw.size) ||
+        (raw.startsAt !== null && !finite(raw.startsAt)) ||
+        typeof raw.ready !== 'boolean' ||
+        typeof raw.starting !== 'boolean' ||
+        !validRoleCounts(raw.capacity) ||
+        !Array.isArray(raw.players) ||
+        !raw.players.every(validLobbyPlayer)
+      ) {
+        return { ok: false, type, reason: 'Lobby message does not match LobbyMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as LobbyMessage };
+    }
+    case SERVER_MESSAGE.CHOOSE: {
+      if (!hasExactKeys(raw, CHOOSE_REPLY_KEYS) || raw.ok !== false || !nonEmptyString(raw.message)) {
+        return { ok: false, type, reason: 'Choose reply does not match ChooseReplyMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as ChooseReplyMessage };
+    }
+    case SERVER_MESSAGE.TELEPORT: {
+      if (
+        !hasExactKeys(raw, TELEPORT_REPLY_KEYS) ||
+        typeof raw.ok !== 'boolean' ||
+        (raw.id !== null && !nonEmptyString(raw.id))
+      ) {
+        return { ok: false, type, reason: 'Teleport reply does not match TeleportReplyMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as TeleportReplyMessage };
+    }
+    case SERVER_MESSAGE.PAUSED: {
+      if (!hasExactKeys(raw, PAUSED_KEYS) || typeof raw.paused !== 'boolean') {
+        return { ok: false, type, reason: 'Paused message does not match PausedMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as PausedMessage };
+    }
+    case SERVER_MESSAGE.SAVED: {
+      if (!hasExactKeys(raw, SAVED_KEYS) || !isRecord(raw.replay)) {
+        return { ok: false, type, reason: 'Saved message does not match SavedMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as SavedMessage };
+    }
+    case SERVER_MESSAGE.REPLAY_STATUS: {
+      if (
+        !hasExactKeys(raw, REPLAY_STATUS_KEYS) ||
+        !(REPLAY_STATUSES as readonly unknown[]).includes(raw.status) ||
+        !nonEmptyString(raw.message)
+      ) {
+        return { ok: false, type, reason: 'Replay status message does not match ReplayStatusMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as ReplayStatusMessage };
+    }
+    case SERVER_MESSAGE.ERROR: {
+      if (!hasExactKeys(raw, ERROR_KEYS) || !nonEmptyString(raw.message)) {
+        return { ok: false, type, reason: 'Error message does not match ErrorMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as ErrorMessage };
+    }
+    case SERVER_MESSAGE.PING: {
+      if (
+        !hasExactKeys(raw, PING_KEYS) ||
+        !nonEmptyString(raw.token) ||
+        (raw.rtt !== null && !finite(raw.rtt))
+      ) {
+        return { ok: false, type, reason: 'Ping message does not match PingMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as PingMessage };
+    }
+  }
+}
+
+export function assertServerMessage<T extends ServerMessage>(message: T): T {
+  const verdict = validateServerMessage(message);
+  if (!verdict.ok) {
+    throw new TypeError(`Invalid server message (${verdict.type ?? 'unknown'}): ${verdict.reason}`);
+  }
+  return message;
+}
+
+export const playerWelcomeMessage = (fields: Omit<PlayerWelcomeMessage, 'type'>): PlayerWelcomeMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.WELCOME, ...fields });
+
+export const spectatorWelcomeMessage = (fields: Omit<SpectatorWelcomeMessage, 'type' | 'id' | 'spectator'>): SpectatorWelcomeMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.WELCOME, id: null, spectator: true, ...fields });
+
+export const devWelcomeMessage = (fields: Omit<DevWelcomeMessage, 'type' | 'id' | 'spectator' | 'dev' | 'devTools'>): DevWelcomeMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.WELCOME, id: null, spectator: true, dev: true, devTools: true, ...fields });
+
+export const readyMessage = (fields: Omit<ReadyMessage, 'type'>): ReadyMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.READY, ...fields });
+
+export const stateMessage = (state: StateMessage['state']): StateMessage => {
+  if (!isRecord(state)) throw new TypeError('Invalid server message (state): StateMessage requires a state object.');
+  return { type: SERVER_MESSAGE.STATE, state };
+};
+
+export const lobbyMessage = (fields: Omit<LobbyMessage, 'type'>): LobbyMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.LOBBY, ...fields });
+
+export const chooseReplyMessage = (message: string): ChooseReplyMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.CHOOSE, ok: false, message });
+
+export const teleportReplyMessage = (ok: boolean, id: PlayerId | null): TeleportReplyMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.TELEPORT, ok, id });
+
+export const pausedMessage = (paused: boolean): PausedMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.PAUSED, paused });
+
+export const savedMessage = (replay: ReplayMeta): SavedMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.SAVED, replay });
+
+export const replayStatusMessage = (status: ReplayStatusKind, message: string): ReplayStatusMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.REPLAY_STATUS, status, message });
+
+export const errorMessage = (message: string): ErrorMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.ERROR, message });
+
+export const pingMessage = (token: string, rtt: number | null): PingMessage =>
+  assertServerMessage({ type: SERVER_MESSAGE.PING, token, rtt });
+
+const HEALTH_KEYS = [
+  'ok', 'rulesVersion', 'physicsVersion', 'wireVersion', 'tickRate',
+  'profiling', 'devTools', 'liveRooms', 'emptyLiveRooms', 'mapPool',
+] as const;
+
+const PROFILE_KEYS = ['enabled', 'tickRate', 'budgetMs', 'effectiveHz', 'frames', 'rooms', 'series'] as const;
+const CLIENT_CONFIG_KEYS = [
+  'wireVersion', 'devTools', 'presentation', 'seed', 'roomNameMaxLength',
+  'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs',
+] as const;
+const ROOM_SUMMARY_KEYS = ['id', 'name', 'kind', 'phase', 'ready', 'size', 'createdAt', 'players', 'open'] as const;
+const CREATE_ROOM_KEYS = ['id', 'name', 'ownerKey', 'seed', 'size'] as const;
+
+export function healthResponse(fields: Omit<HealthResponse, 'ok' | 'wireVersion'>): HealthResponse {
+  const payload: HealthResponse = { ok: true, wireVersion: WIRE_VERSION, ...fields };
+  const raw = payload as unknown as Record<string, unknown>;
+  if (
+    !hasExactKeys(raw, HEALTH_KEYS) ||
+    raw.ok !== true ||
+    !nonEmptyString(raw.rulesVersion) ||
+    !nonEmptyString(raw.physicsVersion) ||
+    raw.wireVersion !== WIRE_VERSION ||
+    !finite(raw.tickRate) ||
+    raw.tickRate <= 0 ||
+    typeof raw.profiling !== 'boolean' ||
+    !(DEV_TOOLS_POLICIES as readonly unknown[]).includes(raw.devTools) ||
+    !nonNegativeInt(raw.liveRooms) ||
+    !nonNegativeInt(raw.emptyLiveRooms) ||
+    (raw.mapPool !== null && (!isRecord(raw.mapPool) || !Object.values(raw.mapPool).every(nonNegativeInt)))
+  ) {
+    throw new TypeError('Invalid /api/health response payload.');
+  }
+  return payload;
+}
+
+export function profileResponse(fields: ProfileResponse): ProfileResponse {
+  const raw = fields as unknown as Record<string, unknown>;
+  if (
+    !isRecord(raw) ||
+    !hasExactKeys(raw, PROFILE_KEYS) ||
+    typeof raw.enabled !== 'boolean' ||
+    !finite(raw.tickRate) ||
+    !finite(raw.budgetMs) ||
+    (raw.effectiveHz !== null && !finite(raw.effectiveHz)) ||
+    !nonNegativeInt(raw.frames) ||
+    !nonNegativeInt(raw.rooms) ||
+    !Array.isArray(raw.series)
+  ) {
+    throw new TypeError('Invalid /api/profile response payload.');
+  }
+  return fields;
+}
+
+export function profileToggleResponse(enabled: boolean): ProfileToggleResponse {
+  if (typeof enabled !== 'boolean') throw new TypeError('Invalid /api/profile toggle response payload.');
+  return { enabled };
+}
+
+export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVersion'>): ClientConfigResponse {
+  const payload: ClientConfigResponse = { wireVersion: WIRE_VERSION, ...fields };
+  const raw = payload as unknown as Record<string, unknown>;
+  if (
+    !hasExactKeys(raw, CLIENT_CONFIG_KEYS) ||
+    raw.wireVersion !== WIRE_VERSION ||
+    !(DEV_TOOLS_POLICIES as readonly unknown[]).includes(raw.devTools) ||
+    !isRecord(raw.presentation) ||
+    !nonEmptyString(raw.presentation.contentId) ||
+    !isRecord(raw.seed) ||
+    !hasExactKeys(raw.seed, ['min', 'max']) ||
+    !nonNegativeInt(raw.seed.min) ||
+    !nonNegativeInt(raw.seed.max) ||
+    !nonNegativeInt(raw.roomNameMaxLength) ||
+    !nonNegativeInt(raw.playerNameMaxLength) ||
+    !Array.isArray(raw.sizes) ||
+    raw.sizes.length === 0 ||
+    !raw.sizes.every(nonEmptyString) ||
+    !nonEmptyString(raw.defaultSize) ||
+    !nonNegativeInt(raw.matchmakingCountdownMs)
+  ) {
+    throw new TypeError('Invalid /api/client-config response payload.');
+  }
+  return payload;
+}
+
+const validRoomSummary = (raw: unknown): raw is RoomSummary =>
+  isRecord(raw) &&
+  hasExactKeys(raw, ROOM_SUMMARY_KEYS) &&
+  nonEmptyString(raw.id) &&
+  (raw.name === null || typeof raw.name === 'string') &&
+  (raw.kind === 'matchmade' || raw.kind === 'private') &&
+  (raw.phase === 'lobby' || raw.phase === 'live') &&
+  typeof raw.ready === 'boolean' &&
+  nonEmptyString(raw.size) &&
+  finite(raw.createdAt) &&
+  validRoleCounts(raw.players) &&
+  validRoleCounts(raw.open);
+
+export function roomsResponse(rooms: RoomSummary[]): RoomSummary[] {
+  if (!Array.isArray(rooms) || !rooms.every(validRoomSummary)) {
+    throw new TypeError('Invalid /api/rooms response payload.');
+  }
+  return rooms;
+}
+
+export function createRoomResponse(fields: CreateRoomResponse): CreateRoomResponse {
+  const raw = fields as unknown as Record<string, unknown>;
+  if (
+    !isRecord(raw) ||
+    !hasExactKeys(raw, CREATE_ROOM_KEYS) ||
+    !nonEmptyString(raw.id) ||
+    (raw.name !== null && typeof raw.name !== 'string') ||
+    !nonEmptyString(raw.ownerKey) ||
+    !nonNegativeInt(raw.seed) ||
+    raw.seed < 1 ||
+    !nonEmptyString(raw.size)
+  ) {
+    throw new TypeError('Invalid POST /api/rooms response payload.');
+  }
+  return fields;
+}
+
+export function replaysResponse(replays: ReplayMeta[]): ReplayMeta[] {
+  if (!Array.isArray(replays) || !replays.every(r => isRecord(r) && nonEmptyString(r.id))) {
+    throw new TypeError('Invalid /api/replays response payload.');
+  }
+  return replays;
+}
+
+export function httpErrorResponse(error: string): ErrorResponse {
+  if (!nonEmptyString(error)) {
+    throw new TypeError('Invalid HTTP error response payload.');
+  }
+  return { error };
+}
+
 // --- Transport-free Envelope & Message Validation ---
 
 // A state frame is superseded by the next, so a backed-up socket skips it. Anything else (a pause, a
