@@ -101,6 +101,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     if (closing) return;
     reportError(error);
     if (!current(room)) return;
+    room.waiting?.dispose();
+    room.waiting = null;
     room.finished = true; rooms.delete(room.id);
     for (const session of room.clients) {
       session.room = null; session.playerId = null;
@@ -183,7 +185,9 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     record(room, room.match.snapshot());
   }
   function startMatch(room) {
-    room.started = true; room.inputs.push({ type: 'start' }); room.waiting = null;
+    room.started = true; room.inputs.push({ type: 'start' });
+    room.waiting?.dispose();
+    room.waiting = null;
     startRecording(room); remember(room, room.match.snapshot());
     // Out of the waiting area and onto the match map, each from their own spawn.
     for (const session of room.clients) if (session.playerId) send(session, readyMessage({ ...described(room), ...view(room, session) }));
@@ -193,6 +197,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function finish(room) {
     if (room.finalization) return room.finalization;
     room.finished = true; settlePause(room);
+    room.waiting?.dispose();
+    room.waiting = null;
     room.match?.dispose();
     room.finalization = (async () => {
       let deadline;
@@ -367,7 +373,13 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       for (const session of room.clients) pingSession(session, wallNow(), send);
       // The countdown runs while the map generates, but the match waits for it.
       if (room.matchmade && !room.started && room.match && room.startsAt && wallNow() >= room.startsAt && room.clients.size > 0) startMatch(room);
-      if ((!room.started || room.finished) && room.clients.size === 0 && wallNow() - room.createdAt > UNSTARTED_ROOM_IDLE_MS) { room.match?.dispose(); rooms.delete(id); continue; }
+      if ((!room.started || room.finished) && room.clients.size === 0 && wallNow() - room.createdAt > UNSTARTED_ROOM_IDLE_MS) {
+        room.waiting?.dispose();
+        room.waiting = null;
+        room.match?.dispose();
+        rooms.delete(id);
+        continue;
+      }
       if (room.waiting && !room.finished) { advanceWaiting(room, elapsed); continue; }
       if (!room.started || room.finished) continue;
       // Keep a short reconnect window, but abandoned playtests must not run ten minutes of bots
@@ -424,8 +436,11 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function close() {
     if (!closing) closing = (async () => {
       for (const room of rooms.values()) if (room.started && !room.finished) { room.match.end(); record(room, room.match.snapshot()); void finish(room); }
-      for (const room of rooms.values()) room.match?.dispose();
-      await Promise.all([...rooms.values()].map(room => room.initializing));
+      for (const room of rooms.values()) {
+        room.waiting?.dispose();
+        room.match?.dispose();
+      }
+      await Promise.all([...rooms.values()].flatMap(room => [room.initializing, room.waiting?.ready]));
       await Promise.all([...finalizations]);
     })();
     return closing;

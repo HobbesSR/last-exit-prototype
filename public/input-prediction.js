@@ -1,10 +1,6 @@
-import { movePlayer } from '/shared/movement.ts';
-
 // Where this player is now, ahead of the server: the input sequence, the inputs the server has not yet
-// acknowledged, and the body they predict. A frame with a physics profile is predicted by the Rapier
-// motor (physics-prediction.js, loaded on first need); the waiting area (#236) is the frame without one,
-// whose simulation moves players with `movePlayer` (shared/simulation/waiting.ts), so it is predicted the
-// same way. Both paths end here: callers never learn which one ran.
+// acknowledged, and the body they predict. Both matches and the waiting area (#975) carry a physics
+// profile and are predicted by the Rapier motor (physics-prediction.js, loaded on first need).
 export function createInputPrediction({ getMap, getPlayerId, getState, directed }) {
   let seq = 0, pending = [], predicted;
   let physics = null, loading = false, epoch = 0;
@@ -35,7 +31,7 @@ export function createInputPrediction({ getMap, getPlayerId, getState, directed 
     /** The predicted player, or nothing while there is no own player to predict. */
     predicted: () => predicted,
     pendingCount: () => pending.length,
-    /** The physics motor's counters, or null while the waiting area's path or no path is running. */
+    /** The physics motor's counters, or null while no physics path is running. */
     stats: () => physics?.stats() ?? null,
     nextSeq: () => seq++,
     /** Discards the physics world: its map or its view is gone. The next physics frame builds another. */
@@ -53,16 +49,11 @@ export function createInputPrediction({ getMap, getPlayerId, getState, directed 
       pending = pending.filter(i => i.seq > me.lastSeq).slice(-20);
       predicted = { ...me };
       if (frame.physicsProfile) correctPhysics(frame);
-      else {
-        if (physics || loading) resetPhysics();
-        if (me.status === 'active') for (const input of pending) movePlayer(getMap(), predicted, input);
-      }
     },
     /** An input just sent, under the frame it was sent against. */
     apply(input, frame) {
       pending.push(input); pending = pending.slice(-20);
       if (frame.physicsProfile) predicted = physics?.input(input) || predicted;
-      else movePlayer(getMap(), predicted, input);
     },
   };
 }

@@ -14,31 +14,53 @@ test('every arrival point in the waiting yard fits the biggest body', () => {
   assert.equal(yard.exit, undefined, 'nothing to escape to');
 });
 
-test('the waiting simulation walks people, shows everyone, and keeps their place across a role change', () => {
+test('the waiting simulation walks people, shows everyone, and keeps their place across a role change', async () => {
   const w = createWaiting(waitingYard());
-  const a = enterWaiting(w, 'a', 'contestant', 'warden', 'Ada'), start = { x: a.x, y: a.y };
-  enterWaiting(w, 'b', 'gladiator', 'striker', 'Bo');
-  for (let seq = 0; seq < 5; seq++) assert.equal(waitingInput(w, 'a', { seq, x: 1, y: 0, attack: true }), true);
-  assert.equal(waitingInput(w, 'a', { seq: 2, x: 1 }), false, 'a stale input is refused');
-  assert.equal(waitingInput(w, 'nobody', { seq: 9, x: 1 }), false);
-  for (let i = 0; i < 4; i++) stepWaiting(w);
-  const walked = w.players.find(p => p.id === 'a');
-  assert.ok(walked.x > start.x, 'moved east'); assert.equal(walked.lastSeq, 4, 'the queue holds four, so the first was dropped');
-  assert.equal(walked.hp, walked.maxHp, 'an attack does nothing here');
+  await w.ready;
+  try {
+    const a = enterWaiting(w, 'a', 'contestant', 'warden', 'Ada'), start = { x: a.x, y: a.y };
+    enterWaiting(w, 'b', 'gladiator', 'striker', 'Bo');
+    for (let seq = 0; seq < 5; seq++) assert.equal(waitingInput(w, 'a', { seq, x: 1, y: 0, attack: true }), true);
+    assert.equal(waitingInput(w, 'a', { seq: 2, x: 1 }), false, 'a stale input is refused');
+    assert.equal(waitingInput(w, 'nobody', { seq: 9, x: 1 }), false);
+    for (let i = 0; i < 4; i++) stepWaiting(w);
+    const walked = w.players.find(p => p.id === 'a');
+    assert.ok(walked.x > start.x, 'moved east'); assert.equal(walked.lastSeq, 4, 'the queue holds four, so the first was dropped');
+    assert.equal(walked.hp, walked.maxHp, 'an attack does nothing here');
 
-  assert.equal(changeWaiting(w, 'nobody', 'gladiator', 'specter'), null);
-  changeWaiting(w, 'a', 'gladiator', 'specter');
-  const changed = w.players.find(p => p.id === 'a');
-  assert.deepEqual({ x: changed.x, y: changed.y, role: changed.role, kit: changed.kit, lastSeq: changed.lastSeq }, { x: walked.x, y: walked.y, role: 'gladiator', kit: 'specter', lastSeq: 4 });
-  assert.equal(w.players.length, 2, 'the same person, not another');
+    assert.equal(changeWaiting(w, 'nobody', 'gladiator', 'specter'), null);
+    changeWaiting(w, 'a', 'gladiator', 'specter');
+    const changed = w.players.find(p => p.id === 'a');
+    assert.deepEqual({ x: changed.x, y: changed.y, role: changed.role, kit: changed.kit, lastSeq: changed.lastSeq }, { x: walked.x, y: walked.y, role: 'gladiator', kit: 'specter', lastSeq: 4 });
+    assert.equal(w.players.length, 2, 'the same person, not another');
 
-  const view = waitingView(w, 'b');
-  assert.equal(view.phase, 'waiting');
-  assert.deepEqual(view.players.map(p => p.id), ['a', 'b']);
-  assert.equal(view.players[0].inputQueue, undefined, 'others are described as a match describes them');
-  assert.equal(view.players[1].lastSeq, -1, 'the viewer gets their own fields');
-  leaveWaiting(w, 'a');
-  assert.deepEqual(w.players.map(p => p.id), ['b']);
+    const view = waitingView(w, 'b');
+    assert.equal(view.phase, 'waiting');
+    assert.equal(view.physicsProfile, 'last-exit-0.8-physics');
+    assert.ok(view.predictionMotor);
+    assert.equal(view.predictionMotor.acceleration, 3600);
+    assert.equal(view.predictionMotor.braking, 3600);
+    assert.equal(view.predictionMotor.maxSpeed, 600);
+    assert.equal(view.predictionMotor.surfaces, true);
+    assert.equal(view.bodies.length, 2);
+    const ownBody = view.bodies.find(b => b.actorId === 'b');
+    assert.ok(ownBody);
+    assert.equal(typeof ownBody.vx, 'number');
+    assert.equal(typeof ownBody.vy, 'number');
+    const otherBody = view.bodies.find(b => b.actorId === 'a');
+    assert.ok(otherBody);
+    assert.equal(otherBody.vx, undefined);
+
+    assert.deepEqual(view.players.map(p => p.id), ['a', 'b']);
+    assert.equal(view.players[0].inputQueue, undefined, 'others are described as a match describes them');
+    assert.equal(view.players[1].lastSeq, -1, 'the viewer gets their own fields');
+    leaveWaiting(w, 'a');
+    assert.deepEqual(w.players.map(p => p.id), ['b']);
+    const viewAfterLeave = waitingView(w, 'b');
+    assert.equal(viewAfterLeave.bodies.length, 1);
+  } finally {
+    w.dispose();
+  }
 });
 
 test('players wait in the yard, never see the match map before the start, and walking there changes no match', async () => {
@@ -126,4 +148,55 @@ test('a resume replacing a live connection starts the yard input afresh, where t
     assert.equal(yard().lastSeq, 11, 'the new connection numbers from zero');
     assert.ok(yard().x < stood, 'and walks the way it asks');
   } finally { await h.service.close(); }
+});
+
+test('position continuity against obstacles uses actual physics radius (#975 review 771, 773)', async () => {
+  const w = createWaiting(waitingYard());
+  await w.ready;
+  try {
+    // Gladiator starts at first arrival point (330, 300) and walks north toward container at y=150..220.
+    // Interleaving input and step settles against container with solver contact tolerance at y ≈ 236.227.
+    let g = enterWaiting(w, 'g', 'gladiator', 'striker', 'G');
+    for (let seq = 0; seq < 80; seq++) {
+      waitingInput(w, 'g', { seq, x: 0, y: -1 });
+      stepWaiting(w);
+    }
+    const currentG = () => w.players.find(p => p.id === 'g');
+    const stopped = { x: currentG().x, y: currentG().y };
+    // Stands within container contact tolerance (distance from y=220 is slightly below 16.25).
+    assert.ok(stopped.y - 220 < 16.25, 'stopped by contact with container');
+    assert.ok(stopped.y - 220 > 16.0, 'solver contact position');
+
+    // Kit change on unchanged body keeps position and does not advance arrival allocation.
+    const arrivalsBefore = w.arrivals;
+    g = changeWaiting(w, 'g', 'gladiator', 'specter');
+    assert.equal(g.x, stopped.x);
+    assert.equal(g.y, stopped.y);
+    assert.equal(currentG().x, stopped.x);
+    assert.equal(currentG().y, stopped.y);
+    assert.equal(w.arrivals, arrivalsBefore);
+
+    // Re-entering (resume) unchanged body at same spot keeps position.
+    g = enterWaiting(w, 'g', 'gladiator', 'specter', 'G');
+    assert.equal(g.x, stopped.x);
+    assert.equal(g.y, stopped.y);
+    assert.equal(currentG().x, stopped.x);
+    assert.equal(currentG().y, stopped.y);
+    assert.equal(w.arrivals, arrivalsBefore);
+
+    // Contestant placed tight against obstacle where contestant (11.2875) fits but gladiator (16.25) cannot.
+    // Container bottom edge is at y=220; place contestant at y=233.
+    const c = enterWaiting(w, 'c', 'contestant', 'warden', 'C');
+    c.x = 330;
+    c.y = 233;
+    w.world.setTransform('actor:c', { x: 330, y: 233, angle: 0 });
+    // Changing role to gladiator cannot fit in the 13 unit gap (needs 16.25), so it teleports to arrival point.
+    const arrivalsBeforeTeleport = w.arrivals;
+    const changed = changeWaiting(w, 'c', 'gladiator', 'striker');
+    assert.equal(w.arrivals, arrivalsBeforeTeleport + 1);
+    assert.notEqual(changed.y, 233);
+    assert.notEqual(w.players.find(p => p.id === 'c').y, 233);
+  } finally {
+    w.dispose();
+  }
 });

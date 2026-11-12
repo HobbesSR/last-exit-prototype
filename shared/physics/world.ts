@@ -21,8 +21,13 @@ const PROP_GROUP = 0x0004;
 const LOOT_GROUP = 0x0008;
 // Rapier's init only checks for a finished instance, so overlapping calls instantiate the wasm twice and
 // orphan whatever the first instance allocated. Share one initialization.
+let rapierInitialized = false;
 let initialization: Promise<void> | undefined;
-const initialized = () => initialization ??= RAPIER.init();
+export const initRapier = (): Promise<void> =>
+  initialization ??= RAPIER.init().then(() => { rapierInitialized = true; });
+export const isRapierInitialized = (): boolean => rapierInitialized;
+const initialized = () => initRapier();
+void initRapier();
 const solidMask = STATIC_GROUP | ACTOR_GROUP | PROP_GROUP;
 const groups = (membership: number, mask: number): number => (membership << 16) | mask;
 const order = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
@@ -169,6 +174,10 @@ export class PhysicsWorld {
   /** The one fixed body every map-geometry collider is attached to, made with the first. */
   private geometry: RAPIER.RigidBody | undefined;
 
+  static createSync(): PhysicsWorld {
+    if (!rapierInitialized) throw new Error('Rapier must be initialized before calling createSync');
+    return new PhysicsWorld();
+  }
   static async create(): Promise<PhysicsWorld> {
     await initialized();
     return new PhysicsWorld();

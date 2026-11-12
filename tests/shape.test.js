@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, body, contains, overlaps, sharesArea, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
-import { canOccupy, lineClear, movePlayer } from '../shared/movement.ts';
+import { canOccupy, lineClear, moveBody } from '../shared/movement.ts';
 
 const square = [{ x: -30, y: -30 }, { x: 30, y: -30 }, { x: 30, y: 30 }, { x: -30, y: 30 }];
 
@@ -100,7 +100,7 @@ test('a polygon obstacle blocks occupancy, movement and sight like any other geo
   assert.equal(lineClear(map, { x: 11900, y: 6200 }, { x: 12100, y: 6200 }), true, 'and only where it stands');
 
   const runner = { role: 'contestant', x: 11940, y: 6000, boost: 0, stun: 0 };
-  for (let tick = 0; tick < 12; tick++) movePlayer(map, runner, { x: 1, y: 0 });
+  for (let tick = 0; tick < 12; tick++) moveBody(map, runner, { x: 1, y: 0 }, 12, 9);
   assert.ok(runner.x < 11970, `a runner is stopped by the polygon face: ${runner.x}`);
   assert.equal(canOccupy(map, runner.x, runner.y), true, 'and is never pushed inside it');
 });
