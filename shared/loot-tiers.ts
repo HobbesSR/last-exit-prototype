@@ -13,7 +13,7 @@ import { hypot } from './math.ts';
  * Rewards and danger read the same selector but own their curves. Novelty is a separate vertical
  * axis; its catalogue is empty until special items are authored, so nothing reads it yet.
  */
-export const TIER_GRID = 5;
+const TIER_GRID = 5;
 const MIDDLE = (TIER_GRID - 1) / 2;
 
 export interface VirtualZone { col: number; row: number }
@@ -46,7 +46,7 @@ export function qualityFromWeights(weights: readonly number[], u: number): numbe
 
 /**
  * A uniform [0, 1) value from the match seed and an item's id: FNV-1a then a murmur finalizer.
- * Keyed by id rather than drawn from the match RNG, so quality consumes no legacy RNG and an item's
+ * Keyed by id rather than drawn from the match RNG, so quality consumes no match RNG and an item's
  * roll does not depend on how many items precede it.
  */
 export function itemRoll(seed: number, id: string): number {

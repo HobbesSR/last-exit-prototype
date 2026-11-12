@@ -20,7 +20,7 @@ export const projectileFields = projection('id owner trap x y dx dy life damage'
 export const effectFields = projection('id x y kind radius life');
 export const eventFields = projection('id tick text');
 // Physics display records use the same closed boundary as other live fields, including nested shapes.
-export function physicsShapeFields(shape: BodyShape): BodyShape {
+function physicsShapeFields(shape: BodyShape): BodyShape {
   if (shape.kind === 'circle') return { kind: 'circle', radius: shape.radius };
   if (shape.kind === 'box') return { kind: 'box', hx: shape.hx, hy: shape.hy };
   return { kind: 'convex', vertices: shape.vertices.map(({ x, y }) => ({ x, y })) };

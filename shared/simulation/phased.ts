@@ -36,7 +36,7 @@ const stepping = new WeakSet<Game>();
  * `yieldControl` is for private preparation of a caller-owned map; the caller must
  * not publish or mutate that map while construction is pending. It never runs in a tick. */
 export async function createPhysicsGame(seed: number, map: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
-  if (content?.itemInstances && !content.worldPhysics) throw new RangeError('physical item integration requires P5; use createGame for L0');
+  if (content?.itemInstances && !content.worldPhysics) throw new RangeError('a stepped game with item instances requires world physics');
   // Preparation is private until the factory resolves. Only the server supplies
   // event-loop yields; shared/browser callers retain the ordinary construction path.
   if (yieldControl) await prepareMovementGeometry(map, yieldControl);
@@ -63,7 +63,7 @@ export async function createPhysicsGame(seed: number, map: GameMap, content?: Ma
     s.map.physicsProps.forEach(Object.freeze); Object.freeze(s.map.physicsProps);
     Object.defineProperty(s.map, 'physicsProps', { writable: false, configurable: false });
   }
-  // P2 tuning is match-pinned, including caller-supplied profiles and floor regions.
+  // Character tuning is match-pinned, including caller-supplied profiles and floor regions.
   if (s.content.actorPhysics) {
     const profile = structuredClone(s.content.actorPhysics);
     Object.values(profile.geometry).forEach(Object.freeze); Object.freeze(profile.geometry); Object.freeze(profile);
@@ -92,7 +92,7 @@ export async function createPhysicsGame(seed: number, map: GameMap, content?: Ma
       }
     }
     world.commitMutations();
-    // Authored static geometry stays pinned; P8 overlays current dynamic observations locally.
+    // Authored static geometry stays pinned; bots' detours overlay what they observe of dynamic bodies locally.
     for (const obstacle of s.map.obstacles) {
       if (obstacle.points) { obstacle.points.forEach(Object.freeze); Object.freeze(obstacle.points); }
       Object.freeze(obstacle);
@@ -187,7 +187,7 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
 /** Match seat/teleport boundaries reconcile game IDs before the first recorded frame. */
 export function synchronizePhysics(s: Game): void { physicsRuntime(s)?.synchronize(); }
 
-/** The separately versioned seven-phase coordinator; never calls legacy movePlayer. */
+/** The seven-phase tick. Actors move only through the physics world, never `movePlayer`. */
 export function stepPhysics(s: Game): void {
   const r = physicsRuntime(s);
   if (!r) throw new Error('physics world missing or disposed');
@@ -197,7 +197,7 @@ export function stepPhysics(s: Game): void {
   try { advancePhysics(s, r); } finally { stepping.delete(s); stop('sim.step'); }
 }
 
-// Timed by phase like the legacy step (sim.*; 42.22). Every synchronize call is counted in sim.sync.
+// Timed by phase (sim.*; 42.22). Every synchronize call is counted in sim.sync.
 function advancePhysics(s: Game, r: PhysicsRuntime): void {
   // 1: all timers and previous-boundary lifecycle, before anyone decides.
   advanceTick(s);
@@ -259,7 +259,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     const at = r.world.getTransform(actorId(p));
     if (at) { p.x = at.x; p.y = at.y; p.movedThisTick = result.distance[actorId(p)] ?? 0; }
   }
-  // Events are facts only; gameplay has no contact damage profile in P1.
+  // Events are facts only; gameplay has no contact damage.
   r.world.drainContacts();
   stop('sim.poses');
   // 5: physical TOI first, then finalized-pose abilities/melee by stable caster ID.

@@ -10,14 +10,14 @@ import { stepTraps } from '../shared/traps.ts';
 import { openField } from './helpers/arena.js';
 import { p1Content } from './helpers/scenario.js';
 
-function parts(contentId = 'content-6', obstacles = []) {
+function parts() {
   const map = { seed: 445, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
-    modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
+    modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: [{ x: 150, y: 400 }], hunterSpawns: [{ x: 650, y: 400 }] };
-  const content = structuredClone(contentById(contentId));
+  const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'warden' }] };
   return { map, content };
 }

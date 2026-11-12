@@ -4,7 +4,7 @@ import type { Game, Player, Projectile, Vec2 } from '../types.ts';
 
 const PROJECTILE_RADIUS = 2;
 
-/** One swept owner for fast query projectiles; never also run legacy advanceProjectiles. */
+/** The one owner of projectile flight: each shot is swept against the actors' substep paths and the geometry. */
 export function solvePhysicsProjectiles(s: Game, paths: Record<string, Vec2[]>): void {
   const hits: { bullet: Projectile; target: Player; toi: number }[] = [];
   const expired = new Set<Projectile>();

@@ -11,7 +11,7 @@ const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.leng
 const ITEM_PREFIX = 'item:';
 const bodyId = (item: GroundItem) => `${ITEM_PREFIX}${item.id}`;
 
-/** P8 drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. */
+/** Drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. */
 export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number, y: number): boolean {
   const radius = s.content.worldPhysics?.loot.radius;
   if (!s.content.dynamicNavigation || radius === undefined) return true;

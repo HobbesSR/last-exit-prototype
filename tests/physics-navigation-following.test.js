@@ -45,7 +45,7 @@ function checkedStep(s, p, before) {
     `actor crossed corridor wall at tick ${s.tick}: y=${p.y}`);
 }
 
-test('P8 follower closes the gap in a 60-unit corridor and resumes when its leader moves', async () => {
+test('a follower closes the gap in a 60-unit corridor and resumes when its leader moves', async () => {
   const s = await game({ spawns: [{ x: 150, y: 400 }, { x: 350, y: 400 }] });
   try {
     const [follower, leader] = s.players;
@@ -72,7 +72,7 @@ test('P8 follower closes the gap in a 60-unit corridor and resumes when its lead
   } finally { disposePhysics(s); }
 });
 
-test('P8 motor pushes a corridor-filling crate forward without tunneling or teleporting', async () => {
+test('the motor pushes a corridor-filling crate forward without tunneling or teleporting', async () => {
   const s = await game({ props: [{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 2 }] });
   try {
     const p = s.players[0], world = physicsRuntime(s).world;

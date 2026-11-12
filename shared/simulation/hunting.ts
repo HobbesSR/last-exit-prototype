@@ -52,6 +52,11 @@ interface Sweep {
   progressed: Tick;
 }
 const sweeps = new WeakMap<Player, Sweep>();
+function sweepOf(s: Game, p: Player): Sweep {
+  let sweep = sweeps.get(p);
+  if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
+  return sweep;
+}
 const frontEvidence = new WeakMap<Game, { tick: Tick; furtherRight: boolean }>();
 
 interface ChargerLead {
@@ -70,7 +75,7 @@ interface CachedChargerLead {
 }
 const chargerLeadCache = new WeakMap<Game, CachedChargerLead>();
 
-export function chargerLeadOf(s: Game): ChargerLead | undefined {
+function chargerLeadOf(s: Game): ChargerLead | undefined {
   const cached = chargerLeadCache.get(s);
   if (cached && cached.tick === s.tick) return cached.lead;
   let known = knownChargedCells.get(s);
@@ -132,9 +137,7 @@ export function hasEvidenceFurtherRight(s: Game): boolean {
  * Also primes the per-tick evidence cache so `hasEvidenceFurtherRight` evaluates early in the bot phase.
  */
 export function noteHunterTarget(s: Game, p: Player, targeted: boolean): void {
-  let sweep = sweeps.get(p);
-  if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
-  sweep.targeted = targeted;
+  sweepOf(s, p).targeted = targeted;
   if (s.content.hunting === 'front') {
     hasEvidenceFurtherRight(s);
     chargerLeadOf(s);
@@ -169,8 +172,7 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
     && (chargerChecked.get(p) ?? -Infinity) < chargerLead.tick ? chargerLead : undefined;
   const graph = portalGraphOf(s.map);
   if (!graph) return goalkeep ? stand(s.map.exit) : investigating ? stand(investigating.station) : null;
-  let sweep = sweeps.get(p);
-  if (!sweep) sweeps.set(p, sweep = { swept: new Map(), region: -1, target: null, moved: { x: p.x, y: p.y }, progressed: s.tick });
+  const sweep = sweepOf(s, p);
   if (sweep.target) {
     const invalid = frontMode && (
       sweep.target.x < s.hazardX + SWEEP_AHEAD
@@ -203,7 +205,7 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
     let best = -1, score = Infinity;
     graph.regions.forEach((region, index) => {
       const centre = { x: region.box.x + region.box.w / 2, y: region.box.y + region.box.h / 2 };
-      if (centre.x < s.hazardX + SWEEP_AHEAD || taken.has(index) || s.tick - (sweep!.swept.get(index) ?? -Infinity) < SWEEP_REVISIT) return;
+      if (centre.x < s.hazardX + SWEEP_AHEAD || taken.has(index) || s.tick - (sweep.swept.get(index) ?? -Infinity) < SWEEP_REVISIT) return;
       const value = distance(p, centre) + (centre.x - s.hazardX) * SWEEP_WALLWARD;
       if (value < score) { score = value; best = index; }
     });
@@ -220,7 +222,7 @@ export function sweepTarget(s: Game, p: Player, stand: (centre: Vec2) => Vec2): 
     graph.regions.forEach((region, index) => {
       const centre = { x: region.box.x + region.box.w / 2, y: region.box.y + region.box.h / 2 };
       if (centre.x < s.hazardX + SWEEP_AHEAD || taken.has(index)) return;
-      if (!ignoreRevisit && s.tick - (sweep!.swept.get(index) ?? -Infinity) < SWEEP_REVISIT) return;
+      if (!ignoreRevisit && s.tick - (sweep.swept.get(index) ?? -Infinity) < SWEEP_REVISIT) return;
       const d = distance(p, centre);
       if (requireDistant && d < minStep) return;
       if (goalkeep && distance(anchor, centre) > GOALKEEP_RADIUS && requireDistant) return;

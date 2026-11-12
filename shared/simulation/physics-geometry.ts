@@ -57,7 +57,7 @@ function centeredPolygon(id: string, x: number, y: number, points: Vec2[]): Body
     shape: { kind: 'convex', vertices: points.map(p => ({ x: p.x - meanX, y: p.y - meanY })) } };
 }
 
-/** A closed gate uses the same centre and fallback dimensions as legacy movement. */
+/** A closed gate uses the same centre and fallback dimensions as movement's `gateShape`. */
 export function physicsGate(gate: Gate): BodyDefinition {
   return descriptor(`gate:${gate.id}`, shapeOf(gateShape(gate)));
 }

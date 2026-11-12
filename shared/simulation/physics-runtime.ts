@@ -25,7 +25,7 @@ export interface PhysicsRuntime {
   pendingAttachments: (PendingAttachment & { generationA: number; generationB: number })[];
 }
 const rooms = new WeakMap<Game, PhysicsRuntime>();
-/** Only the latest boundary per ID is needed by a future presentation/prediction reader. */
+/** Only the latest boundary per ID is kept: the presentation capture reads one per body. */
 export function markPhysicsDiscontinuity(r: PhysicsRuntime, value: PhysicsRuntime['discontinuities'][number]): void {
   const index = r.discontinuities.findIndex(entry => entry.id === value.id);
   if (index >= 0) r.discontinuities[index] = value;

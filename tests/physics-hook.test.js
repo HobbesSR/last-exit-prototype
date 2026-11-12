@@ -220,7 +220,7 @@ test('near pulls release at standoff; range-edge pull stays bounded through time
       }
       if (separation < 500) {
         assert.ok(closest <= s.content.hook.standoff, `${separation}: closest ${closest}`);
-        assert.ok(releaseTick < s.content.hook.durationTicks, `${separation}: release tick ${releaseTick}`);
+        assert.ok(releaseTick !== null && releaseTick < s.content.hook.durationTicks, `${separation}: release tick ${releaseTick}`);
       } else assert.ok(Number.isFinite(closest) && closest < separation, `range-edge closest ${closest}`);
       assert.equal(hooks(s).length, 0, `${separation}: standoff or lifetime leaves no tether`);
       assert.equal(world(s).counts().constraints, 0);

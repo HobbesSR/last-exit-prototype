@@ -6,8 +6,7 @@ import { bodyRadius } from '../physics/presentation-geometry.ts';
 /** Capture once, alongside private gameplay state. Complete lists express spawn/removal at each tick. */
 export function capturePhysicsPresentation(physics: PhysicsGameplayState, players: readonly Player[], groundId: (id: string) => ItemId | undefined) {
   const actors = new Map(players.map(p => [`actor:${p.id}`, p.id]));
-  // Physical loot uses this reserved association when P5 admits it. Ordinary loot has no body.
-  // A body's id is `item:<id>`; `groundId` looks the item up by id, so nothing walks the ground list.
+  // A physical item's body id is `item:<id>`; `groundId` looks the item up by id, so nothing walks the ground list.
   const itemOf = (bodyId: string) => bodyId.startsWith('item:') ? groundId(bodyId.slice(5)) : undefined;
   const placed = new Set(physics.discontinuities?.filter(d => d.kind === 'placed').map(d => d.id));
   const bodies: PhysicsBodyView[] = physics.world.bodies.filter(b => b.spec.kind !== 'static'

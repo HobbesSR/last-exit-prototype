@@ -24,7 +24,7 @@ async function game(map) {
   return { s, world: physicsRuntime(s).world };
 }
 
-test('P5 loot is solid against mask holes, outer bounds, and a thin static wall at speed cap', async () => {
+test('loot is solid against mask holes, outer bounds, and a thin static wall at speed cap', async () => {
   const rows = Array.from({ length: 8 }, (_, y) => ({ y,
     runs: y >= 2 && y < 6 ? [[0, 3], [4, 8]] : [[0, 8]] }));
   const map = arena({ rows, obstacles: [{ id: 'thin', x: 500, y: 330, w: 2, h: 140 }],

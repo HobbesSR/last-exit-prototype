@@ -46,7 +46,7 @@ export function publishGates(s: Game): readonly Gate[] {
 /** Whether `list` is one `publishGates` made, which never changes. */
 export const publishedGates = (list: readonly Gate[]): boolean => published.has(list);
 
-const listJson =new WeakMap<readonly Gate[], string>(), recordJson = new WeakMap<Gate, string>();
+const listJson = new WeakMap<readonly Gate[], string>(), recordJson = new WeakMap<Gate, string>();
 
 /** `JSON.stringify(list)`, kept per published list and per copy, since neither changes once made. Any other list is serialized whole. */
 export function gatesJson(list: readonly Gate[]): string {
