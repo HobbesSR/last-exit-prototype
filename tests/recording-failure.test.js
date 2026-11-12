@@ -29,7 +29,7 @@ for (const failure of ['start', 'append', 'async']) test(`${failure} recording f
     assert.equal(owner.messages.filter(m => m.type === 'replay-status').length, 1);
     assert.equal(owner.messages.some(m => m.type === 'error'), false);
     assert.equal(owner.messages.filter(m => m.type === 'state').at(-1).state.tick, 1);
-    const guest = h.joined(room), spectator = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    const guest = h.joined(room), spectator = h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     for (const viewer of [guest, spectator]) assert.equal(viewer.messages.find(m => m.type === 'replay-status').status, 'failed');
     for (let i = 0; i < 20; i++) { owner.send({ type: 'input', seq: i + 2 }); h.wake(50); }
     assert.ok(appends <= 1, 'do not keep calling a failed writer'); assert.equal(room.inputs.length, 0);

@@ -1,8 +1,8 @@
 import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
-import { randomSeed } from './protocol.js';
+import { CLIENT_MESSAGE, SERVER_MESSAGE, acceptClientMessage, randomSeed } from './protocol.js';
 import { send } from './room-views.js';
 export const MAX_ROOMS = 8;
-const FULL = { type: 'error', message: 'All arena slots are occupied. Try matchmaking again after a match ends.' };
+const FULL = { type: SERVER_MESSAGE.ERROR, message: 'All arena slots are occupied. Try matchmaking again after a match ends.' };
 
 /**
  * The directory (22.5): which rooms exist, creating them, and choosing one for a matchmaking player.
@@ -47,12 +47,14 @@ export function createRoomDirectory({ host, generateMap = null, pool = null, dev
    * stands in for a client asking the directory and then connecting to the room it names.
    */
   function receive(session, data) {
-    if (data.type !== 'match' || session.room) return host.receive(session, data);
+    if (data?.type !== CLIENT_MESSAGE.MATCH || session.room) return host.receive(session, data);
+    const validated = host.validate ? host.validate(session, data) : acceptClientMessage(session, data);
+    if (!validated.ok) return;
     if (!host.accepting()) return;
     const answer = match();
     if (!answer) return send(session, FULL);
-    const role = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
-    host.receive(session, { ...data, type: 'join', room: answer, role });
+    const { role, kit, name } = validated.message;
+    host.receive(session, { type: CLIENT_MESSAGE.JOIN, room: answer, mode: 'player', role, ...(kit !== undefined ? { kit } : {}), name, ownerKey: null, resumeKey: null });
   }
   return { hasCapacity, nameTaken, createRoom, list, match, receive };
 }

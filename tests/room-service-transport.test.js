@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
-import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, deliverable, MAX_BUFFERED_BYTES, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
+import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, deliverable, validateClientMessage, acceptClientMessage, MAX_BUFFERED_BYTES, MAX_DIAGNOSTICS_PER_SESSION, REJECT_LOG_INTERVAL_MS } from '../server/protocol.js';
 
 test('a backed-up socket skips state frames but never a one-off message', async () => {
   assert.equal(deliverable(MAX_BUFFERED_BYTES, true), false);
@@ -103,6 +103,7 @@ test('client diagnostics become recorded marks, never commands, and are validate
     h.wake(50, 300);
     owner.send({ type: 'diagnostic', kind: 'bogus', tick }); owner.send({ type: 'diagnostic', kind: 'manual', tick: 'x' });
     assert.equal(writer.marks.length, 1, 'unknown kind and non-numeric tick are ignored');
+    assert.equal(owner.session.rejectedMessages, 2, 'malformed diagnostics are counted on the session');
     owner.send({ type: 'diagnostic', kind: 'manual', tick: 1e12, startTick: -5 });
     assert.equal(writer.marks.length, 2);
     assert.ok(writer.marks[1].tick <= writer.marks[1].arrivalTick, 'a future tick is clamped to arrival');
@@ -123,9 +124,9 @@ test('an admitted spectator has no diagnostic authority, independent of any cap 
   try {
     const { room, writer } = await h.live();
     // Refused admission is a different boundary: that session never reaches the room at all.
-    const outsider = h.joined(room, { role: 'spectator' });
+    const outsider = h.joined(room, { mode: 'spectator' });
     assert.match(outsider.messages[0].message, /owner key/); assert.equal(outsider.session.room, undefined);
-    const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    const eye = h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     const welcome = eye.messages.find(m => m.type === 'welcome');
     assert.equal(welcome.spectator, true, 'admitted'); assert.equal(eye.session.room, room); assert.equal(eye.session.playerId, null);
     // A fresh session with time since the last report: only its role can refuse it.
@@ -150,5 +151,36 @@ test('a room created at a larger size starts, advertises it and records that map
     const { header } = h.writers.get(room.id);
     assert.deepEqual([header.map.width, header.map.height], [34560, 17280]);
     assert.equal(room.game.map.width, 34560);
+  } finally { await h.service.close(); }
+});
+
+test('protocol validation counts and rate-limits rejected messages, throws in strict mode, and never rejects wrong-moment races', async () => {
+  assert.equal(validateClientMessage(null).ok, false);
+  assert.equal(validateClientMessage({ type: 'join', room: 'a', role: 'spectator' }).ok, false, 'legacy overloaded role is rejected');
+  assert.deepEqual(validateClientMessage({ type: 'join', room: 'a', mode: 'spectator' }), {
+    ok: true,
+    message: { type: 'join', room: 'a', mode: 'spectator', role: 'contestant', name: 'Player', ownerKey: null, resumeKey: null },
+  });
+  const logs = [], session = { id: 7 };
+  assert.equal(acceptClientMessage(session, { type: 'unknown' }, { log: msg => logs.push(msg), now: 1000 }).ok, false);
+  assert.equal(acceptClientMessage(session, { type: 'pong' }, { log: msg => logs.push(msg), now: 1000 + REJECT_LOG_INTERVAL_MS - 1 }).ok, false);
+  assert.equal(session.rejectedMessages, 2);
+  assert.equal(logs.length, 1, 'reject logs are rate-limited per session');
+  assert.equal(acceptClientMessage(session, { type: 'pong' }, { log: msg => logs.push(msg), now: 1000 + REJECT_LOG_INTERVAL_MS }).ok, false);
+  assert.equal(logs.length, 2);
+  assert.throws(() => acceptClientMessage(session, { type: 'bad' }, { strict: true, log: null }), /Protocol reject/);
+
+  const h = roomHarness({ reuseMaps: true });
+  try {
+    const { room, owner } = await h.live();
+    // Wrong-moment messages (e.g. start/choose after match start, input after match end) are races, never rejects.
+    owner.send({ type: 'start' });
+    owner.send({ type: 'choose', role: 'gladiator' });
+    assert.equal(owner.session.rejectedMessages, 0);
+    // A malformed join still receives the error reply while counting as a reject.
+    const badJoin = h.peer();
+    badJoin.send({ type: 'join', room: room.id, role: 'spectator' });
+    assert.equal(badJoin.session.rejectedMessages, 1);
+    assert.equal(badJoin.messages.at(-1)?.type, 'error');
   } finally { await h.service.close(); }
 });

@@ -86,7 +86,7 @@ test('a session is sent the keyframe after a skipped frame, while others keep sh
         if (data.type === 'state') { sizes.push(payload.length); frames.push(decoder.decode(data.state)); }
         return true;
       } });
-      h.service.receive(session, { type: 'join', room: room.id, role: 'dev' });
+      h.service.receive(session, { type: 'join', room: room.id, mode: 'dev' });
       return { sizes, frames, skipping: on => { skip = on; } };
     };
     const a = watcher(), b = watcher();

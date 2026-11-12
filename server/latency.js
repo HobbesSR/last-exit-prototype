@@ -1,4 +1,5 @@
 import * as profiler from '../shared/profiler.ts';
+import { SERVER_MESSAGE } from './protocol.js';
 
 // Round-trip time per session, measured by the server against its own clock.
 //
@@ -37,7 +38,7 @@ export function pingSession(session, now, deliver) {
   // One outstanding token at a time: a reply carrying anything else is stale or invented.
   session.pingToken = `${session.connectionId}:${now}`;
   session.pingSentAt = now;
-  deliver(session, { type: 'ping', token: session.pingToken, rtt: roundTripMs(session) });
+  deliver(session, { type: SERVER_MESSAGE.PING, token: session.pingToken, rtt: roundTripMs(session) });
   return true;
 }
 

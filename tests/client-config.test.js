@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
 import { MATCHMAKING_COUNTDOWN_MS } from '../server/room-service.js';
-import { MAX_ROOM_NAME, ROOM_SIZE_NAMES } from '../server/protocol.js';
+import { WIRE_VERSION, MAX_ROOM_NAME, ROOM_SIZE_NAMES } from '../server/protocol.js';
 import { listen } from './helpers/listen.js';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
 import { createGameRecord, joinGame } from '../shared/simulation.ts';
@@ -25,6 +25,7 @@ test('client configuration states each owner\'s values, the server\'s default co
     assert.equal(response.headers.get('cache-control'), 'no-store');
     const config = await response.json();
     assert.deepEqual(config, {
+      wireVersion: WIRE_VERSION, devTools: 'none',
       presentation: describeContent(injected()),
       seed: { min: 1, max: MAX_ARENA_SEED }, roomNameMaxLength: MAX_ROOM_NAME, playerNameMaxLength: MAX_PLAYER_NAME,
       sizes: ROOM_SIZE_NAMES, defaultSize: '12x6', matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS,

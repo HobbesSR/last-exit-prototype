@@ -38,7 +38,7 @@ async function run({ method, url, room, ownerKey, record, clientId }) {
     ws.on('error', error => fail(client, error));
     ws.on('close', (code, reason) => fail(client, new Error(`socket closed (${code} ${reason})`)));
     await waitFor(client, 'welcome', () => ws.once('open', () => {
-      ws.send(JSON.stringify({ type: 'join', room, role: 'dev', ownerKey }));
+      ws.send(JSON.stringify({ type: 'join', room, mode: 'dev', ownerKey }));
     }));
     return id;
   }
