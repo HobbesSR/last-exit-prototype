@@ -36,9 +36,10 @@ Storage-only changes must preserve frozen gameplay fixtures.
 ## Physics rules version (#921)
 
 Every match built by `createPhysicsGame` records the one physics rules version,
-`last-exit-0.8-physics`; legacy-mover matches record `last-exit-0.7`. Which physics
-features a match ran (character profile, physical items, the hook, body detours) is
-stated by its content, named once in the header's content ID. Recordings written before
+`last-exit-0.8-physics`, and requires `actorPhysics`, `itemInstances`, `worldPhysics`,
+`hook`, `kits.hook` and `dynamicNavigation: true` (#976); legacy-mover matches recorded
+`last-exit-0.7`. Earlier schema 10+ recordings retain whichever physics features their content
+selected, identified in the header's content ID. Recordings written before
 #921 carry one of the stage strings `last-exit-0.8-physics-1`, `-2`, `-5`, `-6` or `-8`
 (every shipped physics match from #523 to #921 carries `-8`). A reader treats each as
 physics rules and needs nothing more: playback draws stored frames without a solver,
@@ -62,12 +63,11 @@ See [29.2](29.2-physics-state-networking.md); P3 owns physical rendering/project
 and any later format changes. P1 introduced no content ID change: shipped tuning stayed
 `content-4` (which only changed bot planning, #473; `content-5` since, likewise), with P1 motor acceleration an experimental rules constant.
 
-P2's explicit `content-physics-2` selected `last-exit-0.8-physics-2`; P1 and ordinary
-matches retain the identities above. Schema 9 adds optional `actorGeometry` to
-the header display descriptor, optional map `motorSurfaces`, body speed limits
-and private per-frame physics discontinuity markers. The markers identify placed
-or removed body generations; they are not exact continuation checkpoints or a
-client prediction implementation. Old frame playback still needs no solver.
+Schema 9 adds `actorGeometry` to the header display descriptor (optional on schema 10+
+archives for backward compatibility, always emitted on new descriptors since #976),
+optional map `motorSurfaces`, body speed limits and private per-frame physics discontinuity
+markers. The markers identify placed or removed body generations; they are not exact
+continuation checkpoints or a client prediction implementation. Old frame playback still needs no solver.
 Minimum readers are unchanged because these are optional experimental diagnostics;
 normal actor art/hit rules remain unchanged. P3 owns required physics presentation
 and its eventual reader floor. See [14](14-match-rules.md) and [29.1](29.1-physics-design.md).

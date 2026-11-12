@@ -2,9 +2,9 @@
 
 Every number here is a tuning default, not a design constant. The shipped default is
 `content-7` under `last-exit-0.8-physics` rules: the physics engine, described in the
-sections below. Every physics match carries that one rules version; which physics features it
-has (character profile, physical items, the hook, body detours) is stated by its content alone
-(#921). Every match runs on the physics engine: #920 retired the legacy mover, its rules version
+sections below. Every physics match carries that one rules version (#921) and requires
+`actorPhysics`, `itemInstances`, `worldPhysics`, `hook` (`kits.hook`) and `dynamicNavigation: true`
+(#976). Every match runs on the physics engine: #920 retired the legacy mover, its rules version
 `last-exit-0.7` and contents 1 to 5 (recordings below schema 10 were retired by [#953](26-recording-contract.md#versioning-and-compatibility)).
 Numbers outside the physics sections are shared by every shipped set unless a physics section says otherwise. When one
 changes, it must stay named in code and updated here in the same change.
@@ -134,8 +134,8 @@ The power-cell objective supplements limited escape capacity; three extraction s
 
 ## Physical world profile (#445)
 
-Content with `worldPhysics` (and `itemInstances`) adds physical world items to the character
-rules below, with L0 item ownership. These rules are part of the shipped default since `content-6` (#523).
+Every match requires `worldPhysics` and `itemInstances` (#976), adding physical world items to
+the character rules below with L0 item ownership. These rules are part of the shipped default since `content-6` (#523).
 
 Provisional authored tuning, independent of item art/quality:
 
@@ -176,9 +176,9 @@ assumptions for experimental review, not new user balance answers.
 
 ## Dynamic navigation (#448), the shipped default since #523
 
-Content with `dynamicNavigation` turns it on, as `content-6` and every later set do. It
-extends the hook profile with physical drops, character footprints and the default planner's local repair. Earlier content sets
-and the frozen fixture retain their behavior. The bounds below were written as
+Every match requires `dynamicNavigation: true` (#976), extending the hook profile with physical
+drops, character footprints and the default planner's local repair (shipped since `content-6`). Historical
+archives and the frozen fixture retain their recorded behavior. The bounds below were written as
 implementation assumptions for review and are the shipped values, accepted as they stand
 with tuning deferred.
 P9's local `/dev/physics` playtest ([42.20](42.20-physics-p9.md)) copies and pins
@@ -210,9 +210,8 @@ refusal, transit preflight and occupied gate-close refusal remain in force.
 
 ## Character profile (#439)
 
-Content with `actorPhysics` gives the physics engine the character profile below; every
-shipped physics set has it. Without one, `createPhysicsGame` runs the content with the hurt radii
-as body radii and the default motor (P1); no shipped set does since #920. The values are provisional, accepted as they
+Every match requires `actorPhysics` (#976), giving the physics engine the character profile below
+(shipped since `content-6`; #976 removed the unprofiled P1 fallback). The values are provisional, accepted as they
 stand with tuning deferred.
 
 | Role | Nominal head radius | Movement radius | Retained combat radius |
@@ -258,9 +257,8 @@ E swaps nearby loot into the selected slot when full. G or Drop selected drops t
 
 ### Item instances (L0, #442)
 
-Content with `itemInstances` gives every item a persistent identity. Every shipped physics set has
-it, and `createPhysicsGame` requires world physics beside it (P5). `content-equipment-1`, which
-selected it on the legacy mover, is retired (#920).
+Every match requires `itemInstances` (#976), giving every item a persistent identity alongside
+`worldPhysics`. `content-equipment-1`, which selected it on the legacy mover, was retired in #920.
 
 Ground `id` is the persistent instance identity. Carried entries retain it as
 `instanceId`, with a `lineageId` naming the original root. A whole pickup/drop
@@ -291,8 +289,8 @@ halting the tick; well-formed value always drops.
 The mandatory reserve is all carried value: at most eighteen utility units per
 six-slot inventory, with no cap rejection. Overflow creates no extra value and
 is bounded by the match's finite admitted loot quantity; repeated transfers do
-not grow it. P5 must reserve bodies separately and keep this logical fallback when
-body admission fails. L0 creates no bodies or joints. Reloading remains later work.
+not grow it. World physics reserves drop bodies separately (`worldPhysics.dropReserve`) and keeps this logical fallback when
+body admission fails; L0 identity/transfer rules themselves create no bodies or joints.
 
 ### Weapon quality (L1, #443)
 
@@ -483,9 +481,8 @@ mechanics still apply to stored legacy maps.
 
 ## Hook profile (#446)
 
-Content with a `hook` profile and a `hook` kit adds a selectable hook gladiator kit to the
-physical world profile; every shipped physics set has it. The existing roster and three kits
-remain available.
+Every match requires a `hook` profile and `kits.hook` (#976), providing the selectable hook
+gladiator kit alongside the existing roster and three kits.
 
 Pinned provisional content: range 500 world units, swept tip speed 900 units/s,
 maximum tension 6,000 force units, stiffness 120, damping 30, target shortening
