@@ -7,7 +7,7 @@ import * as map from '../shared/map.ts';
 
 test('public simulation/map exports and acyclic shared dependencies remain stable', () => {
   assert.deepEqual(Object.keys(simulation).sort(), ['VERSION', 'HZ', 'DURATION', 'CELL_CHARGE_TICKS', 'GLADIATOR_RESPAWN_TICKS', 'HAZARD_GRACE_TICKS', 'KITS', 'POTENTIAL', 'TILE', 'createGameRecord', 'joinGame', 'setInput', 'couldSee', 'visibleTo', 'playerView', 'step', 'snapshot', 'PHYSICS_VERSION', 'createGame', 'disposePhysics', 'enqueuePhysicsImpulse', 'enqueuePhysicsAttachment', 'synchronizePhysics'].sort());
-  assert.deepEqual(Object.keys(map).sort(), ['WORLD_WIDTH', 'WORLD_HEIGHT', 'navigationGrid', 'straightenPath'].sort());
+  assert.deepEqual(Object.keys(map).sort(), ['WORLD_WIDTH', 'WORLD_HEIGHT'].sort());
   const files = readdirSync('shared', { recursive: true }).filter(f => f.endsWith('.ts') && !f.endsWith('.d.ts')).map(f => path.resolve('shared', f));
   const graph = new Map(files.map(file => {
     const refs = [...readFileSync(file, 'utf8').matchAll(/(?:from\s*|import\s*)['"](\.[^'"]+)['"]/g)].map(m => path.resolve(path.dirname(file), m[1]));
@@ -23,22 +23,4 @@ test('public simulation/map exports and acyclic shared dependencies remain stabl
     done.add(file);
   }
   for (const file of files) visit(file);
-});
-
-test('navigation caches follow map identity, doors, obstacle replacement and append', () => {
-  const m = { width: 1200, height: 1200, obstacles: [], gates: [{ id: 'door', x: 620, y: 620, w: 20, h: 100, open: false, locked: false }] };
-  const bounds = { x: 13, y: 13, width: 5, height: 5 };
-  const grid = () => map.navigationGrid(m, 'contestant', bounds);
-  const closed = grid(); assert.equal(grid(), closed);
-  assert.notEqual(map.navigationGrid(structuredClone(m), 'contestant', bounds), closed);
-  m.gates[0].open = true;
-  const opened = grid(); assert.notDeepEqual(opened, closed); assert.equal(grid(), opened);
-  m.obstacles = [{ id: 'wall', x: 600, y: 600, w: 40, h: 40 }];
-  const replaced = grid(); assert.notDeepEqual(replaced, opened);
-  m.obstacles.push({ id: 'wall2', x: 540, y: 540, w: 40, h: 40 });
-  assert.notDeepEqual(grid(), replaced);
-  m.gates[0].open = false;
-  const unlocked = map.navigationGrid(m, 'contestant', bounds, true);
-  m.gates[0].locked = true;
-  assert.notDeepEqual(map.navigationGrid(m, 'contestant', bounds, true), unlocked);
 });

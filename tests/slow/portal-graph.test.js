@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPortalPlanner, portalGraphOf, standJoins } from '../../shared/navigation/portal-graph.ts';
-import { stepsLength } from '../../shared/navigation/grid-level.ts';
+import { stepsLength } from '../../map/tools/grid-level.ts';
 import { meshReach } from '../../shared/navigation/mesh-level.ts';
-import { gridRoute } from '../../shared/map/route.ts';
+import { gridRoute } from '../../map/tools/route.ts';
 import { TILE } from '../../shared/movement.ts';
 import { generate } from '../../map/chain.ts';
 import { composeRegions } from '../../map/micro/compose.ts';

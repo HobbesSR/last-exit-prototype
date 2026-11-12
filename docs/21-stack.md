@@ -1,6 +1,6 @@
 # 21. Stack decision
 
-Phaser renders the browser client. Node hosts an authoritative 20 Hz simulation over WebSockets. SAT.js supplies circle/polygon collision; PathFinding.js supplies bot route search. The map generator assembles generated sections with world-space geometry. Its coarse navigation sampling is private implementation detail and does not constrain human movement or rendering.
+Phaser renders the browser client. Node hosts an authoritative 20 Hz simulation over WebSockets. SAT.js supplies circle/polygon collision; PathFinding.js supplies dev tools route search (in the Map Lab and navigation reports). The map generator assembles generated sections with world-space geometry. Its coarse navigation sampling is private implementation detail and does not constrain human movement or rendering.
 
 This first implementation uses a shared JavaScript core to make iteration and browser prediction direct. It is not a Rust implementation. The user allowed either Rust or an appropriate free/open-source ecosystem. Phaser's MIT-licensed browser focus fits this initial client; there is no engine editor or export pipeline to operate. Original project code and assets are licensed under the MIT License (`LICENSE`); third-party components retain their own licenses and notices ([17.4](17.4-live-service.md) #11, #552). What is redistributed, under which licence, and how its notices reach users is [21.1](21.1-third-party-licenses.md) (#551).
 
