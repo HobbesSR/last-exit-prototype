@@ -31,7 +31,7 @@ test('every theme fills every role the renderer draws', () => {
 });
 
 // Color regression guard for the opaque fill and outline drawn by rectangular walls, fences and
-// crates (arena-scene.obstacle). Polygon strokes and special shapes have different edges/alpha
+// crates (static-drawing.js drawObstacle). Polygon strokes and special shapes have different edges/alpha
 // and need their own rendered-image validation; this is not a perceptual test.
 // Compare each role over ground, street and floor, before and after the nominal 0.46 shade wash.
 test('outlined obstacle roles retain prototype color contrast, lit or shaded', () => {

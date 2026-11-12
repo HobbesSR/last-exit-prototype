@@ -616,8 +616,8 @@ try {
       }
       for (let guard = 0; guard < 40; guard++) {
         f.step(16, now);
-        const tilesDone = [...s.tiles.values()].every(t => t.empty || t.resolution > 0);
-        const overheadDone = [...s.overheadTiles.values()].every(t => !s.overheadGroups.get(t.group)?.visible || t.empty || t.resolution > 0);
+        const tilesDone = [...s.tileCache.tiles.values()].every(t => t.empty || t.resolution > 0);
+        const overheadDone = [...s.tileCache.overheadTiles.values()].every(t => !s.tileCache.groups.get(t.group)?.visible || t.empty || t.resolution > 0);
         if (tilesDone && overheadDone) break;
       }
       // Wait one animation frame so Phaser's WebGL pipeline flushes the scene to the drawingBuffer.
@@ -993,8 +993,8 @@ try {
           frameAlpha: 0,
         });
         f.motionRasterisations = 0;
-        const origRasterise = s.rasterise.bind(s);
-        s.rasterise = (...args) => { f.motionRasterisations++; return origRasterise(...args); };
+        const origRasterise = s.tileCache.rasterise.bind(s.tileCache);
+        s.tileCache.rasterise = (...args) => { f.motionRasterisations++; return origRasterise(...args); };
       } else {
         const ally = f.state.players.find(p => p.id === 'ally');
         const warden = f.state.players.find(p => p.id === 'warden');
@@ -1038,14 +1038,14 @@ try {
       roofSteps: 1,
     });
     // Force a known mid-fade alpha (0.45) on `roof:shop-room` and record actor container identity.
-    s.setOverheadGroup('roof:shop-room', true, 0.45);
+    s.tileCache.setGroup('roof:shop-room', true, 0.45);
     s.roofs.get('shop-room').alpha = 0.45;
     const actorBefore = s.actors.get('self').container;
     const rememberedBefore = s.gateMemory.size;
     s.setPalette('neonAftermath');
     return {
       alphaAfterRestyle: s.roofs.get('shop-room').alpha,
-      overheadAlphaAfterRestyle: s.overheadGroups.get('roof:shop-room').alpha,
+      overheadAlphaAfterRestyle: s.tileCache.groups.get('roof:shop-room').alpha,
       sameActorContainer: s.actors.get('self').container === actorBefore,
       rememberedBefore,
       rememberedAfter: s.gateMemory.size,

@@ -18,7 +18,7 @@ Shape construction and element assembly are in [29.3](29.3-shape-construction-an
 `shapeOf(record)` resolves a stored map record into whichever form it describes: `points` wins, then
 `r`, then the box. That ordering is what the collision code always assumed, so nothing about existing
 maps or recordings changes. The three consumers are collision (`shared/movement.ts`), sight (also
-`movement.ts`, via `edgesOf`) and drawing (`public/arena-scene.js`, via `outline`). None of them
+`movement.ts`, via `edgesOf`) and drawing (`public/static-drawing.js` and `public/frame-drawing.js`, via `outline`). None of them
 re-derives geometry from raw fields any more, which is what previously allowed the renderer and the
 physics to disagree about what an obstacle looked like.
 
