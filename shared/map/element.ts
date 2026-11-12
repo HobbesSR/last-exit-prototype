@@ -87,35 +87,17 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
     const app = template.appearance;
     if (app.surfaces?.length || app.commercial?.length || app.wear?.length || app.scars?.length || app.lighting?.fields?.length) {
       const target = (map.appearance ??= {});
-      if (app.surfaces?.length) {
-        (target.surfaces ??= []).push(...app.surfaces.map(s => ({
-          ...s,
-          bounds: { x: s.bounds.x + x, y: s.bounds.y + y, w: s.bounds.w, h: s.bounds.h },
-        })));
-      }
-      if (app.commercial?.length) {
-        (target.commercial ??= []).push(...app.commercial.map(c => ({
-          ...c,
-          bounds: { x: c.bounds.x + x, y: c.bounds.y + y, w: c.bounds.w, h: c.bounds.h },
-        })));
-      }
-      if (app.wear?.length) {
-        (target.wear ??= []).push(...app.wear.map(w => ({
-          ...w,
-          bounds: { x: w.bounds.x + x, y: w.bounds.y + y, w: w.bounds.w, h: w.bounds.h },
-        })));
-      }
-      if (app.scars?.length) {
-        (target.scars ??= []).push(...app.scars.map(s => ({
-          ...s,
-          bounds: { x: s.bounds.x + x, y: s.bounds.y + y, w: s.bounds.w, h: s.bounds.h },
-        })));
-      }
+      // Each mark keeps its fields, with its bounds moved from the template to the placement.
+      const placed = <T extends { bounds: Box }>(marks: readonly T[]): T[] =>
+        marks.map(m => ({ ...m, bounds: { x: m.bounds.x + x, y: m.bounds.y + y, w: m.bounds.w, h: m.bounds.h } }));
+      if (app.surfaces?.length) (target.surfaces ??= []).push(...placed(app.surfaces));
+      if (app.commercial?.length) (target.commercial ??= []).push(...placed(app.commercial));
+      if (app.wear?.length) (target.wear ??= []).push(...placed(app.wear));
+      if (app.scars?.length) (target.scars ??= []).push(...placed(app.scars));
       if (app.lighting?.fields?.length) {
         const lighting = (target.lighting ??= {});
-        (lighting.fields ??= []).push(...app.lighting.fields.map(f => ({
+        (lighting.fields ??= []).push(...placed(app.lighting.fields).map(f => ({
           ...f,
-          bounds: { x: f.bounds.x + x, y: f.bounds.y + y, w: f.bounds.w, h: f.bounds.h },
           ...(f.focalEdge
             ? {
                 focalEdge: {
