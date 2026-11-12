@@ -29,7 +29,7 @@ export function describeContent(content: MatchContent): ContentPresentation {
   return freeze({
     contentId: content.id,
     weapons: Object.entries(content.weapons).map(([id, w]) => ({ id, name: w.name, ammo: w.ammo })),
-    // The kits on offer, not only those the roster starts with: content-1 seats two hunters among three kits.
+    // The kits on offer, not only those the roster starts with, which may seat fewer kits than it offers.
     kits: Object.entries(content.kits).map(([id, k]) => ({ id, name: k.name, skill: k.skill, color: k.color })),
     capacity: { contestant: content.roster.contestants.length, gladiator: content.roster.gladiators.length },
     durationTicks: content.durationTicks,

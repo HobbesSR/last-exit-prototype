@@ -5,10 +5,9 @@ import { navigationGrid, stepClear } from './navigation.ts';
 import type { CollisionMap, DoorPermission, Role, TileIndex, TilePoint, TileRect, TileStep, Vec2 } from '../types.ts';
 
 /**
- * The game's route search: A* over the walkability grid `navigationGrid` gives a body. Bots plan
- * with it, and the Map Lab measures routes through a built map with it (53, "Routes"), so the two
- * can't disagree about where a body fits. It is not in `shared/map.ts`, which the browser client
- * loads without the `pathfinding` package.
+ * A* over the walkability grid `navigationGrid` gives a body. The Map Lab measures routes through
+ * a built map with it (53, "Routes"); bots plan over free-space tiles instead (22.6). It is not in
+ * `shared/map.ts`, which loads without the `pathfinding` package.
  */
 
 /**

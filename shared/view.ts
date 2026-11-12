@@ -74,9 +74,7 @@ export interface Sight {
 const ENTITY_MARGIN: World = 30;
 
 // What a viewer may know is a gameplay rule, not a rendering detail — see docs/15. The world view and
-// the minimap each used to answer this separately and had already drifted apart: the minimap applied
-// roof concealment before consulting a reveal, so a revealed player under a roof was drawn in the
-// world and missing from the map. One predicate cannot disagree with itself.
+// the minimap both ask this one predicate, so they cannot disagree about what is seen.
 export function seesPoint(sight: Sight | null | undefined, map: RoofMap, x: World, y: World, margin: World = ENTITY_MARGIN): boolean {
   if (!sight) return false; // No computed sight knows nothing; a directed view is the caller's decision.
   return !roofConceals(map, sight.eye, { x, y })
@@ -155,14 +153,13 @@ interface RoofIndex {
   buildingBuckets: Map<string, Building[]>;
   roofCellSets: WeakMap<Roof, Set<string>>;
   obstacleBuckets: Map<string, PhysicalBox[]>;
-  undeclaredBuildings: Building[];
 }
 
 // Cached per map object and never invalidated: a map is immutable after generation, and the client
 // replaces the object on every change. Editing `buildings` or `roofs` in place reads a stale index.
 const roofIndexCache = new WeakMap<object, RoofIndex>();
 
-export function getRoofIndex(map: RoofMap): RoofIndex {
+function getRoofIndex(map: RoofMap): RoofIndex {
   let index = roofIndexCache.get(map);
   if (!index) {
     const roofs = map.roofs || [];
@@ -241,7 +238,6 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
       buildingBuckets,
       roofCellSets,
       obstacleBuckets,
-      undeclaredBuildings,
     };
     roofIndexCache.set(map, index);
   }

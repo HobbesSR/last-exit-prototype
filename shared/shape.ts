@@ -13,7 +13,7 @@ import { cos, hypot, sin } from './math.ts';
  * already stores them; a polygon carries local points about an anchor so it can be moved or rotated
  * as a unit. Polygons must be convex and wound consistently — SAT separation is only defined for
  * convex bodies. Concave generated content has to be decomposed into convex pieces before it
- * becomes geometry; see [23](../docs/23-types.md).
+ * becomes geometry, which `shape-construction.ts` does (29).
  */
 export type Shape =
   | { kind: 'rect'; x: World; y: World; w: World; h: World }
@@ -186,12 +186,11 @@ export function sharesArea(a: Shape, b: Shape, tolerance = 0): boolean {
  * changes. A rect rotates into a polygon, since an axis-aligned box cannot express the result.
  */
 export function transform(shape: Shape, dx: World = 0, dy: World = 0, angle = 0): Shape {
+  if (shape.kind === 'circle') return circle(shape.x + dx, shape.y + dy, shape.r);
   if (!angle) {
-    if (shape.kind === 'circle') return circle(shape.x + dx, shape.y + dy, shape.r);
     if (shape.kind === 'rect') return rect(shape.x + dx, shape.y + dy, shape.w, shape.h);
     return polygon(shape.x + dx, shape.y + dy, shape.points);
   }
-  if (shape.kind === 'circle') return circle(shape.x + dx, shape.y + dy, shape.r);
   const c = cos(angle), s = sin(angle);
   const local = shape.kind === 'rect'
     ? [{ x: 0, y: 0 }, { x: shape.w, y: 0 }, { x: shape.w, y: shape.h }, { x: 0, y: shape.h }]

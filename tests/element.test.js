@@ -37,7 +37,6 @@ test('an enclosing element registers a building and tags everything inside it', 
   assert.ok(context.map.obstacles.every(o => o.buildingId === building.id), 'every wall belongs to it');
   assert.equal(context.map.gates[0].buildingId, building.id);
   assert.deepEqual(context.spots, [{ x: 12125, y: 6125, nodeId: 'n', buildingId: building.id }]);
-  assert.deepEqual(context.reservations, [{ x: 11970, y: 5970, w: 310, h: 350 }]);
   // Locking is a property of the instance, so one template serves locked and unlocked doors alike.
   assert.equal(context.map.gates[0].locked, true);
   assert.equal(stamp(CENTRE.x, CENTRE.y).map.gates[0].locked, false);

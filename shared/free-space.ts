@@ -78,7 +78,7 @@ function meshOf(rings: ClipperLib.Paths, clearance: World): FreeSpace {
   const mesh = triangulateRings(rings);
   if (!mesh) return emptySpace(clearance);
   const points = Float64Array.from(mesh.coords, v => v / SCALE);
-  return { clearance, points, triangles: mesh.triangles, twins: mesh.twins, locator: gridOf(points, mesh.triangles, 3) };
+  return { clearance, points, triangles: mesh.triangles, twins: mesh.twins, locator: gridOf(points, mesh.triangles) };
 }
 
 function emptySpace(clearance: World): FreeSpace {
@@ -86,11 +86,8 @@ function emptySpace(clearance: World): FreeSpace {
     locator: { x: 0, y: 0, size: BUCKET, cols: 0, rows: 0, starts: new Int32Array(1), items: new Int32Array() } };
 }
 
-/**
- * A bucket grid over the mesh's vertices of `members`, each `arity` vertex indices long (a
- * triangle, or a lone vertex), listing each member in every bucket its bounds touch.
- */
-function gridOf(points: Float64Array, members: Int32Array, arity: number): Grid {
+/** A bucket grid over a mesh's triangles, listing each triangle in every bucket its bounds touch. */
+function gridOf(points: Float64Array, triangles: Int32Array): Grid {
   let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
   for (let i = 0; i < points.length; i += 2) {
     left = Math.min(left, points[i]!); right = Math.max(right, points[i]!);
@@ -99,14 +96,14 @@ function gridOf(points: Float64Array, members: Int32Array, arity: number): Grid 
   const cols = Math.max(1, Math.ceil((right - left) / BUCKET) + 1), rows = Math.max(1, Math.ceil((bottom - top) / BUCKET) + 1);
   const range = (m: number) => {
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (let k = 0; k < arity; k++) {
-      const v = members[m * arity + k]!, x = points[v * 2]!, y = points[v * 2 + 1]!;
+    for (let k = 0; k < 3; k++) {
+      const v = triangles[m * 3 + k]!, x = points[v * 2]!, y = points[v * 2 + 1]!;
       x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
     }
     return [Math.floor((x0 - left) / BUCKET), Math.floor((y0 - top) / BUCKET), Math.floor((x1 - left) / BUCKET), Math.floor((y1 - top) / BUCKET)] as const;
   };
   // Counting sort: sizes, then offsets, then fill.
-  const starts = new Int32Array(cols * rows + 1), count = members.length / arity;
+  const starts = new Int32Array(cols * rows + 1), count = triangles.length / 3;
   for (let m = 0; m < count; m++) { const [c0, r0, c1, r1] = range(m); for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) starts[r * cols + c + 1]!++; }
   for (let i = 0; i < cols * rows; i++) starts[i + 1]! += starts[i]!;
   const items = new Int32Array(starts[cols * rows]!), fill = starts.slice(0, cols * rows);
@@ -519,7 +516,7 @@ function joinPieces(pieces: readonly { space: FreeSpace; gates: string[] }[], bo
   }
   if (!triangles.length) return { ...emptySpace(clearance), box, reach, gateSet: new Int32Array(), gateSets: [] };
   const points = Float64Array.from(coords), out = Int32Array.from(triangles);
-  return { clearance, points, triangles: out, twins: Int32Array.from(twins), locator: gridOf(points, out, 3), box, reach, gateSet: Int32Array.from(gateSet), gateSets };
+  return { clearance, points, triangles: out, twins: Int32Array.from(twins), locator: gridOf(points, out), box, reach, gateSet: Int32Array.from(gateSet), gateSets };
 }
 
 function obstacleBuckets(map: CollisionMap): Map<string, number[]> {
