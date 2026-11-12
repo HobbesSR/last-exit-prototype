@@ -12,7 +12,7 @@ import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
-import type { ChainLibrary, ChainTileDesign, Side } from "./library.ts";
+import type { ChainLibrary, ChainTileDesign } from "./library.ts";
 import { fitsEast, fitsSouth, edgeConnectsEast, edgeConnectsSouth } from "./placement.ts";
 import type { Stream } from "./random.ts";
 import { DEFAULT_RESOLVED_CLASS, guaranteesPassability } from "./resolution.ts";
@@ -42,6 +42,7 @@ export interface SkeletonResult {
 }
 
 const S = CHAIN_TILE_SIZE;
+type Side = "N" | "E" | "S" | "W";
 const SIDES: readonly [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
 class UnionFind {
