@@ -19,7 +19,7 @@ import { liveZoneSize } from '../../map/live.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { cliArgs } from '../../tests/helpers/args.js';
 import { portalGraphOf } from '../../shared/navigation/portal-graph.ts';
-import { prebuiltTiles } from '../../shared/simulation/bots.ts';
+import { prebuiltTiles } from '../../shared/simulation/bot-routes.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 
 const args = cliArgs();

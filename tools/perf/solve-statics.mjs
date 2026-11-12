@@ -5,7 +5,7 @@
 // node tools/perf/solve-statics.mjs --size=36x18 --seed=4217 --content=content-11 --from=300 --window=600 --radius=6000 --repeats=3
 import { generateLiveMap, liveZoneSize } from '../../map/live.ts';
 import { contentById } from '../../shared/simulation/content.ts';
-import { prebuiltTiles } from '../../shared/simulation/bots.ts';
+import { prebuiltTiles } from '../../shared/simulation/bot-routes.ts';
 import { adoptPackedTiles } from '../../shared/free-space.ts';
 import { buildPhysicsGeometry } from '../../shared/simulation/physics-geometry.ts';
 import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';

@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { createPhysicsGame, step, snapshot, playerView, disposePhysics } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
-import { prebuiltTiles } from '../../shared/simulation/bots.ts';
+import { prebuiltTiles } from '../../shared/simulation/bot-routes.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../../map/live.ts';
 import { adoptPackedTiles } from '../../shared/free-space.ts';
 

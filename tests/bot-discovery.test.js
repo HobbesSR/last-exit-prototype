@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPhysicsGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
-import { collectBotIntent, joinRoute, passed, tickAllowance } from '../shared/simulation/bots.ts';
+import { collectBotIntent } from '../shared/simulation/bots.ts';
+import { joinRoute, passed, tickAllowance } from '../shared/simulation/bot-routes.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
 import { createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_RADIUS } from '../shared/discovery.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
