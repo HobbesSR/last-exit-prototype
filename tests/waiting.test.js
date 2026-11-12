@@ -150,30 +150,38 @@ test('a resume replacing a live connection starts the yard input afresh, where t
   } finally { await h.service.close(); }
 });
 
-test('position continuity against obstacles uses actual physics radius (#975 review 771)', async () => {
+test('position continuity against obstacles uses actual physics radius (#975 review 771, 773)', async () => {
   const w = createWaiting(waitingYard());
   await w.ready;
   try {
     // Gladiator starts at first arrival point (330, 300) and walks north toward container at y=150..220.
-    const g = enterWaiting(w, 'g', 'gladiator', 'striker', 'G');
-    for (let seq = 0; seq < 80; seq++) waitingInput(w, 'g', { seq, x: 0, y: -1 });
-    for (let i = 0; i < 80; i++) stepWaiting(w);
-    const stopped = { x: g.x, y: g.y };
-    // Stands within legacy hurtRadius (23) of container edge (y=220), but fits actual gladiator bodyRadius (16.25).
-    assert.ok(stopped.y - 220 < 23, 'within legacy radius of container');
-    assert.ok(stopped.y - 220 >= 16.2, 'outside physics body radius');
+    // Interleaving input and step settles against container with solver contact tolerance at y ≈ 236.227.
+    let g = enterWaiting(w, 'g', 'gladiator', 'striker', 'G');
+    for (let seq = 0; seq < 80; seq++) {
+      waitingInput(w, 'g', { seq, x: 0, y: -1 });
+      stepWaiting(w);
+    }
+    const currentG = () => w.players.find(p => p.id === 'g');
+    const stopped = { x: currentG().x, y: currentG().y };
+    // Stands within container contact tolerance (distance from y=220 is slightly below 16.25).
+    assert.ok(stopped.y - 220 < 16.25, 'stopped by contact with container');
+    assert.ok(stopped.y - 220 > 16.0, 'solver contact position');
 
-    // Kit change keeps position and does not advance arrival allocation.
+    // Kit change on unchanged body keeps position and does not advance arrival allocation.
     const arrivalsBefore = w.arrivals;
-    changeWaiting(w, 'g', 'gladiator', 'specter');
+    g = changeWaiting(w, 'g', 'gladiator', 'specter');
     assert.equal(g.x, stopped.x);
     assert.equal(g.y, stopped.y);
+    assert.equal(currentG().x, stopped.x);
+    assert.equal(currentG().y, stopped.y);
     assert.equal(w.arrivals, arrivalsBefore);
 
-    // Re-entering (resume) at same spot keeps position.
-    enterWaiting(w, 'g', 'gladiator', 'specter', 'G');
+    // Re-entering (resume) unchanged body at same spot keeps position.
+    g = enterWaiting(w, 'g', 'gladiator', 'specter', 'G');
     assert.equal(g.x, stopped.x);
     assert.equal(g.y, stopped.y);
+    assert.equal(currentG().x, stopped.x);
+    assert.equal(currentG().y, stopped.y);
     assert.equal(w.arrivals, arrivalsBefore);
 
     // Contestant placed tight against obstacle where contestant (11.2875) fits but gladiator (16.25) cannot.
@@ -187,6 +195,7 @@ test('position continuity against obstacles uses actual physics radius (#975 rev
     const changed = changeWaiting(w, 'c', 'gladiator', 'striker');
     assert.equal(w.arrivals, arrivalsBeforeTeleport + 1);
     assert.notEqual(changed.y, 233);
+    assert.notEqual(w.players.find(p => p.id === 'c').y, 233);
   } finally {
     w.dispose();
   }
