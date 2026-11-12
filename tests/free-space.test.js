@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { freePaths, locate, mapFreeSpace } from '../shared/free-space.ts';
 import { meshReach, regionDomain } from '../shared/navigation/mesh-level.ts';
-import { gridReach } from '../shared/navigation/grid-level.ts';
+import { gridReach } from '../map/tools/grid-level.ts';
 import { navigationClearance } from '../shared/map/navigation.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
 import { arena } from './helpers/arena.js';

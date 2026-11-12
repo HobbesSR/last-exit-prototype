@@ -38,7 +38,7 @@ export interface VisibilityPoint extends Vec2 {
   length: World;
 }
 
-export const TILE = 40; // Navigation sampling only, never a movement or rendering grid.
+export const TILE = 40; // Distance unit and navigation sampling size, never a movement or rendering grid.
 export const VISION = 620;
 // Keyed by the obstacle list, not the map: maps that differ only in gates, such as a contestant's remembered doors
 // (simulation/dynamic-navigation.ts), share one geometry instead of rebuilding every collider (#727).

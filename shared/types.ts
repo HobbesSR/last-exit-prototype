@@ -4,9 +4,6 @@
 // Branding policy, chosen for cost rather than purity:
 //   * Identifiers are branded. They are strings that are never arithmetic, so a brand costs one
 //     cast at the single place each id is minted and catches every gate-id-for-item-id mix-up.
-//   * Tile coordinates are branded. The arena has four coexisting coordinate spaces (below) and
-//     tile arithmetic is confined to the navigation grid (`map/navigation`, `map/route` and
-//     `navigation/grid-level`), so the brand pays for itself there without spreading casts.
 //   * World coordinates and tick counts are plain `number` aliases. They are combined
 //     arithmetically on nearly every line; branding them would demand a cast per expression and
 //     buy less than the named parameter and field types already give.
@@ -20,7 +17,6 @@ type Brand<T, B extends string> = T & { readonly [brand]: B };
 
 /**
  * World units. The arena is 24,000 x 12,000 of them; players, items and obstacles all live here.
- * Distinct from {@link TileIndex}, which counts 40-unit navigation samples.
  */
 export type World = number;
 
@@ -29,31 +25,6 @@ export interface Vec2 {
   x: World;
   y: World;
 }
-
-/**
- * A navigation-grid column or row: world units divided by `TILE`. Only the pathfinding sampler
- * and bot repathing speak this; nothing renders or collides against it.
- */
-export type TileIndex = Brand<number, 'TileIndex'>;
-/** A count of tiles — a width, height or span rather than a position. */
-export type TileCount = Brand<number, 'TileCount'>;
-
-/** A point in tile space. */
-export interface TilePoint {
-  x: TileIndex;
-  y: TileIndex;
-}
-
-/** A tile-space rectangle. `navigationGrid` bounds are this, never a world-space box. */
-export interface TileRect {
-  x: TileIndex;
-  y: TileIndex;
-  width: TileCount;
-  height: TileCount;
-}
-
-/** A waypoint on a bot path, in absolute tile coordinates. */
-export type TileStep = readonly [TileIndex, TileIndex];
 
 /** A world-space axis-aligned box. */
 export interface Box {
@@ -792,7 +763,7 @@ export interface Player extends Vec2 {
    * The retired grid planner's route, in absolute tile coordinates. Nothing plans into it since #920,
    * but clearing a route still writes an empty one, and recorded frames carry it.
    */
-  path?: TileStep[] | undefined;
+  path?: [number, number][] | undefined;
   /** Remaining bot route in world points, for content that plans over free-space tiles (22.6). */
   route?: Vec2[] | undefined;
   /** The charger being used, or null when not charging. */
