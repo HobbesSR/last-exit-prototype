@@ -11,6 +11,8 @@ export { HZ, INTERPOLATION_DELAY_TICKS };
 export const SHIPPED_PRESENTATION = describeContent(defaultContent());
 /** A display value, or this when it is unavailable. */
 export const UNAVAILABLE = '—';
+/** The callsign a player is given when they enter none; the server's is `Player`, the simulation's `You`. */
+export const DEFAULT_CALLSIGN = 'Runner';
 const kitEntry = (kit, presentation) => presentation?.kits.find(k => k.id === kit);
 export const kitName = (kit, presentation = SHIPPED_PRESENTATION) => kitEntry(kit, presentation)?.name ?? kit;
 export const kitSkill = (kit, presentation = SHIPPED_PRESENTATION) => kit == null ? 'No innate ability' : kitEntry(kit, presentation)?.skill ?? UNAVAILABLE;

@@ -10,18 +10,22 @@ import * as profiler from '/shared/profiler.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
-import { WIRE_VERSION, CLIENT_MESSAGE, SERVER_MESSAGE, HTTP_ENDPOINT } from '/shared/protocol.ts';
+import { CLIENT_MESSAGE, SERVER_MESSAGE, HTTP_ENDPOINT } from '/shared/protocol.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { contentById } from '/shared/simulation/content.ts';
 import { transitOptions } from '/shared/simulation/transit.ts';
 import { downloadJson } from '/download.js';
+import { createLobbyController } from '/lobby-controller.js';
+import { createDeployController } from '/deploy-controller.js';
+import { createArchiveController } from '/archive-controller.js';
+import { createProfileOverlay } from '/profile-overlay.js';
 import { THEMES, DEFAULT_THEME, themeColors, css } from '/palette.js';
-import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions, fillKitOptions } from '/ui.js';
+import { $, HZ, INTERPOLATION_DELAY_TICKS, DEFAULT_CALLSIGN, fillFollowOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
-let seq = 0, pending = [], selectedRole = 'contestant', savedReplay, recordingFailed = false;
+let seq = 0, pending = [], savedReplay, recordingFailed = false;
 let physicsPrediction = null, predictionLoading = false, predictionEpoch = 0;
 function resetPhysicsPrediction() {
   predictionEpoch++; physicsPrediction?.dispose(); physicsPrediction = null; predictionLoading = false;
@@ -62,16 +66,6 @@ let presentation = null;
 // joined, the dev feed stepped out to, and (in the replay controller) the open recording. Each is set
 // only by its own source, so a live update behind a replay or the dev view never relabels them.
 let liveContentPresentation = null, devPresentation = null;
-// The callsign a player is given when they enter none; the server's is `Player`, the simulation's `You`.
-const DEFAULT_CALLSIGN = 'Runner';
-let lobbyPlayers = [];
-// Advertised by the room rather than transcribed here: the roster that decides them is match content.
-let lobbyCapacity = null;
-let lobbyStartsAt = null;
-// Whether the room's map exists yet (#258), and whether the owner's start is waiting on it.
-let lobbyReady = true, lobbyStarting = false;
-// The gladiator kit this player last held or picked in the lobby, kept across a spell as a contestant.
-let lobbyKit = DEFAULT_KIT;
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
   onSelectionChange: () => updateHUD(), onToggleFullscreen: () => toggleFullscreen(),
@@ -114,9 +108,9 @@ const replayController = createReplayController({
   getMap: () => arenaMap, getState: () => state, setState: value => state = value,
   getScene: () => scene, getLiveMap: () => liveMap, getLiveState: () => liveState,
   liveConnectionLabel: () => ws?.readyState === WebSocket.OPEN ? (inDevView() ? 'DEV VIEW' : 'LIVE') : 'OFFLINE',
-  downloadReplay, icon, icons, director,
+  downloadReplay: id => archive.download(id), icon, icons, director,
 });
-let toastTimer, connecting = false, disconnecting = false, profileOverlay;
+let toastTimer, disconnecting = false;
 // When the player socket last delivered a frame. It is the network's own measure, kept by the socket that
 // receives the frames rather than by whatever is being drawn: a replay or the dev feed showing in its
 // place must neither stall it nor stand in for it.
@@ -163,93 +157,25 @@ function envelopePresentation(data) {
 // Labels follow a descriptor change even when no item id or count changed.
 function presentationChanged() {
   devRoster = '';
-  if ($('lobby-dialog').open) updateLobby(lobbyData);
+  if (lobby.open()) lobby.redraw();
   if (state) { if (inDevView()) refreshDevRoster(); updateHUD(); }
-}
-// The lobby message last shown, so new labels can redraw it without changing what it said.
-let lobbyData = {};
-function updateLobby(data = {}) {
-  lobbyData = data;
-  lobbyStartsAt = data.startsAt || null;
-  if ('ready' in data) lobbyReady = data.ready;
-  lobbyStarting = !!data.starting;
-  if (data.players) lobbyPlayers = data.players;
-  if (data.capacity) lobbyCapacity = data.capacity;
-  const contestants = lobbyPlayers.filter(p => p.role === 'contestant');
-  const gladiators = lobbyPlayers.filter(p => p.role === 'gladiator');
-  $('lobby-room').textContent = roomId || data.room || '';
-  if ('name' in data) $('lobby-title').textContent = data.name || 'Arena lobby.';
-  if (data.size) $('lobby-size').textContent = data.size.replace('x', ' × ');
-  const places = role => lobbyCapacity ? `/${lobbyCapacity[role]}` : '';
-  $('lobby-count').textContent = `${contestants.length}${places('contestant')} contestants / ${gladiators.length}${places('gladiator')} gladiators`;
-  const render = (target, list, empty) => {
-    target.replaceChildren();
-    if (!list.length) {
-      const li = document.createElement('li'); li.className = 'empty'; li.textContent = empty; target.append(li); return;
-    }
-    for (const p of list) {
-      const li = document.createElement('li'), name = document.createElement('strong'), meta = document.createElement('span');
-      const kit = p.role === 'gladiator' ? ` / ${kitName(p.kit, liveContentPresentation)}` : '';
-      name.textContent = p.name; meta.textContent = `${p.role}${kit}`;
-      li.append(name, meta); target.append(li);
-    }
-  };
-  render($('lobby-contestants'), contestants, 'Open contestant slots will be bots.');
-  render($('lobby-gladiators'), gladiators, 'Open gladiator slots will be bots.');
-  showChoice(data.started);
-  $('start-match').hidden = !owner;
-  $('start-match').disabled = !owner || data.started || lobbyStarting;
-  $('lobby-waiting').hidden = owner && lobbyReady;
-  $('lobby-waiting').textContent = lobbyWaiting(data.matchmade);
-  icons();
-}
-// A player's own role and kit, changeable until the start (#235). The room holds the choice; this only asks.
-function showChoice(started) {
-  const me = lobbyPlayers.find(p => p.id === playerId);
-  $('lobby-choice').hidden = !me || !!started;
-  if (!me) return;
-  for (const button of document.querySelectorAll('[data-lobby-role]')) {
-    const role = button.dataset.lobbyRole, mine = role === me.role;
-    button.setAttribute('aria-pressed', String(mine));
-    // Another side is open while it holds fewer people than places.
-    button.disabled = !mine && !!lobbyCapacity && lobbyPlayers.filter(p => p.role === role).length >= lobbyCapacity[role];
-  }
-  if (me.role === 'gladiator') lobbyKit = me.kit;
-  $('lobby-kit').hidden = me.role !== 'gladiator';
-  // The room's own kits, not the deploy form's: rebuilt without asking for anything.
-  lobbyKit = fillKitOptions($('lobby-kit'), liveContentPresentation, lobbyKit) || lobbyKit;
-  // An owner reconnecting without a resume key rejoins as they now are, not as they first deployed.
-  if (owner) {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${roomId}`));
-      if (saved) sessionStorage.setItem(`last-exit:owner:${roomId}`, JSON.stringify({ ...saved, role: me.role, kit: me.kit }));
-    } catch { /* Storage may be unavailable. */ }
-  }
-}
-const choose = (role, kit) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.CHOOSE, role, kit })); };
-function lobbyWaiting(matchmade) {
-  if (!lobbyReady) return lobbyStarting || matchmade ? 'Generating the arena. The match starts when it is ready.' : 'Generating the arena…';
-  return matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
 }
 // A player's own HUD shows only while they play: not in the lobby, nor while stepped out to the dev view,
 // which the non-modal lobby lets them do before the start (#267 review).
 function showPlayerHud() {
-  if (playerId && !replayController.active()) $('live-hud').hidden = !!devFeed || $('lobby-dialog').open;
+  if (playerId && !replayController.active()) $('live-hud').hidden = !!devFeed || lobby.open();
 }
 function showLobby(data) {
-  updateLobby(data);
-  // Not modal: people walk about the waiting area while it is open (#236).
-  if (!$('lobby-dialog').open) $('lobby-dialog').show();
+  lobby.show(data);
   showPlayerHud();
   if (!devFeed) connection(owner ? 'LOBBY' : 'WAITING');
 }
 function hideLobby() {
-  if ($('lobby-dialog').open) $('lobby-dialog').close();
+  lobby.hide();
   showPlayerHud();
 }
 async function connect({ room, key, mode = 'player', role = 'contestant', kit = DEFAULT_KIT, name = DEFAULT_CALLSIGN, matchmake = false }) {
-  let saved;
-  try { saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${room}`)); } catch { /* Storage may be unavailable. */ }
+  const saved = ownerRecord(room);
   // A dev view borrows the owner key for an `owner` policy, but never the owner's player slot.
   if (!key && saved?.key) { key = saved.key; if (mode === 'player') { role = saved.role; kit = saved.kit; name = saved.name; } }
   leaveDevView();
@@ -264,11 +190,10 @@ async function connect({ room, key, mode = 'player', role = 'contestant', kit = 
   // A replay still loading belongs to the view being left.
   replayController.cancel();
   resetDiagnostics();
-  $('lobby-title').textContent = 'Arena lobby.';
-  owner = false; lobbyPlayers = []; lobbyData = {}; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; lobbyKit = kit; devView = false; devRoster = ''; director.reset(); setPaused(false);
+  owner = false; lobby.reset(kit); devView = false; devRoster = ''; director.reset(); setPaused(false);
   discoveryDecoder.reset();
-  $('finish-recording').disabled = false;
-  // `mode` and `role` say how this connection joins; `selectedRole` stays the deploy dialog's own choice.
+  archive.reset();
+  // `mode` and `role` say how this connection joins; the deploy dialog's own choice of role is untouched.
   roomId = room; ownerKey = key;
   connection('CONNECTING');
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
@@ -307,7 +232,7 @@ async function connect({ room, key, mode = 'player', role = 'contestant', kit = 
       if (data.map) { changeMap(data.map); acceptState(data.state); }
       setPaused(!!data.paused);
       history.replaceState(null, '', `?room=${room}${devView ? '&dev' : ''}`);
-      connection(devView ? 'DEV VIEW' : data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
+      connection(devView ? 'DEV VIEW' : data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); deploy.close();
       if (!data.spectator && !data.started) showLobby(data);
       presentationChanged();
     } else if (data.type === SERVER_MESSAGE.READY) {
@@ -338,7 +263,7 @@ async function connect({ room, key, mode = 'player', role = 'contestant', kit = 
       socket.send(JSON.stringify({ type: CLIENT_MESSAGE.PONG, token: data.token }));
       roundTripMs = data.rtt ?? null;
     } else if (data.type === SERVER_MESSAGE.LOBBY) {
-      updateLobby(data);
+      lobby.update(data);
       if (data.started) { if (!devView) { hideLobby(); connection(devFeed ? 'DEV VIEW' : 'LIVE'); } }
       else if (playerId) showLobby(data);
     } else if (data.type === SERVER_MESSAGE.CHOOSE) {
@@ -351,21 +276,21 @@ async function connect({ room, key, mode = 'player', role = 'contestant', kit = 
     } else if (data.type === SERVER_MESSAGE.SAVED) {
       if (recordingFailed) return;
       savedReplay = data.replay; $('watch-match').disabled = false;
-      if ($('archive-dialog').open) void loadArchive();
+      archive.refresh();
     } else if (data.type === SERVER_MESSAGE.REPLAY_STATUS) {
       if (data.status === 'failed') recordingFailed = true;
       toast(data.message || (data.status === 'partial' ? 'Replay recording is partial.' : 'Replay recording failed.'));
     } else if (data.type === SERVER_MESSAGE.ERROR) {
       toast(data.message); connection('UNAVAILABLE');
-      $('deploy-error').textContent = data.message; $('deploy-error').hidden = false;
+      deploy.showError(data.message);
       // Includes a room given up while its map generated: its lobby and waiting yard are gone, so back to
       // the deploy dialog.
       if (!playerId || !state || state.phase === 'waiting') {
         if (state?.phase === 'waiting') { state = null; liveState = null; predicted = null; snapshots.reset(); }
         // The room view is discarded, and its labels with it.
         if (!state) liveContentPresentation = null;
-        if ($('lobby-dialog').open) $('lobby-dialog').close();
-        openDeploy();
+        lobby.hide();
+        deploy.open();
       }
     }
   });
@@ -413,7 +338,7 @@ function presentationFrame() { return replayController.active() ? state : presen
 function currentView() {
   if (replayController.active()) return 'replay';
   if (inDevView()) return 'dev';
-  if (!state || state.phase === 'waiting' || $('lobby-dialog').open) return 'lobby';
+  if (!state || state.phase === 'waiting' || lobby.open()) return 'lobby';
   if (!playerId) return 'spectator';
   const me = state.players.find(p => p.id === playerId);
   if (!me || me.status !== 'active' || state.phase === 'finished') return 'outcome';
@@ -525,211 +450,39 @@ function inputTick() {
   inputController.consumeActions();
   hudController.setSneak(input.sneak);
 }
-/** Runs one way into a room from the deploy dialog, reporting a refusal there; one at a time. */
-async function deploy(enter) {
-  if (connecting) return;
-  connecting = true; $('deploy-error').hidden = true;
-  try { await enter(); }
-  catch (error) { $('deploy-error').textContent = error.message; $('deploy-error').hidden = false; toast(error.message); }
-  finally { connecting = false; }
+// The room-keyed owner record in session storage: what lets this browser reclaim a room it created.
+function ownerRecord(room) {
+  try { return JSON.parse(sessionStorage.getItem(`last-exit:owner:${room}`)); } catch { return null; /* Storage may be unavailable. */ }
 }
-const player = () => ({ kit: $('kit').value || DEFAULT_KIT, name: $('callsign').value || DEFAULT_CALLSIGN });
-const createRoom = body => json(HTTP_ENDPOINT.ROOMS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-// The deploy form's room: its options come from the server's configuration, so it waits for that.
-const newArena = () => clientConfig && deploy(async () => {
-  // A blank seed lets the server choose, which serves a map from its pool at once (#266); a named one reproduces that map.
-  const seed = $('seed').value === '' ? undefined : Number($('seed').value);
-  const data = await createRoom({ seed, size: $('map-size').value, name: $('room-name').value });
-  await connect({ room: data.id, key: data.ownerKey, role: selectedRole, ...player() });
+const lobby = createLobbyController({
+  getRoomId: () => roomId, getPlayerId: () => playerId, isOwner: () => owner, getPresentation: () => liveContentPresentation,
+  choose: (role, kit) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.CHOOSE, role, kit })); },
+  start: () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.START })); },
+  copyLink: () => share(),
+  // An owner reconnecting without a resume key rejoins as they now are, not as they first deployed.
+  onOwnChoice: (role, kit) => {
+    if (!owner) return;
+    const saved = ownerRecord(roomId);
+    try { if (saved) sessionStorage.setItem(`last-exit:owner:${roomId}`, JSON.stringify({ ...saved, role, kit })); } catch { /* Storage may be unavailable. */ }
+  },
+  icons,
 });
-// Auto is matchmaking: the directory picks a matchmade room still filling, or starts one.
-const autoMatch = () => clientConfig && deploy(() => connect({ matchmake: true, role: $('role-preference').value, ...player() }));
-/**
- * The room a first visit without a room link opens, at once: it reads nothing from the deploy form, whose
- * options may still be loading. The server chooses whatever is not named; a `?seed=` or `?size=` in the
- * address goes to it as given, for its own validation to accept or refuse.
- */
-const firstArena = overrides => deploy(async () => {
-  const data = await createRoom(overrides);
-  await connect({ room: data.id, key: data.ownerKey, role: 'contestant', kit: DEFAULT_KIT, name: DEFAULT_CALLSIGN });
+const deploy = createDeployController({
+  fetchJSON: json, connect, toast, clearInput, icon, icons,
+  ownsRoom: id => !!ownerRecord(id)?.key,
 });
-// Deploy defaults and limits (22.7): null until `/api/client-config` answers. Until then the form shows
-// neutral placeholders and cannot create or matchmake; nothing else waits for it.
-let clientConfig = null, configLoad = null;
-// A size the address named, kept until the options it must be chosen among exist.
-let requestedSize = null;
-const SIZE_NAMES = { '12x6': 'Standard', '24x12': 'Large', '36x18': 'Huge' };
-const sizeLabel = size => { const [w, h] = size.split('x'); return `${SIZE_NAMES[size] ?? 'Custom'} (${w} × ${h})`; };
-function loadClientConfig() {
-  if (clientConfig || configLoad) return configLoad;
-  $('config-error').hidden = true;
-  configLoad = json(HTTP_ENDPOINT.CLIENT_CONFIG).then(config => {
-    if (config?.wireVersion !== undefined && config.wireVersion !== WIRE_VERSION) throw new Error('Incompatible wire version');
-    const described = readPresentation(config?.presentation);
-    if (!described || !Array.isArray(config.sizes)) throw new Error('Unreadable arena options');
-    clientConfig = { ...config, presentation: described };
-    applyClientConfig();
-  }).catch(() => { $('config-error').hidden = false; }).finally(() => { configLoad = null; });
-  return configLoad;
-}
-// Fills the form from configuration, keeping what the address or the player already chose.
-function applyClientConfig() {
-  const { presentation: described, seed, roomNameMaxLength, playerNameMaxLength, sizes, defaultSize, matchmakingCountdownMs, devTools } = clientConfig;
-  devPolicy = devTools ?? devPolicy;
-  fillKitOptions($('kit'), described, $('kit').value || DEFAULT_KIT);
-  // An unsupported size named in the address stays named, for the server to refuse, rather than becoming another.
-  const size = requestedSize ?? ($('map-size').value || defaultSize);
-  const offered = sizes.includes(size) ? sizes : [...sizes, size];
-  $('map-size').replaceChildren(...offered.map(name => Object.assign(document.createElement('option'), { value: name, textContent: sizeLabel(name) })));
-  $('map-size').value = size; $('map-size').disabled = false; requestedSize = null;
-  $('seed').min = String(seed.min); $('seed').max = String(seed.max);
-  $('callsign').maxLength = playerNameMaxLength;
-  $('room-name-limit').textContent = `At most ${roomNameMaxLength} characters.`;
-  $('matchmaking-countdown').textContent = `${Math.round(matchmakingCountdownMs / 1000)} seconds`;
-  $('auto-match').disabled = false; document.querySelector('#deploy-form .deploy').disabled = false;
-  if (listedRooms?.length) renderRooms();
-}
-$('config-retry').onclick = () => void loadClientConfig();
-// The lobby browser (22.5): the rooms the directory lists, polled while the deploy dialog is open.
-let listedRooms = [], devPolicy = null, refreshingRooms = false;
-let activeDeployTab = 'join';
-function selectDeployTab(tabName) {
-  activeDeployTab = tabName;
-  const isJoin = tabName === 'join';
-  $('tab-join')?.classList.toggle('active', isJoin);
-  $('tab-join')?.setAttribute('aria-selected', String(isJoin));
-  $('tab-join')?.setAttribute('tabindex', isJoin ? '0' : '-1');
-  $('tab-create')?.classList.toggle('active', !isJoin);
-  $('tab-create')?.setAttribute('aria-selected', String(!isJoin));
-  $('tab-create')?.setAttribute('tabindex', !isJoin ? '0' : '-1');
-  if ($('panel-join')) $('panel-join').hidden = !isJoin;
-  if ($('panel-create')) $('panel-create').hidden = isJoin;
-  if (isJoin) void refreshRooms();
-}
-function openDeploy(tabName = activeDeployTab) {
-  selectDeployTab(tabName);
-  if (!$('loadout-dialog').open) $('loadout-dialog').showModal();
-}
-async function refreshRooms() {
-  if (refreshingRooms) return;
-  refreshingRooms = true;
-  try {
-    if (!clientConfig) void loadClientConfig();
-    listedRooms = await json(HTTP_ENDPOINT.ROOMS);
-  } catch { listedRooms = null; }
-  finally { refreshingRooms = false; }
-  renderRooms();
-}
-// Whether this browser holds a room's owner key, which an `owner` policy asks of a dev view.
-function ownsRoom(id) {
-  try { return !!JSON.parse(sessionStorage.getItem(`last-exit:owner:${id}`))?.key; } catch { return false; }
-}
-function renderRooms() {
-  const target = $('room-list'); target.replaceChildren();
-  if (!listedRooms?.length) {
-    const p = document.createElement('p'); p.className = 'empty-archive';
-    p.textContent = listedRooms ? 'No open rooms. Press Auto, or create one below.' : 'The room list is unavailable.';
-    target.append(p); return;
-  }
-  for (const r of listedRooms) {
-    const row = document.createElement('div'); row.className = 'room-row';
-    const details = document.createElement('div'), title = document.createElement('strong'), sub = document.createElement('small');
-    const label = r.name || `Room ${r.id}`; title.textContent = label;
-    const status = r.phase === 'live' ? 'live' : r.ready ? r.kind === 'matchmade' ? 'filling' : 'lobby' : 'generating';
-    const badge = document.createElement('span'); badge.className = `room-phase phase-${status}`; badge.textContent = status;
-    const count = role => `${r.players[role]}/${r.players[role] + r.open[role]}`;
-    sub.textContent = `${r.size.replace('x', ' × ')} / ${count('contestant')} contestants / ${count('gladiator')} gladiators`;
-    title.append(' ', badge); details.append(title, sub);
-    const actions = document.createElement('div');
-    // Before the start a player is placed wherever there is room and can change in the lobby (#235); a
-    // private match already under way admits only the role chosen.
-    const open = r.phase === 'lobby' || r.kind === 'matchmade' ? r.open.contestant + r.open.gladiator : r.open[selectedRole];
-    const join = document.createElement('button'); join.type = 'button'; join.className = 'secondary-button'; join.textContent = 'Join';
-    join.disabled = !open; join.ariaLabel = `Join ${label}`; join.onclick = () => deploy(() => connect({ room: r.id, role: selectedRole, ...player() }));
-    actions.append(join);
-    if (devPolicy === 'all' || devPolicy === 'owner' && ownsRoom(r.id)) {
-      const dev = document.createElement('button'); dev.type = 'button'; dev.className = 'icon-button'; dev.innerHTML = icon('eye');
-      dev.ariaLabel = `Dev view of ${label}`; dev.dataset.tip = 'Dev view';
-      dev.onclick = () => deploy(() => connect({ room: r.id, mode: 'dev' }));
-      actions.append(dev);
-    }
-    row.append(details, actions); target.append(row);
-  }
-  icons();
-}
-setInterval(() => { if ($('loadout-dialog').open && !$('panel-join').hidden) void refreshRooms(); }, 2000);
-async function loadArchive() {
-  $('replay-list').textContent = 'Loading broadcasts...';
-  $('finish-recording').hidden = !owner || !liveState || liveState.phase === 'finished';
-  try {
-    const list = await json(HTTP_ENDPOINT.REPLAYS); $('replay-list').replaceChildren();
-    if (!list.length) { const p = document.createElement('p'); p.className = 'empty-archive'; p.textContent = 'No completed broadcasts yet.'; $('replay-list').append(p); }
-    for (const r of list) {
-      const row = document.createElement('div'); row.className = 'replay-row';
-      const details = document.createElement('div'); const title = document.createElement('strong'); title.textContent = `Arena ${r.seed}${r.recording?.complete === false ? ' · PARTIAL' : ''}`;
-      const sub = document.createElement('small'); sub.textContent = `${time(r.ticks)} / ${r.escaped} escaped / ${new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      details.append(title, sub); const actions = document.createElement('div');
-      const play = document.createElement('button'); play.className = 'icon-button'; play.ariaLabel = `Play arena ${r.seed}`; play.innerHTML = icon('play'); play.onclick = () => watchReplay(r.id);
-      const download = document.createElement('button'); download.className = 'icon-button'; download.ariaLabel = `Download arena ${r.seed}`; download.innerHTML = icon('download'); download.onclick = () => downloadReplay(r.id);
-      actions.append(play, download); row.append(details, actions); $('replay-list').append(row);
-    }
-    icons();
-  } catch (error) { $('replay-list').textContent = error.message; }
-}
-async function downloadReplay(id) {
-  try {
-    const cached = replayController.cachedData(id);
-    const data = cached || await json(`${HTTP_ENDPOINT.REPLAYS}/${id}`);
-    downloadJson(`last-exit-${id}.json`, data);
-  } catch (error) { toast(error.message); }
-}
-$('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; openDeploy('join'); };
-$('tab-join').onclick = () => selectDeployTab('join');
-$('tab-create').onclick = () => selectDeployTab('create');
-$('tab-join').onkeydown = $('tab-create').onkeydown = e => {
-  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-    e.preventDefault();
-    const nextTab = activeDeployTab === 'join' ? 'create' : 'join';
-    selectDeployTab(nextTab);
-    $(nextTab === 'join' ? 'tab-join' : 'tab-create')?.focus();
-  }
-};
-$('deploy-form').onsubmit = e => {
-  e.preventDefault();
-  if ($('panel-join') && !$('panel-join').hidden) {
-    void autoMatch();
-  } else {
-    void newArena();
-  }
-};
-$('auto-match').onclick = () => void autoMatch();
-$('random-seed').onclick = () => { $('seed').value = ''; };
-document.querySelectorAll('[data-role]').forEach(button => button.onclick = () => {
-  selectedRole = button.dataset.role; showKit();
-  document.querySelectorAll('[data-role]').forEach(b => { const selected = b === button; b.classList.toggle('selected', selected); b.setAttribute('aria-pressed', selected); });
-  renderRooms();
+const archive = createArchiveController({
+  fetchJSON: json, toast, clearInput, icon, icons,
+  watch: id => watchReplay(id), cachedReplay: id => replayController.cachedData(id),
+  canFinish: () => !!owner && !!liveState && liveState.phase !== 'finished',
+  finish: () => {
+    if (ws?.readyState !== WebSocket.OPEN || !owner) return false;
+    ws.send(JSON.stringify({ type: CLIENT_MESSAGE.FINISH })); return true;
+  },
 });
-// The kit matters to anyone who may be a gladiator: chosen, or preferred for Auto.
-const showKit = () => { $('kit-options').hidden = selectedRole !== 'gladiator' && $('role-preference').value !== 'gladiator'; };
-$('role-preference').onchange = showKit;
-document.querySelectorAll('[data-lobby-role]').forEach(button => button.onclick = () => {
-  const role = button.dataset.lobbyRole, me = lobbyPlayers.find(p => p.id === playerId);
-  // The role already held asks nothing, so it cannot send a kit that is not the player's own.
-  if (!me || role === me.role) return;
-  // Back to gladiator with the lobby's latest kit; a contestant's kit is never shown.
-  choose(role, role === 'gladiator' ? lobbyKit : undefined);
-});
-$('lobby-kit').onchange = () => { lobbyKit = $('lobby-kit').value; choose('gladiator', lobbyKit); };
 document.querySelectorAll('.close-dialog').forEach(button => button.onclick = () => button.closest('dialog').close());
-$('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
-$('copy-lobby-link').onclick = $('share').onclick;
-setInterval(() => {
-  if (!lobbyStartsAt || !$('lobby-dialog').open) return;
-  const seconds = Math.ceil((lobbyStartsAt - Date.now()) / 1000);
-  $('lobby-waiting').textContent = seconds <= 0 && !lobbyReady ? lobbyWaiting(true) : `Match starts in ${Math.max(0, seconds)}s. Open slots will be filled by bots.`;
-}, 250);
-$('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.START })); };
-$('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void loadArchive(); };
+const share = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
+$('share').onclick = share;
 // Which path drew the frames. A software or Canvas fallback is slow below our code, where the profile
 // cannot see it (42.2); the adapter name says which GPU, not who is playing.
 function rendererReport() {
@@ -757,7 +510,6 @@ async function downloadDiagnostics() {
   downloadJson(`last-exit-diagnostics-${Date.now()}.json`, report, 2);
 }
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
-$('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: CLIENT_MESSAGE.FINISH })); $('finish-recording').disabled = true; } };
 let savedDevCamera = null;
 // The dev view opens beside the match rather than in place of it, so a player keeps their slot.
 function enterDevView() {
@@ -840,42 +592,25 @@ const initialParams = new URLSearchParams(location.search);
 const initialRoom = initialParams.get('room');
 // `?seed=` names the arena a new room generates (`?size=24x12` its zone size), as the Map Lab's "Play in the game" link does (53).
 const overrides = {};
-if (initialParams.get('seed')) { overrides.seed = initialParams.get('seed'); $('seed').value = overrides.seed; }
-if (initialParams.get('size')) { overrides.size = initialParams.get('size'); requestedSize = overrides.size; }
-void loadClientConfig();
+if (initialParams.get('seed')) overrides.seed = initialParams.get('seed');
+if (initialParams.get('size')) overrides.size = initialParams.get('size');
+deploy.prefill(overrides);
+void deploy.loadConfig();
 // `?room=…&dev` opens that room's dev view, as the dev view button does.
-if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey'), ...(initialParams.has('dev') ? { mode: 'dev' } : {}) }); else void firstArena(overrides);
-// Profiling is opt-in so instrumented hot paths cost nothing during normal play.
-function renderProfileOverlay() {
-  if (!profiler.profiling()) { profileOverlay?.remove(); profileOverlay = null; return; }
-  if (!profileOverlay) {
-    profileOverlay = Object.assign(document.createElement('pre'), { id: 'profile-overlay' });
-    profileOverlay.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:60;margin:0;padding:10px 12px;max-height:52vh;overflow:auto;font:11px/1.35 ui-monospace,monospace;color:#d9f2c8;background:rgba(12,26,24,.86);border:1px solid #35564a;border-radius:8px;pointer-events:none;white-space:pre';
-    document.body.append(profileOverlay);
-  }
-  const rows = profiler.report(), find = name => rows.find(r => r.name === name);
-  const delta = find('render.delta'), gap = find('net.stateGap'), bytes = find('net.stateBytes');
-  const head = [`frames ${profiler.frameCount()}`,
-    delta ? `fps ${(1000 / Math.max(0.001, delta.mean)).toFixed(0)} (p95 frame ${delta.p95.toFixed(1)} ms)` : 'fps --',
-    gap ? `state gap ${gap.mean.toFixed(1)} ms mean / ${gap.p95.toFixed(1)} p95 (server ${HZ} Hz = ${(1000 / HZ).toFixed(0)} ms)` : 'state gap --',
-    bytes ? `state ${(bytes.mean / 1024).toFixed(1)} KiB` : '',
-    (() => { const b = snapshots.stats(); return b.newest === null ? '' : `interp ${b.delayTicks} ticks behind (${(b.delayTicks * 1000 / HZ).toFixed(0)} ms), buffered ${b.depth}, rate ${b.rate.toFixed(2)}, starved ${b.starved}, cuts ${b.snaps}`; })(),
-    // Unacknowledged inputs the client is still replaying, and whether the server had to repeat one
-    // because none had arrived. A stall is the signal that the send rate is losing to the tick rate.
-    (() => { const me = state?.players.find(p => p.id === playerId); return me ? `input pending ${pending.length}, stalled ${me.inputStalled ?? 0}` : ''; })(),
-    roundTripMs === null ? '' : `rtt ${roundTripMs} ms (server measured)`].filter(Boolean);
-  profileOverlay.textContent = head.join('\n') + '\n' + profiler.format(rows.filter(r => r !== delta && r !== gap && r !== bytes));
-}
-function setProfiling(value) {
-  profiler.enable(value);
-  renderProfileOverlay();
-  toast(value ? 'Profiling on. Press P to stop.' : 'Profiling off.');
-}
-setInterval(renderProfileOverlay, 500);
-addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'P') if (!e.target.closest('input, textarea')) setProfiling(!profiler.profiling()); });
-if (new URLSearchParams(location.search).has('profile')) profiler.enable(true);
+if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey'), ...(initialParams.has('dev') ? { mode: 'dev' } : {}) }); else void deploy.firstArena(overrides);
+const profile = createProfileOverlay({
+  toast,
+  status: () => {
+    const b = snapshots.stats(), me = state?.players.find(p => p.id === playerId);
+    return [b.newest === null ? '' : `interp ${b.delayTicks} ticks behind (${(b.delayTicks * 1000 / HZ).toFixed(0)} ms), buffered ${b.depth}, rate ${b.rate.toFixed(2)}, starved ${b.starved}, cuts ${b.snaps}`,
+      // Unacknowledged inputs the client is still replaying, and whether the server had to repeat one
+      // because none had arrived. A stall is the signal that the send rate is losing to the tick rate.
+      me ? `input pending ${pending.length}, stalled ${me.inputStalled ?? 0}` : '',
+      roundTripMs === null ? '' : `rtt ${roundTripMs} ms (server measured)`];
+  },
+});
 window.arenaProfile = () => ({ enabled: profiler.profiling(), frames: profiler.frameCount(), series: profiler.report() });
-window.arenaProfiling = setProfiling;
+window.arenaProfiling = profile.setProfiling;
 // Spectator connections exist on the server but have no interface yet; this is the hook the presenter
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, mode: 'spectator' });
