@@ -4,7 +4,7 @@ import { gunzipSync } from 'node:zlib';
 import { createGame, createPhysicsGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
-import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
+import { automaticPickups } from '../shared/simulation/loot.ts';
 import { eliminate } from '../shared/simulation/lifecycle.ts';
 import { interact } from '../shared/simulation/interactions.ts';
 import { queueInput } from '../shared/simulation/input.ts';

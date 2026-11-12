@@ -28,8 +28,8 @@ function settle(s, actors, players) {
 
 /**
  * P1 content: the engine without character physics, so bodies keep the hurt radii and items stay off the world. No
- * shipped set is P1 since #920 retired the legacy mover's content, so it is `content` without character physics and
- * what needs it: the hook, body detours and physical items.
+ * shipped set is P1: it is `content` without character physics and what needs it: the hook, body detours and
+ * physical items.
  */
 export function p1Content(content = defaultContent()) {
   const p1 = structuredClone(content), kits = { ...p1.kits };
