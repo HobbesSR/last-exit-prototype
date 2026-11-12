@@ -33,16 +33,17 @@ export function createGame(seed: number, map: GameMap, content = defaultContent(
   s.players.filter(p => p.role === 'gladiator').forEach((p, i) => {
     const station = map.hunterSpawns?.[i] ?? map.stations.at(-1 - i) ?? map.exit; p.x = station.x; p.y = station.y;
   });
-  if (content.lootTiers && !content.itemInstances) throw new RangeError('weapon quality requires L0 item instances');
-  if (content.reloading && !content.itemInstances) throw new RangeError('reloading requires L0 item instances');
-  if (content.itemInstances) {
-    const itemInstances = Object.freeze({ ...content.itemInstances });
-    s.content = Object.freeze({ ...content, itemInstances });
-    const rest = loadMapWeapons(s);
-    initializeItemInstances(s);
-    assignWeaponQualities(s);
-    seedAmmo(s, rest);
-  }
+  if (!content.itemInstances || typeof content.itemInstances !== 'object') throw new RangeError('item instances required');
+  if (!content.actorPhysics || typeof content.actorPhysics !== 'object') throw new RangeError('actor physics required');
+  if (!content.worldPhysics || typeof content.worldPhysics !== 'object') throw new RangeError('world physics required');
+  if (!content.hook || typeof content.hook !== 'object' || !content.kits?.hook) throw new RangeError('hook configuration required');
+  if (content.dynamicNavigation !== true) throw new RangeError('dynamic navigation required');
+  const itemInstances = Object.freeze({ ...content.itemInstances });
+  s.content = Object.freeze({ ...content, itemInstances });
+  const rest = loadMapWeapons(s);
+  initializeItemInstances(s);
+  assignWeaponQualities(s);
+  seedAmmo(s, rest);
   if (content.discovery) {
     for (const p of s.players) {
       if (p.role === 'contestant') {

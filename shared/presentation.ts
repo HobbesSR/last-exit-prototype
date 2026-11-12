@@ -34,7 +34,7 @@ export function describeContent(content: MatchContent): ContentPresentation {
     capacity: { contestant: content.roster.contestants.length, gladiator: content.roster.gladiators.length },
     durationTicks: content.durationTicks,
     cellChargeTicks: content.cellChargeTicks,
-    ...(content.actorPhysics ? { actorGeometry: copyGeometry(content.actorPhysics.geometry) } : {}),
+    actorGeometry: copyGeometry(content.actorPhysics.geometry),
   });
 }
 

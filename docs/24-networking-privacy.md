@@ -35,7 +35,7 @@ generation and placement define reconciliation boundaries ([29.2](29.2-physics-s
 The own-only `predictionTethered` movement-status flag enables fallback without
 revealing a hidden tether endpoint.
 This live-only addition changes no recording/schema, server rules or content
-identity, and physics remains explicitly opt-in.
+identity, while matches run under the required physics rules and motor profile (#920, #976).
 
 A player aims at what is on their screen, and what is on their screen is old: two ticks of
 interpolation delay by design, plus however long the frame took to arrive. Resolving a swing against

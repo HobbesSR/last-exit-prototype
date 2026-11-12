@@ -48,8 +48,8 @@ export function physicsState(s: Game): PhysicsGameplayState | undefined {
   // The world's snapshot is already the caller's own apart from its frozen, shared records; only the runtime's
   // own queues, which it edits in place, are copied (#655).
   return r && { profile: s.version, settings: r.world.settings, world: r.world.snapshot({ includeStatic: false }),
-    ...(s.content.hook ? { hooks: structuredClone(r.hooks) } : {}),
-    ...(s.content.actorPhysics ? { discontinuities: r.discontinuities.map(({ id, generation, kind }) => ({ id, generation, kind })) } : {}),
+    hooks: structuredClone(r.hooks),
+    discontinuities: r.discontinuities.map(({ id, generation, kind }) => ({ id, generation, kind })),
     pendingSpawns: structuredClone(r.pendingSpawns), pendingImpulses: structuredClone(r.pendingImpulses),
     pendingAttachments: structuredClone(r.pendingAttachments) };
 }
@@ -62,10 +62,10 @@ export function enqueuePhysicsImpulse(s: Game, id: string, value: Vec2): void {
   if (![value.x, value.y].every(n => Number.isFinite(n) && Math.abs(n) <= 1e9)) throw new TypeError('representable finite impulse required');
   const generation = r.world.getGeneration(id);
   if (generation === undefined) throw new Error('unknown impulse actor');
-  const magnitude = hypot(value.x, value.y), limit = !s.content.worldPhysics || id.startsWith('actor:')
-    ? s.content.actorPhysics?.maxImpulse ?? Infinity : s.content.worldPhysics?.maxImpulse ?? Infinity;
+  const magnitude = hypot(value.x, value.y), limit = id.startsWith('actor:')
+    ? s.content.actorPhysics.maxImpulse : s.content.worldPhysics.maxImpulse;
   const scale = magnitude > limit ? limit / magnitude : 1;
-  const previous = s.content.worldPhysics && r.pendingImpulses.find(entry => entry.id === id && entry.generation === generation);
+  const previous = r.pendingImpulses.find(entry => entry.id === id && entry.generation === generation);
   if (previous) {
     const x = previous.value.x + value.x * scale, y = previous.value.y + value.y * scale;
     const total = hypot(x, y), factor = total > limit ? limit / total : 1;

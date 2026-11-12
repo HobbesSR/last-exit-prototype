@@ -13,15 +13,12 @@ import { adoptPackedTiles } from '../../shared/free-space.ts';
 const output = process.argv[2] ?? 'test-results/physics-439-integration.json';
 const hash = data => createHash('sha256').update(data).digest('hex');
 await acquireMachineLock('bench', { pollMs: 100 });
-// The shipped set cut back to character bodies alone (no hook, items, world physics, dynamic navigation or portal
-// hunter planning; sliced replanning) and no character profile; its own id, since no shipped set is this.
-const content = structuredClone(contentById('content-7')), map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
-for (const key of ['itemInstances', 'worldPhysics', 'hook', 'dynamicNavigation', 'hunterPlanning', 'actorPhysics']) delete content[key];
-delete content.kits.hook; content.id = 'physics-characters-p1'; content.replanning = 'sliced';
+// Shipped content-7 with sliced replanning (#976); the pre-actorPhysics P1 baseline was retired when actorPhysics
+// became required (see 42.12, fe37e5d).
+const content = { ...structuredClone(contentById('content-7')), replanning: 'sliced' }, map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
 const rows = [];
-for (const mode of ['P1', 'P2']) {
-  // P2 is the same content with the shipped character profile: narrow bodies and a tuned motor.
-  const tuning = mode === 'P2' ? { ...content, actorPhysics: contentById('content-7').actorPhysics } : content;
+for (const mode of ['P2']) {
+  const tuning = structuredClone(content);
   const arena = structuredClone(map);
   for (const tiles of prebuiltTiles(arena, content)) adoptPackedTiles(arena, tiles);
   const s = await createPhysicsGame(4217, arena, tuning);

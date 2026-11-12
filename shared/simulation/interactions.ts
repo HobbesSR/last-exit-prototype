@@ -1,14 +1,14 @@
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
-import { lineClear, reachClear, gateShape, bodyRadius } from '../movement.ts';
-import { carriedCell, equipped, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
+import { lineClear, reachClear, gateShape } from '../movement.ts';
+import { carriedCell, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { nearbyGate } from '../gate-query.ts';
 import { observeGate } from '../discovery.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH } from './rules.ts';
 import { transit } from './transit.ts';
-import { event, effect, dropEquipment, planDrop } from './loot.ts';
+import { event, effect, planDrop } from './loot.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
+import { addItems, itemsNear, removeItem } from './ground-items.ts';
 import { actorRadius } from './actor-physics.ts';
 import type { CellItem, Game, GroundItem, Player, PlayerInput } from '../types.ts';
 import { hypot } from '../math.ts';
@@ -46,19 +46,11 @@ export function interact(s: Game, p: Player): void {
     if (station) { p.charging = station.id; return; }
   }
   const pickup = p.inventory && itemsNear(s, p, PICKUP_REACH).filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < PICKUP_REACH && reachClear(s.map, p, i)
-    && (!s.content.itemInstances || i.droppedBy !== p.id || !(i.pickupAfter! > s.tick)))
-    .sort((a, b) => distance(p, a) - distance(p, b) || (s.content.itemInstances ? a.id < b.id ? -1 : a.id > b.id ? 1 : 0 : 0))[0];
+    && (i.droppedBy !== p.id || !(i.pickupAfter! > s.tick)))
+    .sort((a, b) => distance(p, a) - distance(p, b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0];
   if (!p.bot && pickup && p.inventory!.every(Boolean)) {
-    if (s.content.itemInstances) { swapInstanceEquipment(s, p, pickup); return; }
-    const index = p.selectedSlot!, old = equipped(p), draft = draftItem(pickup); p.inventory![index] = null;
-    if (collectEquipment(p, draft, s.content.weapons)) { removeItem(s, pickup); dropEquipment(s, p, old!); }
-    else {
-      p.inventory![index] = old;
-      // A partly emptied weapon stays on the ground with what is left.
-      const next = settledItem(pickup, draft);
-      if (next !== pickup) replaceItem(s, pickup, next);
-    }
-    syncWeapon(p, s.content.weapons); return;
+    swapInstanceEquipment(s, p, pickup);
+    return;
   }
   // The nearest gate takes the interaction even when it cannot be used; it never falls through to transit.
   const gate = nearbyGate(s.map, p, { accepts: g => !p.bot || !g.open, order: 'nearest' });
@@ -68,10 +60,10 @@ export function interact(s: Game, p: Player): void {
       gate.open = true; if (locked) { p.keys--; gate.locked = false; } clearRoute(p);
     } else if (gate.open && gate.kind === 'door' && !p.bot) {
       const box = gateShape(gate);
-      const runtime = s.content.actorPhysics ? physicsRuntime(s) : undefined;
-      // With character bodies the players are tested as well as the bodies: a transit earlier this phase has moved
+      const runtime = physicsRuntime(s);
+      // Players are tested directly as well as bodies: a transit earlier this phase has moved
       // its player but not yet its body, and synchronize would refuse the close only after discovery saw it.
-      const occupied = s.players.some(other => other.status === 'active' && hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < (runtime ? actorRadius(s, other) : bodyRadius(other)))
+      const occupied = s.players.some(other => other.status === 'active' && hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < actorRadius(s, other))
         || !!runtime?.world.overlapsDynamicBox(box);
       if (!occupied) { gate.open = false; clearRoute(p); }
     }

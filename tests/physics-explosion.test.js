@@ -6,9 +6,9 @@ import { damage } from '../shared/simulation/combat.ts';
 import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createGame } from '../shared/simulation/state.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 import { stepTraps } from '../shared/traps.ts';
 import { openField } from './helpers/arena.js';
-import { p1Content } from './helpers/scenario.js';
 
 function parts() {
   const map = { seed: 445, width: 800, height: 800,
@@ -83,8 +83,8 @@ test('explosion impulse uses linear falloff, deterministic zero-distance directi
   } finally { disposePhysics(s); }
 });
 
-test('a mine without world physics only deals damage', () => {
-  const s = createGame(4217, openField(1200).map, p1Content());
+test('a mine without a stepped physics world only deals damage', () => {
+  const s = createGame(4217, openField(1200).map, defaultContent());
   const p = s.players.find(player => player.role === 'contestant');
   s.map.items = [];
   p.x = 600; p.y = 576; p.movedThisTick = 1; p.shield = 60;

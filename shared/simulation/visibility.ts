@@ -9,8 +9,6 @@ import { publishGates, publishedGates } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
 import { heardBy } from './hearing.ts';
 import { physicsState } from './physics-runtime.ts';
-import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
-import { MAX_PHYSICS_SPEED } from '../physics/motion-limits.ts';
 import { capturePhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
@@ -96,11 +94,10 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), items, inRange) : {}),
     ...(frame.bodies && viewer ? { predictionMotor: {
-      acceleration: s.content.actorPhysics?.acceleration ?? DEFAULT_CHARACTER_MOTOR.acceleration,
-      braking: s.content.actorPhysics?.braking ?? DEFAULT_CHARACTER_MOTOR.braking,
-      maxSpeed: s.content.actorPhysics?.maxSpeed ?? MAX_PHYSICS_SPEED,
-      // The authority reads authored motor surfaces only under a character profile (actorMotor).
-      surfaces: !!s.content.actorPhysics,
+      acceleration: s.content.actorPhysics.acceleration,
+      braking: s.content.actorPhysics.braking,
+      maxSpeed: s.content.actorPhysics.maxSpeed,
+      surfaces: true,
     }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),

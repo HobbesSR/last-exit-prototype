@@ -12,8 +12,7 @@ function differing() {
   content.id = 'test-content-b';
   content.weapons.pistol.name = 'Sidearm'; content.weapons.pistol.ammo = 7;
   content.kits.warden.name = 'Guard'; content.kits.warden.skill = 'Stomp';
-  // A set without a kit drops what needs it: the hook kit takes its profile (phased.ts).
-  delete content.kits.striker; delete content.kits.hook; delete content.hook;
+  delete content.kits.striker;
   content.roster.contestants = ['Ada', 'Bo', 'Cy'];
   content.roster.gladiators = [{ name: 'ONE', kit: 'warden' }, { name: 'TWO', kit: 'specter' }];
   content.durationTicks = 3000; content.cellChargeTicks = 60;
@@ -28,7 +27,7 @@ test('a room describes the content it pins, on every welcome and ready and once 
     const expected = describeContent(room.content);
     assert.equal(expected.contentId, 'test-content-b');
     assert.deepEqual(expected.capacity, { contestant: 3, gladiator: 2 });
-    assert.deepEqual(expected.kits.map(k => k.id), ['warden', 'specter']);
+    assert.deepEqual(expected.kits.map(k => k.id), ['warden', 'specter', 'hook']);
     assert.deepEqual(room.presentation, expected);
     const carries = (message, what) => {
       assert.equal(message.contentId, 'test-content-b', what);

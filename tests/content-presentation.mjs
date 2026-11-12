@@ -11,16 +11,10 @@ import { describeContent } from '../shared/presentation.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
-// Two content sets this browser does not ship, sharing weapon and kit ids but labelled differently (22.7). They start from
-// the shipped set without its hook, so the kits these checks name are warden, specter and striker; a hook kit needs the
-// hook mechanic (phased.ts), so both go. B is what the live server runs; A is what a recording embeds.
-function shippedWithoutHook() {
-  const c = structuredClone(defaultContent());
-  delete c.kits.hook; delete c.hook;
-  return c;
-}
+// Two content sets this browser does not ship, sharing weapon and kit ids but labelled differently (22.7).
+// B is what the live server runs (removing striker to verify omitted optional kits); A is what a recording embeds.
 function contentB() {
-  const c = shippedWithoutHook();
+  const c = structuredClone(defaultContent());
   c.id = 'browser-content-b';
   c.weapons.pistol.name = 'Sidearm'; c.weapons.pistol.ammo = 7; c.weapons.rifle.name = 'Carbine'; c.weapons.rifle.ammo = 21;
   c.kits.warden.name = 'Guard'; c.kits.warden.skill = 'Stomp'; c.kits.specter.name = 'Shade'; c.kits.specter.skill = 'Flicker';
@@ -31,7 +25,7 @@ function contentB() {
   return c;
 }
 function contentA() {
-  const c = shippedWithoutHook();
+  const c = structuredClone(defaultContent());
   c.id = 'browser-content-a';
   c.weapons.pistol.name = 'Blaster'; c.weapons.pistol.ammo = 11; c.weapons.rifle.name = 'Longarm'; c.weapons.rifle.ammo = 33;
   c.kits.warden.name = 'Sentinel'; c.kits.warden.skill = 'Quake'; c.kits.specter.name = 'Wraith'; c.kits.specter.skill = 'Echo';
@@ -106,7 +100,7 @@ async function checkControls(browser, base) {
     assert.match(result.fallback.objective, /CELL 30%/, '30 of A\'s 100 charge ticks');
     assert.deepEqual(result.kitA, ['SENTINEL', 'Quake (Q)']);
     assert.deepEqual(result.kitUnknown, ['WARDEN', '— (Q)']);
-    assert.deepEqual(result.kept, ['specter', ['Sentinel / Quake', 'Wraith / Echo', 'Striker / Overdrive']]);
+    assert.deepEqual(result.kept, ['specter', ['Sentinel / Quake', 'Wraith / Echo', 'Striker / Overdrive', 'Hook / Hook / release']]);
     assert.equal(result.withoutStriker, 'warden');
     assert.equal(result.withoutWarden, 'specter');
     assert.deepEqual(result.none, ['', true]);
@@ -181,14 +175,14 @@ export async function checkContentPresentation(browser) {
     // The room's own kits, in its lobby.
     await owner.locator('[data-lobby-role="gladiator"]').click();
     await owner.waitForFunction(() => !document.getElementById('lobby-kit').hidden && document.getElementById('lobby-gladiators').textContent.includes('Guard'));
-    assert.deepEqual(await texts(owner, '#lobby-kit option'), ['Guard / Stomp', 'Shade / Flicker']);
+    assert.deepEqual(await texts(owner, '#lobby-kit option'), ['Guard / Stomp', 'Shade / Flicker', 'Hook / Hook / release']);
     assert.equal(await owner.locator('#lobby-kit').inputValue(), 'warden');
 
     // A retry loads the options and changes nothing about the room or the player in it.
     failConfig = false;
     await owner.evaluate(() => document.getElementById('config-retry').click());
     await owner.waitForFunction(() => !document.getElementById('kit').disabled);
-    assert.deepEqual(await texts(owner, '#kit option'), ['Guard / Stomp', 'Shade / Flicker']);
+    assert.deepEqual(await texts(owner, '#kit option'), ['Guard / Stomp', 'Shade / Flicker', 'Hook / Hook / release']);
     assert.deepEqual(await owner.$$eval('#map-size option', nodes => nodes.map(n => n.value)), ['12x6', '24x12', '36x18']);
     assert.deepEqual(await owner.evaluate(() => ({
       size: document.getElementById('map-size').value, seed: document.getElementById('seed').value, seedMax: document.getElementById('seed').max,
@@ -198,7 +192,7 @@ export async function checkContentPresentation(browser) {
     })), { size: '12x6', seed: '4217', seedMax: '2147483647', callsign: 16, roomNameLimit: false, help: 'At most 24 characters.', countdown: '15 seconds', auto: false, error: true });
     assert.equal(posts.length, 1, 'no second room');
     assert.deepEqual(await owner.evaluate(() => [window.arenaDebug().room, window.arenaDebug().me.id]), [roomId, ownerId], 'membership kept');
-    assert.deepEqual(await texts(owner, '#lobby-kit option'), ['Guard / Stomp', 'Shade / Flicker'], 'the deploy form does not relabel the room');
+    assert.deepEqual(await texts(owner, '#lobby-kit option'), ['Guard / Stomp', 'Shade / Flicker', 'Hook / Hook / release'], 'the deploy form does not relabel the room');
 
     // An address naming a size the server does not author goes to it as given, and stays named in the form.
     const sized = await open(/status of 400/), sizedPosts = [];

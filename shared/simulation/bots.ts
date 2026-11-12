@@ -707,12 +707,10 @@ export function collectBotIntent(s: Game, p: Player): BotIntent {
     if (options.length) { dx = options[0].x * 9; dy = options[0].y * 9; }
   }
   stop('sim.bots.sight');
-  if (s.content.dynamicNavigation) {
-    start('sim.bots.dynamic');
-    const next = dynamicWaypoint(s, p, { x: p.x + dx, y: p.y + dy });
-    dx = next.x - p.x; dy = next.y - p.y;
-    stop('sim.bots.dynamic');
-  }
+  start('sim.bots.dynamic');
+  const next = dynamicWaypoint(s, p, { x: p.x + dx, y: p.y + dy });
+  dx = next.x - p.x; dy = next.y - p.y;
+  stop('sim.bots.dynamic');
   const length = Math.max(9, hypot(dx, dy));
   if (p.role === 'contestant' && cell != null && cell.charge < s.content.cellChargeTicks && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) {
     intent.input = { ...intent.input, x: 0, y: 0, interact: true }; return intent;
@@ -728,6 +726,6 @@ export function collectBotIntent(s: Game, p: Player): BotIntent {
     if (held?.kind === 'weapon' && reloadableRounds(s, p, held) > 0 && (held.ammo === 0 || !nearest)) intent.input.reload = true;
   }
   if (transitTo) intent.input.transit = transitTo;
-  intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? atan2(nearest.y - p.y, nearest.x - p.x) : s.content.dynamicNavigation && dx === 0 && dy === 0 ? p.heading : atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || p.x < s.hazardX + 200 || gatesNear(s.map, p.x - GATE_REACH, p.y - GATE_REACH, p.x + GATE_REACH, p.y + GATE_REACH).some(g => !g.open && distance(p, g) < GATE_REACH) };
+  intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? atan2(nearest.y - p.y, nearest.x - p.x) : dx === 0 && dy === 0 ? p.heading : atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || p.x < s.hazardX + 200 || gatesNear(s.map, p.x - GATE_REACH, p.y - GATE_REACH, p.x + GATE_REACH, p.y + GATE_REACH).some(g => !g.open && distance(p, g) < GATE_REACH) };
   return intent;
 }

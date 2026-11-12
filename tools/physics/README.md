@@ -15,8 +15,9 @@ node tests/bench-client.mjs --physics --json
 
 The integration report accepts `--warmup=N --samples=N --output=path` through
 the direct `node --expose-gc tools/physics/integration-report.mjs` invocation.
-It compares A/B/C at 11/27 actors, with 128 **total** dynamic bodies in
-B/C (64 crates plus actors and loose loot), and eight direct bounded ropes in C.
+It compares B/C at 11/27 actors (Stage A stripped features required under #976 and
+was retired), with 128 **total** dynamic bodies in B/C (64 crates plus actors and
+loose loot), and eight direct bounded ropes in C.
 This is an open synthetic arena with scripted input; generated-map bot and real
 browser costs require their own existing witnesses. Source/settings and observed
 awake-body counts accompany every run. A failed admission is retained as a

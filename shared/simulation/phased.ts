@@ -3,7 +3,7 @@ import { canOccupy, reachClear, movementSpeed, gateShape, prepareMovementGeometr
 import { actorRadius, actorMotor, validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWorldPhysics, writePhysicalItemPoses } from './world-physics.ts';
 import { HZ } from './rules.ts';
-import { syncWeapon, rearrangeEquipment, rearrangeInstanceEquipment } from '../equipment.ts';
+import { syncWeapon, rearrangeInstanceEquipment } from '../equipment.ts';
 import { collectBotIntent } from './bots.ts';
 import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
@@ -36,7 +36,6 @@ const stepping = new WeakSet<Game>();
  * `yieldControl` is for private preparation of a caller-owned map; the caller must
  * not publish or mutate that map while construction is pending. It never runs in a tick. */
 export async function createPhysicsGame(seed: number, map: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
-  if (content?.itemInstances && !content.worldPhysics) throw new RangeError('a stepped game with item instances requires world physics');
   // Preparation is private until the factory resolves. Only the server supplies
   // event-loop yields; shared/browser callers retain the ordinary construction path.
   if (yieldControl) await prepareMovementGeometry(map, yieldControl);
@@ -46,38 +45,35 @@ export async function createPhysicsGame(seed: number, map: GameMap, content?: Ma
   validateWorldPhysics(s.content, s.map);
   // Bots plan over tiles, a repath spread over ticks: the only planner since #920 retired the grid search and one-tick repaths.
   if (s.content.navigation !== 'tiles' || (s.content.replanning !== 'sliced' && s.content.replanning !== 'repair')) throw new RangeError('physics content plans over tiles with sliced or repair replanning');
-  if (s.content.dynamicNavigation && !s.content.actorPhysics) throw new RangeError('dynamic navigation requires actor physics');
-  if (s.content.hook) {
-    const h = s.content.hook;
-    if (!s.content.actorPhysics || !s.content.kits.hook || ![h.range, h.speed, h.maxForce, h.stiffness, h.damping,
-      h.pullSpeed, h.durationTicks, h.cooldownTicks, h.standoff, h.targetDistance, h.breakDistance].every(n => Number.isFinite(n) && n > 0 && n <= 100000)
-      || !Number.isInteger(h.durationTicks) || !Number.isInteger(h.cooldownTicks) || h.breakDistance < h.range
-      || h.standoff > h.range || h.targetDistance >= h.standoff
-      || h.targetDistance < s.content.actorPhysics.geometry.contestant.bodyRadius + s.content.actorPhysics.geometry.gladiator.bodyRadius)
-      throw new RangeError('invalid hook profile');
-    s.content = Object.freeze({ ...s.content, hook: Object.freeze({ ...h }) });
+  if (s.content.dynamicNavigation !== true) throw new RangeError('dynamic navigation required');
+  if (!s.content.itemInstances || typeof s.content.itemInstances !== 'object'
+    || !Number.isSafeInteger(s.content.itemInstances.groundCapacity) || s.content.itemInstances.groundCapacity < 0)
+    throw new RangeError('item instances required');
+  const h = s.content.hook;
+  if (!h || !s.content.kits?.hook || ![h.range, h.speed, h.maxForce, h.stiffness, h.damping,
+    h.pullSpeed, h.durationTicks, h.cooldownTicks, h.standoff, h.targetDistance, h.breakDistance].every(n => Number.isFinite(n) && n > 0 && n <= 100000)
+    || !Number.isInteger(h.durationTicks) || !Number.isInteger(h.cooldownTicks) || h.breakDistance < h.range
+    || h.standoff > h.range || h.targetDistance >= h.standoff
+    || h.targetDistance < s.content.actorPhysics.geometry.contestant.bodyRadius + s.content.actorPhysics.geometry.gladiator.bodyRadius)
+    throw new RangeError('invalid hook profile');
+  // Character and world physics profiles, hook tuning and authored props/surfaces are match-pinned.
+  const profile = structuredClone(s.content.actorPhysics);
+  Object.values(profile.geometry).forEach(Object.freeze); Object.freeze(profile.geometry); Object.freeze(profile);
+  s.content = Object.freeze({ ...s.content, hook: Object.freeze({ ...h }),
+    worldPhysics: Object.freeze({ ...s.content.worldPhysics, loot: Object.freeze({ ...s.content.worldPhysics.loot }), prop: Object.freeze({ ...s.content.worldPhysics.prop }) }),
+    actorPhysics: profile });
+  s.map.physicsProps = structuredClone(s.map.physicsProps ?? []);
+  s.map.physicsProps.forEach(Object.freeze); Object.freeze(s.map.physicsProps);
+  Object.defineProperty(s.map, 'physicsProps', { writable: false, configurable: false });
+  if (s.map.motorSurfaces) {
+    s.map.motorSurfaces = structuredClone(s.map.motorSurfaces);
+    s.map.motorSurfaces.forEach(Object.freeze); Object.freeze(s.map.motorSurfaces);
   }
-  if (s.content.worldPhysics) {
-    s.content = Object.freeze({ ...s.content, worldPhysics: Object.freeze({ ...s.content.worldPhysics, loot: Object.freeze({ ...s.content.worldPhysics.loot }), prop: Object.freeze({ ...s.content.worldPhysics.prop }) }) });
-    s.map.physicsProps = structuredClone(s.map.physicsProps ?? []);
-    s.map.physicsProps.forEach(Object.freeze); Object.freeze(s.map.physicsProps);
-    Object.defineProperty(s.map, 'physicsProps', { writable: false, configurable: false });
-  }
-  // Character tuning is match-pinned, including caller-supplied profiles and floor regions.
-  if (s.content.actorPhysics) {
-    const profile = structuredClone(s.content.actorPhysics);
-    Object.values(profile.geometry).forEach(Object.freeze); Object.freeze(profile.geometry); Object.freeze(profile);
-    s.content = Object.freeze({ ...s.content, actorPhysics: profile });
-    if (s.map.motorSurfaces) {
-      s.map.motorSurfaces = structuredClone(s.map.motorSurfaces);
-      s.map.motorSurfaces.forEach(Object.freeze); Object.freeze(s.map.motorSurfaces);
-    }
-    Object.defineProperty(s.map, 'motorSurfaces', { writable: false, configurable: false });
-  }
+  Object.defineProperty(s.map, 'motorSurfaces', { writable: false, configurable: false });
   if (s.players.length > 27) throw new RangeError('physics actor capacity is 27');
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
-  const runtime: PhysicsRuntime = { discontinuityCapacity: s.content.worldPhysics ? 256 : 128, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
+  const runtime: PhysicsRuntime = { discontinuityCapacity: 256, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
     gateOrder: [...s.map.gates].sort((a, b) => compare(a.id, b.id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [], synchronize: options => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
@@ -119,7 +115,7 @@ function placement(s: Game, r: PhysicsRuntime, p: Player, admitted: Player[], or
   const radius = actorRadius(s, p);
   const free = (x: number, y: number) => canOccupy(s.map, x, y, radius)
     && admitted.every(q => hypot(x - q.x, y - q.y) >= radius + actorRadius(s, q))
-    && (!s.content.actorPhysics || !r.world.overlapsProp(x, y, radius));
+    && !r.world.overlapsProp(x, y, radius);
   if (free(origin.x, origin.y)) return { x: origin.x, y: origin.y };
   for (let ring = 1; ring <= 24; ring++) {
     for (let i = 0; i < 32; i++) {
@@ -138,7 +134,7 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
   const active = ordered(s).filter(p => p.status === 'active');
   const wanted = new Set(active.map(actorId));
   for (const id of [...r.actors].sort(compare)) if (!wanted.has(id)) {
-    if (s.content.actorPhysics) markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
+    markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
     r.world.queueRemoveBody(id); r.actors.delete(id);
   }
   r.world.commitMutations();
@@ -156,14 +152,14 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
     p.x = at.x; p.y = at.y;
     if (current) r.world.setTransform(id, { ...at, angle: 0 });
     else { r.world.queueAddBody({ id, kind: 'actor', shape: { kind: 'circle', radius: actorRadius(s, p) }, ...at, mass: 1, friction: 0, restitution: 0,
-      ...(s.content.actorPhysics ? { maxSpeed: s.content.actorPhysics.maxSpeed } : {}) }); r.actors.add(id); r.world.commitMutations(); }
-    if (s.content.actorPhysics) markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
+      maxSpeed: s.content.actorPhysics.maxSpeed }); r.actors.add(id); r.world.commitMutations(); }
+    markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
     admitted.push(p);
   }
   for (let i = 0; i < r.gateOrder.length; i++) {
     const gate = r.gateOrder[i]!, pushed = r.gates[i]!;
     if (pushed === (gate.open ? 1 : 2)) continue;
-    if (s.content.actorPhysics && !gate.open && r.world.overlapsDynamicBox(gateShape(gate))) {
+    if (!gate.open && r.world.overlapsDynamicBox(gateShape(gate))) {
       // Closing is refused while any active actor or solid prop occupies the footprint; nothing
       // retries it, so the gate stays open until someone closes it again.
       gate.open = true;
@@ -176,11 +172,9 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
     r.world.commitMutations();
   }
   start('sim.itemSync'); synchronizePhysicalItems(s, r, markTick, !deferItemAdmission); stop('sim.itemSync');
-  if (s.content.worldPhysics) {
-    r.pendingImpulses = r.pendingImpulses.filter(entry => r.world.getGeneration(entry.id) === entry.generation);
-    r.pendingAttachments = r.pendingAttachments.filter(entry => r.world.getGeneration(entry.a) === entry.generationA
-      && r.world.getGeneration(entry.b) === entry.generationB);
-  }
+  r.pendingImpulses = r.pendingImpulses.filter(entry => r.world.getGeneration(entry.id) === entry.generation);
+  r.pendingAttachments = r.pendingAttachments.filter(entry => r.world.getGeneration(entry.a) === entry.generationA
+    && r.world.getGeneration(entry.b) === entry.generationB);
   reconcileHooks(s);
 }
 
@@ -210,7 +204,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
   prepareHooks(s);
   s.projectiles.push(...r.pendingSpawns.splice(0));
-  for (const impulse of r.pendingImpulses.splice(0)) if ((r.actors.has(impulse.id) || s.content.worldPhysics && r.world.hasBody(impulse.id)) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
+  for (const impulse of r.pendingImpulses.splice(0)) if ((r.actors.has(impulse.id) || r.world.hasBody(impulse.id)) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
   for (const attachment of r.pendingAttachments.splice(0).sort((a, b) => compare(a.id, b.id))) {
     const a = r.world.getTransform(attachment.a), b = r.world.getTransform(attachment.b);
     if (a && b && r.actors.has(attachment.a) && r.actors.has(attachment.b)
@@ -232,10 +226,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     const input = intent.input;
     p.heading = input.aim || 0;
     if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p, s.content.weapons); }
-    if (input.moveSlot) {
-      if (s.content.itemInstances) rearrangeInstanceEquipment(s, p, input.moveSlot.from, input.moveSlot.to);
-      else rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
-    }
+    if (input.moveSlot) rearrangeInstanceEquipment(s, p, input.moveSlot.from, input.moveSlot.to);
     if (intent.utilitySlot !== undefined && p.selectedSlot === intent.utilitySlot) attack(s, p);
     const discard = intent.discardSlot ?? (input.drop ? p.selectedSlot : undefined);
     if (discard !== undefined) dropInventorySlot(s, p, discard);

@@ -3,10 +3,10 @@ import test from 'node:test';
 import { createPhysicsGame, disposePhysics, enqueuePhysicsAttachment,
   enqueuePhysicsImpulse, setInput, snapshot, step } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { p1Content } from './helpers/scenario.js';
+import { defaultContent } from '../shared/simulation/content.ts';
 
-// A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace. P1 content keeps loose
-// items off the world, so a phase's pickup shows in the map's list.
+// A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace. `defaultContent()` runs
+// physical items synchronized with `map.items`, so a phase's pickup or drop still shows in the map's list.
 function fixtureParts(contestants = 2) {
   const map = { seed: 438, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
@@ -15,7 +15,7 @@ function fixtureParts(contestants = 2) {
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: Array.from({ length: contestants }, (_, i) => ({ x: 150 + i * 70, y: 400 })),
     hunterSpawns: [{ x: 650, y: 400 }] };
-  const content = p1Content();
+  const content = structuredClone(defaultContent());
   content.roster = { contestants: Array.from({ length: contestants }, (_, i) => `C${i}`), gladiators: [{ name: 'G', kit: 'warden' }] };
   return { map, content };
 }
@@ -68,7 +68,7 @@ test('a stun from earlier in the roster lands this tick and stops movement from 
 test('input blocked by the map edge keeps charging: it cancels on movement made, not asked for', async () => {
   const { physics } = await pair(1);
   try {
-    const c = physics.players[0]; c.x = 12; c.y = 400;
+    const c = physics.players[0]; c.x = physics.content.actorPhysics.geometry.contestant.bodyRadius; c.y = 400;
     c.inventory[0] = { kind: 'cell', charge: 0 }; c.selectedSlot = 0;
     c.charging = 'charger'; physics.map.chargers = [{ id: 'charger', x: 40, y: 400 }];
     input(physics, c.id, { x: -1 });

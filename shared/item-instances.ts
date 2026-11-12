@@ -29,7 +29,7 @@ export function validateItemPayload(item: GroundItem | InventoryItem, s: Game): 
 
 /** Uses a counter independent of simulation RNG and event IDs. */
 export function allocateItemId(s: Game): ItemId {
-  if (!s.content.itemInstances || !Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0) throw new Error('Invalid item instance counter');
+  if (!Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0) throw new Error('Invalid item instance counter');
   const used = new Set<string>();
   for (const item of s.map.items) { if (validId(item.id)) used.add(item.id); if (validId(item.instanceId)) used.add(item.instanceId); }
   for (const player of s.players) for (const item of player.inventory ?? []) if (item && validId(item.instanceId)) used.add(item.instanceId);
@@ -48,7 +48,7 @@ export function ensureItemIdentity(s: Game, item: InventoryItem): void {
 
 /** Validate first, then assign legacy carried IDs in player and slot order. */
 export function initializeItemInstances(s: Game): void {
-  const capacity = s.content.itemInstances?.groundCapacity;
+  const capacity = s.content.itemInstances.groundCapacity;
   if (!Number.isSafeInteger(capacity) || capacity! < 0 || s.map.items.length > capacity! || s.itemSerial !== undefined && (!Number.isSafeInteger(s.itemSerial) || s.itemSerial < 0)) throw new Error('Invalid item instance configuration');
   const used = new Set<string>();
   for (const item of s.map.items) {

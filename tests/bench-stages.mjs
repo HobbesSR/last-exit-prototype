@@ -64,8 +64,8 @@ async function buildRoom(i) {
   if (columns * rows > 1) {
     map = tileMap(map, columns, rows);
     // The synthetic map holds more ground items than any served size; only its capacity check is widened.
-    const capacity = baseContent.itemInstances?.groundCapacity;
-    if (capacity !== undefined && map.items.length > capacity) content = { ...baseContent, itemInstances: { ...baseContent.itemInstances, groundCapacity: 2 ** Math.ceil(Math.log2(map.items.length)) } };
+    const capacity = baseContent.itemInstances.groundCapacity;
+    if (map.items.length > capacity) content = { ...baseContent, itemInstances: { ...baseContent.itemInstances, groundCapacity: 2 ** Math.ceil(Math.log2(map.items.length)) } };
   }
   const built = performance.now();
   for (const packed of prebuiltTiles(map, content)) adoptPackedTiles(map, packed);

@@ -46,7 +46,6 @@ export function loadMapWeapons(s: Game): Map<GroundItem, number> {
 export function seedAmmo(s: Game, rest: Map<GroundItem, number>): void {
   const rules = s.content.reloading;
   if (!rules) return;
-  if (!s.content.itemInstances) throw new RangeError('reloading requires L0 item instances');
   for (const p of s.players) if (p.role === 'contestant') p.reserves = { pistol: 0, rifle: 0, shell: 0 };
   for (const [weapon, count] of rest) {
     const at = scatterPoint(s, weapon, s.itemSerial ?? 0, s.map.items) ?? { x: weapon.x, y: weapon.y };

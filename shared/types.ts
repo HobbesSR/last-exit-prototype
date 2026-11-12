@@ -215,19 +215,19 @@ export interface WorldPhysics {
 export interface MatchContent {
   /** Names the content set in a recording header. Changes when any value below changes. */
   id: string;
-  actorPhysics?: ActorPhysics | undefined;
-  worldPhysics?: WorldPhysics | undefined;
-  hook?: { range: number; speed: number; maxForce: number; stiffness: number; damping: number;
-    pullSpeed: number; durationTicks: number; cooldownTicks: number; standoff: number; targetDistance: number; breakDistance: number } | undefined;
-  /** Explicit L0 selection; optional drops stop at this logical ground-entry limit. */
-  itemInstances?: { groundCapacity: number } | undefined;
+  actorPhysics: ActorPhysics;
+  worldPhysics: WorldPhysics;
+  hook: { range: number; speed: number; maxForce: number; stiffness: number; damping: number;
+    pullSpeed: number; durationTicks: number; cooldownTicks: number; standoff: number; targetDistance: number; breakDistance: number };
+  /** L0 item ownership; optional drops stop at this logical ground-entry limit. */
+  itemInstances: { groundCapacity: number };
   /**
-   * Explicit L1 selection (14 "Weapon quality"); requires `itemInstances`. `mixes[m - 1]` weighs
+   * Explicit L1 selection (14 "Weapon quality"); `mixes[m - 1]` weighs
    * qualities 1..5 for spatial mix m; `damage[q - 1]` multiplies a quality-q weapon's damage.
    */
   lootTiers?: { mixes: number[][]; damage: number[] } | undefined;
   /**
-   * Explicit L2 selection (14 "Reloading"); requires `itemInstances`. A weapon's `ammo` is then its
+   * Explicit L2 selection (14 "Reloading"); a weapon's `ammo` is then its
    * loaded magazine, at most `magazine`; reloads move rounds from the player's family reserve.
    */
   reloading?: {
@@ -243,7 +243,7 @@ export interface MatchContent {
     gladiators: { name: string; kit: Kit }[];
   };
   weapons: Record<WeaponType, WeaponSpec>;
-  kits: Record<Exclude<Kit, 'hook'>, KitSpec> & Partial<Record<'hook', KitSpec>>;
+  kits: Record<Kit, KitSpec>;
   traps: TrapContent;
   durationTicks: Tick;
   cellChargeTicks: Tick;
@@ -255,8 +255,8 @@ export interface MatchContent {
    * only planner since #920 retired the legacy mover's grid search; a physics game requires it.
    */
   navigation?: 'tiles' | undefined;
-  /** Experimental P8 local avoidance and actor/solid-prop drop placement. */
-  dynamicNavigation?: boolean | undefined;
+  /** P8 local avoidance and actor/solid-prop drop placement (required since #976). */
+  dynamicNavigation: boolean;
   /**
    * How a tile planner's repath runs: `sliced` spreads one search over several ticks, a fixed
    * number of expansions each, while the bot walks its current route (#470); `repair` is `sliced`

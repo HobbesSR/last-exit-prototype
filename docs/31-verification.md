@@ -861,7 +861,8 @@ live-chain whole-match witness is `tests/slow/physics-navigation.test.js`.
 Review regression files `physics-navigation-following`, `physics-navigation-heading`
 and `physics-navigation-cache` cover contact-range following, normal motor crate
 pushing, queued heading, shared point sight and collection-scoped query reuse.
-The crowd comparison is `node tools/physics/navigation-report.mjs`; run after other
+The crowd run is `node tools/physics/navigation-report.mjs` (detours enabled; the
+`dynamicNavigation: false` baseline was removed in #976); run after other
 CPU-heavy gates finish. Evidence and limits belong to [42.19](42.19-physics-p8.md).
 
 ## P9 integration and playtest

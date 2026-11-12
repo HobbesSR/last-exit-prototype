@@ -130,13 +130,11 @@ test('exhausted physical slots reject optional drops atomically but retain manda
 });
 
 test('full-inventory E swap uses the incoming body slot and removes a sleeping pickup with its joint', async () => {
-  // The pickup lies inside the actor's footprint, where a dynamic-navigation world declines to place a loot body.
-  const profile = content();
-  delete profile.dynamicNavigation;
-  const { s, p, runtime } = await game(arena(), profile);
+  // Keep the incoming pickup inside pickup reach (45) and clear of the actor's body + loot radius so admission succeeds.
+  const { s, p, runtime } = await game(arena(), content());
   try {
     for (let i = 0; i < 6; i++) p.inventory[i] = carried(`held-${i}`, 'cell', { charge: i + 1 });
-    s.map.items.push(item('incoming', 'cell', { x: 120, charge: 79 }));
+    s.map.items.push(item('incoming', 'cell', { x: p.x + 35, charge: 79 }));
     synchronizePhysics(s);
     runtime.world.queueAddConstraint({ id: 'item-rope', a: 'item:incoming', b: 'actor:c0', maxDistance: 40 });
     runtime.world.commitMutations();

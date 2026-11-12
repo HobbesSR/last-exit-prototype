@@ -53,7 +53,7 @@ test('reloading is opt-in on the one physics rules version, requires item instan
   const { s: loot } = await fixture(t, 'content-loot-1');
   assert.equal(loot.version, PHYSICS_VERSION);
   assert.equal(loot.players[0].reserves, undefined);
-  assert.throws(() => createGame(17, arena(), { ...content(), itemInstances: undefined }), /requires L0/);
+  assert.throws(() => createGame(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
 });
 
 test('gladiators carry no reserves', () => {

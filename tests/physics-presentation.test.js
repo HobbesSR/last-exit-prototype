@@ -1,20 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { describeContent, readPresentation } from '../shared/presentation.ts';
-import { contentById } from '../shared/simulation/content.ts';
-import { p1Content } from './helpers/scenario.js';
+import { contentById, defaultContent } from '../shared/simulation/content.ts';
 
 const geometry = {
   contestant: { headRadius: 21 * 43 / 64, bodyRadius: 0.8 * 21 * 43 / 64, hurtRadius: 12 },
   gladiator: { headRadius: 25 * 65 / 80, bodyRadius: 0.8 * 25 * 65 / 80, hurtRadius: 23 },
 };
 
-test('geometry is an optional detached, deeply frozen display projection', () => {
-  const old = describeContent(p1Content());
-  assert.equal(Object.hasOwn(old, 'actorGeometry'), false);
-  assert.equal(Object.hasOwn(readPresentation(old), 'actorGeometry'), false);
-
-  const content = p1Content();
+test('geometry is a detached, deeply frozen display projection included in described content', () => {
+  const content = structuredClone(defaultContent());
   content.actorPhysics = { geometry: structuredClone(geometry), acceleration: 180, braking: 220 };
   const described = describeContent(content);
   assert.deepEqual(described.actorGeometry, geometry);
@@ -32,8 +27,10 @@ test('geometry is an optional detached, deeply frozen display projection', () =>
   assert.ok(Object.isFrozen(parsed.actorGeometry.gladiator));
 });
 
-test('a present geometry field must validate completely', () => {
-  const old = describeContent(p1Content());
+test('reading a descriptor accepts omitted geometry from older recordings and validates a present geometry field completely', () => {
+  const old = { ...structuredClone(describeContent(defaultContent())) };
+  delete old.actorGeometry;
+  assert.equal(Object.hasOwn(readPresentation(old), 'actorGeometry'), false);
   const withGeometry = actorGeometry => ({ ...old, actorGeometry });
   assert.deepEqual(readPresentation(withGeometry(geometry)).actorGeometry, geometry);
   for (const invalid of [null, undefined, {}, [], { contestant: geometry.contestant },

@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPhysicsGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { p1Content } from './helpers/scenario.js';
 import { actorMotor, characterMotor } from '../shared/simulation/actor-physics.ts';
 
 const arena = () => ({ width: 600, height: 400,
@@ -20,7 +19,7 @@ test('shared motor keeps the authoritative surface priority, tie break and fallb
   const p = { x: 10, y: 10 }, profile = { acceleration: 4200, braking: 2200 };
   assert.deepEqual(characterMotor(profile, surfaces, p, 3, 4, 200), { x: 60, y: 80, accel: 840 });
   assert.deepEqual(characterMotor(profile, surfaces, p, 0, 0, 200), { x: 0, y: 0, accel: 880 });
-  assert.deepEqual(characterMotor(undefined, surfaces, p, 3, 4, 200), { x: 120, y: 160, accel: 3600 });
+  assert.deepEqual(characterMotor({ acceleration: 3600, braking: 3600 }, undefined, p, 3, 4, 200), { x: 120, y: 160, accel: 3600 });
   assert.deepEqual(characterMotor(profile, surfaces, { x: 100, y: 10 }, 3, 4, 200), { x: 120, y: 160, accel: 4200 });
   assert.deepEqual(actorMotor({ content: { actorPhysics: profile }, map: { motorSurfaces: surfaces } }, p, 3, 4, 200),
     characterMotor(profile, surfaces, p, 3, 4, 200));
@@ -50,9 +49,7 @@ test('own physics view publishes only pinned motor tuning; directed views omit i
     assert.equal(Object.hasOwn(playerView(game, frame, 'missing'), 'predictionTethered'), false);
   } finally { disposePhysics(game); }
 
-  const p1 = await createPhysicsGame(1, arena(), { ...p1Content(), roster: { contestants: ['A'], gladiators: [] } });
-  try {
-    assert.deepEqual(playerView(p1, snapshot(p1), p1.players[0].id).predictionMotor,
-      { acceleration: 3600, braking: 3600, maxSpeed: 768, surfaces: false }, 'without a profile the authority reads no surfaces');
-  } finally { disposePhysics(p1); }
+  const stripped = content('content-6');
+  delete stripped.actorPhysics;
+  await assert.rejects(createPhysicsGame(1, arena(), stripped), /actor physics required/);
 });

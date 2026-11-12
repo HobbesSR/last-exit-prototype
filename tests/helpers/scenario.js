@@ -26,18 +26,6 @@ function settle(s, actors, players) {
   return { s, players };
 }
 
-/**
- * P1 content: the engine without character physics, so bodies keep the hurt radii and items stay off the world. No
- * shipped set is P1: it is `content` without character physics and what needs it: the hook, body detours and
- * physical items.
- */
-export function p1Content(content = defaultContent()) {
-  const p1 = structuredClone(content), kits = { ...p1.kits };
-  delete kits.hook;
-  for (const field of ['actorPhysics', 'hook', 'dynamicNavigation', 'worldPhysics', 'itemInstances']) delete p1[field];
-  return { ...p1, kits };
-}
-
 /** A physics game on `map` with exactly `actors`, each a bot unless `bot: false`; the shipped content unless given. Dispose of it with `disposePhysics`. */
 export async function stagePhysics(map, { seed = 4217, content = defaultContent(), actors }) {
   const { content: cast_, place } = cast(map, content, actors), s = await createPhysicsGame(seed, map, cast_);
