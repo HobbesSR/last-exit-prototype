@@ -1,45 +1,27 @@
-import { createGame } from './state.ts';
-import { canOccupy, reachClear, movementSpeed, gateShape, prepareMovementGeometry } from '../movement.ts';
-import { actorRadius, actorMotor, validateActorPhysics } from './actor-physics.ts';
-import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWorldPhysics, writePhysicalItemPoses } from './world-physics.ts';
-import { HZ } from './rules.ts';
-import { syncWeapon, rearrangeInstanceEquipment } from '../equipment.ts';
-import { collectBotIntent } from './bots.ts';
-import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
-import type { BotIntent } from './bots.ts';
-import { consumeInput } from './input.ts';
-import { respawn, finishMatch } from './lifecycle.ts';
-import { damage, skill, attack } from './combat.ts';
-import { solvePhysicsProjectiles } from './physics-projectiles.ts';
-import { prepareHooks, finishHooks, reconcileHooks } from './hook.ts';
-import { interact, advanceCharging } from './interactions.ts';
-import { arrive, transit } from './transit.ts';
-import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
-import { advanceReload, dropReserve } from './ammo.ts';
-import { stepTraps } from '../traps.ts';
-import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
-import { recordRewind } from './rewind.ts';
-import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
+import { createGameRecord } from './state.ts';
+import { canOccupy, gateShape, prepareMovementGeometry } from '../movement.ts';
+import { actorRadius, validateActorPhysics } from './actor-physics.ts';
+import { addAuthoredProps, synchronizePhysicalItems, validateWorldPhysics } from './world-physics.ts';
+import { reconcileHooks } from './hook.ts';
 import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION } from './physics-runtime.ts';
+import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
 import { start, stop } from '../profiler.ts';
 
-const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
-const actorId = (p: Player) => `actor:${p.id}`;
-const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, b.id));
-/** Games inside stepPhysics; a synchronize anywhere else is between ticks. */
-const stepping = new WeakSet<Game>();
+export const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
+export const actorId = (p: Player) => `actor:${p.id}`;
+export const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, b.id));
 
-/** The only game that steps (#920): `createGame` builds its record, and this adds the physics world.
+/** Build a stepping match: `createGameRecord` builds its record, and this adds the physics world.
  * `yieldControl` is for private preparation of a caller-owned map; the caller must
  * not publish or mutate that map while construction is pending. It never runs in a tick. */
-export async function createPhysicsGame(seed: number, map: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
+export async function createGame(seed: number, map: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
   // Preparation is private until the factory resolves. Only the server supplies
   // event-loop yields; shared/browser callers retain the ordinary construction path.
   if (yieldControl) await prepareMovementGeometry(map, yieldControl);
-  const s = createGame(seed, map, content);
+  const s = createGameRecord(seed, map, content);
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
@@ -73,8 +55,9 @@ export async function createPhysicsGame(seed: number, map: GameMap, content?: Ma
   if (s.players.length > 27) throw new RangeError('physics actor capacity is 27');
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
-  const runtime: PhysicsRuntime = { discontinuityCapacity: 256, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
-    gateOrder: [...s.map.gates].sort((a, b) => compare(a.id, b.id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [], synchronize: options => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1, options?.deferItemAdmission),
+  const runtime: PhysicsRuntime = { stepping: false, discontinuityCapacity: 256, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
+    gateOrder: [...s.map.gates].sort((a, b) => compare(a.id, b.id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [],
+    synchronize: options => synchronize(s, runtime, runtime.stepping ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
   try {
@@ -130,7 +113,7 @@ function placement(s: Game, r: PhysicsRuntime, p: Player, admitted: Player[], or
  * `markTick` is the last tick whose capture carries a discontinuity marked here: the current one
  * inside a step, the next one between ticks, whose capture has already been taken.
  */
-function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmission = false): void {
+export function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmission = false): void {
   const active = ordered(s).filter(p => p.status === 'active');
   const wanted = new Set(active.map(actorId));
   for (const id of [...r.actors].sort(compare)) if (!wanted.has(id)) {
@@ -180,116 +163,3 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
 
 /** Match seat/teleport boundaries reconcile game IDs before the first recorded frame. */
 export function synchronizePhysics(s: Game): void { physicsRuntime(s)?.synchronize(); }
-
-/** The seven-phase tick. Actors move only through the physics world, never `movePlayer`. */
-export function stepPhysics(s: Game): void {
-  const r = physicsRuntime(s);
-  if (!r) throw new Error('physics world missing or disposed');
-  if (s.phase !== 'live') return;
-  stepping.add(s);
-  start('sim.step');
-  try { advancePhysics(s, r); } finally { stepping.delete(s); stop('sim.step'); }
-}
-
-// Timed by phase (sim.*; 42.22). Every synchronize call is counted in sim.sync.
-function advancePhysics(s: Game, r: PhysicsRuntime): void {
-  // 1: all timers and previous-boundary lifecycle, before anyone decides.
-  advanceTick(s);
-  // Each marker reaches exactly one stepped capture: its own tick's, or the next after a between-tick change.
-  r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
-  for (const p of s.players) {
-    p.movedThisTick = 0; respawn(s, p); arrive(s, p);
-    if (p.status === 'active') advanceTimers(p);
-  }
-  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
-  prepareHooks(s);
-  s.projectiles.push(...r.pendingSpawns.splice(0));
-  for (const impulse of r.pendingImpulses.splice(0)) if ((r.actors.has(impulse.id) || r.world.hasBody(impulse.id)) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
-  for (const attachment of r.pendingAttachments.splice(0).sort((a, b) => compare(a.id, b.id))) {
-    const a = r.world.getTransform(attachment.a), b = r.world.getTransform(attachment.b);
-    if (a && b && r.actors.has(attachment.a) && r.actors.has(attachment.b)
-      && r.world.getGeneration(attachment.a) === attachment.generationA && r.world.getGeneration(attachment.b) === attachment.generationB
-      && hypot(a.x - b.x, a.y - b.y) <= attachment.maxDistance && reachClear(s.map, a, b)) r.world.queueAddConstraint(attachment);
-  }
-  r.world.commitMutations();
-  // 2: roster-order collection from the same pre-movement world.
-  const intents = new Map<Player, BotIntent>();
-  start('sim.bots');
-  start('sim.bots.collect'); beginDynamicNavigationCollection(s); stop('sim.bots.collect');
-  try {
-    for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
-  } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
-  // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
-  start('sim.actions');
-  for (const p of ordered(s)) {
-    const intent = intents.get(p); if (!intent) continue;
-    const input = intent.input;
-    p.heading = input.aim || 0;
-    if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p, s.content.weapons); }
-    if (input.moveSlot) rearrangeInstanceEquipment(s, p, input.moveSlot.from, input.moveSlot.to);
-    if (intent.utilitySlot !== undefined && p.selectedSlot === intent.utilitySlot) attack(s, p);
-    const discard = intent.discardSlot ?? (input.drop ? p.selectedSlot : undefined);
-    if (discard !== undefined) dropInventorySlot(s, p, discard);
-    if (input.dropAmmo) dropReserve(s, p, input.dropAmmo.family, input.dropAmmo.count);
-    // After the tick's selection, move and drops, so each cancels a reload before it transfers; before attack, which it blocks.
-    advanceReload(s, p, input);
-    if (input.skill && p.kit !== 'warden') skill(s, p);
-    if (input.attack && p.role === 'contestant') attack(s, p);
-    const speed = movementSpeed(p, input, HZ);
-    r.world.setMotor(actorId(p), actorMotor(s, p, input.x ?? 0, input.y ?? 0, speed));
-  }
-  stop('sim.actions');
-  // 4: all bodies together. Query projectiles use these actual substep paths.
-  start('sim.solve');
-  applyFloorDrag(s, r);
-  const result = r.world.step();
-  stop('sim.solve');
-  start('sim.poses');
-  writePhysicalItemPoses(s, r);
-  for (const p of s.players) if (p.status === 'active') {
-    const at = r.world.getTransform(actorId(p));
-    if (at) { p.x = at.x; p.y = at.y; p.movedThisTick = result.distance[actorId(p)] ?? 0; }
-  }
-  // Events are facts only; gameplay has no contact damage.
-  r.world.drainContacts();
-  stop('sim.poses');
-  // 5: physical TOI first, then finalized-pose abilities/melee by stable caster ID.
-  start('sim.projectiles');
-  solvePhysicsProjectiles(s, result.paths);
-  finishHooks(s, result.paths);
-  for (const p of ordered(s)) {
-    const input = intents.get(p)?.input;
-    if (p.status !== 'active' || !input) continue;
-    if (input.skill && p.kit === 'warden') skill(s, p);
-    if (input.attack && p.role === 'gladiator') attack(s, p);
-  }
-  stop('sim.projectiles');
-  // 6: interactions/pickups, environment, traps; trap spawns wait for next tick.
-  start('sim.pickups');
-  for (const p of ordered(s)) {
-    const input = intents.get(p)?.input;
-    if (p.status !== 'active' || !input) continue;
-    if (input.interact) interact(s, p);
-    if (input.transit && s.content.transit === 'selectable') transit(s, p, input.transit);
-    if (p.status !== 'active') continue;
-    // Ignore contact recovery jitter within the reviewed resting-contact tolerance.
-    advanceCharging(s, p, (p.movedThisTick ?? 0) > 0.05 ? { x: 1 } : {});
-    automaticPickups(s, p, input);
-  }
-  stop('sim.pickups');
-  start('sim.environment');
-  for (const p of ordered(s)) if (p.status === 'active') {
-    applyEnvironment(s, p);
-  }
-  const admittedProjectiles = s.projectiles.length;
-  stepTraps(s, damage, effect);
-  r.pendingSpawns.push(...s.projectiles.splice(admittedProjectiles));
-  stop('sim.environment');
-  if (r.pendingSpawns.length > 128) throw new RangeError('pending projectile capacity');
-  // 7: next-boundary body state, discovery, terminal result, rewind and capture readiness.
-  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
-  advanceDiscovery(s);
-  finishMatch(s);
-  start('sim.sync'); synchronize(s, r, s.tick); stop('sim.sync');
-  start('sim.rewind'); recordRewind(s); stop('sim.rewind');
-}

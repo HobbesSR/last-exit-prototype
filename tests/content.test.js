@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
+import { createGameRecord, disposePhysics, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';
@@ -13,7 +13,7 @@ import { stagePhysics } from './helpers/scenario.js';
 
 // On the shipped content and the room arena (#920). Cases that never step build the game without its physics
 // world; cases that step stage the engine on open ground.
-const game = (content = defaultContent()) => createGame(4217, generatedMap(), content);
+const game = (content = defaultContent()) => createGameRecord(4217, generatedMap(), content);
 /** Two idle contestants on open ground, on the engine; dispose of it with `disposePhysics`. */
 async function stepped(content = defaultContent()) {
   const { map } = openField(1200);
@@ -27,8 +27,8 @@ test('a match is pinned to a content set that names itself', () => {
   assert.equal(s.content.durationTicks, 600 * 20);
 });
 
-test('createGame without content takes the shipped set', () => {
-  assert.equal(createGame(4217, generatedMap()).content.id, CONTENT_ID);
+test('createGameRecord without content takes the shipped set', () => {
+  assert.equal(createGameRecord(4217, generatedMap()).content.id, CONTENT_ID);
 });
 
 test('shipped content ids return independent deeply frozen copies, and retired ids none', () => {

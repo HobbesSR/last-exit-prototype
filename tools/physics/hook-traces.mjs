@@ -5,7 +5,7 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPhysicsGame, disposePhysics, setInput, snapshot, step, synchronizePhysics } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, snapshot, step, synchronizePhysics } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';
 import { teleport } from '../../shared/simulation/dev.ts';
@@ -51,7 +51,7 @@ function press(s, id, fields) {
   assert.ok(setInput(s, id, { seq: s.tick + 1, ...fields }), `input ${id} at ${s.tick}`);
 }
 async function scenario(name, options, run) {
-  const s = await createPhysicsGame(SEED, map(options.gladiators ?? 1, options.gate ?? false),
+  const s = await createGame(SEED, map(options.gladiators ?? 1, options.gate ?? false),
     content(options.gladiators ?? 1));
   for (const p of s.players) p.bot = false;
   const frames = [frame(s)];
@@ -162,7 +162,7 @@ function verify(scenarios, probes) {
 }
 
 const sourcePaths = ['tools/physics/hook-traces.mjs', 'shared/simulation/hook.ts', 'shared/simulation/content.ts',
-  'shared/simulation/phased.ts', 'shared/simulation/physics-presentation.ts', 'shared/types.ts',
+  'shared/simulation/game.ts', 'shared/simulation/tick.ts', 'shared/simulation/physics-presentation.ts', 'shared/types.ts',
   'shared/physics/constraints.ts', 'shared/physics/types.ts', 'shared/physics/world.ts'];
 const sourceSha256 = Object.fromEntries(await Promise.all(sourcePaths.map(async file =>
   [file, digest(await readFile(path.join(root, file)))])));

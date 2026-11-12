@@ -888,7 +888,7 @@ The frozen characterization fixture is `behavior-physics-1.v8.gz` (#920 stage 1)
 commit, digests and reconstruction instructions belong to [the fixture README](../tests/fixtures/README.md).
 It replaced `behavior-seat-1.json.gz`, which froze the legacy mover, when #920 retired that engine.
 
-The traces run against **arenas stored in the fixture itself** (`createPhysicsGame(seed, map)` takes
+The traces run against **arenas stored in the fixture itself** (`createGame(seed, map)` takes
 the stored one) rather than against whatever generation currently emits. So a change to the chain's
 library, placement or strategies never moves this fixture: those move the chain's own seed sweep,
 `map/tools/fixtures/chain-baseline.json`, and `REGION_TYPES_VERSION`

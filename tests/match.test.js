@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
 import { contentById } from '../shared/simulation/content.ts';
-import { createPhysicsGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
+import { createGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { insideMap } from '../shared/movement.ts';
 import { stringifyWithMap } from '../server/map-payload.js';
@@ -139,10 +139,10 @@ test('cooperative physics preparation yields between static geometry batches wit
     x: 300 + (i % 20) * 10, y: 20 + Math.floor(i / 20) * 10, w: 3, h: 3 }));
   let opportunities = 0;
   const pause = async () => { await new Promise(resolve => setTimeout(resolve, 0)); opportunities++; };
-  const synchronous = await createPhysicsGame(9, structuredClone(map), content());
+  const synchronous = await createGame(9, structuredClone(map), content());
   let cooperative;
   try {
-    cooperative = await createPhysicsGame(9, structuredClone(map), content(), pause);
+    cooperative = await createGame(9, structuredClone(map), content(), pause);
     assert.ok(opportunities > 1, 'preparation yielded to timer callbacks');
     assert.equal(synchronous.tick, 0);
     assert.equal(cooperative.tick, 0, 'preparation never steps the match');
@@ -190,7 +190,7 @@ test('room shutdown during cooperative construction awaits and disposes the unad
 });
 
 test('mask contact remains contained at a distant live-map corner without leaking private state', async () => {
-  const s = await createPhysicsGame(1, arena(51000, 25000), content());
+  const s = await createGame(1, arena(51000, 25000), content());
   try {
     const p = s.players[0]; p.bot = false; p.input = { x: 1, y: 1 }; p.inputTick = 1000;
     for (let i = 0; i < 80; i++) { step(s); assert.ok(insideMap(s.map, p.x, p.y, 11.99)); }
@@ -201,7 +201,7 @@ test('mask contact remains contained at a distant live-map corner without leakin
 });
 
 test('pending effects reject invalid values and cannot act on a teleported generation', async () => {
-  const s = await createPhysicsGame(1, arena(), content());
+  const s = await createGame(1, arena(), content());
   try {
     const p = s.players[0]; p.bot = false;
     const r = physicsRuntime(s), id = `actor:${p.id}`;

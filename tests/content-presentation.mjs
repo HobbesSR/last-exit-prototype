@@ -5,7 +5,7 @@ import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
 import { createMapGenerator } from '../server/map-generator.js';
 import { listen } from './helpers/listen.js';
-import { createGame, snapshot, VERSION } from '../shared/simulation.ts';
+import { createGameRecord, snapshot, VERSION } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
@@ -34,7 +34,7 @@ function contentA() {
 }
 // A recording of content A whose frames state their own duration, which must beat A's descriptor.
 function recordingA() {
-  const content = contentA(), game = createGame(4217, generatedMap(), content), p = game.players[0];
+  const content = contentA(), game = createGameRecord(4217, generatedMap(), content), p = game.players[0];
   p.inventory = [{ kind: 'weapon', weaponType: 'pistol', ammo: 0 }, { kind: 'weapon', weaponType: 'rifle' }, null, null, null, null];
   p.selectedSlot = 0;
   const frame = tick => { const state = snapshot(game); state.tick = tick; state.duration = 6000; return { state, commands: [] }; };
@@ -50,7 +50,7 @@ async function checkControls(browser, base) {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   const html = (await readFile('public/index.html', 'utf8')).replace('<script type="module" src="/client.js"></script>', '');
   await page.route('**/content-fixture', route => route.fulfill({ contentType: 'text/html', body: html }));
-  const game = createGame(4217, generatedMap(), defaultContent()), me = game.players[0], hunter = game.players.find(p => p.role === 'gladiator');
+  const game = createGameRecord(4217, generatedMap(), defaultContent()), me = game.players[0], hunter = game.players.find(p => p.role === 'gladiator');
   me.inventory = [{ kind: 'weapon', weaponType: 'pistol' }, { kind: 'weapon', weaponType: 'rifle', ammo: 0 }, { kind: 'cell', charge: 30 }, null, null, null];
   game.map.gates = [];
   try {

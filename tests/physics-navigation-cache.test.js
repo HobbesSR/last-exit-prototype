@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
@@ -15,7 +15,7 @@ test('bots share one prop query during collection, while same-tick external move
     sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     physicsProps: [{ id: 'crate', profile: 'crate', x: 300, y: 450 }],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns: [{ x: 150, y: 400 }, { x: 150, y: 500 }] };
-  const s = await createPhysicsGame(448, map, content);
+  const s = await createGame(448, map, content);
   try {
     const world = physicsRuntime(s).world, query = world.solidPropStates.bind(world);
     let calls = 0;

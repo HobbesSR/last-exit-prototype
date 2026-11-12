@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
-import { createGame, createPhysicsGame, disposePhysics, joinGame, setInput, step, snapshot, synchronizePhysics, PHYSICS_VERSION } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, synchronizePhysics, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
@@ -42,7 +42,7 @@ test('a player changes role and kit in the lobby, freeing their place to its ros
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), id = runner.session.playerId;
-    const fresh = createGame(9, room.match.map(), room.content).players;
+    const fresh = createGameRecord(9, room.match.map(), room.content).players;
     const before = room.match.player(id);
     assert.equal(before.role, 'contestant');
 
@@ -113,7 +113,7 @@ test('matchmaking balances occupied fractions against three hunter places and fi
 });
 
 test('match boundary preserves simulation output and returns detached commands, identities and maps', async () => {
-  const match = await createMatch(9, undefined, generatedMap(9)), game = await createPhysicsGame(9, generatedMap(9), defaultContent());
+  const match = await createMatch(9, undefined, generatedMap(9)), game = await createGame(9, generatedMap(9), defaultContent());
   try {
   const actor = match.join('human', 'contestant', 'warden', 'Runner');
   // A match reconciles the physics world after every seat change; the bare game is given the same.

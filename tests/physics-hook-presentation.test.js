@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPhysicsGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
+import { createGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
@@ -16,7 +16,7 @@ const map = () => ({ seed: 446, width: 800, height: 800,
 test('flight capture and projection disclose only an authorized caster and tip', async () => {
   const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
-  const s = await createPhysicsGame(446, map(), content);
+  const s = await createGame(446, map(), content);
   try {
     const r = physicsRuntime(s);
     const old = snapshot(s);
@@ -56,7 +56,7 @@ test('flight capture and projection disclose only an authorized caster and tip',
 test('only the caster learns its hook is active, through flight, pending and pull', async () => {
   const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
-  const s = await createPhysicsGame(446, map(), content);
+  const s = await createGame(446, map(), content);
   try {
     const r = physicsRuntime(s);
     assert.equal(playerView(s, snapshot(s), 'g0').hookActive, false);
@@ -72,5 +72,5 @@ test('only the caster learns its hook is active, through flight, pending and pul
   const missingHook = structuredClone(contentById('content-6'));
   delete missingHook.kits.hook; delete missingHook.hook;
   missingHook.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'warden' }] };
-  await assert.rejects(() => createPhysicsGame(446, map(), missingHook), /hook/);
+  await assert.rejects(() => createGame(446, map(), missingHook), /hook/);
 });

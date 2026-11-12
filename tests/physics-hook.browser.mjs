@@ -6,7 +6,7 @@ import { serveWithBrowser } from './helpers/browser.js';
 // consumes authorized frames through the engine-free production playback buffer.
 async function scenario() {
   const shared = typeof window === 'undefined' ? '../shared' : '/shared';
-  const { createPhysicsGame, disposePhysics, setInput, step, snapshot, playerView } = await import(`${shared}/simulation.ts`);
+  const { createGame, disposePhysics, setInput, step, snapshot, playerView } = await import(`${shared}/simulation.ts`);
   const { contentById } = await import(`${shared}/simulation/content.ts`);
   const map = { seed: 446, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
@@ -16,7 +16,7 @@ async function scenario() {
     spawns: [{ x: 250, y: 400 }], hunterSpawns: [{ x: 150, y: 400 }] };
   const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
-  const game = await createPhysicsGame(446, map, content);
+  const game = await createGame(446, map, content);
   try {
     game.players.forEach(p => { p.bot = false; });
     const trace = [], views = [], states = [];

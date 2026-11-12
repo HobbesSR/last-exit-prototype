@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, HZ, setInput, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, HZ, setInput, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { dynamicWaypoint } from '../shared/simulation/dynamic-navigation.ts';
@@ -21,7 +21,7 @@ async function game({ spawns = [{ x: 150, y: 400 }], props = [] } = {}) {
   const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: spawns.map((_, i) => `C${i}`), gladiators: [] };
   content.discovery = false;
-  const s = await createPhysicsGame(448, map, content);
+  const s = await createGame(448, map, content);
   for (const p of s.players) p.bot = false;
   return s;
 }

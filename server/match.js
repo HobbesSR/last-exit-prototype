@@ -1,4 +1,4 @@
-import { createGame, createPhysicsGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { resetInput } from '../shared/simulation/input.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
@@ -67,7 +67,7 @@ function seatsOf(game, reconcile = () => {}) {
   return seats;
 }
 
-// A map with no places on it. A lobby's game exists only for its roster, which createGame builds from
+// A map with no places on it. A lobby's game exists only for its roster, which createGameRecord builds from
 // content alone; positions come from the map and are never read before the real match takes over.
 const NOWHERE = { spawns: [], stations: [], items: [], exit: { x: 0, y: 0 } };
 
@@ -77,13 +77,13 @@ const NOWHERE = { spawns: [], stations: [], items: [], exit: { x: 0, y: 0 } };
  */
 export function createLobby(content = defaultContent()) {
   // Described once, from the content the match will be pinned to, for every welcome and the recording (22.7).
-  return { content, presentation: describeContent(content), ...seatsOf(createGame(0, NOWHERE, content)) };
+  return { content, presentation: describeContent(content), ...seatsOf(createGameRecord(0, NOWHERE, content)) };
 }
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
 export async function createMatch(seed, size, map, content = defaultContent()) {
-  const game = await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content,
+  const game = await createGame(seed, map ?? generateLiveMap(seed, content, size), content,
     () => preparationPause());
   try {
     const payloads = await prepareMapPayload(game.map, () => preparationPause());

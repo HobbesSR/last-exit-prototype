@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, createPhysicsGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { movePlayer, lineClear, visibilityPolygon } from '../shared/movement.ts';
 import { collectInstanceEquipment, carriedCell } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -25,17 +25,17 @@ const contestant = (x, y = Y, extra) => ({ role: 'contestant', x, y, ...extra })
 const gladiator = (x, y = Y, extra) => ({ role: 'gladiator', x, y, ...extra });
 function input(s, p, values) { assert.ok(setInput(s, p.id, { seq: p.lastSeq + 1, ...values })); step(s); }
 /** The shipped content on the room arena, without its world: for cases that never step. */
-const still = () => createGame(4217, generatedMap(), defaultContent());
+const still = () => createGameRecord(4217, generatedMap(), defaultContent());
 
 test('a seeded match steps to identical complete frames', async () => {
-  const [a, b] = await Promise.all([1, 2].map(() => createPhysicsGame(11, generatedMap(), defaultContent())));
+  const [a, b] = await Promise.all([1, 2].map(() => createGame(11, generatedMap(), defaultContent())));
   try {
     for (let i = 0; i < 200; i++) { step(a); step(b); assert.deepEqual(snapshot(a), snapshot(b), `tick ${i}`); }
   } finally { disposePhysics(a); disposePhysics(b); }
 });
 
 test('the wall reaches the end of the map at ten minutes', async t => {
-  const s = await createPhysicsGame(4217, generatedMap(), defaultContent());
+  const s = await createGame(4217, generatedMap(), defaultContent());
   t.after(() => disposePhysics(s));
   for (const p of s.players) p.bot = false;
   s.tick = DURATION - 1;
@@ -177,7 +177,7 @@ test('sneaking avoids sensors, contestants have no innate skill, hazard affects 
 });
 
 test('snapshots are independent copies including bot routes and accepted input', async t => {
-  const field = 'route', s = await createPhysicsGame(4217, generatedMap(), defaultContent());
+  const field = 'route', s = await createGame(4217, generatedMap(), defaultContent());
   t.after(() => disposePhysics(s));
   const human = s.players[0]; human.bot = false; human.input = {};
   // A tile planner's first plans are staggered across its bots' turns, and a sliced one's may span ticks.
@@ -204,7 +204,7 @@ test('joining claims an active bot and refuses a finished match', () => {
 });
 
 test('directed views are unfogged, player views withhold private fields, and neither carries bookkeeping', async t => {
-  const s = await createPhysicsGame(4217, generatedMap(), defaultContent());
+  const s = await createGame(4217, generatedMap(), defaultContent());
   t.after(() => disposePhysics(s));
   for (let i = 0; i < 40; i++) step(s);
   const frame = snapshot(s);

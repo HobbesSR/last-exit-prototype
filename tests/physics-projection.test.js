@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPhysicsGame, disposePhysics, snapshot, playerView, PHYSICS_VERSION } from '../shared/simulation.ts';
+import { createGame, disposePhysics, snapshot, playerView, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { minimumReaderForMatch, MIN_SCHEMA, SCHEMA } from '../shared/recording.ts';
@@ -16,7 +16,7 @@ const arena = () => ({ width: 600, height: 400, playableArea: { cellSize: 100, r
 const body = (id, x, y, shape = { kind: 'circle', radius: 5 }, extra = {}) => ({ id, kind: 'prop', shape, x, y, angle: 0.4, vx: 2, vy: -3, omega: 0.2, sleeping: false, generation: 4, ...extra });
 
 test('a moving loot body changes recorded and projected item layers without mutating gameplay during capture', async () => {
-  const game = await createPhysicsGame(1, arena(), content());
+  const game = await createGame(1, arena(), content());
   try {
     game.map.items.push({ id: 'loot', kind: 'cell', charge: 100, x: 300, y: 200 });
     const world = physicsRuntime(game).world;
@@ -35,7 +35,7 @@ test('a moving loot body changes recorded and projected item layers without muta
 });
 
 test('real physics snapshot is detached and its public body is a closed display value', async () => {
-  const game = await createPhysicsGame(1, arena(), content());
+  const game = await createGame(1, arena(), content());
   try {
     const frame = snapshot(game), own = frame.players[0], view = playerView(game, frame, own.id);
     assert.equal(frame.version, PHYSICS_VERSION);
@@ -61,7 +61,7 @@ test('real physics snapshot is detached and its public body is a closed display 
 });
 
 test('projection gates actors, prop bounds, item associations and both tether endpoints from the stored frame', async () => {
-  const game = await createPhysicsGame(1, arena(), content());
+  const game = await createGame(1, arena(), content());
   try {
     const frame = snapshot(game), own = frame.players[0];
     own.x = 100; own.y = 200;

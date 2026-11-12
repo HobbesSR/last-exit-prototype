@@ -3,7 +3,7 @@
 ## Physics behavior baseline (#920)
 
 `behavior-physics-1.v8.gz` is the frozen characterization fixture. It freezes what the live engine does: `content-7` matches under
-`last-exit-0.8-physics`, built by `createPhysicsGame`. It is `v8.serialize` of
+`last-exit-0.8-physics`, built by `createGame`. It is `v8.serialize` of
 `{ checkpoint, version, content, arenas, bots, scripted }`, gzipped, because each arena keeps the
 portal graph bots plan with, and the graph holds typed arrays that JSON drops.
 

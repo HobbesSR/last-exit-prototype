@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, setInput, snapshot, step, synchronizePhysics,
+import { createGame, disposePhysics, setInput, snapshot, step, synchronizePhysics,
   enqueuePhysicsImpulse } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -21,7 +21,7 @@ const item = (id, kind, fields = {}) => ({ id, kind, x: 300, y: 200, ...fields }
 const carried = (id, kind, fields = {}) => ({ kind, instanceId: id, lineageId: id, ...fields });
 
 async function game(map = arena(), profile = content()) {
-  const s = await createPhysicsGame(17, map, profile);
+  const s = await createGame(17, map, profile);
   s.players[0].bot = false;
   return { s, p: s.players[0], runtime: physicsRuntime(s) };
 }
@@ -185,7 +185,7 @@ test('world physics authoring is validated and match-pinned', async () => {
   const bad = arena();
   bad.motorSurfaces = [{ id: 'floor', x: 100, y: 100, w: 200, h: 200,
     priority: 1, speed: 1, traction: 1, braking: 1, drag: -0.1 }];
-  await assert.rejects(createPhysicsGame(17, bad, content()), /floor drag/);
+  await assert.rejects(createGame(17, bad, content()), /floor drag/);
   const authored = arena();
   authored.physicsProps = [{ id: 'crate', profile: 'crate', x: 450, y: 200, angle: 0.2 }];
   const { s } = await game(authored);

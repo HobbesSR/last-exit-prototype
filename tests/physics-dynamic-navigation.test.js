@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { teleport } from '../shared/simulation/dev.ts';
@@ -19,7 +19,7 @@ function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [],
   return { map, content };
 }
 async function game(options) {
-  const { map, content } = fixture(options), s = await createPhysicsGame(448, map, content);
+  const { map, content } = fixture(options), s = await createGame(448, map, content);
   for (const p of s.players) p.bot = false;
   return s;
 }
@@ -135,7 +135,7 @@ test('hidden actors and wall-concealed props do not alter local waypoints; old c
   } finally { disposePhysics(wall); }
   const { map, content } = fixture();
   delete content.dynamicNavigation;
-  await assert.rejects(() => createPhysicsGame(448, map, content), /dynamic navigation/);
+  await assert.rejects(() => createGame(448, map, content), /dynamic navigation/);
 });
 
 test('teleport discards a stale detour and follows the new destination', async () => {

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { describeContent, readPresentation, resolveRecordingPresentation } from '../shared/presentation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
-import { createGame } from '../shared/simulation.ts';
+import { createGameRecord } from '../shared/simulation.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
 const frozenThrough = value => Object.isFrozen(value) && Object.values(value).every(v => !v || typeof v !== 'object' || frozenThrough(v));
@@ -26,7 +26,7 @@ test('a descriptor lists display data in table order and nothing private', () =>
 });
 
 test('describing content consumes no randomness and leaves the match as it was', () => {
-  const s = createGame(4217, generatedMap(), defaultContent()), before = structuredClone({ rng: s.rng, serial: s.serial, players: s.players.map(q => q.id) });
+  const s = createGameRecord(4217, generatedMap(), defaultContent()), before = structuredClone({ rng: s.rng, serial: s.serial, players: s.players.map(q => q.id) });
   describeContent(s.content);
   assert.deepEqual({ rng: s.rng, serial: s.serial, players: s.players.map(q => q.id) }, before);
 });

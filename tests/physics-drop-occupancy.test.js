@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
+import { createGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { dropInventorySlot, planDrop, scatterPoint } from '../shared/simulation/loot.ts';
@@ -16,7 +16,7 @@ const content = () => ({ ...structuredClone(contentById('content-6')), dynamicNa
 const carried = id => ({ kind: 'cell', charge: 37, instanceId: id, lineageId: id });
 
 test('scatter avoids active actor footprints and rotated prop colliders', async () => {
-  const s = await createPhysicsGame(448, map([{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 4 }]), content());
+  const s = await createGame(448, map([{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 4 }]), content());
   try {
     const r = physicsRuntime(s), origin = { x: 300, y: 400 };
     const first = { x: 336, y: 400 };
@@ -39,7 +39,7 @@ test('scatter avoids active actor footprints and rotated prop colliders', async 
 });
 
 test('crowded optional physical drop refuses atomically without consuming inventory or IDs', async () => {
-  const s = await createPhysicsGame(448, map(), content());
+  const s = await createGame(448, map(), content());
   try {
     const p = s.players[0], r = physicsRuntime(s);
     p.inventory[0] = carried('held');
@@ -61,7 +61,7 @@ test('crowded optional physical drop refuses atomically without consuming invent
 });
 
 test('a full-inventory swap stages its serial but still checks rotated prop occupancy', async () => {
-  const s = await createPhysicsGame(448, map([{ id: 'crate', profile: 'crate', x: 600, y: 600, angle: Math.PI / 4 }]), content());
+  const s = await createGame(448, map([{ id: 'crate', profile: 'crate', x: 600, y: 600, angle: Math.PI / 4 }]), content());
   try {
     const p = s.players[0], r = physicsRuntime(s);
     p.bot = false; p.x = 300; p.y = 400;
@@ -87,7 +87,7 @@ test('a full-inventory swap stages its serial but still checks rotated prop occu
 });
 
 test('mandatory fallback remains logical and pickable, then admits a body after actor clears it', async () => {
-  const s = await createPhysicsGame(448, map(), content());
+  const s = await createGame(448, map(), content());
   try {
     const p = s.players[0], r = physicsRuntime(s);
     const carriedItem = { ...carried('mandatory'), charge: 71 };

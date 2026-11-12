@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame } from '../shared/simulation.ts';
+import { createGameRecord } from '../shared/simulation.ts';
 import { attack, utilityApplies, utilityOutcome } from '../shared/simulation/combat.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
 // Neither case steps the match, so the game is built without its physics world.
-const game = () => createGame(438, generatedMap(), defaultContent());
+const game = () => createGameRecord(438, generatedMap(), defaultContent());
 
 test('utility preview and actual attack share capped effects and full-state refusal', () => {
   const s = game(), p = s.players[0];

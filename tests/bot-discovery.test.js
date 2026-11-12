@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPhysicsGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { joinRoute, passed, tickAllowance } from '../shared/simulation/bot-routes.ts';
 import { canOccupy, sweptClear } from '../shared/movement.ts';
@@ -39,7 +39,7 @@ test('a remembered item is forgotten once its spot is seen empty, and kept while
 // A live chain map, as rooms play (the room arena): no street-block graph, so a route runs to its target.
 // Dispose of the game with `disposePhysics`.
 async function lone(seed = 4217) {
-  const s = await createPhysicsGame(seed, generatedMap(), defaultContent());
+  const s = await createGame(seed, generatedMap(), defaultContent());
   for (const p of s.players) { p.bot = false; p.input = {}; }
   s.map.traps = []; s.map.items = [];
   for (const p of s.players) p.discovery?.items?.clear();
@@ -129,7 +129,7 @@ test("information test: over tiles, a bot's targets, routes and inputs depend on
   const spawn = liveMap.spawns[0], far = { id: 'far-cell', kind: 'cell', x: spawn.x + 6000, y: spawn.y, charge: 0 };
   for (let dy = 48; !canOccupy(liveMap, far.x, far.y, 25); dy += 48) far.y = spawn.y + (dy % 96 ? dy : -dy);
   const walk = async map => {
-    const s = await createPhysicsGame(seed, structuredClone(map), defaultContent());
+    const s = await createGame(seed, structuredClone(map), defaultContent());
     for (const p of s.players) if (p.id !== 'c0') { p.bot = false; p.input = {}; }
     s.map.traps = []; s.map.items = [];
     const p = s.players[0], trace = [], eyes = [];

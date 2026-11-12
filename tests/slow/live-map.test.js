@@ -5,7 +5,7 @@ import { generateMacro } from '../../map/chain.ts';
 import { mapViews } from '../../map/macro/src/chain/map.ts';
 import { builtMapFrame } from '../../map/micro/adapter.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
-import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, step } from '../../shared/simulation.ts';
 
 // Two maps: the claim is that the mechanism completes on a chain map, and more seeds only sample
 // for stalls. 4217, the third seed here until #822, is the map physics-navigation plays. On the
@@ -13,7 +13,7 @@ import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation
 test('combat-neutralized bots fill all three extraction slots on representative live chain maps', async () => {
   const content = defaultContent();
   for (const seed of [1, 9]) {
-    const game = await createPhysicsGame(seed, generateLiveMap(seed, content), content);
+    const game = await createGame(seed, generateLiveMap(seed, content), content);
     try {
       game.map.traps = [];
       for (const player of game.players) {

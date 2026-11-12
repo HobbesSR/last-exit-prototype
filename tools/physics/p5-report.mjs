@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
-import { createPhysicsGame, disposePhysics, playerView, snapshot, step, synchronizePhysics } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, playerView, snapshot, step, synchronizePhysics } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';
 
@@ -68,7 +68,7 @@ async function runCase({ lootCount, clustered, propCount, awake }) {
   const mapSha256 = hash(JSON.stringify(map));
   const content = bodyContent();
   const initStarted = performance.now();
-  const game = await createPhysicsGame(seed, map, content);
+  const game = await createGame(seed, map, content);
   const initializationMs = performance.now() - initStarted;
   const runtime = physicsRuntime(game);
   if (!runtime) throw new Error('P5 runtime missing');
@@ -182,7 +182,7 @@ const report = {
 };
 
 try {
-  const files = ['tools/physics/p5-report.mjs', 'shared/physics/world.ts', 'shared/simulation/phased.ts',
+  const files = ['tools/physics/p5-report.mjs', 'shared/physics/world.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
     'shared/physics/types.ts', 'shared/simulation/physics-runtime.ts', 'shared/traps.ts',
     'shared/simulation/explosion-physics.ts', 'shared/simulation/actor-physics.ts', 'shared/simulation.ts',
     'shared/simulation/world-physics.ts', 'shared/simulation/physics-presentation.ts', 'shared/simulation/visibility.ts',

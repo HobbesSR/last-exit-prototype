@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
-import { createPhysicsGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { resetInput } from '../../shared/simulation/input.ts';
 import { createPhysicsPrediction, PREDICTION_LIMITS } from '../../public/physics-prediction.js';
@@ -50,7 +50,7 @@ const profiles = [
 async function run(profile) {
   const { map, content } = fixture();
   if (profile.hidden) map.spawns[1] = { x: 174, y: 300 };
-  const game = await createPhysicsGame(441, map, content);
+  const game = await createGame(441, map, content);
   for (const player of game.players) player.bot = false;
   let now = 0, predictor = await createPhysicsPrediction(game.map, 'c0', { clock: () => now });
   const events = [], errors = [], correctionErrors = [], correctionCpu = [], inputCpu = [];
@@ -201,7 +201,7 @@ async function run(profile) {
 
 const files = ['tools/physics/prediction-network.mjs', 'tests/physics-prediction.browser.mjs',
   'public/physics-prediction.js', 'public/physics-prediction-limits.js',
-  'shared/physics/world.ts', 'shared/physics/motion-limits.ts', 'shared/simulation/phased.ts',
+  'shared/physics/world.ts', 'shared/physics/motion-limits.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
   'shared/simulation/visibility.ts', 'shared/simulation/input.ts', 'shared/simulation/actor-physics.ts',
   'shared/simulation/content.ts', 'package-lock.json',
   'node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm'];

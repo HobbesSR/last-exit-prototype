@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, createPhysicsGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { createMatch } from '../server/match.js';
 import { generatedMap } from './helpers/room-harness.js';
@@ -23,7 +23,7 @@ import {
 } from '../shared/discovery.ts';
 
 // Cases that never step build the game without its physics world; cases that step build the shipped engine (#920).
-const game = (seed = 4217) => createGame(seed, generatedMap(), defaultContent());
+const game = (seed = 4217) => createGameRecord(seed, generatedMap(), defaultContent());
 
 test('discovery grid dimensions and cell coordinates match map scale', () => {
   const map = { width: 1920, height: 960 };
@@ -152,7 +152,7 @@ test('gladiators have no discovery memory', () => {
 });
 
 test('discovery is stable under a pure fold over recorded frames', async () => {
-  const s = await createPhysicsGame(4217, generatedMap(), defaultContent());
+  const s = await createGame(4217, generatedMap(), defaultContent());
   try {
     const contestant = s.players.find(p => p.role === 'contestant');
     assert.ok(contestant && contestant.discovery);

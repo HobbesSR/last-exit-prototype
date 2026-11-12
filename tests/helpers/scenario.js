@@ -1,4 +1,4 @@
-import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, step } from '../../shared/simulation.ts';
 import { createDiscovery, discoveryGrid } from '../../shared/discovery.ts';
 import { hearShot } from '../../shared/simulation/hearing.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
@@ -28,7 +28,7 @@ function settle(s, actors, players) {
 
 /** A physics game on `map` with exactly `actors`, each a bot unless `bot: false`; the shipped content unless given. Dispose of it with `disposePhysics`. */
 export async function stagePhysics(map, { seed = 4217, content = defaultContent(), actors }) {
-  const { content: cast_, place } = cast(map, content, actors), s = await createPhysicsGame(seed, map, cast_);
+  const { content: cast_, place } = cast(map, content, actors), s = await createGame(seed, map, cast_);
   return settle(s, actors, place(s));
 }
 

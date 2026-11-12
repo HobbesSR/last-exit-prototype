@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
@@ -22,7 +22,7 @@ function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, obstacles =
 
 test('point sight applies strict range, roof concealment, and cover; actor exceptions remain separate', async () => {
   const { map, content } = fixture({ gladiator: true });
-  const s = await createPhysicsGame(448, map, content);
+  const s = await createGame(448, map, content);
   try {
     const viewer = s.players.find(p => p.role === 'gladiator');
     const actor = s.players.find(p => p.role === 'contestant');
@@ -57,7 +57,7 @@ test('collectBotIntent preserves heading when a bot queues with no enemy', async
     obstacles: [{ id: 'top', x: 100, y: 100, w: 500, h: 280 },
       { id: 'bottom', x: 100, y: 420, w: 500, h: 280 }],
     items: [{ id: 'goal-cell', kind: 'cell', charge: 0, x: 500, y: 400 }] });
-  const s = await createPhysicsGame(448, map, content);
+  const s = await createGame(448, map, content);
   try {
     const [p, blocker] = s.players;
     p.heading = 1.25;

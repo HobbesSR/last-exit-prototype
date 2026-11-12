@@ -8,7 +8,7 @@ import { performance } from 'node:perf_hooks';
 import { gzipSync } from 'node:zlib';
 import os from 'node:os';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
-import { createPhysicsGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';
 
@@ -71,7 +71,7 @@ async function runCase(config, options, repeat) {
   const { stage, actors, props, loot, layout } = config;
   const map = arena(options.seed, actors, props, loot, layout), content = contentFor(stage, actors);
   collect(); const beforeInitialization = memory(), initialAt = performance.now();
-  const game = await createPhysicsGame(options.seed, map, content);
+  const game = await createGame(options.seed, map, content);
   const initializationMs = performance.now() - initialAt, afterInitialization = memory();
   const times = { input: [], step: [], snapshot: [], projection: [], serialization: [], total: [] };
   const sizes = { raw: [], projected: [], rawGzip: [], projectedGzip: [] };
@@ -154,7 +154,7 @@ async function runCase(config, options, repeat) {
 export async function main(argv = process.argv.slice(2)) {
   const chosen = options(argv), lock = await acquireMachineLock('bench', { pollMs: 100 });
   try {
-    const files = ['tools/physics/integration-report.mjs', 'shared/simulation.ts', 'shared/simulation/phased.ts',
+    const files = ['tools/physics/integration-report.mjs', 'shared/simulation.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
       'shared/simulation/content.ts', 'shared/simulation/physics-runtime.ts', 'shared/physics/world.ts',
       'shared/physics/constraints.ts', 'shared/simulation/hook.ts',
       'shared/simulation/dynamic-navigation.ts', 'shared/simulation/physics-presentation.ts',

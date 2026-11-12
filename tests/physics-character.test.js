@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse,
+import { PHYSICS_VERSION, createGame, disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse,
   setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { teleport } from '../shared/simulation/dev.ts';
@@ -25,7 +25,7 @@ function parts(contestants = 2, contentId = 'content-6') {
 
 async function game(parts = undefined) {
   const { map, content } = parts ?? structuredClone(physicsParts);
-  const s = await createPhysicsGame(439, map, content);
+  const s = await createGame(439, map, content);
   for (const p of s.players) p.bot = false;
   return s;
 }
@@ -64,7 +64,7 @@ test('invalid physical tuning is refused and caller edits cannot retune an admit
   for (const change of [p => p.maxSpeed = NaN, p => p.geometry.contestant.bodyRadius = 30,
     p => p.geometry.gladiator.hurtRadius = 16]) {
     const { map, content } = parts(1); change(content.actorPhysics);
-    await assert.rejects(createPhysicsGame(439, map, content), /actor physics|narrow body/);
+    await assert.rejects(createGame(439, map, content), /actor physics|narrow body/);
   }
   const fixture = parts(1);
   const floor = { id: 'ice', x: 100, y: 350, w: 200, h: 100, priority: 1, speed: 1, traction: 0.1, braking: 0.1 };

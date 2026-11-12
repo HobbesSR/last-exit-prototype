@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPhysicsGame, disposePhysics, enqueuePhysicsImpulse, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
+import { createGame, disposePhysics, enqueuePhysicsImpulse, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
@@ -19,7 +19,7 @@ const parts = () => ({ map: { seed: 445, width: 800, height: 400,
   content: { ...structuredClone(contentById('content-6')), roster: { contestants: ['A'], gladiators: [] }, discovery: false } });
 
 test('loot never blocks actor placement, pickup emits a typed removal, and replacement rejects stale impulses', async () => {
-  const { map, content } = parts(), s = await createPhysicsGame(445, map, content);
+  const { map, content } = parts(), s = await createGame(445, map, content);
   try {
     const p = s.players[0], r = physicsRuntime(s); p.bot = false;
     assert.deepEqual(teleport(s, p.id, 300, 200), { x: 300, y: 200 });
@@ -40,7 +40,7 @@ test('loot never blocks actor placement, pickup emits a typed removal, and repla
 });
 
 test('many same-boundary explosions keep one bounded impulse per body/generation', async () => {
-  const { map, content } = parts(), s = await createPhysicsGame(445, map, content);
+  const { map, content } = parts(), s = await createGame(445, map, content);
   try {
     const r = physicsRuntime(s);
     for (let i = 0; i < 200; i++) enqueueExplosionImpulses(s, { x: 200, y: 200 }, 500);
@@ -67,7 +67,7 @@ test('client maps omit crate authoring while recordings retain engine-free physi
 test('staged swaps reserve full batches ahead of older mandatory overflow', async () => {
   const { interact } = await import('../shared/simulation/interactions.ts');
   for (const copies of [1, 2]) {
-    const { map, content } = parts(), s = await createPhysicsGame(445, map, content);
+    const { map, content } = parts(), s = await createGame(445, map, content);
     try {
       const p = s.players[0], r = physicsRuntime(s);
       p.bot = false; p.x = 300; p.y = 200;
@@ -92,12 +92,12 @@ test('staged swaps reserve full batches ahead of older mandatory overflow', asyn
 test('invalid tiny physical profiles are refused before item/body admission', async () => {
   for (const change of [p => p.loot.radius = 0.01, p => p.loot.mass = 1e-9, p => p.prop.hx = 0.01]) {
     const { map, content } = parts(); change(content.worldPhysics);
-    await assert.rejects(createPhysicsGame(445, map, content), /world physics profile/);
+    await assert.rejects(createGame(445, map, content), /world physics profile/);
   }
 });
 
 test('forty physical pickup/drop cycles conserve the objective without body or joint growth', async () => {
-  const { map, content } = parts(), s = await createPhysicsGame(445, map, content);
+  const { map, content } = parts(), s = await createGame(445, map, content);
   try {
     const p = s.players[0], r = physicsRuntime(s); p.bot = false;
     p.x = 300; p.y = 200; automaticPickups(s, p, {});

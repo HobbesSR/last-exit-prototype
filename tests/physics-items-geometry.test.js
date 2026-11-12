@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics } from '../shared/simulation.ts';
+import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
@@ -19,7 +19,7 @@ const cell = (id, x, y) => ({ id, kind: 'cell', charge: 10, x, y });
 const boxRight = (pose, hx, hy) => pose.x + Math.abs(Math.cos(pose.angle)) * hx + Math.abs(Math.sin(pose.angle)) * hy;
 
 async function game(map) {
-  const s = await createPhysicsGame(37, map, content());
+  const s = await createGame(37, map, content());
   s.players[0].bot = false;
   return { s, world: physicsRuntime(s).world };
 }

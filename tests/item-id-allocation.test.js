@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame } from '../shared/simulation.ts';
+import { createGameRecord } from '../shared/simulation.ts';
 import { allocateItemId, initializeItemInstances } from '../shared/item-instances.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
 test('initial instance IDs stay reserved after their items are consumed', () => {
-  const s = createGame(4217, generatedMap(), defaultContent());
+  const s = createGameRecord(4217, generatedMap(), defaultContent());
   s.content = { ...s.content, itemInstances: { groundCapacity: 2 } };
   s.map.items = [{ id: 'instance-17', kind: 'weapon', weaponType: 'pistol', ammo: 1, x: 0, y: 0 }];
   for (const player of s.players) player.inventory = [null, null, null, null, null, null];

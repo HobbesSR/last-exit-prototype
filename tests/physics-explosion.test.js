@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics } from '../shared/simulation.ts';
+import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { damage } from '../shared/simulation/combat.ts';
 import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { createGame } from '../shared/simulation/state.ts';
+import { createGameRecord } from '../shared/simulation/state.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { stepTraps } from '../shared/traps.ts';
 import { openField } from './helpers/arena.js';
@@ -24,7 +24,7 @@ function parts() {
 
 async function physicsGame() {
   const fixture = parts();
-  return createPhysicsGame(445, fixture.map, fixture.content);
+  return createGame(445, fixture.map, fixture.content);
 }
 
 function mineAt(x, y) {
@@ -50,7 +50,7 @@ test('mine damage and physical impulse are independent, and impulse is queued fo
 test('static map cover blocks mine damage and its queued impulse', async () => {
   const fixture = parts();
   fixture.map.obstacles.push({ id: 'blast-cover', x: 240, y: 350, w: 4, h: 100 });
-  const s = await createPhysicsGame(445, fixture.map, fixture.content);
+  const s = await createGame(445, fixture.map, fixture.content);
   try {
     const p = s.players.find(player => player.role === 'contestant');
     const runtime = physicsRuntime(s);
@@ -84,7 +84,7 @@ test('explosion impulse uses linear falloff, deterministic zero-distance directi
 });
 
 test('a mine without a stepped physics world only deals damage', () => {
-  const s = createGame(4217, openField(1200).map, defaultContent());
+  const s = createGameRecord(4217, openField(1200).map, defaultContent());
   const p = s.players.find(player => player.role === 'contestant');
   s.map.items = [];
   p.x = 600; p.y = 576; p.movedThisTick = 1; p.shield = 60;

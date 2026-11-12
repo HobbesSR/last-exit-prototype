@@ -1,7 +1,7 @@
 // Headless tick benchmark: runs the real simulation with no sockets, disk, or renderer so the
 // numbers describe the simulation itself rather than the machine's I/O. Mirrors the server loop
 // body (step, snapshot, per-client view) because that whole sequence shares the 1000/HZ budget.
-import { createPhysicsGame, disposePhysics, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
+import { createGame, disposePhysics, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
 import * as profiler from '../shared/profiler.ts';
 import { acquireMachineLock } from './helpers/machine-lock.js';
 import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES } from '../map/live.ts';
@@ -18,7 +18,7 @@ const [zoneWidth, zoneHeight] = (args.get('size') ?? zoneSizeName(DEFAULT_LIVE_Z
 const size = liveZoneSize({ zoneWidth, zoneHeight });
 if (!size) { console.error(`--size must be one of ${LIVE_ZONE_SIZES.map(zoneSizeName).join(', ')}`); process.exit(2); }
 // `--content=<id>` measures another shipped content set. The default is what a live room ships. Every game runs on the
-// physics engine, so it is built with createPhysicsGame and disposed at the end.
+// physics engine, so it is built with createGame and disposed at the end.
 const contentId = args.get('content') ?? CONTENT_ID;
 // Rooms adopt the tiles their map worker built (22.6, "Bot adoption"), untimed here as there; `--cold` leaves bots to build them.
 const prepared = map => { if (!args.has('cold')) for (const packed of prebuiltTiles(map, contentById(contentId))) adoptPackedTiles(map, packed); return map; };
@@ -27,7 +27,7 @@ await acquireMachineLock('bench');
 profiler.enable(true);
 const build = (i) => {
   const map = prepared(generateLiveMap(seed + i, contentById(contentId), size));
-  return createPhysicsGame(seed + i, map, contentById(contentId));
+  return createGame(seed + i, map, contentById(contentId));
 };
 const games = await Promise.all(Array.from({ length: rooms }, (_, i) => build(i)));
 const viewers = Array.from({ length: clients }, (_, i) => games[0].players[i % games[0].players.length].id);

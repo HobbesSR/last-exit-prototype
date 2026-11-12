@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, createPhysicsGame, disposePhysics, setInput, step, snapshot } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, setInput, step, snapshot } from '../shared/simulation.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment } from '../shared/equipment.ts';
 import { dropInventorySlot } from '../shared/simulation/loot.ts';
@@ -16,7 +16,7 @@ const arena = () => ({ width: 600, height: 400,
 const content = (id = 'content-loot-1') => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A', 'B'], gladiators: [] }, discovery: false });
 /** A physics match on the arena (or `map`), disposed when test `t` ends. */
 const fixture = async (t, map) => {
-  const s = await createPhysicsGame(17, map ?? arena(), content());
+  const s = await createGame(17, map ?? arena(), content());
   t.after(() => disposePhysics(s));
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0] };
@@ -69,8 +69,8 @@ test('a live chain map: virtual columns are the generator zone tiers, only quali
   assert.ok(loot.length > 500, `generated loot: ${loot.length}`);
   for (const item of loot) assert.equal(virtualZone(map, item).col + 1, item.tier, `${item.id} at ${item.x},${item.y}`);
   // Item setup needs no engine, so the shared constructor stands in for a match.
-  const plain = createGame(9, structuredClone(map), defaultContent());
-  const s = createGame(9, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
+  const plain = createGameRecord(9, structuredClone(map), defaultContent());
+  const s = createGameRecord(9, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
   let kit = 0;
   for (const [i, item] of s.map.items.entries()) {
     assert.deepEqual({ ...item, quality: undefined }, { ...plain.map.items[i], quality: undefined }, 'only quality is added');
@@ -94,14 +94,14 @@ test('a live chain map: virtual columns are the generator zone tiers, only quali
 test('weapon quality is explicit: the default content assigns none and consumes the same RNG and item ids', () => {
   const map = arena();
   for (let i = 0; i < 6; i++) map.items.push({ id: `w-${i}`, kind: 'weapon', weaponType: 'rifle', x: 130 + i * 70, y: 40 + i * 60 });
-  const plain = createGame(4217, structuredClone(map), defaultContent());
-  const tiered = createGame(4217, structuredClone(map), contentById('content-loot-1'));
+  const plain = createGameRecord(4217, structuredClone(map), defaultContent());
+  const tiered = createGameRecord(4217, structuredClone(map), contentById('content-loot-1'));
   assert.ok(plain.map.items.every(i => i.quality === undefined));
   assert.ok(tiered.map.items.every(i => Number.isInteger(i.quality)));
   assert.equal(tiered.rng, plain.rng);
   assert.equal(tiered.itemSerial, plain.itemSerial);
   assert.equal(qualityDamage(plain.content, { quality: 5 }), 1);
-  assert.throws(() => createGame(1, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
+  assert.throws(() => createGameRecord(1, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
 });
 
 test('an authored quality is kept; quality scales damage only', async t => {
