@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPortalPlanner, regionAt, standJoins } from '../shared/navigation/portal-graph.ts';
-import { gridReach } from '../shared/navigation/grid-level.ts';
+import { gridReach } from '../map/tools/grid-level.ts';
 import { meshReach } from '../shared/navigation/mesh-level.ts';
-import { gridRoute } from '../shared/map/route.ts';
+import { gridRoute } from '../map/tools/route.ts';
 import { canOccupy, sweptClear, TILE } from '../shared/movement.ts';
 
 // Navigation's top level is the portals generation guarantees between regions (22.6, #420).

@@ -11,14 +11,14 @@ import { liveChainParams, LIVE_ZONE_SIZES, zoneSizeName } from '../../map/live.t
 import { DEFAULT_CELL_SIZE } from '../../map/engines.ts';
 import { buildPortalGraph } from '../../map/navigation.ts';
 import { createPortalPlanner, regionTables, standJoins } from '../../shared/navigation/portal-graph.ts';
-import { gridReach, stepsLength } from '../../shared/navigation/grid-level.ts';
-import { gridRoute } from '../../shared/map/route.ts';
+import { gridReach, stepsLength } from '../../map/tools/grid-level.ts';
+import { gridRoute } from '../../map/tools/route.ts';
 import { TILE } from '../../shared/movement.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 
 const SEEDS = { '12x6': 20, '24x12': 5, '36x18': 3 };
 const ROLES = ['contestant', 'gladiator'];
-const SOURCES = ['map/navigation.ts', 'shared/navigation/portal-graph.ts', 'shared/navigation/grid-level.ts', 'shared/movement.ts', 'shared/map/navigation.ts', 'tools/navigation/portal-report.mjs'];
+const SOURCES = ['map/navigation.ts', 'shared/navigation/portal-graph.ts', 'map/tools/grid-level.ts', 'shared/movement.ts', 'shared/map/navigation.ts', 'tools/navigation/portal-report.mjs'];
 const time = fn => { const start = performance.now(); const value = fn(); return { ms: performance.now() - start, value }; };
 const median = values => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 

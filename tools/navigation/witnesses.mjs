@@ -2,7 +2,7 @@ import { performance } from 'node:perf_hooks';
 import { bakeGraph, queryGraph } from './graph.mjs';
 import { createHierarchy } from './hierarchy.mjs';
 import { createClearance } from './clearance.mjs';
-import { gridRoute } from '../../shared/map/route.ts';
+import { gridRoute } from '../../map/tools/route.ts';
 import { reachClear } from '../../shared/movement.ts';
 
 const time=fn=>{const start=performance.now();const value=fn();return {ms:performance.now()-start,value};};

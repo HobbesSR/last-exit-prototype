@@ -138,7 +138,7 @@ test("the developer tools serve the map lab, strip types, and nothing else", asy
   const shape = await (await fetch(`${base}/shared/shape.ts`)).text();
   assert.match(shape, /from ["']\/vendor\/sat\.mjs["']/);
   assert.doesNotMatch(shape, /from ["']sat["']/);
-  assert.match(await (await fetch(`${base}/shared/map/route.ts`)).text(), /from ["']\/vendor\/pathfinding\.mjs["']/);
+  assert.match(await (await fetch(`${base}/map/tools/route.ts`)).text(), /from ["']\/vendor\/pathfinding\.mjs["']/);
   const vendored = async (name) => (await import(`data:text/javascript,${encodeURIComponent(await (await fetch(`${base}/vendor/${name}.mjs`)).text())}`)).default;
   const SAT = await vendored('sat'), PF = await vendored('pathfinding');
   assert.equal(SAT.testCircleCircle(new SAT.Circle(new SAT.Vector(0, 0), 2), new SAT.Circle(new SAT.Vector(3, 0), 2)), true);

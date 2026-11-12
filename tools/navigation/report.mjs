@@ -10,7 +10,7 @@ import { defaultContent } from '../../shared/simulation/content.ts';
 import { bakeGraph, queryGraph } from './graph.mjs';
 import { speculative } from './optimistic.mjs';
 import { measureWitnesses } from './witnesses.mjs';
-import { gridRoute } from '../../shared/map/route.ts';
+import { gridRoute } from '../../map/tools/route.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 
 const measure = fn => { const start=performance.now(); const value=fn(); return {ms:performance.now()-start,value}; };

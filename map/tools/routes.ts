@@ -7,9 +7,9 @@ import type { BuiltMap } from "../kernel/contract.ts";
 import { builtMapCollision, builtMapFrame } from "../micro/adapter.ts";
 import type { RegionElement } from "../micro/types.ts";
 import { TILE } from "../../shared/movement.ts";
-import { navigationClearance, navigationGrid, straightenPath } from "../../shared/map/navigation.ts";
-import { gridRoute } from "../../shared/map/route.ts";
-import type { CollisionMap, Role, TileCount, TileIndex, TileRect, TileStep, Vec2 } from "../../shared/types.ts";
+import { navigationClearance } from "../../shared/map/navigation.ts";
+import { gridRoute, navigationGrid, straightenPath, type TileCount, type TileIndex, type TileRect, type TileStep } from "./route.ts";
+import type { CollisionMap, Role, Vec2 } from "../../shared/types.ts";
 
 export interface BodyRoute {
   role: Role;

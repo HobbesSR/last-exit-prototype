@@ -1,10 +1,9 @@
-import { bodyRadius, TILE } from '../movement.ts';
-import { moveClear, tileWalkable } from '../map/navigation.ts';
-import { nearestTile } from '../map/route.ts';
-import { IndexHeap } from '../index-heap.ts';
-import type { CollisionMap, DoorPermission, Role, TileCount, TileIndex, TileRect, TileStep, Vec2, World } from '../types.ts';
-import { REGION_MARGIN, type PortalGraph, type Reach } from './portal-graph.ts';
-import { hypot } from '../math.ts';
+import { bodyRadius, TILE } from '../../shared/movement.ts';
+import { moveClear, nearestTile, tileWalkable, type TileCount, type TileIndex, type TileRect, type TileStep } from './route.ts';
+import { IndexHeap } from '../../shared/index-heap.ts';
+import type { CollisionMap, DoorPermission, Role, Vec2, World } from '../../shared/types.ts';
+import { REGION_MARGIN, type PortalGraph, type Reach } from '../../shared/navigation/portal-graph.ts';
+import { hypot } from '../../shared/math.ts';
 
 /**
  * The interim bottom level (22.6): today's walkability grid, searched within one region instead

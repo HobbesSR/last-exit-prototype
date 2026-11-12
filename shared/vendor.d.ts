@@ -1,6 +1,6 @@
-// Minimal ambient declarations for the two untyped vendor libraries. These describe only the
-// surface this project actually calls, so an unused SAT or PathFinding entry point is a type
-// error rather than an `any` that silently spreads through collision and routing code.
+// Minimal ambient declaration for untyped vendor libraries in the portable core. Describes only the
+// surface this project actually calls, so an unused SAT entry point is a type error rather than
+// an `any` that silently spreads through collision code.
 
 declare module 'sat' {
   export class Vector {
@@ -45,19 +45,4 @@ declare module 'sat' {
     pointInPolygon: typeof pointInPolygon;
   };
   export default SAT;
-}
-
-declare module 'pathfinding' {
-  /** Row-major walkability: 0 is walkable, 1 is blocked. Indexed [y][x]. */
-  export class Grid {
-    constructor(matrix: number[][]);
-  }
-  export class AStarFinder {
-    constructor(options?: { allowDiagonal?: boolean; dontCrossCorners?: boolean });
-    /** Returns `[x, y]` pairs in grid coordinates, including both endpoints. */
-    findPath(startX: number, startY: number, endX: number, endY: number, grid: Grid): number[][];
-  }
-
-  const PF: { Grid: typeof Grid; AStarFinder: typeof AStarFinder };
-  export default PF;
 }
