@@ -63,6 +63,9 @@ export function regionAt(graph: PortalGraph, point: Vec2): number {
  */
 export type Reach = (from: Vec2, targets: readonly Vec2[], region: number) => (World | null)[];
 
+/** How far past a region's cells the level below may search: a portal's clear margin lies across it (20.6). */
+export const REGION_MARGIN: World = 96;
+
 export type PortalRouteStatus = 'complete' | 'no-route' | 'invalid-endpoint';
 export interface PortalRoute {
   status: PortalRouteStatus;

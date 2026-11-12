@@ -3,7 +3,7 @@ import { moveClear, tileWalkable } from '../map/navigation.ts';
 import { nearestTile } from '../map/route.ts';
 import { IndexHeap } from '../index-heap.ts';
 import type { CollisionMap, DoorPermission, Role, TileCount, TileIndex, TileRect, TileStep, Vec2, World } from '../types.ts';
-import type { PortalGraph, Reach } from './portal-graph.ts';
+import { REGION_MARGIN, type PortalGraph, type Reach } from './portal-graph.ts';
 import { hypot } from '../math.ts';
 
 /**
@@ -13,8 +13,6 @@ import { hypot } from '../math.ts';
  * triangulation replaces it.
  */
 
-/** How far past a region's cells a search may go: a portal's clear margin lies across it (20.6). */
-const MARGIN: World = 96;
 const DIAGONAL = Math.SQRT2 * TILE;
 /** Region searches kept ready; a planner's construction visits each region once, in order. */
 const KEEP = 64;
@@ -31,7 +29,7 @@ export function stepsLength(a: Vec2, steps: readonly TileStep[], b: Vec2): World
 
 /**
  * One region's searchable tiles: walkable tiles of its bounds whose centre lies within
- * `MARGIN` of a cell it owns, numbered compactly so a flood costs the region's area, not
+ * `REGION_MARGIN` of a cell it owns, numbered compactly so a flood costs the region's area, not
  * its bounding box's.
  */
 interface RegionTiles {
@@ -48,17 +46,17 @@ interface RegionTiles {
 
 function regionTiles(map: CollisionMap, walkable: (x: number, y: number) => boolean, clear: (a: Vec2, b: Vec2) => boolean, graph: PortalGraph, region: number): RegionTiles {
   const box = graph.regions[region]!.box;
-  const x = Math.max(0, Math.floor((box.x - MARGIN) / TILE)), y = Math.max(0, Math.floor((box.y - MARGIN) / TILE));
+  const x = Math.max(0, Math.floor((box.x - REGION_MARGIN) / TILE)), y = Math.max(0, Math.floor((box.y - REGION_MARGIN) / TILE));
   const bounds = { x: x as TileIndex, y: y as TileIndex,
-    width: Math.min(Math.ceil((box.x + box.w + MARGIN) / TILE), Math.ceil(map.width / TILE)) - x as TileCount,
-    height: Math.min(Math.ceil((box.y + box.h + MARGIN) / TILE), Math.ceil(map.height / TILE)) - y as TileCount };
+    width: Math.min(Math.ceil((box.x + box.w + REGION_MARGIN) / TILE), Math.ceil(map.width / TILE)) - x as TileCount,
+    height: Math.min(Math.ceil((box.y + box.h + REGION_MARGIN) / TILE), Math.ceil(map.height / TILE)) - y as TileCount };
   const { width, height } = bounds;
   const near = new Uint8Array(width * height), size = graph.cellSize;
   const firstCol = Math.floor(box.x / size), firstRow = Math.floor(box.y / size);
   for (let row = firstRow; row < firstRow + box.h / size; row++) for (let col = firstCol; col < firstCol + box.w / size; col++) {
     if (graph.owner[row * graph.cols + col] !== region) continue;
-    const left = Math.max(0, Math.ceil((col * size - MARGIN) / TILE - 0.5) - x), right = Math.min(width - 1, Math.floor(((col + 1) * size + MARGIN) / TILE - 0.5) - x);
-    const top = Math.max(0, Math.ceil((row * size - MARGIN) / TILE - 0.5) - y), bottom = Math.min(height - 1, Math.floor(((row + 1) * size + MARGIN) / TILE - 0.5) - y);
+    const left = Math.max(0, Math.ceil((col * size - REGION_MARGIN) / TILE - 0.5) - x), right = Math.min(width - 1, Math.floor(((col + 1) * size + REGION_MARGIN) / TILE - 0.5) - x);
+    const top = Math.max(0, Math.ceil((row * size - REGION_MARGIN) / TILE - 0.5) - y), bottom = Math.min(height - 1, Math.floor(((row + 1) * size + REGION_MARGIN) / TILE - 0.5) - y);
     for (let ty = top; ty <= bottom; ty++) near.fill(1, ty * width + left, ty * width + right + 1);
   }
   const compact = new Int32Array(width * height).fill(-1), tiles: number[] = [];
