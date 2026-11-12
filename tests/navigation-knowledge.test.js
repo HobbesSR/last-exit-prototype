@@ -5,7 +5,7 @@ import { adoptPackedTiles, freeSpaceTile } from '../shared/free-space.ts';
 import { createDiscovery, discover, discoveryGrid, observeGate } from '../shared/discovery.ts';
 import { sweptClear } from '../shared/movement.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
-import { generateLiveMap } from '../map/live.ts';
+import { generatedMap } from './helpers/room-harness.js';
 
 // A contestant plans over what it has discovered, assuming unknown ground open (22.6, #423).
 
@@ -230,7 +230,7 @@ test('frozen knowledge keeps the cells and doors known when it was taken', () =>
 });
 
 test('information test on a live map: obstacles out of every known cell, removed or reordered, change nothing', () => {
-  const map = generateLiveMap(7), { cols } = discoveryGrid(map), memory = createDiscovery();
+  const map = generatedMap(), { cols } = discoveryGrid(map), memory = createDiscovery();
   const spawn = map.spawns[0];
   for (let i = 0; i < 4; i++) discover(memory, map, { x: spawn.x + i * 900, y: spawn.y }, undefined, true);
   const knownCell = cell => memory.discovered.has(cell) || memory.surveyed.has(cell);
