@@ -60,7 +60,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
   for (let i = 0; i < copies; i++) {
     const point = scatterPoint(s, p, stagedSerial + i, items, points);
     if (!point && !mandatory) return null;
-    // Mandatory overflow is logical loot, not a promise that P5 can allocate a body here.
+    // Mandatory overflow is logical loot, not a promise that the physics world can allocate a body here.
     points.push(point ?? { x: p.x, y: p.y });
   }
   if (item.instanceId && (items.some(other => other.id === item.instanceId)

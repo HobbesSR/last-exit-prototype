@@ -21,10 +21,7 @@ test('a 32-unit slit admits contestants and blocks gladiators', async () => {
   for (const [role, profile] of Object.entries(contentById('content-6').actorPhysics.geometry)) {
     const world = await createPhysicsWorld();
     try {
-      for (let i = 0; i < specs.length; i++) {
-        world.queueAddBody(specs[i]);
-        if (i % 512 === 511) world.commitMutations();
-      }
+      for (const spec of specs) world.queueAddBody(spec);
       world.queueAddBody({ id: role, kind: 'actor', x: gap.x - 60, y: gap.y,
         shape: { kind: 'circle', radius: profile.bodyRadius }, friction: 0, restitution: 0 });
       world.commitMutations(); world.setMotor(role, { x: 180, y: 0, accel: 3600 });
@@ -36,7 +33,7 @@ test('a 32-unit slit admits contestants and blocks gladiators', async () => {
   }
 });
 
-test('narrow actors at the P2 speed cap cannot cross a playable-mask hole', async () => {
+test('narrow actors at the speed cap cannot cross a playable-mask hole', async () => {
   const map = { width: 800, height: 800, obstacles: [], gates: [], playableArea: { cellSize: 100,
     rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: y >= 2 && y < 6 ? [[0, 3], [4, 8]] : [[0, 8]] })) } };
   for (const [role, profile] of Object.entries(contentById('content-6').actorPhysics.geometry)) {

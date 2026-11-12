@@ -5,7 +5,7 @@ import { hypot } from '../math.ts';
 export const DEFAULT_CHARACTER_MOTOR = Object.freeze({ acceleration: 3600, braking: 3600 });
 export const actorRadius = (s: Game, p: Player): number => s.content.actorPhysics?.geometry[p.role].bodyRadius ?? bodyRadius(p);
 
-/** Reject malformed experimental tuning before allocating a world. Without a profile, motor surfaces are unread. */
+/** Reject malformed tuning before allocating a world. Without a profile, motor surfaces are unread. */
 export function validateActorPhysics(profile: ActorPhysics | undefined, map: GameMap): void {
   if (!profile) return;
   for (const role of ['contestant', 'gladiator'] as const) {

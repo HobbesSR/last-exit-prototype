@@ -15,7 +15,7 @@ const content = () => ({ ...structuredClone(contentById('content-6')), dynamicNa
   roster: { contestants: ['A'], gladiators: [] }, discovery: false });
 const carried = id => ({ kind: 'cell', charge: 37, instanceId: id, lineageId: id });
 
-test('P8 scatter avoids active actor footprints and rotated prop colliders', async () => {
+test('scatter avoids active actor footprints and rotated prop colliders', async () => {
   const s = await createPhysicsGame(448, map([{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 4 }]), content());
   try {
     const r = physicsRuntime(s), origin = { x: 300, y: 400 };
@@ -60,7 +60,7 @@ test('crowded optional physical drop refuses atomically without consuming invent
   } finally { disposePhysics(s); }
 });
 
-test('P8 full-inventory swap stages its serial but still checks rotated prop occupancy', async () => {
+test('a full-inventory swap stages its serial but still checks rotated prop occupancy', async () => {
   const s = await createPhysicsGame(448, map([{ id: 'crate', profile: 'crate', x: 600, y: 600, angle: Math.PI / 4 }]), content());
   try {
     const p = s.players[0], r = physicsRuntime(s);

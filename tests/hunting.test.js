@@ -4,7 +4,6 @@ import { disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { estimatedFrontX, giveUpSweep, hasEvidenceFurtherRight, noteHunterTarget, sweepTarget, transitPlan } from '../shared/simulation/hunting.ts';
 import { hearShot } from '../shared/simulation/hearing.ts';
-import { visibleTo } from '../shared/simulation/visibility.ts';
 import { arena } from './helpers/arena.js';
 import { gunfight, run, stagePhysics } from './helpers/scenario.js';
 
@@ -138,7 +137,7 @@ test('hasEvidenceFurtherRight checks each evidence branch without string-parsing
   assert.equal(hasEvidenceFurtherRight(sHeardBehind), false, 'heard shot behind threshold does not latch');
 });
 
-test('bot-match under content-12 runs physics simulation cleanly and uses transit', async () => {
+test('bot-match under content-12 runs cleanly and uses transit', async () => {
   const { map } = arena({ cols: 30, rows: 6, corridor: { gaps: [2, 2, 2, 2] },
     stations: [{ id: 'st0', nodeId: 'n0', x: 300, y: 576 }, { id: 'st1', nodeId: 'n1', x: 5000, y: 576 }] });
   const actors = [
@@ -152,7 +151,7 @@ test('bot-match under content-12 runs physics simulation cleanly and uses transi
   try {
     let usedTransit = false;
     run(s, { ticks: 120, trace: s => { if (g.status === 'transit' || g.railCd > 0) usedTransit = true; } });
-    assert.ok(s.tick === 120, 'ran 120 ticks cleanly');
+    assert.equal(s.tick, 120, 'ran 120 ticks cleanly');
     assert.ok(usedTransit, 'gladiator at exit planned and used transit toward the front');
   } finally { disposePhysics(s); }
 });

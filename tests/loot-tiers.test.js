@@ -138,7 +138,7 @@ test('the same match replays to identical quality-bearing frames', async t => {
     const map = arena();
     for (let i = 0; i < 6; i++) map.items.push({ id: `w-${i}`, kind: 'weapon', weaponType: 'scattergun', x: 130 + i * 70, y: 40 + i * 60 });
     const { s, p } = await fixture(t, map), frames = [];
-    for (let t = 0; t < 30; t++) { setInput(s, p.id, { seq: t + 1, x: 1, attack: t % 5 === 0, aim: 0 }); step(s); frames.push(JSON.stringify(snapshot(s))); }
+    for (let i = 0; i < 30; i++) { setInput(s, p.id, { seq: i + 1, x: 1, attack: i % 5 === 0, aim: 0 }); step(s); frames.push(JSON.stringify(snapshot(s))); }
     return frames;
   };
   const frames = await run();

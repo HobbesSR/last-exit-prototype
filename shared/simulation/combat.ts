@@ -1,4 +1,4 @@
-import { canOccupy, lineClear } from '../movement.ts';
+import { lineClear } from '../movement.ts';
 import { equipped, syncWeapon } from '../equipment.ts';
 import { qualityDamage } from '../loot-tiers.ts';
 import { HZ } from './rules.ts';
@@ -8,7 +8,6 @@ import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
 import { hookSkill } from './hook.ts';
 import { hearShot } from './hearing.ts';
-import { actorHitRadius } from './swept.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
 import { atan2, cos, sin } from '../math.ts';
 
@@ -79,19 +78,4 @@ export function attack(s: Game, p: Player): void {
     for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: cos(p.heading + spread) * weapon.speed, dy: sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage * qualityDamage(s.content, item) }); p.cloak = 0;
     hearShot(s, p, item.weaponType);
   }
-}
-export function advanceProjectiles(s: Game): void {
-  s.projectiles = s.projectiles.filter(b => {
-    const previous = { x: b.x, y: b.y }; b.x += b.dx; b.y += b.dy; b.life--;
-    if (b.life <= 0) return false;
-    const lengthSquared = b.dx * b.dx + b.dy * b.dy;
-    const hits = s.players.filter(p => p.id !== b.owner && p.status === 'active').map(p => {
-      const t = Math.max(0, Math.min(1, ((p.x - previous.x) * b.dx + (p.y - previous.y) * b.dy) / lengthSquared));
-      const point = { x: previous.x + b.dx * t, y: previous.y + b.dy * t };
-      return { p, t, point, hit: distance(p, point) < actorHitRadius(p.role) };
-    }).filter(h => h.hit).sort((a, b) => a.t - b.t);
-    if (hits.length && lineClear(s.map, previous, hits[0].point)) { damage(s, hits[0].p, b.damage, s.players.find(p => p.id === b.owner) ?? null); return false; }
-    if (!canOccupy(s.map, b.x, b.y, 2, false, true) || !lineClear(s.map, previous, b)) return false;
-    return true;
-  });
 }

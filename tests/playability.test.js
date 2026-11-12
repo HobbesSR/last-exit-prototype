@@ -52,7 +52,7 @@ test('building roofs hide interiors outside, while windows pass sight and bullet
   assert.equal(canOccupy(map, b.x + 125, b.y + 9, 12), false);
 });
 
-// Each role's body, pushed at an opening for a second, stays behind it (the engine's bodies, not the legacy mover's).
+// Each role's body, pushed at an opening for a second, stays behind it (the engine's bodies).
 test('a body pushed at a window stays behind it, whichever role it is', async () => {
   for (const role of ['contestant', 'gladiator']) {
     await dispose(await stage(hall(), [{ role, bot: false, ...INSIDE }]), ({ s, players: [p] }) => {

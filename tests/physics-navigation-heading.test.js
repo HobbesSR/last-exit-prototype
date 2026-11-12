@@ -52,7 +52,7 @@ test('point sight applies strict range, roof concealment, and cover; actor excep
   } finally { disposePhysics(s); }
 });
 
-test('collectBotIntent preserves heading when a P8 bot queues with no enemy', async () => {
+test('collectBotIntent preserves heading when a bot queues with no enemy', async () => {
   const { map, content } = fixture({ spawns: [{ x: 200, y: 400 }, { x: 300, y: 400 }],
     obstacles: [{ id: 'top', x: 100, y: 100, w: 500, h: 280 },
       { id: 'bottom', x: 100, y: 420, w: 500, h: 280 }],

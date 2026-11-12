@@ -101,7 +101,7 @@ test('the transit input is bounded, sent once, and never repeated by a starved q
   assert.equal(consumeInput(p, 1).transit, undefined);
 });
 
-test('on the physics engine the body leaves on departure and is placed on landing', async () => {
+test('the body leaves on departure and is placed on landing', async () => {
   const { map } = openField(5600, { stations: structuredClone(STATIONS) });
   const content = { ...contentById('content-10'), transitTime: { base: 10, perUnit: 0 } };
   const { s, players: [g] } = await stagePhysics(map, { content, actors: ACTORS });

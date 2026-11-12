@@ -9,8 +9,10 @@ import { arena } from './helpers/arena.js';
 
 const CELL = 192, REGIONS = 4, WIDTH = 4 * CELL;
 
-/** Four regions side by side, walled from each other except for one gap each, with the exit in the last. */
-// Each wall leaves a gap at y 0–192, 384–576 or 0–192 in turn, so a trip zigzags.
+/**
+ * Four regions side by side, walled from each other except for one gap each, with the exit in the last. Each wall
+ * leaves a gap at y 0–192, 384–576 or 0–192 in turn, so a trip zigzags.
+ */
 const corridorMap = () => arena({ cols: 4 * REGIONS, rows: 3, cellSize: CELL, corridor: { gaps: [0, 2, 0] } });
 
 function hunterScene(contentId, planning) {

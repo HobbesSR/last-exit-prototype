@@ -4,7 +4,7 @@ import { generateLiveMap } from '../../map/live.ts';
 import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 
-test('P8 contestants complete a combat-neutralized live-chain match with solid actor contact', async () => {
+test('contestants complete a combat-neutralized live-chain match with solid actor contact', async () => {
   const content = contentById('content-6');
   const game = await createPhysicsGame(4217, generateLiveMap(4217, content), content);
   try {
@@ -14,6 +14,6 @@ test('P8 contestants complete a combat-neutralized live-chain match with solid a
       else player.shield = 1000000;
     }
     while (game.phase === 'live') step(game);
-    assert.equal(game.slots, 0, `P8 seed 4217: escaped=${game.players.filter(p => p.status === 'escaped').length}, tick=${game.tick}`);
+    assert.equal(game.slots, 0, `seed 4217: escaped=${game.players.filter(p => p.status === 'escaped').length}, tick=${game.tick}`);
   } finally { disposePhysics(game); }
 });

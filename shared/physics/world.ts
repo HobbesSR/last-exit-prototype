@@ -18,11 +18,11 @@ const MAX_MAGNITUDE = 1e9;
 const STATIC_GROUP = 0x0001;
 const ACTOR_GROUP = 0x0002;
 const PROP_GROUP = 0x0004;
+const LOOT_GROUP = 0x0008;
 // Rapier's init only checks for a finished instance, so overlapping calls instantiate the wasm twice and
 // orphan whatever the first instance allocated. Share one initialization.
 let initialization: Promise<void> | undefined;
 const initialized = () => initialization ??= RAPIER.init();
-const LOOT_GROUP = 0x0008;
 const solidMask = STATIC_GROUP | ACTOR_GROUP | PROP_GROUP;
 const groups = (membership: number, mask: number): number => (membership << 16) | mask;
 const order = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;

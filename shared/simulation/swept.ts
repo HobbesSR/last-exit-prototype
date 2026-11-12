@@ -8,7 +8,7 @@ import { bodyShape } from '../physics/presentation-geometry.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { Box, CollisionMap, Game, Gate, Role, Vec2 } from '../types.ts';
 
-// The one owner of swept queries against actors and geometry: physical projectiles and the P6 hook
+// The one owner of swept queries against actors and geometry: physical projectiles and the hook
 // tip/tether both ask the same questions, differing only in radius and which geometry blocks them.
 
 const BISECTION_STEPS = 26;
@@ -52,10 +52,10 @@ function candidates(index: ShapeIndex, left: number, top: number, right: number,
   return found.sort((a, b) => a - b);
 }
 
-/** Swept hit radius of an actor, shared by shots, the hook tip and legacy projectiles. */
+/** Swept hit radius of an actor, shared by shots and the hook tip. */
 export function actorHitRadius(role: Role): number { return role === 'gladiator' ? 26 : 15; }
 
-export function shapeOfBody(body: BodyDefinition): Shape {
+function shapeOfBody(body: BodyDefinition): Shape {
   if (body.shape.kind === 'circle') return circle(body.x, body.y, body.shape.radius);
   if (body.shape.kind === 'box') return rect(body.x - body.shape.hx, body.y - body.shape.hy,
     body.shape.hx * 2, body.shape.hy * 2);

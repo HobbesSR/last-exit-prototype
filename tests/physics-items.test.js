@@ -183,7 +183,7 @@ test('authored crate moves and rotates without contact damage; floor drag uses p
   } finally { disposePhysics(s); }
 });
 
-test('P5 authoring is validated and match-pinned', async () => {
+test('world physics authoring is validated and match-pinned', async () => {
   const bad = arena();
   bad.motorSurfaces = [{ id: 'floor', x: 100, y: 100, w: 200, h: 200,
     priority: 1, speed: 1, traction: 1, braking: 1, drag: -0.1 }];

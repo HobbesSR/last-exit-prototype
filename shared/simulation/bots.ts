@@ -559,13 +559,13 @@ export interface BotIntent {
   discardSlot?: number;
 }
 
-/** Collect equipment/utility/drop intents without applying them; private planning memory,
- * routes, sliced searches and their shared per-tick allowance may still change. */
 // Mixed temperaments create occasional betrayal, rather than every converging bot starting
 // a deathmatch simultaneously. All bots can retaliate; roughly one third initiate disputes,
 // and under `hearingResponse` follow gunfire (#685).
 export const isOpportunistic = (p: Pick<Player, 'id'>): boolean => p.id.charCodeAt(p.id.length - 1) % 3 === 0;
 
+/** Collect equipment/utility/drop intents without applying them; private planning memory,
+ * routes, sliced searches and their shared per-tick allowance may still change. */
 export function collectBotIntent(s: Game, p: Player): BotIntent {
   const intent: BotIntent = { input: {} };
   const cell = carriedCell(p);
@@ -614,8 +614,8 @@ export function collectBotIntent(s: Game, p: Player): BotIntent {
   }
   let exploring = false;
   if (p.role === 'contestant') {
-    // A contestant knows what it has discovered (15, #230). Without discovery (content-1) it keeps the
-    // whole map, which is what the frozen characterization traces recorded.
+    // A contestant knows what it has discovered (15, #230). Content without discovery gives it the whole
+    // map: an information rule a scenario may set.
     start('sim.bots.items');
     const memory = p.discovery, pursuit = memory ? pursuitOf(p) : null;
     const known = (feature: Vec2) => !memory || isFeatureDiscovered(memory, s.map, feature);

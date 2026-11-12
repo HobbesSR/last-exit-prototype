@@ -48,11 +48,11 @@ test('hook tuning rejects missing/invalid values and is detached from caller edi
   } finally { disposePhysics(s); }
 });
 
-test('schema 14 retains flight/pending/pull/cancel states through compressed recording and backward seek', async () => {
+test('the recording retains flight/pending/pull/cancel states through compressed recording and backward seek', async () => {
   const { content, map } = fixture();
   const s = await createPhysicsGame(446, map, content);
   const chunks = [], frames = [];
-  const header = { id: 'p6', schema: SCHEMA, minSchema: 10, version: s.version,
+  const header = { id: 'hook', schema: SCHEMA, minSchema: 10, version: s.version,
     contentId: content.id, seed: 446, hz: 20, createdAt: 1, map: structuredClone(map) };
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => assert.fail(error.message) });

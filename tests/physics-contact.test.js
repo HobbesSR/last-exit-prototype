@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
 
-// P2 body radius is 0.8 of each role's measured nominal rendered head radius.
+// Each role's body radius is 0.8 of each role's measured nominal rendered head radius.
 const contestant = 11.2875;
 const gladiator = 16.25;
 const actor = (id, x, y, radius = contestant) => ({ id, kind: 'actor',

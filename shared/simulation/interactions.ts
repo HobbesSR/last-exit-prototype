@@ -69,7 +69,7 @@ export function interact(s: Game, p: Player): void {
     } else if (gate.open && gate.kind === 'door' && !p.bot) {
       const box = gateShape(gate);
       const runtime = s.content.actorPhysics ? physicsRuntime(s) : undefined;
-      // Under P2 the players are tested as well as the bodies: a transit earlier this phase has moved
+      // With character bodies the players are tested as well as the bodies: a transit earlier this phase has moved
       // its player but not yet its body, and synchronize would refuse the close only after discovery saw it.
       const occupied = s.players.some(other => other.status === 'active' && hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < (runtime ? actorRadius(s, other) : bodyRadius(other)))
         || !!runtime?.world.overlapsDynamicBox(box);
