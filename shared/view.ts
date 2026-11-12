@@ -74,9 +74,7 @@ export interface Sight {
 const ENTITY_MARGIN: World = 30;
 
 // What a viewer may know is a gameplay rule, not a rendering detail — see docs/15. The world view and
-// the minimap each used to answer this separately and had already drifted apart: the minimap applied
-// roof concealment before consulting a reveal, so a revealed player under a roof was drawn in the
-// world and missing from the map. One predicate cannot disagree with itself.
+// the minimap both ask this one predicate, so they cannot disagree about what is seen.
 export function seesPoint(sight: Sight | null | undefined, map: RoofMap, x: World, y: World, margin: World = ENTITY_MARGIN): boolean {
   if (!sight) return false; // No computed sight knows nothing; a directed view is the caller's decision.
   return !roofConceals(map, sight.eye, { x, y })
@@ -155,14 +153,26 @@ interface RoofIndex {
   buildingBuckets: Map<string, Building[]>;
   roofCellSets: WeakMap<Roof, Set<string>>;
   obstacleBuckets: Map<string, PhysicalBox[]>;
-  undeclaredBuildings: Building[];
 }
 
 // Cached per map object and never invalidated: a map is immutable after generation, and the client
 // replaces the object on every change. Editing `buildings` or `roofs` in place reads a stale index.
 const roofIndexCache = new WeakMap<object, RoofIndex>();
+const ROOF_BUCKET = 160;
 
-export function getRoofIndex(map: RoofMap): RoofIndex {
+/** Add `item` to every `ROOF_BUCKET` cell the closed box from `x0`,`y0` to `x1`,`y1` touches. */
+function bucketOver<T>(buckets: Map<string, T[]>, x0: number, y0: number, x1: number, y1: number, item: T): void {
+  for (let bx = Math.floor(x0 / ROOF_BUCKET); bx <= Math.floor(x1 / ROOF_BUCKET); bx++) {
+    for (let by = Math.floor(y0 / ROOF_BUCKET); by <= Math.floor(y1 / ROOF_BUCKET); by++) {
+      const key = `${bx},${by}`;
+      let list = buckets.get(key);
+      if (!list) { list = []; buckets.set(key, list); }
+      list.push(item);
+    }
+  }
+}
+
+function getRoofIndex(map: RoofMap): RoofIndex {
   let index = roofIndexCache.get(map);
   if (!index) {
     const roofs = map.roofs || [];
@@ -170,8 +180,6 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
     for (const r of roofs) {
       if (r.buildingId) coveredBuildingIds.add(r.buildingId);
     }
-    const undeclaredBuildings = (map.buildings || []).filter(b => !coveredBuildingIds.has(b.id));
-    const bucketSize = 160;
     const roofBuckets = new Map<string, Roof[]>();
     const buildingBuckets = new Map<string, Building[]>();
     const roofCellSets = new WeakMap<Roof, Set<string>>();
@@ -183,66 +191,22 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
         set.add(`${c.x},${c.y}`);
         const x0 = roof.origin.x + c.x * roof.cellSize;
         const y0 = roof.origin.y + c.y * roof.cellSize;
-        const x1 = x0 + roof.cellSize;
-        const y1 = y0 + roof.cellSize;
-        const box: PhysicalBox = { roofId: roof.id, x0, y0, x1, y1 };
-        const minBx = Math.floor(x0 / bucketSize);
-        const maxBx = Math.floor(x1 / bucketSize);
-        const minBy = Math.floor(y0 / bucketSize);
-        const maxBy = Math.floor(y1 / bucketSize);
-        for (let bx = minBx; bx <= maxBx; bx++) {
-          for (let by = minBy; by <= maxBy; by++) {
-            const key = `${bx},${by}`;
-            let list = obstacleBuckets.get(key);
-            if (!list) { list = []; obstacleBuckets.set(key, list); }
-            list.push(box);
-          }
-        }
+        const box: PhysicalBox = { roofId: roof.id, x0, y0, x1: x0 + roof.cellSize, y1: y0 + roof.cellSize };
+        bucketOver(obstacleBuckets, box.x0, box.y0, box.x1, box.y1, box);
       }
       roofCellSets.set(roof, set);
-
-      const minBx = Math.floor(roof.bounds.x / bucketSize);
-      const maxBx = Math.floor((roof.bounds.x + roof.bounds.w) / bucketSize);
-      const minBy = Math.floor(roof.bounds.y / bucketSize);
-      const maxBy = Math.floor((roof.bounds.y + roof.bounds.h) / bucketSize);
-      for (let bx = minBx; bx <= maxBx; bx++) {
-        for (let by = minBy; by <= maxBy; by++) {
-          const key = `${bx},${by}`;
-          let list = roofBuckets.get(key);
-          if (!list) { list = []; roofBuckets.set(key, list); }
-          list.push(roof);
-        }
-      }
+      bucketOver(roofBuckets, roof.bounds.x, roof.bounds.y, roof.bounds.x + roof.bounds.w, roof.bounds.y + roof.bounds.h, roof);
     }
 
-    for (const b of undeclaredBuildings) {
+    // A building no roof declares is its own roof.
+    for (const b of map.buildings || []) {
+      if (coveredBuildingIds.has(b.id)) continue;
       const box: PhysicalBox = { x0: b.x, y0: b.y, x1: b.x + b.w, y1: b.y + b.h };
-      const minBx = Math.floor(box.x0 / bucketSize);
-      const maxBx = Math.floor(box.x1 / bucketSize);
-      const minBy = Math.floor(box.y0 / bucketSize);
-      const maxBy = Math.floor(box.y1 / bucketSize);
-      for (let bx = minBx; bx <= maxBx; bx++) {
-        for (let by = minBy; by <= maxBy; by++) {
-          const key = `${bx},${by}`;
-          let bList = buildingBuckets.get(key);
-          if (!bList) { bList = []; buildingBuckets.set(key, bList); }
-          bList.push(b);
-          let oList = obstacleBuckets.get(key);
-          if (!oList) { oList = []; obstacleBuckets.set(key, oList); }
-          oList.push(box);
-        }
-      }
+      bucketOver(buildingBuckets, box.x0, box.y0, box.x1, box.y1, b);
+      bucketOver(obstacleBuckets, box.x0, box.y0, box.x1, box.y1, box);
     }
 
-    index = {
-      coveredBuildingIds,
-      bucketSize,
-      roofBuckets,
-      buildingBuckets,
-      roofCellSets,
-      obstacleBuckets,
-      undeclaredBuildings,
-    };
+    index = { coveredBuildingIds, bucketSize: ROOF_BUCKET, roofBuckets, buildingBuckets, roofCellSets, obstacleBuckets };
     roofIndexCache.set(map, index);
   }
   return index;

@@ -2,16 +2,13 @@ import { bodyRadius, sweptClear } from '../movement.ts';
 import { navigationClearance, navigationMap } from '../map/navigation.ts';
 import { freePaths, mapFreeSpace, type FreeSpace } from '../free-space.ts';
 import type { Box, CollisionMap, DoorPermission, Role, Vec2, World } from '../types.ts';
-import type { PortalGraph, Reach } from './portal-graph.ts';
+import { REGION_MARGIN, type PortalGraph, type Reach } from './portal-graph.ts';
 
 /**
  * The bottom level (22.6): the shape module's free-space mesh of each region and its clear margin,
  * eroded by one body's navigation clearance and searched for it. Paths come from the mesh;
  * collision judges every one, so a distance is a route the body can travel (22.6, "Safety").
  */
-
-/** How far past a region's cells a search may go: a portal's clear margin lies across it (20.6). */
-const MARGIN: World = 96;
 
 /** A path the mesh found that collision refused: a defect in the mesh or its paths, never a route. */
 export interface MeshDefect { region: number; from: Vec2; to: Vec2; segment: [Vec2, Vec2]; radius: World }
@@ -85,7 +82,7 @@ export function regionDomain(graph: PortalGraph, region: number): Box[] {
       if (graph.owner[row * graph.cols + col] !== region) continue;
       const start = col;
       while (col + 1 < firstCol + box.w / size && graph.owner[row * graph.cols + col + 1] === region) col++;
-      boxes.push({ x: start * size - MARGIN, y: row * size - MARGIN, w: (col + 1 - start) * size + 2 * MARGIN, h: size + 2 * MARGIN });
+      boxes.push({ x: start * size - REGION_MARGIN, y: row * size - REGION_MARGIN, w: (col + 1 - start) * size + 2 * REGION_MARGIN, h: size + 2 * REGION_MARGIN });
     }
   }
   return boxes;

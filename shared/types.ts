@@ -5,8 +5,8 @@
 //   * Identifiers are branded. They are strings that are never arithmetic, so a brand costs one
 //     cast at the single place each id is minted and catches every gate-id-for-item-id mix-up.
 //   * Tile coordinates are branded. The arena has four coexisting coordinate spaces (below) and
-//     tile arithmetic is confined to `simulation/geometry`, `map/navigation` and the bot repath
-//     block, so the brand pays for itself there without spreading casts through the codebase.
+//     tile arithmetic is confined to the navigation grid (`map/navigation`, `map/route` and
+//     `navigation/grid-level`), so the brand pays for itself there without spreading casts.
 //   * World coordinates and tick counts are plain `number` aliases. They are combined
 //     arithmetically on nearly every line; branding them would demand a cast per expression and
 //     buy less than the named parameter and field types already give.
@@ -174,13 +174,6 @@ export interface TrapContent {
   spider: { leash: World; acquire: World; step: World; grapple: World; cooldown: Tick; stun: Tick; damage: number };
 }
 
-/**
- * The tunable content one match runs on, fixed at its creation and frozen thereafter.
- *
- * The values live in `simulation/content.ts`; the shape lives here with the specs it is made of,
- * because this file is the dependency-free vocabulary every layer reads and must not import back
- * out of one.
- */
 export interface ActorGeometry {
   contestant: { headRadius: number; bodyRadius: number; hurtRadius: number };
   gladiator: { headRadius: number; bodyRadius: number; hurtRadius: number };
@@ -212,6 +205,12 @@ export interface WorldPhysics {
    */
   dropReserve?: number | undefined;
 }
+/**
+ * The tunable content one match runs on, fixed at its creation and frozen thereafter.
+ *
+ * The values live in `simulation/content.ts`; the shape lives here with the specs it is made of,
+ * because this file is the vocabulary every layer reads and must not import back out of one.
+ */
 export interface MatchContent {
   /** Names the content set in a recording header. Changes when any value below changes. */
   id: string;
@@ -388,8 +387,8 @@ export interface Obstacle extends Box {
   r?: number | undefined;
   /**
    * A convex outline in points local to `x`,`y`, for generated geometry that is neither a box nor a
-   * circle. Collision, sight and rendering all read it through `shape.ts`. Absent on every recorded
-   * map so far, so older recordings keep their box/circle meaning unchanged.
+   * circle. Collision, sight and rendering all read it through `shape.ts`. Absent, the record is a
+   * box or a circle.
    */
   points?: Vec2[] | undefined;
   buildingId?: BuildingId | undefined;

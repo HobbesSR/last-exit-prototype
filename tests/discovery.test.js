@@ -336,7 +336,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
   } finally { match.dispose(); }
 });
 
-test('feature discovery query identifies discovered chargers and stations', () => {
+test('feature discovery query finds the nearest spawn discovered and the far exit not', () => {
   const s = game();
   const c0 = s.players[0];
   const memory = c0.discovery;

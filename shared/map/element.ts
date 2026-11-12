@@ -6,9 +6,7 @@ import type { Box, Cell, Building, BuildingAppearance, BuildingId, Decal, Elemen
 /**
  * A placeable element: one named assembly of geometry — a building, a cover cluster, a checkpoint —
  * described once and stamped wherever generation wants it. `shape.ts` owns what a single body is;
- * this owns what a group of bodies is, which is the level the map was previously missing. Before it,
- * the arena's only building existed as eight literal `rect` calls at one call site, so a second
- * building meant a second copy of those literals.
+ * this owns what a group of bodies is.
  *
  * Parts are positioned in coordinates local to the element's anchor and are emitted in array order.
  * **That order is part of the generated arena:** ids come from one counter shared by every stage, so
@@ -21,7 +19,7 @@ export type ElementPart =
   | { part: 'gate'; x: World; y: World; w: World; h: World }
   /** A candidate loot position, offered to the objectives stage rather than filled here. */
   | { part: 'spot'; x: World; y: World }
-  /** Ground the element claims beyond its own geometry, to keep later placements clear of it. */
+  /** Ground the element claims beyond its own geometry, which region placement keeps clear (`map/micro/canvas.ts`). Stamping emits nothing for it. */
   | { part: 'reserve'; x: World; y: World; w: World; h: World };
 
 export interface ElementRoof {
@@ -70,7 +68,7 @@ export interface Placement {
 
 /** Stamp a template with its anchor at `x`,`y`, emitting every part into the map being generated. */
 export function placeElement(context: BaseGenerationContext, template: ElementTemplate, x: World, y: World, placement: Placement): void {
-  const { map, nextId, shape, spots, reservations } = context;
+  const { map, nextId, shape, spots } = context;
   let owner: { buildingId: BuildingId } | undefined;
   if (template.encloses) {
     const building: Building = {
@@ -89,35 +87,17 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
     const app = template.appearance;
     if (app.surfaces?.length || app.commercial?.length || app.wear?.length || app.scars?.length || app.lighting?.fields?.length) {
       const target = (map.appearance ??= {});
-      if (app.surfaces?.length) {
-        (target.surfaces ??= []).push(...app.surfaces.map(s => ({
-          ...s,
-          bounds: { x: s.bounds.x + x, y: s.bounds.y + y, w: s.bounds.w, h: s.bounds.h },
-        })));
-      }
-      if (app.commercial?.length) {
-        (target.commercial ??= []).push(...app.commercial.map(c => ({
-          ...c,
-          bounds: { x: c.bounds.x + x, y: c.bounds.y + y, w: c.bounds.w, h: c.bounds.h },
-        })));
-      }
-      if (app.wear?.length) {
-        (target.wear ??= []).push(...app.wear.map(w => ({
-          ...w,
-          bounds: { x: w.bounds.x + x, y: w.bounds.y + y, w: w.bounds.w, h: w.bounds.h },
-        })));
-      }
-      if (app.scars?.length) {
-        (target.scars ??= []).push(...app.scars.map(s => ({
-          ...s,
-          bounds: { x: s.bounds.x + x, y: s.bounds.y + y, w: s.bounds.w, h: s.bounds.h },
-        })));
-      }
+      // Each mark keeps its fields, with its bounds moved from the template to the placement.
+      const placed = <T extends { bounds: Box }>(marks: readonly T[]): T[] =>
+        marks.map(m => ({ ...m, bounds: { x: m.bounds.x + x, y: m.bounds.y + y, w: m.bounds.w, h: m.bounds.h } }));
+      if (app.surfaces?.length) (target.surfaces ??= []).push(...placed(app.surfaces));
+      if (app.commercial?.length) (target.commercial ??= []).push(...placed(app.commercial));
+      if (app.wear?.length) (target.wear ??= []).push(...placed(app.wear));
+      if (app.scars?.length) (target.scars ??= []).push(...placed(app.scars));
       if (app.lighting?.fields?.length) {
         const lighting = (target.lighting ??= {});
-        (lighting.fields ??= []).push(...app.lighting.fields.map(f => ({
+        (lighting.fields ??= []).push(...placed(app.lighting.fields).map(f => ({
           ...f,
-          bounds: { x: f.bounds.x + x, y: f.bounds.y + y, w: f.bounds.w, h: f.bounds.h },
           ...(f.focalEdge
             ? {
                 focalEdge: {
@@ -180,6 +160,5 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
     }
     else if (part.part === 'gate') map.gates.push({ id: nextId('door-') as GateId, x: x + part.x, y: y + part.y, w: part.w, h: part.h, open: false, locked: !!placement.locked, kind: 'door', ...owner });
     else if (part.part === 'spot') spots.push({ x: x + part.x, y: y + part.y, nodeId: placement.nodeId, ...owner });
-    else reservations.push({ x: x + part.x, y: y + part.y, w: part.w, h: part.h });
   }
 }

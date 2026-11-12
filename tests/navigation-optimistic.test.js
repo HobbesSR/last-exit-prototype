@@ -15,7 +15,7 @@ test('a dimensions-only empty-knowledge graph plans repeatably, including sliced
   assert.deepEqual(plans[0],plans[1]);
   assert.equal(plans[0].at(-1).status,'complete');
 });
-test('aggregate report distinguishes bounded progress from unreachability and repeats work', () => {
+test('aggregate report completes sliced work and repeats naive runs exactly', () => {
   const result=speculative(1920,960,24,14,3);
   assert.equal(result.direct[0].slices.at(-1).complete,3);
   assert.deepEqual(result.naiveSampled[0].slices.map(s=>s.expansions),result.naiveSampled[1].slices.map(s=>s.expansions));

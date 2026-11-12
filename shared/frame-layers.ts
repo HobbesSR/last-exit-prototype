@@ -1,11 +1,11 @@
 // How a live state frame carries the map's slow-changing collections: as tables sent whole once and then
-// as changes against that whole copy, rather than in full every tick (#250).
+// as changes against that whole copy, rather than in full every tick.
 //
-// Items and gates are nearly static. A directed view carries every one on the map, about 98 KB and 12 KB
-// of a 113 KB frame, while a few of them change in a typical tick. Each is a layer, independent of the
+// Items and gates are nearly static. A directed view carries every one on the map, most of a frame's
+// bytes, while a few of them change in a typical tick. Each is a layer, independent of the
 // other and of the rest of the frame, which is still sent whole: a layer may be on a different version
 // from its neighbour and nothing reads across them.
-// Physics bodies and tethers use the same mechanism (#440). Moving entries participate in comparison
+// Physics bodies and tethers use the same mechanism. Moving entries participate in comparison
 // every tick; a busy body layer simply rekeys when its changes exceed the ordinary budget.
 //
 // The scheme is the standard one for snapshot delta compression (Quake 3, Source, MPEG's I- and
@@ -19,7 +19,7 @@
 //   periodic re-send (an MPEG carousel) because no receiver can be missing one without the server knowing.
 //
 // On the wire a layer is one of:
-//   [ ... ]                        a plain list, as before: waiting frames, welcomes, recordings
+//   [ ... ]                        a plain list: waiting frames, welcomes, recordings
 //   { k, set?: [ ... ], drop?: [ids] }   keyframe k with these entries replaced or added, and these removed
 //   { k, all: [ ... ], set?, drop? }     the same, carrying keyframe k itself for a session that lacks it
 // A keyframe never changes once cut: `all` is always the layer as it was then, and the current frame is
@@ -29,7 +29,7 @@
 
 import { count } from './profiler.ts';
 
-export const LAYERS =['items', 'gates', 'bodies', 'tethers'] as const;
+export const LAYERS = ['items', 'gates', 'bodies', 'tethers'] as const;
 export type Layer = typeof LAYERS[number];
 type Id = string | number;
 type Entry = { id: Id };

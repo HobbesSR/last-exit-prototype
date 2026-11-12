@@ -23,13 +23,12 @@
 /** The schema this build writes. Bump on any change to recorded structure. */
 export const SCHEMA = 16;
 /**
- * The oldest schema this build can read (#953). Schema 10 (P3, #440, matching physics matches'
- * `minSchema` floor) is the chosen supported floor and the first format supporting required
- * engine-free physics presentation alongside cell-masked chain maps (schema 4+).
+ * The oldest schema this build can read: the first with both cell-masked chain maps and the
+ * engine-free physics presentation every match now records.
  */
 export const MIN_SCHEMA = 10;
 
-/** Recordings since #440 require schema 10 (`MIN_SCHEMA`). */
+/** The `minSchema` a match recording declares: every match needs this build's floor. */
 export function minimumReaderForMatch(): number {
   return MIN_SCHEMA;
 }
@@ -39,7 +38,7 @@ export function minimumReaderForMatch(): number {
  * returns the reason rather than a sentence.
  *
  * - `too-new` — written by a later build that declared older readers cannot cope.
- * - `too-old` — below this build's supported floor (schemas 0–9).
+ * - `too-old` — below this build's supported floor, `MIN_SCHEMA`.
  */
 export type RecordingFit = 'ok' | 'too-new' | 'too-old';
 
