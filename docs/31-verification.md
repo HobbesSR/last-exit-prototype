@@ -773,8 +773,7 @@ A behaviour question is answered in the smallest scene that still shows it (#697
   recapture it in the change that moved the map.
 
 `tests/helpers/arena.js` is the one builder for hand-made arenas. `arena()` returns a valid `GameMap` from
-parameters: size and cell size; a playable area covering the whole map, because a map without one is a diamond
-and points off its midline get pushed; an optional corridor of regions with one gap per wall and its portal graph;
+parameters: size and cell size; a playable area covering the whole map, because a map without one is rejected (#985); an optional corridor of regions with one gap per wall and its portal graph;
 crates scattered from a seed alone; and obstacles, gates, buildings, items, stations, chargers, entry and exit as
 given. Presets such as `openField` are parameter sets of it. A new arena is a parameter set of the builder unless it
 needs something the builder can't express, and its PR says what. Per-file scenes are folded into the builder rather
@@ -1044,8 +1043,8 @@ establishes nothing about the reported slowdown.
 
 `tests/live-map.test.js` checks the runtime adapter, authored core sites, starter
 loot, region/tier ownership, determinism and JSON prediction agreement. The
-boundary tests cover concave edges, holes and whole-body clearance while pinning
-legacy diamond movement. `tests/slow/live-map.test.js` plays combat-neutralized
+boundary tests cover concave edges, holes and whole-body clearance and the
+rejection of a map without a playable area. `tests/slow/live-map.test.js` plays combat-neutralized
 bots through all three extraction slots on seeds 1 and 9 on the shipped content and its engine (#822, #920; `physics-navigation` plays 4217's map), each bounded by
 the match duration so a stalled match fails rather than hangs. Transit strategy
 and macro library tests check hunter access, standing space, six separate owned

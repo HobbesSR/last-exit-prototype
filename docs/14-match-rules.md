@@ -315,8 +315,7 @@ rectangle into five virtual columns and rows. Points on or past an edge clamp
 into the outer zone, and a map without extent is column 0, middle row. Mix =
 column + 1 + distance from the middle row (0/1/2), capped at 5. A live chain
 map's frame is the diamond plan's 5 x 5 zone grid, so its columns are the zones'
-tiers; a legacy diamond is inscribed in the same rectangle; any other map gets
-the same proportional split. On a live map, mix 1 is the entry zone, which rolls
+tiers; any other map gets the same proportional split of its rectangle. On a live map, mix 1 is the entry zone, which rolls
 no loot, so only the spawn kit is there. Provisional weights for qualities 1..5 (41.1):
 
 | Mix | Q1 | Q2 | Q3 | Q4 | Q5 |

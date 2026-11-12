@@ -4,6 +4,7 @@ import { createGameRecord, createGame, disposePhysics, step, snapshot, playerVie
 import { defaultContent } from '../shared/simulation/content.ts';
 import { createMatch } from '../server/match.js';
 import { generatedMap } from './helpers/room-harness.js';
+import { openArea } from './helpers/arena.js';
 import { broadcast, viewEncoders } from '../server/room-views.js';
 import {
   DISCOVERY_CELL_SIZE,
@@ -127,6 +128,7 @@ test('cells beyond DISCOVERY_RADIUS are not discovered', () => {
   const map = {
     width: 4000,
     height: 4000,
+    playableArea: openArea(4000, 4000, 100),
     obstacles: [],
     gates: [],
     buildings: [],
@@ -355,7 +357,7 @@ test('feature discovery query finds the nearest spawn discovered and the far exi
 test('a landmark is discovered from its beacon radius, through walls, and the fold agrees', () => {
   // A wall across the map east of the eye, so sight alone discovers nothing beyond it.
   const map = {
-    width: 6000, height: 960, obstacles: [{ id: 'wall', x: 400, y: 0, w: 20, h: 960 }], gates: [], buildings: [],
+    width: 6000, height: 960, playableArea: openArea(6000, 960, 120), obstacles: [{ id: 'wall', x: 400, y: 0, w: 20, h: 960 }], gates: [], buildings: [],
     chargers: [{ id: 'near', x: 400 + BEACON_RADIUS - 1000, y: 480 }, { id: 'far', x: 200 + BEACON_RADIUS + 400, y: 480 }],
     stations: [], exit: { x: 5900, y: 480 },
   };
@@ -379,6 +381,7 @@ test('nearby items and gates within discovery radius are indexed and remembered 
   const map = {
     width: 3000,
     height: 3000,
+    playableArea: openArea(3000, 3000, 100),
     obstacles: [],
     buildings: [],
     items: [itemNear, itemFar],
@@ -413,6 +416,7 @@ test('discovery memory items match whole-list filter and preserve ground order (
   const map = {
     width: 3000,
     height: 3000,
+    playableArea: openArea(3000, 3000, 100),
     obstacles: [],
     buildings: [],
     items,

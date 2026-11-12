@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { closedGateShapes, firstContact, geometryContact, staticShapes } from '../shared/simulation/swept.ts';
 import { circle, polygon } from '../shared/shape.ts';
+import { openArea } from './helpers/arena.js';
 
 // #668: geometryContact reads only the shapes in the cells a sweep's box covers. It must give the same answer,
 // to the bit, as firstContact over the whole list, which brackets each shape's bisection by the contacts met
@@ -10,7 +11,7 @@ import { circle, polygon } from '../shared/shape.ts';
 function lcg(seed) { let x = seed >>> 0; return () => (x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 2 ** 32; }
 
 function fixture() {
-  return { width: 1200, height: 900,
+  return { width: 1200, height: 900, playableArea: openArea(1200, 900, 300),
     obstacles: [
       // Long walls spanning several 200-unit buckets, one crossing a bucket corner.
       { id: 'long', kind: 'building', x: 150, y: 395, w: 700, h: 10 },

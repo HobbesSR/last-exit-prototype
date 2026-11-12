@@ -56,7 +56,7 @@ export function builtMapCollision(map: BuiltMap<RegionElement>): CollisionMap {
 
 /**
  * Where bodies may be: the regions' cells, as rows of runs in the world `origin` places them.
- * Rows keep concave outlines and holes, where a map without them is bounded by a diamond.
+ * Rows keep concave outlines and holes; a map without them is rejected.
  */
 export function builtPlayableArea(map: BuiltMap<RegionElement>, origin: Vec2): PlayableArea {
   const size = map.cellSize, rows = new Map<number, number[]>();

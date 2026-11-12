@@ -32,7 +32,7 @@ export function createClearance(map, radius) {
   }
   return (a, b) => {
     if (![a.x,a.y,b.x,b.y].every(Number.isFinite)) return false;
-    // Rectangle and legacy diamond are convex: endpoint disk containment suffices.
+    // A rectangle is convex: endpoint disk containment suffices.
     // Mask holes are additionally tested continuously as filled void cells below.
     if (!insideMap(map, a.x, a.y, radius) || !insideMap(map, b.x, b.y, radius)) return false;
     const left = Math.min(a.x,b.x)-radius, right = Math.max(a.x,b.x)+radius;

@@ -37,12 +37,8 @@ test('movement slides along a void wall and does not enter a deep hole', () => {
   assert.ok(across.x < 100, `cannot tunnel through hole: ${across.x}`);
 });
 
-test('maps without a mask retain the diamond boundary', () => {
-  const legacy = { width: 250, height: 250, obstacles: [], gates: [] };
-  assert.equal(insideMap(legacy, 125, 125), true);
-  assert.equal(insideMap(legacy, 25, 25), false);
-  assert.equal(insideMap(legacy, 125, 39), false);
-  const player = { x: 125, y: 125 };
-  moveBody(legacy, player, { x: -1, y: -1 }, 10, 160);
-  assert.deepEqual(player, { x: 89.571, y: 89.571 }, 'legacy SAT diamond correction is unchanged');
+test('a map without a playable area is rejected, not bounded by a default shape', () => {
+  const bare = { width: 250, height: 250, obstacles: [], gates: [] };
+  assert.throws(() => insideMap(bare, 125, 125), /playableArea/);
+  assert.throws(() => moveBody(bare, { x: 125, y: 125 }, { x: -1, y: -1 }, 10, 160), /playableArea/);
 });
