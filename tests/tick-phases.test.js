@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, enqueuePhysicsAttachment,
+import { createGame, disposePhysics, enqueuePhysicsAttachment,
   enqueuePhysicsImpulse, setInput, snapshot, step } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -22,7 +22,7 @@ function fixtureParts(contestants = 2) {
 
 async function pair(contestants = 2) {
   const { map, content } = fixtureParts(contestants);
-  const physics = await createPhysicsGame(438, map, content);
+  const physics = await createGame(438, map, content);
   for (const p of physics.players) p.bot = false;
   return { physics };
 }
@@ -242,8 +242,8 @@ test('attachment admission rejects an endpoint eliminated before the next bounda
 
 test('fresh physics worlds replay the same full-state trace exactly', async () => {
   const { map, content } = fixtureParts(1);
-  const first = await createPhysicsGame(438, structuredClone(map), structuredClone(content));
-  const second = await createPhysicsGame(438, structuredClone(map), structuredClone(content));
+  const first = await createGame(438, structuredClone(map), structuredClone(content));
+  const second = await createGame(438, structuredClone(map), structuredClone(content));
   try {
     for (const s of [first, second]) for (const p of s.players) p.bot = false;
     for (let tick = 0; tick < 8; tick++) {

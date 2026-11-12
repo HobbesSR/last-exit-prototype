@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateLiveMap } from '../../map/live.ts';
-import { createPhysicsGame, disposePhysics, step } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 
 test('contestants complete a combat-neutralized live-chain match with solid actor contact', async () => {
   const content = contentById('content-6');
-  const game = await createPhysicsGame(4217, generateLiveMap(4217, content), content);
+  const game = await createGame(4217, generateLiveMap(4217, content), content);
   try {
     game.map.traps = [];
     for (const player of game.players) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createGame, snapshot } from '../shared/simulation.ts';
+import { createGameRecord, snapshot } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
@@ -11,7 +11,7 @@ export async function checkClientControllers(browser, base) {
   const html = (await readFile('public/index.html', 'utf8')).replace('<script type="module" src="/client.js"></script>', '');
   await page.route('**/controller-fixture', route => route.fulfill({ contentType: 'text/html', body: html }));
   // A frame of the shipped content on the room arena; the controllers only read it, so it needs no physics world.
-  const game = createGame(4217, generatedMap(), defaultContent()), me = game.players[0], enemy = game.players[8];
+  const game = createGameRecord(4217, generatedMap(), defaultContent()), me = game.players[0], enemy = game.players[8];
   Object.assign(me, { x: 12000, y: 6000, inventory: [{ kind: 'weapon', weaponType: 'pistol', ammo: 7 }, null, null, null, null, { kind: 'cell', charge: 100 }], selectedSlot: 0 });
   Object.assign(enemy, { x: 12100, y: 6000 });
   game.players = [me, enemy]; game.map.buildings = []; game.map.gates = []; game.map.obstacles = [];

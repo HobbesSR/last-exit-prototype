@@ -7,6 +7,7 @@ import { hypot } from '../math.ts';
 export const PHYSICS_VERSION = 'last-exit-0.8-physics';
 export interface PendingAttachment { id: string; a: string; b: string; maxDistance: number }
 export interface PhysicsRuntime {
+  stepping: boolean;
   hooks: HookState[];
   discontinuityCapacity: number;
   discontinuities: Array<{ id: string; generation: number; kind: 'placed' | 'removed'; tick: number }>;

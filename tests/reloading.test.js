@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { gunzipSync } from 'node:zlib';
-import { createGame, createPhysicsGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
 import { automaticPickups } from '../shared/simulation/loot.ts';
@@ -23,7 +23,7 @@ const arena = () => ({ width: 600, height: 400,
 const content = (id = 'content-ammo-1') => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A', 'B'], gladiators: [] }, discovery: false });
 /** A physics match on the arena, disposed when test `t` ends. */
 async function fixture(t, id) {
-  const s = await createPhysicsGame(17, arena(), content(id));
+  const s = await createGame(17, arena(), content(id));
   t.after(() => disposePhysics(s));
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0], q: s.players[1] };
@@ -53,12 +53,12 @@ test('reloading is opt-in on the one physics rules version, requires item instan
   const { s: loot } = await fixture(t, 'content-loot-1');
   assert.equal(loot.version, PHYSICS_VERSION);
   assert.equal(loot.players[0].reserves, undefined);
-  assert.throws(() => createGame(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
+  assert.throws(() => createGameRecord(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
 });
 
 test('gladiators carry no reserves', () => {
   // Setup needs no engine, so the shared constructor stands in for a match.
-  const s = createGame(17, arena(), { ...content(), roster: { contestants: ['A'], gladiators: [{ name: 'G', kit: 'warden' }] } });
+  const s = createGameRecord(17, arena(), { ...content(), roster: { contestants: ['A'], gladiators: [{ name: 'G', kit: 'warden' }] } });
   assert.equal(s.players.find(q => q.role === 'gladiator').reserves, undefined);
 });
 
@@ -67,7 +67,7 @@ test('spawn migration splits each map weapon into a full magazine and an ammo pi
   map.items.push({ id: 'kit', kind: 'weapon', weaponType: 'pistol', x: 140, y: 200 },
     { id: 'rifle', kind: 'weapon', weaponType: 'rifle', ammo: 90, x: 300, y: 120 },
     { id: 'shotty', kind: 'weapon', weaponType: 'scattergun', ammo: 4, x: 300, y: 300 });
-  const s = createGame(17, map, content());
+  const s = createGameRecord(17, map, content());
   const byId = Object.fromEntries(s.map.items.map(item => [item.id, item]));
   assert.deepEqual([byId.kit.ammo, byId.rifle.ammo, byId.shotty.ammo], [12, 30, 4]);
   const piles = s.map.items.filter(item => item.kind === 'ammo');
@@ -256,7 +256,7 @@ test('the owner sees reserves and reload progress; other players and older conte
   s.map.items = [...s.map.items, { id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
   const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === 'box');
   assert.equal(box.family, 'shell');
-  const plain = createGame(17, arena(), content('content-7'));
+  const plain = createGameRecord(17, arena(), content('content-7'));
   assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);
 });
 
@@ -273,7 +273,7 @@ test('a full inventory E swap stages reserves: a rejected swap leaves them uncha
 });
 
 test('bots reload from their reserves, and a whole bot match conserves every round it does not fire', async t => {
-  const s = await createPhysicsGame(17, generatedMap(9), contentById('content-ammo-1'));
+  const s = await createGame(17, generatedMap(9), contentById('content-ammo-1'));
   t.after(() => disposePhysics(s));
   const contestants = new Set(s.players.filter(p => p.role === 'contestant').map(p => p.id));
   // One attack spends one round however many pellets it fires, so count shooter-ticks.

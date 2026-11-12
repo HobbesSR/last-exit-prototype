@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, createPhysicsGame, disposePhysics, playerView, setInput, snapshot } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, playerView, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { stepPhysics } from '../shared/simulation/phased.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups, scatterPoint } from '../shared/simulation/loot.ts';
 import { addItems, admitItem, framedItems, groundItem, groundList, groundPosition, itemsNear, poseItems, publishItems, removeItem, replaceItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
@@ -79,13 +78,13 @@ test('pending physical items keep id order across publication, admission, edits 
 
 test('scatter over the live grid equals the whole-list stand-in scan, including staged points (#863)', () => {
   const items = Array.from({ length: 700 }, (_, i) => ({ ...pile(`s${i}`, (i * 131) % 600), y: (i * 79) % 400 }));
-  const s = createGame(17, arena(items), content('content-ammo-1'));
+  const s = createGameRecord(17, arena(items), content('content-ammo-1'));
   publishItems(s);
   const compare = (origin, phase, points = []) => assert.deepEqual(scatterPoint(s, origin, phase, s.map.items, points),
     scatterPoint(s, origin, phase, s.map.items.slice(), points));
   for (let phase = 0; phase < 24; phase++) compare({ x: 120 + phase * 15, y: 200 }, phase, [{ x: 156, y: 200 }]);
   // The stand-in deliberately excludes pickups during a swap; it must not query their live grid entries.
-  const clear = createGame(17, arena([pile('blocker', 336)]), content('content-ammo-1'));
+  const clear = createGameRecord(17, arena([pile('blocker', 336)]), content('content-ammo-1'));
   replaceItem(clear, clear.map.items[0], { ...clear.map.items[0], y: 200 });
   publishItems(clear);
   const origin = { x: 300, y: 200 }, first = { x: 336, y: 200 };
@@ -96,7 +95,7 @@ test('scatter over the live grid equals the whole-list stand-in scan, including 
 });
 
 test('an unchanged ground is shared between frames, frozen, and never cloned', () => {
-  const s = createGame(17, arena([pile('a', 300), pile('b', 500)]), content('content-ammo-1'));
+  const s = createGameRecord(17, arena([pile('a', 300), pile('b', 500)]), content('content-ammo-1'));
   for (const p of s.players) p.bot = false;
   const first = snapshot(s), second = snapshot(s);
   assert.equal(second.items, first.items);
@@ -109,7 +108,7 @@ test('an unchanged ground is shared between frames, frozen, and never cloned', (
 });
 
 test('a partial pickup replaces only its own record; published frames keep what they showed', () => {
-  const s = createGame(17, arena([pile('near', 120), pile('far', 500)]), content('content-ammo-1'));
+  const s = createGameRecord(17, arena([pile('near', 120), pile('far', 500)]), content('content-ammo-1'));
   const p = s.players[0];
   for (const q of s.players) q.bot = false;
   p.x = 120; p.y = 300; p.reserves.pistol = 72;
@@ -126,7 +125,7 @@ test('a partial pickup replaces only its own record; published frames keep what 
 });
 
 test('adding to a published ground copies the list once and leaves the frame alone', () => {
-  const s = createGame(17, arena([pile('a', 300)]), content('content-ammo-1'));
+  const s = createGameRecord(17, arena([pile('a', 300)]), content('content-ammo-1'));
   const frame = snapshot(s);
   groundList(s).push(pile('b', 400));
   groundList(s).push(pile('c', 450));
@@ -197,7 +196,7 @@ test('a viewer\'s items through the grid are exactly the whole-list filter, for 
 });
 
 test('an unchanged record projects to one shared object in every view and frame; a replaced one projects anew', () => {
-  const s = createGame(17, arena([pile('a', 300), pile('b', 500)]), content('content-ammo-1'));
+  const s = createGameRecord(17, arena([pile('a', 300), pile('b', 500)]), content('content-ammo-1'));
   for (const p of s.players) p.bot = false;
   const viewers = [null, ...s.players.map(p => p.id)];
   const first = snapshot(s), directed = playerView(s, first, null).items;
@@ -214,11 +213,11 @@ test('an unchanged record projects to one shared object in every view and frame;
 });
 
 test('physics writes back only the item bodies that moved', async () => {
-  const s = await createPhysicsGame(17, arena([{ id: 'w', kind: 'weapon', weaponType: 'pistol', x: 300, y: 300 }]), content('content-6'));
+  const s = await createGame(17, arena([{ id: 'w', kind: 'weapon', weaponType: 'pistol', x: 300, y: 300 }]), content('content-6'));
   try {
     for (const p of s.players) { p.bot = false; }
     let seq = 0;
-    const tick = () => { for (const p of s.players) setInput(s, p.id, { seq: ++seq }); stepPhysics(s); return snapshot(s); };
+    const tick = () => { for (const p of s.players) setInput(s, p.id, { seq: ++seq }); step(s); return snapshot(s); };
     const settled = tick();
     assert.ok(physicsRuntime(s).items.has('item:w'), 'the item has a body');
     assert.equal(tick().items, settled.items, 'a resting item body leaves the shared list untouched');

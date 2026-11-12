@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
-import { createGame, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
+import { createGameRecord, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 
 const playable = { map: { obstacles: [{ id: 'o0' }] } };
@@ -12,7 +12,7 @@ const playable = { map: { obstacles: [{ id: 'o0' }] } };
 // schemas keep playing with whatever roster their frames record without substituting defaults.
 test('pre-physics and pre-chain-map schemas are refused, and supported schemas retain their recorded roster', () => {
   const content = contentById('content-7');
-  const game = createGame(9, generatedMap(), { ...content, roster: { ...content.roster, gladiators: content.roster.gladiators.slice(0, 2) } });
+  const game = createGameRecord(9, generatedMap(), { ...content, roster: { ...content.roster, gladiators: content.roster.gladiators.slice(0, 2) } });
   const state = JSON.parse(JSON.stringify(snapshot(game)));
   for (const oldSchema of [undefined, 0, 3, 4, 9]) {
     assert.equal(recordingFit({ version: 'last-exit-0.7', ...(oldSchema !== undefined ? { schema: oldSchema } : {}), minSchema: 0, contentId: 'content-1', map: game.map }), 'too-old');

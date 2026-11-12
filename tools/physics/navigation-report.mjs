@@ -4,7 +4,7 @@ import { dirname } from 'node:path';
 import { cpus, platform, release } from 'node:os';
 import { createHash } from 'node:crypto';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
-import { createPhysicsGame, disposePhysics, step, snapshot, playerView } from '../../shared/simulation.ts';
+import { createGame, disposePhysics, step, snapshot, playerView } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { dynamicNavigationWork } from '../../shared/simulation/dynamic-navigation.ts';
 
@@ -33,7 +33,7 @@ for (let repeat = 0; repeat < 3; repeat++) for (const [navigation, overrides] of
     entry: { x: 100, y: 600 }, exit: { x: 1800, y: 600 },
     spawns: Array.from({ length: 24 }, (_, i) => ({ x: 600 + i % 6 * 36, y: 480 + Math.floor(i / 6) * 36 })),
     hunterSpawns: Array.from({ length: 3 }, (_, i) => ({ x: 850, y: 480 + i * 50 })) };
-  const game = await createPhysicsGame(448, map, content), samples = [];
+  const game = await createGame(448, map, content), samples = [];
   let peakEdges = 0;
   try {
     const initialBodies = snapshot(game).physics.world.bodies.length;
@@ -51,7 +51,7 @@ for (let repeat = 0; repeat < 3; repeat++) for (const [navigation, overrides] of
   } finally { disposePhysics(game); }
 }
 const sources = {};
-for (const file of ['shared/simulation/dynamic-navigation.ts', 'shared/simulation/bots.ts', 'shared/simulation/bot-routes.ts', 'shared/simulation/phased.ts',
+for (const file of ['shared/simulation/dynamic-navigation.ts', 'shared/simulation/bots.ts', 'shared/simulation/bot-routes.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
   'shared/simulation.ts', 'shared/physics/world.ts', 'shared/simulation/content.ts', 'shared/simulation/visibility.ts', 'tools/physics/navigation-report.mjs'])
   sources[file] = createHash('sha256').update(await readFile(file)).digest('hex');
 await mkdir(dirname(output), { recursive: true });

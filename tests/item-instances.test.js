@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
 import { gunzipSync } from 'node:zlib';
-import { createGame, createPhysicsGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment, rearrangeInstanceEquipment } from '../shared/equipment.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
@@ -23,7 +23,7 @@ const content = (capacity = 4096) => ({ ...structuredClone(contentById('content-
   roster: { contestants: ['A', 'B'], gladiators: [] }, itemInstances: { groundCapacity: capacity }, discovery: false });
 /** A physics match on the arena, disposed when test `t` ends. */
 async function fixture(t, capacity, map = arena()) {
-  const s = await createPhysicsGame(17, map, content(capacity));
+  const s = await createGame(17, map, content(capacity));
   t.after(() => disposePhysics(s));
   for (const p of s.players) { p.bot = false; p.input = {}; }
   return { s, p: s.players[0], q: s.players[1] };
@@ -36,7 +36,7 @@ const take = (s, p, item) => {
 };
 
 test('item instances are required on match content and initialize a counter without consuming RNG', async t => {
-  assert.throws(() => createGame(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
+  assert.throws(() => createGameRecord(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
   const { s } = await fixture(t);
   assert.equal(s.version, PHYSICS_VERSION);
   assert.equal(s.itemSerial, 0);
@@ -324,7 +324,7 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   map.items.push(ground('med-root', 'med', { count: 3, quality: 3 }),
     ground('rifle-root', 'weapon', { weaponType: 'rifle', ammo: 7, quality: 2 }),
     ground('cell-root', 'cell', { charge: 100, quality: 4 }));
-  const s = await createPhysicsGame(17, map, content());
+  const s = await createGame(17, map, content());
   t.after(() => disposePhysics(s));
   for (const player of s.players) { player.bot = false; player.input = {}; }
   const p = s.players[0], chunks = [];

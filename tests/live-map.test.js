@@ -6,7 +6,7 @@ import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapFrame } from '../map/micro/adapter.ts';
 import { canOccupy, moveBody } from '../shared/movement.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
-import { createPhysicsGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 // One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
@@ -54,7 +54,7 @@ test('JSON map transfer keeps the mask and both roles can move from authored sta
 });
 
 test('live sites allow charging, extraction, and safe hunter redeployment', async t => {
-  const map = structuredClone(live()), game = await createPhysicsGame(1, map, defaultContent()), contestant = game.players[0];
+  const map = structuredClone(live()), game = await createGame(1, map, defaultContent()), contestant = game.players[0];
   t.after(() => disposePhysics(game));
   for (const player of game.players) player.bot = false;
   game.map.traps = [];

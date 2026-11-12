@@ -4,7 +4,7 @@ import { dirname } from 'node:path';
 import { cpus, platform, release } from 'node:os';
 import { createHash } from 'node:crypto';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
-import { createPhysicsGame, step, snapshot, playerView, disposePhysics } from '../../shared/simulation.ts';
+import { createGame, step, snapshot, playerView, disposePhysics } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { prebuiltTiles } from '../../shared/simulation/bot-routes.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../../map/live.ts';
@@ -18,7 +18,7 @@ const rows = [];
 for (const mode of ['physics']) {
   const arena = structuredClone(map);
   for (const tiles of prebuiltTiles(arena, content)) adoptPackedTiles(arena, tiles);
-  const s = await createPhysicsGame(4217, arena, content);
+  const s = await createGame(4217, arena, content);
   try {
     const samples = [], sizes = [];
     for (let tick = 0; tick < 600 && s.phase === 'live'; tick++) {
@@ -35,7 +35,7 @@ for (const mode of ['physics']) {
   } finally { disposePhysics(s); }
 }
 const sources = {};
-for (const file of ['shared/simulation/phased.ts', 'shared/physics/world.ts', 'shared/simulation/physics-projectiles.ts', 'tools/physics/bench-integration.mjs']) sources[file] = hash(await readFile(file));
+for (const file of ['shared/simulation/game.ts', 'shared/simulation/tick.ts', 'shared/physics/world.ts', 'shared/simulation/physics-projectiles.ts', 'tools/physics/bench-integration.mjs']) sources[file] = hash(await readFile(file));
 const report = { schema: 'physics-438-integration-1', baseCommit: 'd668586', node: process.version,
   machine: { cpu: cpus()[0]?.model, platform: platform(), release: release() },
   fixture: { seed: 4217, content: content.id, size: '12x6', actors: 11, warmup: 100, samples: 500,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { serveWithBrowser } from './helpers/browser.js';
-import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, step } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createGame, disposePhysics, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 
 const map = { seed: 448, width: 1200, height: 800,
@@ -15,7 +15,7 @@ const map = { seed: 448, width: 1200, height: 800,
 const content = structuredClone(contentById('content-6'));
 content.roster = { contestants: ['Navigator'], gladiators: [] };
 content.discovery = false;
-const game = await createPhysicsGame(448, structuredClone(map), content);
+const game = await createGame(448, structuredClone(map), content);
 const expected = [];
 try {
   for (let tick = 0; tick < 360 && game.phase === 'live'; tick++) {
@@ -43,8 +43,8 @@ try {
   await page.addScriptTag({ content: await readFile('node_modules/clipper-lib/clipper.js', 'utf8') });
   await page.addScriptTag({ content: await readFile('node_modules/delaunator/delaunator.min.js', 'utf8') });
   const actual = await page.evaluate(async ({ map, content }) => {
-    const { createPhysicsGame, disposePhysics, step } = await import('/shared/simulation.ts');
-    const game = await createPhysicsGame(448, map, content), trace = [];
+    const { createGame, disposePhysics, step } = await import('/shared/simulation.ts');
+    const game = await createGame(448, map, content), trace = [];
     try {
       for (let tick = 0; tick < 360 && game.phase === 'live'; tick++) {
         step(game);

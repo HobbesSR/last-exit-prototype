@@ -8,7 +8,7 @@ import { MATCHMAKING_COUNTDOWN_MS } from '../server/room-service.js';
 import { MAX_ROOM_NAME, ROOM_SIZE_NAMES } from '../server/protocol.js';
 import { listen } from './helpers/listen.js';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
-import { createGame, joinGame } from '../shared/simulation.ts';
+import { createGameRecord, joinGame } from '../shared/simulation.ts';
 import { MAX_ARENA_SEED, MAX_PLAYER_NAME } from '../shared/simulation/rules.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
@@ -51,6 +51,6 @@ test('player names keep the 16-unit cut and each layer keeps its own default nam
     assert.equal(name(named).length, MAX_PLAYER_NAME);
     assert.deepEqual([name(unnamed), name(blank)], ['Player', 'Player'], 'the transport\'s default');
   } finally { await h.service.close(); }
-  const s = createGame(4217, generatedMap(), defaultContent());
+  const s = createGameRecord(4217, generatedMap(), defaultContent());
   assert.equal(joinGame(s, 'direct')?.name, 'You', 'the simulation\'s own default');
 });

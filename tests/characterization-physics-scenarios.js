@@ -2,7 +2,7 @@
 // Captured at the physics-1 checkpoint (`fixtures/behavior-physics-1.v8.gz`). Expected results are never
 // updated by tests; the fixture README says when recapturing is a decision and how to do it.
 import { createHash } from 'node:crypto';
-import { createPhysicsGame, disposePhysics, joinGame, setInput, step, snapshot, playerView, synchronizePhysics } from '../shared/simulation.ts';
+import { createGame, disposePhysics, joinGame, setInput, step, snapshot, playerView, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { attachPortalGraph, portalGraphOf } from '../shared/navigation/portal-graph.ts';
@@ -37,7 +37,7 @@ function mapOf(arena) {
 
 /** One whole bot match: a digest per 100 ticks over every snapshot and three projections. */
 export async function botTrace(seed, arena) {
-  const s = await createPhysicsGame(seed, mapOf(arena), content()), chunks = [];
+  const s = await createGame(seed, mapOf(arena), content()), chunks = [];
   try {
     let digest = createHash('sha256');
     while (s.phase === 'live') {
@@ -76,7 +76,7 @@ function place(s, p, target, fits = () => true) {
  * player stands still, and the arena's loot and traps are cleared so only the script acts.
  */
 export async function scriptedTrace(arena) {
-  const s = await createPhysicsGame(4217, mapOf(arena), content()), frames = [];
+  const s = await createGame(4217, mapOf(arena), content()), frames = [];
   try {
     const p = joinGame(s, 'human', 'contestant', 'warden', 'Characterization');
     const hunter = joinGame(s, 'hunter', 'gladiator', 'hook', 'Hook');

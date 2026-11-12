@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
 import { gunzipSync } from 'node:zlib';
-import { createPhysicsGame, disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
@@ -33,10 +33,10 @@ test('hook tuning rejects missing/invalid values and is detached from caller edi
   for (const mutate of [h => delete h.speed, h => h.maxForce = Infinity,
     h => h.targetDistance = 1, h => h.durationTicks = 0.5, h => h.standoff = 600]) {
     const { content, map } = fixture(); mutate(content.hook);
-    await assert.rejects(createPhysicsGame(446, map, content), /hook profile/);
+    await assert.rejects(createGame(446, map, content), /hook profile/);
   }
   const { content, map } = fixture();
-  const s = await createPhysicsGame(446, map, content);
+  const s = await createGame(446, map, content);
   try {
     content.hook.maxForce = 1;
     assert.equal(s.content.hook.maxForce, 6000);
@@ -46,7 +46,7 @@ test('hook tuning rejects missing/invalid values and is detached from caller edi
 
 test('the recording retains flight/pending/pull/cancel states through compressed recording and backward seek', async () => {
   const { content, map } = fixture();
-  const s = await createPhysicsGame(446, map, content);
+  const s = await createGame(446, map, content);
   const chunks = [], frames = [];
   const header = { id: 'hook', schema: SCHEMA, minSchema: 10, version: s.version,
     contentId: content.id, seed: 446, hz: 20, createdAt: 1, map: structuredClone(map) };
@@ -76,7 +76,7 @@ test('the recording retains flight/pending/pull/cancel states through compressed
 
 test('prediction cuts on a real hook pull and resumes from authority after release', async () => {
   const { content, map } = fixture();
-  const s = await createPhysicsGame(446, map, content);
+  const s = await createGame(446, map, content);
   const prediction = await createPhysicsPrediction(map, 'c0', { clock: () => 0 });
   try {
     s.players.forEach(p => { p.bot = false; });

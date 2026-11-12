@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPhysicsGame, disposePhysics, snapshot, step } from '../shared/simulation.ts';
+import { createGame, disposePhysics, snapshot, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { dropInventorySlot } from '../shared/simulation/loot.ts';
@@ -12,7 +12,7 @@ const map = generateLiveMap(4217, contentById('content-6'), DEFAULT_LIVE_ZONE_SI
 
 // A world without a drop reserve is content-6 with the field absent.
 async function room(content = contentById('content-6')) {
-  const s = await createPhysicsGame(4217, structuredClone(map), content);
+  const s = await createGame(4217, structuredClone(map), content);
   const p = s.players.find(q => q.role === 'contestant');
   p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: 'held-1', lineageId: 'held-1' };
   p.selectedSlot = 0;
@@ -52,6 +52,6 @@ test('a reserve that is not a small nonnegative integer is refused before a solv
   for (const dropReserve of [-1, 1.5, 97, Number.NaN]) {
     const content = structuredClone(contentById('content-6'));
     content.worldPhysics.dropReserve = dropReserve;
-    await assert.rejects(() => createPhysicsGame(4217, structuredClone(map), content), /invalid world physics profile/, String(dropReserve));
+    await assert.rejects(() => createGame(4217, structuredClone(map), content), /invalid world physics profile/, String(dropReserve));
   }
 });

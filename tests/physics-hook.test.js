@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, setInput, step, synchronizePhysics } from '../shared/simulation.ts';
+import { PHYSICS_VERSION, createGame, disposePhysics, setInput, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { teleport } from '../shared/simulation/dev.ts';
@@ -20,7 +20,7 @@ function fixture(contestants = 1) {
 }
 
 async function game(parts = fixture()) {
-  const s = await createPhysicsGame(439, parts.map, parts.content);
+  const s = await createGame(439, parts.map, parts.content);
   for (const p of s.players) p.bot = false;
   return s;
 }

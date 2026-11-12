@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPhysicsGame, disposePhysics, step, snapshot } from '../shared/simulation.ts';
+import { createGame, disposePhysics, step, snapshot } from '../shared/simulation.ts';
 import { attack, skill } from '../shared/simulation/combat.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { viewLagFrom, MAX_REWIND_TICKS } from '../shared/simulation/rewind.ts';
@@ -26,7 +26,7 @@ function seat(s) {
 }
 /** A case on the duel, disposed of after it; `obstacles` are built into its map. */
 const duel = (body, obstacles) => async () => {
-  const { map, content } = parts(obstacles), s = await createPhysicsGame(4217, map, content);
+  const { map, content } = parts(obstacles), s = await createGame(4217, map, content);
   try { await body(seat(s)); } finally { disposePhysics(s); }
 };
 /** Build `ticks` of history with the target where it currently stands. */

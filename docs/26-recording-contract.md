@@ -35,7 +35,7 @@ Storage-only changes must preserve frozen gameplay fixtures.
 
 ## Physics rules version (#921)
 
-Every match built by `createPhysicsGame` records the one physics rules version,
+Every match built by `createGame` records the one physics rules version,
 `last-exit-0.8-physics`, and requires `actorPhysics`, `itemInstances`, `worldPhysics`,
 `hook`, `kits.hook` and `dynamicNavigation: true` (#976); legacy-mover matches recorded
 `last-exit-0.7`. Earlier schema 10+ recordings retain whichever physics features their content

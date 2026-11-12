@@ -9,7 +9,7 @@ import { generate } from '../../map/chain.ts';
 import { composeRegions } from '../../map/micro/compose.ts';
 import { builtMapCollision, builtMapFrame } from '../../map/micro/adapter.ts';
 import { generateLiveMap, liveChainParams } from '../../map/live.ts';
-import { createPhysicsGame, disposePhysics } from '../../shared/simulation.ts';
+import { createGame, disposePhysics } from '../../shared/simulation.ts';
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { DEFAULT_CELL_SIZE } from '../../map/engines.ts';
 import { buildPortalGraph } from '../../map/navigation.ts';
@@ -43,6 +43,6 @@ test('a live map carries its portal graph beside it, never in it', async () => {
   assert.equal(Object.keys(map).some(key => map[key] === graph), false, 'not a field of the map');
   assert.equal(JSON.stringify(map).includes('"owner"'), false, 'so no recording or projection serializes it');
   assert.equal(portalGraphOf(structuredClone(map)), undefined, 'and no clone carries it');
-  const game = await createPhysicsGame(1, map, defaultContent());
+  const game = await createGame(1, map, defaultContent());
   try { assert.equal(portalGraphOf(game.map), graph, 'the game holds the same map, graph and all'); } finally { disposePhysics(game); }
 });

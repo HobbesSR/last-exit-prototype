@@ -1,4 +1,4 @@
-import { createPhysicsGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
+import { createGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
 import { contentById } from '/shared/simulation/content.ts';
 import { physicsRuntime } from '/shared/simulation/physics-runtime.ts';
 import { HZ } from '/shared/simulation/rules.ts';
@@ -84,7 +84,7 @@ export class PhysicsLab {
   async start(config) {
     const copy = structuredClone(config);
     if (copy.content?.id !== LAB_CONTENT) throw new RangeError(`lab requires ${LAB_CONTENT}`);
-    const next = await createPhysicsGame(copy.seed, copy.map, copy.content);
+    const next = await createGame(copy.seed, copy.map, copy.content);
     if (SCENES[copy.scene]?.jelly) addJelly(next, SCENES[copy.scene].jelly);
     this.dispose();
     next.players.forEach(player => { player.bot = false; });
