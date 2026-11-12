@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
-import { collectEquipment, WEAPONS, rearrangeEquipment, SLOT_COUNT } from '../shared/equipment.ts';
+import { collectInstanceEquipment, WEAPONS, rearrangeInstanceEquipment, SLOT_COUNT } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { stagePhysics } from './helpers/scenario.js';
@@ -15,43 +15,48 @@ const scene = body => async () => {
   for (const q of s.players) q.input = {};
   try { await body({ s, p }); } finally { disposePhysics(s); }
 };
+const ground = (s, fields) => {
+  const item = { id: `ground-${++s.itemSerial}`, x: 0, y: 0, ...fields };
+  s.map.items.push(item);
+  return item;
+};
 
-test('six slots hold distinct weapons, a cell and capped utility stacks without consuming excess loot', scene(({ p }) => {
-  for (const weaponType of Object.keys(WEAPONS)) assert.ok(collectEquipment(p, { kind: 'weapon', weaponType }));
-  assert.equal(collectEquipment(p, { kind: 'weapon', weaponType: 'pistol' }), true);
+test('six slots hold distinct weapons, a cell and capped utility stacks without consuming excess loot', scene(({ s, p }) => {
+  for (const weaponType of Object.keys(WEAPONS)) assert.ok(collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType })));
+  assert.equal(collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol' })), true);
   assert.equal(p.inventory[0].ammo, WEAPONS.pistol.ammo * 2);
-  for (let i = 0; i < 3; i++) assert.ok(collectEquipment(p, { kind: 'med' }));
-  for (let i = 0; i < 3; i++) assert.ok(collectEquipment(p, { kind: 'shield' }));
-  collectEquipment(p, { kind: 'cell' });
-  assert.equal(p.inventory.length, 6); assert.equal(collectEquipment(p, { kind: 'med' }), false);
+  for (let i = 0; i < 3; i++) assert.ok(collectInstanceEquipment(s, p, ground(s, { kind: 'med' })));
+  for (let i = 0; i < 3; i++) assert.ok(collectInstanceEquipment(s, p, ground(s, { kind: 'shield' })));
+  collectInstanceEquipment(s, p, ground(s, { kind: 'cell' }));
+  assert.equal(p.inventory.length, 6); assert.equal(collectInstanceEquipment(s, p, ground(s, { kind: 'med' })), false);
 }));
 
 test('weapons stop firing at zero ammo and matching pickups replenish without losing excess rounds', scene(({ s, p }) => {
-  collectEquipment(p, { kind: 'weapon', weaponType: 'pistol', ammo: 1 });
+  collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 1 }));
   setInput(s, p.id, { seq: 1, attack: true }); step(s);
   assert.equal(p.inventory[0].ammo, 0); assert.equal(s.projectiles.length, 1);
   s.projectiles = []; p.attackCd = 0;
   setInput(s, p.id, { seq: 2, attack: true }); step(s);
   assert.equal(s.projectiles.length, 0);
   p.inventory[0].ammo = WEAPONS.pistol.maxAmmo - 2;
-  const loot = { kind: 'weapon', weaponType: 'pistol', ammo: 10 };
-  assert.equal(collectEquipment(p, loot), false);
+  const loot = ground(s, { kind: 'weapon', weaponType: 'pistol', ammo: 10 });
+  assert.equal(collectInstanceEquipment(s, p, loot), false);
   assert.equal(loot.ammo, 8); assert.equal(p.inventory[0].ammo, WEAPONS.pistol.maxAmmo);
-  assert.equal(collectEquipment(p, loot), false); assert.equal(loot.ammo, 8);
+  assert.equal(collectInstanceEquipment(s, p, loot), false); assert.equal(loot.ammo, 8);
 }));
 
 test('slot moves follow selection, merge compatible stacks, swap cells and reject invalid requests', scene(({ s, p }) => {
   p.inventory[0] = { kind: 'med', count: 2 }; p.inventory[1] = { kind: 'med', count: 2 };
-  assert.ok(rearrangeEquipment(p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
-  assert.equal(rearrangeEquipment(p, 0, 1), false);
+  assert.ok(rearrangeInstanceEquipment(s, p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
+  assert.equal(rearrangeInstanceEquipment(s, p, 0, 1), false);
   p.inventory[2] = { kind: 'cell', charge: 71 };
   setInput(s, p.id, { seq: 1, slot: 2, moveSlot: { from: 2, to: 5 } }); step(s);
   assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5].charge, 71); assert.equal(p.inventory[2], null);
   const settled = structuredClone(p.inventory);
   step(s);
   assert.deepEqual(p.inventory, settled, 'an input a tick already spent is not applied again');
-  assert.equal(rearrangeEquipment(p, -1, 0), false); assert.equal(rearrangeEquipment(p, 5, SLOT_COUNT), false);
-  assert.equal(rearrangeEquipment(p, 1.2, 0), false);
+  assert.equal(rearrangeInstanceEquipment(s, p, -1, 0), false); assert.equal(rearrangeInstanceEquipment(s, p, 5, SLOT_COUNT), false);
+  assert.equal(rearrangeInstanceEquipment(s, p, 1.2, 0), false);
   const before = structuredClone(p.inventory);
   setInput(s, p.id, { seq: 3, moveSlot: { from: 5, to: 999 } }); step(s);
   assert.deepEqual(p.inventory, before);
@@ -65,8 +70,8 @@ test('dropped weapons keep remaining ammo and a sixth-slot item can be selected'
 }));
 
 test('slot selection is validated and held; firing uses the selected weapon and utilities consume charges', scene(({ s, p }) => {
-  for (const weaponType of Object.keys(WEAPONS)) collectEquipment(p, { kind: 'weapon', weaponType });
-  collectEquipment(p, { kind: 'med' });
+  for (const weaponType of Object.keys(WEAPONS)) collectInstanceEquipment(s, p, ground(s, { kind: 'weapon', weaponType }));
+  collectInstanceEquipment(s, p, ground(s, { kind: 'med' }));
   setInput(s, p.id, { seq: 1, slot: 2 }); step(s);
   assert.equal(p.selectedSlot, 2);
   setInput(s, p.id, { seq: 2, attack: true, aim: 0 }); step(s);

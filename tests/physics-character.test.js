@@ -3,7 +3,6 @@ import test from 'node:test';
 import { PHYSICS_VERSION, createPhysicsGame, disposePhysics, enqueuePhysicsAttachment, enqueuePhysicsImpulse,
   setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { p1Content } from './helpers/scenario.js';
 import { teleport } from '../shared/simulation/dev.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { solvePhysicsProjectiles } from '../shared/simulation/physics-projectiles.ts';
@@ -23,10 +22,6 @@ function parts(contestants = 2, contentId = 'content-6') {
   return { map, content };
 }
 
-function p1Parts(contestants) {
-  const { map, content } = parts(contestants, 'content-7');
-  return { map, content: p1Content(content) };
-}
 
 async function game(parts = undefined) {
   const { map, content } = parts ?? structuredClone(physicsParts);
@@ -54,18 +49,15 @@ test('projectiles retain their old hit envelope beyond the narrower movement bod
   } finally { disposePhysics(s); }
 });
 
-test('content-6 pins measured narrow bodies while P1 keeps the hurt radius', async () => {
+test('content-6 pins measured narrow bodies and keeps the hurt radius', async () => {
   const p2 = await game();
-  const p1 = await game(p1Parts(2));
   try {
     assert.equal(p2.version, PHYSICS_VERSION);
-    assert.equal(p1.version, PHYSICS_VERSION, 'one rules version, whatever the content');
     assert.throws(() => { p2.map.motorSurfaces = []; }, TypeError, 'an absent floor list is pinned too');
     assert.deepEqual([body(p2, 'c0').spec.shape.radius, body(p2, 'g0').spec.shape.radius], [11.2875, 16.25]);
-    assert.deepEqual([body(p1, 'c0').spec.shape.radius, body(p1, 'g0').spec.shape.radius], [12, 23]);
     assert.deepEqual([p2.content.actorPhysics.geometry.contestant.hurtRadius,
       p2.content.actorPhysics.geometry.gladiator.hurtRadius], [12, 23]);
-  } finally { disposePhysics(p2); disposePhysics(p1); }
+  } finally { disposePhysics(p2); }
 });
 
 test('invalid physical tuning is refused and caller edits cannot retune an admitted match', async () => {
@@ -298,16 +290,11 @@ test('a gladiator respawn defers while a solid prop blocks every nearby placemen
   } finally { disposePhysics(s); }
 });
 
-test('P1 ignores motor surfaces, so it does not validate them', async () => {
-  const { map, content } = p1Parts(1);
-  map.motorSurfaces = [{ id: '', x: 0, y: 0, w: -1, h: 0, priority: NaN, speed: 2, traction: 2, braking: 2 }];
-  const p1 = await game({ map, content });
-  try {
-    input(p1, 'c0', { x: 1 }); step(p1);
-    assert.deepEqual(body(p1, 'c0').motor, { x: 180, y: 0, accel: 3600 });
-    assert.ok(byId(p1).c0.x > map.spawns[0].x, 'P1 movement ignores the malformed unused floor');
-  } finally { disposePhysics(p1); }
+test('missing actor physics and invalid motor surfaces are rejected during creation', async () => {
+  const stripped = parts(1);
+  delete stripped.content.actorPhysics;
+  await assert.rejects(game(stripped), /actor physics required/);
   const p2 = parts(1);
-  p2.map.motorSurfaces = map.motorSurfaces;
+  p2.map.motorSurfaces = [{ id: '', x: 0, y: 0, w: -1, h: 0, priority: NaN, speed: 2, traction: 2, braking: 2 }];
   await assert.rejects(game(p2), /invalid motor surface/);
 });

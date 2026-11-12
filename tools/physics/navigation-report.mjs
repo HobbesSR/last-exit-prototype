@@ -11,9 +11,9 @@ import { dynamicNavigationWork } from '../../shared/simulation/dynamic-navigatio
 const output = process.argv[2] ?? 'test-results/physics-p8-crowd.json';
 await acquireMachineLock('bench');
 const rows = [];
-// Static planning against temporary body detours (#448), on the shipped physics set. The crowd fills the world's 128
-// dynamic bodies exactly, so no bodies are held back for drops.
-const variants = { static: { replanning: 'sliced', dynamicNavigation: false }, detours: {} };
+// Temporary body detours (#448) on the shipped physics set (the static dynamicNavigation: false baseline was removed
+// in #976). The crowd fills the world's 128 dynamic bodies exactly, so no bodies are held back for drops.
+const variants = { detours: {} };
 for (let repeat = 0; repeat < 3; repeat++) for (const [navigation, overrides] of Object.entries(variants)) {
   const shipped = structuredClone(contentById('content-6'));
   delete shipped.worldPhysics.dropReserve;

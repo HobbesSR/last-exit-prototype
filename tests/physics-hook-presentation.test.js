@@ -69,10 +69,8 @@ test('only the caster learns its hook is active, through flight, pending and pul
       assert.equal(playerView(s, frame, 'c0').hookActive, false, phase);
     }
   } finally { disposePhysics(s); }
-  const older = structuredClone(contentById('content-6'));
-  delete older.kits.hook; delete older.hook;
-  older.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'warden' }] };
-  const p5 = await createPhysicsGame(446, map(), older);
-  try { assert.equal(Object.hasOwn(playerView(p5, snapshot(p5), 'g0'), 'hookActive'), false); }
-  finally { disposePhysics(p5); }
+  const missingHook = structuredClone(contentById('content-6'));
+  delete missingHook.kits.hook; delete missingHook.hook;
+  missingHook.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'warden' }] };
+  await assert.rejects(() => createPhysicsGame(446, map(), missingHook), /hook/);
 });

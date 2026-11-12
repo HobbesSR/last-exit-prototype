@@ -6,7 +6,7 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { dynamicNavigationWork, dynamicWaypoint, observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
 
-function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [], obstacles = [], items = [], dynamicNavigation = true } = {}) {
+function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [], obstacles = [], items = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
     modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
@@ -16,7 +16,6 @@ function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [],
   const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: spawns.map((_, i) => `C${i}`), gladiators: gladiator ? [{ name: 'G', kit: 'warden' }] : [] };
   content.discovery = false;
-  if (!dynamicNavigation) delete content.dynamicNavigation;
   return { map, content };
 }
 async function game(options) {
@@ -134,9 +133,9 @@ test('hidden actors and wall-concealed props do not alter local waypoints; old c
     assert.equal(observedBlockers(wall, p).length, 0);
     assert.deepEqual(dynamicWaypoint(wall, p, goal), before);
   } finally { disposePhysics(wall); }
-  const old = await game({ props: [{ id: 'crate', profile: 'crate', x: 300, y: 400 }], dynamicNavigation: false });
-  try { assert.deepEqual(dynamicWaypoint(old, old.players[0], { x: 480, y: 400 }), { x: 480, y: 400 }); }
-  finally { disposePhysics(old); }
+  const { map, content } = fixture();
+  delete content.dynamicNavigation;
+  await assert.rejects(() => createPhysicsGame(448, map, content), /dynamic navigation/);
 });
 
 test('teleport discards a stale detour and follows the new destination', async () => {
@@ -152,13 +151,15 @@ test('teleport discards a stale detour and follows the new destination', async (
 });
 
 test('dynamic navigation adds no snapshot fields', async () => {
-  const p8 = await game(), p6 = await game({ dynamicNavigation: false });
+  const p8 = await game(), fresh = await game();
   try {
+    const beforeKeys = Object.keys(snapshot(fresh)).sort();
+    const beforePhysicsKeys = Object.keys(snapshot(fresh).physics).sort();
     assert.equal(p8.version, PHYSICS_VERSION);
     drive(p8, p8.players[0], { x: 300, y: 400 });
-    const current = snapshot(p8), previous = snapshot(p6);
+    const current = snapshot(p8);
     assert.equal(current.version, PHYSICS_VERSION);
-    assert.deepEqual(Object.keys(current).sort(), Object.keys(previous).sort());
-    assert.deepEqual(Object.keys(current.physics).sort(), Object.keys(previous.physics).sort());
-  } finally { disposePhysics(p8); disposePhysics(p6); }
+    assert.deepEqual(Object.keys(current).sort(), beforeKeys);
+    assert.deepEqual(Object.keys(current.physics).sort(), beforePhysicsKeys);
+  } finally { disposePhysics(p8); disposePhysics(fresh); }
 });

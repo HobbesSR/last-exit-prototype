@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, createPhysicsGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { movePlayer, lineClear, visibilityPolygon } from '../shared/movement.ts';
-import { collectEquipment, carriedCell } from '../shared/equipment.ts';
+import { collectInstanceEquipment, carriedCell } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena, openField } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
@@ -133,7 +133,9 @@ test('gladiator kills upgrade the kit and refill ability, contestants can damage
     target.hp = 1; target.shield = 0; p.cooldown = 80;
     input(s, p, { attack: true, aim: Math.PI });
     assert.equal(target.status, 'eliminated'); assert.equal(p.kills, 1); assert.equal(p.level, 2); assert.equal(p.cooldown, 0);
-    collectEquipment(a, { kind: 'weapon', weaponType: 'pistol' }, s.content.weapons); a.selectedSlot = a.inventory.findIndex(i => i?.kind === 'weapon');
+    const ground = { id: 'test-pistol', kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: a.x, y: a.y };
+    s.map.items.push(ground);
+    collectInstanceEquipment(s, a, { ...ground }, ground); a.selectedSlot = a.inventory.findIndex(i => i?.kind === 'weapon');
     const hp = b.hp;
     input(s, a, { attack: true, aim: 0 }); assert.equal(b.hp, hp - s.content.weapons.pistol.damage);
   } finally { disposePhysics(s); }

@@ -5,7 +5,7 @@ import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';
 import { defaultContent, contentById, CONTENT_ID } from '../shared/simulation/content.ts';
-import { collectEquipment, WEAPONS } from '../shared/equipment.ts';
+import { collectInstanceEquipment, WEAPONS } from '../shared/equipment.ts';
 import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
 import { openField } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
@@ -132,7 +132,9 @@ test('the simulation reads the pinned content, not the shipped constants', async
     try {
       Object.assign(shooter, { heading: 0, attackCd: 0 });
       Object.assign(target, { hp: 100, shield: 0 });
-      collectEquipment(shooter, { kind: 'weapon', weaponType: 'pistol' }, s.content.weapons);
+      const ground = { id: 'test-pistol', kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: shooter.x, y: shooter.y };
+      s.map.items.push(ground);
+      collectInstanceEquipment(s, shooter, { ...ground }, ground);
       shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');
       attack(s, shooter);
       for (let i = 0; i < 6; i++) step(s);

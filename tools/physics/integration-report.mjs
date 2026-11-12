@@ -55,16 +55,10 @@ function arena(seed, actors, props, loot, layout) {
 }
 
 function contentFor(stage, actors) {
-  // A: the shipped set cut back to character bodies alone (no hook kit, physical items, world physics or dynamic
-  // navigation, no portal hunter planning), with sliced replanning; its own id, since no shipped set is this. B and C:
-  // the shipped physics set, with no bodies held back for drops so the cap rows fill all 128.
+  // B and C: the shipped physics set, with no bodies held back for drops so the cap rows fill all 128
+  // (historical Stage A stripped optional features that are now required under #976).
   const content = structuredClone(contentById('content-7'));
-  if (stage === 'A') {
-    delete content.kits.hook; delete content.hook; delete content.itemInstances; delete content.worldPhysics;
-    delete content.dynamicNavigation; delete content.hunterPlanning;
-    content.id = 'physics-p9-stage-a'; content.replanning = 'sliced';
-  }
-  if (content.worldPhysics) delete content.worldPhysics.dropReserve;
+  delete content.worldPhysics.dropReserve;
   content.discovery = false;
   content.roster = { contestants: Array.from({ length: actors - 3 }, (_, i) => `C${i}`),
     gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: stage === 'C' ? 'hook' : 'warden' })) };
@@ -179,7 +173,7 @@ export async function main(argv = process.argv.slice(2)) {
         lockPort: lock.port, hashes },
       workload: { seed: chosen.seed, warmup: chosen.warmup, samples: chosen.samples, tickMs: 50,
         map: 'synthetic open 17280x8640 room, 120-unit playable cells', layouts: ['sparse', 'clustered'],
-        stages: { A: 'content-7 cut back to character bodies (no hook, items, world physics or dynamic navigation, sliced replanning); no authored props', B: 'content-7 without dropReserve; warden roster',
+        stages: { B: 'content-7 without dropReserve; warden roster',
           C: 'content-7 without dropReserve; hook roster and eight synthetic bounded ropes' },
         actors: [11, 27], cap: '128 total dynamic bodies including actors; cap rows use 64 solid crates and 53 or 37 sensor loot bodies',
         inputs: 'one accepted deterministic movement input per actor per tick; alternating magnitude-2 prop impulses keep props awake; bots disabled; damage set to zero' },
@@ -192,8 +186,7 @@ export async function main(argv = process.argv.slice(2)) {
       rows: [], comparisons: [], failures: [] };
     const cases = [];
     for (const layout of ['sparse', 'clustered']) for (const actors of [11, 27]) {
-      cases.push({ stage: 'A', actors, props: 0, loot: 0, layout },
-        { stage: 'B', actors, props: 64, loot: 128 - actors - 64, layout },
+      cases.push({ stage: 'B', actors, props: 64, loot: 128 - actors - 64, layout },
         { stage: 'C', actors, props: 64, loot: 128 - actors - 64, layout });
     }
     for (const config of cases) try {

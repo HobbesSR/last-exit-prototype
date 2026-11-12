@@ -33,7 +33,7 @@ function arena(lootCount, clustered, propCount) {
   const rows = Array.from({ length: height / 100 }, (_, y) => ({ y, runs: [[0, width / 100]] }));
   const items = Array.from({ length: lootCount }, (_, i) => {
     const x = clustered ? 1000 + (i % 13) * 10 : 700 + (i % 20) * 55;
-    const y = clustered ? 600 + Math.floor(i / 13) * 10 : 100 + Math.floor(i / 20) * 55;
+    const y = clustered ? (propCount === 64 ? 520 : 600) + Math.floor(i / 13) * 10 : 100 + Math.floor(i / 20) * 55;
     return { id: `p5-cell-${i.toString().padStart(3, '0')}`, kind: 'cell', x, y, charge: 100 };
   });
   return {
@@ -54,10 +54,10 @@ function arena(lootCount, clustered, propCount) {
   };
 }
 
-/** Physical items and props without the hook or body detours, every body admitted at once: the P5 workload (#445). */
+/** Physical items and props on the shipped physics set with sliced replanning and every body admitted: the P5 workload (#445, #976). */
 function bodyContent() {
-  const content = { ...structuredClone(contentById('content-6')), replanning: 'sliced', dynamicNavigation: false };
-  delete content.worldPhysics.dropReserve; delete content.hook; delete content.kits.hook;
+  const content = { ...structuredClone(contentById('content-6')), replanning: 'sliced' };
+  delete content.worldPhysics.dropReserve;
   content.roster = { contestants: Array.from({ length: 8 }, (_, i) => `C${i}`),
     gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: 'warden' })) };
   return content;

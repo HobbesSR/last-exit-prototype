@@ -30,11 +30,8 @@ function fixture() {
     hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 300 }, exit: { x: 760, y: 300 },
     spawns: [{ x: 150, y: 300 }, { x: 700, y: 200 }], hunterSpawns: [{ x: 700, y: 500 }] };
-  // Character physics alone: the shipped set cut back to bodies (no hook, items, world physics, dynamic navigation or
-  // portal hunter planning; sliced replanning), under its own id, since no shipped set is this.
-  const content = structuredClone(contentById('content-7'));
-  for (const key of ['itemInstances', 'worldPhysics', 'hook', 'dynamicNavigation', 'hunterPlanning']) delete content[key];
-  delete content.kits.hook; content.id = 'physics-characters-only'; content.replanning = 'sliced';
+  // Shipped physics set with sliced replanning (#976): required physics features remain enabled.
+  const content = { ...structuredClone(contentById('content-7')), replanning: 'sliced' };
   content.roster = { contestants: ['Self', 'Other'], gladiators: [{ name: 'G', kit: 'warden' }] };
   return { map, content };
 }
@@ -219,7 +216,7 @@ const report = { witness: 'P4 deterministic scheduled-delivery lab', date: new D
   runtime: { node: process.version, platform: process.platform, release: os.release(), arch: process.arch,
     cpu: os.cpus()[0]?.model, rapierPackage: packageVersion },
   settings: { seed: 441, map: 'authored 800x600 full mask, wall and gate; two contestants plus gladiator',
-    physicsContent: 'content-7 cut back to character bodies, sliced replanning', actorPhysics: contentById('content-7').actorPhysics,
+    physicsContent: 'content-7 with sliced replanning', actorPhysics: contentById('content-7').actorPhysics,
     profiles, sampling: 'once per tick at t+49 ms after scheduled events',
     clock: 'synthetic millisecond event time', ordering: 'reliable FIFO per connection direction' },
   tickMs: TICK_MS, ticks: LAST_TICK,

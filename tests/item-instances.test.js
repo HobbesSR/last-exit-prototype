@@ -35,11 +35,8 @@ const take = (s, p, item) => {
   return consumed;
 };
 
-test('item instances are stated by content: a set without them keeps no counter in its state or snapshots', async t => {
-  // Setup needs no engine, so the shared constructor stands in for a match.
-  const old = createGame(17, arena(), { ...content(), itemInstances: undefined });
-  assert.equal(old.itemSerial, undefined);
-  assert.equal(Object.hasOwn(snapshot(old), 'itemSerial'), false);
+test('item instances are required on match content and initialize a counter without consuming RNG', async t => {
+  assert.throws(() => createGame(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
   const { s } = await fixture(t);
   assert.equal(s.version, PHYSICS_VERSION);
   assert.equal(s.itemSerial, 0);

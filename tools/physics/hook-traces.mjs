@@ -27,8 +27,8 @@ function map(gladiators = 1, gate = false) {
     hunterSpawns: gladiators === 2 ? [{ x: 150, y: 400 }, { x: 450, y: 400 }] : [{ x: 150, y: 400 }] };
 }
 function content(gladiators = 1) {
-  // The shipped hook on static planning, as the traces were first taken (#446); no bodies held back for drops.
-  const value = { ...structuredClone(contentById('content-6')), replanning: 'sliced', dynamicNavigation: false };
+  // The shipped hook on content-6 with sliced replanning (#446, #976); no bodies held back for drops.
+  const value = { ...structuredClone(contentById('content-6')), replanning: 'sliced' };
   delete value.worldPhysics.dropReserve;
   value.roster = { contestants: ['C'], gladiators: Array.from({ length: gladiators }, (_, i) => ({ name: `G${i}`, kit: 'hook' })) };
   return value;

@@ -101,7 +101,7 @@ test('weapon quality is explicit: the default content assigns none and consumes 
   assert.equal(tiered.rng, plain.rng);
   assert.equal(tiered.itemSerial, plain.itemSerial);
   assert.equal(qualityDamage(plain.content, { quality: 5 }), 1);
-  assert.throws(() => createGame(1, arena(), { ...content(), itemInstances: undefined }), /requires L0/);
+  assert.throws(() => createGame(1, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
 });
 
 test('an authored quality is kept; quality scales damage only', async t => {

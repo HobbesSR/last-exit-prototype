@@ -23,14 +23,10 @@ function fixture() {
 }
 
 test('physical content can enter an empty lobby and offer the hook without initializing a world', () => {
-  const withoutHook = structuredClone(contentById('content-6'));
-  delete withoutHook.kits.hook; delete withoutHook.hook;
-  for (const [content, offered] of [[withoutHook, false], [contentById('content-6'), true]]) {
-    const lobby = createLobby(content);
-    assert.equal(lobby.content.id, 'content-6');
-    assert.equal(lobby.hasKit('hook'), offered);
-    assert.equal(lobby.capacity('gladiator'), 3);
-  }
+  const lobby = createLobby(contentById('content-6'));
+  assert.equal(lobby.content.id, 'content-6');
+  assert.equal(lobby.hasKit('hook'), true);
+  assert.equal(lobby.capacity('gladiator'), 3);
 });
 
 test('hook tuning rejects missing/invalid values and is detached from caller edits', async () => {
