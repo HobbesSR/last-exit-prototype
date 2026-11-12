@@ -2,11 +2,12 @@
  * Briefs (51 stage 5), a view: one `RegionBrief` per layout region, in the macro/micro
  * contract (`map/kernel/contract.ts`). It carries the region's type and parameters from
  * its class rule, its cells in global cell coordinates, the zone context they lie in, the
- * core elements the class rule lists, original portals, and automatic clear/fill constraints. It also
- * carries the perimeter stretches the library hints should be occupied (52), with what
- * each side stated, which are guidance and never an obligation. A brief never mentions another region's contents. A portal is its run and its id; the id names
- * the two regions it joins (step 5), so both sides' briefs name a shared portal alike, and
- * nothing else about the region across is passed.
+ * core elements the class rule lists, original portals, and automatic clear/fill
+ * constraints. It also carries the perimeter stretches the library hints should be occupied
+ * (52), with what each side stated, which are guidance and never an obligation. A brief
+ * never mentions another region's contents. A portal is its run and its id; the id names
+ * the two regions it joins, so both sides' briefs name a shared portal alike, and nothing
+ * else about the region across is passed.
  */
 import type { Cell } from "../../../kernel/cell.ts";
 import type { CoreElementKind, Hint, HintStated, Portal, RegionBrief, ZoneContext } from "../../../kernel/contract.ts";

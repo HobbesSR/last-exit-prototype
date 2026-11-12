@@ -37,7 +37,7 @@ export type WfcGrid = WfcCell[];
  * Narrows domains to a fixed point, from `startQueue`'s links or from every cell. Given
  * `trail`, it records each domain it replaces, so the caller can undo the narrowing.
  */
-export function propagate(grid: WfcGrid, startQueue?: number | number[], trail?: { cells: number[]; domains: TileOption[][] }): boolean {
+function propagate(grid: WfcGrid, startQueue?: number | number[], trail?: { cells: number[]; domains: TileOption[][] }): boolean {
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
@@ -195,16 +195,15 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility, connects?: (a: Til
   }
 }
 
+/** Added to each option's difficulty before its weighted draw, so an unconstrained option's score stays above zero. */
+const DIFFICULTY_OFFSET = 12;
+
 /**
  * Depth-first search, narrowing `grid` in place. A trail of the domains each choice and
  * its propagation replaced is undone on backtrack, so memory doesn't grow with depth
  * times grid size, and an explicit stack of frames replaces recursion, so depth isn't
- * bounded by the call stack. Choices, `random()` calls and iteration counts follow the
- * recursive search this replaced, node for node.
+ * bounded by the call stack.
  */
-/** Added to each option's difficulty before its weighted draw, so an unconstrained option's score stays above zero. */
-export const DIFFICULTY_OFFSET = 12;
-
 function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
   stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }, trace?: (event: WfcTraceEvent) => void,
   connects?: (a: TileOption, relation: string, b: TileOption) => boolean): WfcGrid | null {

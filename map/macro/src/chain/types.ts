@@ -1,7 +1,7 @@
 /**
- * Every object and view of the generation chain (51), as types only. Stages 4 to 9 of the
- * build order implement them. Each stage's output has its own type even where shapes
- * match (51 principle 4): a stage mark makes one stage's output unassignable to another's.
+ * Every object and view of the generation chain (51), as types only. Each stage's output
+ * has its own type even where shapes match (51 principle 4): a stage mark makes one stage's
+ * output unassignable to another's.
  *
  * Objects hold decisions and are what can be saved: the Layout and the region results.
  * Everything else is a view, recomputed from objects and never stored (51 principle 3).

@@ -32,8 +32,8 @@ export type HintStated = 'not-passable-hint' | 'any' | 'unstated' | null;
 /**
  * A hinted perimeter run (51 stage 5), with what each side of it stated, `inside` being
  * the region's side. The labels are passed as stated; `hintStrength` (`map/micro/hints.ts`)
- * says what they imply. A run ends where either label changes. A hint without labels,
- * as in briefs made before #406, claims nothing beyond the hint itself.
+ * says what they imply. A run ends where either label changes. A hint without labels
+ * claims nothing beyond the hint itself.
  */
 export interface Hint extends Run { stated?: { inside: HintStated; across: HintStated } }
 

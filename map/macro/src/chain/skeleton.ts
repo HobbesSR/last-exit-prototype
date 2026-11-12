@@ -22,7 +22,6 @@ import type { Orientation, SetPieceInstance, SegmentKey } from "./types.ts";
 export type SkeletonAlgorithm = "wilson" | "prim" | "kruskal";
 
 export interface ConnectivitySkeletonConfig {
-  enabled?: boolean;
   algorithm?: SkeletonAlgorithm;
   extraOpenShare?: number;
   shortcutPriority?: boolean;

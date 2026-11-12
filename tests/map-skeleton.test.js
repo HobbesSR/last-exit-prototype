@@ -1,12 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CHAIN_LIBRARIES, validateLibrary, bundledLibrary } from '../map/chain.ts';
+import { validateLibrary, bundledLibrary } from '../map/chain.ts';
 import { placer, DEFAULT_CHAIN_PARAMS, adjacencyCompatibility } from '../map/macro/src/chain/placement.ts';
 import { buildSkeleton, filterSlotDomains, skeletonPartRule } from '../map/macro/src/chain/skeleton.ts';
-import { zonePlan, planTiles } from '../map/macro/src/chain/zone-plan.ts';
+import { zonePlan } from '../map/macro/src/chain/zone-plan.ts';
 import { layoutSlots, makeZones } from '../map/macro/src/chain/zones.ts';
 import { stream } from '../map/macro/src/chain/random.ts';
-import { orientedDesigns } from '../map/macro/src/chain/declared-grid.ts';
 import { solveWfc } from '../map/macro/src/wfc.ts';
 
 test('connectivitySkeleton validation accepts valid configs and rejects malformed values', () => {
@@ -41,7 +40,7 @@ test('buildSkeleton produces valid spanning trees across all three algorithms (w
   const mask = layoutSlots(params, plan);
   const zones = new Map(makeZones(params, plan).map(z => [z.id, z]));
   const library = bundledLibrary(params); // sparse / alternate since #895
-  const fillByZone = (zone) => library.tiles.filter(t => t.fillable !== false && t.weight !== 0);
+  const fillByZone = () => library.tiles.filter(t => t.fillable !== false);
 
   // Pick set pieces via placer stream 0
   const rand = stream('test-skeleton-tree', 'placement', 0);
@@ -520,10 +519,8 @@ test('placer with connectivitySkeleton solves the bundled sparse / alternate map
   library.connectivitySkeleton = { algorithm: 'kruskal', extraOpenShare: 0.15 };
 
   let pocketRefusals = 0;
-  const attempts = [];
   const layout = placer({
     openFace: true,
-    attempts: (att) => attempts.push(att),
     trace: (event) => {
       if (event.type === 'refusal' && (event.kind === 'sealed' || event.kind === 'pocket')) {
         pocketRefusals++;
