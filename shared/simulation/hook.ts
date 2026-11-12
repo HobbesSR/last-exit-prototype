@@ -22,7 +22,7 @@ function remove(s: Game, hook: HookState): void {
 
 function endpoints(s: Game, hook: HookState): { caster: Player; target: Player; distance: number } | null {
   const r = physicsRuntime(s), tuning = s.content.hook;
-  if (!r || !tuning || !hook.target || hook.generationB === undefined) return null;
+  if (!r || !hook.target || hook.generationB === undefined) return null;
   const caster = s.players.find(p => p.id === hook.caster);
   const target = s.players.find(p => p.id === hook.target);
   if (!caster || !target || caster.status !== 'active' || target.status !== 'active' ||
@@ -39,7 +39,7 @@ function endpoints(s: Game, hook: HookState): { caster: Player; target: Player; 
 /** Skill presses cancel any active flight/tether; only a fresh launch spends cooldown. */
 export function hookSkill(s: Game, p: Player): void {
   const r = physicsRuntime(s), tuning = s.content.hook;
-  if (!r || !tuning || p.kit !== 'hook' || p.role !== 'gladiator' || p.status !== 'active') return;
+  if (!r || p.kit !== 'hook' || p.role !== 'gladiator' || p.status !== 'active') return;
   const active = r.hooks.find(hook => hook.caster === p.id);
   if (active) { remove(s, active); r.world.commitMutations(); return; }
   if (p.cooldown > 0) return;
@@ -57,7 +57,7 @@ export function hookSkill(s: Game, p: Player): void {
 /** Phase 1: attach a prior tick's hit, then shorten/revalidate every retained tether. */
 export function prepareHooks(s: Game): void {
   const r = physicsRuntime(s), tuning = s.content.hook;
-  if (!r || !tuning) return;
+  if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase === 'flying') {
       if (s.tick - hook.startedTick >= tuning.durationTicks ||
@@ -94,7 +94,7 @@ export function prepareHooks(s: Game): void {
 /** Phase 5: server-authoritative tip sweep against moving actors and current geometry. */
 export function finishHooks(s: Game, paths: Record<string, Vec2[]>): void {
   const r = physicsRuntime(s), tuning = s.content.hook;
-  if (!r || !tuning) return;
+  if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase !== 'flying') continue;
     const caster = s.players.find(p => p.id === hook.caster);
@@ -141,7 +141,7 @@ export function finishHooks(s: Game, paths: Record<string, Vec2[]>): void {
 /** Phase 7 and between-tick reconciliation after body/gate lifecycle changes. */
 export function reconcileHooks(s: Game): void {
   const r = physicsRuntime(s);
-  if (!r || !s.content.hook) return;
+  if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase === 'flying') {
       if (r.world.getGeneration(actor(hook.caster)) !== hook.generationA ||

@@ -13,8 +13,7 @@ const bodyId = (item: GroundItem) => `${ITEM_PREFIX}${item.id}`;
 
 /** Drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. */
 export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number, y: number): boolean {
-  const radius = s.content.worldPhysics?.loot.radius;
-  if (!s.content.dynamicNavigation || radius === undefined) return true;
+  const radius = s.content.worldPhysics.loot.radius;
   return !r.world.overlapsProp(x, y, radius)
     && s.players.every(p => p.status !== 'active' || hypot(x - p.x, y - p.y) >= radius + actorRadius(s, p));
 }
@@ -22,7 +21,7 @@ export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number
 /** Reject authoring before allocating a solver. All numbers are match-pinned tuning. */
 export function validateWorldPhysics(content: MatchContent, map: GameMap): void {
   const profile = content.worldPhysics;
-  if (!profile) return;
+  if (!profile) throw new RangeError('world physics profile required');
   if (!content.itemInstances || !content.actorPhysics) throw new RangeError('world physics requires item instances and actor physics');
   if (![profile.loot.radius, profile.loot.mass, profile.prop.hx, profile.prop.hy, profile.prop.mass, profile.maxImpulse]
     .every(n => Number.isFinite(n) && n > 0 && n <= 10000)
@@ -49,7 +48,6 @@ export function validateWorldPhysics(content: MatchContent, map: GameMap): void 
 
 export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
   const profile = s.content.worldPhysics;
-  if (!profile) return;
   for (const prop of [...s.map.physicsProps ?? []].sort((a, b) => order(a.id, b.id))) {
     r.world.queueAddBody({ id: `prop:${prop.id}`, kind: 'prop', shape: { kind: 'box', hx: profile.prop.hx, hy: profile.prop.hy },
       x: prop.x, y: prop.y, angle: prop.angle ?? 0, mass: profile.prop.mass, friction: profile.prop.friction,
@@ -61,7 +59,6 @@ export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
 /** Reconcile ownership at transfer boundaries. Mandatory overflow remains logical and pickable. */
 export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: number, admit = true): void {
   const profile = s.content.worldPhysics;
-  if (!profile) return;
   // A held body is `item:<id>`: look its item up by id rather than walking the ground list on every call.
   for (const id of [...r.items].sort(order)) if (!groundItem(s, id.slice(ITEM_PREFIX.length))) {
     markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
@@ -104,15 +101,14 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
 /** Preflight staged swaps too: removed physical pickups release their body slots. */
 export function canRepresentPhysicalDrop(s: Game, count: number, removed: GroundItem[] = []): boolean {
   const r = physicsRuntime(s);
-  if (!s.content.worldPhysics || !r) return true;
-  if (!s.content.dynamicNavigation) r.synchronize({ deferItemAdmission: true });
+  if (!r) return true;
   const released = removed.filter(item => r.items.has(bodyId(item))).length;
   return r.world.canAddBodies(Math.max(0, count - released) + reserveActors(s, r));
 }
 
 export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): void {
-  const r = physicsRuntime(s), speed = s.content.worldPhysics?.loot.dropSpeed;
-  if (!r || speed === undefined) return;
+  const r = physicsRuntime(s), speed = s.content.worldPhysics.loot.dropSpeed;
+  if (!r) return;
   for (const item of items) {
     const dx = item.x - from.x, dy = item.y - from.y, length = hypot(dx, dy);
     r.itemLaunches.set(item.id, { x: length ? dx / length * speed : 0, y: length ? dy / length * speed : 0 });
@@ -131,7 +127,6 @@ export function writePhysicalItemPoses(s: Game, r: PhysicsRuntime): void {
 /** Same floor priority/ID convention as the motor. Damping changes never wake a sleeper. */
 export function applyFloorDrag(s: Game, r: PhysicsRuntime): void {
   const profile = s.content.worldPhysics;
-  if (!profile) return;
   const surfaces = [...s.map.motorSurfaces ?? []].sort((a, b) => b.priority - a.priority || order(a.id, b.id));
   for (const body of r.world.snapshot({ includeStatic: false }).bodies) {
     if (body.spec.kind !== 'prop') continue;

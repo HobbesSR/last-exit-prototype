@@ -5,9 +5,8 @@ import { hypot } from '../math.ts';
 
 /** Queue the physical part of a mine blast for the next physics tick. */
 export function enqueueExplosionImpulses(s: Game, origin: Vec2, radius: number): void {
-  const tuning = s.content.worldPhysics;
-  const runtime = physicsRuntime(s);
-  if (!tuning || !runtime || !(radius > 0)) return;
+  const tuning = s.content.worldPhysics, runtime = physicsRuntime(s);
+  if (!runtime || !(radius > 0)) return;
 
   // Capture current solved poses once. The static map remains the mine's cover authority;
   // dynamic props are deliberately inert blast cover in this slice.

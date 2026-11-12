@@ -2,12 +2,12 @@ import { bodyRadius } from '../movement.ts';
 import type { ActorPhysics, Game, GameMap, MotorSurface, Player, Vec2 } from '../types.ts';
 import { hypot } from '../math.ts';
 
-export const DEFAULT_CHARACTER_MOTOR = Object.freeze({ acceleration: 3600, braking: 3600 });
-export const actorRadius = (s: Game, p: Player): number => s.content.actorPhysics?.geometry[p.role].bodyRadius ?? bodyRadius(p);
+export const actorRadius = (s: Game, p: Player): number => s.content.actorPhysics.geometry[p.role].bodyRadius;
 
-/** Reject malformed tuning before allocating a world. Without a profile, motor surfaces are unread. */
-export function validateActorPhysics(profile: ActorPhysics | undefined, map: GameMap): void {
-  if (!profile) return;
+/** Reject malformed tuning before allocating a world. */
+export function validateActorPhysics(profile: ActorPhysics, map: GameMap): void {
+  if (!profile || typeof profile !== 'object' || !profile.geometry?.contestant || !profile.geometry?.gladiator)
+    throw new RangeError('invalid actor physics profile');
   for (const role of ['contestant', 'gladiator'] as const) {
     const g = profile.geometry[role];
     if (![g.bodyRadius, g.headRadius, g.hurtRadius, profile.acceleration, profile.braking, profile.maxImpulse, profile.maxSpeed]
@@ -30,13 +30,13 @@ export function actorMotor(s: Game, p: Player, x: number, y: number, speed: numb
 }
 
 /** Shared motor calculation for the authoritative solver and local prediction. */
-export function characterMotor(profile: Pick<ActorPhysics, 'acceleration' | 'braking'> | undefined,
+export function characterMotor(profile: Pick<ActorPhysics, 'acceleration' | 'braking'>,
   surfaces: MotorSurface[] | undefined, p: Vec2, x: number, y: number, speed: number): { x: number; y: number; accel: number } {
   const length = Math.max(1, hypot(x, y));
-  const surface = profile ? surfaces?.filter(f => p.x >= f.x && p.x < f.x + f.w && p.y >= f.y && p.y < f.y + f.h)
-    .sort((a, b) => b.priority - a.priority || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0] : undefined;
+  const surface = surfaces?.filter(f => p.x >= f.x && p.x < f.x + f.w && p.y >= f.y && p.y < f.y + f.h)
+    .sort((a, b) => b.priority - a.priority || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0];
   const moving = x !== 0 || y !== 0;
-  const accel = moving ? (profile?.acceleration ?? DEFAULT_CHARACTER_MOTOR.acceleration) * (surface?.traction ?? 1)
-    : (profile?.braking ?? DEFAULT_CHARACTER_MOTOR.braking) * (surface?.braking ?? 1);
+  const accel = moving ? profile.acceleration * (surface?.traction ?? 1)
+    : profile.braking * (surface?.braking ?? 1);
   return { x: x / length * speed * (surface?.speed ?? 1), y: y / length * speed * (surface?.speed ?? 1), accel };
 }

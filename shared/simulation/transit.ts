@@ -58,7 +58,7 @@ export function arrive(s: Game, p: Player): void {
 }
 
 function landing(s: Game, p: Player, to: Station): Vec2 | null {
-  const runtime = s.content.actorPhysics ? physicsRuntime(s) : undefined;
+  const runtime = physicsRuntime(s);
   return runtime ? runtime.placement(p, to) : to;
 }
 // The cooldown starts on landing.

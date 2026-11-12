@@ -23,7 +23,7 @@ export function dynamicNavigationWork(s: Game): number { return work.get(s)?.tic
 const sortedPlayers = (s: Game) => [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 /** Scope sharing to the immutable pre-movement collection, never merely to a tick number. */
 export function beginDynamicNavigationCollection(s: Game): void {
-  if (!s.content.dynamicNavigation || !s.players.some(p => p.bot && p.status === 'active')) return;
+  if (!s.players.some(p => p.bot && p.status === 'active')) return;
   const props = physicsRuntime(s)?.world.solidPropStates() ?? [];
   count('work.bots.props', props.length);
   collectionObservations.set(s, { players: sortedPlayers(s), props });
@@ -79,7 +79,6 @@ function knownSegment(s: Game, p: Player, a: Vec2, b: Vec2, radius: number): boo
 
 /** Return a detour or advance to a queue; prop contact remains the physical motor's job. */
 export function dynamicWaypoint(s: Game, p: Player, destination: Vec2): Vec2 {
-  if (!s.content.dynamicNavigation) return destination;
   start('sim.bots.observe');
   const bodies = observations(s, p);
   stop('sim.bots.observe');

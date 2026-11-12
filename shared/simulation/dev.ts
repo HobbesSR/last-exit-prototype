@@ -1,4 +1,4 @@
-import { bodyRadius, canOccupy } from '../movement.ts';
+import { canOccupy } from '../movement.ts';
 import { clearRoute } from './geometry.ts';
 import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
@@ -19,10 +19,9 @@ export function teleport(s: Game, id: PlayerId, x: number, y: number): Vec2 | nu
   const p = s.players.find(p => p.id === id);
   if (!p || p.status !== 'active' || !Number.isFinite(x) || !Number.isFinite(y)) return null;
   const at = { x: Math.round(x), y: Math.round(y) };
-  const runtime = physicsRuntime(s);
-  const radius = runtime ? actorRadius(s, p) : bodyRadius(p);
+  const runtime = physicsRuntime(s), radius = actorRadius(s, p);
   if (!canOccupy(s.map, at.x, at.y, radius)) return null;
-  if (runtime && s.content.actorPhysics && (runtime.world.overlapsProp(at.x, at.y, radius)
+  if (runtime && (runtime.world.overlapsProp(at.x, at.y, radius)
     || s.players.some(q => q !== p && q.status === 'active' && hypot(at.x - q.x, at.y - q.y) < radius + actorRadius(s, q)))) return null;
   p.x = at.x; p.y = at.y; clearRoute(p);
   runtime?.synchronize();

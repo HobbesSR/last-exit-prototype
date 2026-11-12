@@ -1,35 +1,20 @@
 import { canOccupy, reachClear } from '../movement.ts';
-import { carriedCell, collectAmmo, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
+import { carriedCell, collectAmmo, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
 import { HZ } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
-import type { AmmoFamily, EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
+import type { AmmoFamily, EffectKind, Game, GroundItem, InventoryItem, Player, PlayerInput, Vec2, World } from '../types.ts';
 import { cos, sin } from '../math.ts';
 
 export function event(s: Game, text: string): void { s.events.push({ id: s.serial++, tick: s.tick, text }); s.events = s.events.slice(-6); }
 export function effect(s: Game, p: Vec2, kind: EffectKind, radius: World = 60): void { s.effects.push({ id: s.serial++, x: p.x, y: p.y, kind, radius, life: 12 }); }
-/** Legacy emission only: L0 drops go through dropInventorySlot, which may refuse. */
-export function dropEquipment(s: Game, p: Player, item: InventoryItem): void {
-  // Stacks drop one entry per unit; weapons and cells are single items.
-  const copies = item.kind === 'med' || item.kind === 'shield' ? item.count || 1 : 1;
-  for (let i = 0; i < copies; i++) {
-    let point: Vec2 = p;
-    for (let j = 0; j < 180; j++) {
-      const angle = (s.serial + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
-      const candidate = { x: p.x + cos(angle) * radius, y: p.y + sin(angle) * radius };
-      if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, p, candidate) && s.map.items.every(other => distance(other, candidate) > 32)) { point = candidate; break; }
-    }
-    const dropped: GroundItem = { ...item, count: 1, id: `equipment-drop-${s.serial++}` as ItemId, x: point.x, y: point.y, droppedBy: p.id, pickupAfter: s.tick + HZ };
-    addItems(s, dropped);
-  }
-}
 
 /** The bounded L0 spiral search: a free, reachable point near `origin`, clear of both lists. */
 export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readonly Vec2[], points: readonly Vec2[] = []): Vec2 | undefined {
-  const runtime = s.content.dynamicNavigation ? physicsRuntime(s) : undefined;
+  const runtime = physicsRuntime(s);
   for (let j = 0; j < 180; j++) {
     const angle = (phase + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
     const candidate = { x: origin.x + cos(angle) * radius, y: origin.y + sin(angle) * radius };
@@ -55,7 +40,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
   if (!Number.isInteger(copies) || copies < 1 || copies > 3
     || item.kind === 'weapon' && (!Number.isSafeInteger(item.ammo) || item.ammo < 0)
     || item.kind === 'cell' && (!Number.isSafeInteger(item.charge) || item.charge < 0)) return null;
-  if (!mandatory && items.length + copies > s.content.itemInstances!.groundCapacity) return null;
+  if (!mandatory && items.length + copies > s.content.itemInstances.groundCapacity) return null;
   const points: Vec2[] = [];
   for (let i = 0; i < copies; i++) {
     const point = scatterPoint(s, p, stagedSerial + i, items, points);
@@ -86,7 +71,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
  */
 export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: number, mandatory = false): DropPlan | null {
   if (!Number.isSafeInteger(count) || count < 1 || ![p.x, p.y].every(Number.isFinite)) return null;
-  if (!mandatory && s.map.items.length + 1 > s.content.itemInstances!.groundCapacity) return null;
+  if (!mandatory && s.map.items.length + 1 > s.content.itemInstances.groundCapacity) return null;
   const point = scatterPoint(s, p, s.itemSerial ?? 0, s.map.items);
   if (!point && !mandatory) return null;
   const allocation = { ...s };
@@ -97,20 +82,17 @@ export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: numb
   } catch { return null; }
 }
 
-/** Drop one slot. L0 commits only a complete plan and may refuse; legacy content always drops. */
+/** Drop one slot; optional drops commit only a complete plan and may refuse. */
 export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = false): boolean {
   if (!Number.isInteger(slot) || slot < 0 || slot >= (p.inventory?.length ?? 0)) return false;
   const item = p.inventory![slot];
   if (!item) return false;
-  let records: GroundItem[] = [];
-  if (s.content.itemInstances) {
-    const plan = planDrop(s, p, item, mandatory);
-    if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
-    s.itemSerial = plan.itemSerial;
-    addItems(s, ...plan.records); records = plan.records;
-  } else dropEquipment(s, p, item);
+  const plan = planDrop(s, p, item, mandatory);
+  if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
+  s.itemSerial = plan.itemSerial;
+  addItems(s, ...plan.records);
   p.inventory![slot] = null; p.charging = null; syncWeapon(p, s.content.weapons);
-  if (records.length) launchPhysicalDrops(s, records, p);
+  if (plan.records.length) launchPhysicalDrops(s, plan.records, p);
   return true;
 }
 export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
@@ -122,7 +104,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
       if (item.kind === 'access') p.keys++;
       if (item.kind === 'ammo' && !(s.content.reloading && collectAmmo(s, p, draft, item))) return settledItem(item, draft);
       if (['weapon', 'med', 'shield', 'cell'].includes(item.kind)
-        && !(s.content.itemInstances ? collectInstanceEquipment(s, p, draft, item) : collectEquipment(p, draft, s.content.weapons))) return settledItem(item, draft);
+        && !collectInstanceEquipment(s, p, draft, item)) return settledItem(item, draft);
       if (item.kind === 'cell') clearRoute(p);
       effect(s, p, 'loot', 30); return null;
     };
@@ -134,7 +116,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
       if (next === item) continue;
       if (next) { replaceItem(s, item, next); continue; }
       const at = removeItem(s, item), { x, y } = p;
-      if (s.content.itemInstances) physicsRuntime(s)?.synchronize();
+      physicsRuntime(s)?.synchronize();
       // Synchronizing can place the player again; the records still to visit are then those after `at` near where it stands.
       if (!Object.is(p.x, x) || !Object.is(p.y, y)) {
         const later = new Set(s.map.items.slice(at));
