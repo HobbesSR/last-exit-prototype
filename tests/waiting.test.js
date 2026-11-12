@@ -149,3 +149,45 @@ test('a resume replacing a live connection starts the yard input afresh, where t
     assert.ok(yard().x < stood, 'and walks the way it asks');
   } finally { await h.service.close(); }
 });
+
+test('position continuity against obstacles uses actual physics radius (#975 review 771)', async () => {
+  const w = createWaiting(waitingYard());
+  await w.ready;
+  try {
+    // Gladiator starts at first arrival point (330, 300) and walks north toward container at y=150..220.
+    const g = enterWaiting(w, 'g', 'gladiator', 'striker', 'G');
+    for (let seq = 0; seq < 80; seq++) waitingInput(w, 'g', { seq, x: 0, y: -1 });
+    for (let i = 0; i < 80; i++) stepWaiting(w);
+    const stopped = { x: g.x, y: g.y };
+    // Stands within legacy hurtRadius (23) of container edge (y=220), but fits actual gladiator bodyRadius (16.25).
+    assert.ok(stopped.y - 220 < 23, 'within legacy radius of container');
+    assert.ok(stopped.y - 220 >= 16.2, 'outside physics body radius');
+
+    // Kit change keeps position and does not advance arrival allocation.
+    const arrivalsBefore = w.arrivals;
+    changeWaiting(w, 'g', 'gladiator', 'specter');
+    assert.equal(g.x, stopped.x);
+    assert.equal(g.y, stopped.y);
+    assert.equal(w.arrivals, arrivalsBefore);
+
+    // Re-entering (resume) at same spot keeps position.
+    enterWaiting(w, 'g', 'gladiator', 'specter', 'G');
+    assert.equal(g.x, stopped.x);
+    assert.equal(g.y, stopped.y);
+    assert.equal(w.arrivals, arrivalsBefore);
+
+    // Contestant placed tight against obstacle where contestant (11.2875) fits but gladiator (16.25) cannot.
+    // Container bottom edge is at y=220; place contestant at y=233.
+    const c = enterWaiting(w, 'c', 'contestant', 'warden', 'C');
+    c.x = 330;
+    c.y = 233;
+    w.world.setTransform('actor:c', { x: 330, y: 233, angle: 0 });
+    // Changing role to gladiator cannot fit in the 13 unit gap (needs 16.25), so it teleports to arrival point.
+    const arrivalsBeforeTeleport = w.arrivals;
+    const changed = changeWaiting(w, 'c', 'gladiator', 'striker');
+    assert.equal(w.arrivals, arrivalsBeforeTeleport + 1);
+    assert.notEqual(changed.y, 233);
+  } finally {
+    w.dispose();
+  }
+});

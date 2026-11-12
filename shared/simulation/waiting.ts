@@ -1,4 +1,4 @@
-import { canOccupy, bodyRadius, movementSpeed } from '../movement.ts';
+import { canOccupy, movementSpeed } from '../movement.ts';
 import { queueInput, consumeInput, resetInput } from './input.ts';
 import { makePlayer } from './state.ts';
 import { HZ, MAX_PLAYER_NAME } from './rules.ts';
@@ -133,7 +133,7 @@ function place(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string, con
   const p = makePlayer(id, name.slice(0, MAX_PLAYER_NAME), role, kit, 0);
   p.bot = false; resetInput(p);
   const arrival = () => w.map.spawns[w.arrivals++ % w.map.spawns.length]!;
-  const at = old && canOccupy(w.map, old.x, old.y, bodyRadius(p)) ? old : arrival();
+  const at = old && canOccupy(w.map, old.x, old.y, actorRadius(role)) ? old : arrival();
   p.x = at.x; p.y = at.y;
   if (old) {
     p.heading = old.heading;
