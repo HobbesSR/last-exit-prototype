@@ -88,9 +88,6 @@ class Writer {
       new DataView(this.bytes.buffer).setInt32(start, this.at - start, true);
     };
   }
-  get length(): number {
-    return this.at;
-  }
   finish(): Uint8Array {
     return this.bytes.slice(0, this.at);
   }

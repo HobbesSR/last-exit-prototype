@@ -39,7 +39,6 @@ export interface MaskCell {
   y: number;
   col: number;
   row: number;
-  id: string;
   zoneId: string;
 }
 
@@ -81,7 +80,7 @@ export function layoutSlots(p: ZoneParams, plan: ZonePlan = zonePlan(p)): MaskCe
     const [x0, y0, x1, y1] = zone.tiles;
     for (let col = x0; col <= x1; col++)
       for (let row = y0; row <= y1; row++)
-        cells.push({ x: col, y: row, col, row, id: `t-${col}-${row}`, zoneId: zone.id });
+        cells.push({ x: col, y: row, col, row, zoneId: zone.id });
   }
   return cells;
 }

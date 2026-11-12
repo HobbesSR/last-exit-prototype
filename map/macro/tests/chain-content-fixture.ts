@@ -40,7 +40,7 @@ export function checkGameLayouts({ library: LIBRARY, quotas: QUOTAS, seeds }: Si
     // moved here from the root larger-size map-library files, which built whole maps for it (#821).
     const share = layout.setPieces.reduce((n, piece) => n + piece.slots.length, 0) / layout.slots.length;
     assert.ok(share > 0.45 && share < 0.65, `${seed}: set pieces cover ${share.toFixed(3)} of the tiles`);
-    // Landing and evac have quota 1, and each one's pieces form one region of its core element class.
+    // Arrival and departure have quota 1, and each one's pieces form one region of its core element class.
     for (const [type, owner] of Object.entries(OWNERS)) {
       const matching = found.regions.filter(r => r.class === type);
       assert.equal(matching.length, 1, `${seed} ${type}`);

@@ -238,14 +238,14 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
       }
       return couldAskWanted || (!asked && wanted === DEFAULT_RESOLVED_CLASS);
     };
+    // Both passes ask about the same faces, so each answer is kept for the check.
+    const joinable = new Map<number, boolean>();
     /**
      * Whether the settled cell (x, y), of class `own`, could still join the cell beside it
      * in an unplaced slot: some option left for that slot puts `own` there, or an `any`
      * cell that could resolve to it, or the paired prescriptions guarantee passage. Domains
      * only narrow, so a face that can't join now never will.
      */
-    // Both passes ask about the same faces, so each answer is kept for the check.
-    const joinable = new Map<number, boolean>();
     const couldJoin = (x: number, y: number, dx: number, dy: number, own: string): boolean => {
       const face = (y * width + x) * 4 + (dx ? 1 + dx : 2 + dy);
       let found = joinable.get(face);
@@ -386,14 +386,15 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
       const x = node % width, y = (node - x) / width, found = partAt(x, y, design(slotOf(x, y))!);
       return found ? found.part.cells.map((local) => (found.oy + Math.floor(local / S)) * width + found.ox + (local % S)) : [node];
     };
-    /**
-     * Each face of `node` toward a cell of another node: from (x, y) to `dx, dy`. A part
-     * faces out by its exits, an unplaced slot from each of its perimeter cells.
-     */
+    /** How many cells a placed slot's node holds: its part's, or the one `any` cell. */
     const partSize = (node: number): number => {
       const x = node % width, y = (node - x) / width;
       return partAt(x, y, design(slotOf(x, y))!)?.part.cells.length ?? 1;
     };
+    /**
+     * Each face of `node` toward a cell of another node: from (x, y) to `dx, dy`. A part
+     * faces out by its exits, an unplaced slot from each of its perimeter cells.
+     */
     const facesOf = (node: number, visit: (x: number, y: number, dx: number, dy: number) => boolean): void => {
       if (node < cellCount) {
         const x = node % width, y = (node - x) / width, found = partAt(x, y, design(slotOf(x, y))!);

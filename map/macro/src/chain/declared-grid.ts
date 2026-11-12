@@ -31,7 +31,7 @@ export function parseKey(key: SegmentKey): { axis: "h" | "v"; x: number; y: numb
   return { axis, x, y };
 }
 
-/** A quarter turn clockwise, the old path's convention (`primitives.ts`): cell (x, y) goes to (5 - y, x). */
+/** A quarter turn clockwise: cell (x, y) goes to (5 - y, x). */
 function turn(design: OrientedDesign): OrientedDesign {
   const cells = new Array<string>(S * S);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) cells[x * S + (S - 1 - y)] = design.cells[y * S + x]!;

@@ -8,89 +8,37 @@ import { placeElement } from '../shared/map/element.ts';
 import { WAREHOUSE } from '../map/micro/placeables/warehouse.ts';
 import { HOUSE } from '../map/micro/placeables/house.ts';
 import { buildBlock } from '../map/micro/strategies/block.ts';
-import { buildMarket, MARKET_STALL_PRESETS, MARKET_STALL_INTACT, MARKET_STALL_WEATHERED, MARKET_STALL_DAMAGED } from '../map/micro/strategies/market.ts';
-import { buildCompound, createCompoundAppearance, COMPOUND_RESIDENTIAL_PRESETS, COMPOUND_RESIDENTIAL_INTACT, COMPOUND_RESIDENTIAL_WEATHERED, COMPOUND_RESIDENTIAL_DAMAGED } from '../map/micro/strategies/compound.ts';
+import { buildMarket, MARKET_STALL_PRESETS } from '../map/micro/strategies/market.ts';
+import { buildCompound, createCompoundAppearance, COMPOUND_RESIDENTIAL_PRESETS } from '../map/micro/strategies/compound.ts';
 import { rng } from '../map/micro/random.ts';
 import { buildPlant, PLANT_SHED_APPEARANCE } from '../map/micro/strategies/plant.ts';
 import {
   buildPark,
   PARK_PAVILION_PRESETS,
-  PARK_PAVILION_INTACT,
-  PARK_PAVILION_WEATHERED,
-  PARK_PAVILION_DAMAGED,
-  PARK_HEDGE_PRESETS,
-  PARK_HEDGE_INTACT,
-  PARK_HEDGE_WEATHERED,
-  PARK_HEDGE_DAMAGED,
   PARK_TREE_APPEARANCE,
 } from '../map/micro/strategies/park.ts';
 import {
   buildCheckpoint,
   CHECKPOINT_POST_PRESETS,
-  CHECKPOINT_POST_INTACT,
-  CHECKPOINT_POST_WEATHERED,
-  CHECKPOINT_POST_DAMAGED,
   CHECKPOINT_BARRIER_APPEARANCE,
 } from '../map/micro/strategies/checkpoint.ts';
-import {
-  buildRuins,
-  RUIN_WALL_INTACT,
-  RUIN_WALL_WEATHERED,
-  RUIN_WALL_DAMAGED,
-  FALLEN_SLAB_APPEARANCE,
-  RUINS_BUILDING_PRESETS,
-} from '../map/micro/strategies/ruins.ts';
-import {
-  buildRubble,
-  RUBBLE_DEBRIS_INTACT,
-  RUBBLE_DEBRIS_WEATHERED,
-  RUBBLE_DEBRIS_DAMAGED,
-} from '../map/micro/strategies/rubble.ts';
-import {
-  buildCover,
-  COVER_CRATE_APPEARANCE,
-  COVER_BARRIER_APPEARANCE,
-  COVER_CONTAINER_APPEARANCE,
-} from '../map/micro/strategies/cover.ts';
+import { buildRuins, RUINS_BUILDING_PRESETS } from '../map/micro/strategies/ruins.ts';
+import { buildRubble } from '../map/micro/strategies/rubble.ts';
+import { buildCover } from '../map/micro/strategies/cover.ts';
 import {
   buildOpen,
-  createOpenParcelAppearance,
   OPEN_PARCEL_PRESETS,
-  OPEN_PARCEL_INTACT,
-  OPEN_PARCEL_WEATHERED,
-  OPEN_PARCEL_DAMAGED,
+  createOpenParcelAppearance,
 } from '../map/micro/strategies/open.ts';
 import {
   buildHall,
   HALL_BUILDING_PRESETS,
-  HALL_BUILDING_INTACT,
-  HALL_BUILDING_WEATHERED,
-  HALL_BUILDING_DAMAGED,
   HALL_PILLAR_APPEARANCE,
 } from '../map/micro/strategies/hall.ts';
-import {
-  buildArrival,
-  ARRIVAL_PLAZA_PRESETS,
-  ARRIVAL_COVER_APPEARANCE,
-} from '../map/micro/strategies/arrival.ts';
-import {
-  buildDeparture,
-  DEPARTURE_EXIT_PRESETS,
-  DEPARTURE_CIVIC_COVER_APPEARANCE,
-  DEPARTURE_HUNTER_RIG_APPEARANCE,
-} from '../map/micro/strategies/departure.ts';
-import {
-  buildCharging,
-  CHARGING_RIG_PRESETS,
-  CHARGING_COVER_APPEARANCE,
-  CHARGING_GUARD_APPEARANCE,
-} from '../map/micro/strategies/charging.ts';
-import {
-  buildTransit,
-  TRANSIT_STATION_PRESETS,
-  TRANSIT_CIVIC_COVER_APPEARANCE,
-  TRANSIT_WARP_GUARD_APPEARANCE,
-} from '../map/micro/strategies/transit.ts';
+import { buildArrival, ARRIVAL_PLAZA_PRESETS } from '../map/micro/strategies/arrival.ts';
+import { buildDeparture, DEPARTURE_EXIT_PRESETS } from '../map/micro/strategies/departure.ts';
+import { buildCharging, CHARGING_RIG_PRESETS } from '../map/micro/strategies/charging.ts';
+import { buildTransit, TRANSIT_STATION_PRESETS } from '../map/micro/strategies/transit.ts';
 
 import { chainBrief } from './helpers/chain-briefs.js';
 import { cellsOf } from './helpers/cells.js';

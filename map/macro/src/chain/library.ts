@@ -1,4 +1,4 @@
-/** The generation chain's authored library (51.2, 52). It is independent of the old library. */
+/** The generation chain's authored library (51.2, 52). */
 import { CORE_ELEMENT_KINDS } from "../../../kernel/contract.ts";
 import type { CoreElementKind } from "../../../kernel/contract.ts";
 import { boundaryRuns } from "../../../kernel/run.ts";
@@ -7,7 +7,7 @@ import type { ConnectivitySkeletonConfig } from "./skeleton.ts";
 export const CHAIN_LIBRARY_VERSION = 3;
 export const CHAIN_TILE_SIZE = 6;
 /** Module file format; independent of each module's authored content version. */
-export const CHAIN_MODULE_SCHEMA = 1;
+const CHAIN_MODULE_SCHEMA = 1;
 
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any" | "not-passable-hint";
@@ -355,7 +355,7 @@ function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], min
   }
 }
 
-/** Pure, exhaustive authoring checks. Region type IDs are supplied until C1.
+/** Pure, exhaustive authoring checks. The caller supplies the region type ids, since macro doesn't import the game's registry (50).
  * The lab's draft safety gate (map/tools/lab/draft-safety.ts) must stay no stricter than this. */
 export function validateLibrary(
   library: unknown,

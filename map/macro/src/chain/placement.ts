@@ -1,6 +1,6 @@
 /**
  * Placement (51 stage 1): seed, params and library to a Layout. Set piece classes place
- * their quotas by today's rules, lifted out of `placeLayout`. WFC fills the remaining
+ * their quotas by their placement rules (`zone-plan.ts`). WFC fills the remaining
  * slots over adjacency compatibility, so no tile is placed that breaks a prescription,
  * and under the open-face rule, so no layout fails the proof's gate or the portal rule.
  * A sample whose set pieces don't fit, or whose fill has no solution, is retried, each
@@ -35,19 +35,14 @@ export const PLACEMENT_ATTEMPTS = 50;
  * attempt that stalls this long is abandoned. Chosen from 12 x 6 to 36 x 18 seed batches.
  */
 export const PLACEMENT_STALL_LIMIT = 500;
-/**
- * A game map's params, as the chain's tests have used them, with the old generator's
- * exits. S5 scaled the old loot gradient by 0.37 for bigger set pieces (#170);
- * #214 reduces it by about another fifth for the more varied fill (14, 52).
- * The tools start from these, and each can be overridden.
- */
+/** A game map's params. The tools start from these, and each can be overridden. */
 const { defaultZone } = zonePlan();
 export const DEFAULT_CHAIN_PARAMS: Readonly<ChainParams> = Object.freeze({
   mode: "game", zoneWidth: defaultZone.width, zoneHeight: defaultZone.height,
   exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.012, lootTierStep: 0.027,
 });
 
-/** Keep the old order, giving distributed transit space before the flexible fill pieces. */
+/** The order classes draw in, giving distributed transit space before the flexible fill pieces. */
 const RULE_ORDER: readonly PlacementRule[] = ["start", "end", "enormous", "transit", "medium", "small", "charger"];
 
 interface Pick { setPieceClass: ChainSetPieceClass; piece: ChainSetPiece; filter: PlacementFilter }
@@ -172,15 +167,9 @@ const agree = (a: string | undefined, b: string | undefined): boolean =>
   a === undefined || b === undefined || a === "any" || b === "any" || a === b;
 
 /**
- * Adjacency compatibility (51 stage 1), as WFC relations.
- * - `N`, `E`, `S`, `W`: a neighbour's cell must match each adjacency prescription across
- *   the seam, or be `any`.
- * - `NW:W` and the like: the two neighbours beside one corner of a middle tile mustn't
- *   ask its corner cell for two classes. Where that cell is `any`, this is the only rule
- *   that keeps it to one; where it isn't, the seams already require both to match it.
- *
- * - Each pair of sides on a seam must fit (17.2.2): `any` (or unstated) fits anything,
- *   otherwise like with like.
+ * Whether `b` east of `a` connects to it across their seam, as the proof joins regions: a
+ * pair of facing cells resolves to one class, or a guaranteed run of at least
+ * `MIN_PORTAL_LENGTH` joins one pair of classes.
  */
 export function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign): boolean {
   let portalRun = 0;
@@ -211,6 +200,7 @@ export function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign): boolean 
   return false;
 }
 
+/** `b` south of `a`. */
 export function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign): boolean {
   let portalRun = 0;
   let lastA: string | undefined, lastB: string | undefined;
@@ -255,6 +245,17 @@ export function adjacencyConnects(library: ChainLibrary): (a: TileOption, relati
   };
 }
 
+/**
+ * Adjacency compatibility (51 stage 1), as WFC relations.
+ * - `N`, `E`, `S`, `W`: a neighbour's cell must match each adjacency prescription across
+ *   the seam, or be `any`, and each pair of sides on the seam must fit (17.2.2): `any` (or
+ *   unstated) fits anything, otherwise like with like.
+ * - `E:must-open` and the like: the seam must also connect (`edgeConnectsEast`), for the
+ *   connectivity skeleton's forced-open seams.
+ * - `NW:W` and the like: the two neighbours beside one corner of a middle tile mustn't
+ *   ask its corner cell for two classes. Where that cell is `any`, this is the only rule
+ *   that keeps it to one; where it isn't, the seams already require both to match it.
+ */
 export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility {
   const oriented = orientedDesigns(library);
   const of = (option: TileOption) => oriented(option.templateId, option.orientation);
@@ -482,7 +483,7 @@ export const placer = ({ openFace, attempts, lookahead, trace }: {
   const mask = layoutSlots(params, plan);
 
   // A core element class is painted only inside its owning set pieces (51, "Core elements"), so
-  // the fill never places a design that paints one. Nor one weighted 0, which only set pieces place (52).
+  // the fill never places a design that paints one. Nor one stating `fillable: false`, which only set pieces place (52).
   const featureClasses = new Set(Object.entries(library.cellClasses)
     .filter(([, cellClass]) => Object.keys(cellClass.coreElements ?? {}).length).map(([id]) => id));
   const paintsFeature = (tile: ChainTileDesign): boolean =>

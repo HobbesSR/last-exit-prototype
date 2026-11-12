@@ -62,7 +62,7 @@ export function unpackInts(packed: PackedInts | undefined): Int32Array {
   return Int32Array.from(value as Int32Array);
 }
 
-export function copyBuffer(bytes: Uint8Array): ArrayBuffer {
+function copyBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,
