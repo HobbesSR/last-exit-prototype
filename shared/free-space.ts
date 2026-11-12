@@ -364,9 +364,6 @@ export interface FreeTile extends FreeSpace {
   gateSets: string[][];
 }
 
-/** How far past its box the geometry a tile of `clearance` is built from reaches (`FreeTile.reach`). */
-export const tileReach = (clearance: World): World => clearance + ERODE_MARGIN + 1;
-
 /**
  * The tile of a map's free space within `box` for a body of `clearance`, built on first use and
  * kept until the obstacle list changes. A tile is a function of the geometry within its reach
@@ -380,7 +377,7 @@ export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): Fr
   const cache = cacheOf(map), key = `${box.x},${box.y},${box.w},${box.h}@${clearance}`;
   const kept = cache.tiles.get(key) ?? cache.packed.reduce<FreeTile | undefined>((found, packed) => found ?? unpackTile(packed, box, clearance), undefined);
   if (kept) { cache.tiles.set(key, kept); return kept; }
-  const reach = tileReach(clearance);
+  const reach = clearance + ERODE_MARGIN + 1;
   const window = { x: box.x - reach, y: box.y - reach, w: box.w + 2 * reach, h: box.h + 2 * reach };
   const blocked = nearInBucketOrder(cache.buckets, window).map(i => shapeOf(map.obstacles[i]!));
   const eroded = erodedRings([rect(window.x, window.y, window.w, window.h)], openGround(map, window), blocked, clearance);

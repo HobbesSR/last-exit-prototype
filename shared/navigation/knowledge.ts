@@ -1,5 +1,5 @@
 import { discoveryGrid } from '../discovery.ts';
-import { closestOnSegment, entry, freeSpaceTile, packTiles, pullTaut, tileReach, type FreeTile, type PackedTiles } from '../free-space.ts';
+import { closestOnSegment, entry, freeSpaceTile, packTiles, pullTaut, type FreeTile, type PackedTiles } from '../free-space.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import type { Box, CollisionMap, DiscoveryMemory, GateId, GateObservation, Role, Vec2, World } from '../types.ts';
 import { Heap } from './portal-graph.ts';
@@ -120,7 +120,8 @@ export function packedTilesFor(map: CollisionMap, role: Role): PackedTiles {
 /** Plans for one body over the knowledge a caller supplies at each query; the map is read only through known tiles. */
 export function createKnowledgePlanner(map: CollisionMap, role: Role) {
   const clearance = navigationClearance(role), { cols, rows, size } = discoveryGrid(map);
-  const reach = tileReach(clearance);
+  // How far a tile's geometry reaches past its cell, as `freeSpaceTile` widens it.
+  const reach = clearance + 0.2 + 1;
   const boxOf = (cell: number): Box => {
     const col = cell % cols, row = Math.floor(cell / cols), x = col * size, y = row * size;
     return { x, y, w: Math.min(size, map.width - x), h: Math.min(size, map.height - y) };

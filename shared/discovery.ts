@@ -237,16 +237,17 @@ const REKEY_FLOOR = 16;
  */
 export function createDiscoveryEncoder(rekeyFloor = REKEY_FLOOR) {
   let table: { k: number; all: number[]; set: Set<number> } | null = null;
-  /** A new keyframe holding `list`: the whole set under a fresh version, and no changes. */
-  const keyframe = (list: number[]): EncodedDiscovery => {
-    const k = nextVersion(), all = list;
-    table = { k, all, set: new Set(list) };
-    return { k, all: () => ({ k, all }), changes: { k } };
-  };
 
   return {
     encode(list: number[]): EncodedDiscovery {
-      if (!table) return keyframe(list);
+      if (!table) {
+        table = { k: nextVersion(), all: list, set: new Set(list) };
+        return {
+          k: table.k,
+          all: () => ({ k: table!.k, all: table!.all }),
+          changes: { k: table.k },
+        };
+      }
 
       const newlyAdded: number[] = [];
       for (const id of list) {
@@ -255,7 +256,12 @@ export function createDiscoveryEncoder(rekeyFloor = REKEY_FLOOR) {
 
       if (list.length < table.set.size + newlyAdded.length || newlyAdded.length > rekeyFloor) {
         count('work.rekey.discovered');
-        return keyframe(list);
+        table = { k: nextVersion(), all: list, set: new Set(list) };
+        return {
+          k: table.k,
+          all: () => ({ k: table!.k, all: table!.all }),
+          changes: { k: table.k },
+        };
       }
 
       const currentK = table.k;
