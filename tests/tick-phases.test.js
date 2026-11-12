@@ -5,8 +5,8 @@ import { createPhysicsGame, disposePhysics, enqueuePhysicsAttachment,
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 
-// A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace. P1 content keeps loose
-// items off the world, so a phase's pickup shows in the map's list.
+// A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace. `defaultContent()` runs
+// physical items synchronized with `map.items`, so a phase's pickup or drop still shows in the map's list.
 function fixtureParts(contestants = 2) {
   const map = { seed: 438, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
