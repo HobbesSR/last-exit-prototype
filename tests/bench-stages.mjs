@@ -24,7 +24,7 @@ import * as profiler from '../shared/profiler.ts';
 import { acquireMachineLock } from './helpers/machine-lock.js';
 import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES } from '../map/live.ts';
 import { contentById, CONTENT_ID } from '../shared/simulation/content.ts';
-import { prebuiltTiles } from '../shared/simulation/bots.ts';
+import { prebuiltTiles } from '../shared/simulation/bot-routes.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
 import { createMatch } from '../server/match.js';
 import { remember, broadcast, viewEncoders } from '../server/room-views.js';

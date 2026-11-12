@@ -9,7 +9,7 @@ import { writeFile } from 'node:fs/promises';
 import { DURATION } from '../shared/simulation.ts';
 import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES } from '../map/live.ts';
 import { contentById, CONTENT_ID } from '../shared/simulation/content.ts';
-import { prebuiltTiles } from '../shared/simulation/bots.ts';
+import { prebuiltTiles } from '../shared/simulation/bot-routes.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
 import { createMatch } from '../server/match.js';
 import { cliArgs } from './helpers/args.js';

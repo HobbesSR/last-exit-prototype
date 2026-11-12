@@ -8,7 +8,7 @@
 import { writeFileSync } from 'node:fs';
 import { generateLiveMap, liveZoneSize } from '../../map/live.ts';
 import { contentById } from '../../shared/simulation/content.ts';
-import { prebuiltTiles } from '../../shared/simulation/bots.ts';
+import { prebuiltTiles } from '../../shared/simulation/bot-routes.ts';
 import { adoptPackedTiles } from '../../shared/free-space.ts';
 import { createKnowledgePlanner } from '../../shared/navigation/knowledge.ts';
 import { createPortalPlanner, portalGraphOf, regionAt, regionTables } from '../../shared/navigation/portal-graph.ts';

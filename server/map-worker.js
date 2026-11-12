@@ -6,7 +6,7 @@ import { parentPort } from 'node:worker_threads';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
-import { prebuiltTiles } from '../shared/simulation/bots.ts';
+import { prebuiltTiles } from '../shared/simulation/bot-routes.ts';
 
 parentPort.on('message', ({ id, seed, size }) => {
   try {

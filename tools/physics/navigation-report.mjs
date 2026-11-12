@@ -51,7 +51,7 @@ for (let repeat = 0; repeat < 3; repeat++) for (const [navigation, overrides] of
   } finally { disposePhysics(game); }
 }
 const sources = {};
-for (const file of ['shared/simulation/dynamic-navigation.ts', 'shared/simulation/bots.ts', 'shared/simulation/phased.ts',
+for (const file of ['shared/simulation/dynamic-navigation.ts', 'shared/simulation/bots.ts', 'shared/simulation/bot-routes.ts', 'shared/simulation/phased.ts',
   'shared/simulation.ts', 'shared/physics/world.ts', 'shared/simulation/content.ts', 'shared/simulation/visibility.ts', 'tools/physics/navigation-report.mjs'])
   sources[file] = createHash('sha256').update(await readFile(file)).digest('hex');
 await mkdir(dirname(output), { recursive: true });
