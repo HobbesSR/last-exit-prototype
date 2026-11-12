@@ -74,8 +74,8 @@ in its last bits (#668).
 ### The swept mover
 
 `shared/movement.ts` is the only module that decides whether something may occupy a place. Its
-`movePlayer` moved every body in contents 1 to 5, the legacy mover #920 retired; it still moves
-bodies in the waiting yard, and its occupancy queries serve placement, planning and sight.
+occupancy queries serve placement, planning and sight (`movePlayer` moved every body in contents 1 to 5,
+and was retired in #975 when the waiting yard moved onto Rapier).
 
 Bodies are circles: a contestant has radius 12, a gladiator 23, a projectile its own. World geometry
 is any shape. Every test is therefore circle-against-shape, dispatched by `separate()`.
@@ -88,13 +88,9 @@ body is built, not after. Reversing those two for closed gates cost roughly 6x o
 on `sim.step`, because `canOccupy` runs hundreds of times a frame and once built a body per gate on
 every call.
 
-`movePlayer` is position-based, not velocity-based: it steps the body to its desired position, then
-runs three separation passes over the nearby colliders, subtracting each overlap vector. That is what
-produces sliding along walls and around corners. There is no velocity, no mass, no restitution and no
-angular term anywhere in it, and no continuous sweep — a body that moves further than its own radius
-in a tick can pass through thin geometry. Walking speeds are well under that.
-
-Final position is rounded to three decimals; changing it changes what the mover produces.
+`moveBody` provides SAT sliding for tools and lab walking: it steps the body to its desired position,
+then runs three separation passes over the nearby colliders, subtracting each overlap vector. That is
+what produces sliding along walls and around corners. Final position is rounded to three decimals.
 
 ## Sight
 

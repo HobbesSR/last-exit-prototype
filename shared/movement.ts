@@ -304,10 +304,6 @@ export function movementSpeed(p: Pick<Player, 'role' | 'boost' | 'stun'>, input:
   if (input.sneak && p.role === 'contestant') speed *= 0.55;
   return speed;
 }
-export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Player {
-  count('calls.movePlayer');
-  return moveBody(map, p, input, bodyRadius(p), movementSpeed(p, input));
-}
 
 /** Shared SAT sliding for tools and actors with explicit body dimensions. Input is normalized here. */
 export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: number | undefined; y?: number | undefined }, radius: number, speed: number): T {

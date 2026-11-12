@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
-import { movePlayer, lineClear, visibilityPolygon } from '../shared/movement.ts';
+import { lineClear, visibilityPolygon, moveBody } from '../shared/movement.ts';
 import { collectInstanceEquipment, carriedCell } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { arena, openField } from './helpers/arena.js';
@@ -315,9 +315,8 @@ test('the vision polygon stops at solid cover', () => {
   assert.ok(Math.abs(ray.x - at.x - 60) < 0.01);
 });
 
-// The swept mover the waiting yard still uses (waiting.ts); matches move on the engine.
 test('continuous analog movement is normalized', () => {
   const { map } = openField(2400), p = { role: 'contestant', x: 600, y: Y }, start = { ...p };
-  movePlayer(map, p, { x: 1, y: 1 }); assert.ok(Math.abs(Math.hypot(p.x - start.x, p.y - start.y) - 9) < 0.002);
+  moveBody(map, p, { x: 1, y: 1 }, 12, 9); assert.ok(Math.abs(Math.hypot(p.x - start.x, p.y - start.y) - 9) < 0.002);
   assert.notEqual(p.x % TILE, 0);
 });
