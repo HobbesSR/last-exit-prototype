@@ -128,7 +128,7 @@ test('room welcomes and recording start use prepared maps without changing start
     assert.deepEqual(frames[0].commands.map(command => command.type), ['join', 'start']);
     assert.equal(frames[0].state.tick, 0);
     const watcher = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
-    service.receive(watcher, { type: 'join', room: room.id, role: 'dev' });
+    service.receive(watcher, { type: 'join', room: room.id, mode: 'dev' });
     assert.deepEqual(messages.at(-1).map, match.payloadMap('spectator', match.snapshot()));
   } finally { await service.close(); }
 });

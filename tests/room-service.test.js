@@ -192,8 +192,8 @@ test('inventory gesture commands preserve source items in authoritative frames a
 
 test('fake sessions retain owner checks, spectator delay and safe live-session replacement', async () => {
   const h = roomHarness({ reuseMaps: true }), { room, owner } = await h.live();
-  const denied = h.joined(room, { role: 'spectator' }); assert.match(denied.messages[0].message, /owner key/);
-  const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+  const denied = h.joined(room, { mode: 'spectator' }); assert.match(denied.messages[0].message, /owner key/);
+  const eye = h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
   assert.equal(eye.messages[0].state.tick, 0); assert.equal(eye.session.playerId, null);
   for (let i = 0; i < 70; i++) h.wake(50);
   assert.equal(eye.messages.at(-1).state.tick, 10); assert.equal(room.history.length, 62);

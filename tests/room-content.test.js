@@ -35,8 +35,8 @@ test('a room describes the content it pins, on every welcome and ready and once 
     };
 
     const owner = h.joined(room, { ownerKey: room.ownerKey, role: 'gladiator', kit: 'striker' });
-    const spectator = h.joined(room, { ownerKey: room.ownerKey, role: 'spectator' });
-    const dev = h.joined(room, { role: 'dev' });
+    const spectator = h.joined(room, { ownerKey: room.ownerKey, mode: 'spectator' });
+    const dev = h.joined(room, { mode: 'dev' });
     for (const [peer, what] of [[owner, 'player'], [spectator, 'spectator'], [dev, 'dev']]) {
       const welcome = peer.messages.find(m => m.type === 'welcome');
       assert.equal(welcome.ready, false, `${what} welcome before the map`);
@@ -59,7 +59,7 @@ test('a room describes the content it pins, on every welcome and ready and once 
     assert.equal(waiting.state.phase, 'waiting');
     owner.send({ type: 'start' });
     carries(owner.messages.findLast(m => m.type === 'ready'), 'player ready at the start');
-    const late = h.joined(room, { ownerKey: room.ownerKey, role: 'spectator' });
+    const late = h.joined(room, { ownerKey: room.ownerKey, mode: 'spectator' });
     carries(late.messages.find(m => m.type === 'welcome'), 'a spectator joining a live match');
 
     const writer = h.writers.get(room.id);

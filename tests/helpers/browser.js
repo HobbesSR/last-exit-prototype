@@ -7,7 +7,7 @@ import { listen } from './listen.js';
  * drive it with. Callers close both, browser first.
  */
 export async function serveWithBrowser(options) {
-  const server = await createArenaServer(options);
+  const server = await createArenaServer({ strictProtocol: true, ...options });
   const base = await listen(server);
   return { server, base, browser: await chromium.launch({ channel: 'chrome', headless: true }) };
 }

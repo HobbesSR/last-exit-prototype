@@ -65,7 +65,7 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
       service.advance(50, (i + 1) * 50);
     }
     const eye = peer(service);
-    eye.send({ type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'spectator' });
+    eye.send({ type: 'join', room: room.id, ownerKey: room.ownerKey, mode: 'spectator' });
     const delayed = eye.messages.find(message => message.type === 'welcome').state;
     assert.equal(room.match.tick - delayed.tick, SPECTATOR_DELAY_TICKS, 'spectator joins on the retained delayed frame');
     assert.equal(delayed.bodies.find(body => body.id === 'hidden-prop').x, 4205);

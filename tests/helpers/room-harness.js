@@ -48,7 +48,7 @@ export const reusedMap = (_seed, size = DEFAULT_LIVE_ZONE_SIZE) => Promise.resol
  * once as inline generation would, and a room that names no seed takes seed 9's, as from a pool.
  * Without it each room generates its own inline, or through the `generateMap` and `pool` given.
  */
-export function roomHarness({ finalize, reportError, startWriter, generateMap, pool, reuseMaps = false, ...serviceOptions } = {}) {
+export function roomHarness({ finalize, reportError, reportReject = null, startWriter, generateMap, pool, reuseMaps = false, ...serviceOptions } = {}) {
   if (reuseMaps) {
     generateMap ??= generatedMap;
     pool ??= { take: size => ({ seed: 9, map: generatedMap(9, size) }) };
@@ -68,7 +68,7 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, p
     };
     writers.set(header.id, writer); return writer;
   } };
-  const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
+  const service = createRoomService({ replays, wallNow: () => wall, reportError, reportReject, ...serviceOptions });
   const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
   const peer = () => {
     const messages = [], closes = [], layers = createLayerDecoder();

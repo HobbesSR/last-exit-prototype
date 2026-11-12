@@ -6,6 +6,9 @@ import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
+import { WIRE_VERSION } from '../server/protocol.js';
+import { VERSION } from '../shared/simulation/rules.ts';
+import { PHYSICS_VERSION } from '../shared/simulation/physics-runtime.ts';
 import { listen } from './helpers/listen.js';
 import { next, open, createRoom } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
@@ -37,7 +40,12 @@ test('abandoned live rooms keep a reconnect grace then stop simulation and final
     assert.equal(replay.frames.at(-1).state.phase, 'finished');
     assert.ok(replay.frames.at(-1).commands.some(c => c.type === 'abandoned'));
     const tick = room.game.tick; await new Promise(r => setTimeout(r, 100)); assert.equal(room.game.tick, tick);
-    const health = await (await fetch(base + '/api/health')).json(); assert.equal(health.emptyLiveRooms, 0);
+    const health = await (await fetch(base + '/api/health')).json();
+    assert.equal(health.emptyLiveRooms, 0);
+    assert.equal(health.rulesVersion, VERSION);
+    assert.equal(health.physicsVersion, PHYSICS_VERSION);
+    assert.equal(health.wireVersion, WIRE_VERSION);
+    assert.equal('version' in health, false);
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
 
@@ -92,10 +100,10 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
     const denied = await open(base);
-    const refusal = next(denied, 'error'); denied.send(JSON.stringify({ type: 'join', room: room.id, role: 'spectator' }));
+    const refusal = next(denied, 'error'); denied.send(JSON.stringify({ type: 'join', room: room.id, mode: 'spectator' }));
     assert.match((await refusal).message, /owner key/); denied.close();
     const eye = await open(base);
-    const welcomeEye = next(eye, 'welcome'); eye.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'spectator' }));
+    const welcomeEye = next(eye, 'welcome'); eye.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, mode: 'spectator' }));
     const we = await welcomeEye;
     assert.equal(we.id, null); assert.equal(we.spectator, true); assert.equal(we.state.directed, true);
     assert.equal(we.state.players.length, server.rooms.get(room.id).game.players.length);

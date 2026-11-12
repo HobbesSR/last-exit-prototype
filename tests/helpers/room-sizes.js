@@ -38,7 +38,7 @@ export async function playsToItsEnd(size, serviceOptions = {}) {
     const room = h.service.makeRoom(9, false, size), owner = h.joined(room, { ownerKey: room.ownerKey });
     await room.ready;
     owner.send({ type: 'start' });
-    h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     h.service.disconnect(owner.session);
     assert.ok(room.game.players.every(player => player.bot), 'every seat is played by a bot');
     // Each wake is one tick, and the match ends at its declared duration however play goes.

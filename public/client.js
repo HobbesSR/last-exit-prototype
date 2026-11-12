@@ -10,6 +10,7 @@ import * as profiler from '/shared/profiler.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
+import { WIRE_VERSION, CLIENT_MESSAGE, SERVER_MESSAGE, HTTP_ENDPOINT } from '/shared/protocol.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { contentById } from '/shared/simulation/content.ts';
 import { transitOptions } from '/shared/simulation/transit.ts';
@@ -225,7 +226,7 @@ function showChoice(started) {
     } catch { /* Storage may be unavailable. */ }
   }
 }
-const choose = (role, kit) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'choose', role, kit })); };
+const choose = (role, kit) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.CHOOSE, role, kit })); };
 function lobbyWaiting(matchmade) {
   if (!lobbyReady) return lobbyStarting || matchmade ? 'Generating the arena. The match starts when it is ready.' : 'Generating the arena…';
   return matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
@@ -246,11 +247,11 @@ function hideLobby() {
   if ($('lobby-dialog').open) $('lobby-dialog').close();
   showPlayerHud();
 }
-async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name = DEFAULT_CALLSIGN, matchmake = false }) {
+async function connect({ room, key, mode = 'player', role = 'contestant', kit = DEFAULT_KIT, name = DEFAULT_CALLSIGN, matchmake = false }) {
   let saved;
   try { saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${room}`)); } catch { /* Storage may be unavailable. */ }
   // A dev view borrows the owner key for an `owner` policy, but never the owner's player slot.
-  if (!key && saved?.key) { key = saved.key; if (role !== 'dev') { role = saved.role; kit = saved.kit; name = saved.name; } }
+  if (!key && saved?.key) { key = saved.key; if (mode === 'player') { role = saved.role; kit = saved.kit; name = saved.name; } }
   leaveDevView();
   savedDevCamera = null;
   if (ws) { disconnecting = true; ws.close(); }
@@ -267,8 +268,7 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
   owner = false; lobbyPlayers = []; lobbyData = {}; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; lobbyKit = kit; devView = false; devRoster = ''; director.reset(); setPaused(false);
   discoveryDecoder.reset();
   $('finish-recording').disabled = false;
-  // `role` is how this connection joins (a role, a matchmaking preference or the dev view); `selectedRole`
-  // stays the deploy dialog's own choice, which only its role buttons set.
+  // `mode` and `role` say how this connection joins; `selectedRole` stays the deploy dialog's own choice.
   roomId = room; ownerKey = key;
   connection('CONNECTING');
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
@@ -278,17 +278,19 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
     disconnecting = false;
     let resumeKey;
     try { if (room) resumeKey = sessionStorage.getItem(`last-exit:resume:${room}`); } catch { /* Optional recovery. */ }
-    socket.send(JSON.stringify({ type: matchmake ? 'match' : 'join', room, ownerKey: key, resumeKey, role, kit, name }));
+    socket.send(JSON.stringify(matchmake
+      ? { type: CLIENT_MESSAGE.MATCH, role, kit, name }
+      : { type: CLIENT_MESSAGE.JOIN, room, ownerKey: key, resumeKey, mode, ...(mode === 'player' ? { role, kit, name } : {}) }));
   });
   socket.addEventListener('message', event => {
     if (ws !== socket) return;
     const data = JSON.parse(event.data);
-    if (data.type === 'welcome' || data.type === 'ready') {
+    if (data.type === SERVER_MESSAGE.WELCOME || data.type === SERVER_MESSAGE.READY) {
       const described = envelopePresentation(data);
       if (!described) { toast('The arena sent a match this browser cannot read.'); connection('UNAVAILABLE'); disconnecting = true; socket.close(); return; }
       liveContentPresentation = described;
     }
-    if (data.type === 'welcome') {
+    if (data.type === SERVER_MESSAGE.WELCOME) {
       room = data.room; roomId = room;
       try { if (data.resumeKey) sessionStorage.setItem(`last-exit:resume:${room}`, data.resumeKey); } catch { /* Optional recovery. */ }
       playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state; devView = !!data.dev;
@@ -308,7 +310,7 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
       connection(devView ? 'DEV VIEW' : data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
       if (!data.spectator && !data.started) showLobby(data);
       presentationChanged();
-    } else if (data.type === 'ready') {
+    } else if (data.type === SERVER_MESSAGE.READY) {
       liveMap = data.map; liveState = data.state;
       // A new map starts its own ticks, as at the start when players leave the waiting area (#236), so
       // neither buffered frames nor inputs predicted on the old map carry over.
@@ -319,7 +321,7 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
         changeMap(data.map); acceptState(data.state);
       }
       presentationChanged();
-    } else if (data.type === 'state') {
+    } else if (data.type === SERVER_MESSAGE.STATE) {
       notePacket(event.data.length); layers.decode(data.state);
       const me = data.state.players?.find(p => p.id === playerId);
       if (me?.discovered) discoveryDecoder.decode(me.discovered);
@@ -330,30 +332,30 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
       profiler.observe('net.stateBytes', event.data.length, 'n');
       liveState = data.state;
       if (!replayController.active() && !devFeed) acceptState(data.state);
-    } else if (data.type === 'ping') {
+    } else if (data.type === SERVER_MESSAGE.PING) {
       // Echoed immediately and unmodified. The server times its own round trip; this end
       // states nothing about latency, it only returns a token it could not have held earlier.
-      socket.send(JSON.stringify({ type: 'pong', token: data.token }));
+      socket.send(JSON.stringify({ type: CLIENT_MESSAGE.PONG, token: data.token }));
       roundTripMs = data.rtt ?? null;
-    } else if (data.type === 'lobby') {
+    } else if (data.type === SERVER_MESSAGE.LOBBY) {
       updateLobby(data);
       if (data.started) { if (!devView) { hideLobby(); connection(devFeed ? 'DEV VIEW' : 'LIVE'); } }
       else if (playerId) showLobby(data);
-    } else if (data.type === 'choose') {
+    } else if (data.type === SERVER_MESSAGE.CHOOSE) {
       if (!data.ok) toast(data.message);
-    } else if (data.type === 'teleport') {
+    } else if (data.type === SERVER_MESSAGE.TELEPORT) {
       const who = state?.players.find(p => p.id === data.id)?.name || 'Player';
       toast(data.ok ? `${who} moved` : `${who} cannot stand there`);
-    } else if (data.type === 'paused') {
+    } else if (data.type === SERVER_MESSAGE.PAUSED) {
       setPaused(data.paused);
-    } else if (data.type === 'saved') {
+    } else if (data.type === SERVER_MESSAGE.SAVED) {
       if (recordingFailed) return;
       savedReplay = data.replay; $('watch-match').disabled = false;
       if ($('archive-dialog').open) void loadArchive();
-    } else if (data.type === 'replay-status') {
+    } else if (data.type === SERVER_MESSAGE.REPLAY_STATUS) {
       if (data.status === 'failed') recordingFailed = true;
       toast(data.message || (data.status === 'partial' ? 'Replay recording is partial.' : 'Replay recording failed.'));
-    } else if (data.type === 'error') {
+    } else if (data.type === SERVER_MESSAGE.ERROR) {
       toast(data.message); connection('UNAVAILABLE');
       $('deploy-error').textContent = data.message; $('deploy-error').hidden = false;
       // Includes a room given up while its map generated: its lobby and waiting yard are gone, so back to
@@ -489,7 +491,7 @@ const ArenaScene = makeArenaScene({
 // Diagnostic reports ride beside inputs but are metadata: the server records them as marks on the
 // replay and the simulation never sees them. They name the tick this client was drawing.
 reportDiagnostics(() => (replayController.active() || !playerId || devFeed ? null : presentation?.tick ?? state?.tick ?? null),
-  report => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'diagnostic', ...report })); });
+  report => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.DIAGNOSTIC, ...report })); });
 function markLag() { if (manualMark()) toast('Lag flagged for the replay'); }
 $('mark-lag').onclick = markLag;
 function toggleFullscreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } else { document.exitFullscreen().catch(() => {}); } }
@@ -504,7 +506,7 @@ function setPaused(value) {
   $('dev-pause').dataset.tip = paused ? 'Resume (Space)' : 'Pause (Space)'; icons();
 }
 function togglePause() {
-  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'dev', action: paused ? 'resume' : 'pause' }));
+  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.DEV, action: paused ? 'resume' : 'pause' }));
 }
 function inputTick() {
   if (state?.physicsProfile && document.hidden) return;
@@ -516,7 +518,7 @@ function inputTick() {
     const point = scene.cameras.main.getWorldPoint(scene.input.activePointer.x, scene.input.activePointer.y);
     pointerAim = Math.atan2(point.y - predicted.y, point.x - predicted.x);
   }
-  const input = { type: 'input', seq: seq++, ...inputController.collectIntent({ blocked, pointerAim }) };
+  const input = { type: CLIENT_MESSAGE.INPUT, seq: seq++, ...inputController.collectIntent({ blocked, pointerAim }) };
   ws.send(JSON.stringify(input)); pending.push(input); pending = pending.slice(-20);
   if (state.physicsProfile) predicted = physicsPrediction?.input(input) || predicted;
   else movePlayer(arenaMap, predicted, input);
@@ -532,7 +534,7 @@ async function deploy(enter) {
   finally { connecting = false; }
 }
 const player = () => ({ kit: $('kit').value || DEFAULT_KIT, name: $('callsign').value || DEFAULT_CALLSIGN });
-const createRoom = body => json('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const createRoom = body => json(HTTP_ENDPOINT.ROOMS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 // The deploy form's room: its options come from the server's configuration, so it waits for that.
 const newArena = () => clientConfig && deploy(async () => {
   // A blank seed lets the server choose, which serves a map from its pool at once (#266); a named one reproduces that map.
@@ -561,7 +563,8 @@ const sizeLabel = size => { const [w, h] = size.split('x'); return `${SIZE_NAMES
 function loadClientConfig() {
   if (clientConfig || configLoad) return configLoad;
   $('config-error').hidden = true;
-  configLoad = json('/api/client-config').then(config => {
+  configLoad = json(HTTP_ENDPOINT.CLIENT_CONFIG).then(config => {
+    if (config?.wireVersion !== undefined && config.wireVersion !== WIRE_VERSION) throw new Error('Incompatible wire version');
     const described = readPresentation(config?.presentation);
     if (!described || !Array.isArray(config.sizes)) throw new Error('Unreadable arena options');
     clientConfig = { ...config, presentation: described };
@@ -571,7 +574,8 @@ function loadClientConfig() {
 }
 // Fills the form from configuration, keeping what the address or the player already chose.
 function applyClientConfig() {
-  const { presentation: described, seed, roomNameMaxLength, playerNameMaxLength, sizes, defaultSize, matchmakingCountdownMs } = clientConfig;
+  const { presentation: described, seed, roomNameMaxLength, playerNameMaxLength, sizes, defaultSize, matchmakingCountdownMs, devTools } = clientConfig;
+  devPolicy = devTools ?? devPolicy;
   fillKitOptions($('kit'), described, $('kit').value || DEFAULT_KIT);
   // An unsupported size named in the address stays named, for the server to refuse, rather than becoming another.
   const size = requestedSize ?? ($('map-size').value || defaultSize);
@@ -583,6 +587,7 @@ function applyClientConfig() {
   $('room-name-limit').textContent = `At most ${roomNameMaxLength} characters.`;
   $('matchmaking-countdown').textContent = `${Math.round(matchmakingCountdownMs / 1000)} seconds`;
   $('auto-match').disabled = false; document.querySelector('#deploy-form .deploy').disabled = false;
+  if (listedRooms?.length) renderRooms();
 }
 $('config-retry').onclick = () => void loadClientConfig();
 // The lobby browser (22.5): the rooms the directory lists, polled while the deploy dialog is open.
@@ -609,9 +614,8 @@ async function refreshRooms() {
   if (refreshingRooms) return;
   refreshingRooms = true;
   try {
-    // The dev tools policy is fixed for the server's life, so it is asked once.
-    devPolicy ??= (await json('/api/health')).devTools;
-    listedRooms = await json('/api/rooms');
+    if (!clientConfig) void loadClientConfig();
+    listedRooms = await json(HTTP_ENDPOINT.ROOMS);
   } catch { listedRooms = null; }
   finally { refreshingRooms = false; }
   renderRooms();
@@ -646,7 +650,7 @@ function renderRooms() {
     if (devPolicy === 'all' || devPolicy === 'owner' && ownsRoom(r.id)) {
       const dev = document.createElement('button'); dev.type = 'button'; dev.className = 'icon-button'; dev.innerHTML = icon('eye');
       dev.ariaLabel = `Dev view of ${label}`; dev.dataset.tip = 'Dev view';
-      dev.onclick = () => deploy(() => connect({ room: r.id, role: 'dev' }));
+      dev.onclick = () => deploy(() => connect({ room: r.id, mode: 'dev' }));
       actions.append(dev);
     }
     row.append(details, actions); target.append(row);
@@ -658,7 +662,7 @@ async function loadArchive() {
   $('replay-list').textContent = 'Loading broadcasts...';
   $('finish-recording').hidden = !owner || !liveState || liveState.phase === 'finished';
   try {
-    const list = await json('/api/replays'); $('replay-list').replaceChildren();
+    const list = await json(HTTP_ENDPOINT.REPLAYS); $('replay-list').replaceChildren();
     if (!list.length) { const p = document.createElement('p'); p.className = 'empty-archive'; p.textContent = 'No completed broadcasts yet.'; $('replay-list').append(p); }
     for (const r of list) {
       const row = document.createElement('div'); row.className = 'replay-row';
@@ -675,7 +679,7 @@ async function loadArchive() {
 async function downloadReplay(id) {
   try {
     const cached = replayController.cachedData(id);
-    const data = cached || await json(`/api/replays/${id}`);
+    const data = cached || await json(`${HTTP_ENDPOINT.REPLAYS}/${id}`);
     downloadJson(`last-exit-${id}.json`, data);
   } catch (error) { toast(error.message); }
 }
@@ -724,7 +728,7 @@ setInterval(() => {
   const seconds = Math.ceil((lobbyStartsAt - Date.now()) / 1000);
   $('lobby-waiting').textContent = seconds <= 0 && !lobbyReady ? lobbyWaiting(true) : `Match starts in ${Math.max(0, seconds)}s. Open slots will be filled by bots.`;
 }, 250);
-$('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: 'start' })); };
+$('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.START })); };
 $('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void loadArchive(); };
 // Which path drew the frames. A software or Canvas fallback is slow below our code, where the profile
 // cannot see it (42.2); the adapter name says which GPU, not who is playing.
@@ -749,11 +753,11 @@ async function downloadDiagnostics() {
     userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency, visibility: document.visibilityState,
     renderer: rendererReport(), crowd: crowdReport(),
     socketBufferedBytes: ws?.bufferedAmount, timings: diagnosticTimings(), profile: profiler.report() };
-  try { report.server = await json('/api/health'); } catch { report.server = { reachable: false }; }
+  try { report.server = await json(HTTP_ENDPOINT.HEALTH); } catch { report.server = { reachable: false }; }
   downloadJson(`last-exit-diagnostics-${Date.now()}.json`, report, 2);
 }
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
-$('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
+$('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: CLIENT_MESSAGE.FINISH })); $('finish-recording').disabled = true; } };
 let savedDevCamera = null;
 // The dev view opens beside the match rather than in place of it, so a player keeps their slot.
 function enterDevView() {
@@ -765,20 +769,20 @@ function enterDevView() {
     director.restore(savedDevCamera.camera);
   }
   showDevMode(); const layers = createLayerDecoder();
-  socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'join', room: roomId, ownerKey, role: 'dev' })));
+  socket.addEventListener('open', () => socket.send(JSON.stringify({ type: CLIENT_MESSAGE.JOIN, room: roomId, ownerKey, mode: 'dev' })));
   socket.addEventListener('message', event => {
     if (devFeed !== socket) return;
     const data = JSON.parse(event.data);
     // Only the frames come from here; pauses, the lobby and replays still arrive on the player's socket.
-    if (data.type === 'welcome' || data.type === 'ready') {
+    if (data.type === SERVER_MESSAGE.WELCOME || data.type === SERVER_MESSAGE.READY) {
       const described = envelopePresentation(data);
       if (!described) { toast('The dev view sent a match this browser cannot read.'); leaveDevView(); return; }
       devPresentation = described; devRoster = '';
       if (data.map) { snapshots.reset(); changeMap(data.map); acceptState(data.state); }
       else presentationChanged();
     }
-    else if (data.type === 'state') { layers.decode(data.state); if (!replayController.active()) acceptState(data.state); }
-    else if (data.type === 'error') { toast(data.message); leaveDevView(); }
+    else if (data.type === SERVER_MESSAGE.STATE) { layers.decode(data.state); if (!replayController.active()) acceptState(data.state); }
+    else if (data.type === SERVER_MESSAGE.ERROR) { toast(data.message); leaveDevView(); }
   });
   socket.addEventListener('close', () => { if (devFeed === socket) leaveDevView(); });
 }
@@ -805,7 +809,7 @@ function teleportToCursor() {
   const id = director.followId() || (devFeed ? playerId : null);
   if (!id) return toast('Follow a player to teleport them');
   const point = scene?.pointerWorld();
-  if (point && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'dev', action: 'teleport', id, x: point.x, y: point.y }));
+  if (point && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: CLIENT_MESSAGE.DEV, action: 'teleport', id, x: point.x, y: point.y }));
 }
 addEventListener('keydown', event => {
   if (event.code !== 'KeyT' || event.repeat || !inDevView() || replayController.active() || event.target.closest?.('input, textarea, select') || document.querySelector('dialog:modal')) return;
@@ -840,7 +844,7 @@ if (initialParams.get('seed')) { overrides.seed = initialParams.get('seed'); $('
 if (initialParams.get('size')) { overrides.size = initialParams.get('size'); requestedSize = overrides.size; }
 void loadClientConfig();
 // `?room=…&dev` opens that room's dev view, as the dev view button does.
-if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey'), ...(initialParams.has('dev') ? { role: 'dev' } : {}) }); else void firstArena(overrides);
+if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey'), ...(initialParams.has('dev') ? { mode: 'dev' } : {}) }); else void firstArena(overrides);
 // Profiling is opt-in so instrumented hot paths cost nothing during normal play.
 function renderProfileOverlay() {
   if (!profiler.profiling()) { profileOverlay?.remove(); profileOverlay = null; return; }
@@ -874,7 +878,7 @@ window.arenaProfile = () => ({ enabled: profiler.profiling(), frames: profiler.f
 window.arenaProfiling = setProfiling;
 // Spectator connections exist on the server but have no interface yet; this is the hook the presenter
 // tooling will grow from, and what the tests drive.
-window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
+window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, mode: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
 window.arenaDebug = () => ({ tick: state?.tick, palette, version: state?.version, room: roomId, content: displayPresentation()?.contentId ?? null, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, view: currentView(), paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y, geometry: { visible: a.geometry.visible, scale: a.geometry.scaleX, commands: a.geometry.visible ? a.geometry.commandBuffer : [] } })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
   discoveredCount: discoveryDecoder?.known.size ?? 0,

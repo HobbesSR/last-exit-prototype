@@ -5,25 +5,25 @@ import { roomHarness } from './helpers/room-harness.js';
 test('the dev view follows the server policy and sees the current directed frame', async () => {
   const closed = roomHarness({ reuseMaps: true }), shut = await closed.live();
   try {
-    const refused = closed.joined(shut.room, { role: 'dev', ownerKey: shut.room.ownerKey });
+    const refused = closed.joined(shut.room, { mode: 'dev', ownerKey: shut.room.ownerKey });
     assert.match(refused.messages[0].message, /not enabled/);
     assert.equal(shut.owner.messages.find(m => m.type === 'welcome').devTools, false, 'players are told when the dev view is off');
   } finally { await closed.service.close(); }
 
   const owned = roomHarness({ devTools: 'owner', reuseMaps: true }), mine = await owned.live();
   try {
-    assert.match(owned.joined(mine.room, { role: 'dev' }).messages[0].message, /owner key/);
-    assert.equal(owned.joined(mine.room, { role: 'dev', ownerKey: mine.room.ownerKey }).session.dev, true);
+    assert.match(owned.joined(mine.room, { mode: 'dev' }).messages[0].message, /owner key/);
+    assert.equal(owned.joined(mine.room, { mode: 'dev', ownerKey: mine.room.ownerKey }).session.dev, true);
     assert.equal(owned.joined(mine.room, {}).messages.find(m => m.type === 'welcome').devTools, false, 'a joiner without the key is not offered it');
   } finally { await owned.service.close(); }
 
   const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = await h.live();
   try {
     assert.equal(owner.messages.find(m => m.type === 'welcome').devTools, true);
-    const dev = h.joined(room, { role: 'dev' }), welcome = dev.messages[0];
+    const dev = h.joined(room, { mode: 'dev' }), welcome = dev.messages[0];
     assert.equal(welcome.dev, true); assert.equal(welcome.id, null); assert.equal(welcome.state.directed, true);
     assert.equal(dev.session.playerId, null); assert.equal(room.match.roster().length, 1, 'the dev view holds no slot');
-    const spectator = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    const spectator = h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     for (let i = 0; i < 70; i++) h.wake(50);
     const live = dev.messages.at(-1).state, delayed = spectator.messages.at(-1).state;
     assert.equal(live.tick, room.match.tick, 'the dev view is not delayed');
@@ -39,10 +39,10 @@ test('the dev view follows the server policy and sees the current directed frame
 test('a dev pause stops only its own room, drops owed time and leaves one mark', async () => {
   const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = await h.live(), other = await h.live();
   try {
-    const dev = h.joined(room, { role: 'dev' });
+    const dev = h.joined(room, { mode: 'dev' });
     h.wake(100); const tick = room.match.tick;
     dev.send({ type: 'dev', action: 'pause' });
-    assert.deepEqual(owner.messages.at(-1), { type: 'paused', paused: true, tick });
+    assert.deepEqual(owner.messages.at(-1), { type: 'paused', paused: true });
     const otherTick = other.room.match.tick;
     for (let i = 0; i < 40; i++) h.wake(50);
     assert.equal(room.match.tick, tick, 'a paused room runs no tick');
@@ -89,7 +89,7 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
     const guest = h.joined(room, {}); guest.send({ type: 'dev', action: 'teleport', id: bot.id, x: spawn.x + 60, y: spawn.y });
     assert.ok(!guest.messages.some(m => m.type === 'teleport'), 'a session the policy does not admit cannot teleport');
     const first = land(bot.id);
-    assert.deepEqual(first.answer, { type: 'teleport', ok: true, id: bot.id, x: Math.round(first.x + 0.4), y: first.y });
+    assert.deepEqual(first.answer, { type: 'teleport', ok: true, id: bot.id });
     assert.equal(bot.x, Math.round(first.x + 0.4)); assert.equal(bot.y, first.y); assert.deepEqual(bot.path, [], 'a bot plans again from where it lands');
     h.wake(50);
     assert.deepEqual(writer.frames.at(-1).commands.find(c => c.type === 'teleport'), { type: 'teleport', id: bot.id, x: Math.round(first.x + 0.4), y: first.y });
@@ -114,7 +114,7 @@ test('teleports in a paused room never shorten the spectator delay', async () =>
   const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner } = await h.live();
   try {
     for (let i = 0; i < 100; i++) h.wake(50);
-    const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    const eye = h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     owner.send({ type: 'dev', action: 'pause' });
     const id = owner.session.playerId, open = room.game.map.spawns[0];
     for (let i = 0; i < 65; i++) owner.send({ type: 'dev', action: 'teleport', id, x: open.x, y: open.y + (i % 2) * 20 });

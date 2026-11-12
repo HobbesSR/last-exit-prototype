@@ -118,7 +118,7 @@ const watch = async (room, record = false) => {
     if (record && payload.includes('"type":"state"')) deliveries.push(performance.now());
     return true;
   } });
-  service.receive(peer, { type: 'join', room: room.id, role: 'dev', ownerKey: room.ownerKey });
+  service.receive(peer, { type: 'join', room: room.id, mode: 'dev', ownerKey: room.ownerKey });
   return peer;
 };
 async function joinViewers(room, record = false) {

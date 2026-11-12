@@ -29,7 +29,7 @@ const MAX_AMMO_DROP = 9999;
 const MAX_ID = 64;
 
 /** Clamp and coerce one wire input. Everything absent or malformed becomes a neutral value. */
-function sanitize(input: PlayerInput, seq: number): PlayerInput {
+export function sanitizeInput(input: PlayerInput, seq: number): PlayerInput {
   const axis = (v: unknown) => finite(v) ? Math.max(-1, Math.min(1, v)) : 0;
   return {
     seq,
@@ -61,7 +61,7 @@ export function queueInput(p: Player, input: PlayerInput | null | undefined, tic
   if (!input || !safeInteger(input.seq) || input.seq <= (p.receivedSeq ?? -1)) return null;
   p.receivedSeq = input.seq;
   p.inputQueue ??= [];
-  p.inputQueue.push(sanitize(input, input.seq));
+  p.inputQueue.push(sanitizeInput(input, input.seq));
   // A client sending faster than the tick consumes would otherwise build unbounded input lag. The
   // oldest goes, because the newest is the closest to what the player currently intends.
   while (p.inputQueue.length > MAX_DEPTH) p.inputQueue.shift();
