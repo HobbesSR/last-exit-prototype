@@ -263,14 +263,17 @@ test('giveUpSweep clears target even when region is -1', () => {
     content: contentById('content-12'),
     map, players: [g, c],
   };
+  let stands = 0;
+  const stand = at => (stands++, { ...at });
   noteHunterTarget(s, g, false);
-  const target = sweepTarget(s, g, at => at);
+  const target = sweepTarget(s, g, stand);
   assert.ok(target, 'targeted charging station with region: -1');
+  assert.equal(stands, 1);
   giveUpSweep(s, g);
-  // Now if charger lead is expired or cleared, target is not retained
-  s.tick = 100 + 70 * 30; // beyond CHARGER_INVESTIGATE_FOR
-  const next = sweepTarget(s, g, at => at);
-  assert.ok(next && next.x !== chargers[0].x, 're-evaluates sweep and targets a region instead of retaining charger');
+  // Straight after giveUpSweep, sweepTarget must re-evaluate stand() instead of returning the retained target.
+  const next = sweepTarget(s, g, stand);
+  assert.equal(stands, 2, 're-evaluates sweep instead of returning retained target');
+  assert.notEqual(next, target);
 });
 
 test('under content-11, a gladiator keeps its sweep target when the hazard wall passes it', () => {

@@ -4,7 +4,7 @@ import { createGame, createPhysicsGame, disposePhysics, setInput, step, snapshot
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment } from '../shared/equipment.ts';
 import { dropInventorySlot } from '../shared/simulation/loot.ts';
-import { generateLiveMap } from '../map/live.ts';
+import { generatedMap } from './helpers/room-harness.js';
 import { virtualZone, spatialMix, noveltyBand, qualityFromWeights, itemRoll, assignWeaponQualities, qualityDamage, STARTER_RESERVE } from '../shared/loot-tiers.ts';
 
 const LOOT = contentById('content-loot-1');
@@ -65,12 +65,12 @@ test('item rolls are keyed by seed and id, not by order', () => {
 });
 
 test('a live chain map: virtual columns are the generator zone tiers, only quality is added, the spawn kit is quality 1, and weapon quality rises with mix', () => {
-  const map = generateLiveMap(1), loot = map.items.filter(item => item.nodeId);
+  const map = generatedMap(), loot = map.items.filter(item => item.nodeId);
   assert.ok(loot.length > 500, `generated loot: ${loot.length}`);
   for (const item of loot) assert.equal(virtualZone(map, item).col + 1, item.tier, `${item.id} at ${item.x},${item.y}`);
   // Item setup needs no engine, so the shared constructor stands in for a match.
-  const plain = createGame(1, structuredClone(map), defaultContent());
-  const s = createGame(1, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
+  const plain = createGame(9, structuredClone(map), defaultContent());
+  const s = createGame(9, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
   let kit = 0;
   for (const [i, item] of s.map.items.entries()) {
     assert.deepEqual({ ...item, quality: undefined }, { ...plain.map.items[i], quality: undefined }, 'only quality is added');
@@ -86,7 +86,7 @@ test('a live chain map: virtual columns are the generator zone tiers, only quali
       `mix ${mixIndex + 1} sampled unsupported quality ${quality}`);
   const means = byMix.slice(1).map(q => q.reduce((a, b) => a + b, 0) / q.length);
   // A floor, so no mean is one roll. It is not a content target: denser region content leaves fewer clear
-  // loot sites, and types-62 left mix 2 nine weapons on this seed, its means still rising (#759).
+  // loot sites, while the stored seed-9 arena still leaves enough weapons per mix for means to rise (#759).
   assert.ok(byMix.slice(1).every(q => q.length >= 5), `weapons per mix: ${byMix.map(q => q.length)}`);
   for (let i = 1; i < means.length; i++) assert.ok(means[i] > means[i - 1], `mean quality rises over mixes 2..5: ${means.map(m => m.toFixed(2))}`);
 });
