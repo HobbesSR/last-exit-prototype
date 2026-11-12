@@ -1,4 +1,4 @@
-import { gateShape } from '../movement.ts';
+import { gateShape, playableAreaOf } from '../movement.ts';
 import { convex, shapeOf } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { CollisionMap, Gate, Vec2 } from '../types.ts';
@@ -90,65 +90,46 @@ export function buildPhysicsGeometry(map: CollisionMap): BodyDefinition[] {
   add(box('boundary:top', 0, -WALL, width, WALL));
   add(box('boundary:bottom', 0, height, width, WALL));
 
-  const area = map.playableArea;
-  if (area) {
-    const size = area.cellSize;
-    if (!positive(size)) throw new RangeError('Invalid physics mask cell size');
-    const cols = Math.ceil(width / size), rows = Math.ceil(height / size);
-    if (rows > MAX_MASK_ROWS) throw new RangeError('Physics mask grid capacity exceeded');
-    // Merge equal void intervals in adjacent rows. This bounds a long straight void
-    // edge to one collider and never builds a collider for every empty cell.
-    type Gap = { left: number; right: number; first: number; last: number };
-    let active = new Map<string, Gap>();
-    const emit = (gap: Gap): void => {
-      const x = gap.left * size, y = gap.first * size;
-      add(box(`void:${gap.first}:${gap.left}:${gap.right}`, x, y,
-        Math.min(width, gap.right * size) - x, Math.min(height, (gap.last + 1) * size) - y));
-    };
-    let cursor = 0;
-    for (let row = 0; row < rows; row++) {
-      const entry = area.rows[cursor];
-      const runs = entry?.y === row ? entry.runs : [];
-      if (entry && entry.y < row) throw new RangeError('Physics mask rows must be ordered and unique');
-      if (entry?.y === row) cursor++;
-      const gaps: Array<[number, number]> = [];
-      let col = 0;
-      for (const [left, right] of runs) {
-        if (!Number.isInteger(left) || !Number.isInteger(right) || left < col || right <= left || right > cols) {
-          throw new RangeError('Invalid physics mask run');
-        }
-        if (left > col) gaps.push([col, left]);
-        col = right;
+  const area = playableAreaOf(map);
+  const size = area.cellSize;
+  if (!positive(size)) throw new RangeError('Invalid physics mask cell size');
+  const cols = Math.ceil(width / size), rows = Math.ceil(height / size);
+  if (rows > MAX_MASK_ROWS) throw new RangeError('Physics mask grid capacity exceeded');
+  // Merge equal void intervals in adjacent rows. This bounds a long straight void
+  // edge to one collider and never builds a collider for every empty cell.
+  type Gap = { left: number; right: number; first: number; last: number };
+  let active = new Map<string, Gap>();
+  const emit = (gap: Gap): void => {
+    const x = gap.left * size, y = gap.first * size;
+    add(box(`void:${gap.first}:${gap.left}:${gap.right}`, x, y,
+      Math.min(width, gap.right * size) - x, Math.min(height, (gap.last + 1) * size) - y));
+  };
+  let cursor = 0;
+  for (let row = 0; row < rows; row++) {
+    const entry = area.rows[cursor];
+    const runs = entry?.y === row ? entry.runs : [];
+    if (entry && entry.y < row) throw new RangeError('Physics mask rows must be ordered and unique');
+    if (entry?.y === row) cursor++;
+    const gaps: Array<[number, number]> = [];
+    let col = 0;
+    for (const [left, right] of runs) {
+      if (!Number.isInteger(left) || !Number.isInteger(right) || left < col || right <= left || right > cols) {
+        throw new RangeError('Invalid physics mask run');
       }
-      if (col < cols) gaps.push([col, cols]);
-      const next = new Map<string, Gap>();
-      for (const [left, right] of gaps) {
-        const key = `${left}:${right}`;
-        const prior = active.get(key);
-        next.set(key, prior ? { ...prior, last: row } : { left, right, first: row, last: row });
-      }
-      for (const [key, gap] of active) if (!next.has(key)) emit(gap);
-      active = next;
+      if (left > col) gaps.push([col, left]);
+      col = right;
     }
-    if (cursor !== area.rows.length) throw new RangeError('Physics mask row exceeds map');
-    for (const gap of active.values()) emit(gap);
-  } else {
-    // Legacy playable area is an inset diamond. Four corner triangles fill its
-    // outside half-planes up to the rectangular outer boundary.
-    const cx = width / 2, cy = height / 2, hx = cx - WALL, hy = cy - WALL;
-    if (hx <= 0 || hy <= 0) throw new RangeError('Legacy diamond map is too small');
-    const xTop = cx + hx * (cy / hy - 1);
-    const ySide = cy + hy * (cx / hx - 1);
-    const corners: Array<[string, Vec2[]]> = [
-      ['nw', [{ x: 0, y: 0 }, { x: xTop, y: 0 }, { x: 0, y: ySide }]],
-      ['ne', [{ x: width, y: 0 }, { x: width, y: ySide }, { x: width - xTop, y: 0 }]],
-      ['se', [{ x: width, y: height }, { x: width - xTop, y: height }, { x: width, y: height - ySide }]],
-      ['sw', [{ x: 0, y: height }, { x: 0, y: height - ySide }, { x: xTop, y: height }]],
-    ];
-    for (const [name, vertices] of corners) {
-      if (!strictConvex(vertices)) throw new RangeError('Invalid legacy diamond geometry');
-      add(centeredPolygon(`boundary:diamond:${name}`, 0, 0, vertices));
+    if (col < cols) gaps.push([col, cols]);
+    const next = new Map<string, Gap>();
+    for (const [left, right] of gaps) {
+      const key = `${left}:${right}`;
+      const prior = active.get(key);
+      next.set(key, prior ? { ...prior, last: row } : { left, right, first: row, last: row });
     }
+    for (const [key, gap] of active) if (!next.has(key)) emit(gap);
+    active = next;
   }
+  if (cursor !== area.rows.length) throw new RangeError('Physics mask row exceeds map');
+  for (const gap of active.values()) emit(gap);
   return result;
 }

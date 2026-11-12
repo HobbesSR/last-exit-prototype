@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPhysicsGeometry, physicsGate, MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
 import { insideMap } from '../shared/movement.ts';
+import { openArea } from './helpers/arena.js';
 
-const empty = (more = {}) => ({ width: 250, height: 250, obstacles: [], gates: [], ...more });
+const empty = (more = {}) => ({ width: 250, height: 250, playableArea: openArea(250, 250, 50), obstacles: [], gates: [], ...more });
 
 function contains(body, x, y) {
   const dx = x - body.x, dy = y - body.y;
@@ -62,18 +63,8 @@ test('mask void boxes merge row runs and represent holes, corners and outer face
   }
 });
 
-test('legacy diamond has diagonal contact faces at the same boundary as insideMap', () => {
-  const map = empty();
-  const bodies = buildPhysicsGeometry(map);
-  assert.equal(bodies.filter(body => body.id.startsWith('boundary:diamond:')).length, 4);
-  for (const [x, y] of [[25, 25], [225, 25], [225, 225], [25, 225], [125, 39], [39, 125]]) {
-    assert.equal(insideMap(map, x, y), false);
-    assert.ok(bodies.some(body => contains(body, x, y)), `${x},${y} excluded`);
-  }
-  for (const [x, y] of [[125, 41], [41, 125], [125, 125], [209, 125], [125, 209]]) {
-    assert.equal(insideMap(map, x, y), true);
-    assert.equal(bodies.some(body => contains(body, x, y)), false, `${x},${y} playable`);
-  }
+test('a map without a playable area has no physics geometry', () => {
+  assert.throws(() => buildPhysicsGeometry({ width: 250, height: 250, obstacles: [], gates: [] }), /playableArea/);
 });
 
 test('malformed static geometry is refused before the engine sees it', () => {

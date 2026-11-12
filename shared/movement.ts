@@ -203,28 +203,29 @@ function cellsAlong(a: Vec2, b: Vec2, radius: number, size: number, visit: (col:
     for (let col = Math.max(low, Math.floor((Math.min(x0, x1) - radius) / size)); col <= right; col++) visit(col, row);
   }
 }
+/** The map's playable area. Every match map has one; a map without it is rejected rather than bounded by a default shape. */
+export function playableAreaOf(map: Pick<CollisionMap, 'playableArea'>): PlayableArea {
+  if (!map.playableArea) throw new RangeError('Map has no playableArea');
+  return map.playableArea;
+}
 export function insideMap(map: Pick<CollisionMap, 'width' | 'height' | 'playableArea'>, x: World, y: World, radius: World = 0): boolean {
-  if (map.playableArea) {
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || radius < 0
-      || x - radius < 0 || y - radius < 0 || x + radius > map.width || y + radius > map.height
-      || x >= map.width || y >= map.height) return false;
-    const area = map.playableArea, size = area.cellSize;
-    if (radius === 0) return occupiedCell(area, Math.floor(x / size), Math.floor(y / size));
-    const left = Math.max(0, Math.floor((x - radius) / size));
-    const right = Math.min(Math.ceil(map.width / size) - 1, Math.floor((x + radius) / size));
-    const top = Math.max(0, Math.floor((y - radius) / size));
-    const bottom = Math.min(Math.ceil(map.height / size) - 1, Math.floor((y + radius) / size));
-    for (let row = top; row <= bottom; row++) for (let col = left; col <= right; col++) {
-      if (occupiedCell(area, col, row)) continue;
-      const nearX = Math.max(col * size, Math.min((col + 1) * size, x));
-      const nearY = Math.max(row * size, Math.min((row + 1) * size, y));
-      const ex = x - nearX, ey = y - nearY;
-      if (ex * ex + ey * ey < radius * radius) return false;
-    }
-    return true;
+  const area = playableAreaOf(map), size = area.cellSize;
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || radius < 0
+    || x - radius < 0 || y - radius < 0 || x + radius > map.width || y + radius > map.height
+    || x >= map.width || y >= map.height) return false;
+  if (radius === 0) return occupiedCell(area, Math.floor(x / size), Math.floor(y / size));
+  const left = Math.max(0, Math.floor((x - radius) / size));
+  const right = Math.min(Math.ceil(map.width / size) - 1, Math.floor((x + radius) / size));
+  const top = Math.max(0, Math.floor((y - radius) / size));
+  const bottom = Math.min(Math.ceil(map.height / size) - 1, Math.floor((y + radius) / size));
+  for (let row = top; row <= bottom; row++) for (let col = left; col <= right; col++) {
+    if (occupiedCell(area, col, row)) continue;
+    const nearX = Math.max(col * size, Math.min((col + 1) * size, x));
+    const nearY = Math.max(row * size, Math.min((row + 1) * size, y));
+    const ex = x - nearX, ey = y - nearY;
+    if (ex * ex + ey * ey < radius * radius) return false;
   }
-  const hx = map.width / 2 - 40, hy = map.height / 2 - 40;
-  return Math.abs(x - map.width / 2) / hx + Math.abs(y - map.height / 2) / hy + radius * hypot(1 / hx, 1 / hy) <= 1;
+  return true;
 }
 export function canOccupy(map: CollisionMap, x: World, y: World, radius: World = 12, ignoreGates = false, projectile = false): boolean {
   count('calls.canOccupy');
@@ -309,8 +310,9 @@ export function movementSpeed(p: Pick<Player, 'role' | 'boost' | 'stun'>, input:
 export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: number | undefined; y?: number | undefined }, radius: number, speed: number): T {
   if (!Number.isFinite(radius) || radius <= 0 || !Number.isFinite(speed) || speed < 0) throw new Error('Invalid movement dimensions.');
   // Small steps prevent a fast body from crossing a void cell and landing on the far side.
-  if (map.playableArea && speed > map.playableArea.cellSize / 2) {
-    const steps = Math.ceil(speed / (map.playableArea.cellSize / 2));
+  const area = playableAreaOf(map);
+  if (speed > area.cellSize / 2) {
+    const steps = Math.ceil(speed / (area.cellSize / 2));
     for (let i = 0; i < steps; i++) moveBody(map, p, input, radius, speed / steps);
     return p;
   }
@@ -324,25 +326,16 @@ export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: n
     const box = gateShape(g);
     if (nearBounds(box, circle.pos.x, circle.pos.y, reach)) colliders.push(collider(box));
   }
-  if (map.playableArea) for (const box of voidCellsNear(map, circle.pos.x, circle.pos.y, radius + speed))
-    colliders.push(collider(box));
+  for (const box of voidCellsNear(map, circle.pos.x, circle.pos.y, radius + speed)) colliders.push(collider(box));
   // SAT separation provides continuous sliding along walls and around obstacle corners.
   for (let pass = 0; pass < 3; pass++) for (const o of colliders) {
     response.clear();
     if (separate(circle, o.shape, o.body, response)) circle.pos.sub(response.overlapV);
   }
-  if (map.playableArea) {
-    circle.pos.x = Math.max(radius, Math.min(map.width - radius, circle.pos.x));
-    circle.pos.y = Math.max(radius, Math.min(map.height - radius, circle.pos.y));
-    // A deep-void start has no well-defined SAT escape direction. Keep the last valid placement.
-    if (!insideMap(map, circle.pos.x, circle.pos.y, radius)) { circle.pos.x = p.x; circle.pos.y = p.y; }
-  } else {
-    const hx = map.width / 2 - 40, hy = map.height / 2 - 40, len = hypot(1 / hx, 1 / hy);
-    for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-      const excess = sx * (circle.pos.x - map.width / 2) / hx + sy * (circle.pos.y - map.height / 2) / hy + radius * len - 1;
-      if (excess > 0) { circle.pos.x -= excess * sx / hx / (len * len); circle.pos.y -= excess * sy / hy / (len * len); }
-    }
-  }
+  circle.pos.x = Math.max(radius, Math.min(map.width - radius, circle.pos.x));
+  circle.pos.y = Math.max(radius, Math.min(map.height - radius, circle.pos.y));
+  // A deep-void start has no well-defined SAT escape direction. Keep the last valid placement.
+  if (!insideMap(map, circle.pos.x, circle.pos.y, radius)) { circle.pos.x = p.x; circle.pos.y = p.y; }
   p.x = Math.round(circle.pos.x * 1000) / 1000; p.y = Math.round(circle.pos.y * 1000) / 1000;
   return p;
 }

@@ -7,6 +7,7 @@ import { polygon } from '../shared/shape.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { roofConceals, roofGroups } from '../shared/view.ts';
 import { realizeBuilding } from '../map/micro/sdk.ts';
+import { openArea } from './helpers/arena.js';
 
 // Anchored near the middle of the diamond, because `canOccupy` also enforces the arena boundary.
 const CENTRE = { x: 12000, y: 6000 };
@@ -15,7 +16,7 @@ const stamp = (x, y, placement = {}) => {
   placeElement(context, HUT, x, y, { nodeId: 'n', ...placement });
   return context;
 };
-const collidable = context => ({ width: 24000, height: 12000, obstacles: context.map.obstacles, gates: [] });
+const collidable = context => ({ width: 24000, height: 12000, playableArea: openArea(24000, 12000, 1000), obstacles: context.map.obstacles, gates: [] });
 
 test('an element stamps the same assembly wherever it is anchored', () => {
   const here = stamp(CENTRE.x, CENTRE.y), there = stamp(CENTRE.x + 3000, CENTRE.y + 1500);

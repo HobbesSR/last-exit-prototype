@@ -55,12 +55,3 @@ test('relative swept actor motion is retained with geometry timing', () => {
   assert.equal(target.hp, 90);
   assert.equal(s.projectiles.length, 0);
 });
-
-test('legacy diamond outside is solid along its diagonal face', () => {
-  const map = { width: 250, height: 250, obstacles: [], gates: [] };
-  const target = player('target', 35, 35);
-  const s = game(map, target, bullet(125, 125, -110, -110));
-  solvePhysicsProjectiles(s, still(target));
-  assert.equal(target.hp, 100);
-  assert.equal(s.projectiles.length, 0);
-});

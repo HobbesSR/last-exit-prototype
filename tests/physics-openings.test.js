@@ -5,13 +5,14 @@ import { elementShapes } from '../map/micro/geometry.ts';
 import { buildPhysicsGeometry } from '../shared/simulation/physics-geometry.ts';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
 import { contentById } from '../shared/simulation/content.ts';
+import { openArea } from './helpers/arena.js';
 
 // A 40-unit wall split by a 32-unit slit, as the street generator authored its shortcuts before #920
 // retired it: narrower than a gladiator's body, wider than a contestant's.
 const SLIT = 32, WALL = 40;
 const slitMap = () => {
   const x = 500, y = 500, rect = (id, top, bottom) => ({ id, x: x - WALL / 2, y: top, w: WALL, h: bottom - top, kind: 'ruin-wall' });
-  return { width: 1000, height: 1000, gates: [], gaps: [{ x, y }],
+  return { width: 1000, height: 1000, playableArea: openArea(1000, 1000, 100), gates: [], gaps: [{ x, y }],
     obstacles: [rect('upper', 0, y - SLIT / 2), rect('lower', y + SLIT / 2, 1000)] };
 };
 

@@ -4,9 +4,15 @@ import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
 // parameter set of this builder unless it needs something the builder can't express, and its PR says so.
 // Never served from the main interface; a lab may adapt one.
 
+/** A playable area covering the whole `width` x `height` rectangle, for a hand-made collision map that needs nothing else. */
+export const openArea = (width, height, cellSize) => {
+  const cols = Math.ceil(width / cellSize);
+  return { cellSize, rows: Array.from({ length: Math.ceil(height / cellSize) }, (_, y) => ({ y, runs: [[0, cols]] })) };
+};
+
 /**
- * A valid `GameMap` of `cols` × `rows` cells, all playable, so points anywhere stay where they are put
- * (a map without a playable area is a diamond). Everything not given is empty.
+ * A valid `GameMap` of `cols` × `rows` cells, all playable, so points anywhere stay where they are put.
+ * Everything not given is empty.
  *
  * `corridor` splits it into `gaps.length + 1` regions side by side, each wall leaving one cell-high gap at
  * row `gaps[i]`, and attaches the portal graph across the gaps; `crossings` are the gaps' midpoints.
@@ -18,7 +24,7 @@ export function arena({ cols, rows, cellSize = 192, seed = 0, corridor, scatter,
   modules = [], hazards = [], gaps = [], sensors = [], routes = [], nodes = [], streets = [], items = [], traps = [],
   stations = [], chargers = [], physicsProps, spawns = [], hunterSpawns, entry, exit } = {}) {
   const width = cols * cellSize, height = rows * cellSize;
-  const playableArea = { cellSize, rows: Array.from({ length: rows }, (_, y) => ({ y, runs: [[0, cols]] })) };
+  const playableArea = openArea(width, height, cellSize);
   const map = { seed, width, height, playableArea, modules: [...modules], buildings: [...buildings],
     ...(roofs ? { roofs: [...roofs] } : {}), ...(decals ? { decals: [...decals] } : {}), ...(appearance ? { appearance } : {}),
     obstacles: [...obstacles], gates: [...gates], hazards: [...hazards], gaps: [...gaps], stations: [...stations],

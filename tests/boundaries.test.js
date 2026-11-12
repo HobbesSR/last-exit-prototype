@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as simulation from '../shared/simulation.ts';
 import * as map from '../shared/map.ts';
+import { openArea } from './helpers/arena.js';
 
 test('public simulation/map exports and acyclic shared dependencies remain stable', () => {
   assert.deepEqual(Object.keys(simulation).sort(), ['VERSION', 'HZ', 'DURATION', 'CELL_CHARGE_TICKS', 'GLADIATOR_RESPAWN_TICKS', 'HAZARD_GRACE_TICKS', 'KITS', 'POTENTIAL', 'TILE', 'createGameRecord', 'joinGame', 'setInput', 'couldSee', 'visibleTo', 'playerView', 'step', 'snapshot', 'PHYSICS_VERSION', 'createGame', 'disposePhysics', 'enqueuePhysicsImpulse', 'enqueuePhysicsAttachment', 'synchronizePhysics'].sort());
@@ -26,7 +27,7 @@ test('public simulation/map exports and acyclic shared dependencies remain stabl
 });
 
 test('navigation caches follow map identity, doors, obstacle replacement and append', () => {
-  const m = { width: 1200, height: 1200, obstacles: [], gates: [{ id: 'door', x: 620, y: 620, w: 20, h: 100, open: false, locked: false }] };
+  const m = { width: 1200, height: 1200, playableArea: openArea(1200, 1200, 100), obstacles: [], gates: [{ id: 'door', x: 620, y: 620, w: 20, h: 100, open: false, locked: false }] };
   const bounds = { x: 13, y: 13, width: 5, height: 5 };
   const grid = () => map.navigationGrid(m, 'contestant', bounds);
   const closed = grid(); assert.equal(grid(), closed);

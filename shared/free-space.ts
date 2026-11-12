@@ -1,8 +1,8 @@
 import ClipperLib from 'clipper-lib';
 import { IndexHeap } from './index-heap.ts';
-import { outline, polygon, rect, shapeOf, type Shape } from './shape.ts';
+import { outline, rect, shapeOf, type Shape } from './shape.ts';
 import { CLIP_SCALE, canonicalRings, clipPath, strictlySimpleClipper, triangulateRings } from './shape-construction.ts';
-import { gateShape } from './movement.ts';
+import { gateShape, playableAreaOf } from './movement.ts';
 import type { Box, CollisionMap, Vec2, World } from './types.ts';
 import { hypot } from './math.ts';
 
@@ -540,13 +540,9 @@ function obstacleBuckets(map: CollisionMap): Map<string, number[]> {
   return buckets;
 }
 
-/** The ground `insideMap` accepts near `box`: the playable area's runs, or a default map's diamond. */
+/** The ground `insideMap` accepts near `box`: the playable area's runs. */
 function openGround(map: CollisionMap, box: Box): Shape[] {
-  const area = map.playableArea;
-  if (!area) {
-    const hx = map.width / 2 - 40, hy = map.height / 2 - 40, cx = map.width / 2, cy = map.height / 2;
-    return [polygon(0, 0, [{ x: cx - hx, y: cy }, { x: cx, y: cy - hy }, { x: cx + hx, y: cy }, { x: cx, y: cy + hy }])];
-  }
+  const area = playableAreaOf(map);
   // Runs that only touch would clip as separate rings, each eroded on its own, so each overlaps its
   // neighbours by a step of the integer grid; the erosion margin covers that sliver of void.
   const size = area.cellSize, shapes: Shape[] = [], overlap = 2 / SCALE;

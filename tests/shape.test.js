@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, body, contains, overlaps, sharesArea, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
 import { canOccupy, lineClear, moveBody } from '../shared/movement.ts';
+import { openArea } from './helpers/arena.js';
 
 const square = [{ x: -30, y: -30 }, { x: 30, y: -30 }, { x: 30, y: 30 }, { x: -30, y: 30 }];
 
@@ -93,7 +94,7 @@ test('convexity is checked rather than trusted, because SAT separates a concave 
 // movement, to shots and to sight, with no new branch in any of the three.
 test('a polygon obstacle blocks occupancy, movement and sight like any other geometry', () => {
   const wall = { id: 'poly', kind: 'ruin-wall', x: 12000, y: 6000, w: 0, h: 0, points: square };
-  const map = { width: 24000, height: 12000, obstacles: [wall], gates: [] };
+  const map = { width: 24000, height: 12000, playableArea: openArea(24000, 12000, 1000), obstacles: [wall], gates: [] };
   assert.equal(canOccupy(map, 12000, 6000), false, 'inside a polygon is not occupiable');
   assert.equal(canOccupy(map, 12000, 6100), true, 'clear ground beside it is');
   assert.equal(lineClear(map, { x: 11900, y: 6000 }, { x: 12100, y: 6000 }), false, 'it blocks sight');

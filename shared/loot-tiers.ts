@@ -6,8 +6,8 @@ import { hypot } from './math.ts';
  *
  * The map's bounding rectangle is split into five virtual columns and five rows. These are
  * distribution zones, not map tiles: a live chain map's frame is exactly the diamond plan's 5 x 5
- * zone grid (55), so its columns agree with loot `tier` metadata; a legacy diamond is inscribed in
- * the same rectangle; any other map gets the same proportional split of whatever rectangle it has.
+ * zone grid (55), so its columns agree with loot `tier` metadata; any other map gets the same
+ * proportional split of whatever rectangle it has.
  * Horizontal progress supplies the base mix and distance from the middle row adds 0/1/2, capped at 5.
  *
  * Rewards and danger read the same selector but own their curves. Novelty is a separate vertical
