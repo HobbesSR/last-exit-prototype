@@ -17,22 +17,12 @@ import type { BsonValue } from "../bson.ts";
 import { Strings, canonicalJson, libraryFingerprint, packInts, unpackInts, widen } from "../coding.ts";
 import type { PackedInts } from "../coding.ts";
 import type { ChainLibrary } from "./library.ts";
-import { validateLibrary } from "./library.ts";
+import { countParamsProblem, validateLibrary } from "./library.ts";
 import { MACRO_VERSION, mapViews } from "./map.ts";
-import type { ChainMap, Layout, MapEngines, Orientation, RegionResult } from "./types.ts";
+import type { ChainMap, ChainParams, Layout, MapEngines, Orientation, RegionResult } from "./types.ts";
 
 /** The one wire version this reader takes and this writer gives. */
 export const CHAIN_WIRE_VERSION = 8;
-/** Why each earlier wire version isn't read here. None is migrated. */
-const RETIRED_VERSIONS: Record<number, string> = {
-  7: "its macro stages predate any+any passability guarantees and not-passable hints; regenerate it from its seed",
-  6: "it does not embed a resolved version 3 library with its authored zone plan and size; regenerate it from its seed",
-  1: "it is mapgen's old form, which the chain replaced",
-  2: "it is mapgen's old form, which the chain replaced",
-  3: "it is mapgen's old form, which the chain replaced",
-  4: "it holds a map from mapgen's old generators, which retired at the switch-over (#146); regenerate it on the chain",
-  5: "its params have no contestantCount or hunterCount, which spawn counts name since #124; regenerate it from its seed",
-};
 
 /** Placement's draws. Positions and orientations are columns; names go through the string table. */
 interface WireLayout {
@@ -94,12 +84,66 @@ function packLayout(layout: Layout, strings: Strings): WireLayout {
   };
 }
 
+function unpackColumn(packed: PackedInts | undefined, field: string): Int32Array {
+  if (!packed || packed.v === undefined) throw new Error(`${field} is missing packed integer data`);
+  return unpackInts(packed);
+}
+
+function validateLayoutParams(params: unknown): void {
+  if (!params || typeof params !== "object" || Array.isArray(params))
+    throw new Error(`layout.params must be an object, not ${params === null ? "null" : typeof params}`);
+  const p = params as Partial<ChainParams>;
+  if (p.mode !== undefined && p.mode !== "game" && p.mode !== "playground")
+    throw new Error(`layout.params.mode must be "game" or "playground", not ${String(p.mode)}`);
+  if (!(Number.isSafeInteger(p.zoneWidth) && (p.zoneWidth as number) >= 1))
+    throw new Error(`layout.params.zoneWidth must be a positive integer, not ${String(p.zoneWidth)}`);
+  if (!(Number.isSafeInteger(p.zoneHeight) && (p.zoneHeight as number) >= 1))
+    throw new Error(`layout.params.zoneHeight must be a positive integer, not ${String(p.zoneHeight)}`);
+  const countError = countParamsProblem(p as ChainParams);
+  if (countError) throw new Error(`layout.params.${countError}`);
+  if (typeof p.lootChance !== "number" || !Number.isFinite(p.lootChance))
+    throw new Error(`layout.params.lootChance must be a finite number, not ${String(p.lootChance)}`);
+  if (typeof p.lootTierStep !== "number" || !Number.isFinite(p.lootTierStep))
+    throw new Error(`layout.params.lootTierStep must be a finite number, not ${String(p.lootTierStep)}`);
+}
+
 function unpackLayout(wire: WireLayout, name: (id: number) => string): Layout {
-  const col = unpackInts(wire.slots.col), row = unpackInts(wire.slots.row);
-  const design = unpackInts(wire.slots.design), orientation = unpackInts(wire.slots.orientation);
-  const slots = Array.from(col, (c, i) => ({ col: c, row: row[i]!, design: name(design[i]!), orientation: (orientation[i]! * 90) as Orientation }));
-  const ids = unpackInts(wire.setPieces.id), pieces = unpackInts(wire.setPieces.setPiece), classes = unpackInts(wire.setPieces.setPieceClass);
-  const counts = unpackInts(wire.setPieces.slotCount), slotCol = unpackInts(wire.setPieces.slotCol), slotRow = unpackInts(wire.setPieces.slotRow);
+  if (!wire.slots || typeof wire.slots !== "object")
+    throw new Error(`layout.slots must be an object, not ${wire.slots === null ? "null" : typeof wire.slots}`);
+  if (!wire.setPieces || typeof wire.setPieces !== "object")
+    throw new Error(`layout.setPieces must be an object, not ${wire.setPieces === null ? "null" : typeof wire.setPieces}`);
+
+  const col = unpackColumn(wire.slots.col, "layout.slots.col");
+  const row = unpackColumn(wire.slots.row, "layout.slots.row");
+  const design = unpackColumn(wire.slots.design, "layout.slots.design");
+  const orientation = unpackColumn(wire.slots.orientation, "layout.slots.orientation");
+  if (row.length !== col.length || design.length !== col.length || orientation.length !== col.length)
+    throw new Error(`layout.slots columns have mismatched lengths (col=${col.length}, row=${row.length}, design=${design.length}, orientation=${orientation.length})`);
+  const slots = Array.from(col, (c, i) => {
+    const o = orientation[i]!;
+    if (o < 0 || o > 3) throw new Error(`layout.slots.orientation[${i}] must be 0..3, not ${o}`);
+    return { col: c, row: row[i]!, design: name(design[i]!), orientation: (o * 90) as Orientation };
+  });
+
+  const ids = unpackColumn(wire.setPieces.id, "layout.setPieces.id");
+  const pieces = unpackColumn(wire.setPieces.setPiece, "layout.setPieces.setPiece");
+  const classes = unpackColumn(wire.setPieces.setPieceClass, "layout.setPieces.setPieceClass");
+  const counts = unpackColumn(wire.setPieces.slotCount, "layout.setPieces.slotCount");
+  if (pieces.length !== ids.length || classes.length !== ids.length || counts.length !== ids.length)
+    throw new Error(`layout.setPieces columns have mismatched lengths (id=${ids.length}, setPiece=${pieces.length}, setPieceClass=${classes.length}, slotCount=${counts.length})`);
+  const slotCol = unpackColumn(wire.setPieces.slotCol, "layout.setPieces.slotCol");
+  const slotRow = unpackColumn(wire.setPieces.slotRow, "layout.setPieces.slotRow");
+  if (slotCol.length !== slotRow.length)
+    throw new Error(`layout.setPieces slot columns have mismatched lengths (slotCol=${slotCol.length}, slotRow=${slotRow.length})`);
+  let totalSlots = 0;
+  for (let i = 0; i < counts.length; i++) {
+    const count = counts[i]!;
+    if (count < 0) throw new Error(`layout.setPieces.slotCount[${i}] must be non-negative, not ${count}`);
+    totalSlots += count;
+  }
+  if (totalSlots !== slotCol.length)
+    throw new Error(`layout.setPieces.slotCount sums to ${totalSlots}, but slotCol/slotRow have ${slotCol.length} entries`);
+
   let at = 0;
   const setPieces = Array.from(ids, (id, i) => {
     const taken = Array.from({ length: counts[i]! }, (_, j) => ({ col: slotCol[at + j]!, row: slotRow[at + j]! }));
@@ -148,23 +192,35 @@ function savedLibrary(input: unknown): ChainLibrary {
  */
 export function decodeChainMap<Element = unknown>(input: unknown, expectedLibrary?: ChainLibrary, engines?: MapEngines<Element>): ChainMap<Element> {
   const wire = input as WireChainMap;
-  if (!wire || wire.format !== "last-exit-map" || typeof wire.wire !== "number") throw new Error("not a last-exit-map artifact");
-  const retired = RETIRED_VERSIONS[wire.wire];
-  if (retired) throw new Error(`wire version ${wire.wire} isn't a chain map: ${retired}. This reader takes wire version ${CHAIN_WIRE_VERSION}`);
-  if (wire.wire !== CHAIN_WIRE_VERSION) throw new Error(`unsupported wire version ${wire.wire}; this reader takes wire version ${CHAIN_WIRE_VERSION}`);
-  if (!Array.isArray(wire.strings) || !wire.layout || !wire.build) throw new Error("a chain map needs its strings, layout and build");
+  if (!wire || typeof wire !== "object" || wire.format !== "last-exit-map" || typeof wire.wire !== "number")
+    throw new Error("not a last-exit-map artifact");
+  if (wire.wire !== CHAIN_WIRE_VERSION)
+    throw new Error(`unsupported wire version ${wire.wire}; this reader takes wire version ${CHAIN_WIRE_VERSION}; regenerate the map from its seed`);
+  if (!Array.isArray(wire.strings) || !wire.layout || typeof wire.layout !== "object" || !wire.build || typeof wire.build !== "object")
+    throw new Error("a chain map needs its strings, layout and build");
   if (wire.layout.macro !== MACRO_VERSION)
     throw new Error(`this layout was placed by macro version ${wire.layout.macro}, and this reader's stages are version ${MACRO_VERSION}; regenerate it from its seed`);
+  if (typeof wire.layout.seed !== "string")
+    throw new Error(`layout.seed must be a string, not ${String(wire.layout.seed)}`);
+  validateLayoutParams(wire.layout.params);
+  if (typeof wire.layout.library !== "string")
+    throw new Error(`layout.library must be a string, not ${String(wire.layout.library)}`);
+  if (typeof wire.build.version !== "string")
+    throw new Error(`build.version must be a string, not ${String(wire.build.version)}`);
+  if (typeof wire.build.cellSize !== "number" || !Number.isFinite(wire.build.cellSize) || wire.build.cellSize <= 0)
+    throw new Error(`build.cellSize must be a positive number, not ${String(wire.build.cellSize)}`);
+  if (wire.build.format !== "region-2") throw new Error(`its results are ${String(wire.build.format)}, and this reader takes region-2`);
+  if (wire.build.results !== undefined && !Array.isArray(wire.build.results))
+    throw new Error(`build.results must be an array, not ${typeof wire.build.results}`);
   const library = savedLibrary(wire.library);
   const expected = libraryFingerprint(library);
   if (wire.layout.library !== expected)
     throw new Error(`this map was made with a different library (${wire.layout.library}, not ${expected}); read it with the library it was made from`);
   if (expectedLibrary && libraryFingerprint(expectedLibrary) !== expected)
     throw new Error("this map was made with a different library than the supplied library");
-  if (wire.build.format !== "region-2") throw new Error(`its results are ${String(wire.build.format)}, and this reader takes region-2`);
   const name = (id: number): string => {
     const value = wire.strings[id];
-    if (value === undefined) throw new Error(`string ${id} is not in the table`);
+    if (typeof value !== "string") throw new Error(`string ${id} is not in the table`);
     return value;
   };
 

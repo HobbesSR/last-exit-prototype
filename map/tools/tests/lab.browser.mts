@@ -351,12 +351,12 @@ try {
   assert.ok(await alpha() > 0, "the pipe layer paints the fixture collider");
   for (const id of ALL) await layer(id).setChecked(first.layers.find((l: any) => l.id === id).on);
   await generateIn("lab-small");
-  // A save from a retired version is refused by name, and the shown map stays.
+  // A save from an old wire version is refused by name, and the shown map stays.
   const retired = JSON.parse(await readFile(json, "utf8"));
   retired.wire = 5;
   await page.locator("#load").setInputFiles({ name: "retired.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(retired)) });
   await page.waitForFunction(() => (window as any).mapLab.snapshot().error);
-  assert.match(await page.locator("#status").innerText(), /wire version 5 isn't a chain map/);
+  assert.match(await page.locator("#status").innerText(), /unsupported wire version 5; this reader takes wire version 8/);
   assert.equal((await snapshot()).seed, "lab-small");
 
   // A larger authored size, picked from the size menu, takes its own library (#171).

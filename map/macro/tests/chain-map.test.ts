@@ -91,14 +91,10 @@ test("a save of the Layout alone rebuilds identical results", () => {
 
 test("every version mismatch is refused by name", () => {
   const wire = encode(MAP);
-  assert.throws(() => decodeChainMap({ ...wire, wire: 4 }, LIBRARY),
-    /wire version 4 isn't a chain map: it holds a map from mapgen's old generators, which retired at the switch-over/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: 1 }, LIBRARY), /wire version 1 isn't a chain map/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: 5 }, LIBRARY),
-    /wire version 5 isn't a chain map: its params have no contestantCount or hunterCount/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: 6 }, LIBRARY), /wire version 6.*does not embed a resolved version 3 library/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: 7 }, LIBRARY), /wire version 7.*predate any\+any passability/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 9/);
+  for (const version of [1, 4, 5, 6, 7, CHAIN_WIRE_VERSION + 1]) {
+    assert.throws(() => decodeChainMap({ ...wire, wire: version }, LIBRARY),
+      new RegExp(`unsupported wire version ${version}; this reader takes wire version ${CHAIN_WIRE_VERSION}; regenerate the map from its seed`));
+  }
   assert.throws(() => decodeChainMap({ ...wire, layout: { ...wire.layout, macro: MACRO_VERSION + 1 } }, LIBRARY),
     /placed by macro version 4, and this reader's stages are version 3/);
   assert.throws(() => decodeChainMap({ ...wire, layout: { ...wire.layout, macro: 2 } }, LIBRARY),
@@ -153,4 +149,36 @@ test("a result whose brief is equal but built in another key order is saved", ()
   const results = MAP.results.map((result) => ({ ...result, brief: reorder(result.brief) as typeof result.brief }));
   assert.notEqual(JSON.stringify(results[0]!.brief), JSON.stringify(MAP.results[0]!.brief));
   assert.deepEqual(decodeChainMap(encodeChainMap({ ...MAP, results }), LIBRARY), MAP);
+});
+
+test("malformed layout and build fields are refused by field name", () => {
+  const wire = encode(MAP);
+  const bad = (mutate: (copy: ReturnType<typeof encode>) => void, pattern: RegExp) => {
+    const copy = structuredClone(wire);
+    mutate(copy);
+    assert.throws(() => decodeChainMap(copy, LIBRARY), pattern);
+  };
+
+  bad((c) => { (c.layout as unknown as Record<string, unknown>).seed = 42; }, /layout\.seed must be a string/);
+  bad((c) => { (c.layout as unknown as Record<string, unknown>).library = undefined; }, /layout\.library must be a string/);
+  bad((c) => { (c.build as unknown as Record<string, unknown>).version = undefined; }, /build\.version must be a string/);
+  bad((c) => { (c.build as unknown as Record<string, unknown>).cellSize = 0; }, /build\.cellSize must be a positive number/);
+
+  bad((c) => { (c.layout as unknown as Record<string, unknown>).params = null; }, /layout\.params must be an object/);
+  bad((c) => { (c.layout.params as unknown as Record<string, unknown>).mode = "sandbox"; }, /layout\.params\.mode must be "game" or "playground"/);
+  bad((c) => { (c.layout.params as unknown as Record<string, unknown>).zoneWidth = undefined; }, /layout\.params\.zoneWidth must be a positive integer/);
+  bad((c) => { c.layout.params.zoneHeight = 1.5; }, /layout\.params\.zoneHeight must be a positive integer/);
+  bad((c) => { c.layout.params.exitCount = -1; }, /layout\.params\.exitCount must be a whole number/);
+  bad((c) => { c.layout.params.lootChance = Number.NaN; }, /layout\.params\.lootChance must be a finite number/);
+  bad((c) => { (c.layout.params as unknown as Record<string, unknown>).lootTierStep = "0.1"; }, /layout\.params\.lootTierStep must be a finite number/);
+
+  bad((c) => { (c.layout.slots as unknown as Record<string, unknown>).col = undefined; }, /layout\.slots\.col is missing packed integer data/);
+  bad((c) => { c.layout.slots.row = { w: 1, v: new Int8Array(0) }; }, /layout\.slots columns have mismatched lengths/);
+  bad((c) => { c.layout.slots.orientation.v[0] = 4; }, /layout\.slots\.orientation\[0\] must be 0\.\.3, not 4/);
+
+  bad((c) => { (c.layout.setPieces as unknown as Record<string, unknown>).slotCol = undefined; }, /layout\.setPieces\.slotCol is missing packed integer data/);
+  bad((c) => { c.layout.setPieces.setPiece = { w: 1, v: new Int8Array(0) }; }, /layout\.setPieces columns have mismatched lengths/);
+  bad((c) => { c.layout.setPieces.slotRow = { w: 1, v: new Int8Array(0) }; }, /layout\.setPieces slot columns have mismatched lengths/);
+  bad((c) => { c.layout.setPieces.slotCount.v[0] = -1; }, /layout\.setPieces\.slotCount\[0\] must be non-negative, not -1/);
+  bad((c) => { c.layout.setPieces.slotCount.v[0] = c.layout.setPieces.slotCol.v.length + 1; }, /layout\.setPieces\.slotCount sums to \d+, but slotCol\/slotRow have \d+ entries/);
 });

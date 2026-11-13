@@ -19,7 +19,7 @@ their own compatibility rules in [20.7](20.7-builder-delegation.md).
 | Domain | Active value | Source / scope |
 | --- | --- | --- |
 | Region strategy content | `types-67` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results; regional lighting at map emission (#878) and the sparse-sides libraries (`common-primitives@7`, #851, #895) over architectural appearance kits (#770), `landmark` (#769) and the matched libraries of #849 |
-| Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
+| Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; any other wire version is refused with one message naming the version found, the supported version, and to regenerate from its seed |
 | Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
 | Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
 | Library module schema | `1` | [51.4](51.4-resolution.md); optional module hints do not change the flattened library fingerprint rule |
@@ -99,28 +99,26 @@ Reading verifies the embedded content against that fingerprint; no module files
 or external library are needed. An optional supplied library must match too.
 
 **Chain-map saves** use wire version 8 (`map/macro/src/chain/saving.ts`, #286).
-Version 7 is refused by name because macro version 2 derives `any`+`any`
-passability guarantees; old saved views must not be silently reinterpreted.
+Any other wire version (including 1–7) is refused with one message naming the
+version found and the supported version (`8`), directing the caller to
+regenerate the map from its seed. None is migrated.
 Macro version 3 (20.6) derives fill cells, known-clear access context and
 internal guaranteed runs. The wire format remains version 8; its macro field
 refuses version 2 Layouts because their derived briefs would differ.
 Library schema 3 and module schema 1 are retained for the optional hint value
 ([51.4](51.4-resolution.md)); fingerprints still cover all authored content.
-Version 6 is refused by name because it lacks the embedded resolved library
-and authored-size metadata. Version 5 is refused by name: its params have no `contestantCount` or
-`hunterCount` (#124).
 - Its Layout goes through this form: slot positions, designs and
   orientations, and each set piece instance with its slots, as columns, with
-  names in the string table. It records `MACRO_VERSION`.
+  names in the string table. It records `MACRO_VERSION`. The reader validates
+  `layout.seed`, `layout.library`, `layout.params`, `layout.slots`,
+  `layout.setPieces`, and `build` fields up front, failing with the field name
+  and found value.
 - Region results are stored as the game's own `region-2` data, less their
   briefs, which are derived from the Layout on read. Macro can't read the
   game's geometry, so it doesn't pack it.
 - `decodeChainMap` rebuilds a map deep-equal to the generated one. A save of
   the Layout alone rebuilds its results with the game's engines, refused by
   name if their version isn't the one the save records.
-- Versions 1–4 are refused by name. Version 4 held mapgen's old generators'
-  maps; its reader, `decodeArtifact`, was deleted with them (#146), and no
-  legacy reader remains.
 
 ## BSON
 
