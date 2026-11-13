@@ -147,9 +147,13 @@
             <section id="routes" class="panel">
               <h2>Routes</h2>
               <p class="hint">
-                The game's route search for a contestant and a hunter, on the
-                built map's collision. A lab measurement: the report doesn't use it.
+                Compare the grid baseline with the bots' mesh planner, with full
+                map knowledge and openable doors. A lab measurement: the report doesn't use it.
               </p>
+              <label>Measure<select id="routeMethod">
+                <option value="grid">Grid baseline</option>
+                <option value="mesh">Bot mesh (preview)</option>
+              </select></label>
               <div class="pair">
                 <label>From<select id="routeFrom"></select></label>
                 <label>To<select id="routeTo"></select></label>

@@ -14,7 +14,7 @@ import type { BuildingTrace } from "../../micro/building/trace.ts";
 import type { RegionElement } from "../../micro/types.ts";
 import { measureRoutes } from "../routes.ts";
 import { liveMismatch, liveRecipeMismatch } from "../../live.ts";
-import type { RouteMeasure } from "../routes.ts";
+import type { RouteMeasure, RouteMethod } from "../routes.ts";
 import type { Vec2 } from "../../../shared/types.ts";
 
 export type LabRequest =
@@ -23,7 +23,7 @@ export type LabRequest =
   | { kind: "read"; saved: Uint8Array }
   | { kind: "diagnose"; map: ToolMap }
   | { kind: "drill"; brief: RegionBrief; stored: unknown }
-  | { kind: "routes"; built: BuiltMap<RegionElement>; from: Vec2; to: Vec2 };
+  | { kind: "routes"; built: BuiltMap<RegionElement>; from: Vec2; to: Vec2; method: RouteMethod };
 
 export type LabReply =
   | { kind: "placement"; recording: PlacementRecording; ms: number }
@@ -64,7 +64,7 @@ function answer(request: LabRequest): LabReply {
     case "drill":
       return { ...drill(request.brief, request.stored), ms: ms() };
     case "routes":
-      return { kind: "routes", measure: measureRoutes(request.built, request.from, request.to), ms: ms() };
+      return { kind: "routes", measure: measureRoutes(request.built, request.from, request.to, request.method), ms: ms() };
   }
 }
 

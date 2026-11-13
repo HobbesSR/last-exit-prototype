@@ -579,7 +579,7 @@ export function createLayers(state: LayerContext): Layer[] {
     },
     {
       id: "routes", pass: "marks", label: "Routes: contestant and hunter", stage: "built", on: true, opacity: 1,
-      legend: () => [["contestant route", CONTESTANT_ROUTE], ["hunter route", HUNTER_ROUTE], ["squeeze, contestant only", SQUEEZE], ["no route", "#ff5a4a"]],
+      legend: () => [["contestant route", CONTESTANT_ROUTE], ["hunter route", HUNTER_ROUTE], [state.routes?.measure?.method === "mesh" ? "hunter-blocked route legs" : "squeeze, contestant only", SQUEEZE], ["no route", "#ff5a4a"]],
       paint: (g, v, px) => {
         const measure = state.routes?.measure;
         if (!measure) return;

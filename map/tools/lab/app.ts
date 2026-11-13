@@ -13,7 +13,7 @@ import type { ChainParams, PlacedSlot, SetPieceInstance } from "../../macro/src/
 import type { RegionBrief } from "../../kernel/contract.ts";
 import type { BrokenPromise } from "../../micro/diagnose.ts";
 import { briefFragment } from "../../micro/brief-link.ts";
-import type { RouteMeasure } from "../routes.ts";
+import type { RouteMeasure, RouteMethod } from "../routes.ts";
 import { liveChainParams, liveSeed } from "../../live.ts";
 import { builtMapFrame, builtPlayableArea } from "../../micro/adapter.ts";
 import { MAX_ARENA_SEED } from "../../../shared/simulation/rules.ts";
@@ -658,7 +658,7 @@ function measureRoutes(): void {
   }
   routes = { from, to, pending: true, measure: null, error: "", ms: 0 };
   const forMap = map, asked = routes;
-  routesWorker = ask(null, { kind: "routes", built: v.built, from: a, to: b }, (reply) => {
+  routesWorker = ask(null, { kind: "routes", built: v.built, from: a, to: b, method: select("routeMethod").value as RouteMethod }, (reply) => {
     routesWorker = null;
     if (map !== forMap || routes !== asked) return;
     routes = reply.kind === "routes" ? { ...asked, pending: false, measure: reply.measure, ms: reply.ms }
@@ -671,25 +671,28 @@ function measureRoutes(): void {
 }
 
 /** A route's line in the panel: its length, or plainly that there's none. */
-function routeLine(name: string, route: RouteMeasure["contestant"]): HTMLElement {
+function routeLine(name: string, route: RouteMeasure["contestant"], method: RouteMethod): HTMLElement {
   return route.length === null
-    ? element("p", `${name} (clearance ${route.clearance}): no route. The target is unreachable for this body.`, "bad")
-    : element("p", `${name} (clearance ${route.clearance}): ${Math.round(route.length).toLocaleString("en")} world units on the grid, ${Math.round(route.walked!).toLocaleString("en")} walked`);
+    ? element("p", `${name} (clearance ${route.clearance}): no route measured (${route.status}).`, "bad")
+    : element("p", `${name} (clearance ${route.clearance}): ${Math.round(route.length).toLocaleString("en")} world units on the ${method}, ${Math.round(route.walked!).toLocaleString("en")} walked`);
 }
 
 function renderRoutes(): void {
+  renderLegends();
   const body = $("routesBody");
   $<HTMLButtonElement>("measureRoutes").disabled = !views;
   if (!routes) return void (body.textContent = "Not measured.");
   if (routes.pending) return void (body.textContent = "Measuring…");
   if (routes.error) return void body.replaceChildren(element("p", `Not measured: ${routes.error}`, "bad"));
-  const { contestant, hunter, squeezes, ratio } = routes.measure!;
+  const { contestant, hunter, squeezes, ratio, method } = routes.measure!;
   body.replaceChildren(
-    element("p", `From ${routes.from} to ${routes.to} (${routes.ms.toFixed(0)} ms)`),
-    routeLine("Contestant", contestant),
-    routeLine("Hunter", hunter),
+    element("p", `${method === "grid" ? "Grid baseline" : "Mesh · full map knowledge"}: from ${routes.from} to ${routes.to} (${routes.ms.toFixed(0)} ms)`),
+    routeLine("Contestant", contestant, method),
+    routeLine("Hunter", hunter, method),
     ...(ratio !== null ? [element("p", `Hunter / contestant: ${ratio.toFixed(3)}`)] : []),
-    ...(contestant.length !== null ? [element("p", `${squeezes.length} squeeze${squeezes.length === 1 ? "" : "s"} on the contestant's route, where a hunter can't pass`)] : []),
+    ...(contestant.length !== null ? [element("p", method === "grid"
+      ? `${squeezes.length} squeeze${squeezes.length === 1 ? "" : "s"} on the contestant's route, where a hunter can't pass`
+      : `${squeezes.length} runs of hunter-blocked route legs (whole legs highlighted, not bottleneck extents)`)] : []),
   );
 }
 
@@ -787,6 +790,7 @@ $("zoomReset").onclick = fit;
 $("diagnose").onclick = startDiagnosis;
 $("cancelDiagnose").onclick = cancelDiagnosis;
 $("measureRoutes").onclick = measureRoutes;
+$("routeMethod").onchange = measureRoutes;
 $("roomRecipe").onclick = useRoomRecipe;
 renderLayers();
 input("seed").onkeydown = (event) => {
@@ -881,7 +885,7 @@ window.mapLab = Object.freeze({
       drawn: { ...drawnTraces }, fragment: drill.fragment,
     },
     routes: routes && {
-      from: routes.from, to: routes.to, pending: routes.pending, error: routes.error,
+      from: routes.from, to: routes.to, pending: routes.pending, error: routes.error, method: routes.measure?.method ?? null,
       contestant: routes.measure && { length: routes.measure.contestant.length, points: routes.measure.contestant.points.length },
       hunter: routes.measure && { length: routes.measure.hunter.length, points: routes.measure.hunter.points.length },
       squeezes: routes.measure?.squeezes.length ?? null, ratio: routes.measure?.ratio ?? null,
