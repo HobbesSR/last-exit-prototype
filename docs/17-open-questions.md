@@ -1,9 +1,11 @@
 # 17. Open questions
 
 Indented bullets under a question are the user's verbatim answers. Preserve them
-exactly; do not paraphrase them into the requirement tables, and do not treat an
-answered question as implemented. An answer that has become a requirement is
-tracked as an F-## row in [13](13-accepted-features.md).
+exactly. State settled requirements in their owning documents without replacing
+the verbatim source, as [33](33-maintenance.md) requires, and do not treat an
+answered question as implemented. Product features are tracked as F-## rows in
+[13](13-accepted-features.md); the relevant engineering and map documents own
+their contracts.
 
 Nothing here blocks the work already sequenced in [41](41-roadmap.md).
 

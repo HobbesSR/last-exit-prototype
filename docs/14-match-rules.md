@@ -232,13 +232,15 @@ total body speed is capped at 600 units/second and also at the adapter's smaller
 radius-dependent safety limit. Motor recovery changes velocity by bounded effort
 rather than discarding external velocity. Existing movement speed modifiers stay
 owned by movementSpeed. Floor modifiers and placement behavior follow [29.1](29.1-physics-design.md).
-Navigation keeps its existing conservative radii until P8; this may reject a
-route that a narrower physical body can traverse. Live promotion still needs
-P3/P4, P8's actor-placement slice and P9.
+Global navigation retains authored clearance and portal guarantees, while the
+local dynamic overlay uses observed physical bodies; see
+[22.6.4](22.6.4-dynamic-overlay.md). A conservative route check may reject a
+route that a narrower physical body can traverse. Physics is already required
+in every match; production capacity qualification remains open (F-14).
 
 ## Power cells
 
-Each cell occupies one of the six ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. Traps are placed at least 850 units from chargers so required stationary charging is not automatically covered by a trap.
+Each cell occupies one of the six ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. The live chain places no traps; future trap spacing around chargers remains deferred with chain trap authoring ([16](16-deferred.md), [17.2.6](17.2.6-catalogue-questions.md) M22).
 
 ## Equipment and inventory
 
@@ -273,9 +275,10 @@ alone it does not alter statistics (L1 below). Only equal qualities merge (omitt
 
 Utility stacks stay capped at three in inventory; partial ground transfers retain
 the source remainder. Drops scatter one ground entry per utility unit. Optional
-drops reject the entire operation if the provisional 4,096-entry ground capacity
+drops reject the entire operation if the content's logical ground capacity
 or bounded placement search cannot represent it. Inventory and allocation state
-are unchanged on rejection. Full-inventory E swaps stage pickup and outgoing drop
+are unchanged on rejection. All shipped sets use 65,536 entries, as described
+under [capacities](#capacities-and-the-objective). Full-inventory E swaps stage pickup and outgoing drop
 together; an incomplete incoming refill rejects that swap without transferring
 ammo. Automatic matching pickups still refill partially. Both E and automatic
 pickup honor the one-second self-drop delay. Competing pickups resolve in lexical
@@ -299,7 +302,7 @@ quality, on the physics engine and its one rules version (#920). It is selectabl
 and not the default. It requires item instances (L0), which already keep quality
 through pickup, drop, death, snapshots and schema-11 recordings, and never merge
 or refill across qualities (an omitted quality is 1). Default rooms and the frozen
-fixtures are unchanged; legacy equipment ignores quality.
+fixtures are unchanged; content without L1 preserves quality without applying its damage multipliers.
 
 At match creation each map weapon without a quality gets one; other kinds get
 none. A weapon within 100 units of a contestant spawn is the spawn kit and is
@@ -341,7 +344,7 @@ reservations. The chain places no traps yet (16), so no danger curve is defined.
 `contentById('content-ammo-1')` is `content-loot-1` plus reloads, on the physics
 engine and its one rules version (#920). It is selectable and not the default. It
 requires item instances (L0). Default rooms and the frozen fixtures are unchanged.
-R reloads in every match but only this content has reloads; M moves/merges
+R sends the reload intent in every match, but only this content performs reloads; M moves/merges
 everywhere. The physics tick drops reserve ammo and advances the reload among each
 player's actions, after the slot drop and before attack; a dropped reserve pickup
 is a physical item like any other drop, and an optional drop is refused when no
@@ -426,15 +429,10 @@ Matchmaking only considers unstarted matchmade rooms on this server. It honors a
 
 The server advances the simulation at 20 Hz based on elapsed real time rather than trusting the operating-system timer interval. It can catch up a bounded number of ticks after a wake-up. Every simulated tick is offered to the bounded recorder; only the latest state in a catch-up batch is broadcast. Recording backpressure never pauses advancement.
 
-Recording has an 8 MiB pending-data budget per match. On overflow, whole incoming
-frames are omitted until capacity returns. A recovered archive explicitly records
-its omission count and match endpoint; playback holds the last known state through
-missing ticks and labels the gap. Permanent write failures stop recording and
-notify viewers through a replay-specific status, while inputs and live state
-continue. Finalization has a five-second deadline and never reports a failed
-archive as saved. JSON serialization still uses the server event loop; this is
-storage-failure isolation, not a claim that recording consumes no CPU.
-See [26](26-recording-contract.md) for the queue, recovery and compatibility contract.
+Recording failures must not interrupt gameplay. Playback labels missing data,
+and permanent failures notify viewers without ending the match.
+[26](26-recording-contract.md) owns the queue limits, recovery, finalization and
+compatibility contract.
 
 The match finishes when all extraction slots are used, no active contestants remain, or the time limit expires. A started room with no connected players or spectators receives a 30-second reconnect grace, then ends and archives cleanly; abandoned playtests must not continue running bots and recording for the entire match. Active contestants left at time expiry become stranded. The exact numbers are tuning defaults and must stay named in code and docs when changed.
 
@@ -449,11 +447,11 @@ Missing, extra or obstructed required starts/exits fail explicitly. The adapter
 also refuses absent charging or the wrong transit count; it supplies no corner
 fallbacks. Stations retain their owning region IDs.
 
-Current player radii (12 contestant, 23 hunter), movement speeds, combat tuning,
-charging time and match deadline remain unchanged by Corey's choice (17).
+Combat radii remain 12 for contestants and 23 for hunters; physics movement
+bodies use the narrower [character profile](#character-profile-439).
 The existing west-to-east wall scales its progress to the actual map width.
 The cell-profile contestant-only passage balance is a separate tuning pass;
-this checkpoint does not claim that the smaller live hunter is blocked by every
+the live profile does not claim that the hunter is blocked by every
 1.5-cell squeeze (52).
 
 Every spawn value in this paragraph is a placeholder, so that there is loot to play with: none is
