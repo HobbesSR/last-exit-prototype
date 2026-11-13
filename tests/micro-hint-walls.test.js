@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { commitHintWalls, wallHints } from '../map/micro/hint-walls.ts';
+import { commitPerimeterWalls, perimeterWalls } from '../map/micro/perimeter-reach.ts';
 import { disjoint } from '../shared/shape-construction.ts';
 import { createBuilderCanvas } from '../map/micro/canvas.ts';
 import { hintsOfStrength } from '../map/micro/hints.ts';
@@ -25,7 +25,7 @@ const WEST = { axis: 'v', x: 0, y: 0, length: 6, stated: ONE_SIDED };
 const SOUTH = { axis: 'h', x: 2, y: 6, length: 4, stated: MUTUAL };
 
 test('walls stand in the cells beside each hint, against its line, and close a convex corner', () => {
-  const walls = wallHints(brief([NORTH, WEST, SOUTH]), { kind: 'building' });
+  const walls = perimeterWalls(brief([NORTH, WEST, SOUTH]), { label: 'hint-wall', kind: 'building' });
   assert.deepEqual(walls.elements.map(e => e.label), ['hint-wall-h-0-0', 'hint-wall-v-0-0', 'hint-wall-h-2-5']);
   assert.deepEqual(walls.shapes.map(bounds), [
     { x: 0, y: 0, w: 8 * SIZE, h: 10 },
@@ -40,7 +40,7 @@ test('walls stand in the cells beside each hint, against its line, and close a c
 });
 
 test('walls meeting at a corner commit as one assembly, the earlier keeping the corner as intent', () => {
-  const b = brief([NORTH, WEST, SOUTH]), walls = wallHints(b, { kind: 'building' });
+  const b = brief([NORTH, WEST, SOUTH]), walls = perimeterWalls(b, { label: 'hint-wall', kind: 'building' });
   const areas = disjoint(walls.shapes);
   assert.deepEqual(areas.map(bounds), [
     { x: 0, y: 0, w: 8 * SIZE, h: 10 },
@@ -50,14 +50,14 @@ test('walls meeting at a corner commit as one assembly, the earlier keeping the 
   ]);
   assert.equal(areas.some((a, i) => areas.slice(0, i).some(o => shapesShareArea(a, o))), false);
   const canvas = createBuilderCanvas(b);
-  commitHintWalls(canvas, walls);
+  commitPerimeterWalls(canvas, walls);
   assert.deepEqual(canvas.elements, walls.elements);
   // A wall wholly inside an earlier rectangle, or a polygon over one, adds no area of its own.
   assert.deepEqual(disjoint([rect(0, 0, 40, 10), rect(10, 0, 20, 10), circle(5, 5, 3)]).map(bounds), [{ x: 0, y: 0, w: 40, h: 10 }]);
 });
 
 test('thickness and inset set the wall across its cells', () => {
-  const [shape] = wallHints(brief([SOUTH]), { kind: 'ruin-wall', thickness: 0.5, inset: 0.25 }).shapes;
+  const [shape] = perimeterWalls(brief([SOUTH]), { label: 'hint-wall', kind: 'ruin-wall', thickness: 0.5, inset: 0.25 }).shapes;
   assert.deepEqual(bounds(shape), { x: 2 * SIZE, y: 5.25 * SIZE, w: 4 * SIZE, h: 0.5 * SIZE });
 });
 
@@ -67,7 +67,7 @@ test('walls stay out of portal margins, so a portal beside a hint keeps its clea
   const hints = [{ axis: 'h', x: 0, y: 0, length: 2 }, { axis: 'h', x: 4, y: 0, length: 4 }];
   const b = brief(hints, portals);
   assert.deepEqual(briefErrors(b), []);
-  const walls = wallHints(b, { kind: 'building' });
+  const walls = perimeterWalls(b, { label: 'hint-wall', kind: 'building' });
   // The margin takes one cell past each end of the portal: columns 1 and 4.
   assert.deepEqual(walls.cells.map(key), ['0,0', '5,0', '6,0', '7,0']);
   const fill = createFillMask(b);
@@ -80,21 +80,21 @@ test('avoided shapes and addressed cells split a wall, short stretches are left 
   assert.ok(addressed.markCells([{ x: 2, y: 0 }]));
   // A route crossing column 5's wall; one in the middle of the cell, clear of the wall, avoids nothing.
   const avoid = [circle(5.5 * SIZE, 0.5 * SIZE, 0.3 * SIZE), circle(0.5 * SIZE, 3 * SIZE, SIZE)];
-  const walls = wallHints(b, { kind: 'building', avoid, addressed, minLength: 2 });
+  const walls = perimeterWalls(b, { label: 'hint-wall', kind: 'building', avoid, addressed, minLength: 2 });
   // Stretches: 0–1, (2 addressed), 3–4, (5 avoided), 6–7.
   assert.deepEqual(walls.elements.map(e => e.label), ['hint-wall-h-0-0', 'hint-wall-h-3-0', 'hint-wall-h-6-0']);
   assert.equal(walls.shapes.some(w => avoid.some(o => shapesOverlap(w, o))), false);
   for (const c of walls.cells) assert.ok(addressed.addressed(c.x, c.y));
   assert.equal(addressed.addressed(5, 0), false);
   // With a minimum of three, every stretch is too short.
-  assert.deepEqual(wallHints(b, { kind: 'building', avoid: [rect(2 * SIZE, 0, SIZE, SIZE), rect(5 * SIZE, 0, SIZE, SIZE)], minLength: 3 }).elements, []);
+  assert.deepEqual(perimeterWalls(b, { label: 'hint-wall', kind: 'building', avoid: [rect(2 * SIZE, 0, SIZE, SIZE), rect(5 * SIZE, 0, SIZE, SIZE)], minLength: 3 }).elements, []);
 });
 
 test('a builder walls only mutual hints by passing them, and a brief without hints gets no walls', () => {
-  const walls = wallHints(hintsOfStrength(brief([NORTH, WEST, SOUTH]), 'mutual'), { kind: 'building' });
+  const walls = perimeterWalls(hintsOfStrength(brief([NORTH, WEST, SOUTH]), 'mutual'), { label: 'hint-wall', kind: 'building' });
   assert.deepEqual(walls.elements.map(e => e.label), ['hint-wall-h-0-0', 'hint-wall-h-2-5']);
-  assert.deepEqual(wallHints(brief(undefined), { kind: 'building' }), { elements: [], shapes: [], cells: [] });
-  assert.throws(() => wallHints(brief([NORTH]), { kind: 'building', minLength: 0 }), RangeError);
+  assert.deepEqual(perimeterWalls(brief(undefined), { label: 'hint-wall', kind: 'building' }), { elements: [], shapes: [], cells: [] });
+  assert.throws(() => perimeterWalls(brief([NORTH]), { label: 'hint-wall', kind: 'building', minLength: 0 }), RangeError);
 });
 
 // A 24 × 18 field with portals west, east and north, hinted along the rest of its north, west and south faces.

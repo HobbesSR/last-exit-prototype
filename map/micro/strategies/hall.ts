@@ -4,7 +4,7 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, liveCord, portalApproaches } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
-import { wallHints } from '../hint-walls.ts';
+import { perimeterWalls } from '../perimeter-reach.ts';
 import { construct } from '../../../shared/shape-construction.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
@@ -107,7 +107,7 @@ type Box = { x: number; y: number; w: number; h: number };
  * staggered: staggering both pinches pillar corners together.
  *
  * Portal approaches stay clear, and nothing else is reserved between portals. Plain walls stand
- * along every hinted run where nothing of the hall's or the approaches' is (`wallHints`). The
+ * along every hinted run where nothing of the hall's or the approaches' is (`perimeterWalls`). The
  * bays, pillars and walls commit as one assembly through a live cord (20.10); if the cord
  * refuses it, the assembly keeps pillars in order, then walls, while a hunter cord to every
  * portal stand remains (`commitWhile`, #787); greedy, so earlier bays are favoured. So the region keeps the portal promise whenever its shape does. With `roofed`, the rectangle has a
@@ -118,7 +118,7 @@ type Box = { x: number; y: number; w: number; h: number };
  * Their lattice is centred separately, keeping the primary unchanged. Each roofed bay is an
  * enclosing element, with no internal wall across its joins. Remaining pockets may receive
  * crates outside a two-cell buffer around every selected bay. Each crate requires a fully owned two-cell bypass ring
- * and two-cell separation from other pieces. Market uses its own dedicated builder.
+ * and two-cell separation from other pieces.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear
  * of all final obstacles, including pillars, hint walls, crates and gates. A hall sites no
@@ -171,7 +171,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
     }
   }
 
-  const hinted = wallHints(brief, { kind: 'building', avoid: [...approaches, ...pillars], appearance: HALL_PILLAR_APPEARANCE });
+  const hinted = perimeterWalls(brief, { label: 'hint-wall', kind: 'building', avoid: [...approaches, ...pillars], appearance: HALL_PILLAR_APPEARANCE });
   const wallShapes = hinted.elements.map(element => elementShapes(element));
   // The hall bays and hint walls commit as one assembly: pillars in order, then walls, kept
   // greedily while a cord stands. A bay stands if it is roofed or keeps a pillar. Walls were
@@ -204,8 +204,8 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   // because no pillar or roof of it stood.
   // A full owned bypass ring preserves access to side lobes with no protected route.
   const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
-  const crates = brief.type === 'hall' ? canvas.stage() : undefined;
-  const sitedCrates = crates ? placeInfillCrates({ brief, canvas: crates.canvas, chance: 0.5, channels: CHANNEL,
+  const crates = canvas.stage();
+  placeInfillCrates({ brief, canvas: crates.canvas, chance: 0.5, channels: CHANNEL,
     label: 'hall-infill-crate',
     site: cell => {
       const shape = rect(cell.x * size, cell.y * size, size, size);
@@ -214,14 +214,13 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
         (1 + 2 * aisle) * size, (1 + 2 * aisle) * size)) && crates.canvas.fits(shape) && crates.canvas.spaced(shape, aisle * size);
     },
     commitError: label => `Hall placement ${label} failed its canvas commit.`,
-  }) : undefined;
-  const infillCrates = sitedCrates === undefined ? undefined : crates!.flush().filter(Boolean).length;
+  });
+  const infillCrates = crates.flush().filter(Boolean).length;
   const elements = [...canvas.elements];
-  const lootPieces = infillCrates !== undefined ? elements.flatMap(element => elementShapes(element, true)) : [...keptPillars, ...hintWalls];
-  const loot = cellLoot(brief, createRegionMask(brief), lootPieces, CHANNEL.loot);
+  const loot = cellLoot(brief, createRegionMask(brief), elements.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { pillars: keptPillars.length, hintWalls: hintWalls.length,
     ...(hall.some(e => e.label !== 'hall') ? { wings: hall.filter(e => e.label !== 'hall').length } : {}),
-    ...(infillCrates === undefined ? {} : { infillCrates }) });
+    infillCrates });
 }
 
 /** Partition residual fill into bays; only side-connected bays join the hall.
