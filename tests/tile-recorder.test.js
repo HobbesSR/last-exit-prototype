@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { register } from 'node:module';
-import { pathToFileURL } from 'node:url';
 
 // The browser modules import `/shared/...` by served path; point that at the repository for Node.
-const root = pathToFileURL(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')).href.replace(/\/?$/, '/');
+const root = new URL('..', import.meta.url).href;
 register('data:text/javascript,' + encodeURIComponent(`export async function resolve(s, c, next) { return next(s.startsWith('/shared/') ? ${JSON.stringify(root)} + s.slice(1) : s, c); }`));
 const { TileCache } = await import('../public/tile-cache.js');
 const { drawObstacle } = await import('../public/static-drawing.js');
