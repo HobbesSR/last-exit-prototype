@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cellKey, connectedComponents, validateDecompositionPlan } from '../map/micro/sdk.ts';
+import { cellKey, connectedComponents } from '../map/micro/sdk.ts';
+import { validateDecompositionPlan } from '../map/micro/decomposition/validate.ts';
 import { decompositionExample, EXAMPLE_GENERATORS } from '../map/micro/decomposition/example.ts';
 import { exploreDecomposition } from '../map/micro/decomposition/explore.ts';
 import { WorkBudget, WorkBudgetExceededError } from '../map/micro/decomposition/work-budget.ts';

@@ -121,7 +121,10 @@ export function findRegionRoute(mask: RegionMask, blockers: readonly Shape[], a:
   return createRegionRouteSearch(mask, blockers, a, radius)(b);
 }
 
-/** Ordered targets with the exact paths of independent single-target searches. */
+/**
+ * Routes from `a` to each of `targets`, in order: each is the path `findRegionRoute` would
+ * return for that target alone (or `null`), sharing one lazily expanded search between them.
+ */
 export function findRegionRoutes(mask: RegionMask, blockers: readonly Shape[], a: Vec2, targets: readonly Vec2[], radius: number): (Vec2[] | null)[] {
   const route = createRegionRouteSearch(mask, blockers, a, radius);
   return targets.map(route);

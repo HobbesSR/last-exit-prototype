@@ -5,7 +5,8 @@ import path from 'node:path';
 import { CELL_SCALE, MIN_PORTAL_LENGTH } from '../map/kernel/scale.ts';
 import { boundaryRuns } from '../map/kernel/run.ts';
 import { RUN_CASES, runCaseParts } from '../map/kernel/run-cases.ts';
-import { buildInterfaces, microMetrics } from '../map/micro/sdk.ts';
+import { microMetrics } from '../map/micro/sdk.ts';
+import { buildInterfaces } from '../map/micro/decomposition/interfaces.ts';
 
 test('the cell profile reads body scale from the shared map space', () => {
   const metrics = microMetrics({ cellSize: 40, bodyProfile: 'cell' });
