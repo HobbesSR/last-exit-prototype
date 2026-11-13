@@ -19,6 +19,16 @@ const LIVE_MAP_VERSION = 'chain-live-1';
 const TRANSIT_STATION_COUNT = 6;
 const LOOT_KINDS: readonly ItemKind[] = ['cell', 'cell', 'cell', 'weapon', 'weapon', 'weapon', 'med', 'shield', 'access'];
 const WEAPON_TYPES: readonly WeaponType[] = ['pistol', 'rifle', 'scattergun'];
+const STARTER_DIRECTIONS: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [Math.SQRT1_2, Math.SQRT1_2],
+  [0, 1],
+  [-Math.SQRT1_2, Math.SQRT1_2],
+  [-1, 0],
+  [-Math.SQRT1_2, -Math.SQRT1_2],
+  [0, -1],
+  [Math.SQRT1_2, -Math.SQRT1_2],
+];
 
 /** A map's size in tile zones. */
 export interface ZoneSize { zoneWidth: number; zoneHeight: number }
@@ -124,8 +134,8 @@ export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, c
   for (const spawn of spawns) for (const kind of ['weapon', 'cell'] as const) {
     let placed = false;
     for (const radius of [40, 60, 80, 100, 0]) {
-      for (let i = 0; i < 8; i++) {
-        const x = spawn.x + Math.cos(i * Math.PI / 4) * radius, y = spawn.y + Math.sin(i * Math.PI / 4) * radius;
+      for (const [dx, dy] of STARTER_DIRECTIONS) {
+        const x = spawn.x + dx * radius, y = spawn.y + dy * radius;
         if (!context.place(x, y, kind, kind === 'weapon' ? { weaponType: 'pistol', tier: 1 } : { charge: 0, tier: 1 })) continue;
         placed = true; break;
       }
