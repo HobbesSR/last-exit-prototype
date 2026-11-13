@@ -24,4 +24,31 @@ or subnets and verify that clients cannot spoof forwarded address headers.
 
 These limits are deliberate for a local vertical slice. The live-service policies
 that would replace them are batched in [17.4](17.4-live-service.md), and the
-boundaries that would have to exist first are in [41](41-roadmap.md).
+boundaries that would have to exist first are below.
+
+## Before public deployment
+
+Moved from the roadmap when it narrowed to the order of efforts (2026-11-13, #1054).
+
+Use ordinary functions and explicit dependencies in one process. A future worker
+boundary should follow the match API; this boundary does not require workers, service
+discovery, a new database, TypeScript migration or an internal gameplay event bus.
+Transport envelope parsing and simulation input validation are different layers:
+slot and input validation depends on player state and remains authoritative.
+
+The more difficult production work remains content rollout policy, session routing and
+draining, archive retention/access, and idempotent persistent match results. These
+need the batch policies in [17](17-open-questions.md). Do not build a service registry or split processes
+before those ownership and failure contracts have concrete consumers.
+
+Replay ownership/lifetime and BSON encoding, configurable spectator access/delay,
+and lobby/game-server deployment remain separate follow-ups. The lobby, matchmaking
+and room design, with its in-process stages, is [22.5](22.5-lobbies-and-matchmaking.md). The desired owner
+exit lifetime still needs a precise relationship to refresh/reconnect grace;
+current archives remain process-wide and persistent. Spectators are still owner
+gated and delayed by default. Do not present either behavior as satisfying the
+new policy answers. Public deployment is not authorized here.
+
+`createArenaServer().rooms` retains `room.game` for scenario setup and benchmarks.
+Removing that mutable test surface is a later hardening step; until then, do not
+claim complete process isolation.

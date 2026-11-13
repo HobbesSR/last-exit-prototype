@@ -52,8 +52,8 @@ from deferred improvements. Do not mint a child issue for every observation or
 require a successor task in every handoff. Close a workstream only when its stated
 acceptance is met or its remaining scope has explicitly been deferred; openness
 alone does not make it the next priority. Epic-specific sequencing stays out of this
-policy: [41](41-roadmap.md) owns the order of efforts and names each one's Forgejo
-tracker, and the tracker owns the state of its issues
+policy: [41](41-roadmap.md) owns the order between efforts and names each one's Forgejo
+tracker, and the tracker owns the sequence inside its effort and the state of its issues
 ([33](33-maintenance.md#where-a-fact-belongs)).
 
 Reusable epic kickoff (replace `#N` with the epic number):

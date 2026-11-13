@@ -409,7 +409,7 @@ and the third milestone, §38, waits for multiple floors (16).
 
 ## Kits and appearance descriptors
 
-Under [41.2](41.2-art-direction-plan.md) step 5 (#586, #585), procedural buildings take
+Under the art plan's step 5 (#586, #585; evidence in [42.45](42.45-art-delivery-evidence.md)), procedural buildings take
 authored presentation descriptors (`BuildingAppearance`, [29.4](29.4-drawing.md), [52](52-map-primitives-and-library.md))
 without changing authoritative geometry, navigation, or simulation RNG:
 - **Commercial retail storefront kit (`hut` and `HOUSE`):** three visual decay tiers

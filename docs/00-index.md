@@ -97,55 +97,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [41-roadmap.md](41-roadmap.md) | The order of efforts, the reasons for it, and the tracker issue for each |
-| [41.1-physics-plan.md](41.1-physics-plan.md) | Physics/equipment issue sequence, comparison workloads, provisional tuning and rollout gates |
-| [41.2-art-direction-plan.md](41.2-art-direction-plan.md) | Technical art sequence: rendered readability witnesses, one composed street slice, appearance/lighting adoption and signature-default promotion gates (#581–#587, #593) |
-| [41.3-tools-plan.md](41.3-tools-plan.md) | Tools-wide and appearance tool issue sequence (#772–#784) |
-| [42-performance-history.md](42-performance-history.md) | Measured baselines and their limits, from completed verification passes |
-| [42.1-navigation-experiment.md](42.1-navigation-experiment.md) | Safe local graph experiment (#364), passage failures and measured hierarchy costs |
-| [42.2-runtime-performance.md](42.2-runtime-performance.md) | Runtime, privacy, crowd, rendering and live-match measurements, with historical checkpoint routes |
-| [42.3-generation-and-delegation-evidence.md](42.3-generation-and-delegation-evidence.md) | Generation, delegation, catalogue samples and verification-cost evidence, with retained raw reports |
-| [42.4-chain-checkpoint-history.md](42.4-chain-checkpoint-history.md) | Dated chain captures and their input provenance; active compatibility remains in 53 |
-| [42.5-portal-graph.md](42.5-portal-graph.md) | Portal graph stage 1 (#420): swept promise confirmation, table and query costs, route stretch |
-| [42.6-physics-comparison.md](42.6-physics-comparison.md) | Physics P0 (#437): common witnesses, solver comparison, failed gates and integration limits |
-| [42.7-navigation-mesh.md](42.7-navigation-mesh.md) | Free-space mesh as navigation's bottom level (#422): promise confirmation against the grid, build time and memory, table and route costs |
-| [42.8-bot-adoption.md](42.8-bot-adoption.md) | Bots planning over free-space tiles under `content-3` (#424): whole-match stalls, escapes and tick cost against `content-2`, route quality, tiles built ahead in the map worker |
-| [42.9-physics-remediation.md](42.9-physics-remediation.md) | Rapier remediation (#451): revised gates, native springs, bounded speed and capacity proposal; P1 review prerequisites |
-| [42.10-sliced-replanning.md](42.10-sliced-replanning.md) | Repaths spread over ticks under `content-4` (#470 part 1): budget exhaustion gone, tick cost against `content-3`, why bots share one allowance a tick |
-| [42.11-physics-p1.md](42.11-physics-p1.md) | Experimental P1 (#438): room-owned worlds, paired phase traces, gameplay state and integration validation |
-| [42.12-physics-p2.md](42.12-physics-p2.md) | Experimental P2 (#439): narrower actor profiles, motor surfaces, contact and lifecycle witnesses |
-| [42.13-local-repair.md](42.13-local-repair.md) | Local route repair under `content-5` (#470 part 2): reaction to nearby changes, repairs and their cost against `content-4`; whether #425 is needed for latency |
-| [42.14-physics-p3.md](42.14-physics-p3.md) | Physics privacy, engine-free body/tether playback and body-heavy serialization evidence (#440) |
-| [42.15-physics-p4.md](42.15-physics-p4.md) | Bounded local prediction, scheduled network witnesses and correction/cost evidence (#441) |
-| [42.16-physics-p5.md](42.16-physics-p5.md) | Opt-in physical loot/crates, floor drag and covered blast impulses; body-heavy serialization and current baseline evidence (#445) |
-| [42.17-physics-p6.md](42.17-physics-p6.md) | Experimental capped springs/ropes and hook: swept attachment, cancellation, privacy, replay and browser evidence (#446) |
-| [42.18-physics-p7.md](42.18-physics-p7.md) | Lab-only thrown cube: analytic height sweep, event ties, explicit roof/window intervals, mask containment and engine-free retained playback (#447) |
-| [42.19-physics-p8.md](42.19-physics-p8.md) | Experimental local body detours, drop occupancy, privacy and crowd evidence (#448) |
-| [42.20-physics-p9.md](42.20-physics-p9.md) | Staged integration gates, local playtest tooling, measured envelopes and promotion limits (#449) |
-| [42.21-jelly-squish.md](42.21-jelly-squish.md) | Lab-only native-spring jelly, fixed-core compression signals and engine-free playback (#455); gameplay decisions remain open |
-| [42.22-tick-cost-attribution.md](42.22-tick-cost-attribution.md) | Server tick cost by stage at each size and engine, per-stage scaling exponents, over-budget tick classification, viewers, rooms and history memory (#637) |
-| [42.23-navigation-structure.md](42.23-navigation-structure.md) | Saved-map navigation measurement and the three-size detour, dead-end, empty-space and boundary baseline (#688) |
-| [42.24-static-barrier.md](42.24-static-barrier.md) | Retired connected static-barrier experiment: matched detour/pocket witnesses, retained target failures and adoption limits (#694, #926) |
-| [42.25-park-pocket.md](42.25-park-pocket.md) | One production park hedge pocket: paired detour, access, loot, structure, cost and compatibility evidence (#698) |
-| [42.26-macro-boundary.md](42.26-macro-boundary.md) | Retired macro curtain boundary/crossing experiment: fixed targets, physical versus guaranteed boundaries and adoption limits (#705, #927) |
-| [42.27-empty-region-fallback.md](42.27-empty-region-fallback.md) | Geometry-empty regions by reason on the nine-map panel, and cover/park's single-piece fallback: uptake, navigation effect, cost and remaining gaps (#717) |
-| [42.28-builder-census.md](42.28-builder-census.md) | Per-builder census on the same panel: region sizes, empty share, fill covered, margin and protected-route share, and how often each mechanism fires, with candidates (#749) |
-| [42.29-park-perturbable-routes.md](42.29-park-perturbable-routes.md) | Park on a live cord witness instead of frozen protected routes: detour, dead ends, empty share, fill, proofs and cost against the old builder, and what other builders would need (#750) |
-| [42.30-park-hedge-fronts.md](42.30-park-hedge-fronts.md) | Park hedges grown as fronts with the #649 growth helpers: detour, dead ends, sealing, proofs and cost against today's park (#649; adopted in types-62, #760) |
-| [42.31-rubble-plant-live-cord.md](42.31-rubble-plant-live-cord.md) | Rubble and plant on a live cord witness instead of frozen protected routes: content, detour, dead ends, empty share, proofs and cost, and the reassessment before further rollout (#759) |
-| [42.32-cord-generation-cost.md](42.32-cord-generation-cost.md) | Live-cord generation cost split by work and builder, two exact savings (strictly simple screen, edge index) with zero drift, and what remains exact or inexact (#767) |
-| [42.33-live-cord-rollout.md](42.33-live-cord-rollout.md) | Cover, ruins, depot, hall and market on a live cord, batched commits for every cord builder, and two exact search savings (indexed sweeps, one corridor search): content, detour, dead ends, sweep replay and cost (#787) |
-| [42.34-edge-clearance.md](42.34-edge-clearance.md) | What keeps unguaranteed region edges clear: blocked share by side class, attribution per builder (20.6 end caps, fill left empty), seams, park bays and inward strips (#836) |
-| [42.35-seam-pitch-probe.md](42.35-seam-pitch-probe.md) | Macro-only fixed-layout probe: longer unguaranteed and fillable seams, guarantee-thinning connectivity failures and hinted cap clipping's hunter turning failure (#761) |
-| [42.36-matched-library-experiment.md](42.36-matched-library-experiment.md) | Matched passability and the experimental library, step by step: portals, one-portal regions, closed runs, fill shares, set pieces and builder walls (#849) |
-| [42.37-matched-adoption.md](42.37-matched-adoption.md) | The matched libraries adopted: before/after structure, physical blocking, detour, dead ends, fill shares and generation cost, the rubble-court fix, and placement's heavy tail (#849) |
-| [42.38-matched-generation-cost.md](42.38-matched-generation-cost.md) | Generation cost after the matched adoption: per-builder attribution (park fronts, rubble batches, edge walls), four exact savings, content-changing options, alternated-pair timing (#868) |
-| [42.39-reachability-lookahead.md](42.39-reachability-lookahead.md) | Placement's reachability lookahead: the stalls it ends, the bounds chosen, refusals, stalls and alternated timing against `main` on 12 × 6 to 36 × 18 seeds (#857) |
-| [42.40-sparse-sides-experiment.md](42.40-sparse-sides-experiment.md) | Sparser tile sides as a Map Lab experiment: fill and set-piece schemes, portals per set-piece region, one-portal regions, placement cost, the side-by-side set-piece fit; `sparse / alternate` adopted in 42.44 (#851, #856) |
-| [42.41-set-piece-order.md](42.41-set-piece-order.md) | Retired landing/evac-first experiment: matched three-size measurements and retirement decision (#891, #928) |
-| [42.42-connectivity-skeleton-experiment.md](42.42-connectivity-skeleton-experiment.md) | Pre-fill connectivity skeleton as a Map Lab experiment: spanning trees, multi-part filtering, sealed pocket prevention and built detour under sparse sides (#883) |
-| [42.43-regional-lighting.md](42.43-regional-lighting.md) | Regional theatrical lighting: districts, field bounds, composition limits, the default-on adoption and room-arena refresh (#771, #878) |
-| [42.44-sparse-lighting-adoption.md](42.44-sparse-lighting-adoption.md) | The sparse-sides and regional-lighting adoption batch: materialized libraries and their equivalence, moved pins, sweep and fixture recaptures, macro panel, generation cost, corridor re-check, slow tier (#895, #851, #878) |
+| [41-roadmap.md](41-roadmap.md) | The order between efforts and the reason for each, with each one's tracker; the retired plans 41.1–41.3 are archived |
+| [42-performance-history.md](42-performance-history.md) | Guide to measured baselines and their limits, from completed verification passes; children 42.1–42.45 by topic (runtime, navigation, physics stages, generation and content) |
 
 ### 5x — Map generation
 

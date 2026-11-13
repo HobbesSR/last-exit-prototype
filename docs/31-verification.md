@@ -1025,7 +1025,7 @@ the arena renderer over a controlled map and frozen presentation state across al
 six palettes, fog on/off, exterior/interior roof views, LOD cutoffs and a short
 motion pass, checking WebGL glass alpha, rendered edges and withheld-entity privacy
 and writing paired captures and a contact sheet under `test-results/art-witness/`
-([41.2](41.2-art-direction-plan.md) step 1, #587). Both run in `test:browser`.
+([42.45](42.45-art-delivery-evidence.md), #587). Both run in `test:browser`.
 
 Boundary tests enforce ownership, not just behavior: server application code may
 not use the diagnostic `room.game` escape hatch, transport may not reach the

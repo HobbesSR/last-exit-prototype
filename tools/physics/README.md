@@ -116,7 +116,7 @@ Limits that constrain interpretation:
   not a memory census. Handle disposal is checked separately. Browser measurements
   are headless JavaScript costs, not GPU rendering or whole-game frame rates.
 
-Read [41.1](../../docs/41.1-physics-plan.md) for promotion gates. If neither
+Read [29.1](../../docs/29.1-physics-design.md) for the physics gates. If neither
 candidate passes, report a no-go and keep production integration blocked.
 
 ## P7 isolated thrown-item lab (#447)
