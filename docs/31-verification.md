@@ -874,7 +874,9 @@ world-unit contact/force diagnostics without changing gameplay capture.
 hook force, tuning reset, bounded recordings, JSON download and exact action
 rerun, diagnostic solid-geometry casts, plus disabled routes. It runs in `test:browser`. Reproduce the sequential
 synthetic envelope with `npm run physics:integration`; reproduce the actual
-physics client entry workload with `node tests/bench-client.mjs --physics --json`.
+physics client entry workload with `node tests/bench-client.mjs --json`.
+It uses `defaultContent()` unless `--content=<id>` selects another shipped set,
+and includes `physicsPrediction` statistics on every live run.
 These complement the existing privacy, prediction, item conservation, replay and
 bot witnesses; their measured scope and outstanding human gates are [42.20](42.20-physics-p9.md).
 

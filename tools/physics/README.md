@@ -10,8 +10,11 @@ Sequential P9 measurements (after other tests finish):
 
 ```powershell
 npm run physics:integration
-node tests/bench-client.mjs --physics --json
+node tests/bench-client.mjs --json
 ```
+
+The client benchmark uses `defaultContent()` unless `--content=<id>` selects
+another shipped set, and includes `physicsPrediction` statistics on live runs.
 
 The integration report accepts `--warmup=N --samples=N --output=path` through
 the direct `node --expose-gc tools/physics/integration-report.mjs` invocation.
