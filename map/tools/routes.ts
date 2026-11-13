@@ -15,7 +15,7 @@ import type { CollisionMap, Role, Vec2 } from "../../shared/types.ts";
 export type RouteMethod = "grid" | "mesh";
 
 export interface BodyRoute {
-  status: KnownRouteStatus;
+  status: KnownRouteStatus | "not-found";
   role: Role;
   /** The clearance the game plans this body's routes with. */
   clearance: number;
@@ -89,7 +89,7 @@ function meshRoutes(map: CollisionMap, from: Vec2, to: Vec2, local: (p: Vec2) =>
     const clearance = navigationClearance(role);
     if (![from, to].every(p => sweptClear(navMap, p, p, bodyRadius({ role }))))
       return { role, clearance, status: "invalid-endpoint", points: [], length: null, walked: null };
-    const result = createKnowledgePlanner(navMap, role).route(knowledge, from, to);
+    const result = createKnowledgePlanner(map, role).route(knowledge, from, to);
     // A budget-limited prefix is not a measured route to the target.
     if (result.status !== "complete")
       return { role, clearance, status: result.status, points: [], length: null, walked: null };
@@ -115,7 +115,7 @@ const centre = ([x, y]: TileStep): Vec2 => ({ x: (x + 0.5) * TILE, y: (y + 0.5) 
 
 function bodyRoute(map: CollisionMap, role: Role, from: Vec2, to: Vec2, steps: TileStep[] | null, local: (p: Vec2) => Vec2): BodyRoute {
   const clearance = navigationClearance(role);
-  if (!steps) return { role, clearance, status: "no-known-route", points: [], length: null, walked: null };
+  if (!steps) return { role, clearance, status: "not-found", points: [], length: null, walked: null };
   const points = [from, ...straightenPath(map, role, from, steps, true, Infinity).map(centre), to];
   return { role, clearance, status: "complete", points: points.map(local), length: polyline([from, ...steps.map(centre), to]), walked: polyline(points) };
 }

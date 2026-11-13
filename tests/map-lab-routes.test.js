@@ -90,4 +90,7 @@ test('mesh reports a disconnected target without drawing a partial route', () =>
   for (const route of [measure.contestant, measure.hunter])
     assert.deepEqual([route.status, route.length, route.points], ['no-known-route', null, []]);
   assert.equal(measure.ratio, null);
+  const grid = measureRoutes(map, measure.from, measure.to, 'grid');
+  for (const route of [grid.contestant, grid.hunter])
+    assert.deepEqual([route.status, route.length, route.points], ['not-found', null, []]);
 });
