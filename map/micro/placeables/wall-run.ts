@@ -9,7 +9,7 @@ import { oriented } from './frame.ts';
  */
 
 /** The obstacle kinds a wall run can be. */
-export const WALL_RUN_KINDS = ['building', 'ruin-wall'] as const;
+const WALL_RUN_KINDS = ['building', 'ruin-wall'] as const;
 
 export interface WallRunParams {
   /** Cells along the run. */

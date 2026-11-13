@@ -111,7 +111,7 @@ const AISLE = CELL_SCALE.doorway;
 /** Cells from one slot to the next. A slot's pieces stay in its first `BAND` cells, so the rest is aisle. */
 const PERIOD = 6, BAND = PERIOD - AISLE;
 const DEFAULT_DENSITY = 0.6, DEFAULT_HEDGES = 0.2, DEFAULT_FRONTS = 1;
-/** A tree's footprint in cells, how much of it the trunk and crown fill, and the most trees in a clump. */
+/** A tree's footprint in cells, and the most trees in a clump. */
 const TREE = 2, CLUMP = 3;
 
 /**
@@ -130,7 +130,7 @@ const FRONT_SETBACK = 1;
 const MIN_FRONT = AISLE + 1;
 
 /** Per-cell draw channels, so no choice shifts another. */
-const CHANNEL = { phaseX: 1, phaseY: 2, hedge: 3, hedgeTurn: 4, hedgeRow: 5, hedgeGap: 6, clump: 7, count: 8, treeX: 9, treeY: 10, loot: 11,
+const CHANNEL = { phaseX: 1, phaseY: 2, clump: 7, count: 8, treeX: 9, treeY: 10, loot: 11,
   front: 12, frontDepth: 13 };
 /** A clump's tries: each draws its own place, so a tree dropped for overlap never shifts the next. */
 const TRY = (n: number, channel: number) => channel * 8 + n;

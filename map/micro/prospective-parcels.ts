@@ -39,7 +39,6 @@ function maskView(mask: RegionMask): RegionMask {
     has: mask.has, contains: mask.contains, rectangles: mask.rectangles });
 }
 
-/** Check expansion work before materializing roofs or replaying assemblies. */
 /**
  * `fields` with a `witness` property that is a copy of `live`, made on its first read and then
  * kept, so each read sees the same object, as a copy made up front would be. Most proposals are
@@ -51,6 +50,7 @@ function withWitnessCopy<T extends object>(fields: T, live: CordWitness): T & { 
   let copy: CordWitness | undefined;
   return Object.defineProperty(fields, 'witness', { enumerable: true, get: () => copy ??= structuredClone(live) }) as T & { readonly witness: CordWitness };
 }
+/** Check expansion work before materializing roofs or replaying assemblies. */
 function assemblyWithinBudget(assembly: CanvasAssembly): boolean {
   if (assembly.elements.length > 4096) return false;
   let size = assembly.elements.length + (assembly.areas?.length ?? 0) + (assembly.access?.length ?? 0) + (assembly.extents?.length ?? 0);

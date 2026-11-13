@@ -62,10 +62,11 @@ export function selectCoverPieceAppearance(piece: CoverPieceName, roll = 0): Obs
 export const COVER_EXECUTOR_VERSION = 'cover-receiver-infill-1';
 
 /**
- * Cover as a delegation receiver: it accepts an inherited interface when its build there
- * has a usable placement. Registries name this entry for direct snapshot recovery.
+ * Cover as a delegation receiver: a child's cover is `buildCover`'s, small-region fallback
+ * included, and it accepts an inherited interface when its build there has a usable placement.
+ * Registries name this entry for direct snapshot recovery.
  */
-export const COVER_EXECUTION: ExecutionBuilder = Object.freeze(coverExecution(receiverCover));
+export const COVER_EXECUTION: ExecutionBuilder = Object.freeze(coverExecution(buildCover));
 
 /**
  * The same receiver for one adopter invocation. Its receiving check and child build share
@@ -75,7 +76,7 @@ export function previewedCoverExecution(): ExecutionBuilder {
   const previews = new Map<string, BuiltRegion>();
   return coverExecution(child => {
     const key = JSON.stringify(child);
-    if (!previews.has(key)) previews.set(key, receiverCover(child));
+    if (!previews.has(key)) previews.set(key, buildCover(child));
     return previews.get(key)!;
   });
 }
@@ -83,11 +84,6 @@ export function previewedCoverExecution(): ExecutionBuilder {
 function coverExecution(build: (brief: RegionBrief) => BuiltRegion): ExecutionBuilder {
   return { version: COVER_EXECUTOR_VERSION, build,
     receiving: brief => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill' };
-}
-
-/** A child's cover is `buildCover`'s, small-region fallback included. */
-function receiverCover(brief: RegionBrief): BuiltRegion {
-  return buildCover(brief);
 }
 
 /**

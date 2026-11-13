@@ -33,6 +33,7 @@ test('keeps discs out of holes, blockers, and reservations', () => {
   const region = mask(10, 8, (x, y) => x < 4 || y < 2 || y > 5);
   const blockers = [rect(40, 40, 80, 80)], reservations = [rect(0, 240, 120, 40)];
   const result = spreadPoints(region, { count: 10, radius: 10, blockers, reservations });
+  assert.ok(result.points.length > 0, 'the region has room for points');
   for (const point of result.points) {
     const disc = circle(point.x, point.y, 10);
     assert.equal(region.contains(disc), true);
@@ -60,6 +61,7 @@ test('anchor routing rejects an otherwise clear disconnected area', () => {
   const region = mask(6, 3);
   const wall = rect(112, 0, 16, 120);
   const result = spreadPoints(region, { count: 16, radius: 10, blockers: [wall], anchor: { x: 20, y: 60 } });
+  assert.ok(result.points.length > 0, 'the anchor side has room for points');
   assert.ok(result.points.every(point => point.x < 112), 'points beyond the sealed wall must be rejected');
 });
 

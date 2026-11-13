@@ -28,7 +28,8 @@ import { MASKS } from './plant-fixtures.js';
  * 24 × 18), so the fixtures' sizes are what keep the seventeen types affordable.
  * `npm run test:times` checks.
  */
-export const FAST_SEEDS = [1], SLOW_SEEDS = [2];
+const FAST_SEEDS = [1];
+export const SLOW_SEEDS = [2];
 const fastSeeds = (() => {
   const text = process.env.BUILDER_SEEDS;
   if (text === undefined) return FAST_SEEDS;
@@ -67,7 +68,7 @@ const BUILDS_NOTHING = new Set(['open']);
 const content = result => JSON.stringify({ elements: result.elements, coreElements: result.coreElements, loot: result.loot, manifest: result.manifest });
 
 /** Build a brief and check the cheap promises: it builds, and its geometry stays in the fill area. */
-export function build(brief) {
+function build(brief) {
   let result;
   try {
     result = buildRegion(brief);

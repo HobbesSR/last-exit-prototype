@@ -33,11 +33,11 @@ const DEFAULT_DENSITY = 0.6, DEFAULT_SHED = 0.5;
 /** The most portals a live cord joins; past this, boxes keep an aisle from the boundary instead. */
 const ROUTED = 32;
 
-/** A machine's sides in cells, and how far its body stands inside them. */
+/** The least and most cells a machine's side takes. */
 const MACHINE_MIN = 2, MACHINE_MAX = 4;
-/** How much of a machine's corner a chamfer cuts, in cells, and the chance a machine has one. */
+/** The chance a machine has chamfered corners. */
 const CHAMFERED = 0.5;
-/** The chance two neighbouring machines are joined, and a pipe's thickness in cells, centred in its row. */
+/** The chance two neighbouring machines are joined by a pipe run. */
 const JOINED = 0.7;
 /** How far a pipe run's stubs reach into the machines it joins, in cells, before they are cut back to the machines' surfaces. */
 const SEAT = 0.5;

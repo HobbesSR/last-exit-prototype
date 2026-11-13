@@ -26,7 +26,7 @@ export const MASKS = {
 export const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 export const DENSE = { density: 1, hedges: 0.5 };
 /** The parameter sets the promise runs under: the defaults, dense, fronts only, and sparse trees without hedges. */
-export const PARAMETERS = [undefined, DENSE, { density: 0, hedges: 1 }, { density: 0.3, hedges: 0 }];
+const PARAMETERS = [undefined, DENSE, { density: 0, hedges: 1 }, { density: 0.3, hedges: 0 }];
 export const blockers = result => result.elements.flatMap(element => elementShapes(element));
 export const kind = prefix => element => element.label.startsWith(`park-${prefix}`);
 export const boxOf = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
