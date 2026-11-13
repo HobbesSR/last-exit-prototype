@@ -1,5 +1,10 @@
 # 31. Verification
 
+| Child | Load for |
+| --- | --- |
+| [31.1](31.1-test-catalogue.md) | What each test file and set checks: map generation and builder checks, shared helpers, integration checks per set, physics stage witnesses, coverage |
+| [31.2](31.2-benchmarks-and-timing-tools.md) | The benchmark lock and the benchmark, profiling and comparison tools |
+
 ## Gates
 
 Every gameplay or protocol change should pass the gates relevant to what it
@@ -51,11 +56,9 @@ The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`. Dated counts and timings are in
 [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). `npm run test:all` adds
 `tests/slow/`: the bot-match traces against the frozen
-fixture, bots completing whole matches, and the builder sweeps below. Its 19 files took
-235 s timed one at a time on 2026-11-06, after #822 fitted each to its claim (26 files and 871 s on
-2026-11-05, #808; each set's share is in
-[Integration checks per set](#integration-checks-per-set)), and their evidence only moves when
-generation or simulation moves.
+fixture, bots completing whole matches, and the builder sweeps ([31.1](31.1-test-catalogue.md)).
+Their evidence only moves when generation or simulation moves; each set's share is in
+[Integration checks per set](31.1-test-catalogue.md#integration-checks-per-set).
 `tests/slow/room-sizes.test.js` runs only the 12 × 6 room unless asked
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
 the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
@@ -109,150 +112,7 @@ type's cached briefs per region rather than regenerating every map
 once before its PR ([The replay or the full sweep](#the-replay-or-the-full-sweep)).
 Do not resize test grids or relax generation to make a check pass.
 
-The chain's authored library (52) is checked against the actual region strategies.
-Macro's `tests/chain-content.test.ts` checks the game quotas in 52, distinct
-enormous pieces, and core element regions staying inside their owning instances.
-Root `tests/map-library.test.js` checks one map with 24 contestants: its core element
-counts, actual huts, cover and rubble, that each core element is reachable from its
-region's first portal (the strategies' own siting rule in 54, not a contract), and the
-portal promise within each non-open region under the thorough search. That map holds
-more region types than the default count's, and fails if the count is ignored. The
-default count's fast witness is the default game map `map-tools` already generates: the
-same checks but the portal search, about 10 ms. `slow/map-library` runs the same checks with 8
-contestants on the one map it diagnoses in full, the large open regions too.
-`tests/helpers/map-library-game.js` holds the checks they all share. A slow report batch of
-25 library seeds (20 with 8 contestants, 5 with 24, 111 s) retired in #822: the chain sweep
-refuses any map whose report has defects, over its 161 game-size maps (53). The batch's 24-contestant
-maps kept the default 2 exits and 3 hunters; the sweep's `game-crowded` has 24 at 3 exits and 6 hunters,
-a different shape, so that combination went from five slow seeds and the fast `library-4` to
-`library-4` alone. Until
-#807 the fast file checked both counts with the portal search on each map (the search,
-not generation, was most of its 21.8 s isolated), and one slow file ran the whole batch
-(110 s).
-These are bounded samples, not a guarantee for every seed. `tests/map-container.test.js`
-saves and reloads this library's game-size map through JSON, BSON and Layout-only
-regeneration with the real strategy version (53).
-
-The larger authored sizes (24 × 12 and 36 × 18) are checked a layer at a time, never as whole
-maps (Corey, 2026-11-05, #821). Macro's stages, layout through briefs, are pinned by the chain
-sweep's `macro-24x12` and `macro-36x18` cases (two seeds each, nothing built), which
-`tests/slow/map-macro-sizes.test.js` also runs on `main`'s slow tier; macro's own
-`tests/slow/chain-content.test.ts` checks their quotas, proof and set-piece share. What builders
-make of those sizes' briefs is `tests/slow/micro-large-briefs.test.js`: for each type whose larger-size briefs exceed the full
-sweep's 12 × 6 maximum (13 of 17), the stored brief with the most portals or cells
-(`tools/large-briefs.mjs`, tests/fixtures README), each built and checked for the claims the
-maps' reports made of a region (it builds, stays in its fill and counts every cell; none of these
-briefs asks for a core element, as the core element types are no larger there), not the thorough portal search, which costs up to 80 s on one of them. Composing
-and reporting are size-generic, so they run only at 12 × 6. The `map-library-24`, `-36` and
-`-36-tail` files this replaces built five whole maps a size, 353 s, about 85% of it builds.
-
-The tools in `map/tools/` are checked by `tests/map-tools.test.js`, which drives
-the CLI and MCP as subprocesses, and typechecked by `npm run typecheck` under
-their own `map/tools/tsconfig.json`, which checks what they reach in macro as
-macro's own config does. It reads a Layout alone through `readMap` on a small
-playground map; a game map's Layout-only rebuild is `map-container`'s (#807).
-
-`tests/map-sweep-replay.test.js` captures the quick cases once, for a game map's
-markets. Its drift, throw and reach-mode cases tamper with huts: they test the replay,
-not a type, and a hut's thorough portal check costs about 0.05 s a region against a market's 0.7 s.
-`tests/appearance-descriptor.test.js` reads one live chain map for its depot, market
-and round-trip cases, and samples hut seeds only until every decay tier and two
-distinct scorch and drain placements have appeared (#807).
-
-The compound's multi-mask room/court routes run in `tests/slow/micro-compound-sweeps.test.js`
-on each mask's one-gate case, to open points rather than loot sites (#820, #822); the fast
-delegation file keeps the concave seed-1 and gate/crossing regression witnesses.
-
-A builder's portal-promise sweep is the same promise on the same masks and parameters
-at every seed, and most of its cost is the reach searches. The fast tier keeps a witness
-and the original seeds run in `tests/slow/` (#543, measured in
-[42.3](42.3-generation-and-delegation-evidence.md#builder-test-headroom-543-2026-10-27)):
-`micro-block-promise` runs the first of four seeds on each mask and
-`slow/micro-block-promise` all four; `micro-plant` runs two of eight seeds of its promise
-and spacing sweeps and `slow/micro-plant-promise` all eight, with #490's plant strips at
-three of forty seeds fast (in the builder contract) and all forty slow; `micro-park` runs its
-promise on every mask under every parameter set and its cell-size sweep at the first seed, and its
-clump-spacing and kind sweeps at two, and `slow/micro-park-promise` runs each mask under each
-parameter set once more, the seed rotating over 2 to 5, and each cell size at seeds 2 to 6, with the
-promise, spacing and kind checks reading the same sixteen builds (`SLOW_CASES`, #822; nine of them
-place trees, and the dense ones, one seed per mask, carry most of the spacing check), and the 36-portal park
-(#759, #760: cord-routed builders and park's hedge fronts cost several times more; #807); `micro-hut` runs one of
-sixteen seeds of its small-house sweep and `slow/micro-hut-sweeps` all sixteen; `micro-compound` runs its
-portal, roofed-ring and observer checks on seven cases at the first seed (each mask at the
-default two gates, one and three gates on the small yard, and four on the ell, where the
-concave corner leaves no fourth gate stand until the ring steps down from 18×22 to 16×20, #807), and
-`slow/micro-compound-sweeps` runs every mask at every gate count once more, the seed rotating
-over 2 to 4 so each mask and each gate count meets all three (`SLOW_CASES`, #822). It builds each
-case once with the observer on; whether observing changes the build is checked on the fast cases.
-Compound cell order has a fast witness in `micro-compound-exterior` (elements and loot) and
-`micro-compound-delegation` (the whole delegation tree, the only one that sees the root brief's
-canonical order). An eight-seed slow file retired: with the root sort and the region mask's sort
-removed it still passed every seed (#822). Each pair calls one function in
-`tests/helpers/` (`block-promise.js`, `plant-promise.js`, `park-fixtures.js`,
-`builder-contract.js`, `compound-sweeps.js`, `hut-fixtures.js`) with different inputs (a seed list, or for
-compound a case list: `FAST_CASES` fast, `SLOW_CASES` slow), so the assertions cannot drift apart. `test:micro` runs only the fast
-files and the micro labs: a builder change that moves a type's output also runs that type's slow file, for
-example `node --test tests/slow/micro-plant-promise.test.js`. Narrow a sweep this way, by
-moving its seeds to the slow tier, only where the fast tier keeps a witness of the same
-promise; do not narrow it by shrinking a grid or relaxing generation.
-
-An access test routes from the portal stand nearest each target (`standNear` in
-`tests/helpers/stands.js`), not from the region's first portal. A search ends at its
-target, so the nearest stand costs a fraction of the first, and it proves the same thing:
-the portal promise joins every portal's stands, and each builder's own sweep owns that.
-
-`npm run test:micro` is the `micro` set with its browser members: the focused contracts and
-seeded builder tests, four files at a time, then the four micro lab scripts. The unit files
-also run in `npm test`. Until #808 the unit files ran one at a time, so that macro-size timing
-witnesses did not compete; those durations are opt-in now (`BUILD_BUDGETS`, below) and the
-depot's are counts. Four at a time took 57 s against 194 s one at a time, and the whole script
-about 98 s against 235 s (2026-11-05). Contention was not the sole cause of the old timing misses: block's
-delegation dispatch added about 1.4 s (54%) on the macro-block witness and 2.6% across eight
-whole maps in the review comparison ([42.3](42.3-generation-and-delegation-evidence.md#block-delegation-dispatch-cost-604--535-2026-10-26)).
-The labs are for a change to a lab, not to a builder
-([Integration checks per set](#integration-checks-per-set)). `tests/micro-lab.browser.mjs` verifies region type content, control
-variation, result download and movement, and saves `test-results/micro-lab.png`.
-It also toggles each building view for `hut`, `compound` and `block`, checks the drawn
-counts against the build in memory, and shows unmet guidance as a warning
-([56](56-buildings.md) L4, L5).
-`node tests/region-explorer.browser.mjs` checks the Region Builder Explorer's full builder
-catalogue, shape and size controls against direct builds, core-site output, JSON
-download, zoom/pan, walker placement, arrow movement and compact layout. It runs
-in `test:micro` and saves `test-results/region-explorer.png`. The focused
-`tests/region-examples.test.js` checks preset topology, portal access, bounds and
-core requests without changing the production generator or its fixtures.
-CLI batch generation/validation and limits are described in [20.5](20.5-tools-and-next-boundaries.md).
-Decomposition checks cover immutable contexts and trial claims, graph/topology
-analysis, generator contracts, residual tradeoffs, exact ownership and interface
-accounting, corrupted artifacts, and CLI round trips. The decomposition browser
-lab verifies policy controls, candidate inspection, imports/exports and narrow
-viewports. Its diagrams are allocation proposals, not physical traversal tests.
-The generation demo checks that its example and a linked map's block show what
-`buildRegion` built, their lots and alleys, stages, download and real collision
-movement. Exploration tests check exact recursive ownership, depth/search limits,
-distinct objective choices and terminal constraints. The browser inspector
-exercises tree and branch selection and exports. Brief children are checked by
-inference with `validateBriefPartition` (20.7), and portal promises from final
-collision geometry with `validatePortalReach`, rather than from recorded routes.
-The negotiation, realization and explicit-port access and boundary tests retired
-with what they tested (#483).
-
-The builder contract (#540, `tests/helpers/builder-contract.js`) holds every registered region type to the
-promises of a builder (20.9) over chain-like briefs (`tests/helpers/chain-briefs.js`),
-which carry what a bare rectangle with portals lacks: cleared strips inside the owned
-cells, concave and holed masks, many portals, hints and a playable area larger than the
-owned cells (20.6). It runs from two fast files, split for the budget when rubble and plant
-moved to a live cord (#759): `micro-builder-contract-cord` for rubble, park and plant, and
-`micro-builder-contract` for every other type. A builder loop runs only its own type, in seconds:
-`node --test --test-name-pattern=plant tests/micro-builder-contract*.test.js`.
-`BUILDER_SEEDS=<n>` runs seeds 1 to n on each fixture instead of one, for a builder change
-that moves a type's output; `BUILDER_SEEDS=20` took 67 to 70 s across all seventeen types.
-The fast files run six fixtures of 224 to 660 cells at seed 1, plus nine of #490's plant
-strip builds; `slow/micro-builder-contract-sweeps` runs every type at seed 2 (#807). Every
-promise is checked per build, so the second seed repeats the same claims, and one seed keeps
-the cell-order witness: with `createRegionMask`'s sort removed, eight types' contracts, depot and
-park among them, fail on all six fixtures at seed 1. At two seeds the files had grown to 16.6 s and 10.6 s isolated; at one
-they took 8.3 s and 5.6 s, and the slow file 14.4 s.
+What the map generation and builder test files check, the promise sweeps' fast and slow split, and the builder contract are in [31.1](31.1-test-catalogue.md#map-generation-and-builder-checks). Narrow a sweep only by moving seeds to the slow tier where the fast tier keeps a witness of the same promise, never by shrinking a grid or relaxing generation.
 
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing
@@ -288,14 +148,9 @@ Run it when adding or growing a test file.
 
 The slow tier as a whole has a budget as well: its `tests/slow/` files, each timed alone on the
 development machine, total at most 900 s (Corey, 2026-11-05, #800 S5;
-`npm run test:times -- tests/slow/*.test.js`). #821 took 353 s of larger-size map builds out and put 42 s of layered checks in,
-and #822 narrowed each remaining file to the cheapest witness of its claims: re-measured as a whole on a quiet machine
-on 2026-11-06, the 19 files total 235 s, the largest `micro-large-briefs` at 25 s. It was 871 s on 2026-11-05, and 870 s re-measured
-that evening on a quiet machine. A run alongside other work read 990 s, with the larger
-`map-library` files 10 to 15% slower (review 641 on #819), so the total is a duration and is
-measured with nothing else heavy running (#815). At 870 s it was about 4 to 5 minutes of wall time at four
-files at a time here, and 10 to 20 in CI at the 2.5 to 4 times above, inside the slow job's
-35 minutes ([below](#continuous-integration)). A change that would take the total past it
+`npm run test:times -- tests/slow/*.test.js`). The total is a duration, measured with nothing else
+heavy running (#815); dated totals are in
+[42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). A change that would take the total past it
 cuts as much elsewhere or raises it with Corey. Splitting a file moves its time, not the total.
 The fast tier has no whole-tier budget; its per-file budget and the cost statement below govern it.
 
@@ -354,20 +209,7 @@ may assert that some loot spawns where its mechanic needs a pickup, never a valu
 The loot-per-tile band the larger-size `map-library` files asserted predated this and retired with
 them (#821).
 
-Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
-`cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
-a brief with the margins the chain applies, `chainFixtures`, the masks the builder
-contract runs, `reorderedBrief`), `block-masks.js`, the per-type `plant-fixtures.js`,
-`depot-fixtures.js` and `compound-fixtures.js` (a type's briefs, masks and seeds, which its fast and
-slow files share), `map-library-game.js` (the game-size library map's checks, which the `map-library`
-files and `map-tools` share), `stands.js` (`standNear`), `listen.js`, `browser.js`
-(`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
-(the bench and demo `--key=value` map), `room-harness.js` (rooms on the shipped content and its
-physics engine; a match is built asynchronously, so `room()`, `live()` and `created()` wait for
-`room.ready`, and a test that drives the directory itself awaits it, #920), `room-sizes.js`
-and `machine-lock.js`. The
-maintained command-line tools share `tools/options.mjs`; the one-off audit scripts
-under `tools/` are evidence and keep their own parsing.
+Shared test helpers live in `tests/helpers/`; use them rather than copying them. They are listed in [31.1](31.1-test-catalogue.md#shared-test-helpers). The maintained command-line tools share `tools/options.mjs`; the one-off audit scripts under `tools/` are evidence and keep their own parsing.
 
 The timing command exits 1 when any test process fails, cannot launch, or terminates
 by signal, even without `--strict`. It prints the failure reason and captured test output.
@@ -389,10 +231,6 @@ quiet machine. Do not claim the
 reported slowdown fixed without a captured slow run; see
 [42](42-performance-history.md).
 
-The hut's 172 by 172, 228-portal fixture builds its full geometry in the normal suite,
-including yard delegation and receiving-cover construction; the measured cost compared
-with house-only generation is recorded in [42](42-performance-history.md). The file
-remains subject to the strict 15-second isolated budget.
 
 **Build durations are measured on request, not asserted by default** (#548, which
 supersedes #567's `CI` skip). The macro-sized cases build one region with hundreds of
@@ -437,111 +275,7 @@ limit is set too low again), and the slow `micro-depot-scale` bounds the same fo
 (4 each, about 6 s). That is the pattern for the other macro cases: a count every
 run catches what a duration nobody prints does not.
 
-Other agents' worktrees share this machine's CPU. `npm run bench` and
-`npm run bench:client` therefore take a machine-wide lock and wait for each
-other rather than overlap. The lock (`tests/helpers/machine-lock.js`) is a
-listening socket on loopback port 47913: the OS admits one holder and frees it
-the moment that process exits or is killed, so nothing goes stale. It serializes
-benchmarks only: another agent's `npm test` or browser run can still overlap a
-timing run. Treat an unexpected regression as possibly contended, and repeat it
-before reporting it.
-
-Owner-probe socket resets are ignored: a waiting process may time out its probe
-while the holder is CPU-bound, and that diagnostic disconnect must not crash the
-holder (#437).
-
-`npm run bench:client` runs a client render and network benchmark in Chrome.
-Options include `--seconds=<N>`, `--headed`, `--location=dense|crowded|offscreen`
-to arrange entity crowds, and `--spectator` (`node tests/bench-client.mjs --spectator`)
-to benchmark rendering the unfogged, whole-arena spectator overview at full zoom-out.
-`--viewport=WxH` and `--dpr=N` match a reported device's window, `--software-gl` draws
-WebGL on SwiftShader, and `--diagnostics=FILE` saves the player-facing download.
-`tests/bench-session.mjs` samples one long match every interval instead, optionally
-roaming, at a native device scale, or against another checkout (`--root`); see 42.2 (#549).
-
-`npm run bench:stages` (`tests/bench-stages.mjs`) attributes the server tick by stage: it runs
-whole rooms through the server loop body (advance, recording, spectator history, broadcast with
-projection, layer encoding and serialization) and keeps every tick of every `sim.*`/`loop.*` timer,
-so each tick over 50 ms is classified by stage, keyframe cut and overlapping GC. It drains the recorder between
-ticks, outside the measured time, and fails a run whose recorder drops a frame. `--rooms`,
-`--clients`, `--spectators` and `--no-record` shape the load; `--tile=CxR` repeats a real map at
-the same density for sizes the protocol does not serve. It takes the same lock.
-`--maps-cache=<file>` reuses the production-worker geometry/navigation cache from
-`room-startup.mjs` for sequential comparisons (use a fresh cache after generation/content changes).
-The result's `run` records wall and process CPU milliseconds over the loop and inter-tick drains,
-including worker CPU; per-tick timings still exclude those drains. Method and the
-first results are [42.22](42.22-tick-cost-attribution.md) (#637). `--heap-profile=<file>` samples
-allocations over the measured ticks (`--heap-interval=<bytes>`, default 32768), including objects already
-collected, and writes a `.heapprofile` that DevTools opens. It also prints the top allocators, by function and by
-the nearest frame in the repository's own code. A profiled run's times are slower and are not comparable with an
-unprofiled run's (#727).
-
-`node tools/perf/recording-compare.mjs --baseline=<archived-writer-module>
---maps-cache=<file> --out=<json>` compares a whole match's complete gzip archive
-and metadata between an archived writer and the current writer (#728). It also
-checks the retained-frame digest against ordinary JSON serialization and refuses
-any omitted frame. It takes the lock, drains both writers between frames and
-shares one authoritative simulation; it is byte-compatibility evidence, not a
-timing comparison. Preserve the baseline revision and cache provenance with its
-report. Simulation/view equality is separately checked by `frame-hashes.mjs`.
-
-`node tools/perf/recording-payload.mjs --maps-cache=<file> --tile=2x2
---ticks=1200 --out=<json>` is a recording-only scaling probe when tiled geometry
-exceeds physics admission limits. It records stable tiled item/gate lists and a
-changing tick, without advancing a tiled simulation. `--baseline=<archived-writer-module>`
-selects a comparison writer. It takes the lock and reports append latency and
-run wall/CPU time, including draining, separately. Its results are not server
-tick or capacity measurements.
-
-`node tools/perf/room-startup.mjs --size=12x6 --out=test-results/startup.json`
-is the short startup diagnostic for #842 (also accepts `--size=36x18` and
-`--seed`). It takes the benchmark lock, prepares two maps through the production
-map worker before timing, and runs the real room service and scheduler with one
-dev viewer per room and replay compression to a discard stream. After a cold
-room's first tick, that room runs for one second before a second room is
-constructed and started; both run for another 1.5 seconds. Construction/readiness,
-start, the cold first tick, timer delays, delivery gaps and host wake work are
-reported separately. Raw wakes and profiler stages accompany `--out`.
-Recorder drops or lifecycle errors fail the diagnostic. The default uses direct
-fake-peer delivery callbacks. Add `--sockets --viewers=9` for real loopback
-WebSocket delivery and nine dev viewers per room, joined sequentially. Socket
-clients parse their welcomes and frames on a separate worker, and the delivery
-series then measures the first active viewer's parsed state receipt times.
-Joins wait for the welcome, and starts wait for the initial state; server phases
-and host wake measurements remain separate from these end-to-end waits. The
-result includes lifecycle wall and process CPU time through replay drain and
-transport teardown, excluding map preparation and transport setup. Process CPU
-includes recorder workers and, in socket mode, the client worker.
-
-`--root=PATH` selects an archived source tree's server modules plus its matching
-navigation-cache and profiler instances. The harness and cached source maps stay
-common, so alternate revisions adopt identical prebuilt navigation rather than
-accidentally rebuilding it in only one version. Archive `server/`, `shared/`,
-`map/` and `package.json` beneath the worktree (for dependency resolution).
-No production disk throughput, remote network or worker map delivery/adoption
-while live rooms run is measured. The short sample's
-p99.9 is effectively its maximum; delivery gaps over 50 ms include normal cadence
-jitter. This locates blocking work, not capacity or closure evidence for #635.
-`--maps-cache=FILE` saves the two worker-prepared maps with their navigation and
-tile data, or restores them on another run. Use a fresh path after generator or
-content changes; the cache checks seed, size and content id, not source hashes.
-`--profile=PREFIX` writes separate CPU profiles for the concurrent preparation,
-join and start phases after map generation. Inspector start/stop and profile
-writing also block the event loop, so profiled timings and delivery gaps are
-diagnostic only and must not be compared with unprofiled runs.
-`tools/perf/frame-hashes.mjs` also accepts this cache, for example
-`--size=36x18 --contents=content-6 --seeds=4217 --views --maps-cache=FILE`.
-It restores the worker's navigation data, then hashes a whole match and every
-player/spectator projection as usual. Cache seed, size and content must match.
-`--payloads` additionally exercises recording/live/delayed map payload queries
-and hashes their JSON at tick 0, 600, 1200 and the end. It requests the recording
-map before the first snapshot, as startup does. `--root=PATH` selects the archived
-match and matching navigation-cache modules for exact before/after comparisons.
-
-`node tests/measure-changes.mjs` (`--size`, `--content`, `--seed`, `--ticks`, `--out`) counts how much
-of each published frame differs from the previous tick's, per collection and by entity id. It times
-nothing, so it needs no lock and runs in parallel. Results are in
-[42.22](42.22-tick-cost-attribution.md#change-fraction-per-tick-655) (#655).
+The benchmark lock and the benchmark, profiling and comparison tools (`npm run bench`, `bench:client`, `bench:stages`, `tools/perf/`, `measure-changes`) are described in [31.2](31.2-benchmarks-and-timing-tools.md). Benchmarks take a machine-wide lock, which serializes benchmarks only; treat an unexpected regression as possibly contended and repeat it before reporting it.
 
 <a id="test-sets"></a>
 
@@ -587,7 +321,7 @@ members, and `npm run test:browser` every set's browser members (`node tests/set
 Browser scripts run one at a time, each reported `ok` or `FAIL` with its time, and a failure stops
 none of the rest; the run closes with the count and the failed scripts. Each selection's unit tests
 keep their own timing record (`test-results/test-times/set-<names>.json`); browser scripts are not
-recorded, so their times are in [Integration checks per set](#integration-checks-per-set).
+recorded, so their times are in [Integration checks per set](31.1-test-catalogue.md#integration-checks-per-set).
 
 ## Choosing checks by changed area
 
@@ -601,7 +335,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | --- | --- | --- |
 | Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, a set or `set:word` ([Test sets](#test-sets)), or a replay. Seconds |
 | Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; plus the area's extras |
-| Integration | once per PR, where the area can move it | The members of [Integration checks per set](#integration-checks-per-set) the change can move, and no others |
+| Integration | once per PR, where the area can move it | The members of [Integration checks per set](31.1-test-catalogue.md#integration-checks-per-set) the change can move, and no others |
 
 | Changed area | Inner loop | Integration | Alone, 2026-11-05 |
 | --- | --- | --- | --- |
@@ -652,88 +386,7 @@ of 224 maps in the full sweep; both caught it, and the replay named the regions.
 
 ### Integration checks per set
 
-Each [test set](#test-sets)'s slow and browser members, what each catches that the set's fast
-files can't, and which changes move it. Times are each member alone on the development machine,
-one at a time with nothing else running (2026-11-05, #808); CI's runner is several times slower.
-A member listed here is run when a change can move it, not because its set was touched.
-
-**`tooling`, `geometry`**: no slow or browser members. Geometry's integration reach is through
-the sweep and the physics equality scripts (the table above).
-
-**`client`** (browser 56 s). The fast files test presentation state in Node; only these draw.
-
-| Member | Alone | Catches that the fast tier can't | Moved by |
-| --- | --- | --- | --- |
-| `art-witness` | 8.1 s | the real arena renderer's pixels over six palettes, fog, roofs and LOD cutoffs; glass alpha; withheld entities stay undrawn | the renderer, appearance, palette, art assets |
-| `overhead` | 25.0 s | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
-| `dev-view` | 23.0 s | a player tab, the dev tab it opens and what the dev tab does to the room | the dev view (client and server), room dev tools |
-
-**`simulation`** (slow 52 s, browser 17 s)
-
-| Member | Alone | Catches that the fast tier can't | Moved by |
-| --- | --- | --- | --- |
-| `characterization-physics-bots` | 31.2 s (2026-11-10) | the same for two whole `content-7` physics matches on the physics fixture's stored chain arenas, the private engine state included (#920); the fast tier has its scripted trace | physics rules, bots, the engine, snapshot and projection shapes; not generation |
-| `view-live-map` | 20.8 s | roof, gate and item ids stay pinned on live maps 1 and 2, and their roofs are distinct and conceal (#343); moved from `view` (#849) | the live adapter, builders' element order, roofs |
-| `hearing` (browser) | 10.1 s | a heard-gunfire cue reaches the player's frame and is drawn as a ring, an edge arrow and on the minimap | hearing, its projection, the HUD and minimap |
-| `transit` (browser) | 6.6 s | a gladiator at a station sees its rings on the minimap and a click transits | transit, its projection, minimap input |
-
-**`physics`** (slow 13 s, browser 43 s). Most browser members prove Chrome runs what Node runs.
-
-| Member | Alone | Catches that the fast tier can't | Moved by |
-| --- | --- | --- | --- |
-| `physics-navigation` (slow) | 13.1 s | physical contestants complete a live-chain match, seed 4217 | physics, physical navigation, bots on physics; chain output only as a stall |
-| `physics-world`, `-hook`, `-hook-live`, `-navigation` | 2.0 to 2.2 s each | the production Rapier WASM bootstrap in Chrome, and Node and Chrome producing identical world, authoritative and projected frames | `shared/physics/`, the Rapier version, simulation math |
-| `physics-prediction` | 4.2 s | the production prediction module replays pending input after a delayed correction | `public/physics-prediction*`, the motor |
-| `physics-playback`, `physics-geometry` | 1.6 s, 12.2 s | physics drawn from a retained frame without an engine; display circles only in an authorized dev view | the renderer's physics drawing, the projection |
-| `physics-ballistics`, `-jelly`, `-playtest` | 1.3 s, 2.2 s, 5.9 s | the physics labs replay their stored recordings and lay out without overflow | the labs (`public/dev/physics-lab*`), their report recordings |
-
-**`rooms`** (slow 37 s, browser 90 s)
-
-| Member | Alone | Catches that the fast tier can't | Moved by |
-| --- | --- | --- | --- |
-| `live-map` (slow) | 19.9 s | bots on the shipped content and its engine fill all three extraction slots on two live chain maps; at the larger authored size macro states a room's recipe and the frame its briefs give is the room's size (the regions are not built, so no per-run test converts a composed 24 × 12 map; `micro-large-briefs` builds each type's extreme stored brief at that size, not these, #822) | the live adapter (`map/live.ts`), bots, simulation; chain output only as a stall or crash |
-| `live-map-adapter` (slow) | 29.9 s | a room's match map is seed 1's chain map, the adapter is deterministic, and a content's roster sizes its sites (#849) | the live adapter, generation |
-| `live-recipe` (slow) | 29.7 s | the Map Lab's live-recipe check: only a seed's own map is a room's, refusing an edited layout or result (#822, #849) | `map/live.ts`, generation |
-| `map-generator` (slow) | 18.9 s | the map worker's answer is exactly the inline map, graph and packed tiles included, and each request gets its own seed's (#849) | the worker, the live adapter |
-| `room-arena` (slow) | 8.9 s | the pregenerated room arena is still seed 9's live map and graph (#849) | anything that moves seed 9's live map: then recapture it |
-| `room-sizes` (slow) | 21 s | a whole room on the shipped content through the server loop: every tick recorded once in order, the sparse replay timeline, the recording's physics version and the map within ground capacity | rooms, recording, the replay timeline, item capacity; size-dependent generation under `ROOM_SIZES` |
-| `browser` (browser) | 90.2 s | the client's long regression over shipped rooms: lobby, joining, play, touch controls, the minimap, spectating, replays and diagnostics downloads, its sections sharing pages and rooms | the client, the protocol, the room service |
-| `default-room` (browser) | 7.0 s | the shipped default room's lobby, start, walking and item drop in Chrome | the client, shipped content, room start |
-
-**`macro`** (slow 33 s, browser at least 131 s; and the chain sweep, 159 s)
-
-| Member | Alone | Catches that the fast tier can't | Moved by |
-| --- | --- | --- | --- |
-| chain sweep (`sweep --check`) | 159 s | any moved hash over 224 maps and the larger sizes' 4 macro layers, naming the stage, and any map whose report has defects (refused when checking or capturing, #822); `npm test` pins only the playground quick cases (`slow/map-chain-sweep` the game one) | anything upstream of the built map: macro, the library, strategies, builders, the kernel, `shared/` |
-| `map-library` | 11.3 s | one 8-contestant map's full diagnosis: every region's portal promise under the thorough search, open ones too | macro, the library, builders: as a defect |
-| `map-chain-sweep` | 18.6 s | the game quick case's hashes, and its macro views from `generateMacro`; the fast `map-sweep` pins the playground cases (#849) | as the sweep |
-| `map-container` | 24.7 s | a game map round-trips whole and from its Layout alone with the game's engines, and reports clean (#849) | macro, builders, saving |
-| `map-sweep-replay` | 20.2 s | the brief replay's machinery on the quick cases: capture, drift, throws and refusals (#541, #849) | `sweep-briefs.mts`, builders |
-| `map-lab-routes` | 22.4 s | both bodies' routes on a game map, and a built map's collision bounded by its regions' cells (#849) | `map/tools/routes.ts`, builders |
-| `map-tools` | 10.2 s | the tools' default game map with the game's registry, its library witness and saves (#849) | `map/tools/`, builders |
-| `portal-graph` (slow) | 22.6 s | on a live map every promised pair connects over the mesh, and the graph travels beside the map (#849) | the portal graph, the live adapter, builders |
-| `map-macro-sizes` | 21.3 s (three runs, 21.0 to 21.6 s, 2026-11-06; 16.9 s when #826 added it) | the sweep's `macro-24x12` and `macro-36x18` cases on `main`, layout through briefs | macro, the library |
-| `lab` (browser) | at least 131 s | the Map Lab in Chrome: its saves equal the core's, a save reads back the same map, drills rebuild equal | `map/tools/`, the lab, the saved format, and builder output it pins by name |
-
-**`micro`** (slow 128 s, browser 41 s; and the replay, 3.5 to 35 s a type)
-
-| Member | Alone | Catches that the fast tier can't | Moved by |
-| --- | --- | --- | --- |
-| `sweep --check --type` | 3.5 s (block) to 35 s (park); all types 133 s | each cached region of the type rebuilt and compared, with its portal check where it drifted | that type's builder and the builders it delegates to |
-| `micro-builder-contract-sweeps` | 14.0 s | every type's builder contract at seed 2 | any builder |
-| `micro-block-promise`, `micro-block-scale` | 13.6 s, 4.3 s | the block's promise on every seed; a macro-sized block's structure counts | the block builder and its delegation |
-| `micro-compound-sweeps`, `-siting-solution` | 11.4, 9.1 s | compound's promise, ring and observer checks at every gate count on every mask at rotating seeds; rooms and court reachable by bodies; the stored authored quarter sites, builds and is reachable to its rooms, court and gate yards (its whole portal promise is not checked per run, as no 36 × 18 region's is since #821; `tools/compound-siting-solution-audit.mjs --after-brief=tests/fixtures/compound-340-inward-brief.json.gz` runs it on purpose, #822) | the compound builder and siting |
-| `micro-depot-sweeps`, `micro-depot-scale` | 13.9 s, 6.0 s | depot's promise and aisle access over its seeds; the stored witnesses' reach; the macro case's cord counts | the depot builder, the live cord |
-| `micro-large-briefs`, `-park` | 24.2 s, 39.2 s | the larger sizes' extreme briefs, for the 12 types they exceed 12 × 6 in (up to 87 portals, 11,484 cells), build and stay in their fill; park's brief alone takes about 40 s since #849, so it has its own file | any builder; macro only through a recapture |
-| `micro-hut-sweeps` | 4.9 s | small houses at sixteen seeds | the hut builder |
-| `micro-park-promise`, `micro-plant-promise` | 12.5 s, 15.3 s | park's promise, spacing and kinds on every mask and parameter set at rotating seeds, and its 36-portal case; plant's promise, spacing and kinds at every seed, and its forty #490 strips | that builder |
-| `micro-lab`, `region-explorer`, `decomposition-lab`, `generation-demo` (browser) | 18.0, 8.0, 5.8, 8.7 s | the micro labs in Chrome: controls, imports, downloads, walking, building views | the lab pages, `region-examples`, `brief-link`, building drawing; not builder output (below) |
-
-The micro labs compare what they show with a build in Node made by the same code, so a builder's
-output is not what they check: with hut's box changed from 4 to 5, `micro-hut` failed and
-`micro-lab`, `region-explorer` and `generation-demo` passed (2026-11-05). The Map Lab script, by
-contrast, pins some builder output by name, so a content change can fail it (#816).
-`npm run test:micro` is the `micro` set's fast files, four at a time, then these four scripts.
+Each set's slow and browser members, what each catches that its fast files cannot and which changes move it: [31.1](31.1-test-catalogue.md#integration-checks-per-set).
 
 A builder or strategy change does not run `test:all`. `characterization-physics-bots`
 never builds a chain map: its arenas are stored. `map-library`, `live-map`, `physics-navigation` and
@@ -751,9 +404,6 @@ merge, and a failure there files an issue and is fixed forward. A content change
 that drifts, still runs it. S5 was decided for the 25-map report batch, which was retired in
 #822, an agent's call that Corey left to judgement: its seeds were not the sweep's, but the sweep
 now refuses a defective map itself, and none of its 224 maps reported one.
-
-A new slow or browser member adds its row to its set's table here in the same change, and a
-member whose value is unclear is raised with Corey rather than dropped.
 
 <a id="test-arenas"></a>
 
@@ -837,48 +487,7 @@ touched; a failed `verify` is fixed before the pull request is ready, and a slow
 is fixed forward. CI uploads no artifacts: recordings,
 diagnostics and screenshots stay on the machine that made them.
 
-## P7 ballistic lab
-
-P7's isolated ballistic lab is checked by `tests/physics-ballistics.test.js` and
-`node tests/physics-ballistics.browser.mjs` (also in `test:browser`). These cover
-analytic height/planar overlap, event ties, mask containment, bounds and retained
-state-only playback including actual shadow/sprite pixels and Node/Chrome equality.
-`npm run physics:ballistics` writes reproducible JSON and standalone HTML under
-`test-results/`; no game server or engine is required to open the HTML. This
-lab-only change does not trigger the shared/server/map full-suite or seed-sweep
-gate. It does not establish live gameplay or arbitrary authored-map coverage.
-
-## P8 dynamic navigation
-
-P8's focused witnesses are `physics-drop-occupancy`, `physics-dynamic-navigation`
-and `physics-navigation-policy` unit files. They cover atomic drop refusal,
-mandatory retry, actual solver detours, moving/sleeping props, mixed roles,
-queue/resume, teleport invalidation, remembered-door/hidden-geometry equivalence
-and bounded crowd queries. `tests/physics-navigation.browser.mjs` compares a
-complete autonomous pickup/charge/escape trace in Node and Chrome. The P8
-live-chain whole-match witness is `tests/slow/physics-navigation.test.js`.
-Review regression files `physics-navigation-following`, `physics-navigation-heading`
-and `physics-navigation-cache` cover contact-range following, normal motor crate
-pushing, queued heading, shared point sight and collection-scoped query reuse.
-The crowd run is `node tools/physics/navigation-report.mjs` (detours enabled; the
-`dynamicNavigation: false` baseline was removed in #976); run after other
-CPU-heavy gates finish. Evidence and limits belong to [42.19](42.19-physics-p8.md).
-
-## P9 integration and playtest
-
-P9's `tests/room-integration.test.js` exercises a room's
-creation-pinned mode, withheld distant body, delayed spectator pose, reconnect
-body keyframe and disposal. `tests/physics-diagnostics.test.js` verifies detached
-world-unit contact/force diagnostics without changing gameplay capture.
-`tests/physics-playtest.browser.mjs` covers local A/B/C scenes, real contacts and
-hook force, tuning reset, bounded recordings, JSON download and exact action
-rerun, diagnostic solid-geometry casts, plus disabled routes. It runs in `test:browser`. Reproduce the sequential
-synthetic envelope with `npm run physics:integration`; reproduce the actual
-physics client entry workload with `node tests/bench-client.mjs --json`.
-It uses `defaultContent()` unless `--content=<id>` selects another shipped set,
-and includes `physicsPrediction` statistics on every live run.
-These complement the existing privacy, prediction, item conservation, replay and
-bot witnesses; their measured scope and outstanding human gates are [42.20](42.20-physics-p9.md).
+Physics stage witnesses (P7 ballistics, P8 dynamic navigation, P9 integration and playtest) are listed in [31.1](31.1-test-catalogue.md#physics-stage-witnesses).
 
 ## The frozen fixture
 
@@ -981,84 +590,3 @@ branch outside them can pass both and still change how saved maps regenerate.
 - A change that alters default output anywhere is a content change, even if the sweep shows no
   drift: it joins a batch (step 3).
 - Drift in a change meant to preserve behaviour is a stop-and-escalate (53).
-
-## Coverage
-
-The tests currently cover deterministic seeded simulation, shape records and element stamping, continuous movement and physical gaps, gates and extraction, combat and kit progression, transit, stealth, visibility geometry, privacy projections, one input spent per tick, pacing/replay integrity, spectators, desktop controls, touch controls, mouse aim, client-side sight, shaded occlusion, and projectile interpolation. The receive buffer is covered separately and directly, against a clock the test drives rather than against wall time: uneven arrivals, a catch-up batch that skips ticks, starvation, a reordered or duplicated frame, and a discontinuity large enough to cut. Those are the conditions that distinguish a buffer from a smoothing filter, and none of them are reachable through a happy-path integration test.
-The input queue is covered the same way, and the assertion that matters is that a client replaying its
-unacknowledged inputs through the shared movement code lands on the server's position exactly, rather
-than close to it. Around it sit the cases that decide whether that holds under load: acknowledging on
-consumption rather than arrival, a queue trimmed when a client outruns the tick, a starved queue that
-repeats movement but not one-shot presses, and a silence long enough to stop the player.
-Latency measurement is tested for the properties that make it safe to trade on rather than merely
-accurate: an invented or superseded token is refused, a token counts once, a stalled echo cannot pull
-the reported minimum up on its own, and sustained stalling is clamped instead of believed.
-Lag compensation is tested for the property that separates it from simply being generous: a target
-that has stepped out of reach is still hit, and a target that has only just stepped into reach is
-not. Around that sit cover at the rewound position, the bound on how far back it will reach, the
-absence of compensation for travel-time projectiles, and the history staying out of recordings.
-Content pinning is tested for what pinning is *for* rather than for the plumbing: a match given a
-harder-hitting pistol hits harder, which only holds if the read goes through the match and not the
-module the defaults live in. Alongside it, two matches hold independent copies, a match cannot edit
-the balance it runs under, a kit is validated against the match's own table, and the content stays
-out of every frame while the recording header names it.
-
-Unit and server coverage includes ammo exhaustion and refill, sixth-slot selection,
-move/merge validation, retained drops, doors and windows, hunter respawning, bot
-retreat, abandoned-room archival and immutable replay commands. Objective-route runs
-neutralize combat damage so PvP deaths do not invalidate navigation assertions.
-
-Browser coverage includes keyboard and touch input, six slot icons, move/merge, L2 reload controls,
-drops, charging and extraction, opening and walking through a real door, roof
-transitions, occlusion, replay and spectators, and diagnostic download. Diagnostic reports are covered by `tests/room-service.test.js` (validation, clamping, limits, never a command) and `tests/diagnostics-episodes.test.js` (episode coalescing). A
-deliberately injected 120 ms browser stall verifies diagnostics preserve long
-frames rather than smoothing them away. The visibility polygon's culling is checked
-against a brute-force implementation of the same rays over sixteen hundred cases,
-including origins placed exactly on obstacle corners and edges, and must match it
-vertex for vertex.
-
-`tests/overhead.browser.mjs` uses a small controlled map with real Phaser textures
-to check that a crown occludes an actor beyond the trunk, intermediate group alpha
-changes pixels without rasterising or replacing textures, and camera culling and
-map replacement release overhead textures. `tests/art-witness.browser.mjs` drives
-the arena renderer over a controlled map and frozen presentation state across all
-six palettes, fog on/off, exterior/interior roof views, LOD cutoffs and a short
-motion pass, checking WebGL glass alpha, rendered edges and withheld-entity privacy
-and writing paired captures and a contact sheet under `test-results/art-witness/`
-([42.45](42.45-art-delivery-evidence.md), #587). Both run in `test:browser`.
-
-Boundary tests enforce ownership, not just behavior: server application code may
-not use the diagnostic `room.game` escape hatch, transport may not reach the
-simulation, and rooms may not reach gzip or filesystem details. Tests and
-benchmarks may use `room.game` to arrange scenarios.
-
-Human multiplayer balance is unverified by any of this. Passing local tests alone
-establishes nothing about the reported slowdown.
-
-## Live-chain checkpoint coverage
-
-`tests/live-map.test.js` checks the runtime adapter, authored core sites, starter
-loot, region/tier ownership, determinism and JSON prediction agreement. The
-boundary tests cover concave edges, holes and whole-body clearance and the
-rejection of a map without a playable area. `tests/slow/live-map.test.js` plays combat-neutralized
-bots through all three extraction slots on seeds 1 and 9 on the shipped content and its engine (#822, #920; `physics-navigation` plays 4217's map), each bounded by
-the match duration so a stalled match fails rather than hangs. Transit strategy
-and macro library tests check hunter access, standing space, six separate owned
-regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bot
-match to its end in a room at each authored size (14), the owner disconnected and
-an owner spectator keeping it from abandonment, checks each tick reaches the
-recorder once and in order, and reads sparse frames back through the replay timeline; it
-takes about 21 s at 12 × 6 (the larger sizes, last timed on the legacy mover, took about 1 min and
-4.5 min at 24 × 12 and 36 × 18). Only 12 × 6 runs
-by default, since the larger sizes rarely find what it misses; set `ROOM_SIZES` when a change
-targets size-dependent generation, room limits or recording. These samples do not establish human balance or
-exhaustive seed coverage.
-
-The browser suite uses live-chain rooms for normal play, replay, mobile controls
-and buildings. Its fixed-coordinate occlusion and projectile probes stand on a
-small authored scene (#944). The projectile probe waits for the receive buffer to fill and fires
-past its cover so the sampled projectile survives long enough to measure.
-
-`npm run bench` measures a live-chain match on the physics engine, and `--content=<id>` runs another
-shipped content set. Like a room, it adopts the tiles a map worker would build, untimed; `--cold` leaves bots to build them on their first plans (42.8). Client crowd fixtures use a central transit site when
-there is no street graph, and the dense fixture uses a real building loot site.

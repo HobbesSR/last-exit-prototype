@@ -79,10 +79,20 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    turns on a test, or makes existing tests slower, also states the cost to the
    test workflow (31, [A test's cost is part of the change](31-verification.md#test-cost)).
 6. Review others with `list_pull_requests` and `get_pull_request_diff`
-   (`stat` for the file list, `file` or `offset`/`limit` for parts). Trust the PR
-   author's testing assertions as evidence when their scope matches the commit,
-   but retain discretion to re-run focused checks if the validation appears stale,
-   incomplete, or mis-scoped. Post the verdict with `submit_pull_request_review`
+   (`stat` for the file list, `file` or `offset`/`limit` for parts). **Review is
+   diff-only by default** (#885): read the diff and the documents it touches; do
+   not check out the branch or re-run suites, sweeps or benchmarks. The author's
+   testing statement is the evidence when its scope matches the commit; one that is
+   missing, stale or mis-scoped is a review finding, not a cue to run the tier
+   yourself. Two exceptions, and only these:
+   - one targeted command (a test file, a pattern, a single check) that would
+     confirm or refute a concrete defect you saw in the diff;
+   - for a renderer or client PR whose author did not run the browser scripts its
+     area names ([31](31-verification.md#choosing-checks-by-changed-area)), those
+     scripts: Node checks alone have approved a renderer change that threw every
+     frame (PR #343).
+
+   Post the verdict with `submit_pull_request_review`
    (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
    if it reports a pending review, post the verdict with `create_comment`
    instead. Use `create_comment` for discussion.
