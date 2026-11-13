@@ -88,13 +88,12 @@ try {
   assert.equal(await page.locator('#buildings .warning').count(), expected.graph.warnings);
   await page.screenshot({ path: 'test-results/micro-lab-hut.png' });
   // Find a seed with unmet guidance using the browser's active dimensions/tier so the warning list UI is exercised without pinning one seed's layout (M29).
-  const readControls = () => page.evaluate(() => ({
+  const hutControls = await page.evaluate(() => ({
     width: Number(document.getElementById('region-width').value),
     height: Number(document.getElementById('region-height').value),
     tier: Number(document.getElementById('loot-tier').value),
     northPortal: document.getElementById('north-port').checked,
   }));
-  const hutControls = await readControls();
   let unmetSeed = null;
   for (let seed = 11; seed <= 60 && unmetSeed === null; seed++) {
     const traces = [];
@@ -142,7 +141,12 @@ try {
   }
   // A block passes its lot's buildings on, labelled under its lot.
   for (const view of views) await page.getByLabel(view).check();
-  const blockControls = await readControls();
+  const blockControls = await page.evaluate(() => ({
+    width: Number(document.getElementById('region-width').value),
+    height: Number(document.getElementById('region-height').value),
+    tier: Number(document.getElementById('loot-tier').value),
+    northPortal: document.getElementById('north-port').checked,
+  }));
   let blockSeed = null;
   for (let seed = 2; seed <= 30 && blockSeed === null; seed++) {
     const traces = [];
