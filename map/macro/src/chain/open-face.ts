@@ -34,20 +34,17 @@ import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 import type { TileOption, WfcAccept, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
+import { partsOf, SIDES } from "./design-parts.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, SegmentPrescription } from "./library.ts";
 import { DEFAULT_RESOLVED_CLASS, guaranteesPassability, resolveSettledClass } from "./resolution.ts";
-import type { Orientation, SegmentKey } from "./types.ts";
+import type { Orientation } from "./types.ts";
 
 const S = CHAIN_TILE_SIZE;
 /** No slot of the map: off it, or outside its mask. */
 const OUTSIDE = "";
 /** A cell whose class isn't settled: its slot is unplaced, or it is an `any` cell nothing has asked yet. */
 const UNSETTLED = "?";
-const SIDES = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
-/** Cells of one design that join inside it (`partsOf`), by local index, and its exits, `local * 4 + side`. */
-interface Part { cells: number[]; exits: number[] }
-interface Parts { of: Int16Array; parts: Part[] }
 /**
  * The largest area, in cells, the lookahead floods before taking it as open (#857): 32 slots.
  * It bounds each check's cost, not which layouts are valid: a larger sealed area is still
@@ -75,13 +72,6 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
   const oriented = orientedDesigns(library);
   // Each option's design, turned once.
   const designs = new Map<TileOption, OrientedDesign>();
-  /**
-   * A design's fixed parts: its cells that join inside it whatever lies around it, the same
-   * class or a guaranteed segment between them, both stated by the design alone. An `any`
-   * cell's class depends on its neighbours, so it is in no part. The floods take a part as one
-   * node and leave it only by its exits, the faces from its cells to cells outside it.
-   */
-  const partsCache = new Map<OrientedDesign, Parts>();
   /** A design's segment prescriptions by number: `h:x,y` at `y * S + x`, then `v:x,y` at `x * S + y`. */
   const segmentCache = new Map<OrientedDesign, Array<SegmentPrescription | undefined>>();
   const segmentsOf = (turnedDesign: OrientedDesign): Array<SegmentPrescription | undefined> => {
@@ -93,37 +83,6 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
       found[key[0] === "h" ? b * S + a : (S + 1) * S + a * S + b] = prescription;
     }
     segmentCache.set(turnedDesign, found);
-    return found;
-  };
-  const partsOf = (turnedDesign: OrientedDesign): Parts => {
-    let found = partsCache.get(turnedDesign);
-    if (found) return found;
-    const { cells } = turnedDesign;
-    const of = new Int16Array(S * S).fill(-1), parts: Part[] = [];
-    const joinsInside = (local: number, k: number): number => {
-      const x = local % S, y = (local - x) / S, [dx, dy] = SIDES[k]!, nx = x + dx, ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= S || ny >= S) return -1;
-      const next = ny * S + nx;
-      if (cells[next] === "any") return -1;
-      if (cells[next] === cells[local]) return next;
-      const segment = turnedDesign.segments.get((dx ? `v:${x + Math.max(dx, 0)},${y}` : `h:${x},${y + Math.max(dy, 0)}`) as SegmentKey);
-      return guaranteesPassability(segment?.passability, segment?.passability) ? next : -1;
-    };
-    for (let first = 0; first < S * S; first++) {
-      if (cells[first] === "any" || of[first]! >= 0) continue;
-      const part: Part = { cells: [first], exits: [] };
-      of[first] = parts.length;
-      for (let i = 0; i < part.cells.length; i++) for (let k = 0; k < SIDES.length; k++) {
-        const next = joinsInside(part.cells[i]!, k);
-        if (next >= 0 && of[next]! < 0) { of[next] = parts.length; part.cells.push(next); }
-      }
-      parts.push(part);
-    }
-    for (const [id, part] of parts.entries()) for (const local of part.cells) for (let k = 0; k < SIDES.length; k++) {
-      const next = joinsInside(local, k);
-      if (next < 0 || of[next] !== id) part.exits.push(local * 4 + k);
-    }
-    partsCache.set(turnedDesign, found = { of, parts });
     return found;
   };
   // Flood marks, kept across checks: a mark at or above `firstFlood` belongs to this check.

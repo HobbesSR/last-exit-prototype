@@ -99,26 +99,34 @@ const meets = (required: string | undefined, found: string): boolean =>
   required === undefined || required === "any" || found === required || found === "any";
 
 const S = CHAIN_TILE_SIZE;
-/** `b` east of `a`: each side's prescriptions on the shared seam against the other's cells and side. */
-export function fitsEast(a: OrientedDesign, b: OrientedDesign): boolean {
-  for (let i = 0; i < S; i++) {
-    const near = a.segments.get(`v:${S},${i}`), far = b.segments.get(`v:0,${i}`);
-    if (!meets(near?.adjacency, b.cells[i * S]!)) return false;
-    if (!meets(far?.adjacency, a.cells[i * S + S - 1]!)) return false;
+/** A side of a design. */
+export type Side = "N" | "E" | "S" | "W";
+/**
+ * Per side of a design, the border cell, the cell across in the neighbour, and the two
+ * segment keys on the seam, for position `k` along it.
+ */
+export const BORDER: Record<Side, (k: number) => { mine: number; theirs: number; segMine: SegmentKey; segTheirs: SegmentKey }> = {
+  E: (k) => ({ mine: k * S + S - 1, theirs: k * S, segMine: `v:${S},${k}` as SegmentKey, segTheirs: `v:0,${k}` as SegmentKey }),
+  W: (k) => ({ mine: k * S, theirs: k * S + S - 1, segMine: `v:0,${k}` as SegmentKey, segTheirs: `v:${S},${k}` as SegmentKey }),
+  S: (k) => ({ mine: (S - 1) * S + k, theirs: k, segMine: `h:${k},${S}` as SegmentKey, segTheirs: `h:${k},0` as SegmentKey }),
+  N: (k) => ({ mine: k, theirs: (S - 1) * S + k, segMine: `h:${k},0` as SegmentKey, segTheirs: `h:${k},${S}` as SegmentKey }),
+};
+
+/** `b` on `side` of `a`: each side's prescriptions on the shared seam against the other's cells and side. */
+function fitsOn(side: Side, a: OrientedDesign, b: OrientedDesign): boolean {
+  for (let k = 0; k < S; k++) {
+    const { mine, theirs, segMine, segTheirs } = BORDER[side](k);
+    const near = a.segments.get(segMine), far = b.segments.get(segTheirs);
+    if (!meets(near?.adjacency, b.cells[theirs]!)) return false;
+    if (!meets(far?.adjacency, a.cells[mine]!)) return false;
     if (!passabilityFits(near?.passability, far?.passability)) return false;
   }
   return true;
 }
+/** `b` east of `a`. */
+export function fitsEast(a: OrientedDesign, b: OrientedDesign): boolean { return fitsOn("E", a, b); }
 /** `b` south of `a`. */
-export function fitsSouth(a: OrientedDesign, b: OrientedDesign): boolean {
-  for (let i = 0; i < S; i++) {
-    const near = a.segments.get(`h:${i},${S}`), far = b.segments.get(`h:${i},0`);
-    if (!meets(near?.adjacency, b.cells[i]!)) return false;
-    if (!meets(far?.adjacency, a.cells[(S - 1) * S + i]!)) return false;
-    if (!passabilityFits(near?.passability, far?.passability)) return false;
-  }
-  return true;
-}
+export function fitsSouth(a: OrientedDesign, b: OrientedDesign): boolean { return fitsOn("S", a, b); }
 
 /**
  * The seams inside a set piece that no pairing of its slots' members fits (17.2.2), so the set
@@ -167,68 +175,34 @@ const agree = (a: string | undefined, b: string | undefined): boolean =>
   a === undefined || b === undefined || a === "any" || b === "any" || a === b;
 
 /**
- * Whether `b` east of `a` connects to it across their seam, as the proof joins regions: a
- * pair of facing cells resolves to one class, or a guaranteed run of at least
+ * Whether `b` on `side` of `a` connects to it across their seam, as the proof joins regions:
+ * a pair of facing cells resolves to one class, or a guaranteed run of at least
  * `MIN_PORTAL_LENGTH` joins one pair of classes.
  */
-export function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign): boolean {
+function connectsOn(side: Side, a: OrientedDesign, b: OrientedDesign): boolean {
   let portalRun = 0;
   let lastA: string | undefined, lastB: string | undefined;
   for (let k = 0; k < S; k++) {
-    const cellA = a.cells[k * S + S - 1]!, cellB = b.cells[k * S]!;
-    const segA = a.segments.get(`v:${S},${k}`), segB = b.segments.get(`v:0,${k}`);
-    const reqB = segB?.adjacency, reqA = segA?.adjacency;
-    const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
-    const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
+    const { mine, theirs, segMine, segTheirs } = BORDER[side](k);
+    const cellA = a.cells[mine]!, cellB = b.cells[theirs]!;
+    const segA = a.segments.get(segMine), segB = b.segments.get(segTheirs);
+    const resA = cellA === "any" ? (segB?.adjacency ?? DEFAULT_RESOLVED_CLASS) : cellA;
+    const resB = cellB === "any" ? (segA?.adjacency ?? DEFAULT_RESOLVED_CLASS) : cellB;
     if (resA === resB) return true;
-    const pA = segA?.passability, pB = segB?.passability;
-    if (guaranteesPassability(pA, pB, false)) {
-      if (resA === lastA && resB === lastB) {
-        portalRun++;
-      } else {
-        portalRun = 1;
-        lastA = resA;
-        lastB = resB;
-      }
+    if (guaranteesPassability(segA?.passability, segB?.passability, false)) {
+      if (resA === lastA && resB === lastB) portalRun++;
+      else { portalRun = 1; lastA = resA; lastB = resB; }
       if (portalRun >= MIN_PORTAL_LENGTH) return true;
     } else {
-      portalRun = 0;
-      lastA = undefined;
-      lastB = undefined;
+      portalRun = 0; lastA = lastB = undefined;
     }
   }
   return false;
 }
-
+/** `b` east of `a` (`connectsOn`). */
+export function edgeConnectsEast(a: OrientedDesign, b: OrientedDesign): boolean { return connectsOn("E", a, b); }
 /** `b` south of `a`. */
-export function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign): boolean {
-  let portalRun = 0;
-  let lastA: string | undefined, lastB: string | undefined;
-  for (let k = 0; k < S; k++) {
-    const cellA = a.cells[(S - 1) * S + k]!, cellB = b.cells[k]!;
-    const segA = a.segments.get(`h:${k},${S}`), segB = b.segments.get(`h:${k},0`);
-    const reqB = segB?.adjacency, reqA = segA?.adjacency;
-    const resA = cellA === "any" ? (reqB ?? DEFAULT_RESOLVED_CLASS) : cellA;
-    const resB = cellB === "any" ? (reqA ?? DEFAULT_RESOLVED_CLASS) : cellB;
-    if (resA === resB) return true;
-    const pA = segA?.passability, pB = segB?.passability;
-    if (guaranteesPassability(pA, pB, false)) {
-      if (resA === lastA && resB === lastB) {
-        portalRun++;
-      } else {
-        portalRun = 1;
-        lastA = resA;
-        lastB = resB;
-      }
-      if (portalRun >= MIN_PORTAL_LENGTH) return true;
-    } else {
-      portalRun = 0;
-      lastA = undefined;
-      lastB = undefined;
-    }
-  }
-  return false;
-}
+export function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign): boolean { return connectsOn("S", a, b); }
 
 export const isOrthogonalRelation = (relation: string): boolean =>
   relation === "N" || relation === "S" || relation === "E" || relation === "W" || relation.endsWith(":must-open");

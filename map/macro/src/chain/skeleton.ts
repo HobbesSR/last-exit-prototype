@@ -13,11 +13,13 @@ import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, ChainTileDesign } from "./library.ts";
-import { fitsEast, fitsSouth, edgeConnectsEast, edgeConnectsSouth } from "./placement.ts";
+import { partsOf } from "./design-parts.ts";
+import { BORDER, fitsEast, fitsSouth, edgeConnectsEast, edgeConnectsSouth } from "./placement.ts";
+import type { Side } from "./placement.ts";
 import type { Stream } from "./random.ts";
 import { DEFAULT_RESOLVED_CLASS, guaranteesPassability } from "./resolution.ts";
 import type { MaskCell, MapZone } from "./zones.ts";
-import type { Orientation, SetPieceInstance, SegmentKey } from "./types.ts";
+import type { Orientation, SetPieceInstance } from "./types.ts";
 
 export type SkeletonAlgorithm = "wilson" | "prim" | "kruskal";
 
@@ -42,8 +44,6 @@ export interface SkeletonResult {
 }
 
 const S = CHAIN_TILE_SIZE;
-type Side = "N" | "E" | "S" | "W";
-const SIDES: readonly [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
 class UnionFind {
   parent: Int32Array;
@@ -356,17 +356,6 @@ export function buildSkeleton(
 }
 
 /**
- * Per side of a design, the border cell, the cell across in the neighbour, and the two
- * segment keys on the seam, for position `k` along it.
- */
-const BORDER: Record<Side, (k: number) => { mine: number; theirs: number; segMine: SegmentKey; segTheirs: SegmentKey }> = {
-  E: (k) => ({ mine: k * S + S - 1, theirs: k * S, segMine: `v:${S},${k}` as SegmentKey, segTheirs: `v:0,${k}` as SegmentKey }),
-  W: (k) => ({ mine: k * S, theirs: k * S + S - 1, segMine: `v:0,${k}` as SegmentKey, segTheirs: `v:${S},${k}` as SegmentKey }),
-  S: (k) => ({ mine: (S - 1) * S + k, theirs: k, segMine: `h:${k},${S}` as SegmentKey, segTheirs: `h:${k},0` as SegmentKey }),
-  N: (k) => ({ mine: k, theirs: (S - 1) * S + k, segMine: `h:${k},0` as SegmentKey, segTheirs: `h:${k},${S}` as SegmentKey }),
-};
-
-/**
  * The border cells of design `a` that cross into `b`, its neighbour on `side` (review 707).
  * Cells cross as `edgeConnectsEast` and the proof join them: the same resolved class, or a
  * guaranteed run of at least `MIN_PORTAL_LENGTH` between one pair of classes. Empty when the
@@ -418,43 +407,14 @@ function forcedEdgesBySlot(forcedSeams: SkeletonSeam[]): Map<number, ForcedEdge[
 /**
  * Whether one internal part of `option` carries a crossing on every forced edge, against
  * the options `domainOf` gives for each neighbour (#883 comment 10802, reviews 707, 708).
- * Parts are the open-face rule's fixed parts: cells joined by class or a guaranteed segment.
+ * Parts are a design's fixed parts (`design-parts.ts`), as the open-face rule floods them.
  */
 function partBridges(library: ChainLibrary) {
   const oriented = orientedDesigns(library);
-  const partsCache = new Map<OrientedDesign, { count: number; of: Int16Array }>();
-  const partsOf = (turnedDesign: OrientedDesign): { count: number; of: Int16Array } => {
-    let found = partsCache.get(turnedDesign);
-    if (found) return found;
-    const { cells } = turnedDesign;
-    const of = new Int16Array(S * S).fill(-1);
-    let count = 0;
-    const joinsInside = (local: number, k: number): number => {
-      const x = local % S, y = (local - x) / S, [dx, dy] = SIDES[k]!, nx = x + dx, ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= S || ny >= S) return -1;
-      const next = ny * S + nx;
-      if (cells[next] === "any") return -1;
-      if (cells[next] === cells[local]) return next;
-      const segment = turnedDesign.segments.get((dx ? `v:${x + Math.max(dx, 0)},${y}` : `h:${x},${y + Math.max(dy, 0)}`) as SegmentKey);
-      return guaranteesPassability(segment?.passability, segment?.passability) ? next : -1;
-    };
-    for (let first = 0; first < S * S; first++) {
-      if (cells[first] === "any" || of[first]! >= 0) continue;
-      const part = [first];
-      of[first] = count;
-      for (let i = 0; i < part.length; i++) for (let k = 0; k < SIDES.length; k++) {
-        const next = joinsInside(part[i]!, k);
-        if (next >= 0 && of[next]! < 0) { of[next] = count; part.push(next); }
-      }
-      count++;
-    }
-    partsCache.set(turnedDesign, found = { count, of });
-    return found;
-  };
   return (option: TileOption, edges: ForcedEdge[], domainOf: (slot: number) => TileOption[]): boolean => {
     const design = oriented(option.templateId, option.orientation as Orientation);
-    const { count, of } = partsOf(design);
-    if (count <= 1) return true;
+    const { parts, of } = partsOf(design);
+    if (parts.length <= 1) return true;
     let common: Set<number> | null = null;
     for (const edge of edges) {
       const reached = new Set<number>();
