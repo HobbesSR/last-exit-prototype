@@ -66,7 +66,8 @@ Corey, 2026-10-30, on #683: the destination is **"Make it selectable"**. Built u
   validation, refusal, travel-time tuning and the in-transit state.
 - **Telegraphing.** The rail effect at departure and landing stays the only tell to contestants (Corey,
   #692: "Current effect only").
-- **Client.** While the player can transit, the minimap rings every station it may go to, the default
+- **Client.** The camera cuts to the destination on landing. The in-transit state is what a later
+  travel animation would show. While the player can transit, the minimap rings every station it may go to, the default
   more strongly. A click or tap on a ring transits there, and E still goes to the default. Gladiators
   already see the whole map (15), so showing every station reveals nothing new. This replaces the
   hold-to-pick gesture first proposed (hold interact, release on the selection, Esc cancels): rings shown

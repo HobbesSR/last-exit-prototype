@@ -240,7 +240,7 @@ in every match; production capacity qualification remains open (F-14).
 
 ## Power cells
 
-Each cell occupies one of the six ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. The live chain places no traps; future trap spacing around chargers remains deferred with chain trap authoring ([16](16-deferred.md), [17.2.6](17.2.6-catalogue-questions.md) M22).
+Each cell occupies one of the six ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. The live chain places no traps. When chain trap authoring returns, traps keep at least 850 units from chargers, so required stationary charging is not automatically covered by a trap; implementing spacing across regions is deferred with chain trap authoring ([16](16-deferred.md), [17.2.6](17.2.6-catalogue-questions.md) M22).
 
 ## Equipment and inventory
 
@@ -447,7 +447,8 @@ Missing, extra or obstructed required starts/exits fail explicitly. The adapter
 also refuses absent charging or the wrong transit count; it supplies no corner
 fallbacks. Stations retain their owning region IDs.
 
-Combat radii remain 12 for contestants and 23 for hunters; physics movement
+Combat radii remain 12 for contestants and 23 for hunters
+([17.2.1](17.2.1-live-checkpoint.md)); physics movement
 bodies use the narrower [character profile](#character-profile-439).
 The existing west-to-east wall scales its progress to the actual map width.
 The cell-profile contestant-only passage balance is a separate tuning pass;
