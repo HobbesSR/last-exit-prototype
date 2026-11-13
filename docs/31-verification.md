@@ -372,8 +372,8 @@ under `tools/` are evidence and keep their own parsing.
 The timing command exits 1 when any test process fails, cannot launch, or terminates
 by signal, even without `--strict`. It prints the failure reason and captured test output.
 No gate runs `--strict`: the budgets are wall-clock times on a machine other agents'
-worktrees share, and the files listed above are already over them, so a strict gate
-would fail on contention or on known debt rather than on the change under review. It is
+worktrees share, so a strict gate would fail on contention rather than on the change
+under review. It is
 for checking the files a change adds or grows, run in isolation.
 
 Run timing comparisons sequentially, with no competing tests or benchmarks, and
@@ -665,7 +665,7 @@ the sweep and the physics equality scripts (the table above).
 | Member | Alone | Catches that the fast tier can't | Moved by |
 | --- | --- | --- | --- |
 | `art-witness` | 8.1 s | the real arena renderer's pixels over six palettes, fog, roofs and LOD cutoffs; glass alpha; withheld entities stay undrawn | the renderer, appearance, palette, art assets |
-| `overhead` | 25.0 s (its seam pixel check fails in some worktrees, #818) | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
+| `overhead` | 25.0 s | real Phaser textures for overhead art: crown occlusion, group alpha without re-rasterising, texture release on cull and map swap | the renderer's overhead layer |
 | `dev-view` | 23.0 s | a player tab, the dev tab it opens and what the dev tab does to the room | the dev view (client and server), room dev tools |
 
 **`simulation`** (slow 52 s, browser 17 s)
@@ -921,11 +921,6 @@ to cut the batch. One PR then lands the changes, makes any version decisions the
 recaptures once, last. A change that cannot wait goes in alone, with its own recapture, and its PR
 says why.
 
-`npm run check` recursively checks every module in the directories listed under
-the verification tiers above: JavaScript is parsed as Node would load it, and
-TypeScript is verified to erase cleanly, which is what Node does instead of parsing
-it. `npm run typecheck` is the separate, stronger pass.
-
 ## Content changes: one bump per batch
 
 Corey's rule (2026-11-01, #760), replacing the earlier integration-branch practice (#295). A
@@ -989,7 +984,7 @@ branch outside them can pass both and still change how saved maps regenerate.
 
 ## Coverage
 
-The tests currently cover deterministic seeded simulation, 200 generated maps, shape records and element stamping, continuous movement and physical gaps, gates and extraction, combat and kit progression, transit, stealth, visibility geometry, privacy projections, one input spent per tick, pacing/replay integrity, spectators, desktop controls, touch controls, mouse aim, client-side sight, shaded occlusion, and projectile interpolation. The receive buffer is covered separately and directly, against a clock the test drives rather than against wall time: uneven arrivals, a catch-up batch that skips ticks, starvation, a reordered or duplicated frame, and a discontinuity large enough to cut. Those are the conditions that distinguish a buffer from a smoothing filter, and none of them are reachable through a happy-path integration test.
+The tests currently cover deterministic seeded simulation, shape records and element stamping, continuous movement and physical gaps, gates and extraction, combat and kit progression, transit, stealth, visibility geometry, privacy projections, one input spent per tick, pacing/replay integrity, spectators, desktop controls, touch controls, mouse aim, client-side sight, shaded occlusion, and projectile interpolation. The receive buffer is covered separately and directly, against a clock the test drives rather than against wall time: uneven arrivals, a catch-up batch that skips ticks, starvation, a reordered or duplicated frame, and a discontinuity large enough to cut. Those are the conditions that distinguish a buffer from a smoothing filter, and none of them are reachable through a happy-path integration test.
 The input queue is covered the same way, and the assertion that matters is that a client replaying its
 unacknowledged inputs through the shared movement code lands on the server's position exactly, rather
 than close to it. Around it sit the cases that decide whether that holds under load: acknowledging on
@@ -1008,8 +1003,7 @@ module the defaults live in. Alongside it, two matches hold independent copies, 
 the balance it runs under, a kit is validated against the match's own table, and the content stays
 out of every frame while the recording header names it.
 
-Unit and server coverage includes 200-seed path clearance, 50-seed
-placement/spawn/maze checks, ammo exhaustion and refill, sixth-slot selection,
+Unit and server coverage includes ammo exhaustion and refill, sixth-slot selection,
 move/merge validation, retained drops, doors and windows, hunter respawning, bot
 retreat, abandoned-room archival and immutable replay commands. Objective-route runs
 neutralize combat damage so PvP deaths do not invalidate navigation assertions.
