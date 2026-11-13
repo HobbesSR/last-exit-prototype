@@ -22,7 +22,7 @@ import { mapViews } from '../macro/src/chain/map.ts';
 import { diagnoseRegion } from '../micro/diagnose.ts';
 import { REGION_TYPES, REGION_TYPES_VERSION } from '../micro/region-types.ts';
 import { SHARED_MANIFEST } from '../micro/result.ts';
-import { GAME_ENGINES } from './engines.ts';
+import { GAME_ENGINES } from '../engines.ts';
 import { compareSweep, contentHash, defaultJobs, runPool, sweepMap, sweepUnits, unitKey, unitSeed } from './sweep.mts';
 import type { SweepBaseline, SweepEntry, SweepUnit } from './sweep.mts';
 

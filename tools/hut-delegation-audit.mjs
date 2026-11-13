@@ -10,7 +10,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { generate } from '../map/chain.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { checkMap } from '../map/tools/core.ts';
-import { GAME_ENGINES } from '../map/tools/engines.ts';
+import { GAME_ENGINES } from '../map/engines.ts';
 import { flattenDelegationResult } from '../map/micro/delegation-execute.ts';
 import { prepareDelegation } from '../map/micro/delegation.ts';
 import { measureFill } from '../map/micro/fill.ts';

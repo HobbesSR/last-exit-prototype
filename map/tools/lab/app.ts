@@ -5,7 +5,7 @@
  */
 import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, validateLibrary } from "../core.ts";
 import type { MapCheck, ToolMap } from "../core.ts";
-import { GAME_ENGINES } from "../engines.ts";
+import { GAME_ENGINES } from "../../engines.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import type { MapViews } from "../../macro/src/chain/map.ts";
 import { CHAIN_TILE_SIZE } from "../../macro/src/chain/library.ts";
