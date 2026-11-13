@@ -1,7 +1,6 @@
 /** Set-piece slots, layout painting and class bindings. */
-import { render } from "./chain-author-shared.ts";
 import type { ChainLibrary, ChainSetPieceSlot } from "../../macro/src/chain/library.ts";
-import { state, select, current, field, choice, paragraph, changed, edited } from "./chain-author-shared.ts";
+import { state, select, current, field, choice, paragraph, changed, edited, render } from "./chain-author-shared.ts";
 import { tileThumbnail, classColor } from "./chain-author-tiles.ts";
 function slotEditor(
   slot: ChainSetPieceSlot,

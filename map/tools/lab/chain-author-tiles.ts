@@ -5,10 +5,11 @@ import { orientDesign } from "../../macro/src/chain/declared-grid.ts";
 import { regions, portalViolations } from "../../macro/src/chain/regions.ts";
 import type { ResolvedLayout } from "../../macro/src/chain/types.ts";
 import { MIN_PORTAL_LENGTH } from "../../kernel/scale.ts";
-import { state, $, section, current, field, choice, heading, paragraph, csv, numberList, changed, edited, closePopup, showPopup, dismissPopupOutside } from "./chain-author-shared.ts";
-import { tileMatches } from "./chain-author-shared.ts";
-import { render } from "./chain-author-shared.ts";
-import type { PaintTool, SegmentBrush } from "./chain-author-shared.ts";
+import {
+  state, $, section, current, field, choice, heading, paragraph, csv, numberList,
+  changed, edited, closePopup, showPopup, dismissPopupOutside, tileMatches, render,
+  type PaintTool, type SegmentBrush,
+} from "./chain-author-shared.ts";
 function hash(s: unknown): number {
   return [...String(s)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0);
 }

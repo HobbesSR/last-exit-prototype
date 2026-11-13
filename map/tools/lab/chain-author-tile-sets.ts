@@ -1,7 +1,6 @@
 /** Tile-set membership authoring. */
 import type { ChainLibrary } from "../../macro/src/chain/library.ts";
-import { state, current, paragraph, status, changed } from "./chain-author-shared.ts";
-import { tileMatches } from "./chain-author-shared.ts";
+import { state, current, paragraph, status, changed, tileMatches } from "./chain-author-shared.ts";
 import { tileThumbnail } from "./chain-author-tiles.ts";
 
 export function renderTileSets(root: HTMLElement): void {

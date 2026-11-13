@@ -62,6 +62,7 @@ export const state = {
   selectedId: "",
   selectedPaintTool: "paint" as PaintTool,
   selectedSegmentBrush: "passable" as SegmentBrush,
+  /** Brings the selected entry's derived views up to date in place; set by its section's renderer. */
   refreshEditor: null as (() => void) | null,
   activeLayoutBrush: "",
   tileSetFilter: "",
