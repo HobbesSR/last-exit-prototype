@@ -1,16 +1,10 @@
 /** Opt-in diagnostic deltas. All positions are world-cell lattice coordinates, except slots. */
+import type { TraceSlot as BaseTraceSlot, WfcTraceEvent as BaseWfcTraceEvent } from "../wfc.ts";
 import type { Orientation } from "./types.ts";
 export interface TracePoint { x: number; y: number }
 export interface TraceFace { a: TracePoint; b: TracePoint }
-export interface TraceSlot { slot: number; design: string; orientation: Orientation }
-export type WfcTraceEvent =
-  | { type: "node"; depth: number; iterations: number; stall: number }
-  | { type: "collapse"; depth: number; slots: TraceSlot[] }
-  | { type: "undo"; slots: number[] }
-  | { type: "contradiction"; depth: number; slots: number[] }
-  | { type: "conflict"; depth: number; depths: number[]; backjump: number; stall: number }
-  | { type: "backtrack"; fromDepth: number; toDepth: number }
-  | { type: "give-up"; reason: "iterations" | "stall"; depth: number; iterations: number; stall: number };
+export type TraceSlot = BaseTraceSlot<Orientation>;
+export type WfcTraceEvent = BaseWfcTraceEvent<Orientation>;
 export type RefusalTraceEvent = {
   type: "refusal"; kind: "portal" | "sealed" | "pocket"; reason: string;
   cells: TracePoint[]; faces: TraceFace[]; causeSlots: number[];

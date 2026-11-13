@@ -230,9 +230,12 @@ export function edgeConnectsSouth(a: OrientedDesign, b: OrientedDesign): boolean
   return false;
 }
 
+export const isOrthogonalRelation = (relation: string): boolean =>
+  relation === "N" || relation === "S" || relation === "E" || relation === "W" || relation.endsWith(":must-open");
+
 export function adjacencyConnects(library: ChainLibrary): (a: TileOption, relation: string, b: TileOption) => boolean {
   const oriented = orientedDesigns(library);
-  const of = (option: TileOption) => oriented(option.templateId, option.orientation);
+  const of = (option: TileOption) => oriented(option.templateId, option.orientation as Orientation);
   return (a, relation, b) => {
     const dir = relation.split(":")[0];
     switch (dir) {
@@ -258,7 +261,7 @@ export function adjacencyConnects(library: ChainLibrary): (a: TileOption, relati
  */
 export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility {
   const oriented = orientedDesigns(library);
-  const of = (option: TileOption) => oriented(option.templateId, option.orientation);
+  const of = (option: TileOption) => oriented(option.templateId, option.orientation as Orientation);
   return (a, relation, b) => {
     switch (relation) {
       case "E": return fitsEast(of(a), of(b));
@@ -282,7 +285,7 @@ export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility 
  * between two of its neighbours, those two by that slot's corner. A corner whose
  * middle slot is outside the map has no cell to ask for, so it links nothing.
  */
-export function adjacencyLinks(grid: WfcGrid): void {
+export function adjacencyLinks<O extends number = number>(grid: WfcGrid<O>): void {
   const at = new Map<string, number>();
   grid.forEach((c, i) => at.set(`${c.x},${c.y}`, i));
   const beside = (c: { x: number; y: number }, side: keyof typeof STEP) => at.get(`${c.x + STEP[side][0]},${c.y + STEP[side][1]}`);
@@ -388,15 +391,15 @@ function sample(
   }
 
   // Each attempt gets fresh options: the solver numbers them on first use.
-  const options = new Map<string, TileOption[]>();
-  const optionsFor = (zone: MapZone): TileOption[] => {
+  const options = new Map<string, TileOption<Orientation>[]>();
+  const optionsFor = (zone: MapZone): TileOption<Orientation>[] => {
     let list = options.get(zone.id);
     if (!list) options.set(zone.id, list = fill(zone).flatMap((design) => design.orientations.map((orientation) => ({
       templateId: design.id, orientation: orientation as Orientation, difficulty: difficulty(design), weight: optionWeight(design),
     }))));
     return list;
   };
-  const grid: WfcGrid = mask.map((cell, i) => {
+  const grid: WfcGrid<Orientation> = mask.map((cell, i) => {
     const fixed = assigned[i];
     return {
       x: cell.x, y: cell.y,
@@ -407,7 +410,7 @@ function sample(
     };
   });
   adjacencyLinks(grid);
-  let partRule: WfcAccept | undefined;
+  let partRule: WfcAccept<Orientation> | undefined;
   if (library.connectivitySkeleton) {
     const skeletonConfig = typeof library.connectivitySkeleton === "object" ? library.connectivitySkeleton : {};
     const maxTries = 5;
@@ -452,7 +455,7 @@ function sample(
       })(),
       stallLimit: PLACEMENT_STALL_LIMIT, state, stall,
       ...(trace ? { trace } : {}),
-      connects: adjacencyConnects(library),
+      connects: { test: adjacencyConnects(library), isOrthogonal: isOrthogonalRelation },
     });
   if (attempt) Object.assign(attempt, { nodes: state.iterations, mostStall: stall.most });
   if (!solved) return "wfc";

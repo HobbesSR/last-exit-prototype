@@ -1,9 +1,16 @@
-import type { WfcTraceEvent, TraceSlot } from "./chain/placement-trace.ts";
-import type { Orientation } from "./chain/types.ts";
+export interface TraceSlot<O extends number = number> { slot: number; design: string; orientation: O }
+export type WfcTraceEvent<O extends number = number> =
+  | { type: "node"; depth: number; iterations: number; stall: number }
+  | { type: "collapse"; depth: number; slots: TraceSlot<O>[] }
+  | { type: "undo"; slots: number[] }
+  | { type: "contradiction"; depth: number; slots: number[] }
+  | { type: "conflict"; depth: number; depths: number[]; backjump: number; stall: number }
+  | { type: "backtrack"; fromDepth: number; toDepth: number }
+  | { type: "give-up"; reason: "iterations" | "stall"; depth: number; iterations: number; stall: number };
 
-export interface TileOption {
+export interface TileOption<O extends number = number> {
   templateId: string;
-  orientation: Orientation;
+  orientation: O;
   difficulty: number;
   weight: number;
   id?: number;
@@ -22,22 +29,22 @@ export interface WfcLink {
   relation: string;
 }
 
-export interface WfcCell {
+export interface WfcCell<O extends number = number> {
   x: number;
   y: number;
-  domain: TileOption[];
+  domain: TileOption<O>[];
   /** Checked, and queued on a change, in this order. */
   links: WfcLink[];
   orthoLinks?: WfcLink[];
 }
 
-export type WfcGrid = WfcCell[];
+export type WfcGrid<O extends number = number> = WfcCell<O>[];
 
 /**
  * Narrows domains to a fixed point, from `startQueue`'s links or from every cell. Given
  * `trail`, it records each domain it replaces, so the caller can undo the narrowing.
  */
-function propagate(grid: WfcGrid, startQueue?: number | number[], trail?: { cells: number[]; domains: TileOption[][] }): boolean {
+function propagate<O extends number = number>(grid: WfcGrid<O>, startQueue?: number | number[], trail?: { cells: number[]; domains: TileOption<O>[][] }): boolean {
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
@@ -83,7 +90,7 @@ function propagate(grid: WfcGrid, startQueue?: number | number[], trail?: { cell
 
 
 /** Whether `b` may stand across `relation` from `a`. It reads only the two options. */
-export type WfcCompatibility = (a: TileOption, relation: string, b: TileOption) => boolean;
+export type WfcCompatibility<O extends number = number> = (a: TileOption<O>, relation: string, b: TileOption<O>) => boolean;
 
 /**
  * A rule checked during the solve, after each propagation. `placed` lists the cells
@@ -91,14 +98,21 @@ export type WfcCompatibility = (a: TileOption, relation: string, b: TileOption) 
  * cell. It returns true, or refuses the branch by naming the collapsed cells whose
  * options alone make it fail, whatever the rest of the grid holds.
  */
-export type WfcAccept = (grid: WfcGrid, placed: number[]) => true | number[];
+export type WfcAccept<O extends number = number> = (grid: WfcGrid<O>, placed: number[]) => true | number[];
 
-export interface WfcOptions {
+export interface WfcConnects<O extends number = number> {
+  /** Whether two options connect across `relation` (shared class or portal). */
+  test: (a: TileOption<O>, relation: string, b: TileOption<O>) => boolean;
+  /** Which link relations are orthogonal for `connects` pruning. */
+  isOrthogonal: (relation: string) => boolean;
+}
+
+export interface WfcOptions<O extends number = number> {
   /** Detached diagnostic deltas; absent by default. Does not draw randomness. */
-  trace?: (event: WfcTraceEvent) => void;
+  trace?: (event: WfcTraceEvent<O>) => void;
   /** Counts calls across the whole search; the solve gives up past `maxIterations`. */
   state?: { iterations: number; maxIterations: number };
-  accept?: WfcAccept;
+  accept?: WfcAccept<O>;
   /**
    * How many times `accept` may refuse since the search last reached a depth it hadn't, before
    * the solve gives up (`null`), so that a caller can restart it on a fresh stream. A solve that
@@ -108,8 +122,8 @@ export interface WfcOptions {
   stallLimit?: number;
   /** When given, the most refusals the search made between two new depths is recorded here. */
   stall?: { most: number };
-  /** Whether two options connect across relation (shared class or portal). Prunes single-tile dead ends (#894). */
-  connects?: (a: TileOption, relation: string, b: TileOption) => boolean;
+  /** Prunes single-tile dead ends (#894) across orthogonal relations. */
+  connects?: WfcConnects<O>;
 }
 
 /**
@@ -119,7 +133,7 @@ export interface WfcOptions {
  */
 export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * cells);
 
-export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
+export function solveWfc<O extends number = number>(grid: WfcGrid<O>, compatible: WfcCompatibility<O>, random: () => number, options: WfcOptions<O> = {}): WfcGrid<O> | null {
   return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept,
     { limit: options.stallLimit ?? Infinity, record: options.stall }, options.trace, options.connects);
 }
@@ -139,10 +153,10 @@ export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: ()
 type Conflict = { depths: Set<number> } | null;
 
 /** A search node that chose a cell and is trying its options in turn. */
-interface Frame {
+interface Frame<O extends number = number> {
   depth: number;
   cell: number;
-  options: TileOption[];
+  options: TileOption<O>[];
   next: number;
   /** The trail length before the first option was set, to undo each option's narrowing. */
   mark: number;
@@ -160,10 +174,11 @@ interface Frame {
  * share an id and one table. Every pre-assigned set piece slot is its own option object,
  * and a table per option grew with the square of those slots (#171).
  */
-function prepare(grid: WfcGrid, compatible: WfcCompatibility, connects?: (a: TileOption, relation: string, b: TileOption) => boolean): void {
-  const isOrtho = (rel: string) => rel === "N" || rel === "S" || rel === "E" || rel === "W" || rel.endsWith(":must-open");
-  for (let i = 0; i < grid.length; i++) grid[i]!.orthoLinks = grid[i]!.links.filter((l) => isOrtho(l.relation));
-  const allOpts = new Set<TileOption>();
+function prepare<O extends number = number>(grid: WfcGrid<O>, compatible: WfcCompatibility<O>, connects?: WfcConnects<O>): void {
+  if (connects) {
+    for (let i = 0; i < grid.length; i++) grid[i]!.orthoLinks = grid[i]!.links.filter((l) => connects.isOrthogonal(l.relation));
+  }
+  const allOpts = new Set<TileOption<O>>();
   for (let i = 0; i < grid.length; i++) {
     const cell = grid[i]!;
     for (let j = 0; j < cell.domain.length; j++) allOpts.add(cell.domain[j]!);
@@ -171,7 +186,7 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility, connects?: (a: Til
   const domain = Array.from(allOpts);
   if (domain.every((opt) => opt.id !== undefined)) return;
 
-  const byKind = new Map<string, TileOption[]>();
+  const byKind = new Map<string, TileOption<O>[]>();
   for (const opt of domain) {
     const kind = `${opt.templateId}@${opt.orientation}`;
     const kin = byKind.get(kind);
@@ -191,7 +206,7 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility, connects?: (a: Til
   });
   for (const mine of kinds) for (const [id, theirs] of kinds.entries()) for (const relation of relations) {
     if (compatible(mine[0]!, relation, theirs[0]!)) mine[0]!.valid!.get(relation)!.add(id);
-    if (connects && connects(mine[0]!, relation, theirs[0]!)) mine[0]!.connects!.get(relation)!.add(id);
+    if (connects && connects.test(mine[0]!, relation, theirs[0]!)) mine[0]!.connects!.get(relation)!.add(id);
   }
 }
 
@@ -204,16 +219,16 @@ const DIFFICULTY_OFFSET = 12;
  * times grid size, and an explicit stack of frames replaces recursion, so depth isn't
  * bounded by the call stack.
  */
-function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept,
-  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }, trace?: (event: WfcTraceEvent) => void,
-  connects?: (a: TileOption, relation: string, b: TileOption) => boolean): WfcGrid | null {
+function search<O extends number = number>(grid: WfcGrid<O>, compatible: WfcCompatibility<O>, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept<O>,
+  stall: { limit: number; record?: { most: number } | undefined } = { limit: Infinity }, trace?: (event: WfcTraceEvent<O>) => void,
+  connects?: WfcConnects<O>): WfcGrid<O> | null {
   // Refusals since the search last reached a new depth (`stallLimit`).
   let deepest = -1, refusals = 0;
-  const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
-  const shown = trace ? new Map<number, TileOption>() : undefined;
+  const trail: { cells: number[]; domains: TileOption<O>[][] } = { cells: [], domains: [] };
+  const shown = trace ? new Map<number, TileOption<O>>() : undefined;
   const showCollapsed = (depth: number) => {
     if (!trace) return;
-    const slots: TraceSlot[] = [];
+    const slots: TraceSlot<O>[] = [];
     for (let slot = 0; slot < grid.length; slot++) {
       const domain = grid[slot]!.domain;
       if (domain.length !== 1 || shown!.get(slot) === domain[0]) continue;
@@ -243,7 +258,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
 
   // One node: propagate, check `accept`, pick a cell. It returns a frame to try that
   // cell's options, true when every cell is collapsed, or the node's failure.
-  const enter = (depth: number, startQueue?: number): Frame | true | Conflict => {
+  const enter = (depth: number, startQueue?: number): Frame<O> | true | Conflict => {
     if (state.iterations++ > state.maxIterations) {
       trace?.({ type: "give-up", reason: "iterations", depth, iterations: state.iterations, stall: refusals });
       return null;
@@ -356,7 +371,7 @@ function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => numbe
     return { depth, cell: bestCellIndex, options, next: 0, mark: trail.cells.length, placed, depths: new Set<number>(), unknown: false };
   };
 
-  const stack: Frame[] = [];
+  const stack: Frame<O>[] = [];
   let outcome = enter(0);
   for (;;) {
     if (outcome === true) return grid;

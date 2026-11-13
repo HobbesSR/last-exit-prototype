@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { solveWfc } from "../src/wfc.ts";
-import type { TileOption, WfcGrid, WfcOptions } from "../src/wfc.ts";
+import type { TileOption, WfcGrid, WfcOptions, WfcTraceEvent } from "../src/wfc.ts";
 import { openFaceRule } from "../src/chain/open-face.ts";
 import { adjacencyLinks, placer } from "../src/chain/placement.ts";
 import type { ChainLibrary } from "../src/chain/library.ts";
-import type { PlacementTraceEvent, RefusalTraceEvent, WfcTraceEvent } from "../src/chain/placement-trace.ts";
+import type { PlacementTraceEvent, RefusalTraceEvent } from "../src/chain/placement-trace.ts";
 
 const library = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
 const option = (templateId: string): TileOption => ({ templateId, orientation: 0, difficulty: 0, weight: 1 });

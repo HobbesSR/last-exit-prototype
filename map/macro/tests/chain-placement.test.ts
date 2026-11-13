@@ -11,7 +11,7 @@ import { libraryFingerprint } from "../src/coding.ts";
 import { declaredGrid, layoutViolations, orientDesign } from "../src/chain/declared-grid.ts";
 import { CHAIN_LIBRARY_VERSION, validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
-import { adjacencyCompatibility, adjacencyConnects, adjacencyLinks, placement } from "../src/chain/placement.ts";
+import { adjacencyCompatibility, adjacencyConnects, adjacencyLinks, isOrthogonalRelation, placement } from "../src/chain/placement.ts";
 import { solveWfc } from "../src/wfc.ts";
 import type { WfcGrid } from "../src/wfc.ts";
 import type { ChainParams, DeclaredGrid, Layout, PlacedSlot } from "../src/chain/types.ts";
@@ -349,7 +349,7 @@ test("pre-screens isolated single-tile dead ends from option domains (#894)", ()
     { x: 0, y: 1, domain: [option("neighbor-open")], links: [] },
   ];
   adjacencyLinks(grid);
-  const solved = solveWfc(grid, adjacencyCompatibility(lib), () => 0.5, { connects: adjacencyConnects(lib) });
+  const solved = solveWfc(grid, adjacencyCompatibility(lib), () => 0.5, { connects: { test: adjacencyConnects(lib), isOrthogonal: isOrthogonalRelation } });
   assert.deepEqual(solved?.[0]?.domain?.map((o) => o.templateId), ["connected"]);
 
   const deadGrid: WfcGrid = [
@@ -358,7 +358,7 @@ test("pre-screens isolated single-tile dead ends from option domains (#894)", ()
     { x: 0, y: 1, domain: [option("neighbor-open")], links: [] },
   ];
   adjacencyLinks(deadGrid);
-  const deadSolved = solveWfc(deadGrid, adjacencyCompatibility(lib), () => 0.5, { connects: adjacencyConnects(lib) });
+  const deadSolved = solveWfc(deadGrid, adjacencyCompatibility(lib), () => 0.5, { connects: { test: adjacencyConnects(lib), isOrthogonal: isOrthogonalRelation } });
   assert.equal(deadSolved, null);
 });
 
@@ -427,7 +427,7 @@ test("adjacencyConnects rejects 1-segment authored openings and split class pair
     { x: 1, y: 0, domain: [opt("neighbor-open")], links: [] },
   ];
   adjacencyLinks(grid);
-  assert.equal(solveWfc(grid, adjacencyCompatibility(lib), () => 0.5, { connects }), null);
+  assert.equal(solveWfc(grid, adjacencyCompatibility(lib), () => 0.5, { connects: { test: connects, isOrthogonal: isOrthogonalRelation } }), null);
 });
 
 test("game mode checks the library's authored size instead of a fixed zone limit", () => {
