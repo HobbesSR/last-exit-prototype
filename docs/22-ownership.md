@@ -30,15 +30,16 @@ named owner decides. Smaller owners that the parts don't list:
   ([20.5](20.5-tools-and-next-boundaries.md)). They are DOM-only, so they sit
   outside the portable core.
 
-22.6 records #353, closed 2026-10-25: bots plan over the free-space tiles from
-`content-3` (#424, #470), and only its portal graph (#420) is built but unused. 22.7, designed for #385, was implemented in #386. Their numbers sit in this
+22.6 records #353, closed 2026-10-25: bots plan over the free-space tiles (adopted in
+`content-3` and carried forward with sliced replanning and local repair in `content-6`/`content-7`; #920 retired `content-1`–`5`), and default `content-7` uses the portal graph (#420) for gladiator legs (#682). 22.7, designed for #385, was implemented in #386. Their numbers sit in this
 range because they concern ownership, and numbers never change (33).
 
 ## Reading guide
 
-Future physics ownership and cross-system changes are proposed in
-[29.1](29.1-physics-design.md) and [29.2](29.2-physics-state-networking.md).
-They do not replace the current owners recorded here until implementation.
+Physics design/gameplay contracts and tick/prediction/replay contracts live in
+[29.1](29.1-physics-design.md) and [29.2](29.2-physics-state-networking.md);
+physics is required on every match (#920, #975, #976) alongside the module owners
+recorded in [22.1](22.1-shared-simulation.md).
 
 | ID | Topic | Read |
 | --- | --- | --- |
@@ -47,7 +48,7 @@ They do not replace the current owners recorded here until implementation.
 | 22.3 | Server | [22.3](22.3-server.md) |
 | 22.4 | Client | [22.4](22.4-client.md) |
 | 22.5 | Lobbies, matchmaking and rooms: the design for #237, what each part owns and the stages | [22.5](22.5-lobbies-and-matchmaking.md) |
-| 22.6 | Hierarchical navigation (#353): a free-space mesh and the knowledge tiles bots plan over (adopted under `content-3`), and a portal graph built but unused; private map knowledge and optimistic bot planning; load the relevant 22.6.x part | [22.6](22.6-hierarchical-navigation.md) |
+| 22.6 | Hierarchical navigation (#353): a free-space mesh and the knowledge tiles bots plan over (standard since #920), plus gladiator portal-graph legs (`content-7`, #682); private map knowledge and optimistic bot planning; load the relevant 22.6.x part | [22.6](22.6-hierarchical-navigation.md) |
 | 22.7 | Content/presentation metadata, client configuration, compatibility defaults and shared-rule ownership (#385; implemented in #386) | [22.7](22.7-content-and-presentation.md) |
 | 22.8 | Development tools: one core with lab, CLI and MCP faces, state documents and links, the in-page handle, pictures; appearance tools (#772, design) | [22.8](22.8-development-tools.md) |
 

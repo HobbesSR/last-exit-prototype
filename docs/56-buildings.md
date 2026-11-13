@@ -45,7 +45,7 @@ Three strategies already build rooms, and now share L1's wall-run emitter:
   gate passages, through its own `roomTemplate` and `gateTemplate`.
 - `depot` (`depot.ts`) draws warehouses with a door at each end.
 
-The game's original room shell in `builders.ts` remains a fourth implementation.
+The game's original room shell in `builders.ts` was a fourth implementation before retiring in #483.
 
 Each formerly turned "this side of this box has walls with an opening in them"
 into element parts its own way. The library is that machinery done once, so that
