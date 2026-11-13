@@ -519,7 +519,7 @@ export function skeletonPartRule(library: ChainLibrary, forcedSeams: SkeletonSea
 }
 
 /** Runs each rule in turn; the first refusal stands. */
-export function bothRules(first: WfcAccept, second: WfcAccept | undefined): WfcAccept {
+export function bothRules<O extends number = number>(first: WfcAccept<O>, second: WfcAccept<O> | undefined): WfcAccept<O> {
   return second ? (grid, placed) => { const refused = first(grid, placed); return refused === true ? second(grid, placed) : refused; } : first;
 }
 
