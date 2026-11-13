@@ -64,6 +64,13 @@ export function portalStands(region: PortalRegion): PortalStands[] {
   });
 }
 
+/** Whole-cell 2x2 entrance blocks straddling a portal seam, in along-run order (20.6).
+ * Callers use portalStands first to validate the portal's perimeter placement. */
+export function portalEntranceBlocks({ axis, x, y, length }: Portal): Cell[] {
+  return Array.from({ length: Math.max(0, length - 1) }, (_, i) =>
+    axis === 'h' ? { x: x + i, y: y - 1 } : { x: x - 1, y: y + i });
+}
+
 /**
  * Elective (51 principle 9): check a region's promise from its final collision geometry.
  * Every part of every portal must be reachable by a hunter from every other portal, from

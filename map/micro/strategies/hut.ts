@@ -3,7 +3,8 @@ import { circle, rect } from '../../../shared/shape.ts';
 import { rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
-import { portalStands } from '../portals.ts';
+import { portalEntranceBlocks, portalStands } from '../portals.ts';
+import { hunterBlockFits, floodHunterYard } from '../yard.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { HOUSE } from '../placeables/house.ts';
 import type { HouseDetails } from '../placeables/house.ts';
@@ -327,37 +328,24 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
   const key = (x: number, y: number) => `${x},${y}`;
   const occupied = (x: number, y: number) => sites.some(site => x >= site.x && y >= site.y
     && x < site.x + site.house.demand.body.w && y < site.y + site.house.demand.body.h);
-  const fits = (x: number, y: number, inBox: (x: number, y: number) => boolean) => {
-    for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!accessMask.has(i, j) || occupied(i, j) || inBox(i, j)) return false;
-    return true;
-  };
-  // Label the blocks a hunter can stand on, joined where it can step one cell across.
+  const fits = (inBox: (x: number, y: number) => boolean) => hunterBlockFits(
+    (x, y) => accessMask.has(x, y) && !occupied(x, y) && !inBox(x, y));
+  // Access-cell order and prior reached-block counts define the component ids.
   const label = (inBox: (x: number, y: number) => boolean) => {
-    const labels = new Map<string, number>();
+    const labels = new Map<string, number>(), allowed = fits(inBox);
     for (const start of accessMask.cells) {
-      if (labels.has(key(start.x, start.y)) || !fits(start.x, start.y, inBox)) continue;
-      const id = labels.size, queue = [start];
-      labels.set(key(start.x, start.y), id);
-      for (let head = 0; head < queue.length; head++) {
-        const { x, y } = queue[head]!;
-        for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as const) {
-          if (labels.has(key(nx, ny)) || !fits(nx, ny, inBox)) continue;
-          labels.set(key(nx, ny), id); queue.push({ x: nx, y: ny });
-        }
-      }
+      if (labels.has(key(start.x, start.y)) || !allowed(start.x, start.y)) continue;
+      floodHunterYard(allowed, [start], labels);
     }
     return labels;
   };
 
-  // Each portal's entrance: a block a hunter stands on, straddling the seam in the clear margin (20.6).
+  // Hut needs only the first fitting entrance block of each portal.
   const entrances: string[] = [];
-  for (const { portal: { axis, x, y, length } } of portalStands(brief)) {
-    const blocks: string[] = [];
-    for (let i = 0; i + BODY <= length; i++) {
-      blocks.push(axis === 'h' ? key(x + i, y - 1) : key(x - 1, y + i));
-    }
-    const entrance = blocks.find(block => { const [bx, by] = block.split(',').map(Number) as [number, number]; return fits(bx, by, () => false); });
-    if (entrance) entrances.push(entrance);
+  const emptyFits = fits(() => false);
+  for (const { portal } of portalStands(brief)) {
+    const entrance = portalEntranceBlocks(portal).find(block => emptyFits(block.x, block.y));
+    if (entrance) entrances.push(key(entrance.x, entrance.y));
   }
 
   let empty: Map<string, number> | undefined;

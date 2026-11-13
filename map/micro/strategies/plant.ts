@@ -6,7 +6,7 @@ import { WAREHOUSE } from '../placeables/warehouse.ts';
 import { PLANT_MACHINE } from '../placeables/plant-machine.ts';
 import { PLANT_PIPE_RUN } from '../placeables/plant-pipe-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
-import { unfilledRegion, cellLoot, fraction, portalApproaches } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, portalApproaches, ROUTED_PORTAL_LIMIT } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import type { BuildingAppearance, ObstacleAppearance } from '../../../shared/types.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
@@ -30,8 +30,6 @@ const AISLE = CELL_SCALE.doorway;
 /** Cells from one slot to the next. A slot's pieces stay in its first `BAND` cells, so the rest is aisle. */
 const PERIOD = 8, BAND = PERIOD - AISLE;
 const DEFAULT_DENSITY = 0.6, DEFAULT_SHED = 0.5;
-/** The most portals a live cord joins; past this, boxes keep an aisle from the boundary instead. */
-const ROUTED = 32;
 
 /** The least and most cells a machine's side takes. */
 const MACHINE_MIN = 2, MACHINE_MAX = 4;
@@ -95,7 +93,7 @@ type Box = { x: number; y: number; w: number; h: number };
  * neighbouring machines through a door-wide gap, with owned aisles around each run. Each stub is
  * its run less both machines' shapes, broken into convex pieces, so it ends on the machine's
  * surface, chamfer included, rather than inside it (#490). Candidate footprints stay clear of
- * portal approaches. Up to `ROUTED` portals, nothing else is reserved between them: pieces commit
+ * portal approaches. Up to `ROUTED_PORTAL_LIMIT` portals, nothing else is reserved between them: pieces commit
  * through a prospective-parcels coordinator (20.10), which refuses one that would leave no hunter
  * cord to every portal stand, and a refused piece is passed over (#759). Machines, pipes and crates
  * are each sited on a draft and the cord proved once for as many as stand together (#787). Past that, boxes keep an
@@ -115,9 +113,9 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   // Eligibility is the original area's; the boxes themselves must fit the reduced fill (20.6).
   if (!largestRectangle(createRegionMask(brief), MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  // Up to `ROUTED` portals, a live cord joins them (20.10); past that, keeping it is too dear,
+  // Up to `ROUTED_PORTAL_LIMIT` portals, a live cord joins them (20.10); past that, keeping it is too dear,
   // and boxes keep an aisle from the boundary instead.
-  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= ROUTED;
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= ROUTED_PORTAL_LIMIT;
   const parcels = routed ? createProspectiveParcels(brief, { fixedAccess: portalApproaches(brief, 'Plant'),
     budget: SCATTER_CORD_BUDGET }) : null;
   if (parcels && !parcels.ok) throw new Error(`Plant region ${brief.id} cannot join its portals in its empty shape (${parcels.reason}).`);

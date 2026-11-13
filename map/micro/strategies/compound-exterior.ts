@@ -1,3 +1,4 @@
+import { hunterBlockFits, floodHunterYard } from '../yard.ts';
 import { rect } from '../../../shared/shape.ts';
 import { createAccessMask, createFillMask } from '../geometry.ts';
 import { createBuilderCanvas } from '../canvas.ts';
@@ -21,22 +22,11 @@ export function buildCompoundExterior(brief: RegionBrief, ring: Box, gates: Cell
 } {
   const empty = { elements: [], boxes: [], steps: [] };
   const size = brief.cellSize, fill = createFillMask(brief), access = createAccessMask(brief);
-  const fits = (x: number, y: number, box?: Box) => [0, 1].every(dy => [0, 1].every(dx =>
-    access.has(x + dx, y + dy) && !inside(ring, x + dx, y + dy) && (!box || !inside(box, x + dx, y + dy))));
+  const fits = (box?: Box) => hunterBlockFits((x, y) =>
+    access.has(x, y) && !inside(ring, x, y) && (!box || !inside(box, x, y)));
   const start = gates[0];
-  if (!start || !fits(start.x, start.y)) return empty;
-  const flood = (box?: Box) => {
-    const reached = new Set([key(start.x, start.y)]), queue = [start];
-    for (let head = 0; head < queue.length; head++) {
-      const { x, y } = queue[head]!;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-        const nx = x + dx, ny = y + dy, k = key(nx, ny);
-        if (reached.has(k) || !fits(nx, ny, box)) continue;
-        reached.add(k); queue.push({ x: nx, y: ny });
-      }
-    }
-    return { reached, cells: queue };
-  };
+  if (!start || !fits()(start.x, start.y)) return empty;
+  const flood = (box?: Box) => floodHunterYard(fits(box), [start]);
   // Only build if all actual gates belong to the same exterior yard component.
   // Preserve its side pockets as well as portal-to-portal connectivity below.
   let before: ReturnType<typeof flood> | undefined;
@@ -59,10 +49,11 @@ export function buildCompoundExterior(brief: RegionBrief, ring: Box, gates: Cell
       // Removing free space cannot connect an initially isolated lobe. Every
       // admitted collar must contain this corner, so avoid a futile flood there.
       if (!before.reached.has(key(x - 2, y - 2))) continue;
-      if (!fits(start.x, start.y, box)) continue;
-      const after = flood(box);
+      const allowed = fits(box);
+      if (!allowed(start.x, start.y)) continue;
+      const after = floodHunterYard(allowed, [start]);
       if (!gates.every(p => after.reached.has(key(p.x, p.y)))) continue;
-      if (!before.cells.every(p => !fits(p.x, p.y, box) || after.reached.has(key(p.x, p.y)))) continue;
+      if (!before.cells.every(p => !allowed(p.x, p.y) || after.reached.has(key(p.x, p.y)))) continue;
       // Cover cannot take these two-cell bands or introduce new margins through them.
       const collar: Cell[] = [];
       const along = (from: number, to: number) => [...new Set([
