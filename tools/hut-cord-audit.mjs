@@ -21,7 +21,7 @@ import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 import { generate } from '../map/chain.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { checkMap } from '../map/tools/core.ts';
-import { GAME_ENGINES } from '../map/tools/engines.ts';
+import { GAME_ENGINES } from '../map/engines.ts';
 import { planBlock } from '../map/micro/strategies/block.ts';
 import { compareHutOrder } from './hut-cord-order.mjs';
 

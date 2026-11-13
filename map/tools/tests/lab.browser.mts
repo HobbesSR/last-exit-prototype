@@ -14,7 +14,7 @@ import { planBlock } from "../../micro/strategies/block.ts";
 import { buildRegion } from "../../micro/region-types.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
-import { DEFAULT_CELL_SIZE, GAME_ENGINES } from "../engines.ts";
+import { DEFAULT_CELL_SIZE, GAME_ENGINES } from "../../engines.ts";
 import { measureRoutes } from "../routes.ts";
 import { liveChainParams } from "../../live.ts";
 import { PLACEABLES } from "../../micro/placeables/index.ts";

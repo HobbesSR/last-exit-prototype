@@ -1,4 +1,4 @@
-import { DEFAULT_CELL_SIZE } from "../engines.ts";
+import { DEFAULT_CELL_SIZE } from "../../engines.ts";
 import { PLACEABLES, buildPlaceable } from "../../micro/placeables/index.ts";
 import { demandShapes, placeableErrors, placedElements } from "../../micro/placeables/placeable.ts";
 import type { ParamSpec, Placeable, Placed, Refusal } from "../../micro/placeables/placeable.ts";

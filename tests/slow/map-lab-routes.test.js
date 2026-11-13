@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generate } from '../../map/tools/core.ts';
-import { GAME_ENGINES } from '../../map/tools/engines.ts';
+import { GAME_ENGINES } from '../../map/engines.ts';
 import { mapViews } from '../../map/macro/src/chain/map.ts';
 import { builtMapCollision } from '../../map/micro/adapter.ts';
 import { measureRoutes } from '../../map/tools/routes.ts';

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chainMapToBson, chainMapToJson } from '../../map/macro/src/chain/saving.ts';
 import { CHAIN_LIBRARY, checkMap, generate, readMap, validateLibrary } from '../../map/tools/core.ts';
-import { GAME_ENGINES } from '../../map/tools/engines.ts';
+import { GAME_ENGINES } from '../../map/engines.ts';
 import { REGION_TYPES_VERSION } from '../../map/micro/region-types.ts';
 import { GAME, checkLibraryMap } from '../helpers/map-library-game.js';
 

@@ -20,13 +20,7 @@ For each width 12, 24 and 36:
   straight/path lengths, stratum distributions, qualifying pocket cuts,
   per-region metrics and type/portal-count groups.
 
-Run `node map/tools/navigation-baseline.mts --verify` from the repository root
-at this measurement's source. It checks source hashes, regenerates the declared
-maps to compare exact content hashes, reads the retained full snapshots,
-measures them again and compares every metric, checking measurement did not
-mutate the map. It never overwrites evidence. Without `--verify`, the script
-captures this fixed workload and refuses to replace an existing manifest.
-It is a geometric reproducibility check, not a timing benchmark.
+`map/tools/navigation-baseline.mts` verified these files at the manifest's `contentRevision` (it checked source hashes, regenerated the declared maps to compare exact content hashes, read the retained full snapshots, measured them again and compared every metric, checking measurement did not mutate the map). It was retired in #1020 because it verified against that pinned revision; it can be recovered from git history at that commit.
 
 To measure a retained snapshot through the maintained CLI, decompress it first:
 

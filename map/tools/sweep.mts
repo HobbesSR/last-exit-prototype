@@ -23,7 +23,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import { mapViews } from '../macro/src/chain/map.ts';
 import { generate, generateMacro } from './core.ts';
 import type { ToolMap } from './core.ts';
-import { GAME_ENGINES } from './engines.ts';
+import { GAME_ENGINES } from '../engines.ts';
 import type { Defect } from '../macro/src/chain/types.ts';
 
 /** The objects first, then the views in stage order. */
