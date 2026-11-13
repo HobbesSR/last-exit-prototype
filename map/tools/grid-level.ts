@@ -6,10 +6,10 @@ import { REGION_MARGIN, type PortalGraph, type Reach } from '../../shared/naviga
 import { hypot } from '../../shared/math.ts';
 
 /**
- * The interim bottom level (22.6): today's walkability grid, searched within one region instead
- * of a fixed box around the endpoints. One flood from a point measures its distance to every
- * target at once, which is what the portal graph needs from a region. The free-space
- * triangulation replaces it.
+ * The walkability grid as a bottom level (22.6), searched within one region instead of a fixed
+ * box around the endpoints. One flood from a point measures its distance to every target at
+ * once, which is what the portal graph needs from a region. The game navigates the free-space
+ * triangulation instead; tests and navigation reports compare against this.
  */
 
 const DIAGONAL = Math.SQRT2 * TILE;
