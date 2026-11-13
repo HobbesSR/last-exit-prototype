@@ -175,7 +175,8 @@ not a rule a player's inputs are judged by, and the content id names the change.
 over tiles keeps its route as world points in `route`, where the grid planner keeps tile steps
 in `path`. The field is new recorded player state, so schema rose to 7 and `minSchema` stayed:
 playback reads recorded frames and never the route, so any reader plays these recordings.
-`content-2` stayed selectable with its grid planner until #920 retired both.
+`content-2` stayed selectable with its bot grid planner until #920 retired both;
+the diagnostic Lab grid baseline remains ([53.1](53.1-map-lab-and-tools.md)).
 
 `content-4` (#470, Corey 2026-10-23) spreads each bot's repath over several ticks. It changes
 when a bot's route changes, not what is recorded: still world points in `route`, so the schema
