@@ -22,7 +22,7 @@ from the primary checkout.
 | Agent | Forgejo account (commit email) | Worktree | Branch prefix | Dev port |
 | --- | --- | --- | --- | --- |
 | Human | `corey` | `astra_test/` (primary) | — | 3100 (default) |
-| Claude Code | `agent-claudecode` (`claudecode@local.host`) | `../astra_test.agents/claude` | `claude/` | 3110 |
+| Claude Code | `agent-claudecode` (`claudecode@local.host`) | `../astra_test.agents/claude` | `claudecode/` | 3110 |
 | Codex | `agent-codex` (`codex@local.host`) | `../astra_test.agents/codex` | `codex/` | 3120 |
 | Antigravity | `agent-antigravity` (`antigravity@local.host`) | `../astra_test.agents/antigravity` | `antigravity/` | 3130 |
 | Hermes | `agent-hermes` (`hermes@local.host`) | `../astra_test.agents/hermes` | `hermes/` | 3140 |
@@ -54,9 +54,8 @@ committed files, so an instruction change reaches an agent once it is merged and
 the agent starts its next branch from fresh `forgejo/main`.
 
 The repository AGENTS.md carries the delegation strategy into sessions in this
-checkout and, once shared, other clones. The user's global
-`C:/Users/Corey/.codex/AGENTS.md` also records the general preference for other
-projects on this machine. Environments that do not load these instructions need
+checkout and, once shared, other clones. The user's global Codex `AGENTS.md` also
+records the general preference for other projects on this machine. Environments that do not load these instructions need
 them supplied explicitly; these files cannot grant missing tool capabilities.
 
 ## The task loop
@@ -101,8 +100,8 @@ The Forgejo MCP server (`forgejo-mcp`, its own git repo outside this one; its sh
 functions and tests are in `shape.js` and `shape.test.js`, run with `node --test`) returns
 compact text, not raw API JSON. Writes return a compact identifier and URL
 (`{number, html_url}`, or `{id, ...}` for reviews; idempotent ones add a `_note`);
-lists are one line per item (`limit`/`page`);
-Lists and comments follow every API page before paging locally.
+lists are one line per item (`limit`/`page`), and lists and comments follow every API
+page before paging locally.
 `get_issue_details` takes `part` (`summary`, `body`, `comments`, `all`) with
 comment `offset`/`limit`/`since` (use `since` for what is new after a handoff);
 `get_pull_request_reviews` gives one line per review, and `review_id` fetches one

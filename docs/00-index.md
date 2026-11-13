@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.8-physics`; default content: `content-7`
-Updated: 2026-11-10
+Updated: 2026-11-13
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -68,8 +68,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [22.6.3-bot-adoption.md](22.6.3-bot-adoption.md) | Bot adoption under `content-3` (#424), sliced replanning (`content-4`) and local repair (`content-5`, #470) |
 | [22.6.4-dynamic-overlay.md](22.6.4-dynamic-overlay.md) | P8's experimental local overlay of observed dynamic bodies (#448) |
 | [22.6.5-implementation-sequence.md](22.6.5-implementation-sequence.md) | The #353 stages and #470 parts: built, deferred, closed |
-| [22.8-development-tools.md](22.8-development-tools.md) | Development tools' contract (one core; lab, CLI and MCP faces; state documents, links, in-page handle, pictures), the inventory of tools by domain, and the appearance tools design (#772) |
 | [22.7-content-and-presentation.md](22.7-content-and-presentation.md) | Content/presentation and shared-rule ownership (#385, implemented in #386): display descriptors, live/replay metadata, client configuration and compatibility defaults |
+| [22.8-development-tools.md](22.8-development-tools.md) | Development tools' contract (one core; lab, CLI and MCP faces; state documents, links, in-page handle, pictures), the inventory of tools by domain, and the appearance tools design (#772) |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
@@ -97,7 +97,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [41-roadmap.md](41-roadmap.md) | Completed boundaries, the next implementation boundaries, and sequencing |
+| [41-roadmap.md](41-roadmap.md) | The order of efforts, the reasons for it, and the tracker issue for each |
 | [41.1-physics-plan.md](41.1-physics-plan.md) | Physics/equipment issue sequence, comparison workloads, provisional tuning and rollout gates |
 | [41.2-art-direction-plan.md](41.2-art-direction-plan.md) | Technical art sequence: rendered readability witnesses, one composed street slice, appearance/lighting adoption and signature-default promotion gates (#581–#587, #593) |
 | [41.3-tools-plan.md](41.3-tools-plan.md) | Tools-wide and appearance tool issue sequence (#772–#784) |
@@ -112,8 +112,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.8-bot-adoption.md](42.8-bot-adoption.md) | Bots planning over free-space tiles under `content-3` (#424): whole-match stalls, escapes and tick cost against `content-2`, route quality, tiles built ahead in the map worker |
 | [42.9-physics-remediation.md](42.9-physics-remediation.md) | Rapier remediation (#451): revised gates, native springs, bounded speed and capacity proposal; P1 review prerequisites |
 | [42.10-sliced-replanning.md](42.10-sliced-replanning.md) | Repaths spread over ticks under `content-4` (#470 part 1): budget exhaustion gone, tick cost against `content-3`, why bots share one allowance a tick |
-| [42.12-physics-p2.md](42.12-physics-p2.md) | Experimental P2 (#439): narrower actor profiles, motor surfaces, contact and lifecycle witnesses |
 | [42.11-physics-p1.md](42.11-physics-p1.md) | Experimental P1 (#438): room-owned worlds, paired phase traces, gameplay state and integration validation |
+| [42.12-physics-p2.md](42.12-physics-p2.md) | Experimental P2 (#439): narrower actor profiles, motor surfaces, contact and lifecycle witnesses |
 | [42.13-local-repair.md](42.13-local-repair.md) | Local route repair under `content-5` (#470 part 2): reaction to nearby changes, repairs and their cost against `content-4`; whether #425 is needed for latency |
 | [42.14-physics-p3.md](42.14-physics-p3.md) | Physics privacy, engine-free body/tether playback and body-heavy serialization evidence (#440) |
 | [42.15-physics-p4.md](42.15-physics-p4.md) | Bounded local prediction, scheduled network witnesses and correction/cost evidence (#441) |
@@ -136,16 +136,16 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.32-cord-generation-cost.md](42.32-cord-generation-cost.md) | Live-cord generation cost split by work and builder, two exact savings (strictly simple screen, edge index) with zero drift, and what remains exact or inexact (#767) |
 | [42.33-live-cord-rollout.md](42.33-live-cord-rollout.md) | Cover, ruins, depot, hall and market on a live cord, batched commits for every cord builder, and two exact search savings (indexed sweeps, one corridor search): content, detour, dead ends, sweep replay and cost (#787) |
 | [42.34-edge-clearance.md](42.34-edge-clearance.md) | What keeps unguaranteed region edges clear: blocked share by side class, attribution per builder (20.6 end caps, fill left empty), seams, park bays and inward strips (#836) |
-| [42.44-sparse-lighting-adoption.md](42.44-sparse-lighting-adoption.md) | The sparse-sides and regional-lighting adoption batch: materialized libraries and their equivalence, moved pins, sweep and fixture recaptures, macro panel, generation cost, corridor re-check, slow tier (#895, #851, #878) |
-| [42.43-regional-lighting.md](42.43-regional-lighting.md) | Regional theatrical lighting: districts, field bounds, composition limits, the default-on adoption and room-arena refresh (#771, #878) |
+| [42.35-seam-pitch-probe.md](42.35-seam-pitch-probe.md) | Macro-only fixed-layout probe: longer unguaranteed and fillable seams, guarantee-thinning connectivity failures and hinted cap clipping's hunter turning failure (#761) |
+| [42.36-matched-library-experiment.md](42.36-matched-library-experiment.md) | Matched passability and the experimental library, step by step: portals, one-portal regions, closed runs, fill shares, set pieces and builder walls (#849) |
+| [42.37-matched-adoption.md](42.37-matched-adoption.md) | The matched libraries adopted: before/after structure, physical blocking, detour, dead ends, fill shares and generation cost, the rubble-court fix, and placement's heavy tail (#849) |
+| [42.38-matched-generation-cost.md](42.38-matched-generation-cost.md) | Generation cost after the matched adoption: per-builder attribution (park fronts, rubble batches, edge walls), four exact savings, content-changing options, alternated-pair timing (#868) |
+| [42.39-reachability-lookahead.md](42.39-reachability-lookahead.md) | Placement's reachability lookahead: the stalls it ends, the bounds chosen, refusals, stalls and alternated timing against `main` on 12 × 6 to 36 × 18 seeds (#857) |
 | [42.40-sparse-sides-experiment.md](42.40-sparse-sides-experiment.md) | Sparser tile sides as a Map Lab experiment: fill and set-piece schemes, portals per set-piece region, one-portal regions, placement cost, the side-by-side set-piece fit; `sparse / alternate` adopted in 42.44 (#851, #856) |
 | [42.41-set-piece-order.md](42.41-set-piece-order.md) | Retired landing/evac-first experiment: matched three-size measurements and retirement decision (#891, #928) |
 | [42.42-connectivity-skeleton-experiment.md](42.42-connectivity-skeleton-experiment.md) | Pre-fill connectivity skeleton as a Map Lab experiment: spanning trees, multi-part filtering, sealed pocket prevention and built detour under sparse sides (#883) |
-| [42.39-reachability-lookahead.md](42.39-reachability-lookahead.md) | Placement's reachability lookahead: the stalls it ends, the bounds chosen, refusals, stalls and alternated timing against `main` on 12 × 6 to 36 × 18 seeds (#857) |
-| [42.38-matched-generation-cost.md](42.38-matched-generation-cost.md) | Generation cost after the matched adoption: per-builder attribution (park fronts, rubble batches, edge walls), four exact savings, content-changing options, alternated-pair timing (#868) |
-| [42.37-matched-adoption.md](42.37-matched-adoption.md) | The matched libraries adopted: before/after structure, physical blocking, detour, dead ends, fill shares and generation cost, the rubble-court fix, and placement's heavy tail (#849) |
-| [42.36-matched-library-experiment.md](42.36-matched-library-experiment.md) | Matched passability and the experimental library, step by step: portals, one-portal regions, closed runs, fill shares, set pieces and builder walls (#849) |
-| [42.35-seam-pitch-probe.md](42.35-seam-pitch-probe.md) | Macro-only fixed-layout probe: longer unguaranteed and fillable seams, guarantee-thinning connectivity failures and hinted cap clipping's hunter turning failure (#761) |
+| [42.43-regional-lighting.md](42.43-regional-lighting.md) | Regional theatrical lighting: districts, field bounds, composition limits, the default-on adoption and room-arena refresh (#771, #878) |
+| [42.44-sparse-lighting-adoption.md](42.44-sparse-lighting-adoption.md) | The sparse-sides and regional-lighting adoption batch: materialized libraries and their equivalence, moved pins, sweep and fixture recaptures, macro panel, generation cost, corridor re-check, slow tier (#895, #851, #878) |
 
 ### 5x — Map generation
 

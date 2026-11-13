@@ -55,11 +55,10 @@ still need separate gameplay and version review.
 
 ### Foundation Pass (#914)
 
-The next effort is a Foundation Pass ([33.1](33.1-foundation-pass.md)), taken before
-more is built on the sections below. Its ledger is #914, which holds how this pass is
-run, its sweep issues and its declined findings. The pass and its freeze begin when
-Corey declares them on the ledger; until then the sections below stand. #910 waits for
-the pass to close.
+The current effort is a Foundation Pass ([33.1](33.1-foundation-pass.md)), which Corey
+started on 2026-11-09, taken before more is built on the sections below. Its ledger is
+#914, which holds how this pass is run, its sweep issues, their state and its declined
+findings. #910 follows the pass.
 
 ### Hierarchical navigation design (#353)
 
@@ -68,8 +67,8 @@ navigation hierarchy and optimistic planning through unknown space. Corey set th
 direction on 2026-10-21: region portals as the top level, a free-space navmesh
 beneath, discovery cells as each contestant's filter, all derived at load. Built
 in stages (#420, #422, #423, #424, then #470's sliced replanning and local repair);
-the middle level (#425) and #470's coarse far-away plans were not needed. Closed
-2026-10-25; playtesting findings get new issues. Design and stages are in
+the middle level (#425) and #470's coarse far-away plans were not needed. Playtesting
+findings get new issues. Design and stages are in
 [22.6](22.6-hierarchical-navigation.md).
 
 ### Generation pipeline
@@ -116,17 +115,15 @@ guarantee, through SDK tools builders can opt into. The stages are:
 **Outcome (2026-11-07).** Stages 2 and 3 converged into #849's matched libraries, adopted in
 #853 ([42.37](42.37-matched-adoption.md)). That closed about three quarters of the unguaranteed
 boundary, but long crossings stayed nearly as straight, because tile sides' half-and-half
-pattern still leaves a guaranteed portal about every 6 cells. #835, #849 and #761 are closed.
-Next, in order:
-1. #857: placement refuses sealed pockets as soon as they are certain.
+pattern still leaves a guaranteed portal about every 6 cells. The follow-ups, in order:
+1. #857: placement refuses sealed pockets as soon as they are certain ([42.39](42.39-reachability-lookahead.md)).
 2. #851: tile sides with fewer passable halves, so regions have fewer portals
-   ([17.2.11](17.2.11-navigation-structure-direction.md#fewer-portals-per-region)).
+   ([17.2.11](17.2.11-navigation-structure-direction.md#fewer-portals-per-region), [42.44](42.44-sparse-lighting-adoption.md)).
 
 Alongside them, #868 cuts generation cost, which the adoption raised 2.3 times at 36 wide. #855
 (a Lab view of the solve) and #856 (unfitting set-piece seams) are placement follow-ups.
 
-#706 and #743 are proposed to close as not needed for now. #535 stays parked. The #529 section below is
-history.
+The #529 section below is history.
 
 #### Region population epic #529
 
@@ -155,8 +152,7 @@ dropped unless a selected outcome hits it.
 
 **Prerequisites landed (2026-11-01).** PR #765 (`types-62`, 42.31) moved rubble and plant
 onto a live cord and adopted park's hedge fronts; PR #766 recorded the batching rule
-([31](31-verification.md#content-changes-one-bump-per-batch)). Closing summaries are on
-#529 and #531, awaiting Corey. 42.31's finding: freeing routes about doubles content but
+([31](31-verification.md#content-changes-one-bump-per-batch)). 42.31's finding: freeing routes about doubles content but
 barely moves detour or dead-end area, and 36-wide generation went from 31 s to 51 s.
 #767 profiled the cost and landed two exact savings (36 wide 50.4 s → 45.9 s, 42.32); fewer mesh
 builds would change content and waits for Corey. #787 (`types-63`, 42.33) moved cover, ruins,
@@ -248,7 +244,7 @@ to more families or frameworks.
 | Workstream | Functional checkpoint and next meaningful outcome |
 | --- | --- |
 | Inward grounds (#529, workstream 1) | #530 gave inward variants to all six named families (42.4). Whether any set piece still needs them is #762, to investigate before authoring anything. |
-| Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins; #717 fallback and #750's live cord followed. Compound exterior offset search (#630/#632) is dropped unless a selected outcome hits it. #759 moved rubble and plant onto a live cord (42.31); closing summary posted, awaiting Corey. |
+| Residual infill (#531) | Working installments cover huts, depots, checkpoints, plants, halls and ruins; #717 fallback and #750's live cord followed. Compound exterior offset search (#630/#632) is dropped unless a selected outcome hits it. #759 moved rubble and plant onto a live cord (42.31). |
 | Hut and compound structures (#532) | Multi-house huts, courtyard keeps/cover and one optional exterior HOUSE outbuilding have representative production admission and access evidence (20.3.4, 42.3), delivering the three original composition capabilities. Their effect on the newer detour/dead-end/empty-space goals remains unmeasured (#688; direction recorded in 17.2.11 via PR #690). Reassess retain/adapt/defer against those measures before more stand-in grammar or larger-hut margin authoring. Multiple rings and maximum residual use are not automatic successors. |
 | Depot and hall composition (#533) | Production depot warehouse composition now targets half-density fill with protected doorsteps and two-cell local bypasses; authored comparison and limits are in 42.3. Structural hall wings now add side-connected bays with 2.5-cell perimeter walks and optional roofs; a local L-shaped variant makes the capability available in ordinary library selection (20.3.3, 52, 42.3). Thin annexes and optimal partitioning remain deferred. |
 | Market (#534) | Dedicated production counter-stall rows and individual awnings replace the hall stand-in (`types-47`, 20.3.5). Two-cell aisles, seeded wider cross-lanes and bypass rings protect circulation across the whole mask. Elaborate mixed halls/canopies and thinner irregular-wing coverage are deferred beyond this first capability; evidence and limits are in 42.3. |
@@ -362,14 +358,13 @@ Order and acceptance are in [41.3](41.3-tools-plan.md).
 
 ### Gameplay backlog
 
-The physics and equipment program now has a scoped delivery plan in
-[41.1](41.1-physics-plan.md), including engine evaluation before selection,
-character contact, physical loot and hook abilities (epic #436). Tier and
-reload work (#443, #444) is tracked outside that epic. Its proposed contracts are [29.1](29.1-physics-design.md) and
-[29.2](29.2-physics-state-networking.md); none is implemented by that design.
+The physics and equipment program's delivery plan is [41.1](41.1-physics-plan.md)
+(epic #436), with contracts in [29.1](29.1-physics-design.md) and
+[29.2](29.2-physics-state-networking.md). Tier and reload work (#443, #444) is
+tracked outside that epic.
 
 The sequencing below is the other gameplay backlog, not an instruction to
-leave the current micro-generation effort for reward tiers.
+leave the current effort for reward tiers.
 
 These supersede the older assumption that all prototype policies should remain
 defaults. They are accepted direction, not evidence that the corresponding behavior
@@ -383,10 +378,9 @@ checkpoint, formerly the first item, is complete: `content-2` (13, 14, 26).
    alter map geometry. Track vertical novelty separately from quality. Tier
    statistics, distribution weights and special-item definitions still need
    concrete recorded tuning assumptions; preserve spawn/charger reservations.
-2. **Physics evaluation (F-14).** Now planned in [41.1](41.1-physics-plan.md);
-   the engine comparison and its witnesses are P0 (#437). Current evidence has
-   not established the cause of the reported severe slowdown, and installing a
-   solver does not establish it either.
+2. **Physics (F-14).** Planned in [41.1](41.1-physics-plan.md). Physics does not
+   establish the cause of the reported severe slowdown
+   ([42](42-performance-history.md#the-reported-slowdown-is-still-open)).
 
 ## Boundaries these tasks need
 
@@ -438,9 +432,7 @@ claim complete process isolation. Public deployment limits are in
 ## Portal cords and peripheral handoffs (#643)
 
 Design reviewed in #648: [20.10](20.10-portal-cords.md).
-Source direction is in [17.2.10](17.2.10-portal-cord-direction.md). Optional
-validation, retained-content coordination and handoff coordination are implemented;
-growth helpers and builder adoption remain pending.
+Source direction is in [17.2.10](17.2.10-portal-cord-direction.md).
 This is also a shared prerequisite for #529's composition sequence above.
 
 | Order | Issue | Functional outcome |

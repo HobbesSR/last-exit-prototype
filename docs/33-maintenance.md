@@ -72,11 +72,12 @@ fixture rules in AGENTS even when complete provenance has one owner.
 | Class | Retained paths and source context |
 | --- | --- |
 | Maintained command/test surface | `tools/{micro-region,decompose-region,builder-fill}.mjs`; `map/tools/{cli,mcp,sweep,sweep-briefs}.mts` and dependencies; `tools/forgejo-usage.mjs` and `tools/doc-reads.mjs` are machine-local process tooling |
-| Active navigation research/test dependencies | `tools/navigation/{clearance,graph,hierarchy,optimistic,witnesses}.mjs`; retain while #353 remains open and while tests import them |
+| Maintained measurement tools | `map/tools/navigation-structure.ts`, `map/tools/library-comparison.mts`, `map/tools/edge-clearance.mts`; what they measure is in [51.10](51.10-measurement.md) |
+| Active navigation research/test dependencies | `tools/navigation/{clearance,graph,hierarchy,optimistic,witnesses}.mjs`; retain while tests import them |
 | Reproducible navigation reports | `tools/navigation/{report,continuation}.mjs`, `docs/reports/navigation-364.json`, `navigation-364-continuation.json`; source pins and limits in [42.1](42.1-navigation-experiment.md). `tools/navigation/portal-report.mjs` and `docs/reports/navigation-420.json`, in [42.5](42.5-portal-graph.md). `tools/navigation/mesh-report.mjs` and `docs/reports/navigation-422.json`, in [42.7](42.7-navigation-mesh.md) |
 | Fixture-reproduction witnesses | `tools/compound-siting-audit.mjs`, `compound-siting-solution-audit.mjs`; exact briefs and commands in the fixture README; full-map regeneration is a different workload |
 | Pinned migration witness | `map/tools/tests/library-v3-audit.mjs`, S3 source pin `3fe884f`, 224-case comparison; a HEAD assertion failure does not justify deletion |
-| Historical audit/timing harnesses | `tools/{boundary-portal-audit,depot-portal-audit,local-quarter-fill-audit,delegation-adoption-audit,compound-delegation-audit,compound-delegation-timing,hut-delegation-audit,hut-delegation-timing}.mjs`; source/input context in 42.3 |
+| Historical audit/timing harnesses | `tools/{boundary-portal-audit,depot-portal-audit,local-quarter-fill-audit,delegation-adoption-audit,compound-delegation-audit,compound-delegation-timing,hut-delegation-audit,hut-delegation-timing}.mjs`; source/input context in 42.3. `map/tools/placement-probe.mts` (#857; [42.39](42.39-reachability-lookahead.md)) and `map/tools/seam-pitch-probe.mts` (#761; [the report](reports/issue-761/README.md)) |
 
 Hut witnesses load `3b54da0`, with `e6d0449` also used by timing. Compound
 preparation timing defaults to `4a7a5ba`; the recorded after run uses `0a8e3aa`
