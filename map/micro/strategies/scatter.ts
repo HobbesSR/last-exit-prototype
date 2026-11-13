@@ -91,7 +91,8 @@ export function portalApproaches(brief: RegionBrief, type: string): Shape[] {
   return kept;
 }
 
-/** Cover and plant use a live cord through this portal count; above it, boxes keep a boundary aisle. */
+/** Portal-count limit for cover/plant routing and the optional withPerimeterWalls pass.
+ * Above it, cover/plant keep a boundary aisle and the wall pass leaves the region unchanged. */
 export const ROUTED_PORTAL_LIMIT = 32;
 
 /**

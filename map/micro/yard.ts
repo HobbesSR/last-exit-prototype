@@ -6,6 +6,7 @@ export function hunterBlockFits(clear: (x: number, y: number) => boolean): (x: n
 }
 
 /** Flood one-cell steps between fitting hunter blocks, east, west, south, north.
+ * Adjacent fitting blocks cover a clear 2x3 or 3x2 rectangle, so the step is walkable.
  * Seeds join one reached set. Passing existing labels adds a component whose id
  * is the prior reached-block count; callers choose component seed order. */
 export function floodHunterYard(fits: (x: number, y: number) => boolean, seeds: readonly Cell[], reached = new Map<string, number>()) {
