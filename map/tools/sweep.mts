@@ -136,7 +136,7 @@ const digest = (text: string) => createHash('sha256').update(text).digest('hex')
 export const contentHash = (value: unknown) => digest(stableStringify(value));
 
 /** Each object and view of a map, hashed by content. */
-export function viewContent(map: ToolMap): Record<View, unknown> {
+function viewContent(map: ToolMap): Record<View, unknown> {
   const loose = Object.keys(map).filter((key) => !(key in MAP_FIELDS));
   if (loose.length) throw new Error(`map fields the sweep doesn't pin: ${loose.join(', ')}`);
   const views = mapViews(map, GAME_ENGINES.compose);

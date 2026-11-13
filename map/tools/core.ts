@@ -17,7 +17,6 @@ export type ToolMap = GameChainMap;
 export { tracePlacement } from './placement-trace.ts';
 export type { PlacementRecording } from './placement-trace.ts';
 
-
 export const MAX_BATCH_COUNT = 1000;
 export const MAX_JSON_BYTES = 32 * 1024 * 1024;
 
@@ -100,7 +99,7 @@ function distribution(values: number[]): Distribution {
 }
 
 /** Summarise each numeric metric across maps. */
-export function summarizeMetrics(records: Array<Record<string, number>>): Record<string, Distribution> {
+function summarizeMetrics(records: Array<Record<string, number>>): Record<string, Distribution> {
   const samples: Record<string, number[]> = {};
   for (const record of records)
     for (const [key, value] of Object.entries(record)) (samples[key] ||= []).push(value);

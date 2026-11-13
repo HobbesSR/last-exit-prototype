@@ -29,7 +29,7 @@ export interface TileRect {
   height: TileCount;
 }
 
-/** A waypoint on a bot path, in absolute tile coordinates. */
+/** A waypoint on a grid route, in absolute tile coordinates. */
 export type TileStep = readonly [TileIndex, TileIndex];
 
 /** World point at the centre of a navigation tile. */
@@ -119,7 +119,7 @@ function travelClear(map: CollisionMap, a: Vec2, b: Vec2, clearance: World): boo
  * Whether a point can step straight to a nearby tile centre without passing through a wall. Only the
  * line is tested, not the body's clearance: it tells the side of a thin wall a point is on.
  */
-export function stepClear(map: CollisionMap, openDoors: DoorPermission, from: Vec2, to: Vec2): boolean {
+function stepClear(map: CollisionMap, openDoors: DoorPermission, from: Vec2, to: Vec2): boolean {
   return travelClear(navigationMap(map, openDoors), from, to, 4);
 }
 
@@ -132,9 +132,8 @@ export function stepClear(map: CollisionMap, openDoors: DoorPermission, from: Ve
  * motion is real — the simulation genuinely turned. Straightening replaces each run of steps with
  * the furthest waypoint the body can reach directly, which is the path the route always meant.
  *
- * The result is still tile steps in absolute tile space, so it stays the same shape the snapshot and
- * the recording carry. `span` is how far along the route to straighten; a mover needs only its
- * leading part, and a measurement of the whole route passes `Infinity`.
+ * The result is still tile steps in absolute tile space. `span` is how far along the route to
+ * straighten; a measurement of the whole route passes `Infinity`.
  */
 export function straightenPath(map: CollisionMap, role: Role, origin: Vec2, path: TileStep[], openDoors: DoorPermission = false, span: World = STRAIGHTEN_SPAN): TileStep[] {
   if (path.length < 2) return path;

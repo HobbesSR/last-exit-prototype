@@ -32,7 +32,7 @@ const REGIONS = 'regions';
 /** Where a capture writes until it is known to reproduce the baseline. */
 const STAGING = 'regions.new';
 /** Beside the other generated output, which is not committed, in whichever worktree runs it. */
-export const DEFAULT_CACHE = fileURLToPath(new URL('../../test-results/sweep-briefs', import.meta.url));
+const DEFAULT_CACHE = fileURLToPath(new URL('../../test-results/sweep-briefs', import.meta.url));
 
 /**
  * Which rebuilt regions get the portal check (`diagnoseRegion`), which costs seconds a region

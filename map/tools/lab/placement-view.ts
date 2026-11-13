@@ -2,6 +2,7 @@ import type { PlacementRecording } from '../placement-trace.ts';
 import type { PlacementTraceEvent } from '../../macro/src/chain/placement-trace.ts';
 import type { ChainLibrary } from '../../macro/src/chain/library.ts';
 import { orientedDesigns } from '../../macro/src/chain/declared-grid.ts';
+import { PLACEMENT_STALL_LIMIT } from '../../macro/src/chain/placement.ts';
 import { drawPlacementTiles } from './placement-drawing.ts';
 import type { Slot, Tile } from './placement-drawing.ts';
 import { placementSeams } from '../../macro/src/chain/partial-connectivity.ts';
@@ -94,7 +95,7 @@ export function mountPlacementView(host: HTMLElement, run: () => void, cancel: (
     if (event?.type === 'conflict') refusal = events.slice(Math.max(0, index - 2), index).find(previous => previous.type === 'refusal') as Refusal ?? null;
     step.value = String(index);
     el('solvePosition').textContent = events.length ? `${index + 1} / ${events.length}` : '0 / 0';
-    el('solveCounters').textContent = `Depth ${depth} · Node ${iterations} · Stall ${stall} / 500 · ${tiles.size} collapsed slots`;
+    el('solveCounters').textContent = `Depth ${depth} · Node ${iterations} · Stall ${stall} / ${PLACEMENT_STALL_LIMIT} · ${tiles.size} collapsed slots`;
     el('solveEvent').textContent = event ? describe(event) : 'No events retained.';
     el('solveDetails').textContent = event ? JSON.stringify(event, (_key, value) => Array.isArray(value) && value.length > 40 ? [...value.slice(0, 40), `… ${value.length - 40} more`] : value, 2) : '';
     draw();

@@ -4,7 +4,7 @@ import { placer } from '../macro/src/chain/placement.ts';
 import type { PlacementTraceEvent } from '../macro/src/chain/placement-trace.ts';
 import type { ChainParams, Layout } from '../macro/src/chain/types.ts';
 
-export const MAX_PLACEMENT_TRACE_BYTES = 24 * 1024 * 1024;
+const MAX_PLACEMENT_TRACE_BYTES = 24 * 1024 * 1024;
 export interface PlacementRecording {
   seed: string;
   params: ChainParams;

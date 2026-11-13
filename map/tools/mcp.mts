@@ -8,7 +8,7 @@ import { chainMapToJson } from '../macro/src/chain/saving.ts';
 import { MAX_BATCH_COUNT, MAX_JSON_BYTES, assertObject, batch, bundledLibrary, chainParams, checkMap, generate, readMap, validateLibrary } from './core.ts';
 
 /** The diagnostic takes about a minute a game map, so a call that runs it is kept short. */
-export const MAX_DIAGNOSED_BATCH = 5;
+const MAX_DIAGNOSED_BATCH = 5;
 
 type Id = string | number | null | undefined;
 interface Request {

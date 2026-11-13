@@ -758,11 +758,7 @@ const LAYERS: Layer[] = [
     legend: () => [["internal passability requirement", "#ffac6b"]],
     paint: (g, v, px) => {
       const lines = new Path2D();
-      for (const brief of v.briefs) for (const run of brief.internalGuaranteed ?? []) {
-        lines.moveTo(run.x, run.y);
-        lines.lineTo(run.axis === "h" ? run.x + run.length : run.x,
-          run.axis === "v" ? run.y + run.length : run.y);
-      }
+      for (const brief of v.briefs) for (const run of brief.internalGuaranteed ?? []) runLine(lines, run);
       g.strokeStyle = "#ffac6b";
       g.lineWidth = Math.max(0.12, 2 * px);
       g.stroke(lines);
@@ -1066,8 +1062,8 @@ function draw(): void {
   /**
    * Every layer draws opaque on the same scratch canvas, then is laid on once at its
    * opacity. The same rasterization at 100% and 50% keeps thin geometry consistent;
-   * overlapping parts of one
-   * layer (a site's fill and outline, say) don't fade by different amounts.
+   * overlapping parts of one layer (a site's fill and outline, say) don't fade by different
+   * amounts.
    */
   const composite = (layer: Layer, paint: (g: Context) => void) => {
     if (scratch.width !== canvas.width || scratch.height !== canvas.height) [scratch.width, scratch.height] = [canvas.width, canvas.height];
@@ -1525,7 +1521,6 @@ renderPlay();
 
 fillParams(DEFAULT_CHAIN_PARAMS);
 generateMap();
-
 
 // ── Resizer ─────────────────────────────────────────────────────────────────
 

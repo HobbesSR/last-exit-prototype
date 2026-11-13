@@ -14,9 +14,9 @@ import type { ChainMap, ChainParams } from './macro/src/chain/types.ts';
 import type { BuiltMap, RegionElement } from './micro/types.ts';
 import type { ChargerId, GameMap, ItemKind, MatchContent, NodeId, StationId, Vec2, WeaponType } from '../shared/types.ts';
 
-/** Names live placement policy without changing the chain library, strategies, or legacy generator. */
-export const LIVE_MAP_VERSION = 'chain-live-1';
-export const TRANSIT_STATION_COUNT = 6;
+/** Names live placement policy without changing the chain library or strategies. */
+const LIVE_MAP_VERSION = 'chain-live-1';
+const TRANSIT_STATION_COUNT = 6;
 const LOOT_KINDS: readonly ItemKind[] = ['cell', 'cell', 'cell', 'weapon', 'weapon', 'weapon', 'med', 'shield', 'access'];
 const WEAPON_TYPES: readonly WeaponType[] = ['pistol', 'rifle', 'scattergun'];
 
@@ -93,7 +93,7 @@ export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, c
   map.width = width; map.height = height; map.generator = LIVE_MAP_VERSION;
   map.playableArea = builtPlayableArea(built, origin);
   stampBuiltMap(context, built, origin);
-  // Navigation's top level, derived here and never saved (22.6). No bot reads it yet.
+  // Navigation's top level, derived here and never saved (22.6).
   attachPortalGraph(map, buildPortalGraph(built, origin));
   const world = (p: Vec2): Vec2 => ({ x: p.x + origin.x, y: p.y + origin.y });
   const sites = built.regions.flatMap(region => region.coreElements.map(site => ({ ...world(site), kind: site.kind, nodeId: region.brief.id as NodeId })));
