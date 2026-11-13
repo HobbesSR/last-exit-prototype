@@ -3,7 +3,14 @@ import type { Vec2 } from '../../shared/types.ts';
 import type { RegionMask } from './types.ts';
 import { capsule, shapesOverlap } from './geometry.ts';
 
-/** One immutable access mask/body/door policy and a monotonically growing collision prefix.
+/**
+ * Swept-route clearance for a builder that commits pieces one at a time. `accepted()` returns
+ * `clear(a, b)`: whether a body of `radius` travels straight from `a` to `b` inside `mask` past
+ * every committed blocker, as `travelClear` answers it. `prepare(added)` returns a trial whose
+ * `clear` answers as if `added` also stood, and whose `commit()` adopts them. Each view is bound
+ * to the revision it was made at and throws once another commit lands.
+ *
+ * One immutable access mask/body/door policy and a monotonically growing collision prefix.
  * The caller must keep the mask unchanged; supply door colliders according to its policy.
  * Geometry is copied. No state is shared between factories, including equal-looking masks.
  * Only half-cell grid nodes/cardinal edges are memoized; arbitrary connectors remain exact.

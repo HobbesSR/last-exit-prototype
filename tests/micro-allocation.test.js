@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRegionContext, DecompositionState, allocateCandidates, generatorFitness, buildInterfaces, validateDecompositionPlan, connectedComponents } from '../map/micro/sdk.ts';
+import { createRegionContext, allocateCandidates, connectedComponents } from '../map/micro/sdk.ts';
+import { DecompositionState, generatorFitness } from '../map/micro/decomposition/allocation.ts';
+import { buildInterfaces } from '../map/micro/decomposition/interfaces.ts';
+import { validateDecompositionPlan } from '../map/micro/decomposition/validate.ts';
 import { decompositionExample, planExample, EXAMPLE_GENERATORS } from '../map/micro/decomposition/example.ts';
 import { WorkBudget, WorkBudgetExceededError } from '../map/micro/decomposition/work-budget.ts';
 
