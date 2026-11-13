@@ -23,8 +23,8 @@ browser costs require their own existing witnesses. Source/settings and observed
 awake-body counts accompany every run. A failed admission is retained as a
 failure rather than silently reducing the requested population.
 
-Isolated research for #437 and #451. Nothing in the game imports these candidates. Rapier
-is an exact, development-only dependency; `npm ci` installs the pinned artifact.
+Isolated research for #437 and #451. The game uses its separate production adapter
+in `shared/physics/`. Rapier is an exact production dependency; `npm ci` installs the pinned artifact.
 The scenario/action contract is in [contract.md](contract.md). This is neither a
 production physics API nor permission to activate new gameplay rules.
 

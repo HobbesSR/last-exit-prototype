@@ -57,6 +57,6 @@ for (const file of ['shared/simulation/dynamic-navigation.ts', 'shared/simulatio
 await mkdir(dirname(output), { recursive: true });
 await writeFile(output, JSON.stringify({ schema: 'physics-p8-crowd-2', node: process.version, cpu: cpus()[0]?.model,
   platform: platform(), release: release(), createdAt: new Date().toISOString(),
-  workload: '27 bots, 64 crates, 37 sensor loot; 100 warmup + 400 samples; step + snapshot + one projection; three sequential paired runs',
+  workload: '27 bots, 64 crates, 37 sensor loot; 100 warmup + 400 samples; step + snapshot + one projection; three sequential runs',
   limitation: 'Synthetic crowd smoke cost, not P9 capacity qualification or evidence fixing the historical slowdown.', sources, rows }) + '\n');
 console.log(JSON.stringify({ output, rows: rows.map(({ samplesMs, ...row }) => row) }));
