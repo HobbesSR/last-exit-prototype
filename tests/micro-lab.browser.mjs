@@ -87,11 +87,18 @@ try {
   assert.equal(await page.locator('#buildings .error').count(), 0);
   assert.equal(await page.locator('#buildings .warning').count(), expected.graph.warnings);
   await page.screenshot({ path: 'test-results/micro-lab-hut.png' });
-  // Find a seed with unmet guidance so the warning list UI is exercised without pinning one seed's layout (M29).
+  // Find a seed with unmet guidance using the browser's active dimensions/tier so the warning list UI is exercised without pinning one seed's layout (M29).
+  const readControls = () => page.evaluate(() => ({
+    width: Number(document.getElementById('region-width').value),
+    height: Number(document.getElementById('region-height').value),
+    tier: Number(document.getElementById('loot-tier').value),
+    northPortal: document.getElementById('north-port').checked,
+  }));
+  const hutControls = await readControls();
   let unmetSeed = null;
   for (let seed = 11; seed <= 60 && unmetSeed === null; seed++) {
     const traces = [];
-    buildRegion(regionExample({ type: 'hut', seed, shape: 'rectangle', width: 20, height: 14, tier: 1, northPortal: false }), undefined, t => traces.push(t));
+    buildRegion(regionExample({ type: 'hut', seed, shape: 'rectangle', ...hutControls }), undefined, t => traces.push(t));
     if (traces.some(t => { const placed = new Set(t.realization.openings.map(o => o.connectionId)); return t.design.connections.some(c => !placed.has(c.id)); })) unmetSeed = seed;
   }
   assert.ok(unmetSeed !== null, 'a hut seed produces unmet guidance');
@@ -135,10 +142,11 @@ try {
   }
   // A block passes its lot's buildings on, labelled under its lot.
   for (const view of views) await page.getByLabel(view).check();
+  const blockControls = await readControls();
   let blockSeed = null;
   for (let seed = 2; seed <= 30 && blockSeed === null; seed++) {
     const traces = [];
-    buildRegion(regionExample({ type: 'block', seed, shape: 'l', width: 20, height: 14, tier: 1, northPortal: false }), undefined, t => traces.push(t));
+    buildRegion(regionExample({ type: 'block', seed, shape: 'l', ...blockControls }), undefined, t => traces.push(t));
     if (traces.length > 0) blockSeed = seed;
   }
   assert.ok(blockSeed !== null, 'a block seed produces at least one building');
