@@ -23,7 +23,7 @@ current proof of concept:
 1. Presenter/caster controls for switching camera focus and identifying action.
 2. Validated spectator patron commands that drop items for contestants; these must be a separate command type and replay event, never player input authority.
 3. Enemy fade-out and last-seen indicators when an actor leaves sight.
-4. Physics substeps inside the 20 Hz tick for projectiles, knockback, and richer hazards.
+4. Richer projectile and hazard physics beyond the current engine. Rigid-body physics already uses four substeps inside each 20 Hz tick ([29.2](29.2-physics-state-networking.md)); lab-only height ballistics and its live-promotion questions remain in [17.3](17.3-product-gameplay.md), entry 12.
 5. Wedge-culling for server `lineClear` queries if profiling shows it matters; client visibility already uses the optimized sweep.
 6. Persistent gladiator unlocks, contestant perks, card/sticker packs, pre-game cards, cosmetics, and a fair monetization model.
 7. Unreliable transport. WebSocket runs over TCP, so one lost packet holds up every

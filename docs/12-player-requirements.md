@@ -1,7 +1,7 @@
 # 12. Non-negotiable player requirements
 
 P-01 through P-16 describe the core implementation and its acceptance evidence.
-Accepted improvements and their status are tracked separately as F-01 through F-18
+Accepted improvements and their status are tracked separately as F-01 through F-20
 in [13](13-accepted-features.md). Implemented numeric defaults are in
 [14](14-match-rules.md).
 
@@ -10,7 +10,7 @@ in [13](13-accepted-features.md). Implemented numeric defaults are in
 | P-01 | The arena is elongated left-to-right, diamond-shaped, and larger than one camera view. | Live chain is 17,280 by 8,640 with a stepped diamond outline; collision and rendering use its actual owned cells. Live view shows only part of it. | Implemented |
 | P-02 | Tile templates compose the map; movement remains continuous. | Authored tiles and set pieces feed region strategies through the generation chain (51); the live adapter consumes their geometry (22). | Implemented initial chain |
 | P-03 | The hazard advances from contestant entry toward extraction and pressures both roles. | `hazardX` advances against real time; actors behind it take damage; the match has a fixed duration. | Implemented |
-| P-04 | Contestants are smaller/faster and can use passages that block gladiators. | Live radii remain 12 and 23 by user choice. The new cell-profile squeeze balance needs separate tuning (14, 17). Legacy clearance tests remain. | Bodies implemented; live gap balance pending |
+| P-04 | Contestants are smaller/faster and can use passages that block gladiators. | Physics movement bodies are narrower than the retained combat radii; [14](14-match-rules.md#character-profile-439) owns their sizes. Cell-profile squeeze balance still needs separate live tuning. | Bodies implemented; live gap balance pending |
 | P-05 | Contestants collect environmental items that affect the current match. | Access charges, weapons, shields, and healing are generated in sections and collected authoritatively. | Implemented |
 | P-06 | Access charges open optional barriers without making keys mandatory for escape. | Legacy locked-door mechanics remain supported; chain doors are currently unlocked (14). | Mechanics implemented; chain authoring pending |
 | P-07 | There are few escape places. | The match begins with three extraction slots; each successful extraction consumes one. | Implemented |
@@ -38,8 +38,8 @@ Gladiators killed in combat respawn after 20 seconds at a safe transit station,
 retaining upgrades. Human PvP incentives and balance remain playtest questions;
 see [17](17-open-questions.md).
 
-Default matches have three gladiators (F-11). The retained `content-1` baseline
-has two; see [14](14-match-rules.md) for the versioned roster.
+Default matches have three gladiators (F-11); see [14](14-match-rules.md) for
+the roster and selectable content. The two-gladiator `content-1` is retired.
 
 ## Information and counterplay
 
@@ -49,8 +49,9 @@ nearby running contestants; sneaking bypasses detection. A Specter scan counters
 concealment. Sensor marks appear on the schematic minimap even when direct sight
 is blocked. Camera viewing stations are deferred.
 
-Transit currently cycles gladiators among stations ahead of the hazard and has a
-cooldown. Route selection is accepted (below); travel time is still open.
+Default transit cycles gladiators among stations ahead of the hazard and has a
+cooldown. Selectable destinations and distance-based travel time are implemented
+under `content-10` and its successors (below), with travel time tuned to zero.
 Contestants cannot use it. Physical gaps and movement speed provide escape
 opportunities between transit points.
 
@@ -60,19 +61,13 @@ opportunities between transit points.
 
 Corey, 2026-10-30, on #683: the destination is **"Make it selectable"**. Built under `content-10`
 ([14](14-match-rules.md#transit)):
-- **Rule.** A gladiator ready to transit (cooldown spent, within reach of a station) may go to any
-  other station ahead of the wall, not only the next one. The choice is a one-shot input naming the
-  station. A station that is unknown, behind the wall or the current one is refused, with no effect
-  and no cooldown, as a landing the physics world cannot place is. Plain interact keeps the
-  current destination, the next station ahead, so inputs and bots that do not choose are unchanged.
-  Existing contents ignore the choice and keep cycling.
-- **Travel time** scales with distance (`base + perUnit` × distance, in content). `content-10` tunes it to
-  0, so transit behaves as instant teleportation, as Corey asked on #692. Above zero the gladiator is in
-  transit: out of the world, unhittable and unable to act, and the cooldown starts when it lands. That
-  state is what a later animation would show. The camera cuts to the destination on landing, as before.
+- **Rule and travel time.** A ready gladiator may choose another station ahead of the wall;
+  plain interact keeps the cycling destination. [14](14-match-rules.md#transit) owns destination
+  validation, refusal, travel-time tuning and the in-transit state.
 - **Telegraphing.** The rail effect at departure and landing stays the only tell to contestants (Corey,
   #692: "Current effect only").
-- **Client.** While the player can transit, the minimap rings every station it may go to, the default
+- **Client.** The camera cuts to the destination on landing. The in-transit state is what a later
+  travel animation would show. While the player can transit, the minimap rings every station it may go to, the default
   more strongly. A click or tap on a ring transits there, and E still goes to the default. Gladiators
   already see the whole map (15), so showing every station reveals nothing new. This replaces the
   hold-to-pick gesture first proposed (hold interact, release on the selection, Esc cancels): rings shown
