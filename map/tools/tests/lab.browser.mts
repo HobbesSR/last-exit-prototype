@@ -2278,6 +2278,27 @@ try {
   assert.match(routed.text, /Contestant \(clearance 14\): [\d,]+ world units on the grid/);
   assert.match(routed.text, /Hunter \/ contestant: \d\.\d{3}/);
   await routePage.screenshot({ path: `${OUT}/routes.png` });
+  // The preview uses the bot planner on the same map and endpoints, and switching back
+  // restores the baseline. Selecting a measure also measures it, without another click.
+  await routePage.locator("#routeMethod").selectOption("mesh");
+  await routePage.waitForFunction(() => (window as any).mapLab.snapshot().routes?.method === "mesh", null, { timeout: 30000 });
+  const meshRouted = (await routePage.evaluate(() => (window as any).mapLab.snapshot())).routes;
+  const meshExpected = measureRoutes(referenceViews.built, sites.find((site) => site.kind === "spawn")!, sites.find((site) => site.kind === "exit")!, "mesh");
+  assert.equal(meshRouted.error, "");
+  for (const body of ["contestant", "hunter"] as const) {
+    assert.equal(meshRouted[body].length, meshExpected[body].length);
+    assert.equal(meshRouted[body].points, meshExpected[body].points.length);
+  }
+  assert.match(meshRouted.text, /world units on the mesh/);
+  assert.match(meshRouted.text, /whole legs highlighted/);
+  assert.match(await routePage.locator("#legend-routes").innerText(), /hunter-blocked route legs/);
+  assert.deepEqual(meshRouted.drawn, { contestant: meshExpected.contestant.points.length, hunter: meshExpected.hunter.points.length, squeezes: meshExpected.squeezes.length });
+  await routePage.screenshot({ path: `${OUT}/routes-mesh.png` });
+  await routePage.locator("#routeMethod").selectOption("grid");
+  await routePage.waitForFunction(() => (window as any).mapLab.snapshot().routes?.method === "grid", null, { timeout: 30000 });
+  const restored = (await routePage.evaluate(() => (window as any).mapLab.snapshot())).routes;
+  assert.equal(restored.contestant.length, routed.contestant.length);
+  assert.equal(restored.hunter.length, routed.hunter.length);
   await routePage.evaluate(() => (window as any).mapLab.select(0, 0));
   await routePage.locator("#routeTo").selectOption("selected");
   const lost = await measured();

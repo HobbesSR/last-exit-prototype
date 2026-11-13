@@ -1,0 +1,185 @@
+{
+  "all": [
+    {
+      "seed": "last-exit-001",
+      "method": "grid",
+      "from": "spawn 1",
+      "to": "exit 1",
+      "routes": {
+        "from": "spawn 1",
+        "to": "exit 1",
+        "pending": false,
+        "error": "",
+        "method": "grid",
+        "contestant": {
+          "length": 17617.74220811191,
+          "points": 67
+        },
+        "hunter": {
+          "length": 18179.407430525607,
+          "points": 69
+        },
+        "squeezes": 13,
+        "ratio": 1.0318806584736542,
+        "drawn": {
+          "contestant": 67,
+          "hunter": 69,
+          "squeezes": 13
+        },
+        "text": "Grid baseline: from spawn 1 to exit 1 (237 ms)Contestant (clearance 14): 17,618 world units on the grid, 16,989 walkedHunter (clearance 25): 18,179 world units on the grid, 17,425 walkedHunter / contestant: 1.03213 squeezes on the contestant's route, where a hunter can't pass"
+      },
+      "error": ""
+    },
+    {
+      "seed": "last-exit-001",
+      "method": "mesh",
+      "from": "spawn 1",
+      "to": "exit 1",
+      "routes": {
+        "from": "spawn 1",
+        "to": "exit 1",
+        "pending": false,
+        "error": "",
+        "method": "mesh",
+        "contestant": {
+          "length": 16619.36178282537,
+          "points": 102
+        },
+        "hunter": {
+          "length": 16953.26473418098,
+          "points": 160
+        },
+        "squeezes": 1,
+        "ratio": 1.0200912017993777,
+        "drawn": {
+          "contestant": 102,
+          "hunter": 160,
+          "squeezes": 1
+        },
+        "text": "Mesh · full map knowledge: from spawn 1 to exit 1 (1916 ms)Contestant (clearance 14): 16,619 world units on the mesh, 16,619 walkedHunter (clearance 25): 16,953 world units on the mesh, 16,953 walkedHunter / contestant: 1.0201 runs of hunter-blocked route legs (whole legs highlighted, not bottleneck extents)"
+      },
+      "error": ""
+    },
+    {
+      "seed": "exit-3",
+      "method": "grid",
+      "from": "spawn 1",
+      "to": "exit 1",
+      "routes": {
+        "from": "spawn 1",
+        "to": "exit 1",
+        "pending": false,
+        "error": "",
+        "method": "grid",
+        "contestant": {
+          "length": 17512.117390769243,
+          "points": 71
+        },
+        "hunter": {
+          "length": 18064.076985698186,
+          "points": 70
+        },
+        "squeezes": 34,
+        "ratio": 1.0315187240133443,
+        "drawn": {
+          "contestant": 71,
+          "hunter": 70,
+          "squeezes": 34
+        },
+        "text": "Grid baseline: from spawn 1 to exit 1 (199 ms)Contestant (clearance 14): 17,512 world units on the grid, 17,121 walkedHunter (clearance 25): 18,064 world units on the grid, 17,452 walkedHunter / contestant: 1.03234 squeezes on the contestant's route, where a hunter can't pass"
+      },
+      "error": ""
+    },
+    {
+      "seed": "exit-3",
+      "method": "mesh",
+      "from": "spawn 1",
+      "to": "exit 1",
+      "routes": {
+        "from": "spawn 1",
+        "to": "exit 1",
+        "pending": false,
+        "error": "",
+        "method": "mesh",
+        "contestant": {
+          "length": 17031.232870392018,
+          "points": 70
+        },
+        "hunter": {
+          "length": 17112.672448461555,
+          "points": 127
+        },
+        "squeezes": 2,
+        "ratio": 1.0047817782006325,
+        "drawn": {
+          "contestant": 70,
+          "hunter": 127,
+          "squeezes": 2
+        },
+        "text": "Mesh · full map knowledge: from spawn 1 to exit 1 (1792 ms)Contestant (clearance 14): 17,031 world units on the mesh, 17,031 walkedHunter (clearance 25): 17,113 world units on the mesh, 17,113 walkedHunter / contestant: 1.0052 runs of hunter-blocked route legs (whole legs highlighted, not bottleneck extents)"
+      },
+      "error": ""
+    },
+    {
+      "seed": "exit-1",
+      "method": "grid",
+      "from": "spawn 1",
+      "to": "exit 1",
+      "routes": {
+        "from": "spawn 1",
+        "to": "exit 1",
+        "pending": false,
+        "error": "",
+        "method": "grid",
+        "contestant": {
+          "length": 17674.34057965852,
+          "points": 67
+        },
+        "hunter": {
+          "length": 18152.7892036355,
+          "points": 69
+        },
+        "squeezes": 9,
+        "ratio": 1.0270702390180049,
+        "drawn": {
+          "contestant": 67,
+          "hunter": 69,
+          "squeezes": 9
+        },
+        "text": "Grid baseline: from spawn 1 to exit 1 (210 ms)Contestant (clearance 14): 17,674 world units on the grid, 17,333 walkedHunter (clearance 25): 18,153 world units on the grid, 17,658 walkedHunter / contestant: 1.0279 squeezes on the contestant's route, where a hunter can't pass"
+      },
+      "error": ""
+    },
+    {
+      "seed": "exit-1",
+      "method": "mesh",
+      "from": "spawn 1",
+      "to": "exit 1",
+      "routes": {
+        "from": "spawn 1",
+        "to": "exit 1",
+        "pending": false,
+        "error": "",
+        "method": "mesh",
+        "contestant": {
+          "length": 16988.92997199829,
+          "points": 73
+        },
+        "hunter": {
+          "length": 17123.335341283848,
+          "points": 117
+        },
+        "squeezes": 3,
+        "ratio": 1.0079113498911991,
+        "drawn": {
+          "contestant": 73,
+          "hunter": 117,
+          "squeezes": 3
+        },
+        "text": "Mesh · full map knowledge: from spawn 1 to exit 1 (1796 ms)Contestant (clearance 14): 16,989 world units on the mesh, 16,989 walkedHunter (clearance 25): 17,123 world units on the mesh, 17,123 walkedHunter / contestant: 1.0083 runs of hunter-blocked route legs (whole legs highlighted, not bottleneck extents)"
+      },
+      "error": ""
+    }
+  ],
+  "errors": []
+}
