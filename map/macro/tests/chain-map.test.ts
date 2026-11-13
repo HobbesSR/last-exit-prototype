@@ -163,6 +163,7 @@ test("malformed layout and build fields are refused by field name", () => {
   bad((c) => { (c.layout as unknown as Record<string, unknown>).library = undefined; }, /layout\.library must be a string/);
   bad((c) => { (c.build as unknown as Record<string, unknown>).version = undefined; }, /build\.version must be a string/);
   bad((c) => { (c.build as unknown as Record<string, unknown>).cellSize = 0; }, /build\.cellSize must be a positive number/);
+  bad((c) => { (c.build as unknown as Record<string, unknown>).results = {}; }, /build\.results must be an array/);
 
   bad((c) => { (c.layout as unknown as Record<string, unknown>).params = null; }, /layout\.params must be an object/);
   bad((c) => { (c.layout.params as unknown as Record<string, unknown>).mode = "sandbox"; }, /layout\.params\.mode must be "game" or "playground"/);
@@ -173,6 +174,7 @@ test("malformed layout and build fields are refused by field name", () => {
   bad((c) => { (c.layout.params as unknown as Record<string, unknown>).lootTierStep = "0.1"; }, /layout\.params\.lootTierStep must be a finite number/);
 
   bad((c) => { (c.layout.slots as unknown as Record<string, unknown>).col = undefined; }, /layout\.slots\.col is missing packed integer data/);
+  bad((c) => { (c.layout.slots.col as unknown as Record<string, unknown>).v = null; }, /layout\.slots\.col must be packed integer data, not null/);
   bad((c) => { c.layout.slots.row = { w: 1, v: new Int8Array(0) }; }, /layout\.slots columns have mismatched lengths/);
   bad((c) => { c.layout.slots.orientation.v[0] = 4; }, /layout\.slots\.orientation\[0\] must be 0\.\.3, not 4/);
 
@@ -181,4 +183,14 @@ test("malformed layout and build fields are refused by field name", () => {
   bad((c) => { c.layout.setPieces.slotRow = { w: 1, v: new Int8Array(0) }; }, /layout\.setPieces slot columns have mismatched lengths/);
   bad((c) => { c.layout.setPieces.slotCount.v[0] = -1; }, /layout\.setPieces\.slotCount\[0\] must be non-negative, not -1/);
   bad((c) => { c.layout.setPieces.slotCount.v[0] = c.layout.setPieces.slotCol.v.length + 1; }, /layout\.setPieces\.slotCount sums to \d+, but slotCol\/slotRow have \d+ entries/);
+
+  const jsonWire = JSON.parse(chainMapToJson(MAP)) as ReturnType<typeof encode>;
+  const badJson = (mutate: (copy: ReturnType<typeof encode>) => void, pattern: RegExp) => {
+    const copy = structuredClone(jsonWire);
+    mutate(copy);
+    assert.throws(() => decodeChainMap(copy, LIBRARY), pattern);
+  };
+  badJson((c) => { (c.layout.slots.orientation.v as number[])[0] = 0.5; }, /layout\.slots\.orientation\[0\] must be a 32-bit integer, not 0\.5/);
+  badJson((c) => { (c.layout.slots.orientation.v as number[])[0] = 4294967296; }, /layout\.slots\.orientation\[0\] must be a 32-bit integer, not 4294967296/);
+  badJson((c) => { (c.layout.setPieces.slotCount.v as number[])[0]! += 0.5; }, /layout\.setPieces\.slotCount\[0\] must be a 32-bit integer/);
 });

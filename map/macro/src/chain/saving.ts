@@ -85,8 +85,20 @@ function packLayout(layout: Layout, strings: Strings): WireLayout {
 }
 
 function unpackColumn(packed: PackedInts | undefined, field: string): Int32Array {
-  if (!packed || packed.v === undefined) throw new Error(`${field} is missing packed integer data`);
-  return unpackInts(packed);
+  if (!packed || typeof packed !== "object" || packed.v === undefined)
+    throw new Error(`${field} is missing packed integer data`);
+  const { v } = packed;
+  if (Array.isArray(v)) {
+    for (let i = 0; i < v.length; i++) {
+      const value = v[i];
+      if (typeof value !== "number" || !Number.isInteger(value) || value < -2147483648 || value > 2147483647)
+        throw new Error(`${field}[${i}] must be a 32-bit integer, not ${String(value)}`);
+    }
+    return unpackInts(packed);
+  }
+  if (v instanceof Uint8Array || v instanceof Int8Array || v instanceof Int16Array || v instanceof Int32Array)
+    return unpackInts(packed);
+  throw new Error(`${field} must be packed integer data, not ${v === null ? "null" : typeof v}`);
 }
 
 function validateLayoutParams(params: unknown): void {
