@@ -56,8 +56,8 @@ test('regional fields are deterministic across region and cell traversal order, 
     assert.equal(shifted[i].bounds.h, original[i].bounds.h);
   }
   const focal = original.find(field => field.focalEdge);
-  const shiftedFocal = shifted.find(field => field.id === focal.id);
   assert.ok(focal, 'landmark/core region creates a focal edge');
+  const shiftedFocal = shifted.find(field => field.id === focal.id);
   assert.deepEqual(shiftedFocal.focalEdge, {
     ...focal.focalEdge,
     x: focal.focalEdge.x + 725,

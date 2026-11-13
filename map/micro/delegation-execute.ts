@@ -68,8 +68,7 @@ const emptyNode = (input: RegionBrief, depth: number, reason: string, kind: Fall
 function completeOffer(input: RegionBrief, offer: PatchOffer): boolean {
   if (!Array.isArray(offer.cells) || offer.cells.length !== input.cells.length) return false;
   const owned = new Set(input.cells.map(cellKey));
-  return Array.isArray(offer.cells) && offer.cells.length === input.cells.length
-    && new Set(offer.cells.map(cellKey)).size === input.cells.length
+  return new Set(offer.cells.map(cellKey)).size === input.cells.length
     && offer.cells.every(c => owned.has(cellKey(c)));
 }
 function prefixed(label: string, prefix: string): string { return prefix ? `${prefix}/${label}` : label; }

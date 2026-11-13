@@ -38,8 +38,9 @@ function requestedKind(brief: RegionBrief): LandmarkKind | undefined {
  */
 export function buildLandmark(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const asked = requestedKind(brief);
-  if (!createFillMask(brief).cells.length) return unfilledRegion(brief, CHANNEL.loot);
-  const size = brief.cellSize, fill = createFillMask(brief), mask = createRegionMask(brief);
+  const size = brief.cellSize, fill = createFillMask(brief);
+  if (!fill.cells.length) return unfilledRegion(brief, CHANNEL.loot);
+  const mask = createRegionMask(brief);
   const x0 = Math.round(fill.bounds.x / size), y0 = Math.round(fill.bounds.y / size);
   const W = Math.round(fill.bounds.w / size), H = Math.round(fill.bounds.h / size);
   const order = asked ? [asked] : rng(brief.seed, `${brief.id}:landmark-kind`).shuffle(LANDMARK_KINDS);

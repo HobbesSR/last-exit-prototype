@@ -30,17 +30,17 @@ export interface Pen {
 }
 type Point = { x: number; y: number };
 
-export const SPACE_COLOURS = ['#5fa8d3', '#c77dff', '#e9c46a', '#80ed99', '#f28482', '#4cc9f0', '#f4a261', '#b5e48c'];
-export const OPENING_COLOURS: Record<string, string> = { door: '#ff8a5c', open: '#7ee08a', window: '#6fc8ff' };
+const SPACE_COLOURS = ['#5fa8d3', '#c77dff', '#e9c46a', '#80ed99', '#f28482', '#4cc9f0', '#f4a261', '#b5e48c'];
+const OPENING_COLOURS: Record<string, string> = { door: '#ff8a5c', open: '#7ee08a', window: '#6fc8ff' };
 const WARNING = '#e9ad59';
 const BACKING = '#0b1515';
 
 /** Connections whose two spaces got no opening between them. Guidance, so a warning, never an error (17.2.8 M29). */
-export function unmetConnections(trace: BuildingTrace): BuildingConnection[] {
+function unmetConnections(trace: BuildingTrace): BuildingConnection[] {
   const placed = new Set(trace.realization.openings.map(o => o.connectionId));
   return trace.design.connections.filter(c => !placed.has(c.id));
 }
-export function spansOf(trace: BuildingTrace) {
+function spansOf(trace: BuildingTrace) {
   return trace.realization.boundaries.flatMap(boundary => boundary.spans.map(span => ({ boundary, span })));
 }
 /** A building in one line: "hut-building: 3 spaces, 2 connections, 3 openings, 9 spans". */

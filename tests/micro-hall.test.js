@@ -123,7 +123,7 @@ test('every aisle is open to a contestant', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 3)) {
     const input = brief(name, seed, cells, portals, { spacing: 4 });
     input.zones[0].lootChance = 1;
-    const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
+    const result = buildRegion(input), access = createAccessMask(input), shapes = blockers(result);
     const from = portalStands(input)[0].points[0];
     for (const site of result.loot.filter((_, i) => i % 7 === 0))
       assert.ok(findRegionRoute(access, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);

@@ -157,7 +157,6 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
     w >= MIN_SIDE && h >= MIN_SIDE; w -= 2, h -= 2) sizes.push([w, h]);
   if (!sizes.some(([w, h]) => w === MIN_SIDE && h === MIN_SIDE)) sizes.push([MIN_SIDE, MIN_SIDE]);
   for (const [w, h] of sizes) {
-    if (w < MIN_SIDE || h < MIN_SIDE) continue;
     const seen = new Set<string>(), sites: Box[] = [];
     const add = (x: number, y: number) => {
       if (seen.has(key(x, y))) return;

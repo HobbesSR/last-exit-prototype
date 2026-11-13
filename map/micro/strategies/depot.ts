@@ -111,7 +111,6 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const coordinator = liveCord(brief, 'Depot');
   type Siting = SitingCanvas & { markEmpty(areas: readonly Shape[]): boolean };
   const canvas: Siting = coordinator;
-  const stageOf = (): { canvas: Siting; flush: () => boolean[] | null } => coordinator.stage();
   // Label the empty yard once. Every admitted envelope has a complete two-cell ring and
   // two-cell inter-piece spacing, so later pieces can reroute a yard path around themselves,
   // preserving local bypasses as well as portal routes.
@@ -163,7 +162,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   // Production reserves half the density budget for roofed space, leaving container yards.
   const target = Math.max(1, Math.round(density * cells.length / (2 * room * across)));
   let warehouses = 0, designed = 0;
-  const warehouseStage = stageOf();
+  const warehouseStage = coordinator.stage();
   const sitedWarehouses: Parameters<BuildingObserver>[0][] = [];
   const hintedWarehouses = new Set(boxesAgainstHints(brief, alongX ? room : across, alongX ? across : room)
     .map(b => alongX ? `${b.x},${b.y}` : `${b.y},${b.x}`));
@@ -186,7 +185,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const keptWarehouses = warehouseStage.flush();
   warehouses = 0;
   for (const [i, trace] of sitedWarehouses.entries()) {
-    if (keptWarehouses && !keptWarehouses[i]) continue;
+    if (!keptWarehouses[i]) continue;
     warehouses++;
     if (trace.design.spaces.length > 1) designed++;
     observe?.(trace);
@@ -195,7 +194,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   // Container rows packed along each lane, from its near end, around the warehouses. Each place
   // that fits a row is taken with chance `density`, and either way the next starts an aisle on.
   let rows = 0;
-  const rowStage = stageOf();
+  const rowStage = coordinator.stage();
   const lanes = new Map<number, number[]>();
   for (const { u, v } of cells) if (onLane(v)) lanes.get(v)?.push(u) ?? lanes.set(v, [u]);
   for (const v of [...lanes.keys()].sort((a, b) => a - b)) {
@@ -211,8 +210,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
       u += length + AISLE;
     }
   }
-  const keptRows = rowStage.flush();
-  if (keptRows) rows = keptRows.filter(Boolean).length;
+  rows = rowStage.flush().filter(Boolean).length;
 
   // Fill only untouched lane cells. Row sites that lost their density roll are deliberate
   // open spans, and accepted crates address their cells before the next candidate is tried.
