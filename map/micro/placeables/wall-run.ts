@@ -5,7 +5,7 @@ import { oriented } from './frame.ts';
 
 /*
  * `wall-run`: a plain straight wall along one long edge of a strip of cells, one cell deep.
- * `wallHints` (#407) stands them along hinted perimeter runs for `hall`, `ruins` and `rubble`.
+ * `perimeterWalls` (#407, #837) stands them along hinted perimeter runs for `hall`, `ruins` and `rubble`.
  */
 
 /** The obstacle kinds a wall run can be. */

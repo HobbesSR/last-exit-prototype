@@ -7,8 +7,6 @@ export { portalStands, validatePortalReach } from './portals.ts';
 export type { PortalReachInput, PortalReachOptions, PortalReachResult, PortalJoin, PortalStands } from './portals.ts';
 export { boundaryBoxFilter, boxesAgainstHints, clipHints, hintedCells, hintErrors, hintsOfStrength, hintStrength, portalMargin } from './hints.ts';
 export type { CellBox, HintedRegion, HintStrength } from './hints.ts';
-export { wallHints } from './hint-walls.ts';
-export type { HintWallOptions, HintWalls } from './hint-walls.ts';
 export { perimeterRuns, perimeterWalls, commitPerimeterWalls, reachPerimeter } from './perimeter-reach.ts';
 export type { PerimeterEdges, PerimeterReachOptions, PerimeterWalls } from './perimeter-reach.ts';
 export type { SpreadPointOptions, SpreadPointResult } from './placement.ts';

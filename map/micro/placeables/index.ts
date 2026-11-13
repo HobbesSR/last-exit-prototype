@@ -10,7 +10,6 @@ import { HALL_PILLAR } from './hall-pillar.ts';
 import { RUIN_ROOM_SPAN } from './ruin-room-span.ts';
 import { RUBBLE_DEBRIS } from './rubble-debris.ts';
 import { PARK_TREE } from './park-tree.ts';
-import { PARK_HEDGE_RUN } from './park-hedge-run.ts';
 import { PARK_HEDGE_POCKET } from './park-hedge-pocket.ts';
 import { PARK_HEDGE_BLOCK } from './park-hedge-block.ts';
 import { PLANT_MACHINE } from './plant-machine.ts';
@@ -38,7 +37,6 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [RUIN_ROOM_SPAN.id]: RUIN_ROOM_SPAN,
   [RUBBLE_DEBRIS.id]: RUBBLE_DEBRIS,
   [PARK_TREE.id]: PARK_TREE,
-  [PARK_HEDGE_RUN.id]: PARK_HEDGE_RUN,
   [PARK_HEDGE_POCKET.id]: PARK_HEDGE_POCKET,
   [PARK_HEDGE_BLOCK.id]: PARK_HEDGE_BLOCK,
   [PLANT_MACHINE.id]: PLANT_MACHINE,

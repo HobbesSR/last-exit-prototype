@@ -109,7 +109,7 @@ export interface PerimeterWalls {
  */
 export function perimeterWalls(brief: RegionBrief, options: PerimeterReachOptions): PerimeterWalls {
   const { runs = brief.hints ?? [], kind, thickness = 0.25, inset = 0, avoid = [], addressed, minLength = 1, label = 'perimeter-wall', appearance } = options;
-  if (!Number.isInteger(minLength) || minLength < 1) throw new RangeError('A hint wall needs a whole positive minimum length.');
+  if (!Number.isInteger(minLength) || minLength < 1) throw new RangeError('A perimeter wall needs a whole positive minimum length.');
   const fill = createFillMask(brief), size = brief.cellSize, owned = ownedOf(brief);
   const result: PerimeterWalls = { elements: [], shapes: [], cells: [] }, walled = new Map<string, Cell>();
   for (const hint of runs) {
@@ -136,7 +136,7 @@ export function perimeterWalls(brief: RegionBrief, options: PerimeterReachOption
     flush();
   }
   result.cells = [...walled.values()];
-  if (addressed && !addressed.markCells(result.cells)) throw new Error('Hint walls overlap an area already addressed.');
+  if (addressed && !addressed.markCells(result.cells)) throw new Error('Perimeter walls overlap an area already addressed.');
   return result;
 }
 
@@ -153,7 +153,7 @@ export function perimeterWalls(brief: RegionBrief, options: PerimeterReachOption
  */
 export function commitPerimeterWalls(canvas: SitingCanvas, walls: PerimeterWalls, options: { passOver?: boolean } = {}): Pick<PerimeterWalls, 'elements' | 'shapes'> {
   if (!walls.elements.length || canvas.commit({ elements: walls.elements, areas: disjoint(walls.shapes), extents: walls.shapes })) return walls;
-  if (!options.passOver) throw new Error('Hint walls failed their canvas commit.');
+  if (!options.passOver) throw new Error('Perimeter walls failed their canvas commit.');
   // Each wall its own assembly, in hint order, committed as far as they stand together;
   // a wall the canvas refuses is left out (`commitEach`, #787).
   const shapes = walls.elements.map(element => elementShapes(element));

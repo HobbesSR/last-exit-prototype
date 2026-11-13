@@ -6,7 +6,7 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, liveCord, portalApproaches } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
-import { commitHintWalls, wallHints } from '../hint-walls.ts';
+import { commitPerimeterWalls, perimeterWalls } from '../perimeter-reach.ts';
 import { mergeAssemblies, type CanvasAssembly } from '../canvas.ts';
 import { disjoint } from '../../../shared/shape-construction.ts';
 import type { Shape } from '../../../shared/shape.ts';
@@ -127,7 +127,7 @@ type Side = typeof SIDES[number];
  * through a live cord (20.10), which keeps a hunter cord to every portal stand. The rooms are
  * tried as one commit; if the cord refuses them, each room keeps the most of its spans that
  * leave a cord, and the rest are left out as broken wall (#787). Then plain walls stand along
- * every hinted run where no piece or approach is (`wallHints`), each passed over if the cord
+ * every hinted run where no piece or approach is (`perimeterWalls`), each passed over if the cord
  * refuses it. So the region keeps the portal promise whenever its shape does. A region smaller than
  * `MIN_CELLS`, or with no owned 3 × 3 box for a room, goes to `open` (17 M24).
  *
@@ -225,7 +225,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   const laid = canvas.elements, pieces = laid.flatMap(e => elementShapes(e));
   const walls = laid.filter(e => e.label.endsWith('-wall')).length, debris = laid.filter(e => e.label.endsWith('-debris')).length;
 
-  const hinted = commitHintWalls(canvas, wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...approaches, ...pieces], appearance: RUIN_WALL_WEATHERED }), { passOver: true });
+  const hinted = commitPerimeterWalls(canvas, perimeterWalls(brief, { label: 'hint-wall', kind: 'ruin-wall', thickness: WALL, avoid: [...approaches, ...pieces], appearance: RUIN_WALL_WEATHERED }), { passOver: true });
   const aisle = CELL_SCALE.doorway, access = createAccessMask(brief);
   const crates = canvas.stage();
   placeInfillCrates({ brief, canvas: crates.canvas, chance: density * 0.5, channels: CHANNEL,

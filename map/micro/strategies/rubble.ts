@@ -4,7 +4,7 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, portalApproaches } from './scatter.ts';
 import { draw, rng } from '../random.ts';
 import { createFillMask, createRegionMask } from '../geometry.ts';
-import { commitHintWalls, wallHints } from '../hint-walls.ts';
+import { commitPerimeterWalls, perimeterWalls } from '../perimeter-reach.ts';
 import { createProspectiveParcels } from '../prospective-parcels.ts';
 import { SCATTER_CORD_BUDGET } from '../cord-witness.ts';
 import type { Shape } from '../../../shared/shape.ts';
@@ -48,7 +48,7 @@ const DEFAULT_SQUEEZE_SHARE = 0.8;
  * joins every portal stand, so it bends the way through rather than leaving a
  * fixed route bare (20.10, #759). The cord is proved once for as much debris as
  * stands together (`commitEach`, #787). Plain walls then stand along every hinted
- * run where no debris or approach is (`wallHints`), each wall passed over if the
+ * run where no debris or approach is (`perimeterWalls`), each wall passed over if the
  * cord refuses it.
  */
 export function buildRubble(brief: RegionBrief): BuiltRegion {
@@ -94,7 +94,7 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   const debris = sited.filter((_, i) => kept[i]).map(s => s.shape);
   const squeezeDebris = sited.filter((s, i) => kept[i] && s.squeeze).length;
 
-  const walls = commitHintWalls(canvas, wallHints(brief, { kind: 'ruin-wall', avoid: [...approaches, ...debris], appearance: RUBBLE_DEBRIS_WEATHERED }), { passOver: true });
+  const walls = commitPerimeterWalls(canvas, perimeterWalls(brief, { label: 'hint-wall', kind: 'ruin-wall', avoid: [...approaches, ...debris], appearance: RUBBLE_DEBRIS_WEATHERED }), { passOver: true });
   const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...debris, ...walls.shapes], 3);
   return builtRegion(brief, elements, loot, [], { squeezeDebris, hintWalls: walls.shapes.length });
