@@ -10,8 +10,11 @@ Sequential P9 measurements (after other tests finish):
 
 ```powershell
 npm run physics:integration
-node tests/bench-client.mjs --physics --json
+node tests/bench-client.mjs --json
 ```
+
+The client benchmark uses `defaultContent()` unless `--content=<id>` selects
+another shipped set, and includes `physicsPrediction` statistics on live runs.
 
 The integration report accepts `--warmup=N --samples=N --output=path` through
 the direct `node --expose-gc tools/physics/integration-report.mjs` invocation.
@@ -23,8 +26,8 @@ browser costs require their own existing witnesses. Source/settings and observed
 awake-body counts accompany every run. A failed admission is retained as a
 failure rather than silently reducing the requested population.
 
-Isolated research for #437 and #451. Nothing in the game imports these candidates. Rapier
-is an exact, development-only dependency; `npm ci` installs the pinned artifact.
+Isolated research for #437 and #451. The game uses its separate production adapter
+in `shared/physics/`. Rapier is an exact production dependency; `npm ci` installs the pinned artifact.
 The scenario/action contract is in [contract.md](contract.md). This is neither a
 production physics API nor permission to activate new gameplay rules.
 
