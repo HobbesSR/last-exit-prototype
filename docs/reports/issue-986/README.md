@@ -33,11 +33,17 @@ visibly change on all three seeds; both bodies complete every sampled route.
 No page or route errors were observed. Shared route segments can obscure one
 trace at this full-map scale.
 
-Stage 1 keeps grid as the default and preserves its algorithm and numeric
-expectations. Adoption and retirement remain gated on Corey's review on #986.
-That later stage owns the reports, grid implementation, dependency/vendor and
-licence removal, tile vocabulary, and the handed-on profiler/span cleanup.
-Corey's decisions in this session: remove report grid reference columns; rename
+At capture time, stage 1 kept grid as the default and preserved its algorithm and
+numeric expectations. The proposed later adoption/retirement stage on #986
+included reports, grid implementation, dependency/vendor and licence removal,
+tile vocabulary, and profiler/span cleanup.
+Corey's conditional retirement decisions in that session were: remove report grid reference columns; rename
 `TILE` unless it explicitly refers to or maps one-to-one to macro generation
 tiles (6 × 6 cells). No simulation/content, saved-map or replay version changes
 are required for this optional Lab-only measurement.
+
+Subsequent decision (2026-11-13): Corey explicitly retained grid alongside the
+mesh and rejected retirement. The conditional retirement plan above is superseded;
+the captures and their measurements remain unchanged. The current purposes,
+limits and test guidance are in [53.1](../../53.1-map-lab-and-tools.md), with the
+verbatim decision in [17.2.11](../../17.2.11-navigation-structure-direction.md#retain-grid-alongside-mesh).

@@ -159,7 +159,7 @@ existed.
 | [52-map-primitives-and-library.md](52-map-primitives-and-library.md) | Cells, segments and prescriptions, region types, tiles, set pieces and set piece classes, tier zones, scale |
 | [52.1-perimeter-authoring.md](52.1-perimeter-authoring.md) | Authoring tile perimeters for obstruction: how values become portals and clear ground, today's rules against the 2026-11-06 answers, and tips for long closed seams |
 | [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Compatibility domains, determinism, what is stored, the wire form and BSON, the sweep; guide to the tools (53.1) |
-| [53.1-map-lab-and-tools.md](53.1-map-lab-and-tools.md) | The tools that show both halves: the shared core, the Map Lab and its tabs, the CLI, the MCP server, read-only audits |
+| [53.1-map-lab-and-tools.md](53.1-map-lab-and-tools.md) | The tools that show both halves: the shared core, the Map Lab and its tabs, retained grid and bot-mesh route methods and their limits, the CLI, the MCP server, read-only audits |
 | [54-region-types.md](54-region-types.md) | The region type catalogue and guide: what every type shares, portal counts, the catalogue table, old names, material; entries in 54.1–54.4 |
 | [54.1-ground-and-friction.md](54.1-ground-and-friction.md) | Entries for `open`, `cover`, `rubble`, `ruins` and `hall` |
 | [54.2-structures.md](54.2-structures.md) | Entries for `checkpoint`, `park`, `hut`, `depot`, `plant` and `compound` |

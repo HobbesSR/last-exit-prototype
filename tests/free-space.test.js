@@ -8,7 +8,7 @@ import { canOccupy, sweptClear } from '../shared/movement.ts';
 import { arena } from './helpers/arena.js';
 
 // The bottom level of navigation (22.6, #422): the shape module's free space, eroded by a body's
-// clearance and triangulated, with the 40-unit grid kept as the reference it replaces.
+// clearance and triangulated, with the swept 40-unit grid retained as an independent reference.
 
 const CELL = 48;
 

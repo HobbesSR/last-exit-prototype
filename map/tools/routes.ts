@@ -1,7 +1,7 @@
 /**
- * Contestant and hunter routes through a built map (53, "Routes"), with the grid baseline
- * retained alongside the bot planner until mesh adoption (#986). It is a lab
- * measurement, and feeds neither the report nor the sweep.
+ * Contestant and hunter routes through a built map (53.1): a sampled grid baseline
+ * alongside the fully informed bot planner. Their diagnostic purposes and limits differ.
+ * It is a lab measurement, and feeds neither the report nor the sweep.
  */
 import type { BuiltMap } from "../kernel/contract.ts";
 import { builtMapCollision, builtMapFrame } from "../micro/adapter.ts";
