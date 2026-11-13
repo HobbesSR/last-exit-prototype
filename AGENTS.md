@@ -17,31 +17,16 @@ Large numbered documents are reading guides to decimal children (for example,
 51.7). Follow the relevant route; do not load every child. Cite the most specific
 owning number, not a heading, in briefs and handoffs. See 00 and 33 for numbering.
 
-## Model delegation requested by the user
+## Delegation
 
-Use cost-aware delegation proactively when tools and runtime rules permit it.
-Keep architecture, ambiguous diagnosis, cross-system contracts and integration
-review with the lead. When choosing a GPT lead, prefer `gpt-6.1-sol` for deep
-reasoning and broad context, and `gpt-6-astra` for creative direction and
-imagining systems' physical behavior. Prefer `gpt-6.1-sol` with medium reasoning
-for bounded implementation/tests, especially algorithmically dense or
-high-invariant ones, and `gpt-6-luna` with low/medium reasoning for mechanical
-edits, focused inventories and simple, fully specified tests. Use `gpt-6.1-terra`
-for computer and browser use and visual work: driving and testing tools, labs
-and other GUI elements through screenshots, and ingesting images and documents.
-Not for live game playing. Claude Code leads route delegated work to the
-`implementer` (Sonnet), `mechanical` and `Explore` (Haiku) agents in `.claude/agents/` and
-name a model on every spawn, since an unnamed one inherits the lead's
-([32](docs/32-delegation.md#claude-code-workers)). Check
-actual available models; do not silently spawn flagship workers for routine tasks.
+The user asks for cost-aware delegation, used proactively where tools and runtime
+rules permit it. The lead keeps architecture, ambiguous diagnosis, cross-system
+contracts and integration review; [32](docs/32-delegation.md) routes the rest by
+work type and model, and holds the worker brief. Claude Code leads name a model on
+every spawn, since an unnamed one inherits the lead's
+([32](docs/32-delegation.md#claude-code-workers)).
 
-Delegate only when the task is independently actionable and the lead has useful
-work alongside it. Assign non-overlapping file ownership, supply a compact brief,
-and review the result. Keep tiny tasks local. Workers must escalate changes to
-contracts or unresolved requirements rather than invent product decisions.
-See `docs/32-delegation.md` for the task brief and manual-switch handoff convention.
-
-## Project invariants and verification
+## Project invariants
 
 - The frozen characterization fixture is `behavior-physics-1.v8.gz`, the physics
   engine every match runs. [31](docs/31-verification.md) owns verification policy; the
@@ -57,38 +42,26 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   "Accepted" does not imply implemented; resolve concrete open choices through
   existing user answers in `docs/17-open-questions.md` or explicitly recorded
   assumptions appropriate to the task.
-- Run test scripts through the thin reporter, `npm run brief -- test` (or `-- test:slow`,
-  `-- test:physics` and so on): a line per file and the details of each failure. Start
-  long runs in the background and wait for the exit notification; do not poll their
-  output ([31](docs/31-verification.md)).
-- Run focused checks for changed behavior. Iterate on a file or a test set
-  (`npm run brief -- test:set micro:depot`; `node tests/sets.mjs changed` names the
-  sets a branch reaches; [31](docs/31-verification.md#test-sets)). A new test file joins
-  one set in `tests/sets.mjs`. `npm test` is the fast tier, the gate before a PR;
-  `npm run test:all` adds the slow seed sweeps and whole-match runs.
-  Choose the rest by changed area from the table in
-  [31](docs/31-verification.md#choosing-checks-by-changed-area): it gives each
-  area's inner-loop, pre-PR and integration checks and what each `tests/slow/` file
-  can move. Do not default to `test:all`, `test:browser` or the benchmarks. Run timing
-  comparisons sequentially without competing tests/benchmarks; repeat suspected
-  regressions three times. Compare versions in alternated pairs and report CPU time beside
-  wall time ([31](docs/31-verification.md)). Do not claim the reported slowdown fixed without evidence.
-  Forgejo CI runs the fast gates on each PR and the slow tier after merge, filing an
-  issue per slow failure (`docs/31`), so a PR may be opened on `npm test` alone; it
-  does not replace the other checks your change needs. Fix a failed PR run before the
-  PR is ready; run `npm run test:slow` first when your change is likely to move it.
-- A new or grown test file stays under 15 s (fast tier) or 60 s (`tests/slow/`); check it with
-  `npm run test:times -- <file>`. Optimize, split or gate expensive cases behind an environment
-  variable rather than adding minutes to every run (`docs/31`). Adding, growing or turning on a
-  test, or slowing existing ones, obliges you to show the PR knows its workflow cost: isolated
-  time, tier and its effect there (CI runs several times slower), and why that scope is the
-  cheapest that shows the claim ([31](docs/31-verification.md#test-cost)).
 - Before adding third-party code, assets or a newly served package, check that its licence is
   compatible with the project's MIT licence, and record it with its notices
   ([21.1](docs/21.1-third-party-licenses.md)). Escalate copyleft, non-commercial or
   unlicensed material; never add it without asking.
 - When a rule changes, update its numbered document in the same change.
   `docs/33-maintenance.md` says where each kind of fact belongs.
+
+## Verification
+
+[31](docs/31-verification.md) holds the rules; these are the ones to act on without
+looking them up.
+
+- Run test scripts through the thin reporter, `npm run brief -- <script>`. Start long
+  runs in the background and wait for the exit notification; do not poll their output.
+- Choose checks by changed area from
+  [31's table](docs/31-verification.md#choosing-checks-by-changed-area), not by
+  default: never `test:all`, `test:browser` or the benchmarks unless your area calls
+  for them. `npm test` is the gate before a PR.
+- Adding, growing or slowing a test carries a cost statement in the PR
+  ([31](docs/31-verification.md#test-cost)).
 
 ## Repository layout
 
@@ -110,23 +83,17 @@ import `AGENTS.md`; edit `AGENTS.md`, not them.
 ## Forgejo workflow
 
 These rules are for top-level agents; in-session subagents follow
-`docs/32-delegation.md` instead (see 34).
+[32](docs/32-delegation.md) instead. [34](docs/34-forgejo-workflow.md) has the full
+loop, the agent accounts, the worktree table and how to review.
 
-Forgejo, on the human's home network (the `forgejo` remote), is the source of
-truth. GitHub (`gh`) is the public remote copy, which only the human pushes to;
-agents push only to `forgejo`. Because this repository is public, hosting,
-runner, network and credential details live in the private `corey/studio-ops`
-repository on Forgejo, never here. Use the `forgejo` MCP tools, which act as your own agent account
-(Antigravity loads them through `call_mcp_tool` with `ServerName: forgejo`).
-`docs/34-forgejo-workflow.md` has the full loop, the agent accounts and the
-worktree table.
+Forgejo (the `forgejo` remote) is the source of truth; GitHub (`gh`) is a public copy
+only the human pushes to. Hosting, runner, network and credential details live in
+the private `corey/studio-ops` repository, never here. Use the `forgejo` MCP tools,
+which act as your own agent account (Antigravity loads them through `call_mcp_tool`
+with `ServerName: forgejo`).
 
-- Work only in your own worktree, `../astra_test.agents/<agent>`, on a
-  `<agent>/<feature>` branch started from fresh `forgejo/main`. Never commit in
-  the primary checkout, on `main`, or in another agent's worktree.
-- Claim issues with `assign_issue`, push with `git push -u forgejo HEAD`, open the
-  PR with `create_pull_request` ("Fixes #N", saying what testing you did), and
-  review others' PRs with `submit_pull_request_review` (trusting the author's
-  testing assertions when the scope matches the commit, while retaining discretion
-  to re-run focused checks if validation appears stale or incomplete).
+- Work only in your own worktree, on a `<agent>/<feature>` branch from fresh
+  `forgejo/main`. Never commit in the primary checkout, on `main`, or in another
+  agent's worktree.
+- Review from the diff; do not re-run the author's tests except as 34 allows.
 - Humans merge. Do not merge.

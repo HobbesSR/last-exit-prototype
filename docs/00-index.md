@@ -86,7 +86,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [31-verification.md](31-verification.md) | Verification gates, what each suite covers, the frozen fixture rule |
+| [31-verification.md](31-verification.md) | Verification policy: gates and tiers, test cost, test sets, choosing checks by changed area, test arenas, CI, the frozen fixture, content batching; guide to 31.1 (test catalogue by set) and 31.2 (benchmarks and timing tools) |
 | [32-delegation.md](32-delegation.md) | Cost-aware delegation, the worker brief, manual model switches |
 | [33-maintenance.md](33-maintenance.md) | How to keep these documents true, and where a new fact belongs, including the archive |
 | [33.1-foundation-pass.md](33.1-foundation-pass.md) | The Foundation Pass: a periodic project-wide quality and maintainability review under a freeze; its conditions, six concern tracks and how a pass ends |
