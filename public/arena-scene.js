@@ -84,7 +84,7 @@ export function makeArenaScene(api) {
       });
       this.game.canvas.addEventListener('contextmenu', e => e.preventDefault());
       this.game.canvas.style.cursor = 'crosshair';
-      this.scale.on('resize', () => this.updateCamera(true));
+      this.scale.on('resize', () => this.updateCamera());
       api.onReady(this); if (api.map()) this.buildMap();
     }
     label(x, y, text, color = '#2c514b', size = 12) {
@@ -101,7 +101,7 @@ export function makeArenaScene(api) {
       // that subject at every viewport/zoom; its authoritative position is bounded.
       this.cameras.main.removeBounds();
       this.recordStatic(map);
-      this.updateCamera(true);
+      this.updateCamera();
     }
     /** Draw in another palette or static art mode (11.1, 29.4). Only static drawings are recorded again; sight, memory and actors are kept. */
     setPalette(id) {
@@ -159,9 +159,9 @@ export function makeArenaScene(api) {
     /** Drop the smoothed eye and the old subject's gate memory, so the next frame cuts to a new subject. */
     cutTo() {
       this.eye = null; this.sight = null; this.visionPoints = null;
-      this.gateMemory?.clear(); this.rememberedGates = []; this.vision?.clear(); this.updateCamera(true);
+      this.gateMemory?.clear(); this.rememberedGates = []; this.vision?.clear(); this.updateCamera();
     }
-    updateCamera(snap = false) {
+    updateCamera() {
       const state = api.state(), map = api.map(); if (!state || !map) return;
       // A directed camera is the director's to point: whole arena, a free view, or a followed player.
       const focus = this.eye || api.follow() || api.self() || state.players[0];

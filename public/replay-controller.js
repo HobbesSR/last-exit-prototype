@@ -103,7 +103,7 @@ export function createReplayController({
       // The roster comes from the recording rather than the displayed frame, so a subject can be
       // chosen before they appear and stays selectable after they are eliminated.
       fillFollowOptions($('replay-focus'), timeline.roster, described); director.reset(); setFollow(null); renderMarks();
-      document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seek(0); getScene()?.updateCamera(true);
+      document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seek(0); getScene()?.updateCamera();
     } catch (error) { if (load === generation) toast(error.message); }
   }
   function renderFrame() {
@@ -121,7 +121,7 @@ export function createReplayController({
     const liveMap = getLiveMap(), liveState = getLiveState();
     if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
     else { updateHUD(); }
-    connection(liveConnectionLabel()); getScene()?.updateCamera(true);
+    connection(liveConnectionLabel()); getScene()?.updateCamera();
   }
   function reset() {
     cancel(); replay = null; replayTimeline = null; described = null; $('replay-marks').replaceChildren();
