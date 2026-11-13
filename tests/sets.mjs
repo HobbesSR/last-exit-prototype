@@ -33,7 +33,7 @@ export const SETS = {
   },
   client: {
     about: 'what the browser draws and how it presents and buffers frames',
-    fast: ['appearance', 'event-light', 'palette', 'snapshot-buffer', 'lab-walk', 'diagnostics-episodes'],
+    fast: ['appearance', 'event-light', 'palette', 'snapshot-buffer', 'lab-walk', 'diagnostics-episodes', 'tile-recorder'],
     browser: ['art-witness', 'overhead', 'dev-view'],
     sources: ['public/**'],
   },

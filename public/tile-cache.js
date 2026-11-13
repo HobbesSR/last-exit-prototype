@@ -17,7 +17,7 @@ const MIN_RESOLUTION = 1 / 16, MAX_RESOLUTION = 2;
 // and the tile grid shows as faint seams. Drawings this close to a tile are drawn into it.
 const SEAM = 1 / MIN_RESOLUTION;
 // Each Graphics method a recorder accepts, recorded for replay into the tiles it touches.
-const STATIC_DRAWS = ['fillStyle', 'lineStyle', 'fillPoints', 'strokePoints', 'fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'lineBetween', 'fillCircle', 'fillEllipse', 'fillTriangle'];
+const STATIC_DRAWS = ['fillStyle', 'lineStyle', 'fillPoints', 'strokePoints', 'fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'lineBetween', 'fillCircle', 'fillEllipse', 'fillTriangle', 'beginPath', 'arc', 'strokePath'];
 
 /**
  * A cache of baked static drawings. The base plane's tiles go beneath everything in `world`; each
