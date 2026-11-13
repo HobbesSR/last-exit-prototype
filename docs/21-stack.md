@@ -23,5 +23,5 @@ Planck.js was the reserve during integration. The P0 comparison and retained fai
 production dependency initialized by the async physics factory (`behavior-physics-1.v8.gz`).
 Its contracts and executed phase boundaries are in [29.1](29.1-physics-design.md),
 [29.2](29.2-physics-state-networking.md) and [42.11](42.11-physics-p1.md), with
-remaining qualification/capacity work in [41.1](41.1-physics-plan.md). P9's developer-only local
+remaining qualification/capacity work on epic #436. P9's developer-only local
 playtest and measured integration checkpoint are in [42.20](42.20-physics-p9.md).

@@ -319,7 +319,7 @@ into the outer zone, and a map without extent is column 0, middle row. Mix =
 column + 1 + distance from the middle row (0/1/2), capped at 5. A live chain
 map's frame is the diamond plan's 5 x 5 zone grid, so its columns are the zones'
 tiers; any other map gets the same proportional split of its rectangle. On a live map, mix 1 is the entry zone, which rolls
-no loot, so only the spawn kit is there. Provisional weights for qualities 1..5 (41.1):
+no loot, so only the spawn kit is there. Provisional weights for qualities 1..5 (17.3 Q10):
 
 | Mix | Q1 | Q2 | Q3 | Q4 | Q5 |
 | --- | --- | --- | --- | --- | --- |
@@ -353,7 +353,7 @@ body can be admitted for it.
 A weapon's `ammo` is its loaded magazine and travels with the weapon instance:
 a dropped, swapped or death-dropped weapon keeps it, never the player's reserve.
 Each contestant holds pistol, rifle and shell reserves outside the six slots.
-Provisional numbers (41.1; the user will rebalance, 17.3 Q4):
+Provisional numbers (the user will rebalance, 17.3 Q4):
 
 | Weapon | Family | Magazine | Reserve cap | Reload |
 | --- | --- | --- | --- | --- |
