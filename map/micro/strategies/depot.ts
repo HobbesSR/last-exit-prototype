@@ -16,7 +16,8 @@ import type { BuiltRegion, RegionBrief } from '../types.ts';
 import type { BuildingAppearance } from '../../../shared/types.ts';
 import { builtRegion } from '../result.ts';
 import { infillCrates as placeInfillCrates } from './infill.ts';
-import { portalStands } from '../portals.ts';
+import { portalEntranceBlocks, portalStands } from '../portals.ts';
+import { hunterBlockFits, floodHunterYard } from '../yard.ts';
 
 /**
  * Authored minimal appearance descriptor for industrial depot warehouses (41.2 Step 3 / #584).
@@ -114,24 +115,10 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   // Label the empty yard once. Every admitted envelope has a complete two-cell ring and
   // two-cell inter-piece spacing, so later pieces can reroute a yard path around themselves,
   // preserving local bypasses as well as portal routes.
-  const yard = new Set<string>();
   const key = (x: number, y: number) => `${x},${y}`;
-  if (brief.portals.length) {
-    const fits = (x: number, y: number) => canvas.access.has(x, y) && canvas.access.has(x + 1, y)
-      && canvas.access.has(x, y + 1) && canvas.access.has(x + 1, y + 1);
-    const queue: { x: number; y: number }[] = [];
-    const add = (x: number, y: number) => {
-      if (yard.has(key(x, y)) || !fits(x, y)) return;
-      yard.add(key(x, y)); queue.push({ x, y });
-    };
-    for (const { portal } of portalStands(brief)) for (let i = 0; i + 2 <= portal.length; i++)
-      if (portal.axis === 'h') add(portal.x + i, portal.y - 1);
-      else add(portal.x - 1, portal.y + i);
-    for (let head = 0; head < queue.length; head++) {
-      const { x, y } = queue[head]!;
-      add(x + 1, y); add(x - 1, y); add(x, y + 1); add(x, y - 1);
-    }
-  }
+  // Every fitting entrance seeds the union of portal-reachable yard components.
+  const yard = brief.portals.length ? floodHunterYard(hunterBlockFits((x, y) => canvas.access.has(x, y)),
+    portalStands(brief).flatMap(({ portal }) => portalEntranceBlocks(portal))).reached : new Map<string, number>();
   const boxAt = (u: number, v: number, length: number, width: number) => {
     const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
     return rect(x * size, y * size, w * size, h * size);

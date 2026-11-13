@@ -5,7 +5,7 @@ import type { ElementAppearance, ObstacleAppearance } from '../../../shared/type
 import { elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../random.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
-import { liveCord, portalApproaches, sitePiecesPerCell, withPerimeterWalls } from './scatter.ts';
+import { ROUTED_PORTAL_LIMIT, liveCord, portalApproaches, sitePiecesPerCell, withPerimeterWalls } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { COVER_PIECE, COVER_PIECES, type CoverPieceName } from '../placeables/cover-piece.ts';
@@ -93,7 +93,7 @@ function coverExecution(build: (brief: RegionBrief) => BuiltRegion): ExecutionBu
  */
 function fallbackCover(brief: RegionBrief, lattice: BuiltRegion, density: number): BuiltRegion {
   // Above this limit the lattice's boundary policy bounds route work, so there is no fallback.
-  if (lattice.elements.length || density === 0 || brief.portals.length > 32) return lattice;
+  if (lattice.elements.length || density === 0 || brief.portals.length > ROUTED_PORTAL_LIMIT) return lattice;
   const size = brief.cellSize;
   // Sited on a draft of a live cord, and committed as far as the cord allows (#787).
   const coordinator = liveCord(brief, 'Cover'), staged = coordinator.stage();
@@ -141,7 +141,7 @@ function densityOf(brief: RegionBrief): number {
  * Slots lie on a lattice `PERIOD` cells apart. A slot is taken with chance `density`, by a
  * cluster of up to `CLUSTER` crates, barriers and the odd container, at jittered spots in it.
  * Neighbouring slots keep an aisle between clusters. Candidate boxes stay owned and clear
- * of portal approaches. Up to 32 portals nothing else is reserved between them: clusters are
+ * of portal approaches. Up to `ROUTED_PORTAL_LIMIT` portals nothing else is reserved between them: clusters are
  * sited on a draft of a live cord (20.10), which commits as many pieces as keep a hunter cord
  * to every portal stand, and a refused piece is passed over (#787). Past that, boxes keep an
  * aisle from the boundary instead. Hinted runs guide
@@ -164,9 +164,9 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
 export function sitedCover(brief: RegionBrief): { region: BuiltRegion } {
   const density = densityOf(brief), size = brief.cellSize;
   const cells = [...brief.cells].sort(compareCells);
-  // Up to 32 portals a live cord joins them (20.10); past that, keeping it is too dear, and
+  // Up to `ROUTED_PORTAL_LIMIT` portals a live cord joins them (20.10); past that, keeping it is too dear, and
   // boxes keep an aisle from the boundary instead.
-  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= ROUTED_PORTAL_LIMIT;
 
   const hinted = new Map<string, { x: number; y: number }[]>();
   for (const piece of PIECES) for (const [w, h] of [[piece.w, piece.h], [piece.h, piece.w]])
@@ -228,7 +228,7 @@ export function sitedCover(brief: RegionBrief): { region: BuiltRegion } {
  * pieces away from cover the cord accepted can't break its cord, so this one has none.
  */
 function approachCanvas(brief: RegionBrief): BuilderCanvas {
-  return createBuilderCanvas(brief, brief.portals.length <= 32 ? portalApproaches(brief, 'Cover') : []);
+  return createBuilderCanvas(brief, brief.portals.length <= ROUTED_PORTAL_LIMIT ? portalApproaches(brief, 'Cover') : []);
 }
 
 /** Commits each piece as its own assembly, as `buildCover` did. Siting has accepted them, so a refusal is an invariant failure. */
@@ -290,7 +290,7 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
  * Makes sure some cover stands within `within` of `site`'s clear disc: if none of `elements`
  * does, one container is added there, if the region has room. Like `buildCover`'s clusters,
  * it keeps `AISLE` clear cells from every other piece and leaves portal approaches clear. It never cuts `site`'s route from `root`,
- * and up to 32 portals it stands only where a live cord still joins every portal stand (20.10, #787).
+ * and up to `ROUTED_PORTAL_LIMIT` portals it stands only where a live cord still joins every portal stand (20.10, #787).
  * Loot it would cover is dropped. The pick among places that qualify is seeded.
  *
  * It only adds: if a fresh cord now refuses any of the given cover (the search's own
@@ -304,8 +304,7 @@ export function coverNear(brief: RegionBrief, cover: NearCover, site: ClearSite,
   const blockers = cover.elements.flatMap(element => elementShapes(element));
   if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
 
-  // Up to 32 portals a live cord joins them; past that, boxes keep an aisle from the boundary instead.
-  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= ROUTED_PORTAL_LIMIT;
   let canvas: SitingCanvas;
   if (routed) {
     // The cover already stood on a cord, so it commits as one. This only adds a guard: if the

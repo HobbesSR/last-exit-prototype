@@ -6,7 +6,8 @@ import type { BuildingAppearance } from '../../../shared/types.ts';
 import { createTieredBuildingAppearance, type TieredAppearanceOptions } from '../building/decay.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
-import { portalStands } from '../portals.ts';
+import { portalEntranceBlocks, portalStands } from '../portals.ts';
+import { hunterBlockFits, floodHunterYard } from '../yard.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { COMPOUND_RING } from '../placeables/compound-ring.ts';
@@ -141,13 +142,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
   observe?: (probe: CompoundSitingProbe) => void):
   (Box & { gated: Set<Side> }) | undefined {
   const key = (x: number, y: number) => `${x},${y}`;
-  const entrances: { x: number; y: number }[] = [];
-  // Each entrance block straddles its portal's seam, in the clear margin on both sides (20.6).
-  for (const { portal: { axis, x, y, length } } of portalStands(brief)) {
-    for (let i = 0; i + 2 <= length; i++) {
-      entrances.push(axis === 'h' ? { x: x + i, y: y - 1 } : { x: x - 1, y: y + i });
-    }
-  }
+  const entrances = portalStands(brief).flatMap(({ portal }) => portalEntranceBlocks(portal));
   const gateOrder = [...SIDES].map((side, i) => ({ side, order: draw(brief.seed, i, 0, CHANNEL.gateSide) }))
     .sort((a, b) => a.order - b.order).map(v => v.side);
   const sizes: [number, number][] = [];
@@ -190,8 +185,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
       for (let y = box.y; y < box.y + h && valid; y++) for (let x = box.x; x < box.x + w; x++)
         if (!mask.has(x, y)) { valid = false; break; }
       if (!valid) { observe?.({ box, reason: 'outside-fill' }); continue; }
-      const fits = (x: number, y: number) => !inside(x, y) && !inside(x + 1, y) && !inside(x, y + 1) && !inside(x + 1, y + 1)
-        && accessMask.has(x, y) && accessMask.has(x + 1, y) && accessMask.has(x, y + 1) && accessMask.has(x + 1, y + 1);
+      const fits = hunterBlockFits((x, y) => !inside(x, y) && accessMask.has(x, y));
       // A gate needs a two-cell yard stand at its actual passage. Reject sites
       // without enough such sides before walking the yard, the costly check.
       const gateSteps = gateOrder.map(side => {
@@ -213,19 +207,8 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
       if (gateSteps.length < gates) { observe?.({ box, reason: 'insufficient-gate-stands', gateSides: gateSteps.map(v => v.side) }); continue; }
       const start = entrances[0] ?? accessMask.cells.find(c => fits(c.x, c.y));
       if (!start || !fits(start.x, start.y)) { observe?.({ box, reason: 'invalid-start' }); continue; }
-      // This flood belongs only to this candidate box: each node is an owned 2x2
-      // hunter stand outside it, and adjacent nodes sweep an owned 2x3 rectangle.
-      // Sharing that reached set among portals and gate steps is safe while the box
-      // is fixed; the next candidate recomputes it instead of reusing yard evidence.
-      const reached = new Set([key(start.x, start.y)]), queue = [start];
-      for (let head = 0; head < queue.length; head++) {
-        const { x, y } = queue[head]!;
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-          const nx = x + dx, ny = y + dy, k = key(nx, ny);
-          if (reached.has(k) || !fits(nx, ny)) continue;
-          reached.add(k); queue.push({ x: nx, y: ny });
-        }
-      }
+      // Recompute for each candidate: the ring box changes the yard graph.
+      const { reached } = floodHunterYard(fits, [start]);
       if (entrances.some(e => !reached.has(key(e.x, e.y)))) {
         observe?.({ box, reason: 'disconnected-portals', gateSides: gateSteps.map(v => v.side), reachedBlocks: reached.size,
           missingEntrances: entrances.filter(e => !reached.has(key(e.x, e.y))) });

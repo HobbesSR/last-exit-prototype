@@ -91,6 +91,10 @@ export function portalApproaches(brief: RegionBrief, type: string): Shape[] {
   return kept;
 }
 
+/** Portal-count limit for cover/plant routing and the optional withPerimeterWalls pass.
+ * Above it, cover/plant keep a boundary aisle and the wall pass leaves the region unchanged. */
+export const ROUTED_PORTAL_LIMIT = 32;
+
 /**
  * A prospective-parcels coordinator (20.10) anchored on `portalApproaches`: it keeps a live hunter
  * cord to every portal stand and refuses a commit that would leave none. Nothing else is reserved
@@ -118,11 +122,11 @@ export function perimeterWallsIfAsked(brief: RegionBrief, coordinator: Prospecti
  * `region`, finished, with `perimeterWallsIfAsked`'s walls added last, for a builder whose
  * own steps (such as a fallback that runs only when nothing was placed) must not see them
  * (#852 review 669). Its pieces are recommitted through a fresh live cord as one assembly,
- * then the walls are offered; loot a wall now covers is dropped. Past 32 portals, where
+ * then the walls are offered; loot a wall now covers is dropped. Past `ROUTED_PORTAL_LIMIT` portals, where
  * such builders keep no cord, or if the cord refuses the pieces, the region is unchanged.
  */
 export function withPerimeterWalls(brief: RegionBrief, region: BuiltRegion, type: string): BuiltRegion {
-  if (brief.parameters?.perimeterWalls !== true || brief.portals.length > 32) return region;
+  if (brief.parameters?.perimeterWalls !== true || brief.portals.length > ROUTED_PORTAL_LIMIT) return region;
   const coordinator = liveCord(brief, type), pieces = region.elements.map(element => ({ elements: [element] }));
   if (pieces.length && !coordinator.commit(mergeAssemblies(pieces))) return region;
   if (!perimeterWallsIfAsked(brief, coordinator, type)) return region;
