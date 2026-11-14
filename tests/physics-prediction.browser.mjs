@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
 
@@ -19,7 +19,7 @@ const { server, base, browser } = await serveWithBrowser({ profileSummary: false
 try {
   const page = await browser.newPage();
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   await page.goto(base);
   const result = await page.evaluate(async () => {
     const { createPhysicsPrediction, PREDICTION_LIMITS } = await import('/physics-prediction.js');
@@ -65,8 +65,7 @@ try {
   // This pass traverses the actual page, input controller, WebSocket, server
   // match, physics projection, predictor and presentation wiring.
   const live = await browser.newPage({ viewport: { width: 1200, height: 800 } });
-  live.on('pageerror', error => errors.push(error.message));
-  live.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  collectBrowserErrors(live, errors, { consoleErrors: true });
   await live.goto(`${base}/?seed=441`);
   await live.getByRole('button', { name: 'Start match', exact: true }).click();
   await live.waitForFunction(version => window.arenaDebug?.().phase === 'live' &&

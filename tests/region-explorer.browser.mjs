@@ -1,21 +1,18 @@
 // Region Builder Explorer acceptance: node tests/region-explorer.browser.mjs
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { mkdir, readFile } from 'node:fs/promises';
+import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js';
 import { REGION_TYPES, buildRegion } from '../map/micro/region-types.ts';
 import { regionExample } from '../map/micro/region-examples.ts';
 import { builtMapCollision } from '../map/micro/adapter.ts';
 import { canOccupy } from '../shared/movement.ts';
 
-const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-region-explorer-'));
-const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
+const { base, browser, close } = await serveDevWithBrowser();
 try {
   await mkdir('test-results', { recursive: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 2 });
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   await page.goto(`${base}/dev`);
   await page.getByRole('heading', { name: 'Region Builder Explorer' }).click();
   await page.waitForFunction(() => window.microLabDebug?.().result?.brief?.type === 'depot');
@@ -238,5 +235,5 @@ try {
   assert.deepEqual(errors, []);
   console.log('Region Builder Explorer browser acceptance passed.');
 } finally {
-  await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true });
+  await close();
 }

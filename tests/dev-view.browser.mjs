@@ -1,20 +1,16 @@
 // The dev view (#231) on its own: a player's tab, the dev tab it opens, and what the dev tab can do to
 // the room. Separate from browser.mjs so it can be iterated on in seconds rather than minutes.
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { mkdir } from 'node:fs/promises';
+import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js';
 import { canOccupy } from '../shared/movement.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 
-const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-dev-view-'));
 await mkdir('test-results', { recursive: true });
-const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
+const { server, base, browser, close } = await serveDevWithBrowser();
 const errors = [];
 const watch = page => {
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: true });
 };
 /** Poll a server-side condition, failing with what the tab thought when it never holds. */
 async function until(condition, describe, timeout = 5000) {
@@ -48,7 +44,9 @@ try {
   await page.waitForFunction(() => window.arenaDebug().fog === false && window.arenaDebug().viewer === null && window.arenaDebug().vision === null);
   assert.ok(room.match.roster().some(p => p.id === subject), 'stepping out keeps the slot');
   const seqOf = () => room.match.snapshot().players.find(p => p.id === subject).lastSeq;
-  await page.waitForTimeout(300); const parked = seqOf();
+  await until(() => body.lastSeq === body.receivedSeq && !(body.inputQueue?.length),
+    () => `the last player inputs drained: ${body.lastSeq} vs ${body.receivedSeq}, queued ${body.inputQueue?.length ?? 0}`);
+  const parked = seqOf();
   await page.keyboard.down('KeyD'); await page.waitForTimeout(400); await page.keyboard.up('KeyD');
   assert.equal(seqOf(), parked, 'no input reaches the player while in the dev view');
   await page.locator('#dev-focus').selectOption(far.id);
@@ -178,7 +176,14 @@ try {
   const followed = await dev.evaluate(id => ({ debug: window.arenaDebug(), subject: window.arenaDebug().actors.find(a => a.id === id) }), subject);
   // The followed player sees themselves even cloaked, as in their own view.
   room.game.players.find(p => p.id === subject).cloak = 200;
-  await dev.waitForTimeout(400);
+  const cloakedAt = room.match.tick;
+  const cloakFrame = await dev.waitForFunction(tick => {
+    const shown = window.arenaDebug().tick;
+    return shown > tick ? shown : false;
+  }, cloakedAt);
+  // Directed actors use the buffered presentation, behind the newest received frame.
+  await dev.waitForFunction(tick => window.arenaDebug().buffer.playhead >= tick, await cloakFrame.jsonValue());
+  await cloakFrame.dispose();
   assert.equal(await dev.evaluate(id => window.arenaDebug().actors.find(a => a.id === id).visible, subject), true, 'a cloaked followed player stays visible');
   room.game.players.find(p => p.id === subject).cloak = 0;
   assert.ok(Math.abs(followed.debug.camera.x + followed.debug.cameraWidth / 2 - followed.subject.x) < 60, 'following centres on the subject');
@@ -337,4 +342,4 @@ try {
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'palette restyle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto', 'dev view across the start', 'death dialog hidden in dev view and restored'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
-finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }
+finally { await close(); }

@@ -3,10 +3,7 @@
  * so its saves must equal the core's own for the same seed, and a save it reads back must
  * show the same map. Run from the repository root: `node map/tools/tests/lab.browser.mts`.
  */
-import { createRequire } from "node:module";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { CHAIN_LIBRARY, chainParams, checkMap, generate, generateMacro } from "../core.ts";
 import { libraryFingerprint } from "../../macro/src/coding.ts";
@@ -14,28 +11,16 @@ import { planBlock } from "../../micro/strategies/block.ts";
 import { buildRegion } from "../../micro/region-types.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
-import { DEFAULT_CELL_SIZE, GAME_ENGINES } from "../../engines.ts";
+import { GAME_ENGINES } from "../../engines.ts";
 import { measureRoutes } from "../routes.ts";
 import { liveChainParams } from "../../live.ts";
-import { PLACEABLES } from "../../micro/placeables/index.ts";
-// @ts-expect-error The game server is JavaScript without declarations.
-import { createArenaServer } from "../../../server/index.js";
 // @ts-expect-error The test helpers are JavaScript without declarations.
-import { listen } from "../../../tests/helpers/listen.js";
+import { collectBrowserErrors, serveDevWithBrowser } from "../../../tests/helpers/browser.js";
 
-const require = createRequire(import.meta.url);
-let playwright: any;
-try {
-  playwright = require("@playwright/test");
-} catch {
-  throw Error("The Map Lab's browser check needs @playwright/test; run npm ci at the repository root.");
-}
 const OUT = "test-results/map-lab";
 await mkdir(OUT, { recursive: true });
 // The game's server, which the lab links to as its peer (20.5) for "Play in the game".
-const replayDir = await mkdtemp(path.join(tmpdir(), "map-lab-browser-"));
-const game = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
-const gameUrl: string = await listen(game);
+const { base: gameUrl, browser, close } = await serveDevWithBrowser({ strictProtocol: false });
 // A room's player waits in the yard (#236) until its owner starts the match, so the first map a
 // room shows is the yard's. The linked room is the page's own, so it starts the match and waits
 // for the map it was asked for.
@@ -46,12 +31,10 @@ async function matchMap(room: any, seed: number, timeout: number) {
 }
 // The Map Lab now runs on the game server itself.
 const base = gameUrl + '/dev/map';
-let browser: any;
 try {
-  browser = await playwright.chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
   const errors: string[] = [];
-  page.on("pageerror", (e: Error) => errors.push(e.message));
+  collectBrowserErrors(page, errors);
   const snapshot = () => page.evaluate(() => (window as any).mapLab.snapshot());
   /** Wait until the lab shows a map for `seed`, or has failed. */
   const shown = async (seed: string) => {
@@ -1876,7 +1859,7 @@ try {
   // unrelated thumbnails as built. A fresh context starts from the starter library.
   {
     const editPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-    editPage.on("pageerror", (error: Error) => errors.push(error.message));
+    collectBrowserErrors(editPage, errors);
     await editPage.goto(base, { waitUntil: "domcontentloaded" });
     await editPage.waitForFunction(() => !!(window as any).chainLab);
     await editPage.locator("#chainTab").click();
@@ -1991,7 +1974,7 @@ try {
   // container. Each persistence case gets its own browser context and localStorage.
   const draftKey = "last-exit-chain-library-v3";
   const starterPage = await browser.newPage();
-  starterPage.on("pageerror", (error: Error) => errors.push(error.message));
+  collectBrowserErrors(starterPage, errors);
   await starterPage.goto(base, { waitUntil: "domcontentloaded" });
   await starterPage.waitForFunction(() => !!(window as any).chainLab);
   const starterDraft = await starterPage.evaluate(() => (window as any).chainLab.snapshot().library);
@@ -2000,7 +1983,7 @@ try {
   await starterPage.close();
   const savedDraftPage = async (raw: string, failBackup = false) => {
     const draftPage = await browser.newPage();
-    draftPage.on("pageerror", (error: Error) => errors.push(error.message));
+    collectBrowserErrors(draftPage, errors);
     await draftPage.addInitScript(({ key, source, fail }: { key: string; source: string; fail: boolean }) => {
       if (!sessionStorage.getItem("browser-draft-seeded")) {
         localStorage.setItem(key, source);
@@ -2180,7 +2163,7 @@ try {
   // a lottery each content batch; a block its lots, and the
   // compound one of them holds. Each rebuild equals the stored result, so its traces are drawn.
   const drillPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  drillPage.on("pageerror", (error: Error) => errors.push(error.message));
+  collectBrowserErrors(drillPage, errors);
   await drillPage.goto(base, { waitUntil: "domcontentloaded" });
   const drillSnapshot = () => drillPage.evaluate(() => (window as any).mapLab.snapshot());
   const drillShown = (seed: string) => drillPage.waitForFunction((s: string) => {
@@ -2253,7 +2236,7 @@ try {
   // request. A spawn to the exit on the default seed draws both, with the lengths the tools'
   // own measurement gives; the void outside the map's mask is plainly unreachable.
   const routePage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  routePage.on("pageerror", (error: Error) => errors.push(error.message));
+  collectBrowserErrors(routePage, errors);
   await routePage.goto(base, { waitUntil: "domcontentloaded" });
   await routePage.waitForFunction(() => (window as any).mapLab?.snapshot().seed === "last-exit-001" && !(window as any).mapLab.snapshot().busy, null, { timeout: 60000 });
   const measured = async () => {
@@ -2310,7 +2293,7 @@ try {
   // The inspector opens a cell's tile design in the Chain Library tab. A fresh page's draft is
   // the starter library, so it asks before replacing the draft with the map's.
   const linkPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  linkPage.on("pageerror", (error: Error) => errors.push(error.message));
+  collectBrowserErrors(linkPage, errors);
   const asked: string[] = [];
   linkPage.on("dialog", (dialog: any) => (asked.push(dialog.message()), dialog.accept()));
   await linkPage.goto(base, { waitUntil: "domcontentloaded" });
@@ -2336,7 +2319,7 @@ try {
   // room's recipe and an integer seed it links to a new room on the game's server, which
   // plays the same map: the same frame and every site where the lab's built view puts it.
   const playPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  playPage.on("pageerror", (error: Error) => errors.push(error.message));
+  collectBrowserErrors(playPage, errors);
   await playPage.goto(base, { waitUntil: "domcontentloaded" });
   await playPage.waitForFunction(() => (window as any).mapLab?.snapshot().seed === "last-exit-001" && !(window as any).mapLab.snapshot().busy, null, { timeout: 60000 });
   const notLive = (await playPage.evaluate(() => (window as any).mapLab.snapshot())).play;
@@ -2424,102 +2407,12 @@ try {
   assert.match(edited.note, new RegExp(`layout\\.slots\\[${turnedIndex}\\]\\.orientation`));
   await playPage.close();
 
-  // The Placeables tab (#433, 20.8): every registered placeable, each example previewed, and
-  // parameters edited within their specs, with errors and refusals shown in place of a preview.
-  const placeablesPage = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
-  const placeableErrors: string[] = [];
-  placeablesPage.on("pageerror", (e: Error) => placeableErrors.push(e.message));
-  await placeablesPage.goto(base, { waitUntil: "domcontentloaded" });
-  await placeablesPage.locator("#placeablesTab").click();
-  const view = placeablesPage.locator("#placeablesView");
-  assert.equal(await view.isVisible(), true);
-  assert.equal(await placeablesPage.locator("#worldView").isVisible(), false);
-  /** Whether a canvas has anything drawn on it. */
-  const painted = (canvas: any) => canvas.evaluate((c: HTMLCanvasElement) => {
-    const data = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
-    for (let i = 3; i < data.length; i += 4) if (data[i]) return true;
-    return false;
-  });
-  for (const [id, placeable] of Object.entries(PLACEABLES)) {
-    await view.locator(`[data-placeable="${id}"]`).click();
-    assert.match(await view.locator(".placeable-title").innerText(), new RegExp(`^${id} ${placeable.version}$`));
-    const thumbs = view.locator(".placeable-examples canvas");
-    assert.equal(await thumbs.count(), placeable.examples.length, `${id} previews each example`);
-    for (let i = 0; i < placeable.examples.length; i++) assert.equal(await painted(thumbs.nth(i)), true, `${id} example ${i + 1} is drawn`);
-    assert.equal(await painted(view.locator(".placeable-preview")), true, `${id} is previewed`);
-    assert.equal(await view.locator("[name]").count(), placeable.params.length, `${id} edits each parameter`);
-    const example = placeable.build(placeable.examples[0], DEFAULT_CELL_SIZE);
-    assert.ok(!('refused' in example), `${id} has a buildable first example`);
-    assert.ok((await view.locator(".readout").innerText()).startsWith(
-      `Demand: body ${example.demand.body.w} × ${example.demand.body.h} cells`), `${id} shows its exact demand, including fractional cells`);
-  }
-  await view.locator('[data-placeable="house"]').click();
-  assert.match(await view.locator(".readout").innerText(), /, clear \d+ × \d+ at \(/, "a house demands its doorstep");
-  // An edit updates the readout, preview and JSON in place: the control keeps focus, and an
-  // open disclosure stays open.
-  await view.locator("details summary").click();
-  await view.locator('[name="w"]').focus();
-  await placeablesPage.keyboard.press("ArrowUp");
-  assert.equal(await placeablesPage.evaluate(() => (document.activeElement as HTMLInputElement | null)?.name), "w");
-  assert.equal(await view.locator("details").evaluate((d: HTMLDetailsElement) => d.open), true);
-  assert.match(await view.locator("details pre").innerText(), /"w": 5/);
-  await view.locator('[name="w"]').fill("99");
-  assert.match(await view.locator(".readout.invalid").innerText(), /house w must be a whole number from 3 to 12\./);
-  assert.equal(await view.locator(".placeable-preview").isVisible(), false, "no preview the specs don't allow");
-  await view.locator('[name="w"]').fill("4");
-  await view.locator('[name="h"]').fill("5");
-  await view.locator('[name="spaces"]').fill("3");
-  assert.match(await view.locator(".readout.invalid").innerText(), /A house of 3 spaces needs at least 27 cells\./);
-  await view.locator('[name="spaces"]').fill("2");
-  assert.match(await view.locator(".readout.invalid").innerText(), /^Refused: no 2-space house fits 4 × 5/);
-  assert.equal(await view.locator(".placeable-examples button.active").count(), 0);
-  await view.locator(".placeable-examples button").nth(2).click();
-  assert.equal(await view.locator(".placeable-examples button.active").count(), 1);
-  assert.equal(await view.locator('[name="w"]').inputValue(), String(PLACEABLES.house!.examples[2].w), "an example's values show in the controls");
-  assert.equal(await view.locator("details").evaluate((d: HTMLDetailsElement) => d.open), true);
-  assert.equal(await painted(view.locator(".placeable-preview")), true);
-  await view.locator('[data-placeable="warehouse"]').click();
-  assert.match(await view.locator(".readout").innerText(), /warehouse: \d+ spaces?, /, "a building placeable reads as its trace");
-  for (const width of [1440, 1180]) {
-    await placeablesPage.setViewportSize({ width, height: 900 });
-    await placeablesPage.waitForFunction(() => {
-      const c = document.querySelector(".placeable-preview") as HTMLCanvasElement;
-      return c.width === Math.round(c.clientWidth * devicePixelRatio);
-    });
-    const catalogue = await view.locator(".chain-sidebar").boundingBox();
-    const preview = await view.locator(".placeable-preview").boundingBox();
-    const inspector = await view.locator(".placeable-inspector").boundingBox();
-    assert.ok(catalogue.x + catalogue.width <= preview.x && preview.x + preview.width <= inspector.x, "placeable preview sits between catalogue and placement information");
-    assert.ok(inspector.x + inspector.width <= width && preview.y + preview.height <= 900, "selected placeable stays visible on desktop");
-    assert.equal(await painted(view.locator(".placeable-preview")), true, "preview repaints after resize");
-    const examplesHeading = await view.getByRole("heading", { name: "Examples", exact: true }).boundingBox();
-    const exampleCard = await view.locator(".placeable-examples button").first().boundingBox();
-    assert.ok(examplesHeading.y >= preview.y + preview.height && exampleCard.y + exampleCard.height <= 900, "examples heading and first card remain visible with the preview");
-    await placeablesPage.screenshot({ path: `${OUT}/placeable-workspace-${width}.png` });
-  }
-  const previewParams = await view.locator("details pre").textContent();
-  await placeablesPage.locator("#chainTab").click();
-  await placeablesPage.locator("#placeablesTab").click();
-  assert.match(await view.locator(".placeable-title").innerText(), /^warehouse /);
-  assert.equal(await view.locator("details pre").textContent(), previewParams, "placeable selection and parameters survive tab changes");
-  // A number parameter's spec bounds it but sets no granularity.
-  await view.locator('[data-placeable="cover-piece"]').click();
-  assert.equal(await view.locator('[name="length"]').getAttribute("step"), "any");
-  await placeablesPage.screenshot({ path: `${OUT}/placeables.png`, fullPage: true });
-  await placeablesPage.setViewportSize({ width: 390, height: 900 });
-  assert.equal(await placeablesPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "no sideways scroll at phone width");
-  await placeablesPage.screenshot({ path: `${OUT}/placeables-mobile.png`, fullPage: true });
-  assert.deepEqual(placeableErrors, []);
-  await placeablesPage.close();
-
   await page.setViewportSize({ width: 560, height: 900 });
   await page.locator("#librarySource").selectOption("bundled");
   await generateIn("lab-mobile");
   await page.screenshot({ path: `${OUT}/mobile.png`, fullPage: true });
   assert.deepEqual(errors, []);
-  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, playing a map in the game, chain library authoring, and placeables.");
+  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, playing a map in the game, and chain library authoring.");
 } finally {
-  await browser?.close();
-  await game.close();
-  await rm(replayDir, { recursive: true, force: true });
+  await close();
 }

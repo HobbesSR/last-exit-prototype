@@ -1,3 +1,4 @@
+import { collectBrowserErrors } from './helpers/browser.js';
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
@@ -9,7 +10,7 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
   const errors = [], requests = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   page.on('request', request => requests.push(request.url()));
   // A standalone recording opens with no network or solver/bootstrap available.
   await page.setContent(await playbackHtml(report));

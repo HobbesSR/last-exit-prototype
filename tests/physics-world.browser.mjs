@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
 
 const bodies = [
@@ -16,7 +16,7 @@ try {
 const { server, base, browser } = await serveWithBrowser({ replayDir: 'test-results/physics-browser-replays' });
 try {
   const page = await browser.newPage();
-  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  const errors = []; collectBrowserErrors(page, errors);
   await page.goto(base);
   const actual = await page.evaluate(async bodies => {
     const { createPhysicsWorld } = await import('/shared/physics/world.ts');

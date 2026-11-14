@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
@@ -26,7 +26,7 @@ try {
   await server.rooms.get(created.id).ready;
   const page = await browser.newPage();
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   await page.goto(base);
   const result = await page.evaluate(async ({ base, room, ownerKey }) => {
     const { createLayerDecoder } = await import('/shared/frame-layers.ts');

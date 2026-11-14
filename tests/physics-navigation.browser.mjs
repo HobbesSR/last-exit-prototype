@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { PHYSICS_VERSION, createGame, disposePhysics, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 
@@ -28,7 +28,7 @@ try {
 const { server, base, browser } = await serveWithBrowser({ replayDir: 'test-results/physics-navigation-replays', devTools: 'all' });
 try {
   const page = await browser.newPage(), errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   await page.route('**/test-constrainautor.mjs', async route => route.fulfill({ contentType: 'text/javascript',
     body: await readFile('node_modules/@kninnug/constrainautor/lib/Constrainautor.min.mjs', 'utf8') }));
   await page.route('**/', async route => {

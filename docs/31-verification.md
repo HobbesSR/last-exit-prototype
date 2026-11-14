@@ -99,8 +99,10 @@ Changes under `map/macro/` run its own suite with `npm run test:mapgen` from the
 root (typecheck plus the unit tests in that directory). Its `tests/slow/` holds the larger authored-size
 quota checks and the 36 × 18 playground placement (`wfc-large`, 8.8 s, #1071) and runs in that same default macro suite; the seeds and assertions
 are shared with the fast content checks, not reduced to fit the timing budget. The historical macro-suite checkpoint is also retained in 42.3. The Map Lab (`map/tools/lab/`) has its
-own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
-test:browser` runs. A change to the chain or its inputs (macro's stages and
+browser checks for its map flows (`node map/tools/tests/lab.browser.mts`), placement
+(`placement.browser.mts`) and the independent Placeables tab (`placeables.browser.mts`),
+all in `map/tools/tests/`. `npm run test:browser` runs them;
+`npm run brief -- test:set macro:placeables --browser` runs just that tab. A change to the chain or its inputs (macro's stages and
 library, the game's strategies, the kernel, `shared/`) also runs the chain's
 seed sweep from the repository root, `node map/tools/cli.mts sweep --check
 map/tools/fixtures/chain-baseline.json` (224 whole maps, plus macro alone on two seeds at each larger authored size, about ten minutes since the matched libraries (595 s, 42.37), [42.3](42.3-generation-and-delegation-evidence.md#brief-replay-541-2026-10-27)); `npm test`

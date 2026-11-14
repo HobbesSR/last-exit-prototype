@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { listen } from './helpers/listen.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
@@ -29,7 +29,7 @@ function checkCircles(frame) {
 }
 try {
   const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   await page.goto(base);
   await page.waitForFunction(() => window.arenaDebug?.().content === 'content-6' && window.arenaDebug().actors?.length);
   const initial = await page.evaluate(() => { const d = window.arenaDebug(); return { dev: d.dev, geometry: d.actors[0].geometry }; });

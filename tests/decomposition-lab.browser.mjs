@@ -1,18 +1,14 @@
 // Standalone browser acceptance for the allocation-proposal inspector.
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { mkdir, readFile } from 'node:fs/promises';
+import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js';
 
-const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-decomposition-lab-'));
 await mkdir('test-results', { recursive: true });
-const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
+const { base, browser, close } = await serveDevWithBrowser();
 try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: text => !text.includes('404') });
   await page.goto(`${base}/dev/micro/decomposition`);
   await page.waitForFunction(() => window.decompositionLabDebug?.().plan, null, { timeout: 15000 });
   assert.equal(await page.locator('#mode-tree').getAttribute('aria-pressed'), 'true');
@@ -155,7 +151,5 @@ try {
   await page.screenshot({ path: 'test-results/decomposition-tree-390x844.png', fullPage: true });
   assert.equal(errors.length, 0, errors.join('\n'));
 } finally {
-  await browser.close();
-  await server.close();
-  await rm(replayDir, { recursive: true, force: true });
+  await close();
 }

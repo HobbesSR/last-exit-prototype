@@ -1,29 +1,19 @@
 /** Focused Map Lab placement replay acceptance; run from the repository root. */
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { mkdir } from 'node:fs/promises';
 import { tracePlacement } from '../placement-trace.ts';
 import { CHAIN_LIBRARY } from '../../chain.ts';
 import { placementSeams } from '../../macro/src/chain/partial-connectivity.ts';
-// @ts-expect-error JavaScript server and helper have no declarations.
-import { createArenaServer } from '../../../server/index.js';
-// @ts-expect-error JavaScript server and helper have no declarations.
-import { listen } from '../../../tests/helpers/listen.js';
+// @ts-expect-error The test helpers are JavaScript without declarations.
+import { collectBrowserErrors, serveDevWithBrowser } from '../../../tests/helpers/browser.js';
 
-const playwright = createRequire(import.meta.url)('@playwright/test');
 const out = 'test-results/map-lab';
 await mkdir(out, { recursive: true });
-const replayDir = await mkdtemp(path.join(tmpdir(), 'placement-browser-'));
-const game = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
-let browser: any;
+const { base: url, browser, close } = await serveDevWithBrowser({ strictProtocol: false });
 try {
-  const url = await listen(game);
-  browser = await playwright.chromium.launch({ channel: 'chrome', headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors: string[] = [];
-  page.on('pageerror', (error: Error) => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   await page.goto(`${url}/dev/map`, { waitUntil: 'domcontentloaded' });
   // Exercise all derived styles on a controlled canvas, including rare partial/conflict states.
   const synthetic = await page.evaluate(async () => {
@@ -334,7 +324,5 @@ try {
   assert.deepEqual(errors, []);
   console.log('Placement browser acceptance passed.');
 } finally {
-  await browser?.close();
-  await game.close();
-  await rm(replayDir, { recursive: true, force: true });
+  await close();
 }
