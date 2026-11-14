@@ -1,3 +1,5 @@
+/** Experimental structural tree search for the Decomposition Lab; no production builder consumes these trees.
+ * Uses the example policy, not a general physical generation dispatcher. See docs/20.4. */
 import { allocateCandidates } from './allocation.ts';
 import { cellKey, connectedComponents } from './analysis.ts';
 import { createRegionContext } from './context.ts';

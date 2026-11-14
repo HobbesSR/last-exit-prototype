@@ -1,3 +1,5 @@
+/** Offline/lab allocation policy used by the Decomposition Lab and decompose-region CLI.
+ * Production block allocation supplies its own candidates and contracts. See docs/20.3.2. */
 import { createRegionContext } from './context.ts';
 import { allocateCandidates } from './allocation.ts';
 import { cellKey, connectedComponents, findNeckCuts, growRegion } from './analysis.ts';
