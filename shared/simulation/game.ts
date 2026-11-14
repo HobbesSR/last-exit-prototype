@@ -6,7 +6,6 @@ import { reconcileHooks } from './hook.ts';
 import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION } from './physics-runtime.ts';
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import { prepareBotGates } from './bot-routes.ts';
-import { prepareKnowledgeGeometry } from '../navigation/knowledge.ts';
 import { prepareSweptGeometry, prepareSweptGates } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
@@ -100,11 +99,6 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
       const before = profiling() ? performance.now() : undefined;
       await prepareBotGates(s.map, yieldControl);
       if (before !== undefined) observe('prepare.botGates', performance.now() - before);
-    }
-    if (yieldControl) {
-      const before = profiling() ? performance.now() : undefined;
-      await prepareKnowledgeGeometry(s.map, yieldControl);
-      if (before !== undefined) observe('prepare.navigation', performance.now() - before);
     }
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
