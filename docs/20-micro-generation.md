@@ -26,7 +26,7 @@ bounded candidate analysis and allocation; its design record is [19](19-decompos
 | 20.4 | Hierarchical generation, and the retired physical realization | [20.4](20.4-hierarchical-generation.md) |
 | 20.5 | Tools and next boundaries | [20.5](20.5-tools-and-next-boundaries.md) |
 | 20.6 | Guaranteed passability and automatic clear margins | [20.6](20.6-passable-margins.md) |
-| 20.7 | Builder patch preparation, bounded execution, owning snapshots, hut-to-cover pilot and compound exterior-yard adoption | [20.7](20.7-builder-delegation.md) |
+| 20.7 | Builder patch preparation, bounded execution, owning snapshots, and the hut and compound adopters | [20.7](20.7-builder-delegation.md) |
 | 20.8 | Placeables: the registered things builders put down, what they own and how to add one | [20.8](20.8-placeables.md) |
 | 20.9 | A builder's usual structure: the order of its work and the SDK piece for each step, as guidance | [20.9](20.9-builder-structure.md) |
 | 20.10 | Portal cords, prospective parcels and peripheral handoffs (#644–#649, #750–#787; yard handoff and perimeter-reach tools implemented) | [20.10](20.10-portal-cords.md) |
