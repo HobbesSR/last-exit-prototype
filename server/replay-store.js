@@ -18,7 +18,8 @@ export async function createFileReplayStore(directory) {
   return {
     list: () => structuredClone([...archives.values()].sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)),
     // Keep Express sendFile's existing range/cache/error behavior at the HTTP delivery edge.
-    download: id => archives.has(id) ? { path: path.join(directory, `${id}.json.gz`) } : null,
+    // Every archive keeps the `.json.gz` name; a schema 17+ one (`frameEncoding`) is lines of JSON (26).
+    download: id => archives.has(id) ? { path: path.join(directory, `${id}.json.gz`), lines: !!archives.get(id).frameEncoding } : null,
     start(header, { onError } = {}) {
       return createReplayWriter({ header, onError, outputPath: path.join(directory, `${header.id}.partial`),
         async publish(meta, { signal } = {}) {

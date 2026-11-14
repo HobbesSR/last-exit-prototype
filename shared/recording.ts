@@ -21,16 +21,21 @@
  */
 
 /** The schema this build writes. Bump on any change to recorded structure. */
-export const SCHEMA = 16;
+export const SCHEMA = 17;
 /**
  * The oldest schema this build can read: the first with both cell-masked chain maps and the
  * engine-free physics presentation every match now records.
  */
 export const MIN_SCHEMA = 10;
+/**
+ * The first schema stored as lines with delta frames (#901, `shared/recording-format.ts`). A reader older
+ * than this cannot read one at all, so every recording written since declares it as its `minSchema`.
+ */
+export const LINES_SCHEMA = 17;
 
-/** The `minSchema` a match recording declares: every match needs this build's floor. */
+/** The `minSchema` a match recording declares: the first reader of the lines-and-deltas form. */
 export function minimumReaderForMatch(): number {
-  return MIN_SCHEMA;
+  return LINES_SCHEMA;
 }
 
 /**

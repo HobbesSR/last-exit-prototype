@@ -1,0 +1,245 @@
+{
+  "provenance": {
+    "seed": 4217,
+    "size": "36x18",
+    "content": "content-7",
+    "node": "v24.15.0",
+    "frames": 12001,
+    "endTick": 12000,
+    "maxString": 536870888
+  },
+  "full": {
+    "name": "full",
+    "raw": 11838960463,
+    "compressed": 1326540403,
+    "records": 12001,
+    "keyframes": 12001,
+    "maxRecordBytes": 1003595,
+    "cpu": {
+      "sampleBytes": 33761974,
+      "msPerMiB": 10.186991080557078,
+      "wallMs": 327.1962000000058
+    },
+    "maxLineBytes": 1003594,
+    "digest": "ba34669b5b834c41180eb83e325c6eda0b4eb412bad90b9653f614b08062d35c",
+    "stringifyMs": {
+      "n": 12001,
+      "mean": 2.7179522956421716,
+      "p50": 2.554199999998673,
+      "p99": 4.5068000000028405,
+      "max": 7.932199999981094
+    },
+    "parseableAsOneString": false
+  },
+  "encode": {
+    "top": {
+      "ms": {
+        "n": 12001,
+        "mean": 2.8707960503290493,
+        "p50": 2.7507000000041444,
+        "p99": 4.692099999985658,
+        "max": 9.309399999969173
+      },
+      "deltaBytes": {
+        "n": 12000,
+        "mean": 84210.73733333334,
+        "p50": 59810,
+        "p99": 895755,
+        "max": 977022
+      }
+    },
+    "ent": {
+      "ms": {
+        "n": 12001,
+        "mean": 2.305258045162997,
+        "p50": 2.194100000022445,
+        "p99": 3.6506999999983236,
+        "max": 8.218699999997625
+      },
+      "deltaBytes": {
+        "n": 12000,
+        "mean": 10199.607916666666,
+        "p50": 9735,
+        "p99": 20065,
+        "max": 48624
+      }
+    }
+  },
+  "keyedPaths": [
+    "ent:players:a",
+    "ent:items:a",
+    "ent:gates:a",
+    "ent:events:a",
+    "ent:physics:o",
+    "ent:bodies:a"
+  ],
+  "entKeyBytes": {
+    "players": 6439,
+    "physics": 2308,
+    "bodies": 1294,
+    "effects": 27,
+    "tick": 10,
+    "hazardX": 10,
+    "projectiles": 9,
+    "items": 5,
+    "gates": 1,
+    "serial": 0,
+    "events": 0,
+    "phase": 0,
+    "slots": 0
+  },
+  "variants": [
+    {
+      "encoding": "top",
+      "cadence": 20,
+      "name": "top-k20",
+      "raw": 1558942469,
+      "compressed": 170457011,
+      "records": 12001,
+      "keyframes": 601,
+      "maxRecordBytes": 1003586,
+      "cpu": {
+        "sampleBytes": 33615538,
+        "msPerMiB": 9.763469738309707,
+        "wallMs": 305.1235999999917
+      },
+      "ratio": {
+        "raw": 0.131678999509469,
+        "compressed": 0.12849741373463466
+      }
+    },
+    {
+      "encoding": "top",
+      "cadence": 100,
+      "name": "top-k100",
+      "raw": 1120141850,
+      "compressed": 121024612,
+      "records": 12001,
+      "keyframes": 121,
+      "maxRecordBytes": 1002489,
+      "cpu": {
+        "sampleBytes": 33597333,
+        "msPerMiB": 9.238188519308958,
+        "wallMs": 287.61550000001444
+      },
+      "ratio": {
+        "raw": 0.09461488223571239,
+        "compressed": 0.09123326490945938
+      }
+    },
+    {
+      "encoding": "top",
+      "cadence": 600,
+      "name": "top-k600",
+      "raw": 1030062864,
+      "compressed": 110885568,
+      "records": 12001,
+      "keyframes": 21,
+      "maxRecordBytes": 999476,
+      "cpu": {
+        "sampleBytes": 33582569,
+        "msPerMiB": 14.14438925145959,
+        "wallMs": 327.82729999994626
+      },
+      "ratio": {
+        "raw": 0.0870061917361097,
+        "compressed": 0.08359004199889417
+      }
+    },
+    {
+      "encoding": "ent",
+      "cadence": 20,
+      "name": "ent-k20",
+      "raw": 709122226,
+      "compressed": 72798802,
+      "records": 12001,
+      "keyframes": 601,
+      "maxRecordBytes": 1003586,
+      "cpu": {
+        "sampleBytes": 33558850,
+        "msPerMiB": 8.81133984031038,
+        "wallMs": 291.65419999998994
+      },
+      "ratio": {
+        "raw": 0.05989733880911263,
+        "compressed": 0.05487869184788034
+      }
+    },
+    {
+      "encoding": "ent",
+      "cadence": 100,
+      "name": "ent-k100",
+      "raw": 240538100,
+      "compressed": 19540613,
+      "records": 12001,
+      "keyframes": 121,
+      "maxRecordBytes": 1002489,
+      "cpu": {
+        "sampleBytes": 33557607,
+        "msPerMiB": 7.311808139358686,
+        "wallMs": 240.2395999999717
+      },
+      "ratio": {
+        "raw": 0.020317501756319533,
+        "compressed": 0.014730507232051491
+      }
+    },
+    {
+      "encoding": "ent",
+      "cadence": 600,
+      "name": "ent-k600",
+      "raw": 142920585,
+      "compressed": 8430468,
+      "records": 12001,
+      "keyframes": 21,
+      "maxRecordBytes": 999476,
+      "cpu": {
+        "sampleBytes": 33561568,
+        "msPerMiB": 6.373644521018804,
+        "wallMs": 200.72589999996126
+      },
+      "ratio": {
+        "raw": 0.012072055265888086,
+        "compressed": 0.006355228970737954
+      }
+    }
+  ],
+  "reader": {
+    "cadence": 100,
+    "top": {
+      "textBytes": 1120141852,
+      "parseableAsOneString": false
+    },
+    "ent": {
+      "textBytes": 240538102,
+      "parseableAsOneString": true,
+      "parseMs": 1377.6222000000416,
+      "heapMiB": 373.31300354003906,
+      "applyMs": {
+        "n": 12001,
+        "mean": 0.052441871510564834,
+        "p50": 0.01540000003296882,
+        "p99": 1.084900000016205,
+        "max": 4.226899999950547
+      },
+      "seekMs": {
+        "n": 200,
+        "mean": 2.3004744999992544,
+        "p50": 1.3724999999976717,
+        "p99": 23.080400000035297,
+        "max": 24.707500000018626
+      },
+      "gcExposed": true
+    }
+  },
+  "verification": {
+    "frames": 12001,
+    "checked": 12001,
+    "freshDigest": "ba34669b5b834c41180eb83e325c6eda0b4eb412bad90b9653f614b08062d35c",
+    "rebuiltDigests": {
+      "top": "ba34669b5b834c41180eb83e325c6eda0b4eb412bad90b9653f614b08062d35c",
+      "ent": "ba34669b5b834c41180eb83e325c6eda0b4eb412bad90b9653f614b08062d35c"
+    },
+    "matchesWriterDigest": true
+  }
+}

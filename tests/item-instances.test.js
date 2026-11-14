@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { gunzipSync } from 'node:zlib';
 import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment, rearrangeInstanceEquipment } from '../shared/equipment.ts';
@@ -13,6 +12,7 @@ import { SCHEMA, minimumReaderForMatch, recordingFit } from '../shared/recording
 import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { openArea } from './helpers/arena.js';
+import { readArchive } from './helpers/recordings.js';
 
 // No generated map, bots or hazards: only the world/inventory transition is under test.
 const arena = () => ({ width: 600, height: 400,
@@ -332,7 +332,7 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   const header = { id: 'item-roundtrip', version: s.version, contentId: s.content.id,
     schema: SCHEMA, minSchema: minimumReaderForMatch(), seed: s.seed,
     hz: 20, createdAt: 1, map: structuredClone(map) };
-  assert.equal(header.minSchema, 10);
+  assert.equal(header.minSchema, 17, 'recordings are stored as lines with delta frames (#901)');
   assert.equal(recordingFit(header), 'ok');
   assert.equal(recordingFit({ ...header, schema: 10, minSchema: 10 }), 'ok');
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
@@ -357,7 +357,7 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   assert.ok(frames.every(frame => Number.isSafeInteger(frame.itemSerial)));
 
   await writer.finish({ ticks: s.tick, escaped: 0 });
-  const archive = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+  const archive = readArchive(chunks);
   assert.equal(recordingFit(archive), 'ok');
   assert.deepEqual(archive.frames.map(frame => frame.state), frames);
   const timeline = createReplayTimeline(archive);

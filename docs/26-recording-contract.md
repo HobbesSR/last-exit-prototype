@@ -28,8 +28,10 @@ Recording failure must never reach gameplay. Default content is `content-7` unde
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. Recordings write schema 16
-and `minSchema` 10 (matching `minimumReaderForMatch`). Optional appearance descriptors on map
+existing `"no longer reads"` message while remaining downloadable. Recordings write schema 17
+and `minSchema` 17 (`minimumReaderForMatch`, `LINES_SCHEMA`): since #901 they are stored as lines
+with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
+read. This build still reads every schema from 10. Optional appearance descriptors on map
 buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
@@ -127,6 +129,7 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 17 | Lines (NDJSON) with keyframes and delta frames, interval checkpoints and a stored-line digest (#901) | 17 |
 | 16 | Optional contestant roster place `seat` in recorded player state (#792) | unchanged |
 | 15 | Optional `transit` command, player `transit` state and `status: 'transit'` (#692) | unchanged |
 | 14 | Optional private hook state and hook-flight presentation (#446) | unchanged |
@@ -195,18 +198,59 @@ an arena from pinned tuning could disagree with what was played; an embedded map
 
 ## Format and integrity
 
-Each room records a map header and offers every authoritative tick to a bounded gzip JSON writer. Retained records contain a complete simulation snapshot plus accepted commands and membership changes. Frames include AI path state. The final metadata contains retained frame count and a SHA-256 digest over each retained serialized frame plus a newline. A recording is advertised only after successful publication. Disk backpressure never pauses tick advancement: incoming frames exceeding the pending-data budget are omitted whole, and subsequent frames can be accepted after the writer drains. Only archives with omissions add `recording: { complete: false, droppedFrames, endTick }` to the file and metadata; ordinary recordings retain their existing format and digest contract.
+Each room records a map header and offers every authoritative tick to a bounded gzip writer. Retained frames contain a complete simulation snapshot plus accepted commands and membership changes. Frames include AI path state. A recording is advertised only after successful publication. Disk backpressure never pauses tick advancement: incoming frames exceeding the pending-data budget are omitted whole, and subsequent frames can be accepted after the writer drains.
 
-Normal recordings preserve the existing header, frame JSON and SHA-256 contract.
-The writer may build a frame's JSON from parts it has kept (the ground items, 22.1 "Frames"), but the bytes
-are always those of `JSON.stringify({ state, commands })`.
-Only recordings with omissions append a top-level `recording` footer and matching
-archive metadata: `{ complete: false, droppedFrames, endTick }`. Integrity hashes
-cover exactly the retained frames as before. Missing ranges are derived from
-retained `state.tick` values, avoiding an unbounded separate gap list. No surviving
-frames means publication fails. An omitted final state must never be invented;
-`endTick` records the actual match endpoint, even if the last surviving frame is
-earlier. This additive extension does not change simulation version or BSON scope.
+A frame's meaning is always `JSON.stringify({ state, commands })`: the writer may build it from parts it
+has kept (the ground items, 22.1 "Frames"), and a reader rebuilds exactly those bytes. Since schema 17
+([below](#schema-17-lines-and-delta-frames-901)) the archive stores most frames as deltas, so the
+publication metadata's `sha256` covers each *stored* frame line plus a newline, and the trailer's
+checkpoints prove the rebuilt frames. Archives before schema 17 hashed each frame's full JSON the same way.
+
+Only recordings with omissions carry `recording: { complete: false, droppedFrames, endTick }` in the
+trailer and matching archive metadata. Missing ranges are derived from retained `state.tick` values,
+avoiding an unbounded separate gap list. No surviving frames means publication fails. An omitted final
+state must never be invented; `endTick` records the actual match endpoint, even if the last surviving
+frame is earlier.
+
+## Schema 17: lines and delta frames (#901)
+
+Whole-state frames made long default-size recordings unloadable: the browser reads an archive as one
+string, and a 3,493-frame match was 565 MB, over V8's 536,870,888-character limit; a whole 36x18 match
+was 11 GB ([42.22](42.22-tick-cost-attribution.md#recording-delta-evaluation-901)). Corey adopted the
+design on #901 (D1–D5, 2026-11-14). `shared/recording-format.ts` owns the form, its encoder and every reader.
+
+The archive is gzip text in lines (NDJSON). The first line is the header, which adds
+`frameEncoding: 'delta-1'` and `keyframeEvery` (100). Each retained frame is one line: a **keyframe**
+`{"state":…,"commands":…}`, byte for byte the frame's full JSON, or a **delta** `{"delta":…,"commands":…}`
+against the previous *stored* frame. The last line is the trailer, `{"end":{"checkpoints":[…],
+"recording"?:…,"diagnostics"?:…}}`. Older archives remain one JSON document with a `frames` array, and the
+reader reads both.
+
+A delta is a patch over the previous stored frame's state: `{"v":value}` replaces a value whole;
+`{"o":{key:patch},"k"?:[keys]}` changes these keys of an object, with `k` the full key order whenever the
+key set or order changed; `{"a":{"s"?,"d"?,"r"?}}` changes a list whose entries have unique ids (`id`, or
+`spec.id` for physics world bodies), setting entries whole, dropping ids, and giving the full id order only
+when it is not the keyed-list default (`shared/keyed-list.ts`, the same rebuild the live wire's layers use,
+24); `{}` is unchanged. Entities are replaced whole, never field by field, and commands are never deltas.
+
+- **Base.** A delta's base is the previous stored frame, so a frame omitted under backpressure is never
+  referenced, and no keyframe is forced after an omission. Every prefix of the archive is self-consistent.
+- **Keyframes.** The first frame, every `keyframeEvery` stored frames, and early once the deltas since the
+  last keyframe exceed `keyframeEvery × EARLY_KEYFRAME_SHARE` (1/8) of its size, which happens only when
+  state churns: then a keyframe costs little more than the deltas and keeps seeks short. The rule as first
+  approved, one keyframe's size, cut a keyframe every 13 frames on 12x6 maps and more than doubled the
+  archive (6.8 MB against 2.98 MB for a whole match), so Corey chose the eighth (#901, 2026-11-14). A state
+  that is not a plain object is stored whole and the next frame is a keyframe.
+- **Integrity.** The metadata `sha256` covers the stored lines (above). Each checkpoint `{ frame, sha256 }`
+  is the SHA-256 of a frame's full JSON, taken by the writer for the last frame before each keyframe and
+  for the final frame. A delta that rebuilt wrongly leaves the frame wrong until the entity is written
+  again, so a checkpoint catches it and names the interval. Tools and tests check checkpoints
+  (`checkpointFailures`); the viewer does not. Hashing every rebuilt frame was rejected: it would bring
+  back most of the full-state byte work for errors that heal within one interval (#901 D3).
+- **Readers.** Old readers cannot read lines at all, so recordings declare `minSchema` 17. Readers apply
+  their own policy to the header before any frame (`onHeader`; the viewer uses `recordingFit`). Damaged
+  input fails as damage: an unknown encoding, a delta with no base, a missing key or id. A file missing
+  its trailer reads as `truncated`.
 
 ## Presentation descriptor (schema 6)
 
@@ -230,13 +274,12 @@ An unusable or missing descriptor never makes a playable schema 10+ archive a fo
 
 ## Diagnostic markers (schema 5)
 
-A recording may end with a top-level `diagnostics: { marks, dropped? }` trailer after
-`frames`, written only when there is something to say, as `recording` is. It is additive
-(`minSchema` is unchanged) and never touches frames or the digest, so ordinary recordings
-keep their frame JSON and SHA-256 contract. They are in a trailer, not in frames, because
-a frame is omitted whole under storage pressure, which is when a stall is most likely.
-`writer.mark(marker)` keeps at most `MAX_DIAGNOSTIC_MARKS` (512); later ones are counted
-in `dropped`. A crash `.partial` file loses the trailer, which is acceptable.
+A recording may end with `diagnostics: { marks, dropped? }` in its trailer (the `end` line since
+schema 17, a top-level field after `frames` before it), written only when there is something to say,
+as `recording` is. It was additive (`minSchema` unchanged) and never touches frames or the digest.
+They are in a trailer, not in frames, because a frame is omitted whole under storage pressure, which
+is when a stall is most likely. `writer.mark(marker)` keeps at most `MAX_DIAGNOSTIC_MARKS` (512); later
+ones are counted in `dropped`. A crash `.partial` file loses the trailer, which is acceptable.
 
 A mark is `{ tick, kind, ... }`. `server-stall` is
 `{ tick, kind, wakeMs, owed, simulated }` (`simulated` is the steps actually taken, fewer than the budget if the match ends), raised by the room's catch-up step in
@@ -272,15 +315,15 @@ the header plus four frames of the size being appended, so it grows with the map
 have their own bounded high-water marks. An incoming frame that exceeds available
 queue capacity is omitted in its entirety; no command/frame fragments are written.
 The writer resumes accepting frames when capacity returns. It never retains
-mutable snapshots. The changing fields and commands are serialized on the main thread. A recording
-worker assembles complete frames from those parts and the kept item/gate JSON,
-then encodes UTF-8, hashes and compresses them (#728). Kept lists are sent only
-when their serialized value differs from the last retained frame; an omitted
-frame cannot advance that worker cache. This is a storage implementation change,
-with no schema, reader floor, content or gameplay version change.
+mutable snapshots. The changing top-level fields and commands are serialized on the main thread,
+as key and JSON pairs (#728). The recording worker owns the stored form (#901): it compares each
+field's text with the previous stored frame's, parses only fields that changed, and writes a keyframe
+or a delta; it then hashes and compresses the line and takes checkpoints. Kept item/gate lists are sent
+only when their serialized value differs from the last retained frame; an omitted frame cannot advance
+that worker cache, nor the encoder's base.
 
-The main thread reserves each accepted frame's exact uncompressed byte length
-until the worker's gzip write callback acknowledges consumption. The budget
+The main thread reserves each accepted frame's full uncompressed line length (what a keyframe
+stores, and more than a delta) until the worker's gzip write callback acknowledges consumption. The budget
 therefore includes messages waiting in either thread and bytes offered to gzip,
 without depending on how quickly the worker receives messages. Production file
 streams live in the recording worker. Injected Writable outputs use an
@@ -289,6 +332,13 @@ before sending the next chunk. Worker errors and unexpected exits fail only the
 recording; abort and finalization deadlines also terminate the worker.
 
 ## Playback
+
+The viewer reads an archive as it arrives, line by line (`readRecordingStream`), and rebuilds every
+frame once at load: consecutive frames share unchanged values, so memory follows what changed, and a
+seek is a lookup. No string ever holds the whole archive, so its size is not bounded by the longest
+string the browser can hold. Archives from schema 16 and earlier are one document and are still read as one.
+Rebuilt frames are shared, so nothing that reads one may modify it. Downloading saves the stored file,
+named by the server (`.ndjson` from schema 17, `.json` before); it is never parsed or rebuilt for that.
 
 Replay playback restores recorded states directly, supports seeking by authoritative tick, and is independent of simulation determinism. Missing intervals hold the latest known state and display a missing-data indicator; no missing state is reconstructed. Full-map viewing is restricted to published recordings, which may be explicitly partial. This preserves exact retained game states, not pixel-identical visual effects; decorative animations use render time. Same-runtime deterministic simulation is tested separately, but cross-platform input-only reconstruction is not claimed. Abrupt power loss can leave an incomplete `.partial` file that is retained but excluded from archives; crash-file salvage remains separate from recovering a bounded live recording after temporary pressure.
 
@@ -331,7 +381,9 @@ deadline for adapters that never settle; late completions cannot send success.
 
 ## Verification
 
-Verification: retained-frame hash/JSON compatibility, queue bounds and ownership,
+Verification: exact rebuilt frames, checkpoints and the stored-line digest
+(`tests/recording-format.test.js`, `tests/replay-writer.test.js`; whole matches with the opt-in
+`tools/perf/recording-compare.mjs` witness, run when the frame encoding changes), queue bounds and ownership,
 recovery after pressure with tick gaps, zero retained frames, synchronous start/
 append failures, async stream and publication failures, stalled finalization,
 idempotent close, continued input/other-room ticks, late joins, sparse playback

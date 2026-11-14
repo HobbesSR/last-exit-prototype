@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { gunzipSync } from 'node:zlib';
-import { createHash } from 'node:crypto';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -13,6 +11,7 @@ import { generatedMap } from './helpers/room-harness.js';
 import { itemsJson } from '../shared/simulation/ground-items.ts';
 import { gatesJson } from '../shared/simulation/frame-gates.ts';
 import { createFileReplayStore } from '../server/replay-store.js';
+import { archiveText, readArchive, storedDigest, storedLines } from './helpers/recordings.js';
 
 test('replay writer preserves frame JSON, command ownership, integrity and idempotent publication', async () => {
   const chunks = [], published = [], errors = [];
@@ -26,9 +25,12 @@ test('replay writer preserves frame JSON, command ownership, integrity and idemp
   const first = writer.finish({ ticks: 1, escaped: 0 });
   assert.equal(writer.finish({ ticks: 999, escaped: 3 }), first);
   const meta = await first;
-  assert.deepEqual(JSON.parse(gunzipSync(Buffer.concat(chunks))), { ...header, frames: expected });
-  const digest = createHash('sha256'); for (const frame of expected) digest.update(JSON.stringify(frame) + '\n');
-  assert.deepEqual(meta, { id: header.id, seed: 9, createdAt: 100, ticks: 1, frames: 2, sha256: digest.digest('hex'), escaped: 0 });
+  const replay = readArchive(chunks);
+  assert.deepEqual(replay.frames, expected);
+  assert.deepEqual({ ...replay, frames: undefined, checkpoints: undefined }, { ...header, frameEncoding: 'delta-1', keyframeEvery: 100, frames: undefined, checkpoints: undefined });
+  // The second frame is a delta, so the trailer proves it with a checkpoint (readArchive checks it).
+  assert.deepEqual(replay.checkpoints.map(c => c.frame), [1]);
+  assert.deepEqual(meta, { id: header.id, seed: 9, createdAt: 100, ticks: 1, frames: 2, sha256: storedDigest(chunks), escaped: 0, frameEncoding: 'delta-1' });
   assert.deepEqual(published, [meta]); assert.deepEqual(errors, []);
   assert.throws(() => writer.append({}, []), /finalized/);
 });
@@ -40,7 +42,7 @@ test('diagnostic markers ride in a bounded trailer and leave the frames and dige
     writer.append({ tick: 0 }, []); writer.append({ tick: 1 }, []);
     for (const mark of marks) writer.mark(mark);
     const meta = await writer.finish({ ticks: 1 });
-    return { meta, replay: JSON.parse(gunzipSync(Buffer.concat(chunks))), writer };
+    return { meta, replay: readArchive(chunks), writer };
   };
   const plain = await run([]);
   assert.equal('diagnostics' in plain.replay, false, 'no trailer when there is nothing to say');
@@ -119,7 +121,7 @@ test('replay writer bounds immutable serialized frames, drops whole frames, then
   completion.then(() => { finished = true; }, () => { finished = true; });
   await pump(() => finished);
   await completion;
-  const replay = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+  const replay = readArchive(chunks);
   assert.deepEqual(replay.frames.map(frame => frame.state.tick), [0, 2]);
   assert.equal(replay.frames[0].state.payload, 'a'.repeat(240));
   assert.deepEqual(replay.recording, { complete: false, droppedFrames: 1, endTick: 3 });
@@ -171,16 +173,15 @@ test('a header descriptor is written once and leaves frame bytes and digest unto
     const writer = createReplayWriter({ header, output, publish: async () => {}, onError: () => {} });
     writer.append({ tick: 0, duration: 12000 }, []); writer.append({ tick: 1, duration: 12000 }, [{ type: 'start' }]);
     const meta = await writer.finish({ ticks: 1 });
-    return { meta, text: gunzipSync(Buffer.concat(chunks)).toString() };
+    return { meta, text: archiveText(chunks) };
   };
   const presentation = describeContent(defaultContent());
   const plain = await run({ id: 'p', contentId: presentation.contentId });
   const described = await run({ id: 'p', contentId: presentation.contentId, presentation });
   assert.equal(described.meta.sha256, plain.meta.sha256);
   assert.equal(described.text.split('"presentation"').length, 2, 'once, in the header');
-  const frames = text => text.slice(text.indexOf('"frames":'));
-  assert.equal(frames(described.text), frames(plain.text));
-  assert.deepEqual(JSON.parse(described.text).presentation, presentation);
+  assert.deepEqual(storedLines(described.text), storedLines(plain.text));
+  assert.deepEqual(readArchive(described.text).presentation, presentation);
 });
 
 test('frames are written byte for byte as JSON.stringify writes them, with the ground and gates from their kept JSON (#655)', async t => {
@@ -189,7 +190,8 @@ test('frames are written byte for byte as JSON.stringify writes them, with the g
   t.after(() => disposePhysics(s));
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const header = { id: 'ground', seed: 4217 };
-  const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => { throw error; } });
+  // A short keyframe interval, so keyframes, deltas and checkpoints all occur in a short recording.
+  const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => { throw error; }, keyframeEvery: 8 });
   const records = [];
   const append = (state, commands) => { records.push({ state, commands }); assert.equal(writer.append(state, commands), true); };
   assert.ok(s.map.gates.length, 'the game has gates to record');
@@ -205,11 +207,14 @@ test('frames are written byte for byte as JSON.stringify writes them, with the g
   append({ tick: 2, items: 'not a list' }, []);
   append({}, []);
   const meta = await writer.finish({ ticks: 44 });
-  const text = gunzipSync(Buffer.concat(chunks)).toString();
-  assert.equal(text, `${JSON.stringify(header).slice(0, -1)},"frames":[${records.map(r => JSON.stringify(r)).join(',')}]}`);
-  const digest = createHash('sha256'); for (const r of records) digest.update(`${JSON.stringify(r)}
-`);
-  assert.equal(meta.sha256, digest.digest('hex'));
+  // Every rebuilt frame is byte for byte the frame's JSON; keyframes are stored as exactly that line.
+  const replay = readArchive(chunks), lines = storedLines(chunks);
+  assert.deepEqual(replay.frames.map(frame => JSON.stringify(frame)), records.map(r => JSON.stringify(r)));
+  assert.equal(lines.length, records.length);
+  lines.forEach((line, i) => { if (line.startsWith('{"state":')) assert.equal(line, JSON.stringify(records[i])); });
+  assert.ok(lines.filter(line => line.startsWith('{"delta":')).length > lines.length / 2, 'most frames are deltas');
+  assert.ok(replay.checkpoints.length >= 4, 'each keyframe interval closes with a checkpoint');
+  assert.equal(meta.sha256, storedDigest(chunks));
   const kept = (key, list) => { const json = key === 'items' ? itemsJson(list) : gatesJson(list); return { json, bytes: Buffer.byteLength(json) }; };
   for (const { state, commands } of records) {
     const { line, bytes } = frameLine(state, commands, kept);
@@ -233,9 +238,9 @@ test('an omitted kept-list update cannot replace the last retained worker state'
   assert.equal(writer.append(changed, []), true);
   const meta = await writer.finish({ ticks: 1 });
   const frames = [{ state: initial, commands: [] }, { state: changed, commands: [] }];
-  const replay = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+  const replay = readArchive(chunks);
   assert.deepEqual(replay.frames, frames);
-  assert.equal(meta.sha256, createHash('sha256').update(frames.map(frame => JSON.stringify(frame) + '\n').join('')).digest('hex'));
+  assert.equal(meta.sha256, storedDigest(chunks));
   assert.equal(meta.recording.droppedFrames, 1);
 });
 
@@ -269,8 +274,13 @@ test('the worker-owned file output preserves exact archive bytes and store publi
     states.forEach(state => assert.equal(writer.append(state, []), true));
     writer.mark({ tick: 1, kind: 'manual' });
     const meta = await writer.finish({ ticks: 1, escaped: 0 });
-    const expected = `${JSON.stringify(header).slice(0, -1)},"frames":[${states.map(state => JSON.stringify({ state, commands: [] })).join(',')}],"diagnostics":{"marks":[{"tick":1,"kind":"manual"}]}}`;
-    assert.equal(gunzipSync(await readFile(store.download(header.id).path)).toString(), expected);
+    const download = store.download(header.id), stored = await readFile(download.path);
+    assert.equal(download.lines, true);
+    const replay = readArchive(stored);
+    assert.deepEqual(replay.frames, states.map(state => JSON.parse(JSON.stringify({ state, commands: [] }))));
+    assert.deepEqual(replay.diagnostics, { marks: [{ tick: 1, kind: 'manual' }] });
+    assert.equal(archiveText(stored).split('\n')[0], `${JSON.stringify(header).slice(0, -1)},"frameEncoding":"delta-1","keyframeEvery":100}`);
+    assert.equal(meta.sha256, storedDigest(stored));
     assert.deepEqual((await createFileReplayStore(directory)).list(), [meta]);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

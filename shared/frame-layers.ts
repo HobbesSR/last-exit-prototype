@@ -28,10 +28,10 @@
 // Contestant discovery uses the same delivery tracking and process-wide keyframe numbering through shared/discovery.ts.
 
 import { count } from './profiler.ts';
+import { rebuildKeyed, type Id } from './keyed-list.ts';
 
 export const LAYERS = ['items', 'gates', 'bodies', 'tethers'] as const;
 export type Layer = typeof LAYERS[number];
-type Id = string | number;
 type Entry = { id: Id };
 export type LayerWire = Entry[] | { k: number; all?: Entry[]; set?: Entry[]; drop?: Id[] };
 
@@ -133,12 +133,4 @@ export function createLayerDecoder() {
   };
 }
 
-function rebuild(all: Entry[], set: Entry[] = [], drop: Id[] = []) {
-  // A copy even when nothing changed: the keyframe is kept for later frames, and a reader may reorder its list.
-  if (!set.length && !drop.length) return all.slice();
-  const gone = new Set(drop), changed = new Map(set.map(entry => [entry.id, entry]));
-  const list: Entry[] = [];
-  for (const entry of all) if (!gone.has(entry.id)) { list.push(changed.get(entry.id) ?? entry); changed.delete(entry.id); }
-  for (const entry of changed.values()) list.push(entry);
-  return list;
-}
+const rebuild = (all: Entry[], set?: Entry[], drop?: Id[]) => rebuildKeyed(all, entry => entry.id, set, drop);

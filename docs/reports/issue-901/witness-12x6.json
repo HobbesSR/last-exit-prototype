@@ -1,0 +1,23 @@
+{
+  "seed": 4217,
+  "size": "12x6",
+  "content": "content-7",
+  "node": "v24.15.0",
+  "frames": 3104,
+  "keyframes": 32,
+  "checkpoints": 32,
+  "archiveBytes": 2977790,
+  "storedBytes": 45589199,
+  "fullFrameBytes": 493153856,
+  "storedShare": 0.09244417020233134,
+  "archiveSha256": "24a646cbf933b39e4e82aa0a272da8c3e861bb4ca56438814c2e4fc11e9f15c9",
+  "metadata": {
+    "id": "recording-witness",
+    "seed": 4217,
+    "createdAt": 0,
+    "ticks": 3103,
+    "frames": 3104,
+    "sha256": "538d0e60bdbf9f2b62279f9685148801f9f7d34ce203bb24aafd69a14563f679",
+    "frameEncoding": "delta-1"
+  }
+}

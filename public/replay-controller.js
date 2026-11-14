@@ -1,4 +1,5 @@
 import { clusterMarks, createReplayTimeline, markLabel, markSeekTick } from '/replay-timeline.js';
+import { readRecordingStream } from '/shared/recording-format.ts';
 import { recordingFit } from '/shared/recording.ts';
 import { resolveRecordingPresentation } from '/shared/presentation.ts';
 import { $, fillFollowOptions, time, tickRate } from '/ui.js';
@@ -6,8 +7,28 @@ import { $, fillFollowOptions, time, tickRate } from '/ui.js';
 // Recorded-match playback: timeline, wall-clock-anchored playhead and the replay-* DOM. The camera
 // director owns who is followed. The application supplies the shared arena/state/scene it must read
 // or restore and never has this module send a command or touch the socket.
+// A recording read as it arrives, line by line, so its size is not bounded by the longest string the
+// browser can hold (#901). The recording states what it is; `shared/recording.ts` decides, through the
+// reader, whether this build can read it, so the writer and the reader cannot disagree about it.
+const UNREADABLE = {
+  'too-new': 'This broadcast was recorded by a newer build of the arena.',
+  'too-old': 'This broadcast uses a recording format this build no longer reads.',
+};
+async function fetchRecording(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    let message = 'Request failed';
+    try { message = (await response.json()).error || message; } catch { /* not a JSON error body */ }
+    throw new Error(message);
+  }
+  // Refused on the header, before any frame is read.
+  const onHeader = header => { const fit = recordingFit(header); if (fit !== 'ok') throw Object.assign(new Error(), { fit }); };
+  try { return await readRecordingStream(response.body.pipeThrough(new TextDecoderStream()), { onHeader }); }
+  catch (error) { throw error.fit ? new Error(`${UNREADABLE[error.fit]} It can still be downloaded.`) : error; }
+}
+
 export function createReplayController({
-  fetchJSON, changeMap, acceptState, updateHUD, clearInput, toast, connection,
+  changeMap, acceptState, updateHUD, clearInput, toast, connection,
   getMap, getState, setState, getScene, getLiveMap, getLiveState, liveConnectionLabel,
   downloadReplay, icon, icons, director,
 }) {
@@ -83,17 +104,10 @@ export function createReplayController({
   async function watch(id) {
     const load = ++generation;
     try {
-      const data = await fetchJSON(`/api/replays/${id}`);
+      const data = await fetchRecording(`/api/replays/${id}`);
       if (load !== generation) return;
       const timeline = createReplayTimeline(data);
       if (!timeline.frames.length) throw new Error('Replay contains no playable frames.');
-      // The recording states what it is; this build decides whether it can read it. `shared/recording.ts`
-      // owns that decision so the writer and the reader cannot disagree about it.
-      const fit = recordingFit(data);
-      if (fit !== 'ok') throw new Error(`${{
-        'too-new': 'This broadcast was recorded by a newer build of the arena.',
-        'too-old': 'This broadcast uses a recording format this build no longer reads.',
-      }[fit]} Its JSON can still be downloaded.`);
       // Installed with the recording, after its load is known to be current, before anything is drawn.
       clearInput(); replay = data; replayTimeline = timeline; playback = 0; playing = true;
       described = resolveRecordingPresentation(data).presentation;
@@ -144,7 +158,5 @@ export function createReplayController({
     frameAlpha: () => replayTimeline?.at(playback)?.alpha ?? 0,
     positionAt: id => replayTimeline?.positionAt(id, playback) ?? null,
     watch, renderFrame, togglePlay: () => setPlaying(!playing), reset, cancel,
-    // Lets the application skip a refetch when downloading the replay already open here.
-    cachedData: id => replay?.id === id ? replay : null,
   };
 }

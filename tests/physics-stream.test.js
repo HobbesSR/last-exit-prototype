@@ -4,8 +4,8 @@ import { broadcast, remember, viewEncoders, SPECTATOR_DELAY_TICKS } from '../ser
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { Writable } from 'node:stream';
-import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
+import { readArchive, storedDigest } from './helpers/recordings.js';
 
 const body = (id, x = 0, extra = {}) => ({ id, kind: 'prop', shape: { kind: 'circle', radius: 6 }, x, y: 0, angle: 0, vx: 0, vy: 0, omega: 0, sleeping: false, generation: 1, ...extra });
 const frame = (tick, bodies, tethers = []) => ({ tick, physicsProfile: 'test-profile', players: [], items: [], gates: [], bodies, tethers });
@@ -109,13 +109,12 @@ test('bounded writer drops an oversized physics frame and hashes only retained c
   assert.equal(writer.append(frame(1, Array.from({ length: 128 }, (_, i) => body(`body-${i}`, i))), []), false);
   assert.equal(writer.append(retained[1].state, []), true);
   const meta = await writer.finish({ ticks: 2 });
-  const archive = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+  const archive = readArchive(chunks);
   assert.deepEqual(archive.frames, retained);
   assert.deepEqual(archive.recording, { complete: false, droppedFrames: 1, endTick: 2 });
   assert.deepEqual(meta.recording, archive.recording);
-  const expected = createHash('sha256');
-  for (const entry of retained) expected.update(`${JSON.stringify(entry)}\n`);
-  assert.equal(meta.sha256, expected.digest('hex'));
+  // The frame after the omission is stored against the last retained frame, never the omitted one.
+  assert.equal(meta.sha256, storedDigest(chunks));
 });
 
 test('body-heavy replay publication failure reports once without a successful archive', async () => {
@@ -128,7 +127,7 @@ test('body-heavy replay publication failure reports once without a successful ar
   assert.equal(writer.append(heavy.state, heavy.commands), true);
   await assert.rejects(writer.finish({ ticks: 0 }), /metadata unavailable/);
   assert.deepEqual(errors, ['metadata unavailable']);
-  assert.deepEqual(JSON.parse(gunzipSync(Buffer.concat(chunks))).frames, [heavy]);
+  assert.deepEqual(readArchive(chunks).frames, [heavy]);
   assert.equal(attempted.length, 1);
   assert.equal(attempted[0].frames, 1);
   assert.equal(attempted[0].sha256, createHash('sha256').update(`${JSON.stringify(heavy)}\n`).digest('hex'));

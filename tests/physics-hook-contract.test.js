@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { gunzipSync } from 'node:zlib';
 import { createGame, disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createReplayWriter } from '../server/replay-writer.js';
@@ -10,6 +9,7 @@ import { createPhysicsPrediction } from '../public/physics-prediction.js';
 import { SCHEMA, recordingFit } from '../shared/recording.ts';
 import { createLobby } from '../server/match.js';
 import { openArea } from './helpers/arena.js';
+import { readArchive } from './helpers/recordings.js';
 
 function fixture() {
   const content = structuredClone(contentById('content-6'));
@@ -66,7 +66,7 @@ test('the recording retains flight/pending/pull/cancel states through compressed
     setInput(s, 'g0', { seq: 4, skill: true }); step(s); retain();
     assert.deepEqual(frames.map(f => f.physics.hooks.map(h => h.phase)), [[], ['flying'], ['pending'], ['pulling'], []]);
     await writer.finish({ ticks: s.tick, escaped: 0 });
-    const archive = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+    const archive = readArchive(chunks);
     assert.equal(archive.schema, SCHEMA);
     assert.equal(recordingFit(archive), 'ok');
     const timeline = createReplayTimeline(archive);

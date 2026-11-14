@@ -1,0 +1,185 @@
+{
+  "provenance": {
+    "kept": true,
+    "seed": 4217,
+    "size": "36x18",
+    "content": "content-7",
+    "node": "v24.15.0",
+    "frames": 1201,
+    "endTick": 1200,
+    "maxString": 536870888
+  },
+  "full": {
+    "name": "full",
+    "raw": 1195653654,
+    "compressed": 133379325,
+    "records": 1201,
+    "keyframes": 1201,
+    "maxRecordBytes": 1000641,
+    "cpu": {
+      "sampleBytes": 33761974,
+      "msPerMiB": 10.186991080557078,
+      "wallMs": 325.0876999999746
+    },
+    "maxLineBytes": 1000640,
+    "digest": "eda09f98b2eb5bfb8ace141f7986274bb6966e1743139152450ea554b0f87c86",
+    "stringifyMs": {
+      "n": 1201,
+      "mean": 2.5233687760201664,
+      "p50": 2.4680000000516884,
+      "p99": 3.137700000021141,
+      "max": 7.143400000000838
+    },
+    "parseableAsOneString": false
+  },
+  "encode": {
+    "top": {
+      "ms": {
+        "n": 1201,
+        "mean": 2.877474771024065,
+        "p50": 2.834900000016205,
+        "p99": 3.489899999985937,
+        "max": 8.335800000000745
+      },
+      "deltaBytes": {
+        "n": 1200,
+        "mean": 117931.32083333333,
+        "p50": 58591,
+        "p99": 900820,
+        "max": 903188
+      }
+    },
+    "ent": {
+      "ms": {
+        "n": 1201,
+        "mean": 1.0508716902581217,
+        "p50": 0.7788000000291504,
+        "p99": 4.363599999982398,
+        "max": 9.149800000013784
+      },
+      "deltaBytes": {
+        "n": 1200,
+        "mean": 16966.4925,
+        "p50": 17031,
+        "p99": 22396,
+        "max": 48624
+      }
+    }
+  },
+  "keyedPaths": [
+    "ent:players:a",
+    "ent:items:a",
+    "ent:gates:a",
+    "ent:effects:a",
+    "ent:events:a",
+    "ent:physics:o",
+    "ent:bodies:a"
+  ],
+  "entKeyBytes": {
+    "players": 10002,
+    "physics": 4321,
+    "bodies": 2444,
+    "projectiles": 58,
+    "effects": 22,
+    "items": 21,
+    "tick": 9,
+    "gates": 2,
+    "serial": 0,
+    "events": 0
+  },
+  "variants": [
+    {
+      "encoding": "top",
+      "cadence": 100,
+      "name": "top-k100",
+      "raw": 152819561,
+      "compressed": 16485542,
+      "records": 1201,
+      "keyframes": 13,
+      "maxRecordBytes": 999476,
+      "cpu": {
+        "sampleBytes": 33597333,
+        "msPerMiB": 9.269398615657975,
+        "wallMs": 287.0506999999634
+      },
+      "ratio": {
+        "raw": 0.1278125655274416,
+        "compressed": 0.12359893109370587
+      }
+    },
+    {
+      "encoding": "ent",
+      "cadence": 100,
+      "name": "ent-k100",
+      "raw": 33100197,
+      "compressed": 2611123,
+      "records": 1201,
+      "keyframes": 13,
+      "maxRecordBytes": 999476,
+      "cpu": {
+        "sampleBytes": 33100197,
+        "msPerMiB": 16.821466530848745,
+        "wallMs": 286.1074999999837
+      },
+      "ratio": {
+        "raw": 0.027683766857789404,
+        "compressed": 0.01957666977247036
+      }
+    }
+  ],
+  "reader": {
+    "cadence": 100,
+    "top": {
+      "textBytes": 152819563,
+      "parseableAsOneString": true,
+      "parseMs": 723.2492999999668,
+      "heapMiB": 237.69983673095703,
+      "applyMs": {
+        "n": 1201,
+        "mean": 0.0025084929229213944,
+        "p50": 0.002200000046286732,
+        "p99": 0.004899999999906868,
+        "max": 0.09720000001834705
+      },
+      "seekMs": {
+        "n": 200,
+        "mean": 0.10157850000134204,
+        "p50": 0.09930000000167638,
+        "p99": 0.21740000002318993,
+        "max": 0.2186999999685213
+      },
+      "gcExposed": true
+    },
+    "ent": {
+      "textBytes": 33100199,
+      "parseableAsOneString": true,
+      "parseMs": 149.08679999999003,
+      "heapMiB": 51.004608154296875,
+      "applyMs": {
+        "n": 1201,
+        "mean": 0.10856827643643142,
+        "p50": 0.021100000012665987,
+        "p99": 1.3815000000176951,
+        "max": 3.5987000000313856
+      },
+      "seekMs": {
+        "n": 200,
+        "mean": 5.5061014999984765,
+        "p50": 1.3162000000011176,
+        "p99": 28.134299999976065,
+        "max": 29.3581000000122
+      },
+      "gcExposed": true
+    }
+  },
+  "verification": {
+    "frames": 1201,
+    "checked": 1201,
+    "freshDigest": "eda09f98b2eb5bfb8ace141f7986274bb6966e1743139152450ea554b0f87c86",
+    "rebuiltDigests": {
+      "top": "eda09f98b2eb5bfb8ace141f7986274bb6966e1743139152450ea554b0f87c86",
+      "ent": "eda09f98b2eb5bfb8ace141f7986274bb6966e1743139152450ea554b0f87c86"
+    },
+    "matchesWriterDigest": true
+  }
+}
