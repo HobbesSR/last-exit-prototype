@@ -26,6 +26,8 @@ npm run dev
 
 Open the URL printed by the server—normally `http://127.0.0.1:3100` (or the next free port up to `3109`). Setting `PORT` in the environment or in an untracked `.env.local` beside `package.json` binds that exact port and stops if it is busy (`PORT=0` picks any free port). Keep the server running while playing; `Ctrl+C` stops it and finalizes active recordings.
 
+Opening the base URL creates a private lobby. Choose your role and kit, share the arena link with other players, then click **Start match**; unclaimed slots become bots. For shared matchmaking, use **Lobbies → Auto** instead.
+
 ### Playing on a Local Network (LAN)
 
 To host a match that other devices on your local network can join:
@@ -34,15 +36,15 @@ To host a match that other devices on your local network can join:
 npm run dev:lan
 ```
 
-Each client opens one of the printed LAN URLs (for example `http://192.168.1.25:3100`) in a desktop or mobile browser, or follows an arena link copied from the top bar to take over an available bot. LAN mode is for local networks only and does not configure public internet hosting ([28](docs/28-operational-limits.md)).
+If Windows asks, allow Node.js through the firewall on private networks. The host opens one of the printed LAN URLs (for example `http://192.168.1.25:3100`), then copies the arena link from the lobby or top bar. Each client opens that shared room link in a desktop or mobile browser to join the same match; late joiners take over available bots. LAN mode is for local networks only and does not configure public internet hosting ([28](docs/28-operational-limits.md)).
 
 ---
 
 ## How a Match Works
 
-- **Objective:** Contestants find an uncharged power cell, hold `E` at one of three charging stations for five seconds (100 ticks; progress is kept if interrupted), and carry the charged cell to the eastern extraction site before the ten-minute deadline or the advancing hazard wall overtakes them. Three shared extraction slots are available.
+- **Objective:** Contestants find an uncharged power cell, press `E` at one of three charging stations and stay still for five seconds (100 ticks; progress is kept if interrupted), then carry the charged cell to the eastern extraction site and press `E` to escape before the ten-minute deadline or the advancing hazard wall overtakes them. Three shared extraction slots are available.
 - **Equipment:** Contestants carry six mixed inventory slots (`1`–`6`, drag-and-drop to rearrange, merge stacks, or drop into the arena). Weapons carry finite ammunition; medkits and shields stack up to three; power cells take one slot each and never stack. Contestants can damage one another and have no innate kit ability.
-- **Gladiators:** Three hunters spawn at the departure end and fast-travel between six transit stations with `E`. Choose **Warden** (close-range shockwave), **Specter** (radial scan), **Striker** (speed burst), or **Hook** (swept tether pull) with `Q`. Eliminated gladiators redeploy after 20 seconds at a safe transit station ahead of the hazard wall with earned kill upgrades retained.
+- **Gladiators:** Three hunters spawn at the departure end and fast-travel between six transit stations with `E`. Choose **Warden** (close-range shockwave), **Specter** (radial scan), **Striker** (speed burst), or **Hook** (swept tether pull) in the lobby; press `Q` to use the kit ability. Eliminated gladiators redeploy after 20 seconds at a safe transit station ahead of the hazard wall with earned kill upgrades retained.
 - **Sight and Information:** Solid walls and closed doors block sight; building roofs conceal interiors from outside and cut away when you step inside. Windows pass sight and gunfire but block movement and item reach. Static terrain stays visible in shadow outside direct sight, remembered doors keep their last observed state, and contestants' schematic minimaps reveal only discovered areas.
 - **Lobbies and Rooms:** Use **Lobbies** to pick a role, kit, and callsign, matchmake via **Auto** (15-second countdown at the default `12x6` zone size), or deploy a private room with a custom seed and zone size (`12x6`, `24x12`, or `36x18`).
 
