@@ -14,8 +14,7 @@ mapgen's old generators, `generateMap` and `generatePlannedMap`, were deleted
 at the switch-over (step 10, #146), not kept as legacy. The archived mapgen
 docs in `map/macro/docs/archive/pre-integration/` describe them, as history.
 
-Corey's directions for the chain (2026-09-28 and 29), verbatim in
-[17.2.3](17.2.3-chain-and-authoring.md) and [17.2.2](17.2.2-boundaries-and-prescriptions.md):
+Corey's directions for the chain (2026-09-28 and 29), from [17.2.2](17.2.2-boundaries-and-prescriptions.md) and the settled chain contract below:
 - rebuild generation as a series of transforms with clear interfaces
 - name superficially similar objects apart, and make pure readings views
 - set pieces keep their distribution, and core elements belong to set piece classes
