@@ -117,6 +117,22 @@ export function packedTilesFor(map: CollisionMap, role: Role): PackedTiles {
   return packTiles(Array.from({ length: cols * rows }, (_, cell) => planner.tile(all, cell)!), navigationClearance(role), size, cols);
 }
 
+/** Prepare geometry for either role without creating knowledge or running a search.
+ * Each tile and its boundary index is complete before publication; cancellation
+ * leaves only complete tiles, which the lazy path can safely reuse. */
+export async function prepareKnowledgeGeometry(map: CollisionMap, yieldControl: () => Promise<void>): Promise<void> {
+  const { cols, rows } = discoveryGrid(map);
+  const all: Knowledge = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
+  for (const role of ['contestant', 'gladiator'] as const) {
+    const planner = createKnowledgePlanner(map, role);
+    for (let cell = 0; cell < cols * rows; cell++) {
+      const tile = planner.tile(all, cell)!;
+      sideEdges(tile, tile.box, 0);
+      await yieldControl();
+    }
+  }
+}
+
 /** Plans for one body over the knowledge a caller supplies at each query; the map is read only through known tiles. */
 export function createKnowledgePlanner(map: CollisionMap, role: Role) {
   const clearance = navigationClearance(role), { cols, rows, size } = discoveryGrid(map);
