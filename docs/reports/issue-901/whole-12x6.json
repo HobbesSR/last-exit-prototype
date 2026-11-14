@@ -1,0 +1,260 @@
+{
+  "provenance": {
+    "seed": 4217,
+    "size": "12x6",
+    "content": "content-7",
+    "node": "v24.15.0",
+    "frames": 3104,
+    "endTick": 3103,
+    "maxString": 536870888
+  },
+  "full": {
+    "name": "full",
+    "raw": 493153855,
+    "compressed": 59591743,
+    "records": 3104,
+    "keyframes": 3104,
+    "maxRecordBytes": 166679,
+    "cpu": {
+      "sampleBytes": 33640818,
+      "msPerMiB": 9.756132802716033,
+      "wallMs": 325.71680000000924
+    },
+    "maxLineBytes": 166678,
+    "digest": "c435d45dac14c3d48edcf9ab3308b198037df12c6095d52eee00d97a24207e44",
+    "stringifyMs": {
+      "n": 3104,
+      "mean": 0.5252471971649619,
+      "p50": 0.5099000000045635,
+      "p99": 0.752200000002631,
+      "max": 2.471799999999348
+    },
+    "parseableAsOneString": true
+  },
+  "encode": {
+    "top": {
+      "ms": {
+        "n": 3104,
+        "mean": 0.553292235824817,
+        "p50": 0.5599999999976717,
+        "p99": 0.822199999995064,
+        "max": 1.1350000000093132
+      },
+      "deltaBytes": {
+        "n": 3103,
+        "mean": 63953.398646471156,
+        "p50": 58126,
+        "p99": 149904,
+        "max": 158173
+      }
+    },
+    "ent": {
+      "ms": {
+        "n": 3104,
+        "mean": 0.5191269652063168,
+        "p50": 0.5,
+        "p99": 0.7379999999975553,
+        "max": 1.9215000000112923
+      },
+      "deltaBytes": {
+        "n": 3103,
+        "mean": 13196.572993876893,
+        "p50": 12855,
+        "p99": 21365,
+        "max": 48086
+      }
+    }
+  },
+  "keyedPaths": [
+    "ent:players:a",
+    "ent:items:a",
+    "ent:gates:a",
+    "ent:events:a",
+    "ent:physics:o",
+    "ent:bodies:a"
+  ],
+  "entKeyBytes": {
+    "players": 7784,
+    "physics": 3337,
+    "bodies": 1880,
+    "effects": 59,
+    "items": 14,
+    "tick": 10,
+    "projectiles": 9,
+    "hazardX": 6,
+    "serial": 1,
+    "gates": 1,
+    "events": 0,
+    "slots": 0,
+    "phase": 0
+  },
+  "variants": [
+    {
+      "encoding": "top",
+      "cadence": 20,
+      "name": "top-k20",
+      "raw": 213413748,
+      "compressed": 23251095,
+      "records": 3104,
+      "keyframes": 156,
+      "maxRecordBytes": 166648,
+      "cpu": {
+        "sampleBytes": 33555299,
+        "msPerMiB": 8.812272303101814,
+        "wallMs": 277.10289999999804
+      },
+      "ratio": {
+        "raw": 0.4327528738470472,
+        "compressed": 0.3901730983099454
+      }
+    },
+    {
+      "encoding": "top",
+      "cadence": 100,
+      "name": "top-k100",
+      "raw": 201291953,
+      "compressed": 21657612,
+      "records": 3104,
+      "keyframes": 32,
+      "maxRecordBytes": 164948,
+      "cpu": {
+        "sampleBytes": 33584707,
+        "msPerMiB": 8.305006680570415,
+        "wallMs": 261.2497000000003
+      },
+      "ratio": {
+        "raw": 0.40817272532524357,
+        "compressed": 0.3634331017973413
+      }
+    },
+    {
+      "encoding": "top",
+      "cadence": 600,
+      "name": "top-k600",
+      "raw": 199112233,
+      "compressed": 21373931,
+      "records": 3104,
+      "keyframes": 6,
+      "maxRecordBytes": 162095,
+      "cpu": {
+        "sampleBytes": 33604100,
+        "msPerMiB": 10.734111135248378,
+        "wallMs": 268.67099999998754
+      },
+      "ratio": {
+        "raw": 0.403752765959824,
+        "compressed": 0.35867269396701484
+      }
+    },
+    {
+      "encoding": "ent",
+      "cadence": 20,
+      "name": "ent-k20",
+      "raw": 63687657,
+      "compressed": 5372293,
+      "records": 3104,
+      "keyframes": 156,
+      "maxRecordBytes": 166648,
+      "cpu": {
+        "sampleBytes": 33561078,
+        "msPerMiB": 7.810952913967782,
+        "wallMs": 246.12399999999616
+      },
+      "ratio": {
+        "raw": 0.129143585423255,
+        "compressed": 0.09015163392686802
+      }
+    },
+    {
+      "encoding": "ent",
+      "cadence": 100,
+      "name": "ent-k100",
+      "raw": 45624964,
+      "compressed": 2928813,
+      "records": 3104,
+      "keyframes": 32,
+      "maxRecordBytes": 164948,
+      "cpu": {
+        "sampleBytes": 33557879,
+        "msPerMiB": 8.311646156182874,
+        "wallMs": 214.57850000000326
+      },
+      "ratio": {
+        "raw": 0.09251669339581661,
+        "compressed": 0.04914796669062021
+      }
+    },
+    {
+      "encoding": "ent",
+      "cadence": 600,
+      "name": "ent-k600",
+      "raw": 41845246,
+      "compressed": 2417656,
+      "records": 3104,
+      "keyframes": 6,
+      "maxRecordBytes": 162095,
+      "cpu": {
+        "sampleBytes": 33560244,
+        "msPerMiB": 5.842737972942032,
+        "wallMs": 193.72179999999935
+      },
+      "ratio": {
+        "raw": 0.0848523144972678,
+        "compressed": 0.04057031860940869
+      }
+    }
+  ],
+  "reader": {
+    "cadence": 100,
+    "top": {
+      "textBytes": 201291955,
+      "parseMs": 832.2253000000055,
+      "heapMiB": 268.9945297241211,
+      "applyMs": {
+        "n": 3104,
+        "mean": 0.00228563144340105,
+        "p50": 0.002099999997881241,
+        "p99": 0.003700000001117587,
+        "max": 0.15529999999853317
+      },
+      "seekMs": {
+        "n": 200,
+        "mean": 0.07077549999972689,
+        "p50": 0.05799999998998828,
+        "p99": 0.20309999999881256,
+        "max": 0.2154000000009546
+      },
+      "gcExposed": true
+    },
+    "ent": {
+      "textBytes": 45624966,
+      "parseMs": 202.27850000000035,
+      "heapMiB": 62.483863830566406,
+      "applyMs": {
+        "n": 3104,
+        "mean": 0.028422970360656316,
+        "p50": 0.01999999998952262,
+        "p99": 0.11620000000402797,
+        "max": 0.8217000000004191
+      },
+      "seekMs": {
+        "n": 200,
+        "mean": 1.170601499999175,
+        "p50": 1.1247999999905005,
+        "p99": 3.5746999999973923,
+        "max": 4.04660000000149
+      },
+      "gcExposed": true
+    }
+  },
+  "verification": {
+    "frames": 3104,
+    "checked": 3104,
+    "freshDigest": "c435d45dac14c3d48edcf9ab3308b198037df12c6095d52eee00d97a24207e44",
+    "rebuiltDigests": {
+      "top": "c435d45dac14c3d48edcf9ab3308b198037df12c6095d52eee00d97a24207e44",
+      "ent": "c435d45dac14c3d48edcf9ab3308b198037df12c6095d52eee00d97a24207e44"
+    },
+    "matchesWriterDigest": true
+  }
+}

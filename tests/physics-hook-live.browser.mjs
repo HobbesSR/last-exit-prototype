@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { gunzipSync } from 'node:zlib';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { SCHEMA } from '../shared/recording.ts';
 import { PHYSICS_VERSION } from '../shared/simulation.ts';
+import { readArchive } from './helpers/recordings.js';
 
 const map = { seed: 446, width: 4000, height: 800,
   playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 40]] })) },
@@ -97,11 +97,11 @@ try {
   assert.deepEqual(result.cancelled.flights, []);
   assert.deepEqual(result.stale, []);
   assert.deepEqual(errors, []);
-  const replay = JSON.parse(gunzipSync(await readFile(path.join(replayDir, `${created.id}.json.gz`))));
+  const replay = readArchive(await readFile(path.join(replayDir, `${created.id}.json.gz`)));
   assert.equal(replay.version, PHYSICS_VERSION);
   assert.equal(replay.contentId, 'content-6');
   assert.equal(replay.schema, SCHEMA);
-  assert.equal(replay.minSchema, 10);
+  assert.equal(replay.minSchema, 17);
   assert.ok(replay.frames.some(frame => frame.state.hookFlights?.length), 'recording retains the flight display frame');
   console.log(JSON.stringify({ passed: true, browser: browser.version(), checks: [
     'real WebSocket flight', 'near/far projection privacy', 'next-tick tether', 'cancelled tether' ] }));

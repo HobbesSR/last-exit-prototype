@@ -1,11 +1,11 @@
 import { HTTP_ENDPOINT } from '/shared/protocol.ts';
-import { downloadJson } from '/download.js';
+import { downloadUrl } from '/download.js';
 import { $, time } from '/ui.js';
 
 // The archive dialog: the list of saved broadcasts, playing or downloading one, and the owner's
 // "finish recording". It fetches the list and a recording's file; the application decides what watching
 // one means and sends the finish itself.
-export function createArchiveController({ fetchJSON, watch, cachedReplay, canFinish, finish, clearInput, toast, icon, icons }) {
+export function createArchiveController({ fetchJSON, watch, canFinish, finish, clearInput, toast, icon, icons }) {
   async function load() {
     $('replay-list').textContent = 'Loading broadcasts...';
     $('finish-recording').hidden = !canFinish();
@@ -24,12 +24,9 @@ export function createArchiveController({ fetchJSON, watch, cachedReplay, canFin
       icons();
     } catch (error) { $('replay-list').textContent = error.message; }
   }
-  /** Saves a recording as a file: the open replay's own copy when it has one, else fetched by id. */
-  async function download(id) {
-    try {
-      const data = cachedReplay(id) || await fetchJSON(`${HTTP_ENDPOINT.REPLAYS}/${id}`);
-      downloadJson(`last-exit-${id}.json`, data);
-    } catch (error) { toast(error.message); }
+  /** Saves a recording as the server stores it, named by the server: never parsed or rebuilt here (#901). */
+  function download(id) {
+    downloadUrl(`${HTTP_ENDPOINT.REPLAYS}/${encodeURIComponent(id)}`);
   }
   $('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void load(); };
   $('finish-recording').onclick = () => { if (finish()) $('finish-recording').disabled = true; };

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
+import { recordingFit, SCHEMA, MIN_SCHEMA, LINES_SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { createGameRecord, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
@@ -58,9 +58,9 @@ test('the server stamps every recording with the schema pair its readers check',
   const harness = roomHarness({ reuseMaps: true });
   const { writer } = await harness.live(9);
   assert.equal(writer.header.schema, SCHEMA);
-  // The shipped rules run on the physics engine, so the floor is the physics reader's, matching MIN_SCHEMA.
+  // Recordings are stored as lines with delta frames (#901), which no reader before LINES_SCHEMA can read.
   assert.equal(writer.header.minSchema, minimumReaderForMatch());
-  assert.equal(writer.header.minSchema, MIN_SCHEMA);
+  assert.equal(writer.header.minSchema, LINES_SCHEMA);
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
 });
 

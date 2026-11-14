@@ -115,7 +115,7 @@ test('prepared replay headers retain the complete ordinary archive bytes', async
   const payload = prepared.read(map, { itemsJson: JSON.stringify, gatesJson: JSON.stringify });
   const header = { id: 'payload-header', map: payload, optional: undefined, contentId: 'test' };
   const state = { tick: 0 }, commands = [{ type: 'start' }];
-  const expected = JSON.stringify({ ...header, frames: [{ state, commands }] });
+  const expected = `${JSON.stringify({ ...header, frameEncoding: 'delta-1', keyframeEvery: 100 })}\n${JSON.stringify({ state, commands })}\n{"end":{"checkpoints":[]}}\n`;
   const chunks = [];
   const writer = createReplayWriter({ header,
     output: new Writable({ write(chunk, _encoding, done) { chunks.push(Buffer.from(chunk)); done(); } }),

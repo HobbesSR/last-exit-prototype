@@ -68,7 +68,7 @@ const director = createCameraDirector({
   },
 });
 const replayController = createReplayController({
-  fetchJSON: json, changeMap, acceptState, updateHUD, clearInput, toast, connection,
+  changeMap, acceptState, updateHUD, clearInput, toast, connection,
   getMap: () => arenaMap, getState: () => state, setState: value => state = value,
   getScene: () => scene, getLiveMap: () => room.liveMap(), getLiveState: () => room.liveState(),
   liveConnectionLabel: () => room.isOpen() ? (devView.active() ? 'DEV VIEW' : 'LIVE') : 'OFFLINE',
@@ -322,7 +322,7 @@ const deploy = createDeployController({
 });
 const archive = createArchiveController({
   fetchJSON: json, toast, clearInput, icon, icons,
-  watch: id => watchReplay(id), cachedReplay: id => replayController.cachedData(id),
+  watch: id => watchReplay(id),
   canFinish: () => !!room.isOwner() && !!room.liveState() && room.liveState().phase !== 'finished',
   finish: () => room.isOwner() && room.send({ type: CLIENT_MESSAGE.FINISH }),
 });

@@ -69,7 +69,8 @@ export function installHttpApi(app, service, directory, replays, pool = null) {
   app.get(`${HTTP_ENDPOINT.REPLAYS}/:id`, (req, res) => {
     const download = replays.download(req.params.id);
     if (!download) return res.status(404).json(httpErrorResponse('Replay not found or still recording.'));
-    res.set({ 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Cache-Control': 'no-store' });
+    res.set({ 'Content-Type': download.lines ? 'application/x-ndjson' : 'application/json', 'Content-Encoding': 'gzip', 'Cache-Control': 'no-store',
+      'Content-Disposition': `attachment; filename="last-exit-${req.params.id.replace(/[^\w-]/g, '_')}.${download.lines ? 'ndjson' : 'json'}"` });
     res.sendFile(download.path);
   });
 }

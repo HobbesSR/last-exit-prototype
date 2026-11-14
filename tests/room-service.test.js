@@ -32,7 +32,7 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     assert.equal(writer.header.contentId, defaultContent().id);
     assert.equal(writer.header.version, PHYSICS_VERSION);
     assert.equal(writer.header.schema, SCHEMA);
-    assert.equal(writer.header.minSchema, 10);
+    assert.equal(writer.header.minSchema, 17);
     assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
     assert.equal(writer.frames[0].state.slots, 3);
   } finally { await h.service.close(); }

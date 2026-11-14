@@ -7,6 +7,7 @@ import { checkClientControllers } from './client-controllers.mjs';
 import { checkContentPresentation } from './content-presentation.mjs';
 import { checkReloadControls } from './reload-controls.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
+import { readArchive } from './helpers/recordings.js';
 
 await mkdir('test-results', { recursive: true });
 // Hand-built scenes for the checks that place geometry. The engine pins a map when its match is built, so a scene is
@@ -221,7 +222,7 @@ try {
   await page.waitForFunction(width => window.arenaDebug().cameraWidth >= width, wide.mapWidth, { timeout: 5000 });
   const denseDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
-  assert.match((await denseDownloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  assert.match((await denseDownloadPromise).suggestedFilename(), /^last-exit-.*\.(nd)?json$/);
   await page.getByRole('button', { name: 'Exit replay' }).click();
   await page.getByRole('button', { name: 'Replays', exact: true }).click();
   // Routed archives keep the real map contract while making playback deterministic.
@@ -229,7 +230,8 @@ try {
   // frames, which must hold the last retained state rather than extrapolate through
   // data that was never saved. Projectiles advance ten units per tick, so a rendered
   // position states both the authoritative tick and the fraction into it.
-  const savedRecording = await (await fetch(`${base}/api/replays/${ownerRoom}`)).json();
+  // Saved recordings are lines with delta frames (26); the routed fixtures below are single documents, which readers still accept.
+  const savedRecording = readArchive(await (await fetch(`${base}/api/replays/${ownerRoom}`)).text());
   const fixtureState = tick => {
     const state = structuredClone(savedRecording.frames[0].state);
     const origin = state.players[0];
@@ -529,18 +531,18 @@ try {
   await page.screenshot({ path: 'test-results/replay.png' });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
-  assert.match((await downloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  assert.match((await downloadPromise).suggestedFilename(), /^last-exit-.*\.(nd)?json$/);
   await page.getByRole('button', { name: 'Exit replay' }).click();
   // Archives from before schema 10 are refused cleanly and stay downloadable (#953).
   routedReplay = { ...savedRecording, schema: 9, minSchema: 0 };
   await page.getByRole('button', { name: 'Replays', exact: true }).click();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
   await page.waitForFunction(() => /no longer reads/.test(document.getElementById('toast').textContent) && !document.getElementById('toast').hidden);
-  assert.match(await page.locator('#toast').textContent(), /This broadcast uses a recording format this build no longer reads\. Its JSON can still be downloaded\./);
+  assert.match(await page.locator('#toast').textContent(), /This broadcast uses a recording format this build no longer reads\. It can still be downloaded\./);
   assert.equal(await page.evaluate(() => window.arenaDebug().replay), false);
   const oldDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download arena 4217', exact: true }).first().click();
-  assert.match((await oldDownloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  assert.match((await oldDownloadPromise).suggestedFilename(), /^last-exit-.*\.(nd)?json$/);
   await page.locator('#archive-dialog .close-dialog').click();
   await page.getByRole('button', { name: 'Lobbies', exact: true }).click();
   assert.equal(await page.locator('#tab-join').getAttribute('tabindex'), '0');

@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gunzipSync } from 'node:zlib';
 import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
@@ -14,6 +13,7 @@ import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { rounds } from './helpers/rounds.js';
 import { openArea } from './helpers/arena.js';
+import { readArchive } from './helpers/recordings.js';
 
 const AMMO = contentById('content-ammo-1');
 const arena = () => ({ width: 600, height: 400,
@@ -276,7 +276,7 @@ test('current recordings keep reserves, reloads and ammo pickups exactly through
   assert.deepEqual([frames[1].players[0].reload.instanceId, frames[2].players[0].inventory[0].ammo, frames[3].players[0].reserves.pistol], ['gun', 12, 12]);
   assert.deepEqual(frames[3].items.map(item => [item.kind, item.family, item.count]), [['ammo', 'pistol', 8]]);
   await writer.finish({ ticks: s.tick, escaped: 0 });
-  const archive = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+  const archive = readArchive(chunks);
   assert.equal(recordingFit(archive), 'ok');
   assert.deepEqual(archive.frames.map(frame => frame.state), frames);
   const timeline = createReplayTimeline(archive);

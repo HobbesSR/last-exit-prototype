@@ -1,3 +1,9 @@
+/** Saves what `url` serves, under the name its response gives (Content-Disposition). */
+export function downloadUrl(url) {
+  const link = document.createElement('a');
+  link.href = url; link.download = ''; link.click();
+}
+
 /** Saves `data` as a JSON file named `name`, through a short-lived object URL. `space` indents as JSON.stringify does. */
 export function downloadJson(name, data, space) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, space)], { type: 'application/json' }));
