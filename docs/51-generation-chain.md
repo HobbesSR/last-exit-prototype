@@ -22,7 +22,7 @@ Corey's directions for the chain (2026-09-28 and 29), from [17.2.2](17.2.2-bound
 - macro prescribes no geometry
 - the library is authored fresh against a region type catalogue
 
-`map/macro/design_notes.txt` is the original statement of intent. Corey's later answers under [17.2](17.2-map-questions.md) and the accepted model in 51 govern where they differ. For example, the notes describe segment-aligned fences and doors, and [17.2.2](17.2.2-boundaries-and-prescriptions.md) records that macro prescribes no geometry for now.
+The [archived original design notes](archive/2026-11-14-mapgen-intent/design_notes.txt) are the historical statement of intent. Corey's later answers under [17.2](17.2-map-questions.md) and the accepted model in 51 govern where they differ. For example, the notes describe segment-aligned fences and doors, and [17.2.2](17.2.2-boundaries-and-prescriptions.md) records that macro prescribes no geometry for now.
 
 <a id="the-chain"></a>
 

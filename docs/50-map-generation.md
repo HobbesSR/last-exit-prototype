@@ -144,7 +144,7 @@ The completed migration ledger is retained in
 
 | Task | Read |
 | --- | --- |
-| Anything in map generation | 50, then the design notes (`map/macro/design_notes.txt`), the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ |
+| Anything in map generation | 50, then the specific 5x/17.2 owner below. For historical provenance, the original intent notes are archived at [design_notes.txt](archive/2026-11-14-mapgen-intent/design_notes.txt) |
 | A chain stage or its interfaces | [51](51-generation-chain.md) routes to the stage; read [51.1](51.1-principles-and-names.md) for shared invariants and only the needed stage in 51.2–51.10 |
 | Tiles, set pieces, cell classes, prescriptions | 52 |
 | The map's macro shape: the diamond, zones, zone sizes, where placement rules anchor | 55 |
