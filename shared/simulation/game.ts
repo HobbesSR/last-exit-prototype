@@ -11,7 +11,7 @@ import { prepareSweptGeometry, prepareSweptGates } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
-import { start, stop } from '../profiler.ts';
+import { start, stop, profiling, observe } from '../profiler.ts';
 
 export const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 export const actorId = (p: Player) => `actor:${p.id}`;
@@ -91,9 +91,21 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     Object.freeze(s.map.gates);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     if (yieldControl) await yieldControl();
-    if (yieldControl) await prepareSweptGates(s.map.gates, yieldControl);
-    if (yieldControl) await prepareBotGates(s.map, yieldControl);
-    if (yieldControl) await prepareKnowledgeGeometry(s.map, yieldControl);
+    if (yieldControl) {
+      const before = profiling() ? performance.now() : undefined;
+      await prepareSweptGates(s.map.gates, yieldControl);
+      if (before !== undefined) observe('prepare.sweptGates', performance.now() - before);
+    }
+    if (yieldControl) {
+      const before = profiling() ? performance.now() : undefined;
+      await prepareBotGates(s.map, yieldControl);
+      if (before !== undefined) observe('prepare.botGates', performance.now() - before);
+    }
+    if (yieldControl) {
+      const before = profiling() ? performance.now() : undefined;
+      await prepareKnowledgeGeometry(s.map, yieldControl);
+      if (before !== undefined) observe('prepare.navigation', performance.now() - before);
+    }
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
     Object.defineProperty(s, 'version', { value: PHYSICS_VERSION, enumerable: true, writable: false });

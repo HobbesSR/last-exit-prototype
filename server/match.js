@@ -11,6 +11,7 @@ import { setImmediate as preparationPause } from 'node:timers/promises';
 import { prepareMapPayload } from './map-payload.js';
 import { publishItems, itemsJson, prepareGroundItems } from '../shared/simulation/ground-items.ts';
 import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
+import { profiling, observe } from '../shared/profiler.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
@@ -89,7 +90,9 @@ export async function createMatch(seed, size, map, content = defaultContent()) {
     const payloads = await prepareMapPayload(game.map, () => preparationPause());
     // The first outward frame publishes this same list. Freeze at that existing
     // publication boundary before building its cells, so no loose migration is left.
+    const beforeGround = profiling() ? performance.now() : undefined;
     await prepareGroundItems(publishItems(game), () => preparationPause());
+    if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
     return matchOf(game, payloads);
   } catch (error) { disposePhysics(game); throw error; }
 }
