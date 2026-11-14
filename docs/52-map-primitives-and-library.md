@@ -517,13 +517,11 @@ route-reservation diagnosis and bounded sample are in [42.3](42.3-generation-and
 31 describes the library's acceptance checks. The tools and live matches use
 the same library through `map/chain.ts`; live conversion is separate (14, 22).
 
-### The old footprints (S5)
+### The old footprints
 
-The old library's set pieces ("The old library", below; recovered from
-`141dece^:map/macro/content/default-library.json`) come back with their slot
-arrangements and their placement rules and quotas unchanged (Corey,
-2026-09-28: "the same distribution as before"). Each old area takes its
-region type from 54's "Today's names":
+The set pieces keep the old library's slot arrangements, placement rules and
+quotas (Corey, 2026-09-28: "the same distribution as before"). Each old area
+takes its region type from 54's "Today's names":
 
 - `market` pieces become `market`, except one medium piece, which became
   `hall` so the library paints it.
@@ -535,20 +533,15 @@ region type from 54's "Today's names":
   (51, "Core elements"). They were plain clearings, so they become `block`
   (the enormous one), `park`, `cover`, `ruins` and `rubble`.
 
-The old designs were rings of fence and gate tiles around an unclaimed
-middle. They are filled here: the builders now draw enclosures themselves
-(`compound`'s ring, `depot`'s walls), and a ring one tile wide is below every
-structure type's shape needs. So the footprints are larger than the old
-ones. The S5 footprint coverage sample is in [42.3](42.3-generation-and-delegation-evidence.md#s5-footprint-coverage-sample).
+The footprints are filled ground, larger than the old fence-and-gate rings,
+because the builders draw enclosures themselves (`compound`'s ring, `depot`'s
+walls). The footprint coverage sample is in [42.3](42.3-generation-and-delegation-evidence.md#s5-footprint-coverage-sample);
+the original S5 notes are [archived](archive/2026-11-13-delegation-and-library-history/52-library-history.md).
 
-Every non-`open` type rolls loot, so the default loot gradient was scaled to
-keep loot per map level (14).
-
-## The larger libraries (S6)
+## The larger libraries
 
 `diamond-24x12.json` and `diamond-36x18.json` (#171) include the same two
-modules and `district-set-pieces` (originally `district-set-pieces@3.json` in git,
-now `@6.json`). A piece that is enormous at one size
+modules and `district-set-pieces@6`. A piece that is enormous at one size
 is medium at the next (55):
 
 | Set piece class | 24 × 12 | 36 × 18 |
@@ -567,7 +560,7 @@ Core element pieces, their quotas and the six transit stations stay as at
 split between two or three types so one structure type doesn't fill it alone.
 Sizes are in tiles.
 
-- **Districts** (`district-set-pieces`, originally `@3` in git, now `@6`, shared by both sizes):
+- **Districts** (`district-set-pieces`, shared by both sizes):
   `market-district` 20 × 10 (market and park), `industrial-estate` 18 × 10
   (plant and depot), `downtown` 20 × 9 (block over a market row), `garrison`
   16 × 10 (compound over a checkpoint lane) and `old-town` 18 × 10 (ruins,
@@ -578,7 +571,7 @@ Sizes are in tiles.
   (block over market and park), `military-quarter` 26 × 15 (compound over a
   checkpoint lane) and `ruined-quarter` 28 × 14 (ruins, cover and park).
 
-The three-size S6 coverage and loot sample is in [42.3](42.3-generation-and-delegation-evidence.md#s6-authored-size-sample).
+The three-size coverage and loot sample is in [42.3](42.3-generation-and-delegation-evidence.md#s6-authored-size-sample).
 
 ## The old library
 
@@ -593,15 +586,11 @@ What differed in it:
   primary region class
 - every class bound to `open-field`, and no core element classes
 
-Inspection for #241/#243/#298 also traced the former `last_exit_map` library
-(at `141dece^`) for rotated partial regions and selected fence, corner and gate
-tiles. Those shapes show a useful way to compose irregular regions without
-forcing openings along every side. This pass adopts selective guaranteed
-openings and deferred/hinted perimeter segments; it retains the current
-three-cell tile grid, shapes and weights. The #214 follow-up adds rotated rubble
-bands and bends, a centered courtyard feature, and deliberately larger building
-fill areas within selected structure set pieces. The bounded #214 fill composition and portal diagnosis sample is in [42.3](42.3-generation-and-delegation-evidence.md#fill-composition-214-sample).
-
+It survives at `141dece^:map/macro/content/default-library.json`. The
+selective openings, hinted perimeters and clear fill tiles above (#214) came
+from tracing it and the former `last_exit_map` library; that tracing is
+[archived](archive/2026-11-13-delegation-and-library-history/52-library-history.md),
+and its bounded fill and portal sample is in [42.3](42.3-generation-and-delegation-evidence.md#fill-composition-214-sample).
 
 ## Winged hall authoring (#533)
 
