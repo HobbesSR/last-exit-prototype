@@ -4,9 +4,10 @@ import { createClearance } from '../tools/navigation/clearance.mjs';
 import { segmentShapeDistance, rect, circle, polygon } from '../shared/shape.ts';
 import { bakeGraph, queryGraph } from '../tools/navigation/graph.mjs';
 import { reachClear } from '../shared/movement.ts';
+import { openArea } from './helpers/arena.js';
 
 const p = (x,y) => ({x,y});
-const map = (obstacles=[],gates=[]) => ({width:384,height:192,obstacles,gates,playableArea:{cellSize:192,rows:[{y:0,runs:[[0,2]]}]}});
+const map = (obstacles=[],gates=[]) => ({width:384,height:192,obstacles,gates,playableArea:openArea(384,192,192)});
 test('continuous sweep catches thin off-grid walls and filled containment', () => {
   const clear = createClearance(map([{x:101,y:0,w:0.1,h:192}]),14);
   assert.equal(clear(p(70,80),p(130,80)),false);

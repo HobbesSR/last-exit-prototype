@@ -5,7 +5,6 @@
  * guarantees along boundaries, and that a portal shorter than a hunter is refused.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { boundaryRuns } from "../../kernel/run.ts";
 import { RUN_CASES, runCaseParts } from "../../kernel/run-cases.ts";
@@ -16,10 +15,8 @@ import { placement } from "../src/chain/placement.ts";
 import { portalViolations, regions } from "../src/chain/regions.ts";
 import { resolution } from "../src/chain/resolution.ts";
 import type { ChainParams, Layout, LayoutRegions, PlacedSlot, ResolvedLayout } from "../src/chain/types.ts";
-import { assertDeterministic, assertPure, assertRecomputable } from "./chain-harness.ts";
+import { assertDeterministic, assertPure, assertRecomputable, LIBRARY, GAME } from "./chain-harness.ts";
 
-const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const SEEDS = ["placement-1", "placement-2", "placement-3", "placement-4"];
 const layouts = new Map(SEEDS.map((seed) => [seed, placement(seed, GAME, LIBRARY)]));
 const derive = (layout: Layout, library: ChainLibrary): LayoutRegions => regions(resolution(layout, library), layout.seed);

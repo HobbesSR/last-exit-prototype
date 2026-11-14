@@ -6,10 +6,11 @@ import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { visiblePoint, visibleTo } from '../shared/simulation/visibility.ts';
 import { VISION } from '../shared/movement.ts';
+import { openArea } from './helpers/arena.js';
 
 function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, obstacles = [], items = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openArea(800, 800, 100),
     modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [], physicsProps: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns,

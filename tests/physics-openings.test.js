@@ -76,7 +76,7 @@ test('both narrow role bodies traverse actual authored hut doors in all orientat
     const shapes = result.elements.flatMap(e => elementShapes(e));
     const obstacles = shapes.map((shape, i) => ({ id: `shape-${i}`, ...shape }));
     const map = { width: 240, height: 240, obstacles, gates: [],
-      playableArea: { cellSize: 40, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 6]] })) } };
+      playableArea: openArea(240, 240, 40) };
     for (const [role, profile] of Object.entries(geometry)) {
       const world = await createPhysicsWorld();
       try {

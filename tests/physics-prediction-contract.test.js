@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { createGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { actorMotor, characterMotor } from '../shared/simulation/actor-physics.ts';
+import { openArea } from './helpers/arena.js';
 
 const arena = () => ({ width: 600, height: 400,
-  playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 6]] })) },
+  playableArea: openArea(600, 400, 100),
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 100, y: 200 }], stations: [], chargers: [], sensors: [],
   items: [], traps: [], routes: [], nodes: [], streets: [], modules: [], buildings: [],
   exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });

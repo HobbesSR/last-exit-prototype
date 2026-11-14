@@ -9,6 +9,7 @@ import { buildRegion, briefErrors } from '../map/micro/region-types.ts';
 import { rect } from '../shared/shape.ts';
 import { moveBody, canOccupy } from '../shared/movement.ts';
 import { chainBrief } from './helpers/chain-briefs.js';
+import { openArea } from './helpers/arena.js';
 
 const cells = (x0, y0, w, h) => Array.from({ length: w * h }, (_, i) => ({ x: x0 + i % w, y: y0 + Math.floor(i / w) }));
 const brief = (owned, portals, playable = owned, internal = []) => chainBrief({ id: 'test', type: 'block', cells: owned, portals, internal, playable,
@@ -31,7 +32,7 @@ test('shared one-cell approaches admit swept hunter routes and actual movement a
   const route = findRegionRoute(mask, blockers, a, b, radius);
   assert.ok(route);
   const collision = { width: 320, height: 200, gates: [], obstacles: [{ id: 'wall', kind: 'ruin-wall', ...blockers[0] }],
-    playableArea: { cellSize: 40, rows: Array.from({ length: 5 }, (_, y) => ({ y, runs: [[0, 8]] })) } };
+    playableArea: openArea(320, 200, 40) };
   const mover = { ...a };
   for (const goal of route.slice(1)) {
     let remaining = 200;

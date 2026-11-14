@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bakeGraph, beginQuery, queryGraph } from '../tools/navigation/graph.mjs';
 import { createHierarchy } from '../tools/navigation/hierarchy.mjs';
+import { openArea } from './helpers/arena.js';
 
 const map = (width, height, obstacles = []) => ({
   width, height, obstacles, gates: [], buildings: [],
-  playableArea: { cellSize: 6, rows: Array.from({ length: height / 6 }, (_, y) => ({ y, runs: [[0, width / 6]] })) },
+  playableArea: openArea(width, height, 6),
 });
 
 test('off-grid thin wall blocks sampled links and endpoint connectors', () => {

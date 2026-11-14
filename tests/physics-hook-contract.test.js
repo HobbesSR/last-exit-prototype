@@ -9,12 +9,13 @@ import { createReplayTimeline } from '../public/replay-timeline.js';
 import { createPhysicsPrediction } from '../public/physics-prediction.js';
 import { SCHEMA, recordingFit } from '../shared/recording.ts';
 import { createLobby } from '../server/match.js';
+import { openArea } from './helpers/arena.js';
 
 function fixture() {
   const content = structuredClone(contentById('content-6'));
   content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
   const map = { seed: 446, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openArea(800, 800, 100),
     modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },

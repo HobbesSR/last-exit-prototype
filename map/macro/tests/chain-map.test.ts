@@ -5,21 +5,18 @@
  * test `tests/map-container.test.js` runs the same round trip with the game's own.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { briefs, chainZones } from "../src/chain/briefs.ts";
-import type { ChainLibrary } from "../src/chain/library.ts";
 import { generateChainMap, mapViews, MACRO_VERSION } from "../src/chain/map.ts";
 import { measurement } from "../src/chain/measurement.ts";
 import { proof } from "../src/chain/proof.ts";
 import { regions } from "../src/chain/regions.ts";
 import { resolution } from "../src/chain/resolution.ts";
 import { CHAIN_WIRE_VERSION, chainMapToBson, chainMapToJson, decodeChainMap, encodeChainMap, readChainMap } from "../src/chain/saving.ts";
-import type { ChainMap, ChainParams, MapEngines } from "../src/chain/types.ts";
+import type { ChainMap, MapEngines } from "../src/chain/types.ts";
 import { STUB_ENGINES, stubBuild, stubCompose } from "./chain-stub.ts";
+import { LIBRARY, GAME } from "./chain-harness.ts";
 
-const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const SEEDS = ["placement-1", "placement-2", "placement-3", "placement-4"];
 const CELL_SIZE = 4;
 /** Stub results with something in every field, so a round trip that dropped one would show. */

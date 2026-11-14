@@ -5,12 +5,13 @@ import { contentById } from '../shared/simulation/content.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { PHYSICS_VERSION, physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { SPECTATOR_DELAY_TICKS } from '../server/room-views.js';
+import { openArea } from './helpers/arena.js';
 
 const VERSION = PHYSICS_VERSION;
 const content = () => ({ ...structuredClone(contentById('content-6')),
   roster: { contestants: ['A'], gladiators: [] } });
 const map = () => ({ seed: 449, width: 5000, height: 600,
-  playableArea: { cellSize: 100, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 50]] })) },
+  playableArea: openArea(5000, 600, 100),
   obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [],
   routes: [], nodes: [], streets: [], modules: [], buildings: [], physicsProps: [], motorSurfaces: [],
   entry: { x: 50, y: 300 }, exit: { x: 4900, y: 300 }, spawns: [{ x: 200, y: 300 }], hunterSpawns: [] });

@@ -5,10 +5,11 @@ import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { automaticPickups, scatterPoint } from '../shared/simulation/loot.ts';
 import { addItems, admitItem, framedItems, groundItem, groundList, groundPosition, itemsNear, poseItems, publishItems, removeItem, replaceItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
+import { openArea } from './helpers/arena.js';
 
 // #655 stage 1 (22.1 "Frames"): frames share the ground list and its records, and a change replaces only what it touches.
 const arena = items => ({ width: 600, height: 400,
-  playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 6]] })) },
+  playableArea: openArea(600, 400, 100),
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 120, y: 200 }, { x: 400, y: 200 }],
   stations: [], chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [],
   modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });

@@ -1,26 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createFillMask, elementShapes } from '../map/micro/geometry.ts';
+import { createFillMask } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
-import { cellsOf } from './helpers/cells.js';
+import { SIZE, THOROUGH, brief, MASKS as PARK_MASKS, blockers, kind, boxOf } from './helpers/park-fixtures.js';
 
 /** Park's hedge fronts (#649, 42.30), on by default since #760; `hedgeFronts: 0` turns them off. */
-const SIZE = 40, THOROUGH = { search: 'thorough' };
-const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'park', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals, ...(parameters ? { parameters } : {}) });
+
 /** micro-park's field, L and ring masks. */
-const MASKS = {
-  field: [cellsOf(40, 30), [{ id: 'west', axis: 'v', x: 0, y: 7, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 20, length: 3 },
-    { id: 'north', axis: 'h', x: 28, y: 0, length: 8 }]],
-  ell: [cellsOf(30, 30, (x, y) => y < 15 || x < 15), [{ id: 'east', axis: 'v', x: 30, y: 4, length: 3 }, { id: 'south', axis: 'h', x: 2, y: 30, length: 4 },
-    { id: 'corner', axis: 'h', x: 18, y: 15, length: 6 }]],
-  ring: [cellsOf(36, 36, (x, y) => x < 13 || x >= 23 || y < 13 || y >= 23), [{ id: 'north', axis: 'h', x: 15, y: 0, length: 4 },
-    { id: 'hole', axis: 'v', x: 23, y: 16, length: 3 }, { id: 'west', axis: 'v', x: 0, y: 26, length: 3 }]],
-};
-const blockers = result => result.elements.flatMap(element => elementShapes(element));
-const kind = prefix => element => element.label.startsWith(`park-${prefix}`);
-const boxOf = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
+const MASKS = { field: PARK_MASKS.field, ell: PARK_MASKS.ell, ring: PARK_MASKS.ring };
 
 test('hedge fronts (#649, #760) grow inward, keep the promise and leave no sealed open ground', () => {
   let sealed = 0, fronts = 0;

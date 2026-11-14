@@ -6,7 +6,6 @@
  * hut that has one. Small hand-built solves pin what each refusal is for.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { declaredGrid, layoutViolations } from "../src/chain/declared-grid.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
@@ -15,12 +14,11 @@ import { adjacencyCompatibility, adjacencyLinks, placement, placer } from "../sr
 import { proof, proofViolations } from "../src/chain/proof.ts";
 import { portalViolations, regions } from "../src/chain/regions.ts";
 import { resolution } from "../src/chain/resolution.ts";
-import type { ChainParams, Layout } from "../src/chain/types.ts";
+import type { Layout } from "../src/chain/types.ts";
 import { solveWfc } from "../src/wfc.ts";
 import type { TileOption, WfcGrid } from "../src/wfc.ts";
+import { LIBRARY, GAME } from "./chain-harness.ts";
 
-const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 // Seeds whose unruled layouts seal a hut (the draw is seeded, so the list is what it was found to be).
 const SEEDS = ["open-face-1", "open-face-2", "open-face-4", "open-face-6"];
 
