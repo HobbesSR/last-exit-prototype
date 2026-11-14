@@ -5,6 +5,7 @@ import { addAuthoredProps, synchronizePhysicalItems, validateWorldPhysics } from
 import { reconcileHooks } from './hook.ts';
 import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION } from './physics-runtime.ts';
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
+import { prepareBotGates } from './bot-routes.ts';
 import { prepareKnowledgeGeometry } from '../navigation/knowledge.ts';
 import { prepareSweptGeometry } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
@@ -90,6 +91,7 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     Object.freeze(s.map.gates);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     if (yieldControl) await yieldControl();
+    if (yieldControl) await prepareBotGates(s.map, yieldControl);
     if (yieldControl) await prepareKnowledgeGeometry(s.map, yieldControl);
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);

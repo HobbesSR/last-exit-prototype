@@ -127,6 +127,22 @@ export function botGates(map: CollisionMap): BotGateIndex {
   return index;
 }
 
+/** Prepare the gates' two lookup tables without observing doors or planning. */
+export async function prepareBotGates(map: CollisionMap, yieldControl: () => Promise<void>): Promise<void> {
+  const byId = new Map<GateId, Gate>(), byBuilding = new Map<BuildingId, Gate[]>();
+  for (let i = 0; i < map.gates.length; i++) {
+    const g = map.gates[i]!;
+    byId.set(g.id, g);
+    if (g.buildingId !== undefined) {
+      let list = byBuilding.get(g.buildingId);
+      if (!list) byBuilding.set(g.buildingId, list = []);
+      list.push(g);
+    }
+    if (i % 128 === 127) await yieldControl();
+  }
+  gateIndex.set(map.gates, { count: map.gates.length, byId, byBuilding });
+}
+
 /** The map's gates by id. Gates are only ever added, so the list's identity and length key it; each is read as it stands. */
 function gatesById(map: CollisionMap): Map<GateId, Gate> {
   return botGates(map).byId;
