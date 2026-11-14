@@ -1,57 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { liveChainParams, liveMapFromBuilt } from '../map/live.ts';
-import { generate } from '../map/chain.ts';
-import { composeRegions } from '../map/micro/compose.ts';
-import { builtMapFrame } from '../map/micro/adapter.ts';
-import { canOccupy, moveBody } from '../shared/movement.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { createGame, disposePhysics, setInput, step } from '../shared/simulation.ts';
+import { generatedMap } from './helpers/room-harness.js';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-// One generation of seed 1's chain serves the file. That it is the map a room generates from seed 1 is
-// tests/slow/live-map-adapter.test.js's claim (a match's map against this same chain). The Map Lab's
-// live-recipe check, which regenerates the chain, is in tests/slow/live-map.test.js (#849).
-let defaultMap, defaultChain, defaultBuilt;
-const liveChain = () => defaultChain ??= generate('1', liveChainParams());
-const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);
-const live = () => defaultMap ??= liveMapFromBuilt(1, liveBuilt());
-
-test('a chain live map supplies usable authored sites and retained loot metadata', () => {
-  const map = live(), content = defaultContent();
-  assert.equal(map.generator, 'chain-live-1');
-  assert.deepEqual([map.width, map.height], [17280, 8640]);
-  assert.equal(map.playableArea.cellSize, 48);
-  assert.ok(map.playableArea.rows.length > 0);
-  assert.equal(map.spawns.length, content.roster.contestants.length);
-  assert.equal(map.hunterSpawns.length, content.roster.gladiators.length);
-  assert.equal(map.stations.length, 6, 'distributed transit is authored');
-  assert.ok(map.chargers.length > 0);
-  for (const [sites, radius] of [[map.spawns, 12], [map.hunterSpawns, 23], [[map.exit], 23], [map.chargers, 24], [map.stations, 25]])
-    for (const site of sites) assert.ok(canOccupy(map, site.x, site.y, radius), `site at ${site.x},${site.y}`);
-  for (const spawn of map.spawns) {
-    assert.ok(map.items.some(item => item.kind === 'weapon' && item.weaponType === 'pistol' && distance(item, spawn) <= 100), 'starter pistol');
-    assert.ok(map.items.some(item => item.kind === 'cell' && distance(item, spawn) <= 100), 'early cell');
-  }
-  assert.ok(map.items.every(item => item.kind !== 'weapon' || ['pistol', 'rifle', 'scattergun'].includes(item.weaponType)));
-  const owned = [...map.chargers, ...map.stations, ...map.items.filter(item => item.nodeId)];
-  assert.ok(new Set(owned.map(site => site.nodeId)).size > 1, 'sites retain distinct region ownership');
-  assert.ok(map.items.some(item => Number.isInteger(item.tier) && item.tier >= 1), 'micro loot tier survives runtime conversion');
-});
-
-test('JSON map transfer keeps the mask and both roles can move from authored starts', () => {
-  const map = live(), transferred = JSON.parse(JSON.stringify(map));
-  assert.deepEqual(transferred.playableArea, map.playableArea);
-  for (const [start, radius] of [[map.spawns[0], 12], [map.hunterSpawns[0], 23]]) {
-    const direction = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([dx, dy]) => canOccupy(map, start.x + dx * 9, start.y + dy * 9, radius));
-    assert.ok(direction, 'an authored start has an adjacent traversable step');
-    const a = { ...start }, b = { ...start };
-    moveBody(map, a, { x: direction[0], y: direction[1] }, radius, 9);
-    moveBody(transferred, b, { x: direction[0], y: direction[1] }, radius, 9);
-    assert.deepEqual(b, a, 'client movement from a JSON map agrees with the server');
-    assert.ok(distance(a, start) > 0);
-  }
-});
+// The pregenerated room arena, seed 9's live map, costs no generation. The cases that read seed 1's
+// built chain are in tests/slow/live-map.test.js: building a map is slow-tier work (31, #1071).
+const live = () => generatedMap(9);
 
 test('live sites allow charging, extraction, and safe hunter redeployment', async t => {
   const map = structuredClone(live()), game = await createGame(1, map, defaultContent()), contestant = game.players[0];
@@ -74,22 +30,4 @@ test('live sites allow charging, extraction, and safe hunter redeployment', asyn
   assert.equal(hunter.status, 'active');
   // On a station, to the engine's single-precision positions.
   assert.ok(map.stations.some(site => distance(hunter, site) < 0.01));
-});
-
-test('each live site and item keeps its own source region, place and tier', () => {
-  const map = live(), built = liveBuilt();
-  const { origin } = builtMapFrame(built), regions = new Map(built.regions.map(region => [region.brief.id, region]));
-  const world = site => `${site.x + origin.x},${site.y + origin.y}`;
-  for (const [sites, kind] of [[map.chargers, 'charger'], [map.stations, 'warp']]) {
-    assert.equal(sites.length, built.regions.flatMap(region => region.coreElements).filter(site => site.kind === kind).length, `every ${kind} is retained`);
-    for (const site of sites) assert.ok(regions.get(site.nodeId)?.coreElements.some(source => source.kind === kind && world(source) === `${site.x},${site.y}`),
-      `${kind} at ${site.x},${site.y} is a ${kind} of ${site.nodeId}`);
-  }
-  const loot = map.items.filter(item => item.nodeId);
-  assert.ok(loot.length > 0, 'region loot is retained');
-  for (const item of loot) {
-    const source = regions.get(item.nodeId)?.loot.find(spot => world(spot) === `${item.x},${item.y}`);
-    assert.ok(source, `${item.id} at ${item.x},${item.y} is a loot site of ${item.nodeId}`);
-    assert.equal(item.tier, source.tier, `${item.id} keeps its site's tier`);
-  }
 });
