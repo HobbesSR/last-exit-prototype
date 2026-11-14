@@ -184,14 +184,14 @@ above).
 | Type | The game (`map/micro/`) | mapgen (`src/micro/builders/`, deleted in #146; in git history) |
 | --- | --- | --- |
 | `open` | — (it builds nothing) | — |
-| `cover` | `example-open` (built, #127) | `open-field`, `scatter` |
-| `rubble` | `example-ruins` decay (built, #128) | `rubble` |
+| `cover` | `example-open` (sparse cover and shelters; built, #127) | `open-field`, `scatter`, `loot-scatter` |
+| `rubble` | `example-ruins` decay into rotated rubble (built, #128) | `rubble` (surviving gaps in the contestant band) |
 | `ruins` | `example-ruins` (built, #157) | — |
 | `hall` | — | `pillar-hall` (built, #158) |
-| `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
+| `hut` | the room shell in `builders.ts` (real windows, a profile-sized door, optional shelves; built, #129) | `compound` |
 | `depot` | `example-depot` (built, #159) | — |
 | `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
-| `block` | `decomposition/example.ts`, the retired `realize.ts` and `negotiate.ts` (built on spacing instead, #161) | — |
+| `block` | `decomposition/example.ts`, the retired `realize.ts` (#483, in git history) and `negotiate.ts` (built on spacing instead, #161) | — |
 | `market` | Dedicated `market-stall` rows and awnings (#534) | Former stand-in: `pillar-hall` via `hall` |
 | `plant` | `depot`'s warehouse for its shed (built, #219) | — |
 | `checkpoint` | `cover`'s barriers and `depot`'s warehouse for its post (built, #220) | — |
