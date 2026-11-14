@@ -8,8 +8,8 @@ const counted = (value, onRead, freeze = false) => {
   const record = {};
   Object.defineProperties(record, Object.fromEntries(Object.entries(value).map(([key, field]) =>
     [key, key === 'x' || key === 'y' || key === 'w' || key === 'h' || key === 'id' || key === 'buildingId'
-    ? { get() { onRead(key); return field; }, enumerable: true }
-    : { value: field, enumerable: true }])));
+    ? { get() { onRead(key); return field; }, enumerable: true, configurable: true }
+    : { value: field, enumerable: true, writable: true, configurable: true }])));
   return freeze ? Object.freeze(record) : record;
 };
 
