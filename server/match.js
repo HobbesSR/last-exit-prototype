@@ -9,7 +9,7 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { setImmediate as preparationPause } from 'node:timers/promises';
 import { prepareMapPayload } from './map-payload.js';
-import { publishItems, itemsJson } from '../shared/simulation/ground-items.ts';
+import { publishItems, itemsJson, prepareGroundItems } from '../shared/simulation/ground-items.ts';
 import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
@@ -87,6 +87,9 @@ export async function createMatch(seed, size, map, content = defaultContent()) {
     () => preparationPause());
   try {
     const payloads = await prepareMapPayload(game.map, () => preparationPause());
+    // The first outward frame publishes this same list. Freeze at that existing
+    // publication boundary before building its cells, so no loose migration is left.
+    await prepareGroundItems(publishItems(game), () => preparationPause());
     return matchOf(game, payloads);
   } catch (error) { disposePhysics(game); throw error; }
 }

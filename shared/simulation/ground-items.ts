@@ -119,6 +119,17 @@ function gridOf(list: readonly GroundItem[]): Grid {
   return grid;
 }
 
+/** Build the initial published ground's spatial index without doing a pickup.
+ * The caller owns publication; mutable scenario records retain the lazy path. */
+export async function prepareGroundItems(list: readonly GroundItem[], yieldControl: () => Promise<void>): Promise<void> {
+  const grid: Grid = { levels: SIZES.map(size => ({ size, cells: new Map() })), loose: [], entries: new Map(), next: 0 };
+  for (let i = 0; i < list.length; i++) {
+    enter(grid, list[i]!);
+    if (i % 128 === 127) await yieldControl();
+  }
+  grids.set(list, grid);
+}
+
 /** The records of `grid` that could be within `reach` of `at`, unordered: the loose ones and those in cells the reach overlaps. */
 function candidates(grid: Grid, at: Vec2, reach: number): GroundItem[] {
   const found = grid.loose.slice();
