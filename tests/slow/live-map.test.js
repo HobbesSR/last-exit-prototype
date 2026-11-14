@@ -28,7 +28,8 @@ const live = () => defaultMap ??= liveMapFromBuilt(1, liveBuilt());
 test('combat-neutralized bots fill all three extraction slots on representative live chain maps', async () => {
   const content = defaultContent();
   for (const seed of [1, 9]) {
-    const game = await createGame(seed, generateLiveMap(seed, content), content);
+    // Seed 1's map is the file's shared one (equal to generateLiveMap's, tests/slow/live-map-adapter), cloned since the match edits it.
+    const game = await createGame(seed, seed === 1 ? structuredClone(live()) : generateLiveMap(seed, content), content);
     try {
       game.map.traps = [];
       for (const player of game.players) {
