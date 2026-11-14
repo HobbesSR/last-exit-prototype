@@ -17,8 +17,8 @@ Read, in this order:
 2. Root `docs/50-map-generation.md`: the two halves, who owns what, and a
    reading guide.
 3. The 5x file for the area you're changing:
-   - `docs/51-generation-chain.md`: route to 51.1 (invariants), the relevant
-     stage child, or 51.14 (build record); do not load every child
+   - `docs/51-generation-chain.md`: route to 51.1 (invariants) or the relevant
+     stage child; do not load every child
    - `docs/52-map-primitives-and-library.md`: the library model
    - `docs/53-map-artifacts-and-tools.md`: artifacts, determinism and the sweep;
      `docs/53.1-map-lab-and-tools.md`: the Map Lab, CLI and MCP

@@ -106,14 +106,14 @@ So the test is:
   macro to micro.
 
 The completed migration ledger is retained in
-[51.14.5](51.14.5-switch-over.md#historical-duplication-ledger). Use the
+[archived switch-over record](archive/2026-11-13-macro-switchover/51.14.5-switch-over.md#historical-duplication-ledger). Use the
 [ownership table](#ownership) and the reading guide below for current boundaries.
 
 ## Where the code is today
 
 - **The game:** live rooms run the generation chain: macro placement, then each
   region type's strategy from `map/micro/` (`map/live.ts`;
-  [22.2](22.2-map-generation.md#live-map-assembly), [51.14.5](51.14.5-switch-over.md)).
+  [22.2](22.2-map-generation.md#live-map-assembly)).
   #920 deleted the interim street maze that was in `shared/map/`.
   Recursive execution of explored decomposition trees, and moving decomposition's
   walled ports to portals, are still pending
@@ -155,5 +155,5 @@ The completed migration ledger is retained in
 | Macro/micro briefs and passability | [51.7](51.7-briefs.md), [20.1](20.1-region-contract.md), and [17.2.4](17.2.4-contract-questions.md) for M1–M5 |
 | Open questions, and your verbatim answers | [17.2](17.2-map-questions.md) routes by topic and M-number; [17.2.7](17.2.7-zone-plans.md) holds the zone-plan answers |
 | Generation measurements and chain captures | [42.3](42.3-generation-and-delegation-evidence.md) and [42.4](42.4-chain-checkpoint-history.md); current compatibility remains in [53](53-map-artifacts-and-tools.md), and tools in [53.1](53.1-map-lab-and-tools.md) |
-| Chain implementation history | [51.14](51.14-build-order.md), then the relevant track; not required for a stage-only task |
+| Chain implementation history | [archived build-order record](archive/2026-11-13-macro-switchover/51.14-build-order.md), then the relevant track; not required for a stage-only task |
 | What's next | 41, and the Forgejo tracker it names |

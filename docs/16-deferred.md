@@ -4,7 +4,7 @@
 
 - Inventory: six slots, finite ammunition, icons, move/swap/merge, drops, one cell per slot. Implemented defaults are in [14](14-match-rules.md); the former five-slot/unlimited-ammo version is superseded.
 - Multi-floor direction: eventually playable ramps, roofs and overlapping floors, with discrete collision planes. This is accepted direction, not an open yes/no question. Collision-plane transitions and navigation-mesh design remain future engineering work.
-- Access points mean hunter fast travel. Transit stations, authored as core elements in the generation chain (51.14.5), are the current implementation.
+- Access points mean hunter fast travel. Transit stations, authored as core elements in the generation chain ([51.11](51.11-core-elements-and-playground.md)), are the current implementation.
 - Contestants can fight one another. Bots initiate close-range fights after opening grace, and immediately retaliate. Contestant starts come from the generation chain's core start sites ([14](14-match-rules.md#live-chain-maps)); the street maze spread them over four nearby blocks rather than one cluster.
 - Functional buildings have doors, roof concealment and guaranteed useful loot. Non-colliding depot silhouettes were removed. Automated browser checks open a door and walk inside.
 
@@ -40,7 +40,7 @@ current proof of concept:
 F-01 micro generation is active under the user's September 19 direction; see
 [20](20-micro-generation.md). Macro integration is the generation chain
 ([51](51-generation-chain.md)), which live rooms run
-([51.14.5](51.14.5-switch-over.md)). Recursive execution of child-region trees
+([22.2](22.2-map-generation.md#live-map-assembly)). Recursive execution of child-region trees
 remains incomplete ([20.5](20.5-tools-and-next-boundaries.md#next-boundaries)).
 
 Deferred within map generation, by Corey's answers in [17](17-open-questions.md):
