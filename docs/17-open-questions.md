@@ -16,7 +16,7 @@ Use the smallest relevant record. Preserve answers in that record, including the
 | Part | Load for |
 | --- | --- |
 | [17.1](17.1-micro-direction.md) | Micro-generation direction and answers |
-| [17.2](17.2-map-questions.md) | Map generation: checkpoint, answers, M1-M36 and delegation decisions D1-D10 |
+| [17.2](17.2-map-questions.md) | Map generation: answers, M1-M37, portal cords and navigation structure |
 | [17.3](17.3-product-gameplay.md) | Product and gameplay questions |
 | [17.4](17.4-live-service.md) | Live-service policy |
 | [17.5](17.5-playtests.md) | Open playtest questions |
@@ -36,7 +36,7 @@ These landing links preserve bookmarks into the former single file.
 
 <a id="live-chain-checkpoint-2026-10-03"></a>
 
-- Live-chain checkpoint (2026-10-03): [17.2.1](17.2.1-live-checkpoint.md#live-chain-checkpoint-2026-10-03).
+- Live-chain checkpoint (2026-10-03): settled into [14](14-match-rules.md#live-chain-maps) and [26](26-recording-contract.md#cell-masked-maps-schema-4); 17.2.1 is archived.
 
 <a id="answers"></a>
 

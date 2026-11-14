@@ -447,8 +447,7 @@ Missing, extra or obstructed required starts/exits fail explicitly. The adapter
 also refuses absent charging or the wrong transit count; it supplies no corner
 fallbacks. Stations retain their owning region IDs.
 
-Combat radii remain 12 for contestants and 23 for hunters
-([17.2.1](17.2.1-live-checkpoint.md)); physics movement
+Combat radii remain 12 for contestants and 23 for hunters; physics movement
 bodies use the narrower [character profile](#character-profile-439).
 The existing west-to-east wall scales its progress to the actual map width.
 The cell-profile contestant-only passage balance is a separate tuning pass;
