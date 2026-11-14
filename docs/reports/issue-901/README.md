@@ -33,6 +33,12 @@ shared reader, and checked every rebuilt frame, every checkpoint and the stored-
 | 12x6 (`witness-12x6.json`) | 3,104 | 32 | 32 | 45.6 MB (9.2% of full frames) | 2.98 MB |
 | 36x18 (`witness-36x18.json`) | 12,001 | 121 | 120 | 240 MB (2.0%) | 19.97 MB |
 
+In Chrome 157, the whole 36x18 archive (saved with `--archive`, served by the real server, read with
+`readRecordingStream` as the viewer reads it) loaded all 12,001 frames through tick 12,000 in 1.7 s, using
+608 MiB of JS heap. As a full-state document the same match is about 11.8 GB, some 22 times V8's longest
+string. The heap figure is what rebuilt, shared frames cost at the largest served size; a smaller resident
+set would need frames rebuilt on demand from keyframes, which the format allows.
+
 The early-keyframe rule as first approved (deltas outweighing one keyframe) gave 229 keyframes and a
 6.8 MB archive at 12x6; Corey chose the eighth-share rule these rows use (#901, 2026-11-14).
 

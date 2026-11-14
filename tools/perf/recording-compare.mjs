@@ -2,7 +2,7 @@
 // the production writer and worker, reads the archive back with the shared reader, and fails unless every
 // rebuilt frame is byte for byte the authoritative frame's JSON, every checkpoint holds and the published
 // digest covers the stored lines. Run it when the frame encoding changes; it stays out of the test tiers.
-// --maps-cache=<room-startup cache> [--keyframe-every=N] [--out=<json>]
+// --maps-cache=<room-startup cache> [--keyframe-every=N] [--archive=<file.json.gz>] [--out=<json>]
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -63,6 +63,7 @@ try {
     frames: expected.length, keyframes: lines.filter(line => line.startsWith('{"state":')).length,
     checkpoints: recording.checkpoints.length, archiveBytes, storedBytes, fullFrameBytes: fullBytes,
     storedShare: storedBytes / fullBytes, archiveSha256: createHash('sha256').update(Buffer.concat(chunks)).digest('hex'), metadata: meta };
+  if (args.has('archive')) await writeFile(args.get('archive'), Buffer.concat(chunks));
   if (args.has('out')) await writeFile(args.get('out'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result, null, 2));
 } finally { writer.abort(); match.dispose(); lock.release(); }
