@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 
@@ -8,8 +8,7 @@ const { server, base, browser } = await serveWithBrowser({ profileSummary: false
 const errors = [];
 try {
   const page = await browser.newPage();
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: true });
   await page.goto(`${base}/dev/physics`);
   await page.waitForFunction(() => document.querySelector('#status')?.textContent.includes('Tick 0'), undefined, { timeout: 5000 })
     .catch(async error => { throw new Error(`${error.message}: ${await page.locator('body').innerText()}\n${errors.join('\n')}`); });

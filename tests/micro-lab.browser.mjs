@@ -1,21 +1,17 @@
 // Developer preview acceptance: run directly with `node tests/micro-lab.browser.mjs`.
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { mkdir, readFile } from 'node:fs/promises';
+import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js';
 import { briefFragment } from '../map/micro/brief-link.ts';
 import { regionExample } from '../map/micro/region-examples.ts';
 import { buildRegion } from '../map/micro/region-types.ts';
 
-const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-micro-lab-'));
 await mkdir('test-results', { recursive: true });
-const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
+const { base, browser, close } = await serveDevWithBrowser();
 try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: text => !text.includes('404') });
   await page.goto(`${base}/dev/micro`);
   await page.waitForFunction(() => window.microLabDebug?.().result, null, { timeout: 15000 });
   // The explorer opens on the game depot, built from the lab's example brief.
@@ -225,7 +221,5 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'compact lab has no horizontal overflow');
   assert.equal(errors.length, 0, errors.join('\n'));
 } finally {
-  await browser.close();
-  await server.close();
-  await rm(replayDir, { recursive: true, force: true });
+  await close();
 }

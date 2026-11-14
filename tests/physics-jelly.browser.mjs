@@ -1,3 +1,4 @@
+import { collectBrowserErrors } from './helpers/browser.js';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
@@ -11,7 +12,7 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1050, height: 900 }, acceptDownloads: true });
   const errors = [], requests = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   page.on('request', request => requests.push(request.url()));
   await page.setContent(await playbackHtml(recording));
   await page.waitForFunction(() => document.querySelector('output')?.textContent.includes('tick '));

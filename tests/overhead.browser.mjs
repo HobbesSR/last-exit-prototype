@@ -1,7 +1,7 @@
 // Retained overhead art: real Phaser pixels and texture lifecycle on a small controlled map.
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { generateLiveMap } from '../map/live.ts';
 
 await mkdir('test-results', { recursive: true });
@@ -9,7 +9,7 @@ const { server, base, browser } = await serveWithBrowser({ profileSummary: false
 const errors = [];
 try {
   const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
-  page.on('pageerror', e => errors.push(e.message));
+  collectBrowserErrors(page, errors);
   await page.route('**/overhead-fixture', route => route.fulfill({ contentType: 'text/html', body: '<html><body style="margin:0"><script type="importmap">{"imports":{"sat":"/sat-browser.js"}}</script><script src="/vendor/sat/SAT.js"></script><script src="/vendor/phaser/phaser.min.js"></script></body></html>' }));
   await page.goto(`${base}/overhead-fixture`);
   await page.evaluate(async () => {
@@ -33,7 +33,9 @@ try {
     return { groups: [...s.tileCache.groups].map(([id, g]) => ({ id, layer: g.layer, textures: [...g.textures].map(t => t.type) })),
       roof: s.roofs.get('house').visible };
   });
-  assert.ok(initial.groups.find(g => g.id === 'canopy').textures.every(t => t === 'RenderTexture'));
+  const canopy = initial.groups.find(g => g.id === 'canopy');
+  assert.ok(canopy?.textures.length > 0, 'the canopy has cached textures');
+  assert.ok(canopy.textures.every(t => t === 'RenderTexture'));
   assert.equal(initial.roof, true, 'outside roof remains visible');
   await page.screenshot({ path: 'test-results/overhead-canopy.png' });
   await page.evaluate(() => {

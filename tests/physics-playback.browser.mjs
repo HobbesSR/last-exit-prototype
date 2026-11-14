@@ -1,12 +1,12 @@
 // Physics presentation is drawn from a retained frame, without loading a physics engine.
 import assert from 'node:assert/strict';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 
 const { server, base, browser } = await serveWithBrowser({ profileSummary: false });
 try {
   const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   await page.route('**/physics-playback-fixture', route => route.fulfill({ contentType: 'text/html', body:
     '<html><body style="margin:0"><script type="importmap">{"imports":{"sat":"/sat-browser.js"}}</script><script src="/vendor/sat/SAT.js"></script><script src="/vendor/phaser/phaser.min.js"></script></body></html>' }));
   await page.goto(`${base}/physics-playback-fixture`);

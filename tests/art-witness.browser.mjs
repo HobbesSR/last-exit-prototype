@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { arena } from './helpers/arena.js';
 import { SWATCHES, THEMES, contrast, mix, css, G } from '../public/palette.js';
 import { MATERIAL_SWATCH } from '../public/appearance.js';
@@ -508,8 +508,7 @@ const errors = [];
 
 try {
   const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 });
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: true });
 
   await page.route('**/art-witness-fixture', route => route.fulfill({
     contentType: 'text/html',
@@ -2572,8 +2571,11 @@ try {
   }
 
   // Evaluate the exact screening candidates from #587 comment 6317:
-  const lookup = (theme, light, kind, surface) =>
-    branchSummary.find(r => r.theme === theme && r.light === light && r.kind === kind && r.surface === surface);
+  const lookup = (theme, light, kind, surface) => {
+    const sample = branchSummary.find(r => r.theme === theme && r.light === light && r.kind === kind && r.surface === surface);
+    assert.ok(sample, `screening sample exists: ${theme} ${light} ${kind} on ${surface}`);
+    return sample;
+  };
 
   const comment6317Candidates = [
     { theme: 'neonAftermath', kind: 'ruin', surface: 'street', roleKey: 'ruin', protoFloor: 1.50 },
@@ -2616,30 +2618,10 @@ try {
     };
   });
 
-  for (const c of comment6317Candidates) {
-    if (c.kind === 'ruin' || c.kind === 'hedge') {
-      assert.equal(c.gateStatus, 'pass', `${c.theme} ${c.kind} on ${c.surface} satisfies Tier 2 fill and edge separation (#770)`);
-    }
-  }
 
   // Record all cases where fill-only contrast is below 1.15 (near-equal luminance fill) so later steps (#585/#583/#593) have complete evidence:
   const lowFillCandidates = branchSummary.filter(r => r.fillRatio < 1.15);
-  const amberOverStreetFinding = {
-    issue: 737,
-    topic: 'palette-field-contrast-floor',
-    theme: 'signature',
-    field: 'amber-focal-edge',
-    substrate: 'street',
-    propFill: '#9eab90',
-    propStroke: '#dee2c5',
-    substrateColor: '#8c877f',
-    contrast: 1.475,
-    strokeContrast: 2.68,
-    floor: 1.50,
-    status: 'pass-tier-2-composite',
-    note: 'Fulfills Tier 2 composite separation standard (fill 1.475 >= 1.35 with stroke 2.68 >= 2.00 under Corey art direction decision).',
-  };
-  const openFindings = [...comment6317Candidates.filter(c => c.gateStatus !== 'pass'), amberOverStreetFinding];
+  const openFindings = comment6317Candidates.filter(c => c.gateStatus !== 'pass');
 
   const report = {
     schema: 'art-witness-1',
@@ -2806,17 +2788,6 @@ try {
   </tbody>
 </table>
 
-<div class="callout" style="background: #172334; border: 1px solid #3d4f66; border-left: 4px solid #55f0b1; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
-  <h3 style="margin-top: 0; color: #55f0b1; font-size: 14px;">Tier 2 Composite Separation (#737 / 41.2 Step 5): Signature Theme under Sodium Amber Field Wash</h3>
-  <p style="margin: 6px 0; font-size: 13px;">The table above records WebGL browser pixel measurements for the sampled <strong>Area 1 (Cobalt)</strong> and <strong>Area 2 (Magenta)</strong> fields and unlit base mode. Under the 3-Tier Readability Framework (29.4), analytical unit modelling across all 3 authored lighting fields verifies that all 72 combinations satisfy Tier 2 physical separation:</p>
-  <ul style="margin: 6px 0 8px 20px; font-size: 13px;">
-    <li><strong>Combination:</strong> <code>signature</code> theme &times; <code>amber-focal-edge</code> &times; <code>street</code> substrate</li>
-    <li><strong>Colors:</strong> Lit prop fill = <code>${amberOverStreetFinding.propFill}</code>, prop stroke = <code>${amberOverStreetFinding.propStroke}</code>, rendered lit street = <code>${amberOverStreetFinding.substrateColor}</code></li>
-    <li><strong>Contrast:</strong> Fill contrast is <strong>${amberOverStreetFinding.contrast}</strong> (&ge; 1.35 floor); perimeter stroke contrast is <strong>${amberOverStreetFinding.strokeContrast.toFixed(2)}</strong> (&ge; 2.00 high-contrast edge standard).</li>
-    <li><strong>Status:</strong> <span class="ok">Pass (Tier 2 Composite Separation)</span> &mdash; Validated under Corey's art direction decision combining role-tiered priority with edge-aware visual separation.</li>
-  </ul>
-</div>
-
 <h2>Paired Captures</h2>
 <div class="grid">
   ${captures.map(c => `<figure>
@@ -2828,6 +2799,13 @@ try {
 </html>\n`;
   await writeFile(path.join(outDir, 'index.html'), html);
 
+  for (const c of comment6317Candidates) {
+    // Pipes may retain edge-only-low-fill (42.45); every candidate must still separate at its edge.
+    assert.notEqual(c.gateStatus, 'failed-gate', `${c.theme} ${c.kind} on ${c.surface} has measured edge separation: ${JSON.stringify(c)}`);
+    if (c.kind === 'ruin' || c.kind === 'hedge') {
+      assert.equal(c.gateStatus, 'pass', `${c.theme} ${c.kind} on ${c.surface} satisfies Tier 2 fill and edge separation (#770)`);
+    }
+  }
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({
     passed: true,

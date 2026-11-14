@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 
 // Node and Chrome run the same opt-in authoritative simulation. Chrome also
 // consumes authorized frames through the engine-free production playback buffer.
@@ -41,7 +41,7 @@ const { server, base, browser } = await serveWithBrowser({ profileSummary: false
 try {
   const page = await browser.newPage();
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  collectBrowserErrors(page, errors);
   page.on('requestfailed', request => errors.push(`${request.url()} ${request.failure()?.errorText}`));
   page.on('response', response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
   await page.route('**/test-constrainautor.mjs', async route => route.fulfill({ contentType: 'text/javascript',

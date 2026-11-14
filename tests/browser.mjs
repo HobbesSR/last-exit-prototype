@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { arena } from './helpers/arena.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
@@ -61,8 +61,7 @@ async function settled(page, player, timeout = 10000) {
   assert.fail(`player never settled: server ${JSON.stringify({ x: player.x, y: player.y })}`);
 }
 async function ready(page, url = base) {
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: true });
   await page.goto(url);
   // A match is built once its map arrives, so allow what default-room.browser.mjs allows for the same step.
   const start = page.getByRole('button', { name: 'Start match', exact: true });
@@ -571,8 +570,10 @@ try {
   await mobile.getByRole('button', { name: 'Lobbies', exact: true }).click();
   await mobile.screenshot({ path: 'test-results/mobile-loadout.png' });
   await mobile.getByRole('button', { name: 'Close', exact: true }).first().click();
-  const portraitChecks = await mobile.evaluate(() => [...document.images].filter(i => i.offsetParent !== null).every(i => i.complete && i.naturalWidth > 0));
-  assert.ok(portraitChecks);
+  const portraits = await mobile.evaluate(() => [...document.images].filter(i => i.offsetParent !== null)
+    .map(i => ({ src: i.src, loaded: i.complete && i.naturalWidth > 0 })));
+  assert.ok(portraits.length > 0, 'visible portraits are present');
+  assert.ok(portraits.every(i => i.loaded), `visible portraits loaded: ${JSON.stringify(portraits)}`);
   const cdp = await mobile.context().newCDPSession(mobile);
   const leftStick = await mobile.locator('#move-stick').boundingBox(), rightStick = await mobile.locator('#aim-stick').boundingBox();
   const leftPoint = { id: 1, x: leftStick.x + leftStick.width / 2, y: leftStick.y + leftStick.height / 2 };
@@ -813,8 +814,14 @@ try {
   const wallPage = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   await ready(wallPage, `${base}/?room=${wallRoom.id}&ownerKey=${encodeURIComponent(wallRoom.ownerKey)}`);
   const wallBox = inside(walled).find(o => o.w >= 8 && o.h >= 24);
-  Object.assign(wallGame.players.find(p => p.id === wallRoom.playerId) || wallGame.players[0], { x: walled.x + walled.w / 2, y: walled.y + walled.h / 2 });
-  await wallPage.waitForTimeout(1500);
+  const wallPlayer = wallGame.players.find(p => p.id === wallRoom.playerId) || wallGame.players[0];
+  Object.assign(wallPlayer, { x: walled.x + walled.w / 2, y: walled.y + walled.h / 2 });
+  await settled(wallPage, wallPlayer);
+  await wallPage.waitForFunction(id => {
+    const d = window.arenaDebug();
+    return d.roofs.some(roof => roof.id === id && !roof.visible)
+      && Math.hypot(d.camera.x + d.cameraWidth / 2 - d.me.x, d.camera.y + d.cameraHeight / 2 - d.me.y) < 1;
+  }, walled.id);
   const wallPixels = await wallPage.evaluate(box => {
     const d = window.arenaDebug(), canvas = document.querySelector('#game canvas'), gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
     const sample = (x, y) => { const px = Math.round((x - d.camera.x) * d.camera.zoom), py = Math.round((y - d.camera.y) * d.camera.zoom); const rgba = new Uint8Array(4); gl.readPixels(px, gl.drawingBufferHeight - py - 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba); return [...rgba].slice(0, 3); };

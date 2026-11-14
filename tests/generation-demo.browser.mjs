@@ -1,22 +1,18 @@
 // Standalone acceptance for the decomposition-to-physical-geometry demonstration.
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { mkdir, readFile } from 'node:fs/promises';
+import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js';
 import { generate, generateMacro } from '../map/tools/core.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { briefFragment } from '../map/micro/brief-link.ts';
 import { buildRegion, REGION_TYPES } from '../map/micro/region-types.ts';
 import { regionExample } from '../map/micro/region-examples.ts';
 
-const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-generation-demo-'));
 await mkdir('test-results', { recursive: true });
-const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
+const { base, browser, close } = await serveDevWithBrowser();
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), errors = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: text => !text.includes('404') });
   await page.goto(`${base}/dev/micro/generation`);
   await page.waitForFunction(() => window.generationDemoDebug?.().result, null, { timeout: 15000 });
   await assert.doesNotReject(() => page.getByText('ownership boundary', { exact: false }).waitFor());
@@ -122,4 +118,4 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile demo has no horizontal overflow');
   assert.deepEqual(errors, [], errors.join('\n'));
-} finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }
+} finally { await close(); }

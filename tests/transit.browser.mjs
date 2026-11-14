@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { serveWithBrowser } from './helpers/browser.js';
+import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { transitOptions } from '../shared/simulation/transit.ts';
@@ -13,8 +13,7 @@ const { server, base, browser } = await serveWithBrowser({ profileSummary: false
 const errors = [];
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  collectBrowserErrors(page, errors, { consoleErrors: true });
   await page.goto(`${base}/?seed=4217`);
   const start = page.getByRole('button', { name: 'Start match', exact: true });
   await start.waitFor({ state: 'visible', timeout: 60000 });
