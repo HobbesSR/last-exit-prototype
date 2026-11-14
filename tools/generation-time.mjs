@@ -19,7 +19,7 @@ const widths = arg('--maps', '12,24,36').split(',').map(Number);
 const runs = Number(arg('--runs', '3'));
 const library = process.argv.includes('--library') ? readLibraryFile(arg('--library')) : undefined;
 if (library && widths.some(w => w !== library.zoneWidth)) throw new Error(`the library is authored for width ${library.zoneWidth} only`);
-const { release } = await acquireMachineLock('bench');
+const lock = await acquireMachineLock('bench');
 const summary = [];
 try {
   for (const width of widths) {
@@ -40,5 +40,7 @@ try {
     const mean = list => +(list.reduce((a, b) => a + b) / list.length).toFixed(2);
     summary.push({ seed, runs: times.map(t => +t.toFixed(2)), mean: mean(times), cpu: cpus.map(t => +t.toFixed(2)), cpuMean: mean(cpus), digest });
   }
-} finally { release(); }
+  const c = lock.contention();
+  if (c.contended) console.error(`CONTENDED: ${(c.otherBusyShare * 100).toFixed(1)}% external machine CPU busy`);
+} finally { lock.release(); }
 console.log(JSON.stringify(summary, null, 2));

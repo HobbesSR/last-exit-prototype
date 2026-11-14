@@ -7,6 +7,8 @@ import { pathToFileURL } from 'node:url';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { cellsOf } from '../tests/helpers/cells.js';
 import { brief } from '../tests/helpers/block-masks.js';
+import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
+const lock = await acquireMachineLock('bench');
 const root = resolve('test-results');
 await mkdir(root, {recursive:true});
 const scratch = await mkdtemp(resolve(root,'580-timing-'));
@@ -21,7 +23,8 @@ try {
   for(let y=2;y<146;y+=4) portals.push({id:`w${y}`,axis:'v',x:0,y,length:2},{id:`e${y}`,axis:'v',x:200,y,length:2});
   const input=brief('macro',3,cells,portals);
   const mode=process.argv[2];
-  const start=performance.now();
+  const start=performance.now(), cpuStart=process.cpuUsage();
   const result=mode==='before'?buildRegion(input,{block:before}):buildRegion(input);
-  console.log(JSON.stringify({mode,elapsedMs:performance.now()-start,lots:result.manifest.lots,elements:result.elements.length}));
-} finally {await rm(scratch,{recursive:true,force:true});}
+  const cpu=process.cpuUsage(cpuStart);
+  console.log(JSON.stringify({mode,elapsedMs:performance.now()-start,cpuMs:(cpu.user+cpu.system)/1000,contention:lock.contention(),lots:result.manifest.lots,elements:result.elements.length}));
+} finally {lock.release(); await rm(scratch,{recursive:true,force:true});}

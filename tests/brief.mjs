@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { acquireMachineLock, LOCK_ENV } from './helpers/machine-lock.js';
 
 // Runs an npm test script with the thin reporter (tests/brief-reporter.mjs), the same in any shell:
 //   npm run brief -- test          npm run brief -- test:slow          npm run brief -- test:physics
@@ -25,11 +26,24 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     process.exit(2);
   }
   // BRIEF_SCRIPT names the reporter's timing record, so each script keeps its own history.
-  const env = { ...process.env, NODE_OPTIONS: briefNodeOptions(process.env.NODE_OPTIONS), BRIEF_SCRIPT: script };
-  const args = npmArgs(script, process.argv.slice(3));
-  const npm = process.env.npm_execpath;
-  const result = npm
-    ? spawnSync(process.execPath, [npm, ...args], { stdio: 'inherit', env })
-    : spawnSync('npm', args, { stdio: 'inherit', env, shell: true });
-  process.exit(result.status ?? 1);
+  const EXCLUSIVE_SCRIPTS = new Set(['bench', 'bench:client', 'bench:stages']);
+  const budgetMode = process.env.BUILD_BUDGETS;
+  const lockMode = script === 'test:times' ? null : (EXCLUSIVE_SCRIPTS.has(script) || budgetMode === 'enforce' || budgetMode === 'report' ? 'exclusive' : 'shared');
+  const lock = lockMode ? await acquireMachineLock('bench', { mode: lockMode }) : null;
+  try {
+    const env = {
+      ...process.env,
+      NODE_OPTIONS: briefNodeOptions(process.env.NODE_OPTIONS),
+      BRIEF_SCRIPT: script,
+      ...(lock && !lock.inherited && !lock.skippedCi ? { [LOCK_ENV]: lockMode } : {}),
+    };
+    const args = npmArgs(script, process.argv.slice(3));
+    const npm = process.env.npm_execpath;
+    const result = npm
+      ? spawnSync(process.execPath, [npm, ...args], { stdio: 'inherit', env })
+      : spawnSync('npm', args, { stdio: 'inherit', env, shell: true });
+    process.exitCode = result.status ?? 1;
+  } finally {
+    lock?.release();
+  }
 }

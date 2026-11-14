@@ -27,6 +27,7 @@ async function play(prune) {
   const sums = { solve: 0, tick: 0 }, trace = [];
   let kept = statics.length;
   profiler.reset(); profiler.enable(true);
+  const wallStart = performance.now(), cpuStart = process.cpuUsage();
   for (let t = 1; t <= from + window && s.phase === 'live'; t++) {
     if (t === from + 1 && prune) {
       const near = [...s.players.filter(p => p.status === 'active'), ...s.map.items.filter(i => physicsRuntime(s).items.has(i.id))];
@@ -40,15 +41,22 @@ async function play(prune) {
     if (t > from) { sums.solve += frame['sim.solve'] ?? 0; sums.tick += frame['sim.step'] ?? 0; }
     trace.push(s.players.map(p => `${p.x},${p.y},${p.status}`).join('|'));
   }
+  const wallMs = performance.now() - wallStart, cpu = process.cpuUsage(cpuStart), cpuMs = (cpu.user + cpu.system) / 1000;
   profiler.enable(false); match.dispose();
-  return { statics: statics.length, kept, solve: sums.solve / window, step: sums.tick / window, trace };
+  return { statics: statics.length, kept, solve: sums.solve / window, step: sums.tick / window, wallMs, cpuMs, trace };
 }
 
-await acquireMachineLock('bench');
-console.log(`seed ${seed}, ${content.id}, ${zoneWidth}x${zoneHeight}: ticks ${from + 1}–${from + window}, statics farther than ${radius} removed at tick ${from}`);
-for (let r = 0; r < repeats; r++) for (const prune of [false, true]) {
-  const run = await play(prune);
-  if (!prune) play.base = run.trace;
-  const diverged = prune ? run.trace.findIndex((line, i) => line !== play.base[i]) : -1;
-  console.log(`${prune ? 'pruned' : 'full  '} statics ${run.kept}/${run.statics}  sim.solve ${run.solve.toFixed(2)} ms  sim.step ${run.step.toFixed(2)} ms${diverged >= 0 ? `  DIVERGED at tick ${diverged + 1}` : ''}`);
+const lock = await acquireMachineLock('bench');
+try {
+  console.log(`seed ${seed}, ${content.id}, ${zoneWidth}x${zoneHeight}: ticks ${from + 1}–${from + window}, statics farther than ${radius} removed at tick ${from}`);
+  for (let r = 0; r < repeats; r++) for (const prune of [false, true]) {
+    const run = await play(prune);
+    if (!prune) play.base = run.trace;
+    const diverged = prune ? run.trace.findIndex((line, i) => line !== play.base[i]) : -1;
+    console.log(`${prune ? 'pruned' : 'full  '} statics ${run.kept}/${run.statics}  sim.solve ${run.solve.toFixed(2)} ms  sim.step ${run.step.toFixed(2)} ms  wall ${run.wallMs.toFixed(0)} ms  CPU ${run.cpuMs.toFixed(0)} ms${diverged >= 0 ? `  DIVERGED at tick ${diverged + 1}` : ''}`);
+  }
+  const c = lock.contention();
+  if (c.contended) console.log(`CONTENDED: ${(c.otherBusyShare * 100).toFixed(1)}% external machine CPU busy`);
+} finally {
+  lock.release();
 }

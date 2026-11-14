@@ -25,7 +25,7 @@ const cache = deserialize(await readFile(args.get('maps-cache')));
 const [zoneWidth, zoneHeight] = cache.size.split('x').map(Number);
 const size = liveZoneSize({ zoneWidth, zoneHeight });
 if (!size) throw new Error('unsupported cache size');
-const lock = await acquireMachineLock('bench');
+const lock = await acquireMachineLock('bench', { mode: 'shared' });
 const entry = structuredClone(cache.maps[0]), map = entry.map;
 if (entry.navigation) attachPortalGraph(map, entry.navigation);
 for (const packed of entry.tiles ?? []) adoptPackedTiles(map, packed);

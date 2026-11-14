@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const timing = fileURLToPath(new URL('./timing.mjs', import.meta.url));
+// CI=1 skips the host loopback lock so unit tests do not deadlock against the parent runner's shared lock.
+const timingTestEnv = () => { const env = { ...process.env, CI: '1' }; delete env.MACHINE_LOCK_HELD; return env; };
 
 for (const scenario of [
   { name: 'launch error', result: "{ status: null, error: new Error('spawn EPERM') }", reason: 'spawn EPERM' },
@@ -25,7 +27,7 @@ import { syncBuiltinESMExports } from 'node:module';
 childProcess.spawnSync = () => (${scenario.result});
 syncBuiltinESMExports();
 `);
-      const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, timing, '--strict', 'tests/example.test.js'], { encoding: 'utf8' });
+      const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, timing, '--strict', 'tests/example.test.js'], { encoding: 'utf8', env: timingTestEnv() });
       assert.ifError(result.error);
       assert.equal(result.status, scenario.reason ? 1 : 0, result.stderr);
       if (scenario.reason) {
@@ -55,7 +57,7 @@ performance.now = () => (now += 20_000);
 childProcess.spawnSync = () => ({ status: 0, stdout: '', stderr: '' });
 syncBuiltinESMExports();
 `);
-  return spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, timing, ...args], { encoding: 'utf8', cwd: fileURLToPath(new URL('..', import.meta.url)) });
+  return spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, timing, ...args], { encoding: 'utf8', cwd: fileURLToPath(new URL('..', import.meta.url)), env: timingTestEnv() });
 }
 
 test('timing inventory includes the root and macro tiers', () => {

@@ -160,14 +160,15 @@ anything a check takes from the machine as a whole must be one it can share.
 
 - **Ports.** Automated checks bind port 0 and use the address actually bound:
   `tests/helpers/listen.js` in the game. Never hardcode a port in a check. Dev servers use the
-  worktree's assigned ports above. Port 47913 is the
-  benchmark lock.
+  worktree's assigned ports above. Ports `47913` (exclusive/writer-intent) and
+  `47914–47915` (two shared test slots) are the machine-wide lock; pass `--no-wait`
+  to fail fast instead of waiting.
 - **Scratch files.** Temporary data goes in a fresh `mkdtemp` directory. Outputs
   go in the worktree (`test-results/`, `replays/`), never at a fixed path outside it.
 - **Processes.** Stop only the process IDs you started. Never kill by image name
   (`taskkill /IM node.exe`, `Stop-Process -Name node`): that takes down other
   agents' servers and the MCP servers every agent depends on.
-- **CPU.** Benchmarks share one machine-wide lock; see [31](31-verification.md).
+- **CPU.** Tests and benchmarks share the machine-wide shared/exclusive lock (`tests/helpers/machine-lock.js`); see [31.2](31.2-benchmarks-and-timing-tools.md).
 - **Git.** Worktrees share one object store, ref namespace and stash stack. Never
   use a bare `git stash`/`git stash pop`; set work aside with a WIP commit on your
   own branch. A transient `cannot lock ref` during a fetch is another agent's

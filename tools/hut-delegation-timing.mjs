@@ -5,7 +5,9 @@ import { writeFile, unlink } from 'node:fs/promises';
 import { isDeepStrictEqual } from 'node:util';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { buildHut, buildHutGeneration } from '../map/micro/strategies/hut.ts';
+import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 
+const lock = await acquireMachineLock('bench');
 const prefix = `.timing-${randomUUID()}`;
 const temporary = [];
 async function historical(path, commit, replacements = []) {
@@ -38,20 +40,25 @@ try {
   const brief = { id: 'field', seed: 3, type: 'hut', cellSize: 40, cells,
     zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }], portals };
   const times = { houseOnly: [], reviewed: [], revised: [] };
+  const totalCpuMs = { houseOnly: 0, reviewed: 0, revised: 0 };
   for (let i = 0; i < 3; i++) {
     const outputs = {};
     for (const [name, builder] of [['houseOnly', baseline], ['reviewed', prior], ['revised', buildHut]]) {
-      const start = performance.now();
+      const start = performance.now(), cpuStart = process.cpuUsage();
       outputs[name] = buildRegion(brief, { hut: builder });
+      const cpu = process.cpuUsage(cpuStart);
       times[name].push(Number((performance.now() - start).toFixed(3)));
+      totalCpuMs[name] += (cpu.user + cpu.system) / 1000;
     }
     if (!isDeepStrictEqual(outputs.reviewed, outputs.revised)) throw Error('Review fixes changed macro-hut output.');
   }
+  const cpuMilliseconds = Object.fromEntries(Object.entries(totalCpuMs).map(([k, v]) => [k, Number(v.toFixed(3))]));
   const node = buildHutGeneration(brief);
-  console.log(JSON.stringify({ node: process.version, milliseconds: times, reviewOutputUnchanged: true,
+  console.log(JSON.stringify({ node: process.version, milliseconds: times, totalCpuMilliseconds: cpuMilliseconds, contention: lock.contention(), reviewOutputUnchanged: true,
     cells: cells.length, portals: portals.length, offers: node.offers.map(o => o.cells.length),
     accepted: node.preparation.children.length,
     acceptedOffers: node.preparation.children.map(child => ({ key: child.key, cells: child.brief.cells.length })) }, null, 2));
 } finally {
+  lock.release();
   await Promise.all(temporary.map(url => unlink(url)));
 }

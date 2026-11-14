@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { withoutReporterOptions } from './brief.mjs';
+import { acquireMachineLock, LOCK_ENV } from './helpers/machine-lock.js';
 
 // Times each unit test file alone, one at a time, and flags the ones over budget so a slow test is
 // noticed when it is added rather than when someone waits on it. Files run serially on purpose:
@@ -23,24 +24,37 @@ const files = named.length ? named : [
   ...unitFiles('map/macro/tests', '.test.ts'), ...unitFiles('map/macro/tests/slow', '.test.ts'),
 ];
 
+const lock = await acquireMachineLock('bench', { mode: 'exclusive' });
 const rows = [];
-for (const file of files) {
-  const start = performance.now();
-  // This parses spec output, so a reporter inherited through NODE_OPTIONS (npm run brief) is dropped.
-  const env = { ...process.env, NODE_OPTIONS: withoutReporterOptions(process.env.NODE_OPTIONS), FORCE_COLOR: '0', NO_COLOR: '1' };
-  const result = spawnSync(process.execPath, ['--test', '--test-reporter=spec', file], { encoding: 'utf8', maxBuffer: 1 << 28, env });
-  const seconds = (performance.now() - start) / 1000;
-  const budget = file.includes('/slow/') ? SLOW_BUDGET_S : FAST_BUDGET_S;
-  const tests = [...(result.stdout ?? '').matchAll(/^\s*✔ (.+) \(([\d.]+)ms\)$/gm)].map(m => ({ name: m[1], seconds: +m[2] / 1000 }));
-  const failed = result.status !== 0 || Boolean(result.error) || Boolean(result.signal);
-  rows.push({ file, seconds, budget, failed, tests });
-  process.stderr.write(`${seconds.toFixed(1).padStart(7)}s  ${file}\n`);
-  if (failed) {
-    const reason = result.error?.message ?? (result.signal ? `terminated by ${result.signal}` : `exit status ${result.status}`);
-    process.stderr.write(`FAILED ${file}: ${reason}\n`);
-    if (result.stdout) process.stderr.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+try {
+  for (const file of files) {
+    const start = performance.now();
+    // This parses spec output, so a reporter inherited through NODE_OPTIONS (npm run brief) is dropped.
+    const env = {
+      ...process.env,
+      NODE_OPTIONS: withoutReporterOptions(process.env.NODE_OPTIONS),
+      FORCE_COLOR: '0',
+      NO_COLOR: '1',
+      ...(!lock.inherited && !lock.skippedCi ? { [LOCK_ENV]: 'exclusive' } : {}),
+    };
+    const result = spawnSync(process.execPath, ['--test', '--test-reporter=spec', file], { encoding: 'utf8', maxBuffer: 1 << 28, env });
+    const seconds = (performance.now() - start) / 1000;
+    const budget = file.includes('/slow/') ? SLOW_BUDGET_S : FAST_BUDGET_S;
+    const tests = [...(result.stdout ?? '').matchAll(/^\s*✔ (.+) \(([\d.]+)ms\)$/gm)].map(m => ({ name: m[1], seconds: +m[2] / 1000 }));
+    const failed = result.status !== 0 || Boolean(result.error) || Boolean(result.signal);
+    rows.push({ file, seconds, budget, failed, tests });
+    process.stderr.write(`${seconds.toFixed(1).padStart(7)}s  ${file}\n`);
+    if (failed) {
+      const reason = result.error?.message ?? (result.signal ? `terminated by ${result.signal}` : `exit status ${result.status}`);
+      process.stderr.write(`FAILED ${file}: ${reason}\n`);
+      if (result.stdout) process.stderr.write(result.stdout);
+      if (result.stderr) process.stderr.write(result.stderr);
+    }
   }
+} finally {
+  const c = lock.contention();
+  lock.release();
+  if (c.contended) process.stderr.write(`CONTENDED: ${(c.otherBusyShare * 100).toFixed(1)}% external machine CPU busy (threshold ${(c.threshold * 100).toFixed(0)}%)\n`);
 }
 
 rows.sort((a, b) => b.seconds - a.seconds);

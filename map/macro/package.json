@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "test": "npm run typecheck && node --test tests/*.test.ts tests/slow/*.test.ts",
+    "test": "npm run typecheck && node --test --test-global-setup=../../tests/helpers/test-lock-setup.mjs tests/*.test.ts tests/slow/*.test.ts",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write src tests content docs README.md package.json tsconfig.json"
   },

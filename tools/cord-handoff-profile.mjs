@@ -60,8 +60,9 @@ try {
     // A whole warmup followed by three paired rounds. Alternate order to reduce
     // systematic first-run effects. Every invocation is compared, not sampled.
     for (let round = 0; round <= 3; round++) {
-      const samples = {};
+      const samples = {}, roundCpuMs = {};
       for (const label of round % 2 ? ['after', 'before'] : ['before', 'after']) {
+        const cpuStart = process.cpuUsage();
         samples[label] = records.map(record => {
           const start = performance.now();
           const result = builders[label](record.brief);
@@ -70,15 +71,18 @@ try {
           return { name: record.name, id: record.brief.id, elapsedMs, output,
             outputSha256: sha(output), offers: result.offers?.length ?? 0, children: result.children?.length ?? 0 };
         });
+        const cpu = process.cpuUsage(cpuStart);
+        roundCpuMs[label] = (cpu.user + cpu.system) / 1000;
       }
       const rows = samples.before.map((before, i) => {
         const after = samples.after[i];
         assert.equal(before.output, after.output, `Output mismatch in round ${round}, ${before.id}`);
         assert.equal(before.outputSha256, after.outputSha256);
         return { name: before.name, id: before.id, outputSha256: before.outputSha256,
-          offers: before.offers, children: before.children, beforeMs: before.elapsedMs, afterMs: after.elapsedMs };
+          offers: before.offers, children: before.children,
+          beforeMs: before.elapsedMs, afterMs: after.elapsedMs };
       });
-      rounds.push({ round, warmup: round === 0, order: round % 2 ? ['after', 'before'] : ['before', 'after'], rows });
+      rounds.push({ round, warmup: round === 0, order: round % 2 ? ['after', 'before'] : ['before', 'after'], roundCpuMs, rows });
       console.log(`Comparison round ${round}: ${rows.length} equal outputs`);
     }
     const report = { version: 'cord-handoff-comparison-1', createdAt: new Date().toISOString(), node: process.version,
