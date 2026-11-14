@@ -4,13 +4,14 @@ import { createGame, disposePhysics, step } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { observedBlockers } from '../shared/simulation/dynamic-navigation.ts';
+import { openArea } from './helpers/arena.js';
 
 test('bots share one prop query during collection, while same-tick external moves are observed freshly', async () => {
   const content = structuredClone(contentById('content-6'));
   content.discovery = false;
   content.roster = { contestants: ['A', 'B'], gladiators: [] };
   const map = { seed: 448, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openArea(800, 800, 100),
     modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [],
     sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     physicsProps: [{ id: 'crate', profile: 'crate', x: 300, y: 450 }],

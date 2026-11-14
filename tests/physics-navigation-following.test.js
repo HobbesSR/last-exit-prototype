@@ -5,6 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { dynamicWaypoint } from '../shared/simulation/dynamic-navigation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { openArea } from './helpers/arena.js';
 
 const walls = [
   { id: 'top', x: 100, y: 100, w: 600, h: 270 },
@@ -13,7 +14,7 @@ const walls = [
 
 async function game({ spawns = [{ x: 150, y: 400 }], props = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openArea(800, 800, 100),
     modules: [], buildings: [], obstacles: walls, gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], physicsProps: props,
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns,

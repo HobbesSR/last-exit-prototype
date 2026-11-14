@@ -5,7 +5,6 @@
  * painted only inside their owning set pieces.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { libraryFingerprint } from "../src/coding.ts";
 import { declaredGrid, layoutViolations, orientDesign } from "../src/chain/declared-grid.ts";
@@ -15,11 +14,9 @@ import { adjacencyCompatibility, adjacencyConnects, adjacencyLinks, isOrthogonal
 import { solveWfc } from "../src/wfc.ts";
 import type { WfcGrid } from "../src/wfc.ts";
 import type { ChainParams, DeclaredGrid, Layout, PlacedSlot } from "../src/chain/types.ts";
-import { assertDeterministic, assertPure, assertRecomputable } from "./chain-harness.ts";
+import { assertDeterministic, assertPure, assertRecomputable, LIBRARY, GAME } from "./chain-harness.ts";
 
-const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
 const REGION_TYPES = new Set(Object.values(LIBRARY.cellClasses).map((cellClass) => cellClass.regionType));
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const PLAYGROUND: ChainParams = { ...GAME, mode: "playground", zoneWidth: 2, zoneHeight: 1 };
 const COLUMNS = 60;
 const SEEDS = ["placement-1", "placement-2", "placement-3", "placement-4"];

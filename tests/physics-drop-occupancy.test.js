@@ -5,9 +5,10 @@ import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { dropInventorySlot, planDrop, scatterPoint } from '../shared/simulation/loot.ts';
 import { interact } from '../shared/simulation/interactions.ts';
+import { openArea } from './helpers/arena.js';
 
 const map = (props = []) => ({ seed: 448, width: 800, height: 800,
-  playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+  playableArea: openArea(800, 800, 100),
   modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
   chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], physicsProps: props,
   entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns: [{ x: 120, y: 400 }] });

@@ -4,10 +4,10 @@ import { createGame, disposePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
+import { openArea } from './helpers/arena.js';
 
 function arena({ width = 800, height = 800, cellSize = 100, rows, obstacles = [], props = [], items = [] } = {}) {
-  return { seed: 37, width, height, playableArea: { cellSize, rows: rows ?? Array.from(
-    { length: height / cellSize }, (_, y) => ({ y, runs: [[0, width / cellSize]] })) },
+  return { seed: 37, width, height, playableArea: rows ? { cellSize, rows } : openArea(width, height, cellSize),
     modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [],
     physicsProps: props, entry: { x: 80, y: height / 2 }, exit: { x: width - 50, y: height / 2 },

@@ -8,9 +8,10 @@ import { teleport } from '../shared/simulation/dev.ts';
 import { createMatch } from '../server/match.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics.ts';
+import { openArea } from './helpers/arena.js';
 
 const parts = () => ({ map: { seed: 445, width: 800, height: 400,
-  playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+  playableArea: openArea(800, 400, 100),
   modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
   chargers: [], sensors: [], traps: [], routes: [], nodes: [], streets: [],
   items: [{ id: 'sleeping', kind: 'cell', charge: 100, x: 300, y: 200 }],

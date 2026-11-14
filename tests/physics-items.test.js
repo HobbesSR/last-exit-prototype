@@ -9,9 +9,10 @@ import { interact } from '../shared/simulation/interactions.ts';
 import { eliminate } from '../shared/simulation/lifecycle.ts';
 import { addItems, removeItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
 import { synchronizePhysicalItems } from '../shared/simulation/world-physics.ts';
+import { openArea } from './helpers/arena.js';
 
 const arena = () => ({ seed: 17, width: 800, height: 400,
-  playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+  playableArea: openArea(800, 400, 100),
   modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
   chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
   entry: { x: 60, y: 200 }, exit: { x: 750, y: 200 }, spawns: [{ x: 120, y: 200 }] });

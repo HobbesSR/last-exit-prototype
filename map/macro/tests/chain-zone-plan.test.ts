@@ -8,9 +8,8 @@ import test from "node:test";
 import { gridSize } from "../src/chain/declared-grid.ts";
 import { DIAMOND, planTiles, zonePlan } from "../src/chain/zone-plan.ts";
 import { layoutSlots, makeZones } from "../src/chain/zones.ts";
-import type { ChainParams } from "../src/chain/types.ts";
+import { GAME as PARAMS } from "./chain-harness.ts";
 
-const PARAMS: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 
 test("the diamond occupies the 13 zones the design notes draw, with tier by column and bonus away from the middle row", () => {
   const rows = Array.from({ length: DIAMOND.rows }, (_, row) =>

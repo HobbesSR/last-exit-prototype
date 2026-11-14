@@ -7,10 +7,11 @@ import { teleport } from '../shared/simulation/dev.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { solvePhysicsProjectiles } from '../shared/simulation/physics-projectiles.ts';
 import { interact } from '../shared/simulation/interactions.ts';
+import { openArea } from './helpers/arena.js';
 
 function parts(contestants = 2, contentId = 'content-6') {
   const map = { seed: 439, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openArea(800, 800, 100),
     modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },

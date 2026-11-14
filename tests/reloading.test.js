@@ -13,10 +13,11 @@ import { SCHEMA, minimumReaderForMatch, recordingFit } from '../shared/recording
 import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { rounds } from './helpers/rounds.js';
+import { openArea } from './helpers/arena.js';
 
 const AMMO = contentById('content-ammo-1');
 const arena = () => ({ width: 600, height: 400,
-  playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 6]] })) },
+  playableArea: openArea(600, 400, 100),
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 120, y: 200 }, { x: 400, y: 200 }],
   stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
   modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });

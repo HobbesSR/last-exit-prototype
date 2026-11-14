@@ -6,22 +6,12 @@ import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
+import { briefOf, SIZE, SMALL_MASKS } from './helpers/region-masks.js';
 
-const SIZE = 40;
-const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'ruins', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }], portals, ...(parameters ? { parameters } : {}) });
+const brief = briefOf('ruins', 0.5);
 
-/** A yard, a wide field, an L, and a ring around a hole, with portals on several sides. */
-const MASKS = {
-  yard: [cellsOf(10, 8), [{ id: 'north', axis: 'h', x: 1, y: 0, length: 3 }, { id: 'east', axis: 'v', x: 10, y: 2, length: 4 },
-    { id: 'south', axis: 'h', x: 4, y: 8, length: 2 }, { id: 'west', axis: 'v', x: 0, y: 5, length: 2 }]],
-  field: [cellsOf(24, 18), [{ id: 'west', axis: 'v', x: 0, y: 7, length: 3 }, { id: 'east', axis: 'v', x: 24, y: 12, length: 3 },
-    { id: 'north', axis: 'h', x: 18, y: 0, length: 2 }]],
-  ell: [cellsOf(18, 18, (x, y) => y < 9 || x < 9), [{ id: 'east', axis: 'v', x: 18, y: 2, length: 2 }, { id: 'south', axis: 'h', x: 1, y: 18, length: 3 },
-    { id: 'corner', axis: 'h', x: 10, y: 9, length: 4 }]],
-  ring: [cellsOf(20, 20, (x, y) => x < 6 || x >= 14 || y < 6 || y >= 14), [{ id: 'north', axis: 'h', x: 8, y: 0, length: 2 },
-    { id: 'hole', axis: 'v', x: 14, y: 8, length: 2 }, { id: 'west', axis: 'v', x: 0, y: 15, length: 3 }]],
-};
+/** A yard, a wide field, an L, and a ring around a hole, with portals on several sides (shared with hall). */
+const MASKS = SMALL_MASKS;
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
 

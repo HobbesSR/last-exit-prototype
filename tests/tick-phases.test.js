@@ -4,12 +4,13 @@ import { createGame, disposePhysics, enqueuePhysicsAttachment,
   enqueuePhysicsImpulse, setInput, snapshot, step } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
+import { openArea } from './helpers/arena.js';
 
 // A full 8 × 8 mask is small enough to expose every contact and phase outcome in a trace. `defaultContent()` runs
 // physical items synchronized with `map.items`, so a phase's pickup or drop still shows in the map's list.
 function fixtureParts(contestants = 2) {
   const map = { seed: 438, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openArea(800, 800, 100),
     modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },

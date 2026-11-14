@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPhysicsPrediction, PREDICTION_LIMITS } from '../public/physics-prediction.js';
+import { openArea } from './helpers/arena.js';
 
 const map = () => ({ width: 600, height: 400, obstacles: [], gates: [],
-  playableArea: { cellSize: 100, rows: Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 6]] })) } });
+  playableArea: openArea(600, 400, 100) });
 const player = (extra = {}) => ({ id: 'self', role: 'contestant', status: 'active', x: 100, y: 200,
   boost: 0, stun: 0, lastSeq: -1, inventory: ['kept'], health: 80, ...extra });
 const body = (extra = {}) => ({ id: 'actor:self', actorId: 'self', kind: 'actor',

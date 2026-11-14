@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { libraryFingerprint } from "../src/coding.ts";
 import { resolveLibrary, validateLibrary } from "../src/chain/library.ts";
@@ -13,11 +12,11 @@ import { guaranteesPassability, passabilityFits, resolution } from "../src/chain
 import type { Layout } from "../src/chain/types.ts";
 import type { TileOption, WfcGrid } from "../src/wfc.ts";
 import { STUB_ENGINES, stubCompose } from "./chain-stub.ts";
+import { LIBRARY as BASE, GAME } from "./chain-harness.ts";
 
 // Corey's 2026-11-06 answers (17.2.2), the only passability rule (51.4): `any` fits anything,
 // otherwise like with like; an unstated side reads as `any`; `any` meeting `any` passes between
 // regions, not inside one.
-const BASE = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
 const TYPES = new Set(Object.values(BASE.cellClasses).map((entry) => entry.regionType));
 const VALUES = ["passable", "any", "not-passable-hint", undefined] as const;
 const option = (templateId: string): TileOption => ({ templateId, orientation: 0, difficulty: 0, weight: 1 });
@@ -174,7 +173,7 @@ test("a set piece whose own slots can't meet is reported before placement", () =
 });
 
 test("a design stated fillable: false is left to set pieces", () => {
-  const params = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
+  const params = GAME;
   const inSetPieces = (layout: Layout) => new Set(layout.setPieces.flatMap((instance) => instance.slots.map((s) => `${s.col},${s.row}`)));
   const fillDesigns = (lib: ChainLibrary) => {
     const layout = placement("fillable", params, lib), pieces = inSetPieces(layout);

@@ -8,11 +8,11 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createGameRecord } from '../shared/simulation/state.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { stepTraps } from '../shared/traps.ts';
-import { openField } from './helpers/arena.js';
+import { openField, openArea } from './helpers/arena.js';
 
 function parts() {
   const map = { seed: 445, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openArea(800, 800, 100),
     modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },

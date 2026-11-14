@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { canOccupy, lineClear, moveBody, prepareMovementGeometry, reachClear, sweptClear, visibilityPolygon } from '../shared/movement.ts';
+import { openArea } from './helpers/arena.js';
 
 // Small synthetic maps cover shape kinds and bucket boundaries without map-generation or physics cost.
 function mapOf(count = 180) {
   return {
     width: 2400, height: 3000,
-    playableArea: { cellSize: 200, rows: Array.from({ length: 15 }, (_, y) => ({ y, runs: [[0, 12]] })) },
+    playableArea: openArea(2400, 3000, 200),
     obstacles: Array.from({ length: count }, (_, i) => {
       const x = 400 + i % 12 * 110, y = 400 + Math.floor(i / 12) * 90;
       const base = { id: `o${i}`, x, y, w: 35, h: 25, kind: ['building', 'window', 'pipe', 'hedge', 'tree'][i % 5] };

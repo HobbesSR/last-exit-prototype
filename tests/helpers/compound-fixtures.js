@@ -1,11 +1,11 @@
 import { buildRegion } from '../../map/micro/region-types.ts';
 import { elementShapes } from '../../map/micro/geometry.ts';
 import { cellsOf } from './cells.js';
+import { briefOf, SIZE } from './region-masks.js';
 
 /** The compound fixtures that micro-compound's tests and the slow sweeps share. */
-export const SIZE = 40;
-export const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'compound', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals, ...(parameters ? { parameters } : {}) });
+export { SIZE };
+export const brief = briefOf('compound');
 
 /** A yard just big enough, a wide field, an L, and a ring around a hole, with portals on several sides. */
 export const MASKS = {
