@@ -90,7 +90,8 @@ try {
       const id = /^\/api\/replays\/(.+)$/.exec(url)?.[1];
       if (!recordings[id]) return realFetch(url, options);
       return new Promise(resolve => {
-        held[id] = error => resolve(error ? { ok: false, json: async () => ({ error }) } : { ok: true, json: async () => recordings[id] });
+        // Real responses: the viewer streams a recording's body as it arrives (26).
+        held[id] = error => resolve(error ? new Response(JSON.stringify({ error }), { status: 500 }) : new Response(JSON.stringify(recordings[id])));
       });
     };
   }, { recordings: Object.fromEntries([7, 9].map(n => [`held-${n}`, recording(n)])),

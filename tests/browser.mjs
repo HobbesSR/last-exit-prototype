@@ -223,7 +223,7 @@ try {
   await page.waitForFunction(width => window.arenaDebug().cameraWidth >= width, wide.mapWidth, { timeout: 5000 });
   const denseDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
-  assert.match((await denseDownloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  assert.match((await denseDownloadPromise).suggestedFilename(), /^last-exit-.*\.(nd)?json$/);
   await page.getByRole('button', { name: 'Exit replay' }).click();
   await page.getByRole('button', { name: 'Replays', exact: true }).click();
   // Routed archives keep the real map contract while making playback deterministic.
@@ -532,18 +532,18 @@ try {
   await page.screenshot({ path: 'test-results/replay.png' });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
-  assert.match((await downloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  assert.match((await downloadPromise).suggestedFilename(), /^last-exit-.*\.(nd)?json$/);
   await page.getByRole('button', { name: 'Exit replay' }).click();
   // Archives from before schema 10 are refused cleanly and stay downloadable (#953).
   routedReplay = { ...savedRecording, schema: 9, minSchema: 0 };
   await page.getByRole('button', { name: 'Replays', exact: true }).click();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
   await page.waitForFunction(() => /no longer reads/.test(document.getElementById('toast').textContent) && !document.getElementById('toast').hidden);
-  assert.match(await page.locator('#toast').textContent(), /This broadcast uses a recording format this build no longer reads\. Its JSON can still be downloaded\./);
+  assert.match(await page.locator('#toast').textContent(), /This broadcast uses a recording format this build no longer reads\. It can still be downloaded\./);
   assert.equal(await page.evaluate(() => window.arenaDebug().replay), false);
   const oldDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download arena 4217', exact: true }).first().click();
-  assert.match((await oldDownloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  assert.match((await oldDownloadPromise).suggestedFilename(), /^last-exit-.*\.(nd)?json$/);
   await page.locator('#archive-dialog .close-dialog').click();
   await page.getByRole('button', { name: 'Lobbies', exact: true }).click();
   assert.equal(await page.locator('#tab-join').getAttribute('tabindex'), '0');
