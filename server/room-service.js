@@ -446,7 +446,14 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     return closing;
   }
 
-  return { rooms, devTools, accepting: () => !closing, summaries, makeRoom, connect, validate, receive, disconnect, advance, close,
+  /** Counts of live rooms (started, unfinished) for the health and profile endpoints; plain numbers, never a room. */
+  const metrics = () => {
+    let live = 0, emptyLive = 0;
+    for (const room of rooms.values()) if (room.started && !room.finished) { live++; if (!room.clients.size) emptyLive++; }
+    return { liveRooms: live, emptyLiveRooms: emptyLive };
+  };
+
+  return { rooms, devTools, accepting: () => !closing, summaries, metrics, makeRoom, connect, validate, receive, disconnect, advance, close,
     /** How a room created now would be labelled: the deploy form's default, never a particular room's. */
     defaultPresentation: () => describeContent(content()) };
 }
