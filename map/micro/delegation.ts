@@ -4,7 +4,8 @@ import { boundaryRuns } from '../kernel/run.ts';
 import type { Run } from '../kernel/run.ts';
 import { clearFootprint } from '../kernel/margins.ts';
 import { checkedMargins, checkedRegionCells, LIMITS } from './limits.ts';
-import { clipHints, hintErrors } from './hints.ts';
+import { clipHints } from './hints.ts';
+import { briefShapeErrors } from './brief-validation.ts';
 import { inheritBriefMargins } from './margins.ts';
 import { createFillMask, createRegionMask, travelClear, validShape } from './geometry.ts';
 import { hunterClearance, portalStands } from './portals.ts';
@@ -91,45 +92,24 @@ export function canonicalPreparedDelegationBrief(input: RegionBrief): RegionBrie
 
 function canonicalBrief(input: RegionBrief, checkedCells: boolean): RegionBrief {
   const brief = structuredClone(input);
-  if (typeof brief.id !== 'string' || !brief.id || typeof brief.type !== 'string' || !brief.type || !Number.isSafeInteger(brief.seed) || !Number.isFinite(brief.cellSize) || brief.cellSize <= 0)
-    throw new Error('Preparation needs a stable brief identity, type, integer seed and positive cell size.');
-  if (!checkedCells) brief.cells = checkedRegionCells(brief.cells);
-  portalStands(brief);
-  const hints = hintErrors(brief);
-  if (hints.length) throw new Error(hints.join(' '));
+  const errors = briefShapeErrors(brief, checkedCells);
+  if (errors.length) throw new Error(`Invalid brief: ${errors.join(' ')}`);
+  if (!checkedCells) brief.cells = orderCells(brief.cells);
   brief.portals = orderRuns(brief.portals).sort((a, b) => a.id.localeCompare(b.id));
   if (brief.hints) brief.hints = orderRuns(brief.hints);
   if (brief.internalGuaranteed) brief.internalGuaranteed = orderRuns(brief.internalGuaranteed);
-  const owned = new Set(brief.cells.map(cellKey)), zoned = new Set<string>();
   const zones = new Map<string, RegionBrief['zones'][number]>();
   for (const zone of brief.zones) {
-    if (!Number.isInteger(zone.tier) || zone.tier < 1 || zone.tier > 5 || !Number.isInteger(zone.bonus) || zone.bonus < 0
-      || !Number.isFinite(zone.lootChance) || zone.lootChance < 0 || zone.lootChance > 1) throw new Error('Invalid zone context.');
     const k = JSON.stringify([zone.tier, zone.bonus, zone.lootChance]);
     if (!zones.has(k)) zones.set(k, { tier: zone.tier, bonus: zone.bonus, lootChance: zone.lootChance, cells: [] });
     for (const cell of zone.cells) {
-      if (!owned.has(cellKey(cell)) || zoned.has(cellKey(cell))) throw new Error('Zones must partition original ownership.');
-      zoned.add(cellKey(cell)); zones.get(k)!.cells.push(cell);
+      zones.get(k)!.cells.push(cell);
     }
   }
-  if (zoned.size !== owned.size) throw new Error('Zones must partition original ownership.');
   brief.zones = [...zones].sort(([a], [b]) => a.localeCompare(b)).map(([, z]) => ({ ...z, cells: orderCells(z.cells) }));
   if (brief.parameters !== undefined) brief.parameters = record(brief.parameters);
   if (brief.guidance !== undefined) brief.guidance = record(brief.guidance);
-  for (const field of ['fillCells', 'clearCells'] as const) if (brief[field]) {
-    const cells = brief[field]!;
-    if (cells.some(c => !c || !Number.isSafeInteger(c.x) || !Number.isSafeInteger(c.y)) || new Set(cells.map(cellKey)).size !== cells.length)
-      throw new Error(`Invalid ${field}.`);
-    if (field === 'fillCells' && cells.some(c => !owned.has(cellKey(c)))) throw new Error('Fill must stay inside ownership.');
-    if (field === 'clearCells' && cells.some(c => {
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (owned.has(`${c.x + dx},${c.y + dy}`)) return false;
-      return true;
-    }))
-      throw new Error('Clear cells must be nearby access context.');
-    brief[field] = orderCells(cells);
-  }
-  const fill = new Set((brief.fillCells ?? []).map(cellKey));
-  if ((brief.clearCells ?? []).some(c => fill.has(cellKey(c)))) throw new Error('Clear cells cannot be available for filling.');
+  for (const field of ['fillCells', 'clearCells'] as const) if (brief[field]) brief[field] = orderCells(brief[field]!);
   const normalized = checkedMargins(brief);
   // Apply original guarantees before clipping them into children. This also makes
   // preparation idempotent when a caller supplied fill exclusions but omitted a

@@ -119,7 +119,8 @@ test('density zero keeps the optional shed but adds no crates, and small regions
   assert.equal(crates(shed).length, 0);
   assert.ok(shed.elements.some(e => e.label.startsWith('plant-shed-')));
   assert.equal(digest(traces), 'f161c17d1ef774a0df94f5868e33f1088c8f7886b23391faa4fc5380ca3c0cda');
-  const thin = buildRegion(brief(cellsOf(32, 9), 1, 0));
+  const thin = buildRegion({ ...brief(cellsOf(32, 9), 1, 0),
+    portals: portals.map(portal => ({ ...portal, y: 3 })) });
   assert.equal(thin.elements.length, 0);
   assert.equal(thin.manifest.infillCrates, undefined);
 });

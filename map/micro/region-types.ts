@@ -71,7 +71,15 @@ export function buildRegion(brief: RegionBrief, registry: RegionTypeRegistry = R
   return registry[brief.type]!(structuredClone(brief), observe);
 }
 
-/** Direct-dispatch diagnostics for a brief's shape and region limits (20.1). */
+/** Direct-dispatch diagnostics; delegation owns its own margin defaults (20.1). */
 export function briefErrors(brief: RegionBrief): string[] {
-  return briefShapeErrors(brief);
+  const errors = briefShapeErrors(brief);
+  // Direct dispatch treats omitted fill as ownership for this pre-dispatch check.
+  // Delegation instead derives missing fill from clear constraints before execution.
+  if (brief?.fillCells === undefined && Array.isArray(brief?.cells) && Array.isArray(brief?.clearCells)) {
+    const owned = new Set(brief.cells.filter(c => c).map(c => `${c.x},${c.y}`));
+    for (const c of brief.clearCells) if (c && owned.has(`${c.x},${c.y}`))
+      errors.push(`Clear cell ${c.x},${c.y} is available for filling.`);
+  }
+  return errors;
 }
