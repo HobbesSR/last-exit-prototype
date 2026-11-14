@@ -218,7 +218,9 @@ worktrees share, so a strict gate would fail on contention rather than on the ch
 under review. It is
 for checking the files a change adds or grows, run in isolation.
 
-Run timing comparisons sequentially, with no competing tests or benchmarks, and
+Run timing comparisons sequentially, with no competing tests or benchmarks (enforced
+for cooperating runs by the shared/exclusive machine lock in
+[31.2](31.2-benchmarks-and-timing-tools.md)), and
 repeat a suspected regression three times before believing it. Other agents share this
 machine and their load comes and goes, so compare two versions in alternated pairs (A, B, A,
 B…) rather than in blocks, and judge the change by each pair's ratio. Report process CPU time

@@ -97,10 +97,10 @@ try {
       outputs[name] = [];
       for (const { kind, brief } of inputs) {
         const preparationStart = timed[name];
-        const start = performance.now();
+        const start = performance.now(), cpuStart = process.cpuUsage();
         const node = builders[name].build(brief);
-        const total = performance.now() - start;
-        samples[name][kind].push({ total, preparation: timed[name] - preparationStart });
+        const total = performance.now() - start, cpu = process.cpuUsage(cpuStart);
+        samples[name][kind].push({ total, cpu: (cpu.user + cpu.system) / 1000, preparation: timed[name] - preparationStart });
         outputs[name].push(node);
       }
     }
@@ -114,6 +114,7 @@ try {
       Object.fromEntries(Object.entries(groups).map(([kind, entries]) => [kind, {
         count: entries.length,
         medianBuildMs: roundMs(median(entries.map(e => e.total))),
+        medianBuildCpuMs: roundMs(median(entries.map(e => e.cpu))),
         medianPreparationMs: roundMs(median(entries.map(e => e.preparation))),
       }]))]));
     rounds.push({ round, ...report });
@@ -121,7 +122,7 @@ try {
   }
   console.log(JSON.stringify({ source: { before, head: git('rev-parse', 'HEAD'),
     dirtyPaths: git('status', '--porcelain', '--untracked-files=no').split(/\r?\n/).filter(Boolean),
-    node: process.version }, inputs: { field: 20, concave: 20, macroCells: 30000, macroPortals: 170 },
+    node: process.version }, contention: lock.contention(), inputs: { field: 20, concave: 20, macroCells: 30000, macroPortals: 170 },
     rounds, exactNodeAndFlattenedResult: true }, null, 2));
 } finally {
   delete globalThis[nonce];

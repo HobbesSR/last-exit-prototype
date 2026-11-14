@@ -21,7 +21,7 @@ const dpr = Number(args.get('dpr') ?? 1), native = args.has('native');
 const out = args.has('out') && path.resolve(args.get('out')), diagnostics = args.has('diagnostics') && path.resolve(args.get('diagnostics'));
 const chromeArgs = [...(args.has('software-gl') ? ['--disable-gpu'] : []), ...(args.get('chrome-args')?.split(' ') ?? []),
   ...(native ? [`--force-device-scale-factor=${dpr}`, `--window-size=${width},${height + 90}`, '--window-position=0,0'] : [])];
-await acquireMachineLock('bench');
+const lock = await acquireMachineLock('bench');
 // The checkout serves its own public/ and resolves its own packages from its working directory.
 process.chdir(root);
 const { chromium } = createRequire(path.join(root, 'package.json'))('@playwright/test');
@@ -50,7 +50,7 @@ try {
   // The page has been counting frames since it loaded, through the lobby and the map build, so the first
   // interval starts from the count now rather than from zero.
   let held = null, step = 0, lastFrames = await page.evaluate(() => window.arenaProfile().frames), lastAt = performance.now();
-  const started = performance.now();
+  const started = performance.now(), cpuStarted = process.cpuUsage();
   server.profiler.reset();
   while (performance.now() - started < seconds * 1000) {
     const sliceEnd = performance.now() + Math.min(interval * 1000, seconds * 1000 - (performance.now() - started));
@@ -86,8 +86,12 @@ try {
     await page.getByRole('button', { name: 'Download performance diagnostics', exact: true }).click();
     await (await download).saveAs(diagnostics);
   }
-  if (out) await writeFile(out, JSON.stringify({ environment, args: Object.fromEntries(args), rows }, null, 2));
+  const wallMs = performance.now() - started, cpu = process.cpuUsage(cpuStarted);
+  const cpuMs = (cpu.user + cpu.system) / 1000, contention = lock.contention();
+  console.log(`session wall ${wallMs.toFixed(0)} ms, CPU ${cpuMs.toFixed(0)} ms${contention.contended ? `, CONTENDED ${(contention.otherBusyShare * 100).toFixed(1)}%` : ''}`);
+  if (out) await writeFile(out, JSON.stringify({ environment, args: Object.fromEntries(args), run: { wallMs, cpuMs, userCpuMs: cpu.user / 1000, systemCpuMs: cpu.system / 1000, contention }, rows }, null, 2));
 } finally {
+  lock.release();
   await browser.close();
   await server.close();
 }

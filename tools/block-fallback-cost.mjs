@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { planBlock } from '../map/micro/strategies/block.ts';
 import { regionExample } from '../map/micro/region-examples.ts';
+import { acquireMachineLock } from '../tests/helpers/machine-lock.js';
 
 const sourcePath = 'map/micro/strategies/block.ts';
 const source = await readFile(sourcePath, 'utf8');
@@ -28,6 +29,7 @@ diagnostic = 'export let diagnosticCounts = { connectivityChecks: 0, connectivit
 diagnostic = resolveImports(diagnostic);
 const root = resolve('test-results');
 await mkdir(root, { recursive: true });
+const lock = await acquireMachineLock('bench');
 const scratch = await mkdtemp(resolve(root, 'fallback-cost-'));
 try {
   const file = resolve(scratch, 'diagnostic.ts');
@@ -47,20 +49,23 @@ try {
     if (baseline(brief).lots.length) throw new Error(`${shape}: ordinary planner found a lot`);
     const counts = { ...instrumented.diagnosticCounts };
     const times = { baseline: [], current: [] };
+    const cpuTimes = { baseline: [], current: [] };
     for (let i = 0; i < 5; i++) {
       const order = i % 2 ? [['current', planBlock], ['baseline', baseline]] : [['baseline', baseline], ['current', planBlock]];
       for (const [name, run] of order) {
-        const start = performance.now();
+        const start = performance.now(), cpuStart = process.cpuUsage();
         const plan = run(brief);
+        const cpu = process.cpuUsage(cpuStart);
         times[name].push(performance.now() - start);
+        cpuTimes[name].push((cpu.user + cpu.system) / 1000);
         if (name === 'current' && JSON.stringify(plan) !== JSON.stringify(measured)) throw new Error(`${shape}: unstable plan`);
       }
     }
-    rows.push({ shape, width, height, cells: brief.cells.length, counts, pieces: measured.allocation.pieces.length, timesMs: times });
+    rows.push({ shape, width, height, cells: brief.cells.length, counts, pieces: measured.allocation.pieces.length, timesMs: times, cpuTimesMs: cpuTimes });
   }
   if (!rows.some(row => row.counts.connectivityRejected > 0)) throw new Error('No fallback witness rejected a disconnected remainder.');
   const report = JSON.stringify({ node: process.version, baselineCommit, head, trackedWorktreeDirty, toolSha256,
-    sourceSha256: createHash('sha256').update(source).digest('hex'), rows }, null, 2) + '\n';
+    sourceSha256: createHash('sha256').update(source).digest('hex'), contention: lock.contention(), rows }, null, 2) + '\n';
   if (args.length) await writeFile(args[0].slice('--out='.length), report, 'utf8');
   else process.stdout.write(report);
-} finally { await rm(scratch, { recursive: true, force: true }); }
+} finally { lock.release(); await rm(scratch, { recursive: true, force: true }); }

@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir, mkdtemp } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 const root = new URL('../../', import.meta.url);
 await mkdir(new URL('test-results/', root), { recursive: true });
 const scratch = pathToFileURL((await mkdtemp(resolve(fileURLToPath(new URL('test-results/', root)), 'dynamic-add-'))) + '/');
@@ -34,10 +35,10 @@ const run = variant => {
       if (i % 512 === 511) world.commitMutations();
     }
     world.commitMutations();
-    let elapsed = 0;
+    let elapsed = 0, cpuMs = 0;
     const hash = createHash('sha256');
     for (let round = 0; round < rounds; round++) {
-      const start = performance.now();
+      const start = performance.now(), cpuStart = process.cpuUsage();
       // Each drop commits immediately, matching the costly elimination-drop path.
       for (let i = additions - 1; i >= 0; i--) {
         world.queueAddBody({ id: `drop:${String(i).padStart(3, '0')}`, kind: 'prop',
@@ -45,24 +46,31 @@ const run = variant => {
         world.commitMutations();
       }
       elapsed += performance.now() - start;
+      const cpu = process.cpuUsage(cpuStart);
+      cpuMs += (cpu.user + cpu.system) / 1000;
       hash.update(JSON.stringify(world.snapshot({ includeStatic: false })));
       for (let i = 0; i < additions; i++) world.queueRemoveBody(`drop:${String(i).padStart(3, '0')}`);
       world.commitMutations();
     }
-    return { variant, statics, rounds, commits: rounds * additions, milliseconds: elapsed, digest: hash.digest('hex') };
+    return { variant, statics, rounds, commits: rounds * additions, milliseconds: elapsed, cpuMilliseconds: cpuMs, digest: hash.digest('hex') };
   } finally { world.dispose(); }
 };
 
+const lock = await acquireMachineLock('bench');
 const results = [];
-for (let repeat = 1; repeat <= 3; repeat++) {
-  const pair = [];
-  for (const variant of variants) {
-    const result = { repeat, ...run(variant) };
-    results.push(result); pair.push(result);
-    console.log(JSON.stringify(result));
+try {
+  for (let repeat = 1; repeat <= 3; repeat++) {
+    const pair = [];
+    for (const variant of variants) {
+      const result = { repeat, ...run(variant), contention: lock.contention() };
+      results.push(result); pair.push(result);
+      console.log(JSON.stringify(result));
+    }
+    assert.equal(pair[0].digest, pair[1].digest, 'base/candidate dynamic states differ');
   }
-  assert.equal(pair[0].digest, pair[1].digest, 'base/candidate dynamic states differ');
+  await writeFile(new URL('./dynamic-add-results.json', scratch), JSON.stringify(results, null, 2) + '\n');
+} finally {
+  lock.release();
 }
-await writeFile(new URL('./dynamic-add-results.json', scratch), JSON.stringify(results, null, 2) + '\n');
 
 

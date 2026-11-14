@@ -14,6 +14,7 @@ import { captureBaseline, compareSweep, positiveInteger, runSweep, sweepCases } 
 import type { SweepBaseline } from './sweep.mts';
 import { REACH_MODES, captureBriefs, replayBriefs, replayFailed, typesToReplay } from './sweep-briefs.mts';
 import type { Reach } from './sweep-briefs.mts';
+import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { measureNavigationStructure } from './navigation-structure.ts';
 
 const PARAM_FLAGS = '[--mode game|playground] [--zone-width N --zone-height N] [--exits N --contestants N --hunters N] [--loot-chance X --loot-tier-step X]';
@@ -135,24 +136,29 @@ try {
     const started = performance.now();
     const elapsed = (digits = 0) => Number(((performance.now() - started) / 1000).toFixed(digits));
     const run = async () => {
-      if (baseline && types) {
-        const report = await replayBriefs(baseline, types, { dir: o.cache, reach: reach as Reach, jobs });
-        output({ ...report, seconds: elapsed(1) });
-        if (replayFailed(report)) process.exitCode = 1;
-      } else if (baseline && o.captureBriefs) {
-        const { maps, regions } = await captureBriefs(baseline, o.cache, jobs);
-        process.stderr.write(`cached ${regions} region briefs from ${maps} maps in ${elapsed()}s\n`);
-      } else {
-        const entries = await runSweep(cases, jobs);
-        const seconds = elapsed(), count = Object.keys(entries).length;
-        if (o.out) {
-          output(captureBaseline(cases, entries), o.out);
-          process.stderr.write(`captured ${count} maps in ${seconds}s\n`);
-          return;
+      const lock = await acquireMachineLock('test', { mode: 'shared' });
+      try {
+        if (baseline && types) {
+          const report = await replayBriefs(baseline, types, { dir: o.cache, reach: reach as Reach, jobs });
+          output({ ...report, seconds: elapsed(1) });
+          if (replayFailed(report)) process.exitCode = 1;
+        } else if (baseline && o.captureBriefs) {
+          const { maps, regions } = await captureBriefs(baseline, o.cache, jobs);
+          process.stderr.write(`cached ${regions} region briefs from ${maps} maps in ${elapsed()}s\n`);
+        } else {
+          const entries = await runSweep(cases, jobs);
+          const seconds = elapsed(), count = Object.keys(entries).length;
+          if (o.out) {
+            output(captureBaseline(cases, entries), o.out);
+            process.stderr.write(`captured ${count} maps in ${seconds}s\n`);
+            return;
+          }
+          const drift = compareSweep(baseline!, entries);
+          output({ checked: count, seconds, drift });
+          if (drift.length) process.exitCode = 1;
         }
-        const drift = compareSweep(baseline!, entries);
-        output({ checked: count, seconds, drift });
-        if (drift.length) process.exitCode = 1;
+      } finally {
+        lock.release();
       }
     };
     void run().catch((error: unknown) => {

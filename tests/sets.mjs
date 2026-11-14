@@ -2,6 +2,7 @@ import { spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { acquireMachineLock, LOCK_ENV } from './helpers/machine-lock.js';
 
 // Test sets (31, "Test sets"; #800): every test file belongs to exactly one set, named for what it
 // validates. A set lists its fast, slow and browser members and the source paths whose change
@@ -141,7 +142,7 @@ const recordedMs = () => {
   } catch { return {}; }
 };
 
-function main(args) {
+async function main(args) {
   const flags = new Set(args.filter(a => a.startsWith('--'))), names = args.filter(a => !a.startsWith('--'));
   if (names[0] === 'list') {
     const files = inventory(), ms = recordedMs();
@@ -161,11 +162,18 @@ function main(args) {
     console.log(sets.length ? `sets touched since ${base}: ${sets.join(' ')}\n  npm run brief -- test:set ${sets.join(' ')}` : `no set's sources changed since ${base}`);
     return 0;
   }
+  const budgetMode = process.env.BUILD_BUDGETS;
+  const lockMode = budgetMode === 'enforce' || budgetMode === 'report' ? 'exclusive' : 'shared';
+  const withLock = async fn => {
+    const lock = await acquireMachineLock(lockMode === 'exclusive' ? 'bench' : 'test', { mode: lockMode });
+    const env = { ...process.env, ...(!lock.inherited && !lock.skippedCi ? { [LOCK_ENV]: lockMode } : {}) };
+    try { return await fn(env); } finally { lock.release(); }
+  };
   if (names[0] === 'browser') {
     const files = inventory().browser, chosen = names.slice(1);
     const scripts = chosen.length ? [...new Set(chosen.flatMap(n => resolve(n, 'browser', files)))] : files;
     if (!scripts.length) { console.error(`no browser scripts in ${chosen.join(' ')}`); return 1; }
-    return runBrowser(scripts);
+    return withLock(env => runBrowser(scripts, env));
   }
   if (!names.length) {
     console.error(USAGE);
@@ -175,17 +183,19 @@ function main(args) {
   const unit = [...new Set(names.flatMap(n => [...resolve(n, 'fast', files.fast), ...(flags.has('--slow') ? resolve(n, 'slow', files.slow) : [])]))];
   const browser = flags.has('--browser') ? [...new Set(names.flatMap(n => resolve(n, 'browser', files.browser)))] : [];
   if (!unit.length && !browser.length) { console.error(`no test files in ${names.join(' ')}`); return 1; }
-  // The thin reporter's record is named for the selection, so each keeps its own history.
-  const env = { ...process.env, BRIEF_SCRIPT: `set-${names.join('+').replace(/:/g, '-')}${flags.has('--slow') ? '-slow' : ''}` };
-  let status = 0;
-  if (unit.length) status = spawnSync(process.execPath, ['--test', '--test-concurrency=4', ...unit], { stdio: 'inherit', env }).status ?? 1;
-  if (browser.length && runBrowser(browser, env) !== 0) status ||= 1;
-  return status;
+  return withLock(baseEnv => {
+    // The thin reporter's record is named for the selection, so each keeps its own history.
+    const env = { ...baseEnv, BRIEF_SCRIPT: `set-${names.join('+').replace(/:/g, '-')}${flags.has('--slow') ? '-slow' : ''}` };
+    let status = 0;
+    if (unit.length) status = spawnSync(process.execPath, ['--test', '--test-concurrency=4', ...unit], { stdio: 'inherit', env }).status ?? 1;
+    if (browser.length && runBrowser(browser, env) !== 0) status ||= 1;
+    return status;
+  });
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   try {
-    process.exitCode = main(process.argv.slice(2));
+    process.exitCode = await main(process.argv.slice(2));
   } catch (error) {
     // A mistyped set is a usage error, not a crash: say what exists instead of a stack.
     console.error(String(error.message ?? error));

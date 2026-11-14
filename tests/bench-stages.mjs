@@ -53,7 +53,7 @@ if (cache && (cache.size !== zoneSizeName(size) || cache.content !== baseContent
 // A bare flag parses as '1', which would write a file of that name.
 if (args.get('heap-profile') === '1') { console.error('--heap-profile needs a file: --heap-profile=<file.heapprofile>'); process.exit(2); }
 
-await acquireMachineLock('bench');
+const lock = await acquireMachineLock('bench');
 const discard = () => new Writable({ write(_chunk, _encoding, done) { done(); } });
 async function buildRoom(i) {
   const entry = cache ? structuredClone(cache.maps[seed + i - cache.seed]) : undefined;
@@ -185,11 +185,13 @@ if (heap) {
   const top = map => [...map].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([fn, bytes]) => ({ fn, MB: bytes / 2 ** 20, share: bytes / total }));
   heapTop = { totalMB: total / 2 ** 20, perTickKB: total / 1024 / (completed || 1), self: top(byFunction), own: top(byOwn) };
 }
+const contention = lock.contention();
+lock.release();
 const result = {
   meta: { seed, content: baseContent.id, size: label, rooms: roomCount, clients, spectators, recording, ticks: completed, node: process.version,
     items: rooms.map(r => r.items), obstacles: rooms.map(r => r.obstacles), tilesMs: rooms.map(r => r.tilesMs) },
   tick: { ...tickStats, over: over.length }, stages, over,
-  run: { wallMs, cpuMs: (cpu.user + cpu.system) / 1000, userCpuMs: cpu.user / 1000, systemCpuMs: cpu.system / 1000 },
+  run: { wallMs, cpuMs: (cpu.user + cpu.system) / 1000, userCpuMs: cpu.user / 1000, systemCpuMs: cpu.system / 1000, contention },
   recorder: { droppedFrames, drainMs: stats(drains) },
   gc: { count: gc.length, ms: gc.reduce((a, e) => a + e.ms, 0), max: Math.max(0, ...gc.map(e => e.ms)) },
   memory: { samples: memory, historyFrames: rooms.map(r => r.history.length), historyBytes, stateBytes },
@@ -199,6 +201,7 @@ if (args.has('out')) await writeFile(args.get('out'), JSON.stringify({ ...result
 
 const ms = v => v.toFixed(2).padStart(7);
 console.log(`Stage attribution — seed ${seed}, ${baseContent.id}, ${label}, ${roomCount} room(s), ${clients} viewer(s), ${spectators} spectator(s), recording ${recording ? 'on' : 'off'}, ${completed} ticks`);
+console.log(`run wall ${wallMs.toFixed(0)} ms, CPU ${result.run.cpuMs.toFixed(0)} ms (user ${result.run.userCpuMs.toFixed(0)} ms, sys ${result.run.systemCpuMs.toFixed(0)} ms)${contention.contended ? `, CONTENDED ${(contention.otherBusyShare * 100).toFixed(1)}%` : ''}`);
 console.log(`items ${result.meta.items.join('/')}  obstacles ${result.meta.obstacles.join('/')}`);
 console.log(`tick       mean ${ms(tickStats.mean)}  p99 ${ms(tickStats.p99)}  max ${ms(tickStats.max)}  over ${budget} ms: ${over.length}`);
 for (const [name, s] of Object.entries(stages).sort((a, b) => b[1].mean - a[1].mean)) {

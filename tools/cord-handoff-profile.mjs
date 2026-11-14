@@ -63,11 +63,12 @@ try {
       const samples = {};
       for (const label of round % 2 ? ['after', 'before'] : ['before', 'after']) {
         samples[label] = records.map(record => {
-          const start = performance.now();
+          const start = performance.now(), cpuStart = process.cpuUsage();
           const result = builders[label](record.brief);
-          const elapsedMs = performance.now() - start;
+          const elapsedMs = performance.now() - start, cpu = process.cpuUsage(cpuStart);
+          const cpuMs = (cpu.user + cpu.system) / 1000;
           const output = JSON.stringify(result);
-          return { name: record.name, id: record.brief.id, elapsedMs, output,
+          return { name: record.name, id: record.brief.id, elapsedMs, cpuMs, output,
             outputSha256: sha(output), offers: result.offers?.length ?? 0, children: result.children?.length ?? 0 };
         });
       }
@@ -76,7 +77,9 @@ try {
         assert.equal(before.output, after.output, `Output mismatch in round ${round}, ${before.id}`);
         assert.equal(before.outputSha256, after.outputSha256);
         return { name: before.name, id: before.id, outputSha256: before.outputSha256,
-          offers: before.offers, children: before.children, beforeMs: before.elapsedMs, afterMs: after.elapsedMs };
+          offers: before.offers, children: before.children,
+          beforeMs: before.elapsedMs, afterMs: after.elapsedMs,
+          beforeCpuMs: before.cpuMs, afterCpuMs: after.cpuMs };
       });
       rounds.push({ round, warmup: round === 0, order: round % 2 ? ['after', 'before'] : ['before', 'after'], rows });
       console.log(`Comparison round ${round}: ${rows.length} equal outputs`);
