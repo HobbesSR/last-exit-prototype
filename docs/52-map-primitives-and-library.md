@@ -7,8 +7,8 @@ deleted with mapgen's old paths (#146).
 
 This file defines what a map is made of and what the library an author writes
 contains. The generation chain that consumes it is specified in [51](51-generation-chain.md)
-and defined in [51.1](51.1-principles-and-names.md). Original intent is in
-`map/macro/design_notes.txt`, the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ.
+and defined in [51.1](51.1-principles-and-names.md). Historical intent is in the
+[archived original design notes](archive/2026-11-14-mapgen-intent/design_notes.txt); Corey's later answers in 17 and the accepted model in 51 govern where they differ.
 
 ## The layering rule
 

@@ -135,6 +135,5 @@ requirements.
 `last_exit_map` repository. Its design documentation was folded into 17 and 50–53
 on 2026-09-29. Its former docs are archived in
 `map/macro/docs/archive/pre-integration/`, where they describe the old paths
-that were retired when the chain landed ([archived switch-over record](archive/2026-11-13-macro-switchover/51.14.5-switch-over.md), #146). `map/macro/design_notes.txt` is the original
-statement of the map's intent. `map/macro/README.md` covers running it, and
+that were retired when the chain landed ([archived switch-over record](archive/2026-11-13-macro-switchover/51.14.5-switch-over.md), #146). The original statement of the map's intent is archived at [design_notes.txt](archive/2026-11-14-mapgen-intent/design_notes.txt). `map/macro/README.md` covers running it, and
 `map/macro/AGENTS.md` its commands.

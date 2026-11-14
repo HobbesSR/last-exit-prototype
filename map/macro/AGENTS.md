@@ -12,24 +12,23 @@ must share lives in `map/kernel/`, which neither owns (root 50).
 ## Before substantive work
 
 Read, in this order:
-1. `design_notes.txt`, the original statement of intent. Corey's later answers
-   in root 17 and the accepted model in root 51 govern where they differ.
-2. Root `docs/50-map-generation.md`: the two halves, who owns what, and a
+1. Root `docs/50-map-generation.md`: the two halves, who owns what, and a
    reading guide.
-3. The 5x file for the area you're changing:
+2. The 5x file for the area you're changing:
    - `docs/51-generation-chain.md`: route to 51.1 (invariants) or the relevant
      stage child; do not load every child
    - `docs/52-map-primitives-and-library.md`: the library model
    - `docs/53-map-artifacts-and-tools.md`: artifacts, determinism and the sweep;
      `docs/53.1-map-lab-and-tools.md`: the Map Lab, CLI and MCP
-4. For anything inside a region: root docs 19 and the relevant child of 20.
-5. Root `docs/17.2-map-questions.md`: route to the relevant verbatim answers
+3. For anything inside a region: root docs 19 and the relevant child of 20.
+4. Root `docs/17.2-map-questions.md`: route to the relevant verbatim answers
    and questions with their working assumptions; M-numbers remain unchanged.
-6. The Forgejo issue you're working on, and its latest handoff.
+5. The Forgejo issue you're working on, and its latest handoff.
 
-`docs/archive/pre-integration/` holds mapgen's former docs. They describe the
-old generators (`generateMap`, `generatePlannedMap`), which were deleted at the
-switch-over (#146). They are history, not current direction.
+`docs/archive/pre-integration/` holds mapgen's former docs (describing the old
+generators deleted at the switch-over, #146), and root
+`docs/archive/2026-11-14-mapgen-intent/design_notes.txt` holds the original
+statement of intent. Both are historical provenance, not current direction.
 
 Before adding a mechanism, search both halves for an existing one. The SDK,
 mapgen and the planned path have each built the same thing more than once

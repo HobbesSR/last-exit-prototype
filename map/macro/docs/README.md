@@ -12,7 +12,7 @@ mapgen's design documentation moved into the repository's numbered docs on
 - [17.2](../../../docs/17.2-map-questions.md): map questions and
   Corey's verbatim answers
 
-The original statement of intent is [design_notes.txt](../design_notes.txt).
+The archived original statement of intent is [design_notes.txt](../../../docs/archive/2026-11-14-mapgen-intent/design_notes.txt).
 
 Historical chain captures are in [42.4](../../../docs/42.4-chain-checkpoint-history.md);
 active compatibility and tools remain in 53.
