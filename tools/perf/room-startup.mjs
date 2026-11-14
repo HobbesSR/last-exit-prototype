@@ -136,11 +136,12 @@ async function phase(name, operation) {
   const profile = args.has('profile') && name.startsWith('concurrent.');
   const inspector = profile ? new Session() : undefined;
   if (inspector) { inspector.connect(); await inspector.post('Profiler.enable'); await inspector.post('Profiler.start'); }
-  const before = performance.now();
+  const before = performance.now(), beforeCpu = process.cpuUsage();
   const probe = sleep(0).then(() => performance.now() - before);
   await operation();
   const end = performance.now();
-  phases.push({ name, atMs: before, operationMs: end - before, timerDelayMs: await probe });
+  const cpu = process.cpuUsage(beforeCpu);
+  phases.push({ name, atMs: before, operationMs: end - before, cpuMs: (cpu.user + cpu.system) / 1000, timerDelayMs: await probe });
   if (inspector) {
     const { profile } = await inspector.post('Profiler.stop');
     inspector.disconnect();
@@ -182,8 +183,10 @@ try {
   let ownerA;
   await phase('cold.join', async () => { ownerA = await joinViewers(first, true); });
   await phase('cold.start', () => start(ownerA));
-  await phase('cold.tick1', () => service.advance(50, performance.now()));
   profiler.enable(true);
+  await phase('cold.tick1', () => service.advance(50, performance.now()));
+  const coldTickStages = profiler.report();
+  profiler.reset();
   deliveries.length = 0;
   stopScheduler = startScheduler((elapsed, now) => {
     const before = performance.now();
@@ -213,6 +216,7 @@ try {
     deliveryObservation: sockets ? 'First active-room viewer state receipt after JSON parsing in client worker' : 'First active-room viewer direct fake-peer deliver callback',
     phaseCompletion: sockets ? 'Join waits for parsed welcome; start waits for first parsed state; tick1 measures host advance' : 'Direct room-service call completion',
     note: 'Short startup diagnostic; maps prebuilt, replay output discarded. Not a capacity benchmark.' },
+  contention: lock.contention(), coldTickStages,
   lifecycle, phases, activeDeliveryGaps: { ...stats(gaps), over75: gaps.filter(v => v > 75).length }, wakes: stats(wakes.map(w => w.elapsedMs)),
   loopWork: stats(wakes.map(w => w.workMs)), stages: profiler.report(), raw: { wakes, gaps, deliveryAtMs: deliveries } };
   result.recorderDrops = writers.map(w => w.droppedFrames);
