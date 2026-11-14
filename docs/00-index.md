@@ -76,8 +76,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, the one math library both sides need, and the order of an incremental, fixture-checked port |
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |
 | [29-geometry-and-drawing.md](29-geometry-and-drawing.md) | Guide: shape descriptions, collision, sight edges, physics prerequisites |
-| [29.1-physics-design.md](29.1-physics-design.md) | Proposed rigid bodies, character contact, middleware evaluation, springs/hooks and physical item contracts |
-| [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Experimental physics tick/state contracts, private live projections, engine-free playback and bounded local prediction (#441); default rollout remains proposed |
+| [29.1-physics-design.md](29.1-physics-design.md) | Rapier contracts: settings and witness gates, ownership, character contact, placement, collision matrix, constraints and the hook, physical items, height boundary |
+| [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Physics tick order, state contracts, private live projections, bounded local prediction, replay compatibility and failure policy |
 | [29.3-shape-construction-and-assembly.md](29.3-shape-construction-and-assembly.md) | Shape construction (union, subtraction, convex pieces) and placeable element assemblies |
 | [29.4-drawing.md](29.4-drawing.md) | How drawing is cached, drawing planes, roofs and canopies, palettes (#582) and the constraints on art passes |
 
