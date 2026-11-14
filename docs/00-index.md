@@ -107,7 +107,7 @@ existed.
 | File | Holds |
 | --- | --- |
 | [50-map-generation.md](50-map-generation.md) | The two halves and who owns what, the SDK as a shared library, the duplication ledger, a reading guide |
-| [51-generation-chain.md](51-generation-chain.md) | Pipeline and guide: invariants (51.1), individual stages (51.2–51.10), core elements (51.11), saving (51.12), reuse (51.13), build history (51.14–51.15) |
+| [51-generation-chain.md](51-generation-chain.md) | Pipeline and guide: invariants (51.1), individual stages (51.2–51.10), core elements (51.11), saving (51.12); switch-over and build history are archived |
 | [52-map-primitives-and-library.md](52-map-primitives-and-library.md) | Cells, segments and prescriptions, region types, tiles, set pieces and set piece classes, tier zones, scale |
 | [52.1-perimeter-authoring.md](52.1-perimeter-authoring.md) | Authoring tile perimeters for obstruction: how values become portals and clear ground, today's rules against the 2026-11-06 answers, and tips for long closed seams |
 | [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Compatibility domains, determinism, what is stored, the wire form and BSON, the sweep; guide to the tools (53.1) |
@@ -135,6 +135,6 @@ requirements.
 `last_exit_map` repository. Its design documentation was folded into 17 and 50–53
 on 2026-09-29. Its former docs are archived in
 `map/macro/docs/archive/pre-integration/`, where they describe the old paths
-that were retired when the chain landed (51.14.5, #146). `map/macro/design_notes.txt` is the original
+that were retired when the chain landed ([archived switch-over record](archive/2026-11-13-macro-switchover/51.14.5-switch-over.md), #146). `map/macro/design_notes.txt` is the original
 statement of the map's intent. `map/macro/README.md` covers running it, and
 `map/macro/AGENTS.md` its commands.

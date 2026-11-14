@@ -71,9 +71,8 @@ Start with [51.1](51.1-principles-and-names.md) for the shared invariants and vo
 | [51.10](51.10-measurement.md) | Measurement (stage 8) |
 | [51.11](51.11-core-elements-and-playground.md) | Core elements and playground mode |
 | [51.12](51.12-map-and-saving.md) | Map container and saving |
-| [51.13](51.13-reuse-and-retirement.md) | Reused modules and retired paths |
-| [51.14](51.14-build-order.md) | Build order and implementation record, by track |
-| [51.15](51.15-earlier-issues.md) | Earlier issue mapping |
+
+Historical record: the completed switch-over and build history (retired IDs 51.13–51.15, not reused) is in the [archive README](archive/2026-11-13-macro-switchover/README.md).
 
 ## Earlier heading links
 
@@ -141,16 +140,16 @@ These landing links preserve bookmarks into the former single file.
 
 <a id="reused-on-each-side"></a>
 
-- Reused, on each side: [51.13](51.13-reuse-and-retirement.md#reused-on-each-side).
+- Reused, on each side (historical): [archived 51.13](archive/2026-11-13-macro-switchover/51.13-reuse-and-retirement.md#reused-on-each-side).
 
 <a id="retired-when-the-chain-lands"></a>
 
-- Retired when the chain lands: [51.13](51.13-reuse-and-retirement.md#retired-when-the-chain-lands).
+- Retired when the chain lands (historical): [archived 51.13](archive/2026-11-13-macro-switchover/51.13-reuse-and-retirement.md#retired-when-the-chain-lands).
 
 <a id="build-order"></a>
 
-- Build order: [51.14](51.14-build-order.md#build-order).
+- Build order (historical): [archived 51.14](archive/2026-11-13-macro-switchover/51.14-build-order.md#build-order).
 
 <a id="earlier-issues"></a>
 
-- Earlier issues: [51.15](51.15-earlier-issues.md#earlier-issues).
+- Earlier issues (historical): [archived 51.15](archive/2026-11-13-macro-switchover/51.15-earlier-issues.md#earlier-issues).
