@@ -21,11 +21,9 @@ import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { MATCHMAKING_COUNTDOWN_MS } from './room-service.js';
 
 export function installHttpApi(app, service, directory, replays, pool = null) {
-  const { rooms } = service;
   app.get(HTTP_ENDPOINT.HEALTH, (_req, res) => res.json(healthResponse({
     rulesVersion: VERSION, physicsVersion: PHYSICS_VERSION, tickRate: HZ, profiling: profiler.profiling(), devTools: service.devTools,
-    liveRooms: [...rooms.values()].filter(r => r.started && !r.finished).length,
-    emptyLiveRooms: [...rooms.values()].filter(r => r.started && !r.finished && !r.clients.size).length,
+    ...service.metrics(),
     mapPool: pool?.stock() ?? null,
   })));
   app.get(HTTP_ENDPOINT.PROFILE, (_req, res) => {
@@ -33,7 +31,7 @@ export function installHttpApi(app, service, directory, replays, pool = null) {
     res.json(profileResponse({
       enabled: profiler.profiling(), tickRate: HZ, budgetMs: 1000 / HZ,
       effectiveHz: pacing?.mean ? 1000 / pacing.mean : null, frames: profiler.frameCount(),
-      rooms: [...rooms.values()].filter(r => r.started && !r.finished).length, series: profiler.report(),
+      rooms: service.metrics().liveRooms, series: profiler.report(),
     }));
   });
   app.post(HTTP_ENDPOINT.PROFILE, (req, res) => {
