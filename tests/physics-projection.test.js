@@ -122,7 +122,7 @@ test('physics recording floor is explicit and stamped by the room writer', async
     const peer = service.connect({ deliver() { return true; }, close() {} });
     service.receive(peer, { type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'contestant', name: 'Test' });
     service.receive(peer, { type: 'start' });
-    assert.equal(header.schema, 16);
+    assert.equal(header.schema, SCHEMA);
     assert.equal(header.minSchema, 10);
     assert.equal(header.version, 'future-physics-rules');
   } finally { await service.close(); }

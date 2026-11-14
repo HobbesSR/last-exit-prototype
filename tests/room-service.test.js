@@ -4,6 +4,7 @@ import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
 import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, synchronizePhysics, PHYSICS_VERSION } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
+import { SCHEMA } from '../shared/recording.ts';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
   const h = roomHarness({ reuseMaps: true }), room = await h.created(9);
@@ -30,7 +31,7 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     const writer = h.writers.get(room.id);
     assert.equal(writer.header.contentId, defaultContent().id);
     assert.equal(writer.header.version, PHYSICS_VERSION);
-    assert.equal(writer.header.schema, 16);
+    assert.equal(writer.header.schema, SCHEMA);
     assert.equal(writer.header.minSchema, 10);
     assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
     assert.equal(writer.frames[0].state.slots, 3);

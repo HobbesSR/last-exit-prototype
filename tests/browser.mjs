@@ -101,8 +101,7 @@ try {
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
   const after = await page.evaluate(() => window.arenaDebug().me.x);
   assert.ok(after > before + 40, `keyboard movement ${before} -> ${after}`);
-  // An ability press travels client input tick -> server tick -> broadcast, which can exceed a fixed
-  // 100 ms pause on a coarse platform timer. Wait for the authoritative cooldown instead of guessing.
+  // Contestants have no innate skill, so the ability key shows no skill readout.
   await page.keyboard.press('KeyQ');
   assert.equal(await page.locator('#skill').isVisible(), false, 'contestants have no innate skill');
   await page.keyboard.press('Digit3');

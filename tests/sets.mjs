@@ -22,9 +22,11 @@ import { acquireMachineLock, LOCK_ENV } from './helpers/machine-lock.js';
 /** @type {Record<string, { about: string, fast: string[], slow?: string[], browser?: string[], sources: string[] }>} */
 export const SETS = {
   tooling: {
-    about: 'the test and CI tooling, documentation and licence checks',
+    about: 'the test and CI tooling, the tools/ scripts, documentation and licence checks',
     fast: ['brief-reporter', 'ci-cancel-pr-runs', 'ci-slow-failures', 'doc-links', 'doc-reads', 'forgejo-usage', 'machine-lock',
-      'third-party-notices', 'vendor-modules', 'source-provenance', 'timing', 'profiler', 'sets'],
+      'third-party-notices', 'vendor-modules', 'source-provenance', 'timing', 'profiler', 'sets',
+      // tools/navigation/*.mjs, the navigation report's library; they import nothing under shared/navigation.
+      'navigation-clearance', 'navigation-graph', 'navigation-optimistic'],
     sources: ['tests/*.mjs', 'tests/helpers/**', 'tools/**', '.forgejo/**', 'docs/**', 'AGENTS.md', 'package.json', 'THIRD_PARTY_NOTICES*', 'shared/profiler.ts'],
   },
   geometry: {
@@ -43,7 +45,8 @@ export const SETS = {
     fast: ['simulation', 'tick-phases', 'characterization-physics', 'equipment', 'loot-tiers', 'item-*', 'ground-items', 'traps', 'transit',
       'utility-use', 'hearing', 'hearing-bots', 'hunting', 'hunter-planning', 'discovery', 'visibility', 'view', 'view-items',
       'projection-contract', 'presentation', 'frame-gates', 'frame-layers', 'rewind', 'reloading', 'input-queue',
-      'movement-speed', 'movement-preparation', 'bot-discovery', 'bot-memory', 'navigation-*', 'route', 'boundaries', 'arena', 'playability', 'shared-rules', 'content'],
+      'movement-speed', 'movement-preparation', 'bot-discovery', 'bot-memory', 'navigation-knowledge', 'map-boundary', 'route', 'boundaries', 'arena', 'playability',
+      'shared-rules', 'content'],
     slow: ['characterization-physics-bots', 'view-live-map'],
     browser: ['hearing', 'transit'],
     sources: ['shared/simulation*', 'shared/simulation/**', 'shared/movement.ts', 'shared/view.ts', 'shared/discovery.ts', 'shared/equipment.ts',
@@ -69,7 +72,7 @@ export const SETS = {
   },
   macro: {
     about: 'macro generation, the chain and its library, map tools and the Map Lab (also npm run test:mapgen)',
-    fast: ['map-access-conservatism', 'map-authored-seams', 'map-block-library-audit', 'map-boundary', 'map-clear-tiles',
+    fast: ['map-access-conservatism', 'map-authored-seams', 'map-block-library-audit', 'map-clear-tiles',
       'map-entrypoint',
       'map-lab-draft-safety', 'map-lab-routes', 'map-library', 'map-navigation-structure', 'map-navigation-structure-cli',
       'map-passable-margins', 'map-placement-trace', 'map-portal-thorough', 'map-skeleton', 'map-sparse-sides', 'map-sweep', 'map-tools', 'portal-graph',

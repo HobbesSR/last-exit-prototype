@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRegion, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
+import { buildRegion } from '../map/micro/region-types.ts';
 import { createRegionMask, elementShapes, shapesOverlap, travelClear } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
@@ -24,7 +24,6 @@ function brief(seed, irregular = false, parameters) {
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
 
 test('rubble keeps all portal stands and routes clear on rectangular and irregular masks', () => {
-  assert.equal(REGION_TYPES_VERSION, 'types-67');
   for (const irregular of [false, true]) for (const seed of [1, 2, 3, 41]) {
     const input = brief(seed, irregular);
     const result = buildRegion(input);

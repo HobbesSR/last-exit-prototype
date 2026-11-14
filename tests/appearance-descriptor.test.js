@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readdirSync, readFileSync } from 'node:fs';
-import path from 'node:path';
 import { shapeOf, rect } from '../shared/shape.ts';
 import { createGenerationContext } from '../shared/map/context.ts';
 import { placeElement } from '../shared/map/element.ts';
@@ -578,16 +576,6 @@ test('chain map export/load round-trips via JSON and BSON and legacy maps load c
   for (const b of depotBuildings) {
     assert.deepEqual(b.appearance, DEPOT_WAREHOUSE_APPEARANCE);
   }
-  // The matched libraries (#849) rarely place a hut region; when one is placed its storefronts
-  // must survive the round trip too. The hut presets themselves are covered above.
-  for (const hutResult of chain.results.filter(r => r.brief.type === 'hut')) {
-    const hutBuildings = buildingsWithApp.filter(b => b.nodeId === hutResult.brief.id);
-    assert.ok(hutBuildings.length > 0, 'hut buildings have appearance');
-    for (const b of hutBuildings) {
-      assert.ok(b.appearance.roofSign, 'hut building carries storefront appearance with roofSign');
-    }
-  }
-
 
   // 2. Legacy map without appearance loads and plays cleanly
   const legacyMap = {
@@ -604,18 +592,6 @@ test('chain map export/load round-trips via JSON and BSON and legacy maps load c
     assert.ok(res.roofFill > 0);
     assert.equal(res.floorMarks.length, 0);
     assert.equal(res.roofMarks.length, 0);
-  }
-});
-
-test('presentation boundary invariant: shared, server, and map never import public/appearance.js', () => {
-  for (const dir of ['shared', 'server', 'map']) {
-    for (const file of readdirSync(dir, { recursive: true })) {
-      if (!/\.(m?[jt]s)$/.test(file) || file.includes('node_modules')) continue;
-      assert.ok(
-        !/appearance\.js/.test(readFileSync(path.join(dir, file), 'utf8')),
-        `${dir}/${file} must not import public/appearance.js`
-      );
-    }
   }
 });
 

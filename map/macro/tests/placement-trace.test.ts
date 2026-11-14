@@ -4,7 +4,7 @@ import test from "node:test";
 import { solveWfc } from "../src/wfc.ts";
 import type { TileOption, WfcGrid, WfcOptions, WfcTraceEvent } from "../src/wfc.ts";
 import { openFaceRule } from "../src/chain/open-face.ts";
-import { adjacencyLinks, placer } from "../src/chain/placement.ts";
+import { adjacencyLinks, placer, PLACEMENT_ATTEMPTS } from "../src/chain/placement.ts";
 import type { ChainLibrary } from "../src/chain/library.ts";
 import type { PlacementTraceEvent, RefusalTraceEvent } from "../src/chain/placement-trace.ts";
 
@@ -121,10 +121,10 @@ test("set-piece failure preserves partial assignments before any WFC choices", (
   const events: PlacementTraceEvent[] = [];
   assert.throws(() => placer({ openFace: true, trace: (event) => events.push(event) })("partial", { ...params, mode: "game", zoneWidth: 3 }, custom), /set piece bad-piece/);
   // Two members are kept in every attempt before the third fails.
-  assert.equal(events.filter((event) => event.type === "set-piece-slot").length, 100);
-  assert.equal(events.filter((event) => event.type === "set-piece-failed").length, 50);
+  assert.equal(events.filter((event) => event.type === "set-piece-slot").length, 2 * PLACEMENT_ATTEMPTS);
+  assert.equal(events.filter((event) => event.type === "set-piece-failed").length, PLACEMENT_ATTEMPTS);
   assert.equal(events.filter((event) => event.type === "node").length, 0);
-  assert.equal(events.at(-1)!.attempt, 49);
+  assert.equal(events.at(-1)!.attempt, PLACEMENT_ATTEMPTS - 1);
   assert.deepEqual(events, JSON.parse(JSON.stringify(events)));
 });
 
