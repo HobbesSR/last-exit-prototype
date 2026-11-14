@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CHAIN_LIBRARY, generate } from '../map/chain.ts';
+import { CHAIN_LIBRARY } from '../map/chain.ts';
 import { libraryFingerprint } from '../map/macro/src/coding.ts';
 import { declaredGrid, layoutViolations, orientDesign } from '../map/macro/src/chain/declared-grid.ts';
 import { resolution } from '../map/macro/src/chain/resolution.ts';
@@ -24,17 +24,7 @@ function layout(slots, library = CHAIN_LIBRARY, params = PARAMS) {
     slots: slots.map(([col, row, design, orientation = 0]) => ({ col, row, design, orientation })), setPieces: [] };
 }
 const at = (grid, x, y) => grid.cells[y * grid.width + x];
-
-test('game fill prefers varied ground and builds features instead of mostly plain fields', () => {
-  const map = generate('fill-214-1');
-  const owned = new Set(map.layout.setPieces.flatMap(piece => piece.slots.map(slot => `${slot.col},${slot.row}`)));
-  const fill = map.layout.slots.filter(slot => !owned.has(`${slot.col},${slot.row}`));
-  const fields = fill.filter(slot => slot.design === 'field').length;
-  assert.ok(fields < fill.length / 2, `${fields}/${fill.length} fill slots are plain fields`);
-  for (const id of CLEAR.filter(id => tile(id).fillable !== false)) assert.ok(fill.some(slot => slot.design === id), `${id} occurs in the fill`);
-  assert.equal(tile('clear-rubble-center').fillable, false, 'the centered island is placed within an authored courtyard');
-  assert.ok(map.results.some(result => result.brief.type === 'rubble' && result.elements.length), 'rubble builds physical features');
-});
+// The game fill case builds a whole game map, so it is in tests/slow/map-clear-tiles.test.js (31, #1071).
 
 test('authored clear tiles leave their unpainted cells deferred in every orientation', () => {
   for (const id of CLEAR) {

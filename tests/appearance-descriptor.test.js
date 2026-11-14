@@ -54,23 +54,7 @@ import {
   resolveObstacleAppearance,
   resolveGroundAppearance,
 } from '../public/appearance.js';
-import {
-  chainMapToBson,
-  chainMapToJson,
-  decodeChainMap,
-  readChainMap,
-} from '../map/macro/src/chain/saving.ts';
-import { DEFAULT_CELL_SIZE } from '../map/engines.ts';
-import { generate } from '../map/chain.ts';
-import { liveChainParams, liveMapFromBuilt } from '../map/live.ts';
-import { composeRegions } from '../map/micro/compose.ts';
-
-/**
- * The live chain map that the depot, market and round-trip cases read, generated once per file
- * (about 3.4 s each, #807). No case mutates it: each rebuilds or decodes its own copy.
- */
-let liveChain;
-const liveChainMap = () => liveChain ??= generate('1', liveChainParams(), undefined, DEFAULT_CELL_SIZE);
+import { brief as depotBrief, MASKS as DEPOT_MASKS } from './helpers/depot-fixtures.js';
 
 test('minimal optional appearance descriptor holds only the 7 step-2 fields', () => {
   const allowedMapKeys = new Set(['surfaces', 'commercial', 'wear', 'scars', 'lighting']);
@@ -221,12 +205,8 @@ test('BuildingNeglectAppearance floorStain uses dx/dy relative to building origi
 });
 
 test('existing depot region strategy adopts DEPOT_WAREHOUSE_APPEARANCE on all placed warehouses', () => {
-  const chain = liveChainMap();
-  const depotResult = chain.results.find(r => r.brief.type === 'depot');
-  assert.ok(depotResult, 'depot region exists in live chain map');
-  const brief = depotResult.brief;
-
-  const region = buildDepot(brief);
+  // A stored depot brief (the fixtures' field mask), not a generated map's: building a map is slow-tier work (31, #1071).
+  const region = buildDepot(depotBrief('field', 1, ...DEPOT_MASKS.field));
   const warehouseElements = region.elements.filter(e => e.label.startsWith('depot-warehouse'));
   assert.ok(warehouseElements.length > 0, 'depot produces warehouses');
 
@@ -547,54 +527,6 @@ test('omitted and unknown appearance values use documented neutral fallbacks', (
   assert.ok(groundUnknown.length > 0);
 });
 
-test('chain map export/load round-trips via JSON and BSON and legacy maps load cleanly', () => {
-  // 1. Generated chain map with adopted depot warehouses
-  const chain = liveChainMap();
-  const depotResult = chain.results.find(r => r.brief.type === 'depot');
-  assert.ok(depotResult, 'depot region exists in live chain map');
-  assert.ok(
-    depotResult.elements.some(e => e.template.appearance?.building),
-    'depot elements carry building appearance'
-  );
-
-  // JSON export & load
-  const json = chainMapToJson(chain);
-  const loadedJson = decodeChainMap(JSON.parse(json), chain.library);
-  assert.deepEqual(loadedJson, chain, 'chain map with appearance round-trips via JSON');
-
-  // BSON export & load
-  const bson = chainMapToBson(chain);
-  const loadedBson = readChainMap(bson, chain.library);
-  assert.deepEqual(loadedBson, chain, 'chain map with appearance round-trips via BSON');
-
-  // Stamping into live map preserves appearance on GameMap.buildings
-  const liveMap = liveMapFromBuilt(1, composeRegions(loadedJson.results));
-  const buildingsWithApp = liveMap.buildings.filter(b => b.appearance);
-  assert.ok(buildingsWithApp.length > 0, 'live map has buildings with appearance');
-  const depotBuildings = buildingsWithApp.filter(b => b.nodeId === depotResult.brief.id);
-  assert.ok(depotBuildings.length > 0, 'depot buildings have appearance');
-  for (const b of depotBuildings) {
-    assert.deepEqual(b.appearance, DEPOT_WAREHOUSE_APPEARANCE);
-  }
-
-  // 2. Legacy map without appearance loads and plays cleanly
-  const legacyMap = {
-    ...liveMap,
-    appearance: undefined,
-    buildings: liveMap.buildings.map(b => ({ ...b, appearance: undefined })),
-    obstacles: liveMap.obstacles.map(o => ({ ...o, appearance: undefined })),
-  };
-  assert.equal(legacyMap.appearance, undefined);
-  for (const b of legacyMap.buildings) {
-    assert.equal(b.appearance, undefined);
-    const res = resolveBuildingAppearance(b, legacyMap.appearance, { palette: 'signature' });
-    assert.ok(res.floorFill > 0);
-    assert.ok(res.roofFill > 0);
-    assert.equal(res.floorMarks.length, 0);
-    assert.equal(res.roofMarks.length, 0);
-  }
-});
-
 test('market region strategy adopts fabric awnings across decay tiers', () => {
   const allowedKeys = new Set(['floorMaterial', 'wallMaterial', 'roofPaint', 'roofRim', 'interiorTrim', 'roofSign', 'neglect']);
   for (const preset of MARKET_STALL_PRESETS) {
@@ -603,14 +535,8 @@ test('market region strategy adopts fabric awnings across decay tiers', () => {
     }
   }
 
-  const chain = liveChainMap();
-  let marketResult = chain.results.find(r => r.brief.type === 'market');
-  if (!marketResult) {
-    // Generate brief directly for test
-    const brief = chainBrief('market', 1, 40, { spacing: 6, roofed: true });
-    marketResult = { brief, elements: [], loot: [], routes: [], manifest: {} };
-  }
-  const region = buildMarket(marketResult.brief);
+  // A chain-like brief, not a generated map's: building a map is slow-tier work (31, #1071).
+  const region = buildMarket(chainBrief({ type: 'market', cells: cellsOf(24, 24), parameters: { spacing: 6, roofed: true } }));
   assert.ok(region.elements.length > 0, 'market produces stall elements');
 
   // Stalls have appearance on roofs

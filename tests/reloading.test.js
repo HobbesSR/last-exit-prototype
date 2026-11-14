@@ -12,7 +12,7 @@ import { Writable } from 'node:stream';
 import { SCHEMA, minimumReaderForMatch, recordingFit } from '../shared/recording.ts';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
-import { generatedMap } from './helpers/room-harness.js';
+import { rounds } from './helpers/rounds.js';
 
 const AMMO = contentById('content-ammo-1');
 const arena = () => ({ width: 600, height: 400,
@@ -31,20 +31,6 @@ async function fixture(t, id) {
 const pistol = (ammo, id = 'gun') => ({ kind: 'weapon', weaponType: 'pistol', ammo, instanceId: id, lineageId: id });
 let seq = 0;
 const tick = (s, p, input = {}) => { setInput(s, p.id, { seq: ++seq, ...input }); step(s); };
-/** Every round of a family in the match: ground weapons and pickups, magazines and reserves. */
-function rounds(s, family) {
-  const weaponFamily = type => s.content.reloading.weapons[type].family;
-  let total = 0;
-  for (const item of s.map.items) {
-    if (item.kind === 'ammo' && item.family === family) total += item.count;
-    if (item.kind === 'weapon' && weaponFamily(item.weaponType ?? 'pistol') === family) total += item.ammo;
-  }
-  for (const p of s.players) {
-    total += p.reserves?.[family] ?? 0;
-    for (const item of p.inventory ?? []) if (item?.kind === 'weapon' && weaponFamily(item.weaponType) === family) total += item.ammo;
-  }
-  return total;
-}
 
 test('reloading is opt-in on the one physics rules version, requires item instances and leaves loot-1 without reserves', async t => {
   const { s, p } = await fixture(t);
@@ -270,26 +256,6 @@ test('a full inventory E swap stages reserves: a rejected swap leaves them uncha
   s.map.items.push(spare);
   interact(s, p);
   assert.deepEqual([p.reserves.pistol, spare.ammo, p.inventory[1].kind], [70, 5, 'med']);
-});
-
-test('bots reload from their reserves, and a whole bot match conserves every round it does not fire', async t => {
-  const s = await createGame(17, generatedMap(9), contentById('content-ammo-1'));
-  t.after(() => disposePhysics(s));
-  const contestants = new Set(s.players.filter(p => p.role === 'contestant').map(p => p.id));
-  // One attack spends one round however many pellets it fires, so count shooter-ticks.
-  const shots = new Set();
-  class Counted extends Array { push(...items) { for (const b of items) if (contestants.has(b.owner)) shots.add(`${b.owner}@${s.tick}`); return super.push(...items); } }
-  s.projectiles = Counted.from(s.projectiles);
-  const total = () => ['pistol', 'rifle', 'shell'].reduce((n, family) => n + rounds(s, family), 0);
-  const start = total();
-  let reloads = 0;
-  for (let i = 0; i < 1500 && s.phase === 'live'; i++) {
-    step(s);
-    for (const p of s.players) if (p.reload && p.reload.until - s.tick === s.content.reloading.weapons[p.inventory[p.reload.slot].weaponType].reloadTicks) reloads++;
-  }
-  assert.ok(reloads > 0, 'some bot reloaded');
-  assert.ok(shots.size > 0, 'bots fired');
-  assert.equal(total(), start - shots.size);
 });
 
 test('current recordings keep reserves, reloads and ammo pickups exactly through backward seeks', async t => {

@@ -121,11 +121,8 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     assert.ok(spectated.state.items.length > played.state.items.length, 'directed view is unfogged');
     assert.ok(spectated.state.players.length >= played.state.players.length);
     assert.equal(spectated.state.tick, 0, 'spectators remain at the initial frame during delay warmup');
-    for (let i = 0; i < 70; i++) await next(player, 'state');
-    const delayed = next(eye, 'state');
-    const current = next(player, 'state');
-    const [spectatorFrame, playerFrame] = await Promise.all([delayed, current]);
-    assert.ok(playerFrame.state.tick - spectatorFrame.state.tick >= 55, `spectator delay ${playerFrame.state.tick - spectatorFrame.state.tick} ticks`);
+    // The delay's length is room-service's and room-integration's claim (SPECTATOR_DELAY_TICKS), not
+    // waited out here in real time (#1071).
     const game = server.rooms.get(room.id).game;
     game.players.find(p => p.role === 'contestant' && p.status === 'active').status = 'eliminated';
     const historical = await next(eye, 'state');
