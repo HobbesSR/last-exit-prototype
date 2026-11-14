@@ -30,3 +30,6 @@ done, the efforts below are candidates on record, in no order.
 | Physics and equipment | Capacity qualification, human feel and the equipment rebalance ([29.1](29.1-physics-design.md), 17.3 Q4) | #436, #443, #444 |
 | Live service | Deployment, session compatibility, retention and the follow-ups in [28](28-operational-limits.md#before-public-deployment) | none yet; policy in [17.4](17.4-live-service.md) |
 | Connectivity skeleton design | What a forced seam guarantees, and route width ([42.42](42.42-connectivity-skeleton-experiment.md)); deferred until after the pass | #910 |
+| Netcode toward industry practice | Binary quantized encoding, lossy-transport deltas, WebTransport with a WebSocket fallback, input timing and an anti-cheat baseline ([17.4](17.4-live-service.md) Q14, [24](24-networking-privacy.md)) | #1092 |
+| Recording delta format | Delta frames with periodic keyframes; long default-size replays already exceed the browser's string limit ([26](26-recording-contract.md), [42.22](42.22-tick-cost-attribution.md)); waiting on Corey's adoption decision | #901 |
+| Renderer | Bake and batch per-frame drawing within Phaser, then a measured renderer checkpoint; authored SVG content ([29.4](29.4-drawing.md)) | #1099, #1100, #841 |
