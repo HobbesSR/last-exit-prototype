@@ -44,8 +44,8 @@ Collision is the physics engine's: Rapier 2D 0.21.0 behind one adapter, `shared/
 which the server and the browser both run. The shipped default, `content-7` ([14](14-match-rules.md),
 #865; `content-6` since #523), runs on it, as every match has since #920 retired the legacy mover. That
 mover survives as the swept mover described last in this section. The design is [29.1](29.1-physics-design.md), its state,
-networking and replay [29.2](29.2-physics-state-networking.md), and its gates
-are in 29.1 (delivery on epic #436).
+networking and replay [29.2](29.2-physics-state-networking.md), and its settings and witness gates
+are in 29.1 (capacity qualification on epic #436).
 
 The world uses 40 units to the metre, four fixed substeps in each 50 ms tick and continuous collision
 on every moving body, with a per-substep speed cap derived from a body's smallest radius so that
@@ -124,9 +124,9 @@ used to implement it separately and had drifted; see [15](15-information-rules.m
 
 ## What the physics system added, and what it still lacks
 
-The design is in [29.1](29.1-physics-design.md) (physical behavior, engine comparison, character
+The design is in [29.1](29.1-physics-design.md) (physical behavior, character
 bodies and items) and [29.2](29.2-physics-state-networking.md) (ticks, state, prediction and replay),
-with its evaluation gates in 29.1 and its issues on epic #436. The default now
+with its witness gates in 29.1 and its remaining issues on epic #436. The default now
 runs it, so the items this section once listed as missing are implemented: velocity and
 integration, impulses and restitution, joints (springs and ropes, used by the hook and bounded to
 eight constraints in total) and continuous collision. Still absent: rotational freedom for characters
@@ -156,7 +156,7 @@ Any further change must keep the fixed-tick order, the RNG/ID order and the reco
 
 | Part | Load for |
 | --- | --- |
-| [29.1](29.1-physics-design.md) | Proposed physical behavior, engine comparison, character bodies and items |
+| [29.1](29.1-physics-design.md) | Physical behavior: settings, character bodies, collision, constraints and the hook, items |
 | [29.2](29.2-physics-state-networking.md) | Physics ticks, state, prediction and replay |
 | [29.3](29.3-shape-construction-and-assembly.md) | Shape construction (union, subtraction, convex pieces, #488) and placeable element assemblies |
 | [29.4](29.4-drawing.md) | How drawing is cached in tiles, drawing planes, overhead roofs and canopies, palettes and the constraints on art passes |
