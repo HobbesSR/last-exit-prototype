@@ -74,6 +74,29 @@ function staticIndex(map: CollisionMap, passSeeThrough: boolean): ShapeIndex {
   return cached;
 }
 
+/** Prepare both sweep policies on the private match map, using physics geometry in source order.
+ * Publish only complete indexes; synchronous callers retain the lazy construction path. */
+export async function prepareSweptGeometry(map: CollisionMap, geometry: readonly BodyDefinition[], yieldControl: () => Promise<void>): Promise<void> {
+  const shots: ShapeIndex = { shapes: [], boxes: [], buckets: new Map() };
+  const solids: ShapeIndex = { shapes: [], boxes: [], buckets: new Map() };
+  const passable = new Set<string>();
+  for (let i = 0; i < map.obstacles.length; i++) {
+    const obstacle = map.obstacles[i]!;
+    if (seeThrough(obstacle.kind)) passable.add(`obstacle:${obstacle.id}`);
+    if (i % 128 === 127) await yieldControl();
+  }
+  for (let i = 0; i < geometry.length; i++) {
+    const body = geometry[i]!, shape = shapeOfBody(body), box = bounds(shape);
+    for (const index of passable.has(body.id) ? [solids] : [solids, shots]) {
+      bucketBox(index.buckets, box, index.shapes.length);
+      index.shapes.push(shape); index.boxes.push(box);
+    }
+    if (i % 128 === 127) await yieldControl();
+  }
+  shotCache.set(map, shots);
+  solidCache.set(map, solids);
+}
+
 /**
  * Static physics geometry as query shapes. Shots pass see-through obstacles (fences, windows); a
  * tether is physical and does not, so `passSeeThrough` is the caller's stated policy.

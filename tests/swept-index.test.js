@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { closedGateShapes, firstContact, geometryContact, staticShapes } from '../shared/simulation/swept.ts';
+import { closedGateShapes, firstContact, geometryContact, staticShapes, prepareSweptGeometry } from '../shared/simulation/swept.ts';
+import { buildPhysicsGeometry } from '../shared/simulation/physics-geometry.ts';
 import { circle, polygon } from '../shared/shape.ts';
 import { openArea } from './helpers/arena.js';
 
@@ -28,6 +29,32 @@ function fixture() {
     ],
   };
 }
+
+test('cooperative preparation preserves source order and both policies without lazy rebuilding', async () => {
+  const map = fixture(), reference = structuredClone(map);
+  map.obstacles.push(...Array.from({ length: 260 }, (_, i) => ({ id: `extra-${i}`, kind: 'fence', x: i * 3, y: 850, w: 2, h: 2 })));
+  reference.obstacles = structuredClone(map.obstacles);
+  const expected = [true, false].map(policy => staticShapes(reference, policy));
+  let yields = 0;
+  await prepareSweptGeometry(map, buildPhysicsGeometry(map), async () => { yields++; });
+  assert.ok(yields > 2);
+  // A cache miss would read obstacles to construct geometry or the see-through filter.
+  Object.defineProperty(map, 'obstacles', { get() { assert.fail('lazy static geometry rebuild'); } });
+  for (const [i, policy] of [true, false].entries()) {
+    assert.deepEqual(staticShapes(map, policy), expected[i]);
+    const a = { x: 0, y: 400 }, b = { x: 1100, y: 400 };
+    assert.equal(geometryContact(map, policy, a, b, 2), geometryContact(reference, policy, a, b, 2));
+  }
+});
+
+for (const rejectAt of [1, 2]) test(`rejected sweep preparation leaves the lazy path complete (yield ${rejectAt})`, async () => {
+  const map = fixture();
+  map.obstacles.push(...Array.from({ length: 130 }, (_, i) => ({ id: `extra-${i}`, kind: 'fence', x: i * 3, y: 850, w: 2, h: 2 })));
+  const reference = structuredClone(map);
+  let yields = 0;
+  await assert.rejects(prepareSweptGeometry(map, buildPhysicsGeometry(map), async () => { if (++yields === rejectAt) throw new Error('cancel'); }), /cancel/);
+  for (const policy of [true, false]) assert.deepEqual(staticShapes(map, policy), staticShapes(reference, policy));
+});
 
 for (const passSeeThrough of [true, false]) test(`indexed sweeps equal the whole-list scan (passSeeThrough ${passSeeThrough})`, () => {
   const map = fixture(), random = lcg(668);

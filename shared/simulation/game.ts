@@ -5,6 +5,7 @@ import { addAuthoredProps, synchronizePhysicalItems, validateWorldPhysics } from
 import { reconcileHooks } from './hook.ts';
 import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION } from './physics-runtime.ts';
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
+import { prepareSweptGeometry } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
@@ -61,7 +62,10 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
   try {
-    const geometry = buildPhysicsGeometry(s.map).sort((a, b) => compare(a.id, b.id));
+    const geometry = buildPhysicsGeometry(s.map);
+    // Sweeps preserve source order; native body admission preserves ID order.
+    if (yieldControl) await prepareSweptGeometry(s.map, geometry, yieldControl);
+    geometry.sort((a, b) => compare(a.id, b.id));
     if (yieldControl) await yieldControl();
     for (let i = 0; i < geometry.length; i++) {
       world.queueAddBody({ ...geometry[i]!, mapGeometry: true });
