@@ -30,14 +30,13 @@ export function contrast(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-// A theme maps the renderer's roles to colors. The roles are what the art is of (ground, street, wall,
+// A theme maps the renderer's roles to colors. The roles are what the art is of (ground, floor, wall,
 // roof), never which swatch fills them, so a palette is swapped without touching a draw call.
 // Objectives, items, actors, traps and hazards keep their own colors: their meanings are #587's.
 
 /** The colors the arena was drawn in before 11.1; retained as an explicit global comparison theme (41.2 step 6). */
 const PROTOTYPE = {
-  background: 0x162a29, ground: 0x39454c, groundEdge: 0x729b9e, street: 0x596269, streetLine: 0xa5bbc0,
-  marking: 0x9daab0, garden: 0x44584e, zoneLabel: 0x91b9bc, interior: 0x50505d, tuft: 0x568f60, floor: 0x77717a,
+  background: 0x162a29, ground: 0x39454c, tuft: 0x568f60, floor: 0x77717a,
   shadow: 0x264439, outline: 0x344d48, wall: 0x92929e, wallInset: 0x798d8c, wallLine: 0x586b6b,
   fence: 0x53636b, fenceLine: 0x354c44, crates: [0x8d5669, 0x526f80, 0x8c815a], crateLine: 0x354e44,
   hedge: 0x3f7a47, hedgeEdge: 0x79a95d, ruin: 0x77828a, ruinShadow: 0x303740, ruinEdge: 0xa2a9af,
@@ -50,14 +49,13 @@ const PROTOTYPE = {
 
 /**
  * A night theme from a dozen choices; the rest derive from them. Each keeps the prototype's value
- * order (dark ground, lighter streets, light walls on dark outlines), which already reads at play zoom.
+ * order (dark ground, light walls on dark outlines), which already reads at play zoom.
  */
-function night({ background = U.structuralVoid, ground, street, streetLine, floor, wall, outline = U.structuralVoid, fence = U.oxidizedMetal,
+function night({ background = U.structuralVoid, ground, floor, wall, outline = U.structuralVoid, fence = U.oxidizedMetal,
   crates, vegetation = U.urbanVegetation, metal = U.oxidizedMetal, glass = L.motelTurquoise, roof, roofRim, shadeTint }) {
   const white = 0xffffff;
   return {
-    background, ground, groundEdge: roofRim, street, streetLine,
-    marking: streetLine, garden: mix(vegetation, ground, 0.35), zoneLabel: mix(streetLine, white, 0.3), interior: mix(floor, background, 0.35),
+    background, ground,
     tuft: mix(vegetation, white, 0.12), floor,
     shadow: background, outline, wall, wallInset: mix(wall, outline, 0.22), wallLine: mix(wall, outline, 0.55),
     fence, fenceLine: mix(fence, outline, 0.6), crates, crateLine: outline,
@@ -82,31 +80,31 @@ export const THEMES = Object.freeze({
   signature: {
     label: 'Signature night',
     // Cool slate asphalt, weathered coral and brick, cobalt illumination, hot amber highlights.
-    colors: night({ ground: mix(U.nightAsphalt, U.structuralVoid, 0.45), street: mix(U.coolConcrete, T.cobaltBlue, 0.2), streetLine: G.sodiumAmber,
+    colors: night({ ground: mix(U.nightAsphalt, U.structuralVoid, 0.45),
       floor: U.weatheredBrick, wall: L.weatheredCoral, crates: [L.oldSignRed, L.storefrontTeal, L.awningsYellow],
       roof: mix(U.slateShadow, T.cobaltBlue, 0.3), roofRim: T.hotOrange, shadeTint: T.deepStageBlue }),
   },
   neonAftermath: {
     label: 'Neon Aftermath',
-    colors: night({ ground: mix(U.nightAsphalt, U.structuralVoid, 0.45), street: mix(U.coolConcrete, T.cobaltBlue, 0.3), streetLine: G.broadcastPink,
+    colors: night({ ground: mix(U.nightAsphalt, U.structuralVoid, 0.45),
       floor: mix(U.nightAsphalt, L.storefrontTeal, 0.35), wall: U.coolConcrete, crates: [L.storefrontTeal, mix(G.broadcastPink, U.nightAsphalt, 0.2), T.hotOrange],
       roof: mix(U.nightAsphalt, T.cobaltBlue, 0.4), roofRim: T.hotOrange, shadeTint: mix(T.cobaltBlue, U.structuralVoid, 0.5) }),
   },
   sodiumGraveyard: {
     label: 'Sodium Graveyard',
-    colors: night({ ground: mix(U.structuralVoid, U.weatheredBrick, 0.2), street: mix(U.weatheredBrick, U.structuralVoid, 0.2), streetLine: G.sodiumAmber,
+    colors: night({ ground: mix(U.structuralVoid, U.weatheredBrick, 0.2),
       floor: U.weatheredBrick, wall: mix(U.oxidizedMetal, L.awningsYellow, 0.6), fence: U.oxidizedMetal, crates: [L.awningsYellow, mix(T.electricTurquoise, U.structuralVoid, 0.3), U.oxidizedMetal],
       roof: mix(U.structuralVoid, U.oxidizedMetal, 0.4), roofRim: T.electricTurquoise, shadeTint: U.structuralVoid }),
   },
   deadMall: {
     label: 'Dead Mall District',
-    colors: night({ ground: mix(U.slateShadow, U.structuralVoid, 0.6), street: mix(U.slateShadow, L.fadedViolet, 0.4), streetLine: T.hotPink,
+    colors: night({ ground: mix(U.slateShadow, U.structuralVoid, 0.6),
       floor: mix(L.weatheredCoral, U.slateShadow, 0.45), wall: L.dirtyCream, crates: [L.weatheredCoral, L.motelTurquoise, mix(L.fadedViolet, L.dirtyCream, 0.3)], vegetation: L.fadedMint,
       roof: mix(U.slateShadow, L.fadedViolet, 0.5), roofRim: L.motelTurquoise, shadeTint: mix(L.fadedViolet, U.structuralVoid, 0.55) }),
   },
   broadcastLockdown: {
     label: 'Broadcast Lockdown',
-    colors: night({ ground: mix(U.structuralVoid, T.deepStageBlue, 0.15), street: mix(U.coolConcrete, T.deepStageBlue, 0.8), streetLine: G.prizeGold,
+    colors: night({ ground: mix(U.structuralVoid, T.deepStageBlue, 0.15),
       floor: mix(U.coolConcrete, T.deepStageBlue, 0.25), wall: U.coolConcrete, crates: [T.crimsonRose, mix(T.deepStageBlue, U.coolConcrete, 0.6), mix(G.prizeGold, U.structuralVoid, 0.3)],
       roof: mix(U.structuralVoid, T.deepStageBlue, 0.6), roofRim: G.signalCyan, shadeTint: T.deepStageBlue }),
   },

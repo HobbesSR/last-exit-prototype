@@ -33,7 +33,7 @@ test('every theme fills every role the renderer draws', () => {
 // Color regression guard for the opaque fill and outline drawn by rectangular walls, fences and
 // crates (static-drawing.js drawObstacle). Polygon strokes and special shapes have different edges/alpha
 // and need their own rendered-image validation; this is not a perceptual test.
-// Compare each role over ground, street and floor, before and after the nominal 0.46 shade wash.
+// Compare each role over ground and floor, before and after the nominal 0.46 shade wash.
 test('outlined obstacle roles retain prototype color contrast, lit or shaded', () => {
   const blockers = c => ({ wall: c.wall, fence: c.fence, ...Object.fromEntries(c.crates.map((v, i) => [`crate${i}`, v])) });
   const shaded = c => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Array.isArray(v) ? v.map(x => mix(x, c.shade, 0.46)) : mix(v, c.shade, 0.46)]));
@@ -43,12 +43,10 @@ test('outlined obstacle roles retain prototype color contrast, lit or shaded', (
     const base = light(THEMES.prototype.colors);
     for (const [id, theme] of Object.entries(THEMES)) {
       const c = light(theme.colors);
-      for (const ground of ['ground', 'street', 'floor']) for (const [kind, fill] of Object.entries(blockers(c))) {
+      for (const ground of ['ground', 'floor']) for (const [kind, fill] of Object.entries(blockers(c))) {
         const floor = Math.min(1.5, edge(base, blockers(base)[kind], ground));
         if (edge(c, fill, ground) < floor - 1e-9) muddy.push(`${id}${light === shaded ? ' shaded' : ''}: ${kind} on ${ground} ${edge(c, fill, ground).toFixed(2)} < ${floor.toFixed(2)}`);
       }
-      // Roads must still read from the open ground beside them (11.1 §7, value separation).
-      if (contrast(c.street, c.ground) < 1.2) muddy.push(`${id}${light === shaded ? ' shaded' : ''}: street on ground ${contrast(c.street, c.ground).toFixed(2)}`);
     }
   }
   assert.deepEqual(muddy, []);

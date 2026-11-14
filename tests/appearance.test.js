@@ -299,14 +299,12 @@ test('actorBaseTint defines saturated kit and contestant identity colors meeting
     actorBaseTint({ role: 'contestant', id: 'x', name: 'X' }, 'me'),
     'a negative place falls through to the id and callsign fallbacks');
 
-  // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against street and ground across all themes
+  // Tier 1 contrast requirement: all identity hues maintain WCAG contrast >= 1.80 against ground across all themes
   const gladiatorKits = [wardenTint, specterTint, strikerTint, hookTint];
   const allHues = [...gladiatorKits, UNKNOWN_KIT_COLOR, ...CONTESTANT_IDENTITY_COLORS];
-  for (const [themeId, theme] of Object.entries(THEMES)) {
+  for (const [themeId, { colors: theme }] of Object.entries(THEMES)) {
     for (const hue of allHues) {
-      const streetContrast = contrast(hue, theme.street);
       const groundContrast = contrast(hue, theme.ground);
-      assert.ok(streetContrast >= 1.80, `[${themeId}] hue 0x${hue.toString(16)} meets Tier 1 street contrast (${streetContrast.toFixed(2)} >= 1.80)`);
       assert.ok(groundContrast >= 1.80, `[${themeId}] hue 0x${hue.toString(16)} meets Tier 1 ground contrast (${groundContrast.toFixed(2)} >= 1.80)`);
     }
   }
@@ -400,7 +398,6 @@ test('palette x field contrast sweep for dynamic object virtual lighting (#737, 
   const substrates = [
     { key: 'slatePaving', isMaterial: true, colorOf: () => MATERIAL_SWATCH.slatePaving },
     { key: 'ground', isMaterial: false, colorOf: theme => theme.colors.ground },
-    { key: 'street', isMaterial: false, colorOf: theme => theme.colors.street },
   ];
 
   for (const [themeId, theme] of Object.entries(THEMES)) {
@@ -431,20 +428,6 @@ test('palette x field contrast sweep for dynamic object virtual lighting (#737, 
       }
     }
   }
-});
-
-test('palette x field contrast sweep: signature amber over street satisfies Tier 2 composite separation (41.2 Step 5)', () => {
-  const field = { id: 'amber-focal-edge', bounds: { x: 0, y: 0, w: 100, h: 100 }, tint: 'sodiumAmber', intensity: 0.45, falloff: 0 };
-  const sample = sampleSpatialLight([field], 50, 50, { lighting: true });
-  const propLit = resolvePropAppearance(0x8fa9a0, 0xdce8d7, sample, { lighting: true });
-  const renderedSub = renderSubstrate({ key: 'street', isMaterial: false, colorOf: t => t.colors.street }, THEMES.signature, field);
-  const fillRatio = Number(contrast(propLit.fill, renderedSub).toFixed(3));
-  const strokeRatio = Number(contrast(propLit.stroke, renderedSub).toFixed(3));
-
-  // Tier 2 composite rule (29.4): fill >= 1.35 accompanied by high-contrast stroke >= 2.00
-  assert.equal(fillRatio, 1.475, 'signature amber over street records documented 1.475 fill contrast');
-  assert.ok(fillRatio >= 1.35, `fill ratio maintains Tier 2 floor (${fillRatio} >= 1.35)`);
-  assert.ok(strokeRatio >= 2.00, `stroke ratio maintains high-contrast edge separation (${strokeRatio} >= 2.00)`);
 });
 
 test('spatial composition across two neighboring areas: normalized blending, boundary transition, and long surface splitting (41.2 step 4)', () => {
@@ -586,7 +569,6 @@ test('hedge and ruin-wall obstacles satisfy Tier 2 contrast separation across al
     const c = theme.colors;
     const substrates = [
       { name: 'ground', hex: c.ground },
-      { name: 'street', hex: c.street },
       { name: 'floor', hex: c.floor },
     ];
 
