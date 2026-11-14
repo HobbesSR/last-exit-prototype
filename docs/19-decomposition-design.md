@@ -11,6 +11,22 @@ implementation and its limits belong in [20](20-micro-generation.md).
 
 > the SDK knows geometry and mechanics; the region strategy knows intent
 
+## Production boundary
+
+The production use of this decomposition machinery is the bounded single-lot
+fallback in `map/micro/strategies/block.ts`. Guillotine planning remains primary;
+only when it selects no lots does `block` call `allocateCandidates`. Its counted
+work budget, candidate limits, circulation admission and existing child-brief
+execution are specified in [20.3.5](20.3.5-district-and-core-element-builders.md).
+
+The broader layers below are accepted design vocabulary, not an active general
+hierarchical generation engine. The example policy and tree explorer are retained
+experimental inspection tools ([20.4](20.4-hierarchical-generation.md)); production
+builders do not consume their plans. The multi-lot block comparison did not justify
+promotion and its opt-in planner was retired in #929. The measured result and
+limits are retained in
+[42.3](42.3-generation-and-delegation-evidence.md#alongside-sdk-block-planning-comparison-610--535-2026-10-27).
+
 ## Representation and ownership
 
 A region is represented by its cells and four-neighbor adjacency graph. Its
@@ -122,7 +138,7 @@ Physical population of selected pieces, portal negotiation and automatic recursi
 dispatch have separate implementation boundaries; their status is in
 [20.4](20.4-hierarchical-generation.md) and
 [20.5](20.5-tools-and-next-boundaries.md#next-boundaries).
-Integration with the macro project in `map/macro/` was accepted
-(2026-09-28 and 29) and is live: a region type's strategy, written on this SDK, fills each
-region the macro chain hands down. [50](50-map-generation.md) records who owns
-what, and [51](51-generation-chain.md) the chain.
+Integration with `map/macro/` is live: registered region builders fill the
+briefs handed down by the macro chain. This uses the micro builder SDK, not a
+universal decomposition strategy; only `block`'s fallback uses the allocator.
+[50](50-map-generation.md) records who owns what, and [51](51-generation-chain.md) the chain.
