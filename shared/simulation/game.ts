@@ -7,7 +7,7 @@ import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSIO
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import { prepareBotGates } from './bot-routes.ts';
 import { prepareKnowledgeGeometry } from '../navigation/knowledge.ts';
-import { prepareSweptGeometry } from './swept.ts';
+import { prepareSweptGeometry, prepareSweptGates } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
@@ -91,6 +91,7 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     Object.freeze(s.map.gates);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     if (yieldControl) await yieldControl();
+    if (yieldControl) await prepareSweptGates(s.map.gates, yieldControl);
     if (yieldControl) await prepareBotGates(s.map, yieldControl);
     if (yieldControl) await prepareKnowledgeGeometry(s.map, yieldControl);
     addAuthoredProps(s, runtime);
