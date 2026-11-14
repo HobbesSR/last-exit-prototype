@@ -11,7 +11,7 @@ import { libraryFingerprint } from "../src/coding.ts";
 import { declaredGrid, layoutViolations, orientDesign } from "../src/chain/declared-grid.ts";
 import { CHAIN_LIBRARY_VERSION, validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
-import { adjacencyCompatibility, adjacencyConnects, adjacencyLinks, isOrthogonalRelation, placement } from "../src/chain/placement.ts";
+import { adjacencyCompatibility, adjacencyConnects, adjacencyLinks, isOrthogonalRelation, placement, PLACEMENT_ATTEMPTS } from "../src/chain/placement.ts";
 import { solveWfc } from "../src/wfc.ts";
 import type { WfcGrid } from "../src/wfc.ts";
 import type { ChainParams, DeclaredGrid, Layout, PlacedSlot } from "../src/chain/types.ts";
@@ -197,12 +197,12 @@ test("game mode keeps its zone size", () => {
 test("placement fails explicitly, naming what failed", () => {
   const nowhere = copy();
   nowhere.setPieces.find((p) => p.id === "entry")!.eligibleTiers = [5];
-  assert.throws(() => placement("s", GAME, nowhere), /set piece entry \(50\/50\)/);
+  assert.throws(() => placement("s", GAME, nowhere), new RegExp(`set piece entry \\(${PLACEMENT_ATTEMPTS}/${PLACEMENT_ATTEMPTS}\\)`));
 
   // A set piece whose slot has no member eligible anywhere it could stand.
   const ineligible = copy();
   ineligible.tiles.find((t) => t.id === "arrival-pad")!.eligibleTiers = [5];
-  assert.throws(() => placement("s", GAME, ineligible), /set piece entry \(50\/50\)/);
+  assert.throws(() => placement("s", GAME, ineligible), new RegExp(`set piece entry \\(${PLACEMENT_ATTEMPTS}/${PLACEMENT_ATTEMPTS}\\)`));
 
   const few = copy();
   few.setPieceClasses.find((c) => c.id === "enormous")!.quota = 4;

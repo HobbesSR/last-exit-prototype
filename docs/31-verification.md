@@ -293,7 +293,7 @@ that directory added to `BROWSER_DIRS`.
 
 | Set | Validates |
 | --- | --- |
-| `tooling` | the test and CI tooling, documentation and licence checks |
+| `tooling` | the test and CI tooling, the `tools/` scripts, documentation and licence checks |
 | `geometry` | shapes, clipping, math and free-space meshes every system shares |
 | `client` | what the browser draws, and how it presents and buffers frames |
 | `simulation` | game rules, items, bots, navigation, sight and projections |

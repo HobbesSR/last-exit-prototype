@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { tracePlacement } from '../map/tools/core.ts';
 import { CHAIN_LIBRARY, chainParams } from '../map/chain.ts';
-import { placement } from '../map/macro/src/chain/placement.ts';
+import { placement, PLACEMENT_ATTEMPTS } from '../map/macro/src/chain/placement.ts';
 
 const params = { mode: 'playground', zoneWidth: 2, zoneHeight: 2 };
 
@@ -42,7 +42,7 @@ test('a failed placement keeps all attempts and their pre-choice failures', () =
   const recording = tracePlacement('trace-failure', {}, library);
   assert.ok(recording.error?.includes('placement found no valid layout'));
   assert.equal(recording.layout, null);
-  assert.equal(recording.events.filter(e => e.type === 'attempt-start').length, 50);
+  assert.equal(recording.events.filter(e => e.type === 'attempt-start').length, PLACEMENT_ATTEMPTS);
   assert.ok(recording.events.some(e => e.type === 'set-piece-failed'));
-  assert.equal(recording.events.filter(e => e.type === 'attempt-end').length, 50);
+  assert.equal(recording.events.filter(e => e.type === 'attempt-end').length, PLACEMENT_ATTEMPTS);
 });
