@@ -107,8 +107,10 @@ test('projection gates actors, prop bounds, item associations and both tether en
 });
 
 test('physics recording floor is explicit and stamped by the room writer', async () => {
-  assert.equal(SCHEMA, 16);
-  assert.equal(minimumReaderForMatch(), MIN_SCHEMA);
+  assert.equal(SCHEMA, 17);
+  // Lines with delta frames (#901) need a reader of at least schema 17; this build still reads from MIN_SCHEMA.
+  assert.equal(minimumReaderForMatch(), 17);
+  assert.equal(MIN_SCHEMA, 10);
   let header;
   const service = createRoomService({ content, matchFactory: async (...args) => {
     const match = await createMatch(...args);
@@ -124,7 +126,7 @@ test('physics recording floor is explicit and stamped by the room writer', async
     service.receive(peer, { type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'contestant', name: 'Test' });
     service.receive(peer, { type: 'start' });
     assert.equal(header.schema, SCHEMA);
-    assert.equal(header.minSchema, 10);
+    assert.equal(header.minSchema, 17);
     assert.equal(header.version, 'future-physics-rules');
   } finally { await service.close(); }
 });

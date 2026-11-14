@@ -24,6 +24,18 @@ with a fresh replay of the match. `matchesWriterDigest` is the SHA-256 over the 
 equal to the full-state digest. `cpu.msPerMiB` is synchronous gzip plus SHA-256 over the first
 32 MiB of each stream. It is single-sample and noisy (5.8–14.1 ms/MiB), so only its range is used.
 
+**Implementation witness** (schema 17, after Corey adopted D1–D5): `tools/perf/recording-compare.mjs`
+recorded each whole cached match through the production writer and worker, read the archive back with the
+shared reader, and checked every rebuilt frame, every checkpoint and the stored-line digest.
+
+| Whole match | Frames | Keyframes | Checkpoints | Stored, uncompressed | Archive (gzip) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 12x6 (`witness-12x6.json`) | 3,104 | 32 | 32 | 45.6 MB (9.2% of full frames) | 2.98 MB |
+| 36x18 (`witness-36x18.json`) | 12,001 | 121 | 120 | 240 MB (2.0%) | 19.97 MB |
+
+The early-keyframe rule as first approved (deltas outweighing one keyframe) gave 229 keyframes and a
+6.8 MB archive at 12x6; Corey chose the eighth-share rule these rows use (#901, 2026-11-14).
+
 Browser check: `fetch('/replay').json()` in installed Chrome 157.0.8103.39 (headless, Playwright),
 the replay served gzip-encoded as `server/http-api.js` serves it, with the call
 `public/replay-controller.js` makes:

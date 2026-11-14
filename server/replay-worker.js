@@ -4,6 +4,7 @@ import { Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
 import { createHash } from 'node:crypto';
+import { createFrameEncoder } from '../shared/recording-format.ts';
 
 // Production owns its file here. Injected Writable streams stay in the caller's
 // thread; their bridge allows only one compressed chunk awaiting acknowledgement.
@@ -18,8 +19,12 @@ const output = workerData.outputPath !== undefined ? createWriteStream(workerDat
 });
 const gzip = createGzip(workerData.gzipOptions), hash = createHash('sha256');
 const recording = pipeline(gzip, output);
-const kept = {}, queue = [];
-let writing = false, frames = 0, ending = false;
+// The worker owns the stored form (26, shared/recording-format.ts): each frame becomes a keyframe or a
+// delta against the previous stored frame, and every few keyframes a checkpoint of a rebuilt frame.
+const encoder = createFrameEncoder(workerData.keyframeEvery ? { keyframeEvery: workerData.keyframeEvery } : {});
+const kept = {}, queue = [], checkpoints = [];
+let writing = false, ending = false;
+const sha256 = text => createHash('sha256').update(text).digest('hex');
 function fail(error) {
   if (failed) return;
   failed = true;
@@ -28,6 +33,11 @@ function fail(error) {
   parentPort.close();
 }
 recording.catch(fail);
+function stored(encoded) {
+  if (encoded.checkpoint) checkpoints.push({ frame: encoded.checkpoint.frame, sha256: sha256(encoded.checkpoint.line) });
+  hash.update(encoded.text); hash.update('\n');
+  return `${encoded.text}\n`;
+}
 function pump() {
   if (failed || writing) return;
   const message = queue.shift();
@@ -35,13 +45,12 @@ function pump() {
   let text = message.text;
   if (message.type === 'frame') {
     Object.assign(kept, message.updates);
-    const line = message.line ?? `{"state":{${message.parts.map(part => typeof part === 'string' ? part : `"${part.kept}":${kept[part.kept]}`).join(',')}${message.tail}`;
-    const comma = frames ? 1 : 0;
-    const encoded = Buffer.allocUnsafe(message.bytes);
-    if (comma) encoded[0] = 0x2c;
-    if (encoded.write(line, comma) !== message.bytes - comma) throw new Error('Replay frame length does not match its encoding');
-    hash.update(encoded.subarray(comma)); hash.update('\n'); frames++;
-    text = encoded;
+    text = stored(message.line !== undefined ? encoder.whole(message.line)
+      : encoder.encode({ entries: message.entries.map(([key, json]) => [key, json ?? kept[key]]), commands: message.commands }));
+  } else if (message.type === 'finish') {
+    const last = encoder.close();
+    if (last) checkpoints.push({ frame: last.frame, sha256: sha256(last.line) });
+    text = `{"end":{"checkpoints":${JSON.stringify(checkpoints)}${message.fields ? `,${message.fields}` : ''}}}\n`;
   }
   writing = true;
   gzip.write(text, error => {

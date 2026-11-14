@@ -7,6 +7,7 @@ import { checkClientControllers } from './client-controllers.mjs';
 import { checkContentPresentation } from './content-presentation.mjs';
 import { checkReloadControls } from './reload-controls.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
+import { readArchive } from './helpers/recordings.js';
 
 await mkdir('test-results', { recursive: true });
 // Hand-built scenes for the checks that place geometry. The engine pins a map when its match is built, so a scene is
@@ -230,7 +231,8 @@ try {
   // frames, which must hold the last retained state rather than extrapolate through
   // data that was never saved. Projectiles advance ten units per tick, so a rendered
   // position states both the authoritative tick and the fraction into it.
-  const savedRecording = await (await fetch(`${base}/api/replays/${ownerRoom}`)).json();
+  // Saved recordings are lines with delta frames (26); the routed fixtures below are single documents, which readers still accept.
+  const savedRecording = readArchive(await (await fetch(`${base}/api/replays/${ownerRoom}`)).text());
   const fixtureState = tick => {
     const state = structuredClone(savedRecording.frames[0].state);
     const origin = state.players[0];

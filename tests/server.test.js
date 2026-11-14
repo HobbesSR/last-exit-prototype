@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { gunzipSync } from 'node:zlib';
-import { createHash } from 'node:crypto';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { WIRE_VERSION } from '../server/protocol.js';
 import { VERSION } from '../shared/simulation/rules.ts';
@@ -13,6 +11,7 @@ import { listen } from './helpers/listen.js';
 import { next, open, createRoom } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap, reusedMap } from './helpers/room-harness.js';
+import { archiveText, readArchive, storedDigest } from './helpers/recordings.js';
 
 // Rooms here are about the server, not their maps: every seed, the random ones too, plays seed 9's map.
 const fastMap = reusedMap;
@@ -36,7 +35,7 @@ test('abandoned live rooms keep a reconnect grace then stop simulation and final
     room.emptySince = Date.now() - EMPTY_ROOM_GRACE_MS - 1;
     await until(() => room.finished);
     await until(async () => (await (await fetch(base + '/api/replays')).json()).some(r => r.id === room.id));
-    const replay = JSON.parse(gunzipSync(await readFile(path.join(dir, room.id + '.json.gz'))));
+    const replay = readArchive(await readFile(path.join(dir, room.id + '.json.gz')));
     assert.equal(replay.frames.at(-1).state.phase, 'finished');
     assert.ok(replay.frames.at(-1).commands.some(c => c.type === 'abandoned'));
     const tick = room.game.tick; await new Promise(r => setTimeout(r, 100)); assert.equal(room.game.tick, tick);
@@ -174,7 +173,8 @@ test('two clients share authority; replay preserves each recorded frame and surv
     a.send(JSON.stringify({ type: 'input', seq: 1, x: 1, hp: 99999, interact: true, moveSlot: { from: 0, to: 5 } }));
     await next(a, 'state'); await next(a, 'state');
     const saved = next(a, 'saved'); a.send(JSON.stringify({ type: 'finish' })); const metadata = (await saved).replay;
-    const replay = await (await fetch(base + `/api/replays/${room.id}`)).json();
+    const served = await (await fetch(base + `/api/replays/${room.id}`)).text();
+    const replay = readArchive(served);
     assert.equal(replay.frames.length, metadata.frames);
     assert.equal(replay.frames[0].state.tick, 0);
     assert.equal(replay.frames.at(-1).state.phase, 'finished');
@@ -200,10 +200,8 @@ test('two clients share authority; replay preserves each recorded frame and surv
       for (const field of ['gates', 'events', 'hazardX', 'slots']) assert.deepEqual(frame[field], archived[field]);
       for (const field of ['items', 'projectiles', 'effects']) for (const visible of frame[field]) assert.deepEqual(visible, archived[field].find(item => item.id === visible.id));
     }
-    const hash = createHash('sha256'); for (const frame of replay.frames) hash.update(JSON.stringify(frame) + '\n');
-    assert.equal(hash.digest('hex'), metadata.sha256);
-    const disk = JSON.parse(gunzipSync(await readFile(path.join(dir, `${room.id}.json.gz`))).toString());
-    assert.deepEqual(disk, replay);
+    assert.equal(storedDigest(served), metadata.sha256);
+    assert.equal(archiveText(await readFile(path.join(dir, `${room.id}.json.gz`))), served);
     a.close(); b.close(); await server.close();
     restarted = await createArenaServer({ replayDir: dir, generateMap: fastMap });
     const archive = await (await fetch(await listen(restarted) + '/api/replays')).json();
