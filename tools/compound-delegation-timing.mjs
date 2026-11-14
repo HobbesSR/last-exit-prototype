@@ -91,17 +91,25 @@ try {
   const rounds = [];
   for (let round = 1; round <= 3; round++) {
     const samples = {};
+    const groupCpuMs = {};
     const outputs = {};
     for (const name of round % 2 ? ['before', 'after'] : ['after', 'before']) {
       samples[name] = { field: [], concave: [], macro: [] };
+      groupCpuMs[name] = {};
       outputs[name] = [];
-      for (const { kind, brief } of inputs) {
-        const preparationStart = timed[name];
-        const start = performance.now(), cpuStart = process.cpuUsage();
-        const node = builders[name].build(brief);
-        const total = performance.now() - start, cpu = process.cpuUsage(cpuStart);
-        samples[name][kind].push({ total, cpu: (cpu.user + cpu.system) / 1000, preparation: timed[name] - preparationStart });
-        outputs[name].push(node);
+      for (const kind of ['field', 'concave', 'macro']) {
+        const groupInputs = inputs.filter(entry => entry.kind === kind);
+        const cpuStart = process.cpuUsage();
+        for (const { brief } of groupInputs) {
+          const preparationStart = timed[name];
+          const start = performance.now();
+          const node = builders[name].build(brief);
+          const total = performance.now() - start;
+          samples[name][kind].push({ total, preparation: timed[name] - preparationStart });
+          outputs[name].push(node);
+        }
+        const cpu = process.cpuUsage(cpuStart);
+        groupCpuMs[name][kind] = (cpu.user + cpu.system) / 1000;
       }
     }
     for (let i = 0; i < inputs.length; i++) {
@@ -114,7 +122,8 @@ try {
       Object.fromEntries(Object.entries(groups).map(([kind, entries]) => [kind, {
         count: entries.length,
         medianBuildMs: roundMs(median(entries.map(e => e.total))),
-        medianBuildCpuMs: roundMs(median(entries.map(e => e.cpu))),
+        groupCpuMs: roundMs(groupCpuMs[name][kind]),
+        meanBuildCpuMs: roundMs(groupCpuMs[name][kind] / entries.length),
         medianPreparationMs: roundMs(median(entries.map(e => e.preparation))),
       }]))]));
     rounds.push({ round, ...report });

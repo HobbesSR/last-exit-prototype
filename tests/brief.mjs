@@ -26,9 +26,10 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     process.exit(2);
   }
   // BRIEF_SCRIPT names the reporter's timing record, so each script keeps its own history.
+  const EXCLUSIVE_SCRIPTS = new Set(['bench', 'bench:client', 'bench:stages']);
   const budgetMode = process.env.BUILD_BUDGETS;
-  const lockMode = script === 'test:times' ? null : (budgetMode === 'enforce' || budgetMode === 'report' ? 'exclusive' : 'shared');
-  const lock = lockMode ? await acquireMachineLock(lockMode === 'exclusive' ? 'bench' : 'test', { mode: lockMode }) : null;
+  const lockMode = script === 'test:times' ? null : (EXCLUSIVE_SCRIPTS.has(script) || budgetMode === 'enforce' || budgetMode === 'report' ? 'exclusive' : 'shared');
+  const lock = lockMode ? await acquireMachineLock('bench', { mode: lockMode }) : null;
   try {
     const env = {
       ...process.env,

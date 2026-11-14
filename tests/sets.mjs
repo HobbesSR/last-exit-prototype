@@ -165,7 +165,7 @@ async function main(args) {
   const budgetMode = process.env.BUILD_BUDGETS;
   const lockMode = budgetMode === 'enforce' || budgetMode === 'report' ? 'exclusive' : 'shared';
   const withLock = async fn => {
-    const lock = await acquireMachineLock(lockMode === 'exclusive' ? 'bench' : 'test', { mode: lockMode });
+    const lock = await acquireMachineLock('bench', { mode: lockMode });
     const env = { ...process.env, ...(!lock.inherited && !lock.skippedCi ? { [LOCK_ENV]: lockMode } : {}) };
     try { return await fn(env); } finally { lock.release(); }
   };

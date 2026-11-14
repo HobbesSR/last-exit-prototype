@@ -49,19 +49,18 @@ try {
     if (baseline(brief).lots.length) throw new Error(`${shape}: ordinary planner found a lot`);
     const counts = { ...instrumented.diagnosticCounts };
     const times = { baseline: [], current: [] };
-    const cpuTimes = { baseline: [], current: [] };
+    const cpuStart = process.cpuUsage();
     for (let i = 0; i < 5; i++) {
       const order = i % 2 ? [['current', planBlock], ['baseline', baseline]] : [['baseline', baseline], ['current', planBlock]];
       for (const [name, run] of order) {
-        const start = performance.now(), cpuStart = process.cpuUsage();
+        const start = performance.now();
         const plan = run(brief);
-        const cpu = process.cpuUsage(cpuStart);
         times[name].push(performance.now() - start);
-        cpuTimes[name].push((cpu.user + cpu.system) / 1000);
         if (name === 'current' && JSON.stringify(plan) !== JSON.stringify(measured)) throw new Error(`${shape}: unstable plan`);
       }
     }
-    rows.push({ shape, width, height, cells: brief.cells.length, counts, pieces: measured.allocation.pieces.length, timesMs: times, cpuTimesMs: cpuTimes });
+    const cpu = process.cpuUsage(cpuStart);
+    rows.push({ shape, width, height, cells: brief.cells.length, counts, pieces: measured.allocation.pieces.length, timesMs: times, totalCpuMs: (cpu.user + cpu.system) / 1000 });
   }
   if (!rows.some(row => row.counts.connectivityRejected > 0)) throw new Error('No fallback witness rejected a disconnected remainder.');
   const report = JSON.stringify({ node: process.version, baselineCommit, head, trackedWorktreeDirty, toolSha256,

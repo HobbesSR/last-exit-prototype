@@ -1,4 +1,4 @@
-export const LOCK_PORTS: Readonly<{ bench: 47913; intent: 47913 }>;
+export const LOCK_PORTS: Readonly<{ bench: 47913 }>;
 export const SHARED_PORTS: readonly number[];
 export const DEFAULT_CONTENTION_THRESHOLD: number;
 export const LOCK_ENV: 'MACHINE_LOCK_HELD';

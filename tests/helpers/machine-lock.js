@@ -14,7 +14,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
  * intent first (blocking new shared holders) and then drains every shared slot before starting.
  * See `docs/31.2-benchmarks-and-timing-tools.md`.
  */
-export const LOCK_PORTS = Object.freeze({ bench: 47913, intent: 47913 });
+export const LOCK_PORTS = Object.freeze({ bench: 47913 });
 export const SHARED_PORTS = Object.freeze([47914, 47915]);
 export const DEFAULT_CONTENTION_THRESHOLD = 0.25;
 export const LOCK_ENV = 'MACHINE_LOCK_HELD';
@@ -67,7 +67,7 @@ export function startContentionSample({ threshold = DEFAULT_CONTENTION_THRESHOLD
  */
 export async function acquireMachineLock(name, {
   mode = 'exclusive',
-  port = LOCK_PORTS[name] ?? LOCK_PORTS.bench,
+  port = LOCK_PORTS[name],
   sharedPorts = SHARED_PORTS,
   timeoutMs = 30 * 60_000,
   pollMs = 2_000,
@@ -90,7 +90,7 @@ export async function acquireMachineLock(name, {
   }
 
   // CI runs inside isolated containers; skip the host loopback lock unless forced (e.g. unit tests).
-  const isDefaultLock = port === (LOCK_PORTS[name] ?? LOCK_PORTS.bench) && sharedPorts === SHARED_PORTS;
+  const isDefaultLock = port === LOCK_PORTS[name] && sharedPorts === SHARED_PORTS;
   if (!force && isDefaultLock && (process.env.CI || process.env.FORGEJO_ACTIONS)) {
     return { port: null, ports: [], mode, skippedCi: true, release: () => {}, contention: startContentionSample({ threshold }) };
   }

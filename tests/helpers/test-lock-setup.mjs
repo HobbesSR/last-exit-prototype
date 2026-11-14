@@ -10,7 +10,7 @@ let lock;
 export async function globalSetup() {
   const budgetMode = process.env.BUILD_BUDGETS;
   const mode = budgetMode === 'enforce' || budgetMode === 'report' ? 'exclusive' : 'shared';
-  lock = await acquireMachineLock(mode === 'exclusive' ? 'bench' : 'test', { mode });
+  lock = await acquireMachineLock('bench', { mode });
   if (!lock.inherited && !lock.skippedCi) process.env[LOCK_ENV] = mode;
 }
 

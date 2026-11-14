@@ -4,7 +4,7 @@ import { readFile, writeFile, mkdir, mkdtemp } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
+import { acquireMachineLock, startContentionSample } from '../../tests/helpers/machine-lock.js';
 const root = new URL('../../', import.meta.url);
 await mkdir(new URL('test-results/', root), { recursive: true });
 const scratch = pathToFileURL((await mkdtemp(resolve(fileURLToPath(new URL('test-results/', root)), 'dynamic-add-'))) + '/');
@@ -61,8 +61,9 @@ const results = [];
 try {
   for (let repeat = 1; repeat <= 3; repeat++) {
     const pair = [];
+    const sample = startContentionSample();
     for (const variant of variants) {
-      const result = { repeat, ...run(variant), contention: lock.contention() };
+      const result = { repeat, ...run(variant), contention: sample() };
       results.push(result); pair.push(result);
       console.log(JSON.stringify(result));
     }

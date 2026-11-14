@@ -175,6 +175,10 @@ test('re-entrancy via MACHINE_LOCK_HELD avoids double-acquiring or deadlocking',
   }
 });
 
+test('unknown lock name throws when no port is given', async () => {
+  await assert.rejects(acquireMachineLock('typo', { pollMs: 10, log: () => {} }), /No lock port is assigned to typo/);
+});
+
 test('contention sampler reports machine busy share outside this process', async () => {
   const sample = startContentionSample({ threshold: 0.5 });
   await sleep(30);

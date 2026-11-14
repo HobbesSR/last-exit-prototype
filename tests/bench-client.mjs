@@ -91,7 +91,7 @@ try {
   if (args.has('json')) console.log(JSON.stringify({ frames, wallMs: elapsedSeconds * 1000, cpuMs, contention, series, ...(physics ? { physics, content: contentId } : {}), ...(workload ? { workload, crowd } : {}), ...(serverProfile ? { server: serverProfile } : {}) }, null, 2));
   else {
     const benchmarkLabel = spectator ? 'spectator (whole arena)' : args.get('location') || 'entry';
-    console.log(`Last Exit client benchmark — ${benchmarkLabel}, ${elapsedSeconds.toFixed(2)}s (server CPU ${cpuMs.toFixed(0)} ms${contention.contended ? `, CONTENDED ${(contention.otherBusyShare * 100).toFixed(1)}%` : ''}), ${frames} rendered frames (${(frames / elapsedSeconds).toFixed(1)} fps average)`);
+    console.log(`Last Exit client benchmark — ${benchmarkLabel}, ${elapsedSeconds.toFixed(2)}s (Node process CPU ${cpuMs.toFixed(0)} ms${contention.contended ? `, CONTENDED ${(contention.otherBusyShare * 100).toFixed(1)}%` : ''}), ${frames} rendered frames (${(frames / elapsedSeconds).toFixed(1)} fps average)`);
     if (delta) console.log(`frame time  mean ${delta.mean.toFixed(2)} ms   p50 ${delta.p50.toFixed(2)}   p95 ${delta.p95.toFixed(2)}   max ${delta.max.toFixed(2)}   (60 fps budget 16.7 ms)`);
     if (gap) console.log(`state gap   mean ${gap.mean.toFixed(1)} ms   p50 ${gap.p50.toFixed(1)}   p95 ${gap.p95.toFixed(1)}   max ${gap.max.toFixed(1)}   over ${gap.calls} packets   (server ${HZ} Hz = ${(1000 / HZ).toFixed(1)} ms)`);
     if (bytes) console.log(`state size  mean ${(bytes.mean / 1024).toFixed(1)} KiB, p95 ${(bytes.p95 / 1024).toFixed(1)} KiB per authoritative frame`);

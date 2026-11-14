@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const timing = fileURLToPath(new URL('./timing.mjs', import.meta.url));
+// CI=1 skips the host loopback lock so unit tests do not deadlock against the parent runner's shared lock.
 const timingTestEnv = () => { const env = { ...process.env, CI: '1' }; delete env.MACHINE_LOCK_HELD; return env; };
 
 for (const scenario of [

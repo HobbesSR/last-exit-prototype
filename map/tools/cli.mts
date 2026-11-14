@@ -136,7 +136,7 @@ try {
     const started = performance.now();
     const elapsed = (digits = 0) => Number(((performance.now() - started) / 1000).toFixed(digits));
     const run = async () => {
-      const lock = await acquireMachineLock('test', { mode: 'shared' });
+      const lock = await acquireMachineLock('bench', { mode: 'shared' });
       try {
         if (baseline && types) {
           const report = await replayBriefs(baseline, types, { dir: o.cache, reach: reach as Reach, jobs });
