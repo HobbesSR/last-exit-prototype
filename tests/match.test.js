@@ -5,6 +5,7 @@ import { createRoomService } from '../server/room-service.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { staticShapes } from '../shared/simulation/swept.ts';
 import { insideMap } from '../shared/movement.ts';
 import { stringifyWithMap } from '../server/map-payload.js';
 import { replaceItem } from '../shared/simulation/ground-items.ts';
@@ -136,7 +137,7 @@ test('room welcomes and recording start use prepared maps without changing start
 
 test('cooperative physics preparation yields between static geometry batches without changing the match trace', async () => {
   const map = arena();
-  map.obstacles = Array.from({ length: 520 }, (_, i) => ({ id: `obstacle-${String(i).padStart(4, '0')}`,
+  map.obstacles = Array.from({ length: 520 }, (_, i) => ({ id: `obstacle-${String(519 - i).padStart(4, '0')}`,
     x: 300 + (i % 20) * 10, y: 20 + Math.floor(i / 20) * 10, w: 3, h: 3 }));
   let opportunities = 0;
   const pause = async () => { await new Promise(resolve => setTimeout(resolve, 0)); opportunities++; };
@@ -149,6 +150,7 @@ test('cooperative physics preparation yields between static geometry batches wit
     assert.equal(cooperative.tick, 0, 'preparation never steps the match');
     const bodies = game => physicsRuntime(game).world.snapshot({ includeStatic: true }).bodies.map(({ spec, generation }) => [spec.id, generation]);
     assert.deepEqual(bodies(cooperative), bodies(synchronous), 'native body generation order is unchanged');
+    for (const policy of [true, false]) assert.deepEqual(staticShapes(cooperative.map, policy), staticShapes(synchronous.map, policy), 'sweep source order differs from native ID order');
     assert.deepEqual(snapshot(cooperative), snapshot(synchronous), 'initial captured frames are unchanged');
 
     for (let tick = 1; tick <= 3; tick++) {
@@ -163,6 +165,19 @@ test('cooperative physics preparation yields between static geometry batches wit
       assert.deepEqual(playerView(cooperative, b, 'c0'), playerView(synchronous, a, 'c0'), `projection after tick ${tick}`);
     }
   } finally { disposePhysics(synchronous); if (cooperative) disposePhysics(cooperative); }
+});
+
+test('a ready server match has both sweep indexes on its exact map before its first sweep', async () => {
+  const map = arena();
+  let reads = 0;
+  map.obstacles.push({ id: 'wall', kind: 'building', get x() { reads++; return 300; }, y: 20, w: 10, h: 20 });
+  const match = await createMatch(9, undefined, map, content());
+  try {
+    assert.equal(match.diagnosticState.map, map);
+    reads = 0;
+    for (const policy of [true, false]) assert.ok(staticShapes(map, policy).length > 0);
+    assert.equal(reads, 0, 'neither first sweep reconstructs the static geometry');
+  } finally { match.dispose(); }
 });
 
 test('room shutdown during cooperative construction awaits and disposes the unadopted world', async () => {
