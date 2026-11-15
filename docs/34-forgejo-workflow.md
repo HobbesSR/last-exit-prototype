@@ -79,9 +79,15 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    turns on a test, or makes existing tests slower, also states the cost to the
    test workflow (31, [A test's cost is part of the change](31-verification.md#test-cost)).
 6. Review others with `list_pull_requests` and `get_pull_request_diff`
-   (`stat` for the file list, `file` or `offset`/`limit` for parts). **Review is
-   diff-only by default** (#885): read the diff and the documents it touches; do
-   not check out the branch or re-run suites, sweeps or benchmarks. The author's
+   (`stat` for the file list, `file` or `offset`/`limit` for parts). **Review reads
+   widely and runs narrowly** (#885, #1113). Read the diff, the issue it closes,
+   and the repository around it: the callers and users of anything it changes,
+   the module that already owns any new helper (a duplicate is a finding), and the
+   numbered documents and AGENTS.md invariants it touches. Look for what the diff
+   should contain but doesn't, such as a version bump, a doc update or a call site
+   left on the old path. Read that context at `forgejo/main` in your own worktree,
+   or with `git show <head>:<path>` for the PR's version of a file; do not check out
+   the PR branch. Do not re-run suites, sweeps or benchmarks. The author's
    testing statement is the evidence when its scope matches the commit; one that is
    missing, stale or mis-scoped is a review finding, not a cue to run the tier
    yourself. Two exceptions, and only these:

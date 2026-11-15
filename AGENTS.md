@@ -95,5 +95,7 @@ with `ServerName: forgejo`).
 - Work only in your own worktree, on a `<agent>/<feature>` branch from fresh
   `forgejo/main`. Never commit in the primary checkout, on `main`, or in another
   agent's worktree.
-- Review from the diff; do not re-run the author's tests except as 34 allows.
+- Review the diff in the context of the repository: read what it calls, what calls
+  it, and what it should have changed. Do not re-run the author's tests except as
+  34 allows.
 - Humans merge. Do not merge.
