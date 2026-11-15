@@ -117,7 +117,7 @@ test('someone who leaves before the start leaves the yard, and a resume brings t
 
 test('a room still generating its map already has a waiting yard', async () => {
   let release;
-  const h = roomHarness(), room = h.service.makeRoom(9, false, undefined, new Promise(resolve => { release = resolve; }));
+  const h = roomHarness(), created = h.service.makeRoom(9, false, undefined, new Promise(resolve => { release = resolve; })), room = h.service.rooms.get(created.id);
   try {
     const runner = h.joined(room, { name: 'Runner' });
     assert.equal(room.match, null);

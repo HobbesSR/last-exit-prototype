@@ -29,7 +29,7 @@ function crowd(h, room) {
 test('a room is joinable while its map generates, and the seats it gave out are the ones live joins would', async () => {
   const { generateMap, held } = heldGenerator(), h = roomHarness({ generateMap });
   try {
-    const room = h.directory.createRoom(9);
+    const created = h.directory.createRoom(9), room = h.service.rooms.get(created.id);
     assert.ok(room, 'the room exists before its map'); assert.equal(room.match, null); assert.equal(held.length, 1);
     assert.deepEqual(h.service.summaries().map(s => [s.id, s.phase, s.ready]), [[room.id, 'lobby', false]]);
     const { owner, striker, late, back } = crowd(h, room);
@@ -50,7 +50,7 @@ test('a room is joinable while its map generates, and the seats it gave out are 
     }
 
     // The same seed generated inline, with the same people arriving after it exists.
-    const inline = roomHarness({ reuseMaps: true }), twin = inline.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generatedMap(9));
+    const inline = roomHarness({ reuseMaps: true }), twinCreated = inline.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generatedMap(9)), twin = inline.service.rooms.get(twinCreated.id);
     try {
       await twin.ready;
       const people = crowd(inline, twin), ids = new Map([[owner, people.owner], [late, people.late], [back, people.back]]
@@ -82,8 +82,8 @@ test('matchmakers share the room being generated, and its countdown waits for th
 
 test('a room closed or retired while its map generates is never opened', async () => {
   const { generateMap, held } = heldGenerator(), h = roomHarness({ generateMap });
-  const room = h.directory.createRoom(9); await h.service.close();
-  held[0].resolve(); await room.ready;
+  const created = h.directory.createRoom(9), room = h.service.rooms.get(created.id); await h.service.close();
+  held[0].resolve(); await created.ready;
   assert.equal(room.match, null);
 });
 

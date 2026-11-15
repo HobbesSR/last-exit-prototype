@@ -212,7 +212,7 @@ try {
   await sleep(1000);
   let prepared;
   await phase('concurrent.makeReady', async () => { prepared = service.makeRoom(seed + 1, false, size, mapB); await prepared.ready; });
-  second = prepared;
+  second = service.rooms.get(prepared.id);
   let ownerB;
   await phase('concurrent.join', async () => { ownerB = await joinViewers(second); });
   await phase('concurrent.start', () => start(ownerB));

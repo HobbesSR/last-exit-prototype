@@ -22,7 +22,7 @@ function differing() {
 test('a room describes the content it pins, on every welcome and ready and once in the recording', async () => {
   const h = roomHarness({ content: differing, devTools: 'all' });
   let deliver;
-  const room = h.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, new Promise(resolve => { deliver = resolve; }));
+  const created = h.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, new Promise(resolve => { deliver = resolve; })), room = h.service.rooms.get(created.id);
   try {
     const expected = describeContent(room.content);
     assert.equal(expected.contentId, 'test-content-b');
@@ -78,7 +78,7 @@ test('a room describes the content it pins, on every welcome and ready and once 
 test('rooms created by the default service describe the shipped content', async () => {
   const h = roomHarness({ content: defaultContent });
   // The shipped content's rosters generate the same seed 9 map as the harness's, so the file's one generation serves.
-  const room = h.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generatedMap(9));
+  const created = h.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generatedMap(9)), room = h.service.rooms.get(created.id);
   const owner = h.joined(room, { ownerKey: room.ownerKey });
   try {
     await room.ready;

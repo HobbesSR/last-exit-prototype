@@ -22,7 +22,11 @@ test('server ownership stays acyclic and transport cannot reach mutable simulati
     if (!['replay-store.js', 'replay-writer.js', 'replay-worker.js'].includes(name)) {
       assert.doesNotMatch(code, /writableNeedDrain|\.recorder\b|\.hash\b/, `${name} depends on replay implementation`);
     }
-    if (['room-service.js', 'match.js', 'room-views.js'].includes(name)) assert.ok(!imports.includes('ws') && !imports.includes('express'));
+    if (['room-service.js', 'room.js', 'match.js', 'room-views.js'].includes(name)) assert.ok(!imports.includes('ws') && !imports.includes('express'));
+    if (['room-directory.js', 'http-api.js'].includes(name)) {
+      assert.ok(!imports.includes('./room.js'), `${name} imports single-room lifecycle module directly`);
+      assert.doesNotMatch(code, /\.(?:rooms|match|seats|waiting|clients|inputs|history|resumes)\b/, `${name} reaches into live room state`);
+    }
   }
   function visit(file, stack = []) {
     assert.ok(!stack.includes(file), `cycle: ${[...stack, file].join(' -> ')}`);

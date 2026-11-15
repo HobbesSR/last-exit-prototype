@@ -35,8 +35,8 @@ export async function playsToItsEnd(size, serviceOptions = {}) {
     }, mark() { return true; }, async finish(result) { return { id: head.id, ...result, frames: count }; } };
   } });
   try {
-    const room = h.service.makeRoom(9, false, size), owner = h.joined(room, { ownerKey: room.ownerKey });
-    await room.ready;
+    const created = h.service.makeRoom(9, false, size), room = h.service.rooms.get(created.id), owner = h.joined(created, { ownerKey: created.ownerKey });
+    await created.ready;
     owner.send({ type: 'start' });
     h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     h.service.disconnect(owner.session);

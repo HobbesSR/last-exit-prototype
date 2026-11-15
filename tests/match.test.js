@@ -42,8 +42,8 @@ test('room composition awaits explicit physics factory, stamps pinned rules and 
   let header;
   const service = createRoomService({ content,
     replays: { start(h) { header = h; return { append() { return true; }, finish() { return {}; } }; } } });
-  const room = service.makeRoom(1, false, undefined, arena());
-  await room.ready;
+  const created = service.makeRoom(1, false, undefined, arena()), room = service.rooms.get(created.id);
+  await created.ready;
   const world = physicsRuntime(room.game).world;
   const peer = service.connect({ deliver() { return true; }, close() {} });
   // Match admission and room creation share the public room protocol.
@@ -116,13 +116,13 @@ test('room welcomes and recording start use prepared maps without changing start
       append(state, commands) { frames.push(structuredClone({ state, commands })); return true; }, finish() { return {}; }
     }; } }
   });
-  const room = service.makeRoom(1, false, undefined, arena());
+  const created = service.makeRoom(1, false, undefined, arena()), room = service.rooms.get(created.id);
   const player = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
-  service.receive(player, { type: 'join', room: room.id, ownerKey: room.ownerKey, name: 'Player' });
+  service.receive(player, { type: 'join', room: created.id, ownerKey: created.ownerKey, name: 'Player' });
   service.receive(player, { type: 'start' });
   try {
     assert.notEqual(messages[0].map.width, 600, 'player first sees the waiting yard, not the match map');
-    await room.ready;
+    await created.ready;
     assert.equal(room.started, true);
     const ready = messages.find(message => message.type === 'ready');
     assert.deepEqual(ready.map, match.payloadMap('live'));
@@ -188,10 +188,10 @@ test('room shutdown during cooperative construction awaits and disposes the unad
   });
   const service = createRoomService({ content, matchFactory: factory,
     replays: { start() { return { append() { return true; }, finish() { return {}; } }; } } });
-  const room = service.makeRoom(1, false, undefined, arena());
+  const created = service.makeRoom(1, false, undefined, arena()), room = service.rooms.get(created.id);
   const messages = [];
   const peer = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
-  service.receive(peer, { type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'contestant', name: 'Test' });
+  service.receive(peer, { type: 'join', room: created.id, ownerKey: created.ownerKey, role: 'contestant', name: 'Test' });
   service.receive(peer, { type: 'start' });
 
   const firstClose = service.close();
@@ -202,7 +202,7 @@ test('room shutdown during cooperative construction awaits and disposes the unad
   assert.equal(room.started, false, 'deferred start is not run after close');
   assert.equal(messages.some(message => message.type === 'ready'), false, 'no ready frame is sent for the unadopted match');
   assert.throws(() => world.counts(), /disposed/);
-  await room.ready;
+  await created.ready;
 });
 
 test('mask contact remains contained at a distant live-map corner without leaking private state', async () => {

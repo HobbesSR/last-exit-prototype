@@ -50,8 +50,8 @@ test('a room naming no seed opens on a pooled map at once; a named seed or an em
   const h = roomHarness({ generateMap, pool });
   try {
     pooled.held[0].resolve(); await settle();
-    const room = h.directory.createRoom();
-    assert.equal(room.seed, 101, 'the pooled map\'s seed'); await room.ready; assert.ok(room.match, 'its match is built from the pooled map');
+    const created = h.directory.createRoom(), room = h.service.rooms.get(created.id);
+    assert.equal(created.seed, 101, 'the pooled map\'s seed'); await created.ready; assert.ok(room.match, 'its match is built from the pooled map');
     assert.deepEqual(h.service.summaries()[0].ready, true); assert.deepEqual(onDemand, []);
     assert.equal(pooled.held.length, 2, 'and the pool refills');
 
