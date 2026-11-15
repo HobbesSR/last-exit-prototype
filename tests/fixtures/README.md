@@ -23,10 +23,15 @@ portal graph bots plan with, and the graph holds typed arrays that JSON drops.
 trace (1.3 s); `tests/slow/characterization-physics-bots.test.js` replays the bot matches
 (31 s). Both run from `tests/characterization-physics-scenarios.js`.
 
-Captured at `69561ae` (main after #921), whose simulation, physics and map code the
-capturing branch left unchanged. Gzip SHA-256
-`088ef3ca6f3e2b76b661f381d9813d658a24e714addbdcf14ba3551df6e03891`; the SHA-256 of
-`JSON.stringify(scripted)` is `86795393e104d9b57311ec1dd0543728ef5380d2a82392145b970d2776204e80`.
+Captured at `c7fce14` (schema 18 batch #948/#949 retiring `Player.path`,
+`navigation`/`replanning` selectors, `GameMap.{modules,nodes,routes,streets}`, and private
+`physics.{profile,settings,world.pending}`), whose simulation, physics and map code the
+capturing commit left unchanged. Gzip SHA-256
+`c271f7f530f3c483e7fffce29b477cb315e22d0b12b38b840776a8db73b7b894`; the SHA-256 of
+`JSON.stringify(scripted)` is `cdc30dc635496fa93b8ff151e6f87f7a04fdd5d85dcba765f5f23ba2633c12a2`.
+(Previously captured at `69561ae` after #921, gzip SHA-256
+`088ef3ca6f3e2b76b661f381d9813d658a24e714addbdcf14ba3551df6e03891`, scripted SHA-256
+`86795393e104d9b57311ec1dd0543728ef5380d2a82392145b970d2776204e80`.)
 The capture ran on freshly generated arenas; the tests, in other processes and from the
 deserialized arenas, reproduce every digest, and each trace repeated within one process too.
 
@@ -50,7 +55,7 @@ as `v8.serialize({ map, graph })` gzipped (the graph holds typed arrays). Room a
 play on it through `generatedMap(9)` (`tests/helpers/room-harness.js`) instead of building a map
 (31, "Test arenas"). It is not a behaviour baseline: `tests/slow/room-arena.test.js` fails when it
 is no longer seed 9's map, and the change that moved the map recaptures it with
-`node tools/room-arena.mjs` (`--check` compares without writing). Last recaptured for #1021 (exact unit vectors for live starter-loot placement in `map/live.ts`, which moved seed 9's starter cell `item-3602` from `x: 35.99999999999999` to `36` with the shipped content). Previously captured for the sparse-sides and lighting batch (#895, `types-67`) with the legacy content; #920 moved the tool to the shipped content, which gave the same map and graph, so the file was not recaptured then.
+`node tools/room-arena.mjs` (`--check` compares without writing). Last recaptured for #948/#949 (`c7fce14`, removing dead `GameMap.{modules,nodes,routes,streets}` fields); previously captured for #1021 (exact unit vectors for live starter-loot placement in `map/live.ts`, which moved seed 9's starter cell `item-3602` from `x: 35.99999999999999` to `36` with the shipped content), and earlier for the sparse-sides and lighting batch (#895, `types-67`) with the legacy content (#920 moved the tool to the shipped content, which gave the same map and graph, so the file was not recaptured then).
 
 ## Focused compound siting input (#340)
 
