@@ -148,6 +148,38 @@ test('static geometry is excluded from movement paths and box tip speed is bound
   } finally { world.dispose(); }
 });
 
+test('a statics-only preparation step leaves later steps unchanged and refuses any other world (#1087)', async () => {
+  const run = async prepare => {
+    const world = await createPhysicsWorld();
+    try {
+      // Touching statics, so the broad phase has static pairs to find as well as the props' contacts.
+      for (let i = 0; i < 40; i++) world.queueAddBody({ id: `s${i}`, kind: 'static', shape: { kind: 'box', hx: 16, hy: 4 }, x: i * 30, y: 60 });
+      world.commitMutations();
+      if (prepare) world.prepareStatics();
+      for (let i = 0; i < 6; i++) world.queueAddBody(circle(`p${i}`, { x: i * 25, y: 40, vx: 30 - i * 10, vy: 200 }));
+      const trace = [];
+      for (let tick = 0; tick < 30; tick++) {
+        world.step();
+        trace.push(JSON.stringify([world.drainContacts(), Array.from({ length: 6 }, (_, i) => world.getTransform(`p${i}`))]));
+      }
+      return trace;
+    } finally { world.dispose(); }
+  };
+  const [plain, prepared] = [await run(false), await run(true)];
+  assert.ok(plain.some(line => line.includes('"start"')), 'the props touch the statics');
+  assert.deepEqual(prepared, plain);
+
+  const world = await createPhysicsWorld();
+  try {
+    world.queueAddBody({ id: 's', kind: 'static', shape: { kind: 'box', hx: 4, hy: 4 }, x: 0, y: 0 });
+    assert.throws(() => world.prepareStatics(), /committed static bodies only/, 'pending mutations');
+    world.commitMutations();
+    world.queueAddBody(circle('p', { x: 100 }));
+    world.commitMutations();
+    assert.throws(() => world.prepareStatics(), /committed static bodies only/, 'a body that moves');
+  } finally { world.dispose(); }
+});
+
 test('removal cancels commands for old generation and a same-boundary create', async () => {
   const world = await createPhysicsWorld();
   try {
