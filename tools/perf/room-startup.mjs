@@ -237,7 +237,8 @@ try {
   result.recorderDrops = writers.map(w => w.droppedFrames);
   result.errors = errors;
   if (args.has('out')) await writeFile(args.get('out'), JSON.stringify(result, null, 2));
-  console.log(JSON.stringify({ ...result, stages: undefined, startupWindow: undefined, raw: undefined }, null, 2));
+  console.log(JSON.stringify({ ...result, phases: phases.filter(phase => !phase.name.startsWith('window.')),
+    stages: undefined, startupWindow: undefined, raw: undefined }, null, 2));
   if (errors.length || result.recorderDrops.some(Boolean)) throw new Error('unhealthy recording/lifecycle; inspect output');
 } finally {
   stopScheduler?.();

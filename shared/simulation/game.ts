@@ -89,6 +89,7 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
     for (const gate of s.map.gates) for (const key of ['id', 'x', 'y', 'w', 'h', 'kind'] as const) Object.defineProperty(gate, key, { writable: false, configurable: false });
     Object.freeze(s.map.gates);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
+    // Return control after pinning geometry; small gate caches may finish without yielding.
     if (yieldControl) await yieldControl();
     if (yieldControl) {
       const before = profiling() ? performance.now() : undefined;
