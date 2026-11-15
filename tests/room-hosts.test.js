@@ -10,6 +10,8 @@ import { CLOSE_REASON, MAX_BUFFERED_BYTES } from '../server/protocol.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { readArchive } from './helpers/recordings.js';
+import { profileFields } from '../server/http-api.js';
+import { profileResponse } from '../shared/protocol.ts';
 
 // The room lifecycle (room.js) run on both hosts of it: every room in this thread, and each on its own
 // worker thread (#1089), through the same scenarios. Maps are the pregenerated arena, never generated here.
@@ -242,4 +244,30 @@ test('a socket that drains after blocking state frames gets them again with no o
     await until(() => states.length > blockedAt, 'state frames once the socket drains');
     assert.deepEqual(h.errors, []);
   } finally { await h.finish(); }
+});
+
+test('the profile endpoint reports each threaded room\'s own series (#1115)', async () => {
+  const h = await host(true);
+  try {
+    // Profiling on before the room exists, so its thread also records preparation.
+    h.service.setProfiling(true);
+    const room = h.service.makeRoom(9, false, undefined, generatedMap(9));
+    const owner = h.join(room, { ownerKey: room.ownerKey, name: 'Owner' });
+    await room.ready;
+    await until(() => owner.has('welcome'), 'welcome');
+    owner.send({ type: 'start' });
+    await until(() => owner.frames.filter(f => f.phase === 'live').length >= 5, 'live frames');
+
+    const payload = profileResponse(await profileFields(h.service));
+    assert.equal(payload.roomProfiles.length, 1);
+    const [own] = payload.roomProfiles, names = new Set(own.series.map(s => s.name));
+    assert.equal(own.id, room.id);
+    assert.ok(own.frames > 0 && names.has('loop.tick') && names.has('sim.tickPacing') && names.has('prepare.staticsStep'), [...names].join());
+    assert.ok(own.effectiveHz > 0 && payload.effectiveHz > 0, 'pacing from the room thread');
+    assert.ok(!payload.series.some(s => s.name === 'sim.tickPacing'), 'the host thread paces no room itself');
+
+    await h.service.close();
+    assert.deepEqual(await h.service.roomProfiles(), [], 'a closed room reports nothing');
+    assert.deepEqual(h.errors, []);
+  } finally { h.service.setProfiling(false); await h.finish(); }
 });

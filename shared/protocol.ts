@@ -380,6 +380,15 @@ export interface ProfileResponse {
   frames: number;
   rooms: number;
   series: unknown[];
+  /** Each threaded room's own series (#1115); rooms run on the host thread report in `series`. */
+  roomProfiles: RoomProfile[];
+}
+
+export interface RoomProfile {
+  id: string;
+  frames: number;
+  effectiveHz: number | null;
+  series: unknown[];
 }
 
 export interface ProfileToggleResponse {
@@ -658,7 +667,8 @@ const HEALTH_KEYS = [
   'profiling', 'devTools', 'liveRooms', 'emptyLiveRooms', 'mapPool',
 ] as const;
 
-const PROFILE_KEYS = ['enabled', 'tickRate', 'budgetMs', 'effectiveHz', 'frames', 'rooms', 'series'] as const;
+const PROFILE_KEYS = ['enabled', 'tickRate', 'budgetMs', 'effectiveHz', 'frames', 'rooms', 'series', 'roomProfiles'] as const;
+const ROOM_PROFILE_KEYS = ['id', 'frames', 'effectiveHz', 'series'] as const;
 const CLIENT_CONFIG_KEYS = [
   'wireVersion', 'devTools', 'presentation', 'seed', 'roomNameMaxLength',
   'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs',
@@ -699,7 +709,10 @@ export function profileResponse(fields: ProfileResponse): ProfileResponse {
     (raw.effectiveHz !== null && !finite(raw.effectiveHz)) ||
     !nonNegativeInt(raw.frames) ||
     !nonNegativeInt(raw.rooms) ||
-    !Array.isArray(raw.series)
+    !Array.isArray(raw.series) ||
+    !Array.isArray(raw.roomProfiles) ||
+    !raw.roomProfiles.every(room => isRecord(room) && hasExactKeys(room, ROOM_PROFILE_KEYS) && typeof room.id === 'string'
+      && nonNegativeInt(room.frames) && (room.effectiveHz === null || finite(room.effectiveHz)) && Array.isArray(room.series))
   ) {
     throw new TypeError('Invalid /api/profile response payload.');
   }

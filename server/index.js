@@ -105,9 +105,13 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   // Matchmaking messages go to the directory, which answers with a room for the host to admit into.
   const http = createHttpServer(app), wss = attachWebSockets(http, { connect: service.connect, receive: directory.receive, disconnect: service.disconnect });
   const stopScheduler = startScheduler(service.advance);
+  // The host thread's series, then each threaded room's own (#1115).
   const summary = setInterval(() => {
-    if (!profileSummary || !profiler.profiling() || !profiler.frameCount()) return;
-    console.log(`\nprofile: ${profiler.frameCount()} loop frames, budget ${(1000 / HZ).toFixed(1)} ms${profiler.format()}`);
+    if (!profileSummary || !profiler.profiling()) return;
+    if (profiler.frameCount()) console.log(`\nprofile: ${profiler.frameCount()} loop frames, budget ${(1000 / HZ).toFixed(1)} ms${profiler.format()}`);
+    void service.roomProfiles().then(rooms => {
+      for (const room of rooms) if (room.frames) console.log(`\nprofile, room ${room.id}: ${room.frames} loop frames${profiler.format(room.series)}`);
+    }, () => {});
   }, 10000);
   summary.unref?.();
   let closing;

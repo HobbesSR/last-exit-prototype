@@ -47,6 +47,9 @@ export function createRoomThread({ seed, matchmade, size, map, name, content, cr
   const closed = new Promise(resolve => { resolveClosed = resolve; });
   const ready = new Promise(resolve => { resolveReady = resolve; });
   const post = (message, transfer) => { if (!ended) worker.postMessage(message, transfer); };
+  // Profile requests awaiting this thread's answer, by request id (#1115).
+  const profileRequests = new Map();
+  let profileRequestId = 0;
 
   if (deferredMap) {
     Promise.resolve(map).then(resolved => {
@@ -68,6 +71,8 @@ export function createRoomThread({ seed, matchmade, size, map, name, content, cr
     summary = null;
     metrics = { live: false, emptyLive: false };
     resolveReady(); while (finalizations.length) settleFinalization(); resolveClosed();
+    for (const resolve of profileRequests.values()) resolve(null);
+    profileRequests.clear();
     void worker.terminate();
   }
 
@@ -84,6 +89,7 @@ export function createRoomThread({ seed, matchmade, size, map, name, content, cr
           break;
         }
         case 'summary': summary = event[1]; metrics = event[2]; break;
+        case 'profile': { const resolve = profileRequests.get(event[1]); profileRequests.delete(event[1]); resolve?.(event[2]); break; }
         case 'ready': resolveReady(); break;
         case 'published': hooks.published(event[1]); break;
         case 'error': hooks.reportError(asError(event[1])); break;
@@ -144,6 +150,19 @@ export function createRoomThread({ seed, matchmade, size, map, name, content, cr
     onInvalidMessage(clientId, info) { post({ op: 'invalid', clientId, info }); },
     setViewLag(clientId, rttMs) { post({ op: 'lag', clientId, rttMs }); return true; },
     setProfiling(enabled) { post({ op: 'profile', enabled }); },
+    /**
+     * The room thread's own profiler series, `{ frames, series }`, or null once the thread has ended or when it
+     * has not answered within `timeoutMs` (a thread stalled in a long tick must not hold up the endpoint).
+     */
+    profile(timeoutMs = 2000) {
+      if (ended) return Promise.resolve(null);
+      const requestId = ++profileRequestId;
+      return new Promise(resolve => {
+        const timer = setTimeout(() => { profileRequests.delete(requestId); resolve(null); }, timeoutMs);
+        profileRequests.set(requestId, value => { clearTimeout(timer); resolve(value); });
+        post({ op: 'profile-report', requestId });
+      });
+    },
     /** The room keeps its own time; the host's wake only reports it, and how far blocked sockets have drained. */
     tick() {
       refreshBacklog();

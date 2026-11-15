@@ -291,8 +291,18 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     return on;
   }
 
+  /**
+   * Each threaded room's own profiler series, `[{ id, frames, series }]`, for the profile endpoint and summary
+   * (#1115). A room run on this thread has none of its own: its series are in this thread's profiler.
+   */
+  async function roomProfiles() {
+    const threaded = [...rooms.values()].filter(room => typeof room.profile === 'function');
+    const answers = await Promise.all(threaded.map(async room => ({ id: room.id, profile: await room.profile() })));
+    return answers.filter(answer => answer.profile).map(({ id, profile }) => ({ id, frames: profile.frames, series: profile.series }));
+  }
+
   return {
-    rooms, devTools, threads, accepting: () => !closing, summaries, metrics, makeRoom, connect, validate, receive, disconnect, advance, close, setProfiling,
+    rooms, devTools, threads, accepting: () => !closing, summaries, metrics, makeRoom, connect, validate, receive, disconnect, advance, close, setProfiling, roomProfiles,
     /** How a room created now would be labelled: the deploy form's default, never a particular room's. */
     defaultPresentation: () => describeContent(content()),
   };

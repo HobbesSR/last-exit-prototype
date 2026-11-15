@@ -106,6 +106,8 @@ function handle(message) {
     case 'lag': room.setViewLag(message.clientId, message.rttMs); break;
     case 'backlog': for (const [clientId, bytes] of message.entries) if (backlog.has(clientId)) backlog.set(clientId, bytes); break;
     case 'profile': profiler.enable(message.enabled); break;
+    // This thread's profiler series, for the host's profile endpoint and summary (#1115).
+    case 'profile-report': emit(['profile', message.requestId, { frames: profiler.frameCount(), series: profiler.report() }]); break;
     case 'close':
       stopScheduler();
       room.close().then(() => emit(['closed']), error => { emit(['error', asPlainError(error)]); emit(['closed']); });

@@ -20,19 +20,34 @@ import {
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { MATCHMAKING_COUNTDOWN_MS } from './room-service.js';
 
+/**
+ * The profile endpoint's fields: this thread's series, and each threaded room's own (#1115). Rooms run here
+ * pace into this thread's `sim.tickPacing`; threaded rooms' pacing is combined weighted by samples, as one
+ * shared series would be.
+ */
+export async function profileFields(service) {
+  const series = profiler.report(), roomProfiles = (await service.roomProfiles?.() ?? []).map(room => {
+    const pacing = room.series.find(s => s.name === 'sim.tickPacing');
+    return { ...room, effectiveHz: pacing?.mean ? 1000 / pacing.mean : null };
+  });
+  const paced = [series, ...roomProfiles.map(room => room.series)].map(rows => rows.find(s => s.name === 'sim.tickPacing')).filter(s => s?.mean);
+  const samples = paced.reduce((sum, s) => sum + s.samples, 0);
+  const mean = samples ? paced.reduce((sum, s) => sum + s.mean * s.samples, 0) / samples : 0;
+  return {
+    enabled: profiler.profiling(), tickRate: HZ, budgetMs: 1000 / HZ,
+    effectiveHz: mean ? 1000 / mean : null, frames: profiler.frameCount(),
+    rooms: service.metrics().liveRooms, series, roomProfiles,
+  };
+}
+
 export function installHttpApi(app, service, directory, replays, pool = null) {
   app.get(HTTP_ENDPOINT.HEALTH, (_req, res) => res.json(healthResponse({
     rulesVersion: VERSION, physicsVersion: PHYSICS_VERSION, tickRate: HZ, profiling: profiler.profiling(), devTools: service.devTools,
     ...service.metrics(),
     mapPool: pool?.stock() ?? null,
   })));
-  app.get(HTTP_ENDPOINT.PROFILE, (_req, res) => {
-    const pacing = profiler.report().find(s => s.name === 'sim.tickPacing');
-    res.json(profileResponse({
-      enabled: profiler.profiling(), tickRate: HZ, budgetMs: 1000 / HZ,
-      effectiveHz: pacing?.mean ? 1000 / pacing.mean : null, frames: profiler.frameCount(),
-      rooms: service.metrics().liveRooms, series: profiler.report(),
-    }));
+  app.get(HTTP_ENDPOINT.PROFILE, async (_req, res, next) => {
+    try { const fields = await profileFields(service); res.json(profileResponse(fields)); } catch (error) { next(error); }
   });
   app.post(HTTP_ENDPOINT.PROFILE, (req, res) => {
     res.json(profileToggleResponse(service.setProfiling(req.body?.enabled !== false)));
