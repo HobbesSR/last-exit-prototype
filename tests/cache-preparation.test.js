@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prepareGroundItems, itemsNear } from '../shared/simulation/ground-items.ts';
 import { botGates, prepareBotGates } from '../shared/simulation/bot-routes.ts';
+import { bounds } from '../shared/shape.ts';
 import { closedGateShapes, prepareSweptGates } from '../shared/simulation/swept.ts';
 
 const counted = (value, onRead, freeze = false) => {
@@ -29,11 +30,12 @@ const noYield = async () => {};
 
 test('ground preparation builds the grid before first query and preserves nearby list order', async () => {
   const { records, reads } = fixture('item');
+  records.splice(0, 4, records[3], records[0], records[2], records[1]);
   await prepareGroundItems(records, noYield);
   assert.ok(reads.x >= records.length, 'preparation has read every item position');
   reads.x = reads.y = 0;
-  const nearby = itemsNear(records, { x: 0, y: 300 }, 45);
-  assert.deepEqual(nearby.map(item => item.id), ['i0']);
+  const nearby = itemsNear(records, { x: 800, y: 300 }, 900);
+  assert.deepEqual(nearby.map(item => item.id), ['i3', 'i0', 'i2', 'i1', 'i4']);
   assert.ok(reads.x < records.length, 'first query does not rebuild the entire grid');
 });
 
@@ -57,6 +59,7 @@ test('swept gate preparation caches shapes in order and reads open state live', 
   const closed = closedGateShapes(records);
   assert.equal(closed.length, 65);
   assert.ok(reads.x + reads.y + reads.w + reads.h < records.length, 'first query reuses prepared shapes');
+  assert.deepEqual(closed.map(shape => bounds(shape).x), records.filter(gate => !gate.open).map(gate => gate.x - gate.w / 2));
   assert.equal(closedGateShapes(records).length, 65);
   records[1].open = true;
   assert.equal(closedGateShapes(records).length, 64, 'open state is checked live against cached closed shapes');
