@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createRoomService } from '../server/room-service.js';
 import { createFileReplayStore } from '../server/replay-store.js';
 import { startScheduler } from '../server/scheduler.js';
-import { CLOSE_REASON } from '../server/protocol.js';
+import { CLOSE_REASON, MAX_BUFFERED_BYTES } from '../server/protocol.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { readArchive } from './helpers/recordings.js';
@@ -215,5 +215,31 @@ test('a room thread that dies unasked tells its players and leaves the directory
     await until(() => owner.messages.some(m => m.type === 'error'), 'the error message');
     await until(() => !inRoom(h.service, room.id), 'the room leaving the directory');
     await until(() => h.errors.length > 0, 'the error reported');
+  } finally { await h.finish(); }
+});
+
+test('a socket that drains after blocking state frames gets them again with no other message (threads)', async () => {
+  // The room decides drops against the backlog the host reports (#1089). A report over the limit stops state
+  // frames, so no delivery prompts the next report; the host must re-read a blocked socket until it drains.
+  const h = await host(true);
+  try {
+    const room = h.service.makeRoom(9, false, undefined, generatedMap(9));
+    await room.ready;
+    const owner = h.join(room, { ownerKey: room.ownerKey });
+    await until(() => owner.has('welcome'), 'the owner welcome');
+    owner.send({ type: 'start' });
+    let backlog = MAX_BUFFERED_BYTES;
+    const states = [];
+    const session = h.service.connect({ buffered: () => backlog, close() {},
+      deliver: payload => { const data = JSON.parse(payload); if (data.type === 'state') states.push(data.state.tick); } });
+    h.service.receive(session, { type: 'join', room: room.id, mode: 'dev', ownerKey: room.ownerKey });
+    // The welcome is not droppable; once the full backlog it leaves is reported, state frames stop.
+    await until(() => owner.frames.length > 20, 'the match running');
+    const blockedAt = states.length;
+    await until(() => owner.frames.length > 40, 'more ticks while blocked');
+    assert.equal(states.length, blockedAt, 'no state frames while the socket is full');
+    backlog = 0;
+    await until(() => states.length > blockedAt, 'state frames once the socket drains');
+    assert.deepEqual(h.errors, []);
   } finally { await h.finish(); }
 });

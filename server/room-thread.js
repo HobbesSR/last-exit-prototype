@@ -3,6 +3,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { ROLES } from '../shared/simulation/rules.ts';
 import { zoneSizeName } from '../map/live.ts';
 import { isPackedMap, packMap, packedTransfer } from './map-pack.js';
+import { deliverable } from './protocol.js';
 
 const byRole = count => Object.fromEntries(ROLES.map(role => [role, count(role)]));
 const asError = plain => Object.assign(new Error(plain.message), plain.stack ? { stack: plain.stack } : {});
@@ -95,8 +96,31 @@ export function createRoomThread({ seed, matchmade, size, map, name, content, cr
     }
     // What each delivered client's socket now holds, for the room's next drop decision.
     const entries = [];
-    for (const event of events) if (event[0] === 'deliver') entries.push([event[1], hooks.backlog(event[1])]);
-    if (entries.length) post({ op: 'backlog', entries });
+    for (const event of events) {
+      if (event[0] === 'deliver') entries.push([event[1], hooks.backlog(event[1])]);
+      else if (event[0] === 'close') { reported.delete(event[1]); blocked.delete(event[1]); }
+    }
+    report(entries);
+  }
+
+  // The last backlog reported for each client, and those it left blocked: the room skips their state
+  // frames, so no delivery would prompt another report, and `refreshBacklog` re-reads them until they drain.
+  const reported = new Map(), blocked = new Set();
+  function report(entries) {
+    if (!entries.length) return;
+    for (const [clientId, bytes] of entries) {
+      reported.set(clientId, bytes);
+      if (deliverable(bytes, true)) blocked.delete(clientId); else blocked.add(clientId);
+    }
+    post({ op: 'backlog', entries });
+  }
+  function refreshBacklog() {
+    const entries = [];
+    for (const clientId of blocked) {
+      const bytes = hooks.backlog(clientId);
+      if (bytes !== reported.get(clientId)) entries.push([clientId, bytes]);
+    }
+    report(entries);
   }
 
   worker.on('message', onEvents);
@@ -115,13 +139,16 @@ export function createRoomThread({ seed, matchmade, size, map, name, content, cr
       }
       post({ op: 'join', clientId, options });
     },
-    onLeave(clientId) { post({ op: 'leave', clientId }); return true; },
+    onLeave(clientId) { reported.delete(clientId); blocked.delete(clientId); post({ op: 'leave', clientId }); return true; },
     onMessage(clientId, data) { post({ op: 'message', clientId, data }); },
     onInvalidMessage(clientId, info) { post({ op: 'invalid', clientId, info }); },
     setViewLag(clientId, rttMs) { post({ op: 'lag', clientId, rttMs }); return true; },
     setProfiling(enabled) { post({ op: 'profile', enabled }); },
-    /** The room keeps its own time; the host's wake only reports it. */
-    tick: () => ({ retired: false, live: metrics.live, stepped: 0 }),
+    /** The room keeps its own time; the host's wake only reports it, and how far blocked sockets have drained. */
+    tick() {
+      refreshBacklog();
+      return { retired: false, live: metrics.live, stepped: 0 };
+    },
     close() {
       if (!closing) {
         closing = closed;
