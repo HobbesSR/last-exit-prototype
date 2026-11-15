@@ -112,6 +112,18 @@ function gateIndex(gates: readonly Gate[]): ShapeIndex {
   return cached.index;
 }
 
+/** Build complete gate sweep buckets while the match is private. */
+export async function prepareSweptGates(gates: readonly Gate[], yieldControl: () => Promise<void>): Promise<void> {
+  const index: ShapeIndex = { shapes: [], boxes: [], buckets: new Map() };
+  for (let i = 0; i < gates.length; i++) {
+    const shape = shapeOfBody(physicsGate(gates[i]!)), box = bounds(shape);
+    bucketBox(index.buckets, box, index.shapes.length);
+    index.shapes.push(shape); index.boxes.push(box);
+    if (i % 128 === 127) await yieldControl();
+  }
+  gateCache.set(gates, { count: gates.length, index });
+}
+
 /** The closed gates' shapes in list order, borrowed from the gate index: read-only. */
 export function closedGateShapes(gates: readonly Gate[]): Shape[] {
   const { shapes } = gateIndex(gates);

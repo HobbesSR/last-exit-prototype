@@ -1,6 +1,8 @@
 // #842 diagnostic: real room lifecycle and paced host, with maps prepared by the
 // production worker before timing. Reports preparation separately from tick 1.
 // This short witness locates stalls; its percentiles are not capacity evidence.
+// startupWindow attributes ticks 2..200 (first 10 simulated seconds) and
+// 201..400 separately. These explicit advances are throughput-paced, not real time.
 // node tools/perf/room-startup.mjs --size=12x6 --out=test-results/startup.json
 // Add --sockets --viewers=4 for worker-owned socket clients; --root=PATH selects
 // alternate server modules while retaining this harness and its map preparation.
@@ -133,7 +135,7 @@ const start = owner => sockets ? rpc('start', { clientId: owner }) : service.rec
 // A timer due before each operation observes how long that operation prevents
 // other callbacks from running, including promise continuations in preparation.
 async function phase(name, operation) {
-  const profile = args.has('profile') && name.startsWith('concurrent.');
+  const profile = args.has('profile') && (name.startsWith('concurrent.') || name === 'cold.tick1');
   const inspector = profile ? new Session() : undefined;
   if (inspector) { inspector.connect(); await inspector.post('Profiler.enable'); await inspector.post('Profiler.start'); }
   const before = performance.now(), beforeCpu = process.cpuUsage();
@@ -179,7 +181,11 @@ try {
   // close, replay drain and owned socket/client teardown. CPU is process-wide.
   const lifecycleStart = performance.now(), lifecycleCpu = process.cpuUsage();
   let first;
+  profiler.enable(true);
   await phase('cold.makeReady', async () => { first = service.makeRoom(seed, false, size, mapA); await first.ready; });
+  profiler.frame();
+  const preparationStages = profiler.report();
+  profiler.reset();
   let ownerA;
   await phase('cold.join', async () => { ownerA = await joinViewers(first, true); });
   await phase('cold.start', () => start(ownerA));
@@ -187,6 +193,15 @@ try {
   await phase('cold.tick1', () => service.advance(50, performance.now()));
   const coldTickStages = profiler.report();
   profiler.reset();
+  // Isolate one room's early 10 s from an equally long warmed window. Keep
+  // per-tick attribution so a later first use is visible, not just tick 1.
+  const startupWindow = [];
+  for (let tick = 2; tick <= 400; tick++) {
+    await phase(`window.tick${tick}`, () => service.advance(50, performance.now()));
+    startupWindow.push({ tick, stages: profiler.report() });
+    profiler.reset();
+    await sleep(0);
+  }
   deliveries.length = 0;
   stopScheduler = startScheduler((elapsed, now) => {
     const before = performance.now();
@@ -216,13 +231,14 @@ try {
     deliveryObservation: sockets ? 'First active-room viewer state receipt after JSON parsing in client worker' : 'First active-room viewer direct fake-peer deliver callback',
     phaseCompletion: sockets ? 'Join waits for parsed welcome; start waits for first parsed state; tick1 measures host advance' : 'Direct room-service call completion',
     note: 'Short startup diagnostic; maps prebuilt, replay output discarded. Not a capacity benchmark.' },
-  contention: lock.contention(), coldTickStages,
+  contention: lock.contention(), coldTickStages, preparationStages, startupWindow,
   lifecycle, phases, activeDeliveryGaps: { ...stats(gaps), over75: gaps.filter(v => v > 75).length }, wakes: stats(wakes.map(w => w.elapsedMs)),
   loopWork: stats(wakes.map(w => w.workMs)), stages: profiler.report(), raw: { wakes, gaps, deliveryAtMs: deliveries } };
   result.recorderDrops = writers.map(w => w.droppedFrames);
   result.errors = errors;
   if (args.has('out')) await writeFile(args.get('out'), JSON.stringify(result, null, 2));
-  console.log(JSON.stringify({ ...result, stages: undefined, raw: undefined }, null, 2));
+  console.log(JSON.stringify({ ...result, phases: phases.filter(phase => !phase.name.startsWith('window.')),
+    stages: undefined, startupWindow: undefined, raw: undefined }, null, 2));
   if (errors.length || result.recorderDrops.some(Boolean)) throw new Error('unhealthy recording/lifecycle; inspect output');
 } finally {
   stopScheduler?.();
