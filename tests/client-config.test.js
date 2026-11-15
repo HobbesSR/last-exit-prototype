@@ -44,7 +44,7 @@ test('client configuration states each owner\'s values, the server\'s default co
 });
 
 test('player names keep the 16-unit cut and each layer keeps its own default name', async () => {
-  const h = roomHarness({ reuseMaps: true }), room = h.service.makeRoom(9, false, undefined, generatedMap(9));
+  const h = roomHarness({ reuseMaps: true }), created = h.service.makeRoom(9, false, undefined, generatedMap(9)), room = h.service.rooms.get(created.id);
   try {
     const named = h.joined(room, { name: '\u{1F680}'.repeat(10) }), unnamed = h.joined(room, {}), blank = h.joined(room, { name: '   ' });
     const name = peer => room.seats.player(peer.session.playerId).name;

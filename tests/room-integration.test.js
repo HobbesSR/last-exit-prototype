@@ -32,7 +32,7 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
   let header;
   const service = createRoomService({ content,
     replays: { start(value) { header = value; return { append() { return true; }, finish() { return {}; } }; } } });
-  const room = service.makeRoom(449, false, undefined, map());
+  const created = service.makeRoom(449, false, undefined, map()), room = service.rooms.get(created.id);
   const owner = peer(service);
   try {
     await room.ready;

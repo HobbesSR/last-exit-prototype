@@ -121,7 +121,7 @@ test('physics recording floor is explicit and stamped by the room writer', async
     return match;
   },
     replays: { start(h) { header = h; return { append() { return true; }, finish() { return {}; } }; } } });
-  const room = service.makeRoom(1, false, undefined, arena());
+  const created = service.makeRoom(1, false, undefined, arena()), room = service.rooms.get(created.id);
   try {
     await room.ready;
     const peer = service.connect({ deliver() { return true; }, close() {} });

@@ -85,11 +85,15 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
   // It never asks `generateMap`, which only the directory's rooms use: with both set, `h.room()` still takes the copy.
   const room = async (seed = 9) => {
     const made = service.makeRoom(seed, false, DEFAULT_LIVE_ZONE_SIZE, reuseMaps ? generatedMap(seed) : undefined);
-    await made.ready; return made;
+    await made.ready; return service.rooms.get(made.id);
   };
   return { service, directory, writers, peer, joined, room,
     /** A directory room (`createRoom`'s arguments), once its match is built. */
-    async created(...args) { const made = directory.createRoom(...args); await made?.ready; return made; },
+    async created(...args) {
+      const made = directory.createRoom(...args);
+      if (!made) return null;
+      await made.ready; return service.rooms.get(made.id);
+    },
     wake(elapsed, wallElapsed = elapsed) { wall += wallElapsed; monotonic += elapsed; service.advance(elapsed, monotonic); },
     async live(seed = 9) {
       const made = await room(seed), owner = joined(made, { ownerKey: made.ownerKey });
