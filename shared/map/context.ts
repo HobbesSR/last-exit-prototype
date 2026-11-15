@@ -30,7 +30,7 @@ export interface BaseGenerationContext {
 export function createGenerationContext(seed: number): BaseGenerationContext {
   let rng = seed || 1;
   const random = () => { rng ^= rng << 13; rng ^= rng >>> 17; rng ^= rng << 5; return (rng >>> 0) / 4294967296; };
-  const map: MapDraft = { seed, width: WORLD_WIDTH, height: WORLD_HEIGHT, modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [] };
+  const map: MapDraft = { seed, width: WORLD_WIDTH, height: WORLD_HEIGHT, buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [] };
   let serial = 0;
   const nextId = (prefix: string) => prefix + serial++;
   // Field order is part of the recorded map: the characterization fixture hashes the map's JSON.

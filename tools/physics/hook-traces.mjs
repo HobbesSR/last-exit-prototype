@@ -19,16 +19,16 @@ const SEED = 446;
 function map(gladiators = 1, gate = false) {
   return { seed: SEED, width: 800, height: 800,
     playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
-    modules: [], buildings: [], obstacles: [], gates: gate
+    buildings: [], obstacles: [], gates: gate
       ? [{ id: 'door', x: 205, y: 400, w: 20, h: 70, kind: 'gate', open: true }] : [],
-    hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+    hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: [{ x: gladiators === 2 ? 300 : 250, y: 400 }],
     hunterSpawns: gladiators === 2 ? [{ x: 150, y: 400 }, { x: 450, y: 400 }] : [{ x: 150, y: 400 }] };
 }
 function content(gladiators = 1) {
-  // The shipped hook on content-6 with sliced replanning (#446, #976); no bodies held back for drops.
-  const value = { ...structuredClone(contentById('content-6')), replanning: 'sliced' };
+  // The shipped hook on content-6 (#446, #948, #976); no bodies held back for drops.
+  const value = structuredClone(contentById('content-6'));
   delete value.worldPhysics.dropReserve;
   value.roster = { contestants: ['C'], gladiators: Array.from({ length: gladiators }, (_, i) => ({ name: `G${i}`, kit: 'hook' })) };
   return value;

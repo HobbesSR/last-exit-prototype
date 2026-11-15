@@ -27,8 +27,6 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
-  // Bots plan over tiles, a repath spread over ticks: the only planner since #920 retired the grid search and one-tick repaths.
-  if (s.content.navigation !== 'tiles' || (s.content.replanning !== 'sliced' && s.content.replanning !== 'repair')) throw new RangeError('physics content plans over tiles with sliced or repair replanning');
   if (s.content.dynamicNavigation !== true) throw new RangeError('dynamic navigation required');
   if (!s.content.itemInstances || typeof s.content.itemInstances !== 'object'
     || !Number.isSafeInteger(s.content.itemInstances.groundCapacity) || s.content.itemInstances.groundCapacity < 0)

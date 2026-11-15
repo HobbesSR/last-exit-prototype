@@ -13,7 +13,7 @@ import { openArea } from './helpers/arena.js';
 
 const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = () => ({ width: 600, height: 400, playableArea: openArea(600, 400, 100),
-  obstacles: [], gates: [], hazards: [], spawns: [{ x: 100, y: 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
+  obstacles: [], gates: [], hazards: [], spawns: [{ x: 100, y: 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const body = (id, x, y, shape = { kind: 'circle', radius: 5 }, extra = {}) => ({ id, kind: 'prop', shape, x, y, angle: 0.4, vx: 2, vy: -3, omega: 0.2, sleeping: false, generation: 4, ...extra });
 
 test('a moving loot body changes recorded and projected item layers without mutating gameplay during capture', async () => {
@@ -40,7 +40,10 @@ test('real physics snapshot is detached and its public body is a closed display 
   try {
     const frame = snapshot(game), own = frame.players[0], view = playerView(game, frame, own.id);
     assert.equal(frame.version, PHYSICS_VERSION);
-    assert.ok(frame.physics?.settings && frame.physics.world);
+    assert.ok(frame.physics?.world);
+    assert.equal('settings' in frame.physics, false);
+    assert.equal('profile' in frame.physics, false);
+    assert.equal('pending' in frame.physics.world, false);
     assert.equal(frame.physics.world.bodies.some(b => b.spec.kind === 'static'), false);
     assert.equal(frame.bodies.some(b => b.kind === 'static'), false);
     assert.equal(frame.bodies.length, 1);
@@ -79,10 +82,9 @@ test('projection gates actors, prop bounds, item associations and both tether en
     const loot = body('item:loot', 120, 200, undefined, { itemId: 'loot' });
     const hiddenLoot = body('item:hidden-loot', 120, 200, undefined, { itemId: 'hidden-loot' });
     const orphan = body('item:orphan', 120, 200, undefined, { itemId: 'orphan' });
+    frame.physics = { ...frame.physics, secret: 'settings-secret' };
     frame.bodies = [ownBody, nearBody, farBody, edge, hidden, loot, hiddenLoot, orphan];
     frame.tethers = [{ id: 'shown', a: ownBody.id, b: nearBody.id, anchor: 'private' }, { id: 'hidden', a: ownBody.id, b: farBody.id }, { id: 'orphan', a: ownBody.id, b: orphan.id }];
-    frame.physics.settings = { ...frame.physics.settings, secret: 'settings-secret' };
-    frame.physics.world.pending.forces.push({ id: 'actor:far', value: { x: 123, y: 0 } });
     const view = playerView(game, frame, own.id);
     assert.deepEqual(view.bodies.map(b => b.id), [ownBody.id, nearBody.id, edge.id, loot.id]);
     assert.deepEqual(view.tethers, [{ id: 'shown', a: ownBody.id, b: nearBody.id }]);
@@ -107,7 +109,7 @@ test('projection gates actors, prop bounds, item associations and both tether en
 });
 
 test('physics recording floor is explicit and stamped by the room writer', async () => {
-  assert.equal(SCHEMA, 17);
+  assert.equal(SCHEMA, 18);
   // Lines with delta frames (#901) need a reader of at least schema 17; this build still reads from MIN_SCHEMA.
   assert.equal(minimumReaderForMatch(), 17);
   assert.equal(MIN_SCHEMA, 10);

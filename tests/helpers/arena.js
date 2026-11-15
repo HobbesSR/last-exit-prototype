@@ -17,15 +17,14 @@ import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
  * The game mutates its map, so build one per game.
  */
 export function arena({ cols, rows, cellSize = 192, seed = 0, corridor, scatter, obstacles = [], gates = [], buildings = [], roofs, decals, appearance,
-  modules = [], hazards = [], gaps = [], sensors = [], routes = [], nodes = [], streets = [], items = [], traps = [],
+  hazards = [], gaps = [], sensors = [], items = [], traps = [],
   stations = [], chargers = [], physicsProps, spawns = [], hunterSpawns, entry, exit } = {}) {
   const width = cols * cellSize, height = rows * cellSize;
   const playableArea = openArea(width, height, cellSize);
-  const map = { seed, width, height, playableArea, modules: [...modules], buildings: [...buildings],
+  const map = { seed, width, height, playableArea, buildings: [...buildings],
     ...(roofs ? { roofs: [...roofs] } : {}), ...(decals ? { decals: [...decals] } : {}), ...(appearance ? { appearance } : {}),
     obstacles: [...obstacles], gates: [...gates], hazards: [...hazards], gaps: [...gaps], stations: [...stations],
-    chargers: [...chargers], sensors: [...sensors], items: [...items], traps: [...traps], routes: [...routes],
-    nodes: [...nodes], streets: [...streets], physicsProps,
+    chargers: [...chargers], sensors: [...sensors], items: [...items], traps: [...traps], physicsProps,
     entry: entry ?? { x: cellSize / 2, y: height / 2 }, exit: exit ?? { x: width - cellSize / 2, y: height / 2 }, spawns, hunterSpawns };
   // The cells either side of each gap, which a crate could block.
   const span = corridor ? cols / (corridor.gaps.length + 1) : 0;

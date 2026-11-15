@@ -39,11 +39,11 @@ function arena(seed, actors, props, loot, layout) {
   const crowded = layout === 'clustered';
   return { seed, width, height,
     playableArea: { cellSize: 120, rows: Array.from({ length: 72 }, (_, y) => ({ y, runs: [[0, 144]] })) },
-    modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [],
+    buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [],
     items: Array.from({ length: loot }, (_, i) => ({ id: `p9-loot-${i}`, kind: 'cell', charge: 73,
       x: (crowded ? 8600 : 1500) + i % 13 * (crowded ? 16 : 1100),
       y: (crowded ? 4800 : 7400) + Math.floor(i / 13) * (crowded ? 16 : 120) })),
-    traps: [], routes: [], nodes: [], streets: [],
+    traps: [],
     physicsProps: Array.from({ length: props }, (_, i) => ({ id: `p9-crate-${i.toString().padStart(3, '0')}`,
       profile: 'crate', x: (crowded ? 8500 : 1500) + i % 13 * (crowded ? 60 : 1100),
       y: (crowded ? 3800 : 1000) + Math.floor(i / 13) * (crowded ? 60 : 800) })),
@@ -118,7 +118,7 @@ async function runCase(config, options, repeat) {
       const totalMs = performance.now() - totalAt;
       orderedState.update(raw).update('\n');
       if (runtime) {
-        settings = state.physics.settings;
+        settings = runtime.world.settings;
         peakConstraints = Math.max(peakConstraints, state.physics.world.constraints.length);
       }
       if (tick >= options.warmup) {

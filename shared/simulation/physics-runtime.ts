@@ -48,7 +48,7 @@ export function physicsState(s: Game): PhysicsGameplayState | undefined {
   const r = rooms.get(s);
   // The world's snapshot is already the caller's own apart from its frozen, shared records; only the runtime's
   // own queues, which it edits in place, are copied (#655).
-  return r && { profile: s.version, settings: r.world.settings, world: r.world.snapshot({ includeStatic: false }),
+  return r && { world: r.world.snapshot({ includeStatic: false, includePending: false }),
     hooks: structuredClone(r.hooks),
     discontinuities: r.discontinuities.map(({ id, generation, kind }) => ({ id, generation, kind })),
     pendingSpawns: structuredClone(r.pendingSpawns), pendingImpulses: structuredClone(r.pendingImpulses),

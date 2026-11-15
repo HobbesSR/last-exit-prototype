@@ -28,11 +28,13 @@ Recording failure must never reach gameplay. Default content is `content-7` unde
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. Recordings write schema 17
+existing `"no longer reads"` message while remaining downloadable. Recordings write schema **18**
 and `minSchema` 17 (`minimumReaderForMatch`, `LINES_SCHEMA`): since #901 they are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
-read. This build still reads every schema from 10. Optional appearance descriptors on map
-buildings and obstacles (#584) are presentation-only and require no recording schema bump.
+read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
+`GameMap.{modules,nodes,routes,streets}`, `physics.{profile,settings,world.pending}`) while remaining
+compatible with schema 17 readers. This build still reads every schema from 10. Optional appearance
+descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
 ## Physics rules version (#921)
@@ -129,6 +131,7 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 18 | Retired `Player.path`, `GameMap.{modules,nodes,routes,streets}`, and private `physics.{profile,settings,world.pending}` (#948, #949) | unchanged |
 | 17 | Lines (NDJSON) with keyframes and delta frames, interval checkpoints and a stored-line digest (#901) | 17 |
 | 16 | Optional contestant roster place `seat` in recorded player state (#792) | unchanged |
 | 15 | Optional `transit` command, player `transit` state and `status: 'transit'` (#692) | unchanged |

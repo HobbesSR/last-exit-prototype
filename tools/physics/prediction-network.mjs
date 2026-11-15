@@ -25,13 +25,13 @@ const stats = values => Object.fromEntries(Object.entries(percentiles(values.fil
 function fixture() {
   const map = { seed: 441, width: 800, height: 600,
     playableArea: { cellSize: 100, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 8]] })) },
-    modules: [], buildings: [], obstacles: [{ id: 'wall', x: 600, y: 100, w: 16, h: 400 }],
+    buildings: [], obstacles: [{ id: 'wall', x: 600, y: 100, w: 16, h: 400 }],
     gates: [{ id: 'door', x: 420, y: 300, w: 24, h: 100, open: true, kind: 'gate' }],
-    hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+    hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [],
     entry: { x: 80, y: 300 }, exit: { x: 760, y: 300 },
     spawns: [{ x: 150, y: 300 }, { x: 700, y: 200 }], hunterSpawns: [{ x: 700, y: 500 }] };
-  // Shipped physics set with sliced replanning (#976): required physics features remain enabled.
-  const content = { ...structuredClone(contentById('content-7')), replanning: 'sliced' };
+  // Shipped physics set (#948, #976): required physics features remain enabled.
+  const content = structuredClone(contentById('content-7'));
   content.roster = { contestants: ['Self', 'Other'], gladiators: [{ name: 'G', kit: 'warden' }] };
   return { map, content };
 }

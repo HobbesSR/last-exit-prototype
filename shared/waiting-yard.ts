@@ -40,7 +40,7 @@ for (let row = 0; row < 3; row++) for (let col = 0; col < 6; col++) ARRIVALS.pus
 export function waitingYard(): WaitingMap {
   return structuredClone({
     seed: 1, generator: 'waiting-yard-1', width: WIDTH, height: HEIGHT, playableArea: AREA,
-    modules: [], buildings: [], obstacles: OBSTACLES, gates: [], hazards: [], gaps: [], stations: [], chargers: [],
-    sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], spawns: ARRIVALS
+    buildings: [], obstacles: OBSTACLES, gates: [], hazards: [], gaps: [], stations: [], chargers: [],
+    sensors: [], items: [], traps: [], spawns: ARRIVALS
   });
 }

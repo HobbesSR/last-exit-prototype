@@ -1,10 +1,11 @@
 import type { PhysicsBodyView, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
 import type { GroundItem, ItemId, Snapshot, Player, Vec2 } from '../types.ts';
 import { physicsBodyFields, physicsHookFlightFields, physicsTetherFields } from './projection-contract.ts';
+import { PHYSICS_VERSION } from './physics-runtime.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
 
 /** Capture once, alongside private gameplay state. Complete lists express spawn/removal at each tick. */
-export function capturePhysicsPresentation(physics: PhysicsGameplayState, players: readonly Player[], groundId: (id: string) => ItemId | undefined) {
+export function capturePhysicsPresentation(physics: PhysicsGameplayState, players: readonly Player[], groundId: (id: string) => ItemId | undefined, physicsProfile: string = PHYSICS_VERSION) {
   const actors = new Map(players.map(p => [`actor:${p.id}`, p.id]));
   // A physical item's body id is `item:<id>`; `groundId` looks the item up by id, so nothing walks the ground list.
   const itemOf = (bodyId: string) => bodyId.startsWith('item:') ? groundId(bodyId.slice(5)) : undefined;
@@ -22,7 +23,7 @@ export function capturePhysicsPresentation(physics: PhysicsGameplayState, player
   const tethers = physics.world.constraints.filter(c => ids.has(c.a) && ids.has(c.b)).map(physicsTetherFields);
   const hookFlights = physics.hooks?.filter(hook => hook.phase === 'flying' && actorIds.has(`actor:${hook.caster}`))
     .map(hook => physicsHookFlightFields({ id: hook.id, a: `actor:${hook.caster}`, x: hook.x, y: hook.y }));
-  return { physicsProfile: physics.profile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}) };
+  return { physicsProfile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}) };
 }
 
 /** Apply existing potential-visibility authorization to the captured tick, including delayed views. `items` are the frame's items the view holds. */

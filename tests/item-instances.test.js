@@ -18,8 +18,8 @@ import { readArchive } from './helpers/recordings.js';
 const arena = () => ({ width: 600, height: 400,
   playableArea: openArea(600, 400, 100),
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 120, y: 200 }, { x: 400, y: 200 }],
-  stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
-  modules: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
+  stations: [], chargers: [], sensors: [], items: [], traps: [],
+  buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = (capacity = 4096) => ({ ...structuredClone(contentById('content-7')),
   roster: { contestants: ['A', 'B'], gladiators: [] }, itemInstances: { groundCapacity: capacity }, discovery: false });
 /** A physics match on the arena, disposed when test `t` ends. */

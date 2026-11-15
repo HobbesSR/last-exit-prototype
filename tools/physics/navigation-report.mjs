@@ -25,9 +25,9 @@ for (let repeat = 0; repeat < 3; repeat++) for (const [navigation, overrides] of
   for (const kit of Object.values(content.kits)) kit.damage = 0;
   const map = { seed: 448, width: 2000, height: 1200,
     playableArea: { cellSize: 100, rows: Array.from({ length: 12 }, (_, y) => ({ y, runs: [[0, 20]] })) },
-    modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [],
+    buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [],
     items: Array.from({ length: 37 }, (_, i) => ({ id: `loot-${i}`, kind: 'med', count: 1, x: 200 + i % 8 * 20, y: 200 + Math.floor(i / 8) * 20 })),
-    traps: [], routes: [], nodes: [], streets: [],
+    traps: [],
     physicsProps: Array.from({ length: 64 }, (_, i) => ({ id: `crate-${i}`, profile: 'crate',
       x: 1000 + i % 8 * 70, y: 280 + Math.floor(i / 8) * 70, angle: i % 2 * Math.PI / 5 })),
     entry: { x: 100, y: 600 }, exit: { x: 1800, y: 600 },

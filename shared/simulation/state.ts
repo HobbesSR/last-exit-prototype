@@ -99,7 +99,7 @@ export function changeSeat(s: Game, id: PlayerId, role: Role, kit?: Kit): Player
   if (to !== from) {
     const { name } = from;
     Object.assign(from, rosterBot(s, from.role, s.players.filter(p => p.role === from.role).indexOf(from)), { bot: true });
-    resetInput(from); delete from.viewLagTicks; delete from.path; delete from.route;
+    resetInput(from); delete from.viewLagTicks; delete from.route;
     to.id = id; to.name = name; to.bot = false;
     resetInput(to); delete to.viewLagTicks; clearRoute(to);
   }

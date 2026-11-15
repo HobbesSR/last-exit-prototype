@@ -39,8 +39,8 @@ function arena(lootCount, clustered, propCount) {
   return {
     seed, width, height,
     playableArea: { cellSize: 100, rows },
-    modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [],
+    buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+    chargers: [], sensors: [], items, traps: [],
     entry: { x: 60, y: 600 }, exit: { x: 2300, y: 600 },
     spawns: Array.from({ length: 8 }, (_, i) => ({ x: 100 + i * 52, y: 200 })),
     hunterSpawns: Array.from({ length: 3 }, (_, i) => ({ x: 2240 - i * 52, y: 1000 })),
@@ -54,9 +54,9 @@ function arena(lootCount, clustered, propCount) {
   };
 }
 
-/** Physical items and props on the shipped physics set with sliced replanning and every body admitted: the P5 workload (#445, #976). */
+/** Physical items and props on the shipped physics set with every body admitted: the P5 workload (#445, #948, #976). */
 function bodyContent() {
-  const content = { ...structuredClone(contentById('content-6')), replanning: 'sliced' };
+  const content = structuredClone(contentById('content-6'));
   delete content.worldPhysics.dropReserve;
   content.roster = { contestants: Array.from({ length: 8 }, (_, i) => `C${i}`),
     gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: 'warden' })) };
@@ -108,7 +108,7 @@ async function runCase({ lootCount, clustered, propCount, awake }) {
       const startSerialization = performance.now();
       const text = JSON.stringify({ state, view });
       const elapsedSerialization = performance.now() - startSerialization;
-      latestSettings = state.physics.settings;
+      latestSettings = runtime.world.settings;
       lastState = state;
       if (measuredAt(tick)) {
         if (awake) impulsePreparationMs.push(elapsedPreparation);

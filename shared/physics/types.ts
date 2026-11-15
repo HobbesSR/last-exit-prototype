@@ -44,13 +44,7 @@ export type PhysicsTetherView = { id: string; a: string; b: string };
 export interface PhysicsGameplayState {
   hooks?: HookState[];
   discontinuities?: Array<{ id: string; generation: number; kind: 'placed' | 'removed' }> | undefined;
-  profile: string;
-  settings: {
-    engine: string; version: string; unitsPerMetre: number; substeps: number;
-    substepSeconds: number; speculativeDistanceMetres: number;
-    exactCheckpoint: 'unsupported'; maxConstraints: number; constraintLimitations: string;
-  };
-  world: PhysicsSnapshot;
+  world: Omit<PhysicsSnapshot, 'pending'>;
   pendingSpawns: Array<Point & { id: number; owner: string; dx: number; dy: number;
     life: number; damage: number; trap?: boolean | undefined }>;
   pendingImpulses: Array<{ id: string; value: Point; generation: number }>;

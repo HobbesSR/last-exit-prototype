@@ -13,7 +13,7 @@ const content = () => ({ ...structuredClone(contentById('content-6')),
 const map = () => ({ seed: 449, width: 5000, height: 600,
   playableArea: openArea(5000, 600, 100),
   obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [],
-  routes: [], nodes: [], streets: [], modules: [], buildings: [], physicsProps: [], motorSurfaces: [],
+  buildings: [], physicsProps: [], motorSurfaces: [],
   entry: { x: 50, y: 300 }, exit: { x: 4900, y: 300 }, spawns: [{ x: 200, y: 300 }], hunterSpawns: [] });
 
 function peer(service) {

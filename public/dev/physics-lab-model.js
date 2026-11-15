@@ -53,8 +53,8 @@ export function sceneConfig(scene = 'A', seed = 449, tuning = {}) {
   const spec = SCENES[scene];
   const map = { seed, width: 800, height: 800,
     playableArea: openPlayableArea(800, 800, 100),
-    modules: [], buildings: [], obstacles: structuredClone(spec.obstacles ?? []), gates: [], hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+    buildings: [], obstacles: structuredClone(spec.obstacles ?? []), gates: [], hazards: [], gaps: [], stations: [],
+    chargers: [], sensors: [], items: [], traps: [],
     physicsProps: structuredClone(spec.props), entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: structuredClone(spec.spawns), hunterSpawns: spec.hook ? [{ x: 120, y: 400 }] : [],
   };
