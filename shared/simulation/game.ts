@@ -74,6 +74,13 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
       }
     }
     world.commitMutations();
+    // Rapier's first step builds its broad phase over every map collider (#1087). Taken here, while only
+    // statics exist, that work leaves tick 1; every frame, view and replay stays the same.
+    {
+      const before = profiling() ? performance.now() : undefined;
+      world.prepareStatics();
+      if (before !== undefined) observe('prepare.staticsStep', performance.now() - before);
+    }
     // Authored static geometry stays pinned; bots' detours overlay what they observe of dynamic bodies locally.
     for (const obstacle of s.map.obstacles) {
       if (obstacle.points) { obstacle.points.forEach(Object.freeze); Object.freeze(obstacle.points); }
