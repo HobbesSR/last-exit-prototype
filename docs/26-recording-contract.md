@@ -318,7 +318,19 @@ the header plus four frames of the size being appended, so it grows with the map
 have their own bounded high-water marks. An incoming frame that exceeds available
 queue capacity is omitted in its entirety; no command/frame fragments are written.
 The writer resumes accepting frames when capacity returns. It never retains
-mutable snapshots. The changing top-level fields and commands are serialized on the main thread,
+mutable snapshots.
+
+A room opens its recording as soon as its match is prepared, not at the start (#1088), and adopts
+the match once the writer reports the header taken into gzip (`opened`), or after five seconds
+if it has not. At 36x18 the header, which carries the map, is about 6.6 MB of JSON, and a frame is
+about 1.06 MB. Opened at the start, the header was still being compressed when the start's ticks
+arrived (one room alone dropped ticks 3–5). The budget beside the header held only four frames,
+and the first tick's catch-up burst outran it. The header's bytes, the frames and the archive are
+unchanged; only when the header is written moves. Nothing is recorded before the start. A file
+store creates its file only when the first frame or the trailer reaches the worker, holding the
+header's compressed bytes until then, so a room that retires or closes before its start discards
+the recording (`discard()`) and leaves no file. An unstarted prepared room therefore holds one
+recording worker. The changing top-level fields and commands are serialized on the main thread,
 as key and JSON pairs (#728). The recording worker owns the stored form (#901): it compares each
 field's text with the previous stored frame's, parses only fields that changed, and writes a keyframe
 or a delta; it then hashes and compresses the line and takes checkpoints. Kept item/gate lists are sent
@@ -364,7 +376,10 @@ The test-design consequence of that fractional playhead is in
 
 Writer API: `append(state, commands)` returns true if retained, false if omitted;
 `droppedFrames` counts omissions; `failed` is an Error or null; `abort(error)` is
-idempotent; `finish(result)` returns one shared completion promise. `blocked` may
+idempotent; `finish(result)` returns one shared completion promise. `opened` settles once the
+header has been taken into gzip or the recording failed, and never rejects. `discard()` gives up a
+recording that has retained no frame without reporting a failure, and returns false once a frame
+was retained. `blocked` may
 remain diagnostic but must never control match advancement. Start/serialization,
 stream, abort and publication failures are contained. Streams are destroyed on
 failure, rejections are observed, and no success is published after failure.

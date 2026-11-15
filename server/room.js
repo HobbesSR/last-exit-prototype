@@ -35,6 +35,9 @@ export const EMPTY_ROOM_GRACE_MS = 30000;
 export const MATCHMAKING_COUNTDOWN_MS = 15000;
 /** How long an unstarted (or finished) room with nobody in it is kept. */
 const UNSTARTED_ROOM_IDLE_MS = 180000;
+// How long a prepared match waits for its recording to take in the header before the room adopts it
+// anyway (#1088): a stalled sink must not hold the room back, it only risks the start's frames again.
+const RECORDING_OPEN_TIMEOUT_MS = 5000;
 const MAX_SPECTATORS = 24;
 
 const byRole = count => Object.fromEntries(ROLES.map(role => [role, count(role)]));
@@ -189,13 +192,31 @@ export function createRoom({
     if (!state || state.match || !isCurrent()) return;
     const match = matchFactory(state.seed, state.size, map, state.content);
     if (typeof match?.then === 'function') {
-      return state.initializing = match.then(ready => adoptMatch(ready), error => abandonGeneration(error));
+      return state.initializing = match.then(ready => recordingOpened(ready)).then(ready => adoptMatch(ready), error => abandonGeneration(error));
     }
+    if (isCurrent()) openRecording(match);
     adoptMatch(match);
   }
 
+  /**
+   * Opens the recording as soon as the match is prepared, and waits for the writer to take in the header,
+   * which carries the whole map (#1088). Compressing a large map's header took longer than the four frames
+   * the writer's budget holds beside it, so a room that opened it at the start dropped its own first frames.
+   * The header's bytes are the same either way (26); nothing is recorded before the start.
+   */
+  async function recordingOpened(match) {
+    if (!isCurrent()) return match;
+    openRecording(match);
+    const opened = state.writer?.opened;
+    if (!opened) return match;
+    let timer;
+    await Promise.race([opened, new Promise(resolve => { timer = setTimer(resolve, RECORDING_OPEN_TIMEOUT_MS); })]);
+    clearTimer(timer);
+    return match;
+  }
+
   function adoptMatch(match) {
-    if (!isCurrent()) { match.dispose(); return; }
+    if (!isCurrent()) { match.dispose(); discardRecording(); return; }
     // Nothing is recorded before the start, so every command so far is a seat the lobby gave out.
     match.seat(state.inputs);
     // `game` stays the tests' and benchmarks' escape hatch; nothing here reads it.
@@ -278,16 +299,32 @@ export function createRoom({
     state.pausedAt = null;
   }
 
-  function startRecording() {
+  // The recording's header, before any frame. A writer that has been discarded reports nothing.
+  function openRecording(match) {
+    if (state.writer || state.recordingError) return;
     try {
-      const map = state.match.payloadMap('recording');
-      state.writer = replays.start({
-        version: state.match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(),
-        contentId: state.match.contentId, presentation: state.presentation, id: state.id,
-        seed: state.match.seed, hz: HZ, createdAt: state.createdAt, map,
-      }, { onError: error => failRecording(error) });
+      const map = match.payloadMap('recording');
+      let writer;
+      writer = state.writer = replays.start({
+        version: match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(),
+        contentId: match.contentId, presentation: state.presentation, id: state.id,
+        seed: match.seed, hz: HZ, createdAt: state.createdAt, map,
+      }, { onError: error => { if (!writer || state.writer === writer) failRecording(error); } });
       if (state.recordingError) state.writer?.abort?.(state.recordingError);
     } catch (error) { failRecording(error); }
+  }
+
+  // A room that ends before its start gives up the recording it opened: no frame, no file, no error.
+  function discardRecording() {
+    const writer = state.writer;
+    if (!writer || state.started) return;
+    state.writer = undefined;
+    try { writer.discard ? writer.discard() : writer.abort?.(new Error('Replay recording was discarded')); }
+    catch { /* Recording cleanup cannot stop the room. */ }
+  }
+
+  function startRecording() {
+    openRecording(state.match);
     record(state.match.snapshot());
   }
 
@@ -608,6 +645,7 @@ export function createRoom({
   function onDispose() {
     if (!state || state.disposed) return;
     state.disposed = true;
+    discardRecording();
     const clientIds = [...clientMap.keys()];
     state.waiting?.dispose();
     state.waiting = null;
@@ -622,6 +660,7 @@ export function createRoom({
     if (!state) return Promise.resolve();
     if (state.closingPromise) return state.closingPromise;
     state.closing = true;
+    discardRecording();
     if (state.started && !state.finished) {
       state.match.end();
       record(state.match.snapshot());

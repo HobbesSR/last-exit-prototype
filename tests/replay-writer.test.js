@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createReplayWriter, frameLine, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
@@ -261,6 +261,43 @@ test('header serialization and premature output closure fail recording once with
     await assert.rejects(writer.finish({ ticks: 0 }), mode === 'header' ? /circular/ : /closed before completion/);
     assert.equal(errors.length, 1);
   }
+});
+
+test('a recording opened ahead of its frames writes the same bytes, and one discarded before them leaves no file (#1088)', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'last-exit-replay-open-'));
+  try {
+    const errors = [];
+    const header = id => ({ id, seed: 7, createdAt: 5, map: { name: 'open', cells: Array.from({ length: 2000 }, (_, i) => i) } });
+    const states = [{ tick: 0, items: [], gates: [] }, { tick: 1, items: [], gates: [], label: 'x' }];
+    const record = async (folder, early) => {
+      await mkdir(path.join(directory, folder));
+      const store = await createFileReplayStore(path.join(directory, folder));
+      const writer = store.start(header('same'), { onError: error => errors.push(error) });
+      if (early) {
+        await writer.opened;
+        assert.equal(writer.pendingBytes, 0, 'the header has been taken in');
+        assert.deepEqual(await readdir(path.join(directory, folder)), [], 'no file before the first frame');
+      }
+      states.forEach(state => assert.equal(writer.append(state, []), true));
+      await writer.finish({ ticks: 1, escaped: 0 });
+      return readFile(path.join(directory, folder, 'same.json.gz'));
+    };
+    const early = await record('early', true), late = await record('late', false);
+    assert.equal(readArchive(early).frames.length, 2);
+    assert.ok(early.equals(late), 'the stored bytes do not depend on when the header was written');
+    const store = await createFileReplayStore(directory);
+
+    const discarded = store.start(header('gone'), { onError: error => errors.push(error) });
+    await discarded.opened;
+    assert.equal(discarded.discard(), true);
+    assert.ok(discarded.failed);
+    const used = store.start(header('used'), { onError: error => errors.push(error) });
+    used.append(states[0], []);
+    assert.equal(used.discard(), false, 'a recording with a frame is finished or aborted, not discarded');
+    used.abort();
+    assert.ok(!(await readdir(directory)).some(file => file.startsWith('gone')), 'a discarded recording leaves no file');
+    assert.equal(errors.length, 1, 'only the abort is reported');
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
 test('the worker-owned file output preserves exact archive bytes and store publication', async () => {

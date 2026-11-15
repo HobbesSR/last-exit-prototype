@@ -64,9 +64,12 @@ export function createReplayWriter({ header, output, outputPath, publish, onErro
   let resolveRecording, rejectRecording;
   const recording = new Promise((resolve, reject) => { resolveRecording = resolve; rejectRecording = reject; });
   recording.catch(() => {});
+  // Settles once the worker has taken the header into gzip, or the recording failed; it never rejects (26, #1088).
+  let resolveOpened;
+  const opened = new Promise(resolve => { resolveOpened = resolve; });
   function fail(error) {
     if (failed) return failed;
-    failed = asError(error); controller.abort(failed); rejectRecording(failed);
+    failed = asError(error); controller.abort(failed); rejectRecording(failed); resolveOpened();
     if (!reported) { reported = true; try { onError(failed); } catch { /* Observer failures cannot break cleanup. */ } }
     if (output && !output.destroyed && typeof output.destroy === 'function') output.destroy(failed);
     worker?.terminate().catch(() => {});
@@ -99,7 +102,8 @@ export function createReplayWriter({ header, output, outputPath, publish, onErro
     worker.on('message', message => {
       if (failed) return;
       if (message.type === 'failure') fail(message.error);
-      else if (message.type === 'ack') queuedBytes -= message.bytes;
+      // The first acknowledgement is the header's: the worker writes in the order it was sent.
+      else if (message.type === 'ack') { queuedBytes -= message.bytes; resolveOpened(); }
       else if (message.type === 'done') { workerDone = true; resolveRecording(message.sha256); }
       else if (message.type === 'chunk') {
         try { output.write(message.bytes, error => { if (error) fail(error); else if (!failed) send({ type: 'chunk-ack' }); }); }
@@ -120,6 +124,7 @@ export function createReplayWriter({ header, output, outputPath, publish, onErro
     get pendingBytes() { return queuedBytes; },
     get droppedFrames() { return droppedFrames; },
     get failed() { return failed; },
+    opened,
     append(state, commands) {
       if (completion || ending) throw new Error('Cannot append to a finalized replay');
       if (failed) return false;
@@ -142,6 +147,13 @@ export function createReplayWriter({ header, output, outputPath, publish, onErro
       marks.push(marker); return true;
     },
     abort(error = new Error('Replay recording was aborted')) { fail(error); return failed; },
+    // Gives up a recording that never retained a frame, without reporting it as a failure: a room that
+    // retires or closes before its start (#1088). A file store has not yet created the file (replay-worker.js).
+    discard() {
+      if (frames || ending || completion) return false;
+      reported = true; fail(new Error('Replay recording was discarded'));
+      return true;
+    },
     finish(result) {
       if (completion) return completion;
       if (failed) return rejectedCompletion();

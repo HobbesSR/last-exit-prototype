@@ -8,16 +8,18 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 
 function memoryReplays() {
-  const started = [], finished = [];
+  const started = [], finished = [], discarded = [];
   return {
     started,
     finished,
+    discarded,
     start(header) {
       const frames = [];
       started.push({ header: structuredClone(header), frames });
       return {
         append(state, commands) { frames.push(structuredClone({ state, commands })); return true; },
         finish(summary) { finished.push(structuredClone(summary)); return { ok: true }; },
+        discard() { discarded.push(header.id); return frames.length === 0; },
       };
     },
   };
@@ -119,7 +121,8 @@ test('Room lifecycle covers deferred map adoption, waiting yard isolation, and w
   assert.equal(room.summary().phase, 'live');
   assert.equal(room.summary().ready, true);
   assert.deepEqual(room.metrics(), { live: true, emptyLive: false });
-  assert.equal(replays.started.length, 1, 'replay starts on match handoff, never in lobby');
+  assert.equal(replays.started.length, 1, 'one recording, opened when the match was prepared');
+  assert.equal(replays.started[0].frames[0].commands.at(-1).type, 'start', 'its first frame is the start');
   assert.ok(h.lastOfType('c1', 'ready')?.map?.width > 0, 'ready payload notifies client of live match handoff');
 
   await room.close();
@@ -223,11 +226,16 @@ test('Room projects delayed historical state to spectators and resends keyframes
   assert.equal(devJoin.ok, true);
   assert.equal(playerJoin.ok, true);
   assert.equal(room.spectators, 2);
-  assert.equal(replays.started.length, 0);
+  // The recording opens with the prepared match (#1088), but nothing is recorded before the start.
+  assert.equal(replays.started.length, 1);
+  assert.equal(replays.started[0].header.id, 'room-view');
+  assert.ok(replays.started[0].header.map?.width > 0);
+  assert.equal(replays.started[0].frames.length, 0);
 
   room.onMessage('p1', { type: 'start' });
   assert.equal(room.started, true);
   assert.equal(replays.started.length, 1);
+  assert.equal(replays.started[0].frames.length, 1);
 
   // Drop the first live tick for p1 so keyframe acknowledgement stays unrecorded until the second tick succeeds.
   h.droppedFor.add('p1');
@@ -270,4 +278,17 @@ test('Room projects delayed historical state to spectators and resends keyframes
   assert.ok(h.disposed[0].clientIds.includes('p1-next'));
 
   await room.close();
+});
+
+test('A room that closes or retires before its start discards the recording it opened (#1088)', async () => {
+  for (const end of ['close', 'retire']) {
+    const h = makeRoomHarness();
+    const descriptor = h.room.onCreate({ id: `unstarted-${end}`, ownerKey: 'k', map: generatedMap(), content: defaultContent() });
+    await descriptor.ready;
+    assert.equal(h.replays.started.length, 1);
+    if (end === 'close') await h.room.close();
+    else { h.advanceClock(181000); h.room.tick(TICK_MS, 0); }
+    assert.deepEqual(h.replays.discarded, [`unstarted-${end}`], end);
+    assert.equal(h.replays.finished.length, 0);
+  }
 });
