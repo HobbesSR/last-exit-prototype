@@ -134,20 +134,28 @@ startup evidence.
 
 ## Verification
 
-Final fast gate: 1,487 passing in 100.3 s. Focused cache/match checks: 15
+Final fast gate: 1,487 passing in 101.2 s. Focused cache/match checks: 15
 passing. `check` and both typechecks pass. The new fast file is 0.2 s alone
 (`npm run brief -- test:times tests/cache-preparation.test.js`); its five cases
-cost 3/1/1/1/3 ms in the focused reporter record. It uses 130 synthetic items
+cost 3/1/1/1/2 ms in the final focused reporter record. It uses 130 synthetic items
 or gates to cross one batch boundary, with getters proving work happened before
 lazy use, preserved ordering/live gate state and no partial publication after
 cancellation. It generates no maps or physics worlds. No recurring large-map
 timing test is added.
 
 Final selected integration passed: 15 cases (physics characterization/bots,
-room sizes, live-map and live-map adapter), 72.3 s wall. The 12x6 baseline hash orchestration was interrupted when the experimental
+room sizes, live-map and live-map adapter), 72.3 s wall.
+
+The 12x6 baseline hash orchestration was interrupted when the experimental
 navigation scope changed. Four fully completed match lines were retained;
 the unfinished match was discarded and the remaining eight standard entries
 were rerun against the same archived base. Timing comparisons were rerun from
-scratch after the scope change. All twelve standard 12x6 frame, all-view and sampled payload hashes match
-exactly; retained in `hashes-12x6.txt`. The full 36x18 pair is still running. No browser or chain sweep is required here: no geometry algorithm,
+scratch after the scope change.
+
+All twelve standard 12x6 frame, all-view and sampled payload hashes match
+exactly; retained in `hashes-12x6.txt`. The full 36x18 content-7/seed-4217 match also matches exactly across all
+12,001 frames and all views, with sampled payload equality; retained in
+`hashes-36x18.txt`. 
+
+No browser or chain sweep was run: no geometry algorithm,
 generation input, browser path or wire format changed.
