@@ -23,6 +23,17 @@ test('pre-physics and pre-chain-map schemas are refused, and supported schemas r
   const timeline = createReplayTimeline(archive);
   assert.equal(timeline.roster.filter(p => p.role === 'gladiator').length, 2);
   assert.deepEqual(timeline.at(0).state, state, 'playback retains the recorded roster without substituting defaults');
+
+  // Archives written at schemas 10..17 still carry retired fields removed at schema 18 (#948, #949).
+  const legacyState = structuredClone(state);
+  legacyState.players[0].path = [];
+  legacyState.physics = { profile: PHYSICS_VERSION, settings: { exactCheckpoint: 'unsupported' },
+    world: { bodies: [], constraints: [], pending: { add: [], remove: [], addConstraints: [], removeConstraints: [], forces: [], impulses: [] } },
+    pendingSpawns: [], pendingImpulses: [], pendingAttachments: [] };
+  const legacyArchive = { version: 'last-exit-0.8-physics', schema: 17, minSchema: 17, contentId: content.id,
+    map: { ...game.map, modules: [], nodes: [], routes: [], streets: [] }, frames: [{ state: legacyState, commands: [] }] };
+  assert.equal(recordingFit(legacyArchive), 'ok');
+  assert.deepEqual(createReplayTimeline(legacyArchive).at(0).state, legacyState);
 });
 
 test('a recording states what it is and the reader decides, refusing formats below the schema floor', () => {

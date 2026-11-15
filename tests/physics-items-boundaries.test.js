@@ -12,8 +12,8 @@ import { openArea } from './helpers/arena.js';
 
 const parts = () => ({ map: { seed: 445, width: 800, height: 400,
   playableArea: openArea(800, 400, 100),
-  modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
-  chargers: [], sensors: [], traps: [], routes: [], nodes: [], streets: [],
+  buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+  chargers: [], sensors: [], traps: [],
   items: [{ id: 'sleeping', kind: 'cell', charge: 100, x: 300, y: 200 }],
   physicsProps: [{ id: 'hidden', profile: 'crate', x: 650, y: 200 }],
   entry: { x: 50, y: 200 }, exit: { x: 750, y: 200 }, spawns: [{ x: 120, y: 200 }] },

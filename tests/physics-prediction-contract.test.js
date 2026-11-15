@@ -8,7 +8,7 @@ import { openArea } from './helpers/arena.js';
 const arena = () => ({ width: 600, height: 400,
   playableArea: openArea(600, 400, 100),
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 100, y: 200 }], stations: [], chargers: [], sensors: [],
-  items: [], traps: [], routes: [], nodes: [], streets: [], modules: [], buildings: [],
+  items: [], traps: [], buildings: [],
   exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = id => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A'], gladiators: [] } });
 
@@ -33,8 +33,7 @@ test('own physics view publishes only pinned motor tuning; directed views omit i
   const game = await createGame(1, arena(), tuned);
   try {
     const frame = snapshot(game), id = frame.players[0].id;
-    // The world's settings are frozen and shared with the frame (22.1 "Frames"), so the scenario gets its own.
-    frame.physics.settings = { ...frame.physics.settings, secret: 'private-setting' };
+    frame.physics = { ...frame.physics, secret: 'private-setting' };
     const own = playerView(game, frame, id);
     assert.deepEqual(own.predictionMotor, { acceleration: 4200, braking: 2200, maxSpeed: 540, surfaces: true });
     assert.deepEqual(Object.keys(own.predictionMotor), ['acceleration', 'braking', 'maxSpeed', 'surfaces']);

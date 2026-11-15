@@ -620,16 +620,24 @@ export class PhysicsWorld {
     return { actors: this.actorCount, dynamic: this.dynamicCount, static: this.staticCount, constraints: this.constraints.size };
   }
   /** Lists and transforms are the caller's own; specs, motors and queued entries are frozen and shared with the world. */
-  snapshot(options: { includeStatic?: boolean } = {}): PhysicsSnapshot {
+  snapshot(options: { includeStatic?: boolean; includePending: false }): Omit<PhysicsSnapshot, 'pending'>;
+  snapshot(options?: { includeStatic?: boolean; includePending?: true }): PhysicsSnapshot;
+  snapshot(options: { includeStatic?: boolean; includePending?: boolean } = {}): PhysicsSnapshot | Omit<PhysicsSnapshot, 'pending'> {
     this.ensure();
     const bodies = options.includeStatic === false ? this.sortedDynamic : [...this.bodies].sort(([a], [b]) => order(a, b));
-    return { bodies: bodies.map(([id, record]) => ({
+    const base = {
+      bodies: bodies.map(([id, record]) => ({
         spec: record.spec, transform: this.getTransform(id)!, generation: record.generation,
         ...(record.motor ? { motor: record.motor } : {}) })),
-    constraints: [...this.constraints].sort(([a], [b]) => order(a, b)).map(([, record]) => record.spec),
-    pending: { add: [...this.pendingAdd], remove: [...this.pendingRemove],
-      addConstraints: [...this.pendingAddConstraints], removeConstraints: [...this.pendingRemoveConstraints],
-      forces: [...this.forces], impulses: [...this.impulses] } };
+      constraints: [...this.constraints].sort(([a], [b]) => order(a, b)).map(([, record]) => record.spec),
+    };
+    if (options.includePending === false) return base;
+    return {
+      ...base,
+      pending: { add: [...this.pendingAdd], remove: [...this.pendingRemove],
+        addConstraints: [...this.pendingAddConstraints], removeConstraints: [...this.pendingRemoveConstraints],
+        forces: [...this.forces], impulses: [...this.impulses] },
+    };
   }
   /** Small query view for local navigation: excludes loot, actors and pending/constraint state. Specs are shared, frozen. */
   solidPropStates(): Array<{ spec: BodySpec; transform: Transform }> {

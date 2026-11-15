@@ -75,11 +75,11 @@ test('the nearest gate takes the interaction even when it cannot be used', async
 test('a bot skips open gates; a locked gate near a rail station stops transit', async () => {
   const stations = [{ id: 'here', x: 3000, y }, { id: 'there', x: 3500, y }];
   await dispose(await arena({ gates: [gate('open', 3030, y, { open: true }), gate('shut', 3070, y)], stations, role: 'gladiator' }), ({ s, p }) => {
-    p.bot = true; p.path = [{ x: 1, y: 1 }];
+    p.bot = true; p.route = [{ x: 1, y: 1 }];
     const x = p.x;
     interact(s, p);
     assert.deepEqual(s.map.gates.map(g => g.open), [true, true], 'the bot opened the closed gate past the open one');
-    assert.deepEqual(p.path, []);
+    assert.deepEqual(p.route, []);
     s.map.gates[1].open = false; s.map.gates[1].locked = true; p.bot = false;
     s.map.gates[0].open = false; s.map.gates[0].locked = true;
     interact(s, p);

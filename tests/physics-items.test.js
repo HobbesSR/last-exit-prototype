@@ -13,8 +13,8 @@ import { openArea } from './helpers/arena.js';
 
 const arena = () => ({ seed: 17, width: 800, height: 400,
   playableArea: openArea(800, 400, 100),
-  modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
-  chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+  buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+  chargers: [], sensors: [], items: [], traps: [],
   entry: { x: 60, y: 200 }, exit: { x: 750, y: 200 }, spawns: [{ x: 120, y: 200 }] });
 const content = () => ({ ...structuredClone(contentById('content-6')),
   roster: { contestants: ['A'], gladiators: [] }, discovery: false });

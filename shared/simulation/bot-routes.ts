@@ -56,7 +56,7 @@ const REPLAN_AFTER = 5 * HZ;
  */
 const SLICE = 2_000, SLICED_BUDGET = 100_000, TICK_EXPANSIONS = 3_000;
 /**
- * Under `replanning: 'repair'` (#470 part 2), a contestant whose door observations or watched cells
+ * With local repair (#470 part 2), a contestant whose door observations or watched cells
  * change within REPAIR_NEAR of itself or of the next REPAIR_AHEAD of its route repairs the route at
  * once: one search of up to REPAIR_BUDGET expansions from where it stands to the waypoint
  * REPAIR_REJOIN past the change, the rest of the route kept. A change further on waits for the
@@ -186,10 +186,9 @@ const TURN_AHEAD: World = 24;
  * Whether the bot may turn from `waypoint` onto the leg to `next`. A taut route turns at corners an
  * obstacle's clearance away, so steering for the next point while still short of the corner cuts it
  * and presses into the obstacle: near a waypoint, the bot turns only once the first stretch of the
- * next leg is clear for its body, or when it is on the waypoint itself. Under `replanning: 'sliced'`
- * it must also be within `margin` of that leg, since the leg may run along a wall beyond the
- * stretch swept (#473 review); within 9 units steering slows to land on the waypoint, so it gets there.
- * Exported for its test.
+ * next leg is clear for its body, or when it is on the waypoint itself, and within `margin` of
+ * that leg, since the leg may run along a wall beyond the stretch swept (#473 review); within
+ * 9 units steering slows to land on the waypoint, so it gets there. Exported for its test.
  */
 export function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean {
   const d = distance(p, waypoint);
@@ -213,7 +212,7 @@ export function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus 
   const planner = plannerOf(s.map, p.role), plan = plans.get(p);
   const scheduled = (s.tick + s.players.indexOf(p)) % REPATH === 0;
   let due = scheduled && !plan || !!plan && p.route !== plan.route;
-  if (plan && !due && contestant && s.content.replanning === 'repair' && p.route?.length && distance(plan.goal, target) < GOAL_MOVED
+  if (plan && !due && contestant && p.route?.length && distance(plan.goal, target) < GOAL_MOVED
     && plan.keys === knowledge.keys) due = repairNear(s, p, plan, planner, knowledge) === false;
   if (plan && !due) {
     const learnt = contestant && (plan.stale || plan.doors !== doorsSeen(p) || plan.watch.some(cell => planner.support(cell).every(c => knowledge.known(c))));

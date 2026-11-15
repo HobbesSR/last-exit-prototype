@@ -93,8 +93,6 @@ export type StackKind = 'med' | 'shield';
 export type TrapKind = 'mine' | 'turret' | 'flame' | 'spider';
 /** `window`, `pipe` and `hedge` block bodies but not sight or shots (`seeThrough`, 29). */
 export type ObstacleKind = 'ruin-wall' | 'building' | 'window' | 'container' | 'crate' | 'pipe' | 'tree' | 'hedge';
-export type ModuleKind = 'yard' | 'depot' | 'garden';
-export type RouteBand = 'main' | 'top' | 'bottom';
 export type EffectKind = 'shock' | 'scan' | 'slash' | 'loot' | 'upgrade' | 'rail' | 'charge' | 'grapple';
 export type SlotIndex = number;
 
@@ -220,20 +218,8 @@ export interface MatchContent {
   gladiatorRespawnTicks: Tick;
   hazardGraceTicks: Tick;
   discovery?: boolean | undefined;
-  /**
-   * How bots plan routes: over the free-space tiles, contestants over what they know (22.6). The
-   * only planner since #920 retired the legacy mover's grid search; a physics game requires it.
-   */
-  navigation?: 'tiles' | undefined;
   /** P8 local avoidance and actor/solid-prop drop placement (required since #976). */
   dynamicNavigation: boolean;
-  /**
-   * How a tile planner's repath runs: `sliced` spreads one search over several ticks, a fixed
-   * number of expansions each, while the bot walks its current route (#470); `repair` is `sliced`
-   * with changes near a contestant repaired at once by a short search round them (#470 part 2). A
-   * physics game requires one; the one-tick `whole` search went with the legacy mover (#920).
-   */
-  replanning?: 'sliced' | 'repair' | undefined;
   /**
    * How a gladiator bot plans a trip that leaves its region: `portals` routes it over the portal
    * graph and searches tiles only for the stretch to the crossing after next (#682, 22.6); unset,
@@ -343,13 +329,6 @@ export interface GroundItem extends ItemIdentity {
 // ---------------------------------------------------------------------------
 // Map
 // ---------------------------------------------------------------------------
-
-export interface MapNode extends Vec2 {
-  id: NodeId;
-  col: number;
-  row: number;
-  neighbors: NodeId[];
-}
 
 export interface Obstacle extends Box {
   id: ObstacleId;
@@ -586,14 +565,6 @@ export interface MapAppearance {
 }
 
 
-export interface MapModule extends Vec2 {
-  /** Module ids are the node's array index, not a minted string id. */
-  id: number;
-  width: World;
-  height: World;
-  kind: ModuleKind;
-}
-
 export interface Station extends Vec2 {
   id: StationId;
   nodeId: NodeId;
@@ -622,18 +593,6 @@ export interface Trap extends Vec2 {
   targetId?: PlayerId | null | undefined;
 }
 
-export interface Street {
-  a: Vec2;
-  /** The offset doorway between the two block centres. */
-  port: Vec2;
-  b: Vec2;
-}
-
-export interface Route {
-  band: RouteBand;
-  points: Vec2[];
-}
-
 /**
  * Occupied map cells as plain serializable JSON; each run covers [startX, endXExclusive).
  * Coordinates start at the world origin. Construct and read through shared/playable-area.ts
@@ -653,7 +612,6 @@ export interface GameMap {
   width: World;
   height: World;
   playableArea?: PlayableArea | undefined;
-  modules: MapModule[];
   buildings: Building[];
   roofs?: Roof[] | undefined;
   decals?: Decal[] | undefined;
@@ -668,9 +626,6 @@ export interface GameMap {
   sensors: Sensor[];
   items: GroundItem[];
   traps: Trap[];
-  routes: Route[];
-  nodes: MapNode[];
-  streets: Street[];
   entry: Vec2;
   exit: Vec2;
   spawns: Vec2[];
@@ -763,11 +718,6 @@ export interface Player extends Vec2 {
   reserves?: Record<AmmoFamily, number> | undefined;
   /** An L2 reload in progress: the slot and weapon instance it fills, and the tick it completes. */
   reload?: { slot: SlotIndex; instanceId: ItemId; until: Tick } | null | undefined;
-  /**
-   * The retired grid planner's route, in absolute tile coordinates. Nothing plans into it since #920,
-   * but clearing a route still writes an empty one, and recorded frames carry it.
-   */
-  path?: [number, number][] | undefined;
   /** Remaining bot route in world points, for content that plans over free-space tiles (22.6). */
   route?: Vec2[] | undefined;
   /** The charger being used, or null when not charging. */

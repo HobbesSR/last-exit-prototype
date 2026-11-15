@@ -1,9 +1,9 @@
 // Private preparation of the immutable part of a match map. The live map never
 // crosses this boundary: consumers receive detached, immutable values and JSON.
 // Keep unknown fields on the uncached path until their ownership is established.
-const STATIC = new Set(['seed', 'generator', 'width', 'height', 'playableArea', 'modules', 'buildings',
+const STATIC = new Set(['seed', 'generator', 'width', 'height', 'playableArea', 'buildings',
   'roofs', 'decals', 'appearance', 'obstacles', 'hazards', 'gaps', 'stations', 'chargers', 'sensors',
-  'routes', 'nodes', 'streets', 'entry', 'exit', 'spawns', 'hunterSpawns', 'physicsProps', 'motorSurfaces']);
+  'entry', 'exit', 'spawns', 'hunterSpawns', 'physicsProps', 'motorSurfaces']);
 const DYNAMIC = new Set(['items', 'gates', 'traps']);
 const encodedMaps = new WeakMap();
 const warnedFields = new Set();

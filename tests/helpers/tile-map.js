@@ -8,7 +8,6 @@ const shift = (dx, dy) => v => ({ ...v, x: v.x + dx, y: v.y + dy });
 export function tileMap(map, columns, rows) {
   const cell = map.playableArea.cellSize;
   if (map.width % cell || map.height % cell) throw new RangeError('map extents must be whole playable cells');
-  if (map.nodes.length || map.modules.length || map.routes.length || map.streets.length) throw new RangeError('tileMap handles chain-live maps only');
   const copies = [];
   for (let row = 0; row < rows; row++) for (let column = 0; column < columns; column++) copies.push({ column, row });
   const across = (pick) => copies.flatMap(({ column, row }) => {

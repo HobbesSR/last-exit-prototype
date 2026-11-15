@@ -13,7 +13,7 @@ import { openArea } from './helpers/arena.js';
 
 const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = (x = 0, y = 0) => ({ width: x + 600, height: y + 400, playableArea: openArea(x + 600, y + 400, 100),
-  obstacles: [], gates: [], hazards: [], spawns: [{ x: x + 100, y: y + 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], modules: [], buildings: [], exit: { x: x + 550, y: y + 200 }, entry: { x: x + 50, y: y + 200 }, gaps: [] });
+  obstacles: [], gates: [], hazards: [], spawns: [{ x: x + 100, y: y + 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], buildings: [], exit: { x: x + 550, y: y + 200 }, entry: { x: x + 50, y: y + 200 }, gaps: [] });
 
 test('experimental match owns, isolates and disposes its world while retaining detached final frames', async () => {
   const a = await createMatch(1, undefined, arena(), content());
@@ -212,7 +212,10 @@ test('mask contact remains contained at a distant live-map corner without leakin
     for (let i = 0; i < 80; i++) { step(s); assert.ok(insideMap(s.map, p.x, p.y, 11.99)); }
     const frame = snapshot(s);
     assert.equal('physics' in playerView(s, frame, p.id), false);
-    assert.equal(frame.physics.settings.exactCheckpoint, 'unsupported');
+    assert.equal(physicsRuntime(s).world.settings.exactCheckpoint, 'unsupported');
+    assert.equal('settings' in frame.physics, false);
+    assert.equal('profile' in frame.physics, false);
+    assert.equal('pending' in frame.physics.world, false);
   } finally { disposePhysics(s); }
 });
 

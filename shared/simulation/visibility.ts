@@ -115,7 +115,7 @@ export function snapshot(s: Game): Snapshot {
     stop('sim.snapshot.world');
     start('sim.snapshot.presentation');
     const ground = publishItems(s);
-    const presentation = physics ? capturePhysicsPresentation(physics, s.players, id => groundItem(s, id)?.id) : undefined;
+    const presentation = physics ? capturePhysicsPresentation(physics, s.players, id => groundItem(s, id)?.id, s.version) : undefined;
     // A physical item's stored/projection pose changes the item layer too, even before its gameplay
     // owner synchronizes the map record. Never change that gameplay record while taking a snapshot:
     // a differing pose gives the frame its own list.

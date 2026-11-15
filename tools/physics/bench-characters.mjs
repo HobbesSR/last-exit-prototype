@@ -5,6 +5,7 @@ import { cpus, platform, release } from 'node:os';
 import { createHash } from 'node:crypto';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { createGame, step, snapshot, playerView, disposePhysics } from '../../shared/simulation.ts';
+import { physicsRuntime } from '../../shared/simulation/physics-runtime.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { prebuiltTiles } from '../../shared/simulation/bot-routes.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../../map/live.ts';
@@ -13,9 +14,8 @@ import { adoptPackedTiles } from '../../shared/free-space.ts';
 const output = process.argv[2] ?? 'test-results/physics-439-integration.json';
 const hash = data => createHash('sha256').update(data).digest('hex');
 await acquireMachineLock('bench', { pollMs: 100 });
-// Shipped content-7 with sliced replanning (#976); the pre-actorPhysics P1 baseline was retired when actorPhysics
-// became required (see 42.12, fe37e5d).
-const content = { ...structuredClone(contentById('content-7')), replanning: 'sliced' }, map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
+// Shipped content-7 (#948, #976).
+const content = structuredClone(contentById('content-7')), map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
 const rows = [];
 for (const mode of ['P2']) {
   const tuning = structuredClone(content);
@@ -33,7 +33,7 @@ for (const mode of ['P2']) {
     const sorted = [...samples].sort((a, b) => a - b);
     const percentile = p => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
     rows.push({ mode, content: s.content.id, version: s.version, profile: tuning.actorPhysics ?? null,
-      settings: snapshot(s).physics.settings, warmup: 100, ticks: s.tick, samplesMs: samples,
+      settings: physicsRuntime(s).world.settings, warmup: 100, ticks: s.tick, samplesMs: samples,
       p50: percentile(.5), p95: percentile(.95), p99: percentile(.99), max: sorted.at(-1),
       maxFrameBytes: Math.max(...sizes), frameBytes: sizes });
   } finally { disposePhysics(s); }

@@ -18,9 +18,9 @@ test('prepared map serialization is byte-for-byte ordinary JSON with map and env
   const map = {
     seed: 7, generator: undefined, width: 100, height: 80,
     playableArea: { rows: ['..', 'é'], bounds: { x: 1, y: 2 } },
-    modules: [], buildings: [], obstacles: [], gates: [gate('g', false)], hazards: [], gaps: [],
-    stations: [], chargers: [], sensors: [], items: [item('i', 3)], traps: [], routes: [], nodes: [],
-    streets: [], entry: { x: 0, y: 4 }, exit: { x: 99, y: 4 }, spawns: [],
+    buildings: [], obstacles: [], gates: [gate('g', false)], hazards: [], gaps: [],
+    stations: [], chargers: [], sensors: [], items: [item('i', 3)], traps: [],
+    entry: { x: 0, y: 4 }, exit: { x: 99, y: 4 }, spawns: [],
     extension: { phrase: 'café ☃', absent: undefined }
   };
   const prepared = await prepareMapPayload(map, async () => {});
@@ -38,9 +38,9 @@ test('prepared map serialization is byte-for-byte ordinary JSON with map and env
 test('static JSON is prepared privately; dynamic fields and extensions are fresh per read', async () => {
   const map = {
     seed: 3, width: 20, height: 10, playableArea: { rows: ['abc'], nested: { enabled: true } },
-    modules: [], buildings: [], obstacles: [], gates: [gate('g', false)], hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items: [item('i', 1)], traps: [{ id: 't', x: 2 }], routes: [], nodes: [],
-    streets: [], entry: { x: 0, y: 1 }, exit: { x: 19, y: 1 }, spawns: [], physicsProps: [{ id: 'crate', x: 2, y: 3 }],
+    buildings: [], obstacles: [], gates: [gate('g', false)], hazards: [], gaps: [], stations: [],
+    chargers: [], sensors: [], items: [item('i', 1)], traps: [{ id: 't', x: 2 }],
+    entry: { x: 0, y: 1 }, exit: { x: 19, y: 1 }, spawns: [], physicsProps: [{ id: 'crate', x: 2, y: 3 }],
     extension: { label: 'first' }
   };
   const prepared = await prepareMapPayload(map, async () => {});
@@ -95,16 +95,16 @@ test('preparation yields while copying large and nested map arrays', async () =>
   const records = Array.from({ length: 129 }, (_, i) => ({ id: `n${i}`, value: i }));
   const map = {
     seed: 1, width: 1, height: 1, playableArea: { rows: records.map(row => row.id) },
-    modules: records, buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [],
-    sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], entry: { x: 0, y: 0 },
+    buildings: records, obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [],
+    sensors: [], items: [], traps: [], entry: { x: 0, y: 0 },
     exit: { x: 1, y: 1 }, spawns: []
   };
   let opportunities = 0;
   const prepared = await prepareMapPayload(map, async () => { opportunities++; await Promise.resolve(); });
   assert.ok(opportunities > 0);
   const result = prepared.read(map, { itemsJson: JSON.stringify, gatesJson: JSON.stringify });
-  assert.equal(result.modules.length, 129);
-  assert.equal(result.modules[128].id, 'n128');
+  assert.equal(result.buildings.length, 129);
+  assert.equal(result.buildings[128].id, 'n128');
   assert.equal(result.playableArea.rows.length, 129);
 });
 

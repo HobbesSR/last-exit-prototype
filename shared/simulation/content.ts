@@ -75,10 +75,8 @@ const CONTENT_6: MatchContent = {
   gladiatorRespawnTicks: 20 * 20,
   hazardGraceTicks: 60 * 20,
   // Contestants know what they have discovered (15); bots plan over free-space tiles (22.6, #424), spreading a repath
-  // over ticks and repairing a change near them at once (#470).
+  // over ticks and repairing a change near them at once (#470, #948).
   discovery: true,
-  navigation: 'tiles',
-  replanning: 'repair',
   actorPhysics: {
     geometry: {
       contestant: { headRadius: 14.109375, bodyRadius: 11.2875, hurtRadius: 12 },

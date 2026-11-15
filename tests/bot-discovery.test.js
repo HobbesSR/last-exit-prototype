@@ -219,14 +219,14 @@ test('a bot turns short of a waypoint only within the margin of the next leg (#4
 function doorScene(content, positions) {
   content = typeof content === 'string' ? contentById(content) : content;
   const cell = { id: 'cell', kind: 'cell', x: 1100, y: 330, charge: 0 };
-  const map = { ...openMap([cell]), nodes: [], streets: [], hazards: [], traps: [], chargers: [], stations: [], exit: { x: 1800, y: 100 },
+  const map = { ...openMap([cell]), hazards: [], traps: [], chargers: [], stations: [], exit: { x: 1800, y: 100 },
     obstacles: [{ id: 'upper', x: 600, y: 0, w: 40, h: 300 }, { id: 'lower', x: 600, y: 360, w: 40, h: 440 }],
     gates: [{ id: 'door', x: 620, y: 330, w: 40, h: 60, open: true, locked: false, kind: 'door' }] };
   const memories = [];
   const players = positions.map(([x, y], i) => {
     const p = { id: `c${i}`, name: `contestant-${i + 1}`, role: 'contestant', kit: 'warden', bot: true, x, y, hp: 100, maxHp: 100, shield: 0, keys: 0,
       weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
-      input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0, path: [] };
+      input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0 };
     const memory = createDiscovery();
     memory.seen = new Set();
     for (let i = 0; i < 50; i++) { memory.discovered.add(i); memory.seen.add(i); }
@@ -252,12 +252,10 @@ test('under repair replanning a door seen opening near a bot reroutes it at once
     see();
     const seenAt = s.tick;
     for (; s.tick < seenAt + 40 && !through(p); s.tick++) collectBotIntent(s, p);
-    assert.ok(through(p), `it takes the door in the end (${content.replanning ?? content}): ${JSON.stringify(p.route)}`);
+    assert.ok(through(p), `it takes the door in the end (${content}): ${JSON.stringify(p.route)}`);
     return s.tick - seenAt;
   };
   assert.equal(run('content-7', 420, 330), 1, 'near: repaired on the tick it is seen');
-  // Without repair, a sliced repath waits for the bot's turn.
-  assert.ok(run({ ...contentById('content-7'), replanning: 'sliced' }, 420, 330) >= 19, 'sliced waits for its turn');
   const later = run('content-7', 100, 330);
   assert.ok(later >= 19, `further off: at its next repath, not after ${later}`);
 });

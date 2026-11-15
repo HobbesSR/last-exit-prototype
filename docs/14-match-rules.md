@@ -21,10 +21,12 @@ mover's sets had arrived at. Its roster appends BLAZE (Striker) after IRONCLAD (
 (Specter), F-11 (`content-2`). Bots plan over free-space tiles, contestants from what they know
 ([22.6](22.6-hierarchical-navigation.md), #424, `content-3`). Each bot's repath is spread over several
 ticks while it walks its current route, so a bot turns a corner early only within the 2-unit margin the
-planner keeps beyond its body (`replanning: 'sliced'`, #470, `content-4`). And a contestant that learns of
+planner keeps beyond its body (`replanning: 'sliced'` history, #470, `content-4`). And a contestant that learns of
 a door or ground near itself or on the next stretch of its route searches round the change at once and
-keeps the rest of its route, rather than walking on until its next sliced repath (`replanning: 'repair'`,
-`content-5`). #920 retired those five sets with the legacy mover. The chain's departure region supplies
+keeps the rest of its route, rather than walking on until its next sliced repath (`replanning: 'repair'` history,
+`content-5`). #920 retired those five sets with the legacy mover, and #948 retired the `navigation`
+and `replanning` selectors once tile navigation with sliced replanning and local repair became
+unconditional across every match. The chain's departure region supplies
 each hunter's initial spawn; transit stations are separate redeployment and fast-travel sites. The name
 and one-of-each-kit roster are tuning choices. Each selection returns an independent deeply frozen copy,
 and unknown or retired content IDs are rejected.

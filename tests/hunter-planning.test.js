@@ -20,7 +20,7 @@ function hunterScene(contentId, planning) {
   const content = planning ? { ...contentById(contentId), hunterPlanning: planning } : contentById(contentId);
   const p = { id: 'g0', name: 'hunter', role: 'gladiator', kit: 'warden', bot: true, x: 300, y: 480, hp: 360, maxHp: 360, shield: 0, keys: 0,
     weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
-    input: {}, lastSeq: -1, path: [] };
+    input: {}, lastSeq: -1 };
   const s = { tick: 0, phase: 'live', content, map, players: [p], projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
   return { s, p, crossings };
 }

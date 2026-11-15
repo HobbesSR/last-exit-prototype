@@ -25,12 +25,9 @@ let plainBytes = 0, wireBytes = 0, peakPendingBytes = 0;
 const digest = createHash('sha256');
 for (let tick = 0; tick < samples; tick++) {
   const projected = { tick, physicsProfile: PHYSICS_VERSION, bodies: bodies.map(b => ({ ...b, x: b.x + tick * 3, angle: tick * .025 })), tethers };
-  const frame = { ...projected, physics: { profile: projected.physicsProfile,
-    settings: { engine: 'synthetic', version: 'transport-only', unitsPerMetre: 40, substeps: 4, substepSeconds: .0125,
-      speculativeDistanceMetres: .6, exactCheckpoint: 'unsupported', maxConstraints: 8, constraintLimitations: 'synthetic transport workload' },
+  const frame = { ...projected, physics: {
     world: { bodies: projected.bodies.map(({ id, kind, shape, generation, ...transform }) => ({ spec: { id, kind, shape, x: transform.x, y: transform.y }, transform, generation })),
-      constraints: tethers.map(t => ({ ...t, maxDistance: 40 })),
-      pending: { add: [], remove: [], addConstraints: [], removeConstraints: [], forces: [], impulses: [] } },
+      constraints: tethers.map(t => ({ ...t, maxDistance: 40 })) },
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [] } };
   const before = performance.now();
   const encoded = encoder.encode(projected), wire = { ...projected };

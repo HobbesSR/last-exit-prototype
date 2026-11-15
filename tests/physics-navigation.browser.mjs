@@ -6,10 +6,10 @@ import { contentById } from '../shared/simulation/content.ts';
 
 const map = { seed: 448, width: 1200, height: 800,
   playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 12]] })) },
-  modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+  buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
   chargers: [{ id: 'charger', x: 800, y: 400 }], sensors: [],
   items: [{ id: 'objective', kind: 'cell', charge: 0, x: 650, y: 400 }],
-  traps: [], routes: [], nodes: [], streets: [],
+  traps: [],
   physicsProps: [{ id: 'crate', profile: 'crate', x: 350, y: 400, angle: Math.PI / 4 }],
   entry: { x: 100, y: 400 }, exit: { x: 1050, y: 400 }, spawns: [{ x: 150, y: 400 }] };
 const content = structuredClone(contentById('content-6'));
