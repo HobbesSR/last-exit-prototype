@@ -6,10 +6,32 @@ import { createGzip } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { createFrameEncoder } from '../shared/recording-format.ts';
 
-// Production owns its file here. Injected Writable streams stay in the caller's
-// thread; their bridge allows only one compressed chunk awaiting acknowledgement.
-let bridgeWrite, bridgeFinish, failed = false;
-const output = workerData.outputPath !== undefined ? createWriteStream(workerData.outputPath) : new Writable({
+// Production owns its file here. A room opens its recording while the match is prepared (#1088), so the
+// header is compressed before play; the file is created only once a frame or the trailer arrives, and
+// until then this holds the header's compressed bytes. A recording discarded before its first frame
+// therefore leaves no file. Injected Writable streams stay in the caller's thread; their bridge allows
+// only one compressed chunk awaiting acknowledgement.
+let bridgeWrite, bridgeFinish, failed = false, openFile = () => {};
+function deferredFile(path) {
+  let file, held = [];
+  const stream = new Writable({
+    write(chunk, _encoding, next) {
+      if (!file) { held.push(chunk); next(); return; }
+      if (file.write(chunk)) next(); else file.once('drain', next);
+    },
+    final(next) { openFile(); file.end(next); },
+    destroy(error, next) { file?.destroy(error ?? undefined); next(error); }
+  });
+  openFile = () => {
+    if (file || stream.destroyed) return;
+    file = createWriteStream(path);
+    file.on('error', error => stream.destroy(error));
+    for (const chunk of held) file.write(chunk);
+    held = null;
+  };
+  return stream;
+}
+const output = workerData.outputPath !== undefined ? deferredFile(workerData.outputPath) : new Writable({
   write(chunk, _encoding, next) {
     bridgeWrite = next;
     const bytes = Uint8Array.from(chunk);
@@ -43,6 +65,7 @@ function pump() {
   const message = queue.shift();
   if (!message) { if (ending) gzip.end(); return; }
   let text = message.text;
+  if (message.type !== 'header') openFile();
   if (message.type === 'frame') {
     Object.assign(kept, message.updates);
     text = stored(message.line !== undefined ? encoder.whole(message.line)
