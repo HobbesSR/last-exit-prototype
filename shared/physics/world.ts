@@ -579,6 +579,23 @@ export class PhysicsWorld {
     this.contacts.sort((a, b) => a.substep - b.substep || order(a.a, b.a) || order(a.b, b.b) || order(a.type, b.type));
     return { distance, paths };
   }
+  /**
+   * One native step while the world holds only committed static bodies (#1087): it builds the broad phase over the
+   * map's colliders before any body that moves exists, so that work leaves the first gameplay tick. Nothing can move,
+   * touch or wake, so it reports nothing and changes no gameplay state; it refuses any other world.
+   */
+  prepareStatics(): void {
+    this.ensure();
+    if (this.dynamicCount !== 0 || this.constraints.size !== 0 || this.pendingAdd.length + this.pendingRemove.length
+      + this.pendingAddConstraints.length + this.pendingRemoveConstraints.length + this.forces.length + this.impulses.length !== 0) {
+      throw new Error('prepareStatics needs a world of committed static bodies only');
+    }
+    this.stepNative();
+    let events = 0;
+    this.events.drainCollisionEvents(() => { events++; });
+    this.events.drainContactForceEvents(() => { events++; });
+    if (events) throw new Error(`prepareStatics produced ${events} native events`);
+  }
   drainContacts(): PhysicsContact[] { this.ensure(); return this.contacts.splice(0); }
   /** Final-substep external force accumulators, excluding motor velocity changes
    * and collision impulses. Developer-only; no extra work during ordinary ticks. */
