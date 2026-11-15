@@ -1,4 +1,5 @@
-import type { Obstacle, ObstacleId, ObstacleKind, PlayableArea, Vec2, World } from './types.ts';
+import { openPlayableArea } from './playable-area.ts';
+import type { Obstacle, ObstacleId, ObstacleKind, Vec2, World } from './types.ts';
 import type { WaitingMap } from './simulation/waiting.ts';
 
 /**
@@ -30,7 +31,7 @@ const OBSTACLES: Obstacle[] = [
   tree('yard-tree-3', 1250, 780, 30)
 ];
 
-const AREA: PlayableArea = { cellSize: CELL, rows: Array.from({ length: HEIGHT / CELL }, (_, y) => ({ y, runs: [[0, WIDTH / CELL]] as Array<[number, number]> })) };
+const AREA = openPlayableArea(WIDTH, HEIGHT, CELL);
 
 // Where people appear as they arrive, in order; more arrivals than places reuse them.
 const ARRIVALS: Vec2[] = [];

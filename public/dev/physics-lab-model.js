@@ -1,3 +1,4 @@
+import { openPlayableArea } from '/shared/playable-area.ts';
 import { createGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
 import { contentById } from '/shared/simulation/content.ts';
 import { physicsRuntime } from '/shared/simulation/physics-runtime.ts';
@@ -51,7 +52,7 @@ export function sceneConfig(scene = 'A', seed = 449, tuning = {}) {
   if (!Object.hasOwn(SCENES, scene) || !Number.isSafeInteger(seed) || seed < 0) throw new RangeError('invalid lab scene or seed');
   const spec = SCENES[scene];
   const map = { seed, width: 800, height: 800,
-    playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 8]] })) },
+    playableArea: openPlayableArea(800, 800, 100),
     modules: [], buildings: [], obstacles: structuredClone(spec.obstacles ?? []), gates: [], hazards: [], gaps: [], stations: [],
     chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
     physicsProps: structuredClone(spec.props), entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },

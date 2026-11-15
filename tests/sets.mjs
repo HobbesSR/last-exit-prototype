@@ -51,7 +51,7 @@ export const SETS = {
     browser: ['hearing', 'transit'],
     sources: ['shared/simulation*', 'shared/simulation/**', 'shared/movement.ts', 'shared/view.ts', 'shared/discovery.ts', 'shared/equipment.ts',
       'shared/item-instances.ts', 'shared/loot-tiers.ts', 'shared/traps.ts', 'shared/gate-query.ts', 'shared/presentation.ts',
-      'shared/frame-layers.ts', 'shared/navigation/**', 'shared/map.ts', 'shared/map/**', 'shared/types.ts', 'shared/waiting-yard.ts',
+      'shared/frame-layers.ts', 'shared/navigation/**', 'shared/map.ts', 'shared/map/**', 'shared/playable-area.ts', 'shared/types.ts', 'shared/waiting-yard.ts',
       // The engine too: the physics characterization baselines are this set's (#920).
       'shared/physics/**'],
   },
