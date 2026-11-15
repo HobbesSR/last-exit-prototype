@@ -12,14 +12,11 @@ plans 41.1–41.3, is in [the plan history](archive/2026-11-13-plan-history/READ
 
 ## Now
 
-**Foundation Pass** (#914). A quality and maintainability pass under a freeze
-([33.1](33.1-foundation-pass.md)), which Corey started on 2026-11-09, taken before more
-is built on the foundation. Its ledger holds how it is run, its sweeps and their state.
+**Post-pass effort ranking** (#1053). Foundation Pass 1 (#914, `2026-11-09`–`2026-11-14`, [charter](33.1-foundation-pass.md), [playbook](33.1.1-running-a-pass.md), [retrospective](archive/2026-11-14-foundation-pass-retrospective/README.md)) completed Phases 0–3 (`fda295f`), with `#948`/`#949` in PR #1109. Ranking the candidate efforts below is the next active task once #914 closes.
 
 ## After the pass
 
-Ranking the efforts that follow the pass is itself post-pass work: #1053. Until it is
-done, the efforts below are candidates on record, in no order.
+Until #1053 settles the post-pass order, the efforts below are candidates on record, in no order.
 
 | Effort | Outcome | Tracker |
 | --- | --- | --- |
