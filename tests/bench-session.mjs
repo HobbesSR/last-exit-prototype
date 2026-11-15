@@ -26,7 +26,7 @@ const lock = await acquireMachineLock('bench');
 process.chdir(root);
 const { chromium } = createRequire(path.join(root, 'package.json'))('@playwright/test');
 const { createArenaServer } = await import(pathToFileURL(path.join(root, 'server/index.js')).href);
-const server = await createArenaServer({ replayDir: path.join(root, 'test-results/replays'), profile: true, profileSummary: false });
+const server = await createArenaServer({ replayDir: path.join(root, 'test-results/replays'), profile: true, profileSummary: false, roomThreads: false });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('headed'), args: chromeArgs });
 const rows = [];

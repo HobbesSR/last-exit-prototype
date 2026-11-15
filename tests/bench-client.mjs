@@ -25,7 +25,7 @@ const deviceScaleFactor = Number(args.get('dpr') ?? 1);
 const contentId = args.get('content') ?? defaultContent().id;
 const lock = await acquireMachineLock('bench');
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'),
+const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), roomThreads: false,
   content: () => contentById(contentId),
   ...(args.has('server-profile') ? { profile: true, profileSummary: false } : {}) });
 const base = await listen(server);

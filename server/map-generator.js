@@ -1,20 +1,18 @@
 import { Worker } from 'node:worker_threads';
-import { attachPortalGraph } from '../shared/navigation/portal-graph.ts';
-import { adoptPackedTiles } from '../shared/free-space.ts';
 
 // The room service's asynchronous map source: one worker, started on first use and reused, taking
 // requests in order. A worker that dies fails what it held and is replaced by the next request.
+// Maps arrive packed (map-pack.js) and stay packed here: the room host hands them on to the thread
+// that runs the room, which is the only one to decode them (#1089).
 export function createMapGenerator() {
   let worker = null, next = 0;
   const waiting = new Map();
   const failAll = error => { for (const { reject } of waiting.values()) reject(error); waiting.clear(); };
   function start() {
     const started = new Worker(new URL('./map-worker.js', import.meta.url));
-    started.on('message', ({ id, map, navigation, tiles, error }) => {
+    started.on('message', ({ id, packed, error }) => {
       const request = waiting.get(id); waiting.delete(id);
-      if (map && navigation) attachPortalGraph(map, navigation);
-      for (const packed of map ? tiles ?? [] : []) adoptPackedTiles(map, packed);
-      if (error) request?.reject(new Error(error)); else request?.resolve(map);
+      if (error) request?.reject(new Error(error)); else request?.resolve(packed);
       // Idle workers must not keep the process alive.
       if (!waiting.size) started.unref();
     });

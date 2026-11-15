@@ -49,7 +49,7 @@ const failableMaps = (seed, size) => {
 // The client's long regression, over the rooms a player gets: the shipped content on its physics engine (#920). Its
 // fixtures place actors by assigning positions on the server's game, which the engine takes as a teleport between ticks,
 // and stand checks that need fixed geometry on the scenes above.
-const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
+const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps, roomThreads: false });
 const errors = [];
 /** Wait until a player has stopped moving on the server and the page shows them where they stopped. */
 async function settled(page, player, timeout = 10000) {

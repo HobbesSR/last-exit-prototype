@@ -98,7 +98,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | File | Holds |
 | --- | --- |
 | [41-roadmap.md](41-roadmap.md) | The order between efforts and the reason for each, with each one's tracker; the retired plans 41.1–41.3 are archived |
-| [42-performance-history.md](42-performance-history.md) | Guide to measured baselines and their limits, from completed verification passes; children 42.1–42.45 by topic (runtime, navigation, physics stages, generation and content) |
+| [42-performance-history.md](42-performance-history.md) | Guide to measured baselines and their limits, from completed verification passes; children 42.1–42.46 by topic (runtime, navigation, physics stages, generation and content) |
 
 ### 5x — Map generation
 

@@ -35,8 +35,7 @@ export function installHttpApi(app, service, directory, replays, pool = null) {
     }));
   });
   app.post(HTTP_ENDPOINT.PROFILE, (req, res) => {
-    profiler.enable(req.body?.enabled !== false);
-    res.json(profileToggleResponse(profiler.profiling()));
+    res.json(profileToggleResponse(service.setProfiling(req.body?.enabled !== false)));
   });
   // What the deploy form offers and states (22.7), from each value's owner. Defaults for a new room only:
   // a room's own labels come with its welcome, and every request is still validated here.

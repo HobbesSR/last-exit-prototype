@@ -28,7 +28,7 @@ await rm(frameDir, { recursive: true, force: true });
 await mkdir(frameDir, { recursive: true });
 await mkdir(outDir, { recursive: true });
 
-const server = await createArenaServer({ replayDir: path.resolve('test-results/replays') });
+const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), roomThreads: false });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
