@@ -29,8 +29,8 @@ The explicit single-room window covers ticks 1..200 and 201..400, **simulated**
 The original paced two-room portion follows those windows. This altered diagnostic
 is not comparable to #908's original delivery-gap or recorder-drop workload.
 
-`summary.json.gz` retains the two baseline inventories and all twelve comparison
-reports, input-cache SHA-256 digests, wall/CPU lifecycle and phase timing,
+`summary.json.gz` retains the two baseline inventories and all twelve experimental comparison
+reports plus twelve final narrow-delivery reports, input-cache SHA-256 digests, wall/CPU lifecycle and phase timing,
 preparation timings, recorder drops, contention and per-tick stage milliseconds.
 Window stages are compact name-to-ms dictionaries; parent/child timings overlap.
 `cold-tick-profile.json.gz` retains the exploratory first-tick CPU profile with
@@ -143,6 +143,11 @@ lazy use, preserved ordering/live gate state and no partial publication after
 cancellation. It generates no maps or physics worlds. No recurring large-map
 timing test is added.
 
-Final integration and exact hash evidence are added after the queued checks
-complete. No browser or chain sweep is required here: no geometry algorithm,
+Final selected integration passed: 15 cases (physics characterization/bots,
+room sizes, live-map and live-map adapter), 72.3 s wall. The 12x6 baseline hash orchestration was interrupted when the experimental
+navigation scope changed. Four fully completed match lines were retained;
+the unfinished match was discarded and the remaining eight standard entries
+were rerun against the same archived base. Timing comparisons were rerun from
+scratch after the scope change. All twelve standard 12x6 frame, all-view and sampled payload hashes match
+exactly; retained in `hashes-12x6.txt`. The full 36x18 pair is still running. No browser or chain sweep is required here: no geometry algorithm,
 generation input, browser path or wire format changed.

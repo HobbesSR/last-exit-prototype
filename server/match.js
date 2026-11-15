@@ -88,8 +88,8 @@ export async function createMatch(seed, size, map, content = defaultContent()) {
     () => preparationPause());
   try {
     const payloads = await prepareMapPayload(game.map, () => preparationPause());
-    // The first outward frame publishes this same list. Freeze at that existing
-    // publication boundary before building its cells, so no loose migration is left.
+    // Publish the initial list during private preparation, ahead of its first
+    // outward frame, so building its cells leaves no loose-record migration.
     const beforeGround = profiling() ? performance.now() : undefined;
     await prepareGroundItems(publishItems(game), () => preparationPause());
     if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
