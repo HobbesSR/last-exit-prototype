@@ -1,3 +1,4 @@
+import { playableAreaFromCells } from '../../shared/playable-area.ts';
 import { placeElement } from '../../shared/map/element.ts';
 import { createGenerationContext } from '../../shared/map/context.ts';
 import { pointInRoof } from '../../shared/view.ts';
@@ -55,25 +56,16 @@ export function builtMapCollision(map: BuiltMap<RegionElement>): CollisionMap {
 }
 
 /**
- * Where bodies may be: the regions' cells, as rows of runs in the world `origin` places them.
- * Rows keep concave outlines and holes; a map without them is rejected.
+ * Where bodies may be: the regions' cells in the world `origin` places them.
+ * The shared encoder keeps concave outlines and holes; a map without an area is rejected.
  */
 export function builtPlayableArea(map: BuiltMap<RegionElement>, origin: Vec2): PlayableArea {
-  const size = map.cellSize, rows = new Map<number, number[]>();
-  for (const region of map.regions) for (const cell of region.brief.cells) {
-    const y = cell.y + origin.y / size, x = cell.x + origin.x / size;
-    if (!rows.has(y)) rows.set(y, []);
-    rows.get(y)!.push(x);
+  const size = map.cellSize;
+  function* cells() {
+    for (const region of map.regions) for (const cell of region.brief.cells)
+      yield { x: cell.x + origin.x / size, y: cell.y + origin.y / size };
   }
-  return { cellSize: size, rows: [...rows].sort(([a], [b]) => a - b).map(([y, cells]) => {
-    const runs: [number, number][] = [];
-    for (const x of cells.sort((a, b) => a - b)) {
-      const last = runs.at(-1);
-      if (last && last[1] === x) last[1]++;
-      else runs.push([x, x + 1]);
-    }
-    return { y, runs };
-  }) };
+  return playableAreaFromCells(cells(), size);
 }
 
 /** The shared translation from contract cell coordinates to a world rooted at (0, 0). */

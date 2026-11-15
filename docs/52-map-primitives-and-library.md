@@ -338,7 +338,9 @@ an id in the same category is an error naming both sources, including when the
 top library tries to override a module. Competing definitions belong in separate
 modules, as requested in [17.2.7](17.2.7-zone-plans.md).
 
-The bundled libraries are `CHAIN_LIBRARIES` in `map/chain.ts`, one per
+The bundled libraries are `CHAIN_LIBRARIES` in macro's
+`map/macro/src/chain/bundled-library.ts` ([51.2](51.2-library.md)), re-exported by
+`map/chain.ts`, one per
 authored size. Without a library of its own, a map takes the one authored for
 its zone size (`bundledLibrary`). Game mode refuses a size none is authored
 for, naming the authored sizes; playground mode takes the default library

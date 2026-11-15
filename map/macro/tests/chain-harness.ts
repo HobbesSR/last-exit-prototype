@@ -5,10 +5,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import type { ChainLibrary } from "../src/chain/library.ts";
-import type { ChainParams } from "../src/chain/types.ts";
+import { chainParams } from "../src/chain/params.ts";
 
 /** The 12 x 6 game params the macro tests generate at: two exits, eight contestants, three hunters. */
-export const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
+export const GAME = chainParams({ lootChance: 0.04, lootTierStep: 0.09 });
 
 /** The stored placement library the macro tests place with (tests/fixtures/chain-placement-library.json). */
 export const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;

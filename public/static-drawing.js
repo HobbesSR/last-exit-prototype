@@ -1,3 +1,4 @@
+import { playableAreaRects } from '/shared/playable-area.ts';
 import { insideMap } from '/shared/movement.ts';
 import { roofGroups, roofOverhang, roofCellBorders, ROOF_OVERHANG } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
@@ -17,9 +18,8 @@ const obstacleFill = (o, ink) => o.kind === 'fence' ? ink.fence : o.kind === 'bu
 export function recordStatic(cache, map, { ink, palette, lighting, wear }, priorGroups, label) {
   const buildingsById = new Map((map.buildings || []).map(b => [b.id, b])), artOpts = { palette, lighting, wear, buildingsById }; let g;
   const roofs = new Map();
-  const { cellSize, rows } = map.playableArea;
-  for (const row of rows) for (const [start, end] of row.runs)
-    cache.record(start * cellSize, row.y * cellSize, end * cellSize, (row.y + 1) * cellSize).fillStyle(ink.ground).fillRect(start * cellSize, row.y * cellSize, (end - start) * cellSize, cellSize);
+  for (const { x, y, w, h } of playableAreaRects(map.playableArea))
+    cache.record(x, y, x + w, y + h).fillStyle(ink.ground).fillRect(x, y, w, h);
   for (let i = 0; i < 430; i++) {
     const x = (i * 479 + map.seed * 7) % map.width, y = (i * 193 + map.seed * 13) % map.height;
     if (!insideMap(map, x, y, 5)) continue;

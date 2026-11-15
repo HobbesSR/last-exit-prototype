@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canOccupy, insideMap, moveBody } from '../shared/movement.ts';
+import { openPlayableArea, playableAreaFromCells, playableAreaRects } from '../shared/playable-area.ts';
 
 const map = {
   width: 250, height: 250, obstacles: [], gates: [],
@@ -12,6 +13,30 @@ const map = {
     { y: 4, runs: [[0, 3]] },
   ] },
 };
+
+test('open playable ground covers partial edge cells and survives JSON without methods', () => {
+  const area = JSON.parse(JSON.stringify(openPlayableArea(125, 75, 50)));
+  assert.deepEqual([...playableAreaRects(area)], [
+    { x: 0, y: 0, w: 150, h: 50 }, { x: 0, y: 50, w: 150, h: 50 },
+  ]);
+  const frame = { width: 125, height: 75, playableArea: area };
+  assert.equal(insideMap(frame, 124, 74), true);
+  assert.equal(insideMap(frame, 125, 74), false, 'map bounds still clip the partial cell');
+});
+
+test('cell encoding and rectangle reading retain sparse rows, holes and drawing order', () => {
+  const area = playableAreaFromCells([{ x: 4, y: 3 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 3, y: 1 }], 50);
+  assert.deepEqual(area, { cellSize: 50, rows: [
+    { y: 1, runs: [[0, 2], [3, 4]] }, { y: 3, runs: [[4, 5]] },
+  ] });
+  assert.deepEqual([...playableAreaRects(JSON.parse(JSON.stringify(area)))], [
+    { x: 0, y: 50, w: 100, h: 50 }, { x: 150, y: 50, w: 50, h: 50 }, { x: 200, y: 150, w: 50, h: 50 },
+  ]);
+  const frame = { width: 250, height: 200, playableArea: area };
+  assert.equal(insideMap(frame, 125, 75), false, 'hole stays void');
+  assert.equal(insideMap(frame, 175, 75), true);
+  assert.equal(insideMap(frame, 225, 125), false, 'absent row stays void');
+});
 
 test('mask occupancy respects concave edges, a hole, and the whole body disc', () => {
   assert.equal(insideMap(map, 125, 125, 0), false, 'hole centre');

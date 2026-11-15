@@ -1,3 +1,4 @@
+import { playableAreaRects } from '/shared/playable-area.ts';
 import { nearbyGate } from '/shared/gate-query.ts';
 import { INITIAL_ESCAPE_SLOTS } from '/shared/simulation/rules.ts';
 import { seesActor } from '/shared/view.ts';
@@ -345,10 +346,9 @@ export function createHUDController(actions) {
       c.clip();
     }
 
-    const { cellSize, rows } = arenaMap.playableArea;
     c.beginPath();
-    for (const row of rows) for (const [start, end] of row.runs)
-      c.rect(start * cellSize * sx, row.y * cellSize * sy, (end - start) * cellSize * sx, cellSize * sy);
+    for (const { x, y, w, h } of playableAreaRects(arenaMap.playableArea))
+      c.rect(x * sx, y * sy, w * sx, h * sy);
     c.fillStyle = cols.wall; c.fill();
     if (isContestant) c.restore();
     c.save(); c.clip();

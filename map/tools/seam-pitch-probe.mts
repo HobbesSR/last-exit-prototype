@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { playableAreaFromCells } from '../../shared/playable-area.ts';
 /** #761 measurement only. Fixed-layout counterfactuals; never writes a library or map.
  * node map/tools/seam-pitch-probe.mts --out docs/reports/issue-761/seam-pitch.json
  * Optional: --widths 12,24,36 --seeds 1 --replace. See the retained report's README.
@@ -126,7 +127,7 @@ function turning(cellSize: number) {
     if (route) {
       // Treat the exact access-mask cells as playable, with the same geometry and clearance.
       const collision = { width: 8 * cellSize, height: 8 * cellSize, gates: [], obstacles: [{ id: 'wall' as ObstacleId, kind: 'ruin-wall', ...bounds(blockers[0]!) }],
-        playableArea: { cellSize, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: Array.from({ length: 8 }, (_, x) => x).filter(x => mask.has(x, y)).map(x => [x, x + 1]) })) } } as CollisionMap;
+        playableArea: playableAreaFromCells(playable.filter(c => mask.has(c.x, c.y)), cellSize) } as CollisionMap;
       const mover = { ...a };
       for (const goal of route.slice(1)) {
         let budget = 400;

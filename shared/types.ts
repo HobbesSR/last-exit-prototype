@@ -634,7 +634,11 @@ export interface Route {
   points: Vec2[];
 }
 
-/** Occupied map cells, with each run covering [startX, endXExclusive). Coordinates start at the world origin. */
+/**
+ * Occupied map cells as plain serializable JSON; each run covers [startX, endXExclusive).
+ * Coordinates start at the world origin. Construct and read through shared/playable-area.ts
+ * rather than encoding or unpacking rows/runs outside shared/.
+ */
 export interface PlayableArea {
   cellSize: World;
   rows: Array<{ y: number; runs: Array<[number, number]> }>;

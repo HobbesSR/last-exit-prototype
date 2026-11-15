@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary, generate } from '../map/chain.ts';
+import { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary, chainParams, generate } from '../map/chain.ts';
+import * as macroLibrary from '../map/macro/src/chain/bundled-library.ts';
+import { chainParams as macroParams } from '../map/macro/src/chain/params.ts';
 import { CHAIN_LIBRARY as TOOL_LIBRARY, generate as toolGenerate } from '../map/tools/core.ts';
 
 test('map entry point and tools share one library and generate', () => {
+  assert.strictEqual(CHAIN_LIBRARIES, macroLibrary.CHAIN_LIBRARIES);
+  assert.strictEqual(CHAIN_LIBRARY, macroLibrary.CHAIN_LIBRARY);
+  assert.strictEqual(bundledLibrary, macroLibrary.bundledLibrary);
+  assert.strictEqual(chainParams, macroParams);
   assert.strictEqual(CHAIN_LIBRARY, TOOL_LIBRARY);
   assert.strictEqual(toolGenerate, generate);
 });

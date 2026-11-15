@@ -1,76 +1,18 @@
 /** The game's entry point for the generation chain (51): macro placement through micro construction. */
-import diamond12x6 from './macro/content/diamond-12x6.json' with { type: 'json' };
-import diamond24x12 from './macro/content/diamond-24x12.json' with { type: 'json' };
-import diamond36x18 from './macro/content/diamond-36x18.json' with { type: 'json' };
-import commonPrimitives from './macro/content/common-primitives@7.json' with { type: 'json' };
-import commonSetPieces from './macro/content/common-set-pieces@7.json' with { type: 'json' };
-import districtSetPieces from './macro/content/district-set-pieces@6.json' with { type: 'json' };
-import { resolveLibrary, validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
+import { validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
 import type { ChainLibrary, LibraryValidation } from './macro/src/chain/library.ts';
 import { generateChainMap } from './macro/src/chain/map.ts';
-import { DEFAULT_CHAIN_PARAMS, placement, setPieceSeamProblems } from './macro/src/chain/placement.ts';
-import type { ChainMap, ChainParams } from './macro/src/chain/types.ts';
+import { placement, setPieceSeamProblems } from './macro/src/chain/placement.ts';
+import type { ChainMap } from './macro/src/chain/types.ts';
 import type { RegionElement } from './micro/types.ts';
 import { DEFAULT_CELL_SIZE, GAME_ENGINES, GAME_REGION_TYPES } from './engines.ts';
 import { isCellSize } from './kernel/scale.ts';
+import { CHAIN_LIBRARY, bundledLibrary } from './macro/src/chain/bundled-library.ts';
+import { chainParams } from './macro/src/chain/params.ts';
+export { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary } from './macro/src/chain/bundled-library.ts';
+export { chainParams } from './macro/src/chain/params.ts';
 
 export type GameChainMap = ChainMap<RegionElement>;
-
-const MODULES = {
-  'common-primitives@7': commonPrimitives, 'common-set-pieces@7': commonSetPieces,
-  'district-set-pieces@6': districtSetPieces,
-};
-
-/** The bundled libraries, one per zone size the diamond is authored for (55), default first. */
-export const CHAIN_LIBRARIES: readonly ChainLibrary[] = Object.freeze(
-  [diamond12x6, diamond24x12, diamond36x18].map((top) => resolveLibrary(top, MODULES)));
-
-/** The bundled library for the default zone size, which live matches use. */
-export const CHAIN_LIBRARY: ChainLibrary = CHAIN_LIBRARIES[0]!;
-
-/**
- * The bundled library authored for a zone size. Game mode accepts only authored sizes;
- * playground mode accepts any, and takes the default library where none is authored (51).
- */
-export function bundledLibrary(params: Pick<ChainParams, 'zoneWidth' | 'zoneHeight' | 'mode'> = DEFAULT_CHAIN_PARAMS): ChainLibrary {
-  const authored = CHAIN_LIBRARIES.find((library) => library.zoneWidth === params.zoneWidth && library.zoneHeight === params.zoneHeight);
-  if (authored) return authored;
-  if ((params.mode ?? 'game') === 'playground') return CHAIN_LIBRARY;
-  const sizes = CHAIN_LIBRARIES.map((library) => `${library.zoneWidth} x ${library.zoneHeight}`).join(', ');
-  throw new Error(`no bundled library is authored for ${params.zoneWidth} x ${params.zoneHeight} tile zones; game mode takes ${sizes}`);
-}
-
-function assertParamsObject(value: unknown): asserts value is Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('params must be an object');
-}
-
-type NumericParam = Exclude<keyof ChainParams, 'mode'>;
-const INTEGRAL: readonly NumericParam[] = ['zoneWidth', 'zoneHeight', 'exitCount', 'contestantCount', 'hunterCount'];
-const FRACTIONAL: readonly NumericParam[] = ['lootChance', 'lootTierStep'];
-/** Shorter names the CLI has always taken. */
-const ALIASES: Record<string, NumericParam> = { exits: 'exitCount', contestants: 'contestantCount', hunters: 'hunterCount' };
-
-/** Defaults with caller overrides, rejecting values placement cannot take. */
-export function chainParams(input: object = {}): ChainParams {
-  assertParamsObject(input);
-  const params: ChainParams = { ...DEFAULT_CHAIN_PARAMS };
-  for (const [key, value] of Object.entries(input)) {
-    if (value === undefined) continue;
-    if (key === 'mode') {
-      if (value !== 'game' && value !== 'playground') throw new Error('params.mode must be game or playground');
-      params.mode = value;
-      continue;
-    }
-    const target = ALIASES[key] ?? (key as NumericParam);
-    const integral = INTEGRAL.includes(target);
-    if (!integral && !FRACTIONAL.includes(target)) throw new Error(`params.${key} is not a map param`);
-    const n = Number(value);
-    if (!Number.isFinite(n) || n < 0 || (integral && !Number.isInteger(n)))
-      throw new Error(`params.${key} must be ${integral ? 'a whole number' : 'a number'} of at least 0`);
-    params[target] = n;
-  }
-  return params;
-}
 
 /**
  * The library checks, then its set pieces' own seams under matched passability (17.2.2): a rule or tile change can leave a set piece that was valid when saved unplaceable.

@@ -1,14 +1,10 @@
+import { openPlayableArea as openArea } from '../../shared/playable-area.ts';
+export { openArea };
 import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
 
 // Test arenas (31 "Test arenas", #697): one parameterized builder for hand-made scenes. A new arena is a
 // parameter set of this builder unless it needs something the builder can't express, and its PR says so.
 // Never served from the main interface; a lab may adapt one.
-
-/** A playable area covering the whole `width` x `height` rectangle, for a hand-made collision map that needs nothing else. */
-export const openArea = (width, height, cellSize) => {
-  const cols = Math.ceil(width / cellSize);
-  return { cellSize, rows: Array.from({ length: Math.ceil(height / cellSize) }, (_, y) => ({ y, runs: [[0, cols]] })) };
-};
 
 /**
  * A valid `GameMap` of `cols` × `rows` cells, all playable, so points anywhere stay where they are put.
