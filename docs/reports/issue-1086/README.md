@@ -155,7 +155,7 @@ scratch after the scope change.
 All twelve standard 12x6 frame, all-view and sampled payload hashes match
 exactly; retained in `hashes-12x6.txt`. The full 36x18 content-7/seed-4217 match also matches exactly across all
 12,001 frames and all views, with sampled payload equality; retained in
-`hashes-36x18.txt`. 
+`hashes-36x18.txt`.
 
 No browser or chain sweep was run: no geometry algorithm,
 generation input, browser path or wire format changed.
