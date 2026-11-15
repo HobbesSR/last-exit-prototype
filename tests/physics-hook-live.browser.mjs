@@ -10,8 +10,8 @@ import { readArchive } from './helpers/recordings.js';
 
 const map = { seed: 446, width: 4000, height: 800,
   playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 40]] })) },
-  modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
-  chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+  buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+  chargers: [], sensors: [], items: [], traps: [],
   entry: { x: 80, y: 400 }, exit: { x: 3900, y: 400 },
   spawns: [{ x: 250, y: 400 }, { x: 3000, y: 400 }], hunterSpawns: [{ x: 150, y: 400 }] };
 const content = structuredClone(contentById('content-6'));

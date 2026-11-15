@@ -9,8 +9,8 @@ const content = structuredClone(contentById('content-6'));
 content.roster = { contestants: ['Self', 'Other'], gladiators: [] };
 const map = { seed: 441, width: 1200, height: 800,
   playableArea: { cellSize: 100, rows: Array.from({ length: 8 }, (_, y) => ({ y, runs: [[0, 12]] })) },
-  modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
-  chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+  buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+  chargers: [], sensors: [], items: [], traps: [],
   entry: { x: 100, y: 400 }, exit: { x: 1100, y: 400 },
   spawns: [{ x: 300, y: 400 }, { x: 900, y: 400 }], hunterSpawns: [] };
 const { server, base, browser } = await serveWithBrowser({ profileSummary: false,

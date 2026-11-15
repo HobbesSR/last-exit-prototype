@@ -10,8 +10,8 @@ import { openArea } from './helpers/arena.js';
 function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, props = [], obstacles = [], items = [] } = {}) {
   const map = { seed: 448, width: 800, height: 800,
     playableArea: openArea(800, 800, 100),
-    modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [], physicsProps: props,
+    buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
+    chargers: [], sensors: [], items, traps: [], physicsProps: props,
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns,
     hunterSpawns: [{ x: 300, y: 400 }] };
   const content = structuredClone(contentById('content-6'));

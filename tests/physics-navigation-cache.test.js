@@ -12,8 +12,8 @@ test('bots share one prop query during collection, while same-tick external move
   content.roster = { contestants: ['A', 'B'], gladiators: [] };
   const map = { seed: 448, width: 800, height: 800,
     playableArea: openArea(800, 800, 100),
-    modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [],
-    sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+    buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [],
+    sensors: [], items: [], traps: [],
     physicsProps: [{ id: 'crate', profile: 'crate', x: 300, y: 450 }],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns: [{ x: 150, y: 400 }, { x: 150, y: 500 }] };
   const s = await createGame(448, map, content);

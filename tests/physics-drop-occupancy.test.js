@@ -9,8 +9,8 @@ import { openArea } from './helpers/arena.js';
 
 const map = (props = []) => ({ seed: 448, width: 800, height: 800,
   playableArea: openArea(800, 800, 100),
-  modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
-  chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [], physicsProps: props,
+  buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+  chargers: [], sensors: [], items: [], traps: [], physicsProps: props,
   entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 }, spawns: [{ x: 120, y: 400 }] });
 const content = () => ({ ...structuredClone(contentById('content-6')), dynamicNavigation: true,
   roster: { contestants: ['A'], gladiators: [] }, discovery: false });

@@ -12,8 +12,8 @@ import { openArea } from './helpers/arena.js';
 function parts(contestants = 2, contentId = 'content-6') {
   const map = { seed: 439, width: 800, height: 800,
     playableArea: openArea(800, 800, 100),
-    modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [],
+    buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [],
+    chargers: [], sensors: [], items: [], traps: [],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: Array.from({ length: contestants }, (_, i) => ({ x: 150 + i * 90, y: 400 })),
     hunterSpawns: [{ x: 650, y: 400 }] };

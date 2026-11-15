@@ -8,8 +8,8 @@ import { openArea } from './helpers/arena.js';
 
 function arena({ width = 800, height = 800, cellSize = 100, rows, obstacles = [], props = [], items = [] } = {}) {
   return { seed: 37, width, height, playableArea: rows ? { cellSize, rows } : openArea(width, height, cellSize),
-    modules: [], buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
-    chargers: [], sensors: [], items, traps: [], routes: [], nodes: [], streets: [],
+    buildings: [], obstacles, gates: [], hazards: [], gaps: [], stations: [],
+    chargers: [], sensors: [], items, traps: [],
     physicsProps: props, entry: { x: 80, y: height / 2 }, exit: { x: width - 50, y: height / 2 },
     spawns: [{ x: 150, y: height / 2 }] };
 }
