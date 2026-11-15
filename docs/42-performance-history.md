@@ -80,6 +80,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | Child | Load for |
 | --- | --- |
 | [42.45](42.45-art-delivery-evidence.md) | Technical art plan's delivered steps: storefront, landmark and catalogue kits, palette × field contrast sweep, actor identity layer, wear vocabulary, signature promotion and its client benchmark (#581) |
+| [42.46](42.46-room-threads.md) | Room threads (#1089): the active room's delivery gaps while a second room prepares and starts, threaded against inline, at 12x6 and 36x18 |
 
 The current unresolved slowdown is recorded below.
 

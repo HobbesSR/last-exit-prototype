@@ -11,7 +11,7 @@ import { reusedMap } from './helpers/room-harness.js';
 test('matchmaking separates private rooms, honors available preferences, falls back, and starts automatically', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-match-'));
   // Matchmaking, not generation: every room, the private one and the matchmade one, plays seed 9's map.
-  const server = await createArenaServer({ replayDir: dir, generateMap: reusedMap });
+  const server = await createArenaServer({ replayDir: dir, generateMap: reusedMap, roomThreads: false });
   try {
     const base = await listen(server);
     const privateRoom = await createRoom(server, base, '{"seed":9}');

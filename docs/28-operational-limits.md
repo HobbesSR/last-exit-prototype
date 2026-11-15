@@ -1,6 +1,6 @@
 # 28. Operational limits
 
-The server defaults to loopback and caps active rooms at eight. It has no authentication, public matchmaking, encrypted public hosting, horizontal scaling, retention policy, persistent unlocks, or automated crash recovery. Finished recordings accumulate until manually archived. Publishing publicly needs a separate deployment and security pass, and must leave `DEV_TOOLS` unset: `npm run dev` gives every connection the dev view's unfogged, undelayed map ([24](24-networking-privacy.md#dev-view)). The first slice intentionally has no sounds or persistent economy.
+The server defaults to loopback and caps active rooms at eight per process, each on its own thread (#1089). It has no authentication, public matchmaking, encrypted public hosting, horizontal scaling, retention policy, persistent unlocks, or automated crash recovery. Finished recordings accumulate until manually archived. Publishing publicly needs a separate deployment and security pass, and must leave `DEV_TOOLS` unset: `npm run dev` gives every connection the dev view's unfogged, undelayed map ([24](24-networking-privacy.md#dev-view)). The first slice intentionally has no sounds or persistent economy.
 
 HTTP JSON request bodies are limited to 2 KiB. Clients send uncompressed JSON;
 non-identity `Content-Encoding` is rejected with HTTP 415 before decompression,

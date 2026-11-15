@@ -18,7 +18,7 @@ const fastMap = reusedMap;
 
 test('abandoned live rooms keep a reconnect grace then stop simulation and finalize their replay', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-abandoned-'));
-  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, roomThreads: false });
   const until = async predicate => {
     const deadline = Date.now() + 5000;
     while (!await predicate()) { assert.ok(Date.now() < deadline, 'condition timed out'); await new Promise(r => setTimeout(r, 15)); }
@@ -52,7 +52,7 @@ test('a room created with no seed is answered with a pooled map\'s seed, and hea
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-pool-'));
   // Every size gets the small map: only the default size is taken here, and the large ones are slow inline.
   const asked = [], generateMap = seed => { asked.push(seed); return Promise.resolve(generatedMap(9)); };
-  const server = await createArenaServer({ replayDir: dir, generateMap, mapPool: 1 });
+  const server = await createArenaServer({ replayDir: dir, generateMap, mapPool: 1, roomThreads: false });
   try {
     const base = await listen(server), health = async () => (await (await fetch(base + '/api/health')).json()).mapPool;
     const deadline = Date.now() + 30000;
@@ -70,7 +70,7 @@ test('a room created with no seed is answered with a pooled map\'s seed, and hea
 
 test('resume credentials restore the same player even while the previous socket is open', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-resume-'));
-  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, roomThreads: false });
   try {
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
@@ -94,7 +94,7 @@ test('resume credentials restore the same player even while the previous socket 
 
 test('spectators hold no slot, need the owner key, and receive the directed view', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-spectator-'));
-  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, roomThreads: false });
   try {
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');

@@ -7,7 +7,7 @@ import { canOccupy } from '../shared/movement.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 
 await mkdir('test-results', { recursive: true });
-const { server, base, browser, close } = await serveDevWithBrowser();
+const { server, base, browser, close } = await serveDevWithBrowser({ roomThreads: false });
 const errors = [];
 const watch = page => {
   collectBrowserErrors(page, errors, { consoleErrors: true });

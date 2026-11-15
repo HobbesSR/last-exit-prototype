@@ -16,6 +16,7 @@ import { Worker } from 'node:worker_threads';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createMapGenerator } from '../../server/map-generator.js';
+import { unpackMap } from '../../server/map-pack.js';
 import { startScheduler } from '../../server/scheduler.js';
 import { liveZoneSize } from '../../map/live.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
@@ -165,7 +166,7 @@ try {
       throw new Error('map cache seed/size/content mismatch; use a fresh cache path after code/content changes');
   }
   if (!bundle) {
-    const maps = [await generator.generate(seed, size), await generator.generate(seed + 1, size)];
+    const maps = [unpackMap(await generator.generate(seed, size)), unpackMap(await generator.generate(seed + 1, size))];
     bundle = { seed, size: `${zoneWidth}x${zoneHeight}`, content: defaultContent().id,
       maps: maps.map(map => ({ map, navigation: portalGraphOf(map), tiles: prebuiltTiles(map, defaultContent()) })) };
     if (args.has('maps-cache')) await writeFile(args.get('maps-cache'), serialize(bundle));

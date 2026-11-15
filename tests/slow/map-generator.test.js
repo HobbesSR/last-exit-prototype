@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMapGenerator } from '../../server/map-generator.js';
+import { isPackedMap, unpackMap } from '../../server/map-pack.js';
 import { DEFAULT_LIVE_ZONE_SIZE } from '../../map/live.ts';
 import { portalGraphOf } from '../../shared/navigation/portal-graph.ts';
 import { freeSpaceTile } from '../../shared/free-space.ts';
@@ -19,7 +20,10 @@ test("the map worker returns exactly the map generated inline, and each request 
     // only for being a live map of its own seed, in its own place: one seed shows the two paths agree.
     // The worker generates with the shipped content, the harness with the legacy content; their rosters are the
     // same size, so are their maps (room-content.test.js relies on this too). A roster change shows up here.
-    const inline = generatedMap(9, DEFAULT_LIVE_ZONE_SIZE), [first, second] = await answers;
+    // Answers stay packed until the thread that plays them unpacks them (#1089), as a room's does here.
+    const inline = generatedMap(9, DEFAULT_LIVE_ZONE_SIZE), packed = await answers;
+    assert.ok(packed.every(isPackedMap), 'answered packed, for the room to decode');
+    const [first, second] = packed.map(unpackMap);
     assert.equal(JSON.stringify(second), JSON.stringify(inline), "the worker's map is exactly the inline one");
     assert.equal(first.generator, inline.generator, 'the earlier request is answered with a live map');
     assert.deepEqual([first.seed, second.seed], [4217, 9], "each request is answered with its own seed's map, in its own order");

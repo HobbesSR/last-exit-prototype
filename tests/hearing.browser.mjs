@@ -6,7 +6,7 @@ import { hearShot } from '../shared/simulation/hearing.ts';
 
 // Heard gunfire's presentation (#684, 29.4): a cue reaches the player's own frame and is drawn, as a ring
 // on screen and an edge arrow off it, and on the minimap, without a page error. Shots are arranged on the server.
-const { server, base, browser } = await serveWithBrowser({ profileSummary: false, content: () => contentById('content-8'),
+const { server, base, browser } = await serveWithBrowser({ profileSummary: false, roomThreads: false, content: () => contentById('content-8'),
   replayDir: path.resolve('test-results/hearing-replays') });
 const errors = [];
 try {

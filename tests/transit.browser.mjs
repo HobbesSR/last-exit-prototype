@@ -8,7 +8,7 @@ import { transitOptions } from '../shared/simulation/transit.ts';
 // Transit route selection's presentation (#692, 12): a gladiator at a station sees where it may go ringed on the
 // minimap, and a click on a ring that isn't the default takes it there, without a page error. The gladiator is
 // placed at a station on the server.
-const { server, base, browser } = await serveWithBrowser({ profileSummary: false, content: () => contentById('content-10'),
+const { server, base, browser } = await serveWithBrowser({ profileSummary: false, roomThreads: false, content: () => contentById('content-10'),
   replayDir: path.resolve('test-results/transit-replays') });
 const errors = [];
 try {
