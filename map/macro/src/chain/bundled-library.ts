@@ -33,4 +33,3 @@ export function bundledLibrary(params: Pick<ChainParams, 'zoneWidth' | 'zoneHeig
   const sizes = CHAIN_LIBRARIES.map((library) => `${library.zoneWidth} x ${library.zoneHeight}`).join(', ');
   throw new Error(`no bundled library is authored for ${params.zoneWidth} x ${params.zoneHeight} tile zones; game mode takes ${sizes}`);
 }
-

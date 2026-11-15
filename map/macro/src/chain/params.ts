@@ -33,4 +33,3 @@ export function chainParams(input: object = {}): ChainParams {
   }
   return params;
 }
-
