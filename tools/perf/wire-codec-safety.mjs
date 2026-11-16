@@ -78,6 +78,12 @@ export function semanticSpecimens(base) {
   add('item id string', state([own({ cell: item({ id: 'five' }) })]));
   add('item id string "5"', state([own({ cell: item({ id: '5' }) })]));
   add('item id negative number', state([own({ cell: item({ id: -3 }) })]));
+  // The whole safe-integer range of numeric IDs, at its boundaries (review 858 on PR #1133).
+  for (const [label, v] of [['0', 0], ['2**52 - 1', 2 ** 52 - 1], ['2**52', 2 ** 52], ['MAX_SAFE_INTEGER', Number.MAX_SAFE_INTEGER],
+    ['-MAX_SAFE_INTEGER', -Number.MAX_SAFE_INTEGER], ['-(2**52)', -(2 ** 52)]]) {
+    add(`body itemId ${label}`, state([own()], [body({ itemId: v })]));
+    add(`item id ${label}`, state([own({ cell: item({ id: v }) })]));
+  }
   add('body shapes box and convex', state([own()], [body({ shape: { kind: 'box', hx: 4, hy: 5 } }), body({ id: 'p', shape: { kind: 'convex', vertices: [{ x: 0, y: 0 }, { x: 1.5, y: 0 }, { x: 0, y: 2.5 }] } })]));
   add('discovered layer drop with mixed ids', state([own({ discovered: { k: 2, all: [1, 2, 3], set: [4], drop: [5, 'x'] } })]));
 

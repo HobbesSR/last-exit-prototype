@@ -1,13 +1,13 @@
 {
  "issue": 1130,
- "date": "2026-11-16T05:57:11.755Z",
+ "date": "2026-11-16T06:17:23.904Z",
  "node": "v24.15.0",
  "corpus": "test-results/wire-1130-corpus-12x6.json",
- "safetySha256": "cb2ee101836607a5ba5ddefb0e88b152bb98cdd28133a2d1b3f7d6473d4511fb",
+ "safetySha256": "b4075668b8df5bf088da641d788964e523be430c07f3c97d8eefc4b9d70718b4",
  "descriptor": {
   "semantics": {
-   "specimens": 99,
-   "exact": 92,
+   "specimens": 111,
+   "exact": 104,
    "acceptedRefusals": [
     "input extra unknown field [encode-refused] field extra is not in $input",
     "string as player name: 4097 chars [encode-refused] string too long",
@@ -36,7 +36,7 @@
     "cases": 14090,
     "threw": 14090,
     "returned": 0,
-    "maxMs": 0.553,
+    "maxMs": 0.361,
     "nonError": 0,
     "errors": {
      "RangeError: truncated message": 13775,
@@ -48,7 +48,7 @@
     "cases": 10,
     "threw": 10,
     "returned": 0,
-    "maxMs": 0.135,
+    "maxMs": 0.069,
     "nonError": 0,
     "errors": {
      "RangeError: trailing bytes": 10
@@ -82,7 +82,7 @@
      "cases": 10,
      "threw": 10,
      "returned": 0,
-     "maxMs": 0.009,
+     "maxMs": 0.008,
      "nonError": 0,
      "errors": {
       "RangeError: unknown message type": 10
@@ -96,7 +96,7 @@
     "returnedDifferent": 418,
     "returnedIdentical": 0,
     "nonError": 0,
-    "maxMs": 0.185,
+    "maxMs": 0.266,
     "errors": {
      "TypeError: The encoded data was not valid for encoding utf-8": 605,
      "RangeError: bad id tag": 69,
@@ -122,49 +122,49 @@
      "name": "players count 2**31, no payload",
      "bytes": 12,
      "outcome": "threw",
-     "ms": 0.02,
+     "ms": 0.023,
      "error": "RangeError: collection length out of bounds"
     },
     {
      "name": "players count 2**31 with 16 bytes after",
      "bytes": 28,
      "outcome": "threw",
-     "ms": 0.014,
+     "ms": 0.017,
      "error": "RangeError: collection length out of bounds"
     },
     {
      "name": "players count 65536 (at cap) with 3 bytes after",
      "bytes": 13,
      "outcome": "threw",
-     "ms": 0.01,
+     "ms": 0.011,
      "error": "RangeError: collection length out of bounds"
     },
     {
      "name": "players count 65537 (above cap) with 70000 bytes after",
      "bytes": 70010,
      "outcome": "threw",
-     "ms": 0.009,
+     "ms": 0.01,
      "error": "RangeError: collection length out of bounds"
     },
     {
      "name": "players count 40000 of empty Observed with matching zeros (cheap loop)",
      "bytes": 40010,
      "outcome": "threw",
-     "ms": 1.564,
+     "ms": 1.703,
      "error": "RangeError: truncated message"
     },
     {
      "name": "bodies list count 2**31 (layer tag 0)",
      "bytes": 14,
      "outcome": "threw",
-     "ms": 0.037,
+     "ms": 0.025,
      "error": "RangeError: collection length out of bounds"
     },
     {
      "name": "bodies layer all-count 2**31 (layer tag 3)",
      "bytes": 15,
      "outcome": "threw",
-     "ms": 0.012,
+     "ms": 0.013,
      "error": "RangeError: collection length out of bounds"
     },
     {
@@ -178,7 +178,7 @@
      "name": "version string UTF-16 length 2**31",
      "bytes": 9,
      "outcome": "threw",
-     "ms": 0.016,
+     "ms": 0.017,
      "error": "RangeError: string too long"
     },
     {
@@ -192,7 +192,7 @@
      "name": "varint of 10 continuation bytes",
      "bytes": 14,
      "outcome": "threw",
-     "ms": 0.014,
+     "ms": 0.017,
      "error": "RangeError: varint too long"
     },
     {
@@ -219,14 +219,14 @@
      "name": "ping with token length 2**31",
      "bytes": 8,
      "outcome": "threw",
-     "ms": 0.009,
+     "ms": 0.01,
      "error": "RangeError: string too long"
     },
     {
      "name": "ping with huge declared length and 0 bytes",
      "bytes": 3,
      "outcome": "threw",
-     "ms": 0.01,
+     "ms": 0.011,
      "error": "RangeError: truncated message"
     },
     {
@@ -240,24 +240,24 @@
      "name": "empty input",
      "bytes": 0,
      "outcome": "threw",
-     "ms": 0.007,
+     "ms": 0.009,
      "error": "RangeError: truncated message"
     },
     {
      "name": "1 MiB + 1 bytes (expect refusal by size)",
      "bytes": 1048577,
      "outcome": "threw",
-     "ms": 0.009,
+     "ms": 0.01,
      "error": "RangeError: message too large"
     }
    ],
-   "maxMs": 1.564
+   "maxMs": 1.703
   }
  },
  "msgpackr-inline": {
   "semantics": {
-   "specimens": 99,
-   "exact": 85,
+   "specimens": 111,
+   "exact": 97,
    "acceptedRefusals": [],
    "failures": [
     "key present with value undefined (body.vx) [mismatch] $.state.bodies.all[0].vx: unexpected key present with value undefined",
@@ -293,7 +293,7 @@
     "cases": 18295,
     "threw": 18295,
     "returned": 0,
-    "maxMs": 1.272,
+    "maxMs": 1.636,
     "nonError": 0,
     "errors": {
      "RangeError: unknown format": 10,
@@ -309,7 +309,7 @@
     "cases": 10,
     "threw": 10,
     "returned": 0,
-    "maxMs": 0.202,
+    "maxMs": 0.267,
     "nonError": 0,
     "errors": {
      "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"versio": 8,
@@ -334,7 +334,7 @@
      "cases": 10,
      "threw": 10,
      "returned": 0,
-     "maxMs": 0.006,
+     "maxMs": 0.007,
      "nonError": 0,
      "errors": {
       "RangeError: unsupported version": 10
@@ -345,7 +345,7 @@
      "cases": 10,
      "threw": 10,
      "returned": 0,
-     "maxMs": 0.011,
+     "maxMs": 0.006,
      "nonError": 0,
      "errors": {
       "RangeError: unknown message type": 10
@@ -359,7 +359,7 @@
     "returnedDifferent": 1100,
     "returnedIdentical": 4,
     "nonError": 0,
-    "maxMs": 0.516,
+    "maxMs": 0.475,
     "errors": {
      "Error: Unexpected end of MessagePack data": 116,
      "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"versio": 359,
@@ -538,14 +538,14 @@
      "name": "array32 length 0xffffffff, no payload",
      "bytes": 8,
      "outcome": "threw",
-     "ms": 0.019,
+     "ms": 0.021,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "array32 length 0xffffffff with 16 bytes",
      "bytes": 24,
      "outcome": "threw",
-     "ms": 0.014,
+     "ms": 0.016,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
@@ -573,7 +573,7 @@
      "name": "map32 length 0xffffffff, no payload",
      "bytes": 8,
      "outcome": "threw",
-     "ms": 0.013,
+     "ms": 0.014,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
@@ -587,14 +587,14 @@
      "name": "bin32 length 0x7fffffff with 16 bytes",
      "bytes": 24,
      "outcome": "threw",
-     "ms": 0.021,
+     "ms": 0.023,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "ext32 length 0x7fffffff, type 0x72",
      "bytes": 12,
      "outcome": "threw",
-     "ms": 0.014,
+     "ms": 0.015,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
@@ -608,49 +608,49 @@
      "name": "uint64 0xffffffffffffffff",
      "bytes": 12,
      "outcome": "threw",
-     "ms": 0.008,
+     "ms": 0.009,
      "error": "RangeError: message type mismatch"
     },
     {
      "name": "fixext1 record ref to undefined structure 0x40",
      "bytes": 6,
      "outcome": "threw",
-     "ms": 0.022,
+     "ms": 0.023,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "fixext1 record ref to undefined structure 0x20 (shared range)",
      "bytes": 6,
      "outcome": "threw",
-     "ms": 0.02,
+     "ms": 0.021,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "ext8 record definition, 255 keys, truncated",
      "bytes": 27,
      "outcome": "threw",
-     "ms": 0.012,
+     "ms": 0.013,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "100000 nested one-element arrays then nil",
      "bytes": 100004,
      "outcome": "threw",
-     "ms": 2.069,
+     "ms": 2.14,
      "error": "RangeError: Maximum call stack size exceeded"
     },
     {
      "name": "30000 nested single-key maps then nil",
      "bytes": 90004,
      "outcome": "threw",
-     "ms": 1.547,
+     "ms": 1.59,
      "error": "RangeError: Maximum call stack size exceeded"
     },
     {
      "name": "header only",
      "bytes": 3,
      "outcome": "threw",
-     "ms": 0.02,
+     "ms": 0.022,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
@@ -664,17 +664,17 @@
      "name": "1 MiB + 1 bytes (expect refusal by size)",
      "bytes": 1048577,
      "outcome": "threw",
-     "ms": 0.013,
+     "ms": 0.014,
      "error": "RangeError: message too large"
     }
    ],
-   "maxMs": 2.069
+   "maxMs": 2.14
   }
  },
  "msgpackr-provisioned": {
   "semantics": {
-   "specimens": 99,
-   "exact": 85,
+   "specimens": 111,
+   "exact": 97,
    "acceptedRefusals": [],
    "failures": [
     "key present with value undefined (body.vx) [mismatch] $.state.bodies.all[0].vx: unexpected key present with value undefined",
@@ -710,7 +710,7 @@
     "cases": 16681,
     "threw": 16681,
     "returned": 0,
-    "maxMs": 0.535,
+    "maxMs": 0.637,
     "nonError": 0,
     "errors": {
      "RangeError: unknown format": 10,
@@ -726,7 +726,7 @@
     "cases": 10,
     "threw": 10,
     "returned": 0,
-    "maxMs": 0.179,
+    "maxMs": 0.195,
     "nonError": 0,
     "errors": {
      "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"versio": 8,
@@ -740,7 +740,7 @@
      "cases": 10,
      "threw": 10,
      "returned": 0,
-     "maxMs": 0.01,
+     "maxMs": 0.014,
      "nonError": 0,
      "errors": {
       "RangeError: unknown format": 10
@@ -776,7 +776,7 @@
     "returnedDifferent": 1003,
     "returnedIdentical": 5,
     "nonError": 0,
-    "maxMs": 0.468,
+    "maxMs": 0.434,
     "errors": {
      "Error: Unexpected end of MessagePack data": 253,
      "RangeError: unknown format": 30,
@@ -929,63 +929,63 @@
      "name": "array32 length 0xffffffff, no payload",
      "bytes": 8,
      "outcome": "threw",
-     "ms": 0.019,
+     "ms": 0.021,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "array32 length 0xffffffff with 16 bytes",
      "bytes": 24,
      "outcome": "threw",
-     "ms": 0.014,
+     "ms": 0.017,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "array32 length 100000000 with 16 bytes",
      "bytes": 24,
      "outcome": "threw",
-     "ms": 0.014,
+     "ms": 0.015,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "str32 length 0x7fffffff, no payload",
      "bytes": 8,
      "outcome": "threw",
-     "ms": 0.013,
+     "ms": 0.014,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "str32 length 0xffffffff, no payload",
      "bytes": 8,
      "outcome": "threw",
-     "ms": 0.012,
+     "ms": 0.013,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "map32 length 0xffffffff, no payload",
      "bytes": 8,
      "outcome": "threw",
-     "ms": 0.014,
+     "ms": 0.015,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "map32 length 100000000 with 16 bytes",
      "bytes": 24,
      "outcome": "threw",
-     "ms": 0.013,
+     "ms": 0.016,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "bin32 length 0x7fffffff with 16 bytes",
      "bytes": 24,
      "outcome": "threw",
-     "ms": 0.012,
+     "ms": 0.014,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "ext32 length 0x7fffffff, type 0x72",
      "bytes": 12,
      "outcome": "threw",
-     "ms": 0.013,
+     "ms": 0.014,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
@@ -999,21 +999,21 @@
      "name": "uint64 0xffffffffffffffff",
      "bytes": 12,
      "outcome": "threw",
-     "ms": 0.006,
+     "ms": 0.007,
      "error": "RangeError: message type mismatch"
     },
     {
      "name": "fixext1 record ref to undefined structure 0x40",
      "bytes": 6,
      "outcome": "threw",
-     "ms": 0.015,
+     "ms": 0.017,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "fixext1 record ref to undefined structure 0x20 (shared range)",
      "bytes": 6,
      "outcome": "threw",
-     "ms": 0.015,
+     "ms": 0.016,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
@@ -1027,40 +1027,40 @@
      "name": "100000 nested one-element arrays then nil",
      "bytes": 100004,
      "outcome": "threw",
-     "ms": 0.57,
+     "ms": 0.543,
      "error": "RangeError: Maximum call stack size exceeded"
     },
     {
      "name": "30000 nested single-key maps then nil",
      "bytes": 90004,
      "outcome": "threw",
-     "ms": 1.139,
+     "ms": 0.977,
      "error": "RangeError: Maximum call stack size exceeded"
     },
     {
      "name": "header only",
      "bytes": 3,
      "outcome": "threw",
-     "ms": 0.018,
+     "ms": 0.025,
      "error": "Error: Unexpected end of MessagePack data"
     },
     {
      "name": "empty input",
      "bytes": 0,
      "outcome": "threw",
-     "ms": 0.006,
+     "ms": 0.01,
      "error": "RangeError: unknown format"
     },
     {
      "name": "1 MiB + 1 bytes (expect refusal by size)",
      "bytes": 1048577,
      "outcome": "threw",
-     "ms": 0.006,
+     "ms": 0.009,
      "error": "RangeError: message too large"
     }
    ],
-   "maxMs": 1.139
+   "maxMs": 0.977
   }
  },
- "seconds": 2.4
+ "seconds": 2.5
 }

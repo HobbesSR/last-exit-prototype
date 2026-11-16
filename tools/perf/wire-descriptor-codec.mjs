@@ -147,13 +147,27 @@ export function createDescriptorCodec(schema, options = {}) {
     },
     bool: { w: (w, v) => { if (typeof v !== 'boolean') fail('expected boolean'); w.byte(v ? 1 : 0); }, r: r => { const b = r.byte(); if (b > 1) bad('bad boolean'); return b === 1; } },
     str: { w: (w, v) => { if (typeof v !== 'string') fail('expected string'); w.str(v, MAX); }, r: r => r.str() },
+    // Tag 0 string, 1 non-negative integer, 2 negative integer (magnitude). Sign-magnitude, not zigzag,
+    // so the whole safe-integer range round-trips: zigzag doubles a magnitude past 2^53.
     id: {
-      w: (w, v) => { if (typeof v === 'string') { w.byte(0); return w.str(v, MAX); } if (Number.isSafeInteger(v)) { w.byte(1); return w.sint(v); } fail('expected string or safe-integer id'); },
-      r: r => { const t = r.byte(); if (t === 0) return r.str(); if (t === 1) return r.sint(); return bad('bad id tag'); },
+      w: (w, v) => {
+        if (typeof v === 'string') { w.byte(0); return w.str(v, MAX); }
+        if (!Number.isSafeInteger(v)) fail('expected string or safe-integer id');
+        if (v >= 0) { w.byte(1); return w.uint(v); }
+        w.byte(2); w.uint(-v);
+      },
+      r: r => {
+        const t = r.byte();
+        if (t === 0) return r.str();
+        if (t === 1) return r.uint();
+        if (t === 2) { const m = r.uint(); if (m === 0) bad('non-canonical id'); return -m; }
+        return bad('bad id tag');
+      },
     },
   };
+  // Zigzag doubles the magnitude, so a quantized value must stay below 2^52 to remain a safe integer.
   const quantized = scale => ({
-    w: (w, v) => { if (typeof v !== 'number') fail('quantized field must be a number'); const q = Math.round(v * scale); if (!Number.isSafeInteger(q)) fail('quantization overflow'); w.sint(q); },
+    w: (w, v) => { if (typeof v !== 'number') fail('quantized field must be a number'); const q = Math.round(v * scale); if (!Number.isSafeInteger(q) || Math.abs(q) >= 2 ** 52) fail('quantization overflow'); w.sint(q === 0 ? 0 : q); },
     r: r => r.sint() / scale,
   });
 
@@ -269,6 +283,7 @@ export function createDescriptorCodec(schema, options = {}) {
   }
   for (const name of Object.keys(schema.records)) compileNamed(name); // refuse unused-but-broken records too
   const writer = new Writer(1 << 16), adhoc = new Map();
+  const codecFor = type => { const key = typeof type === 'string' ? type : JSON.stringify(type); let c = adhoc.get(key); if (!c) adhoc.set(key, c = compile(type)); return c; };
 
   return {
     name: options.name ?? 'descriptor',
@@ -289,8 +304,11 @@ export function createDescriptorCodec(schema, options = {}) {
       return message;
     },
     // Low-level access for the capped-packing probe.
-    writeValue(w, type, v) { const key = typeof type === 'string' ? type : JSON.stringify(type); let c = adhoc.get(key); if (!c) adhoc.set(key, c = compile(type)); c.w(w, v); },
+    writeValue(w, type, v) { codecFor(type).w(w, v); },
+    readValue(r, type) { return codecFor(type).r(r); },
+    reader(bytes) { return new Reader(bytes, limits); },
     header(w, type) { w.byte(FORMAT); w.uint(schema.version); w.uint(byType.get(type).id); },
+    readHeader(r) { if (r.byte() !== FORMAT || r.uint() !== schema.version) bad('bad header'); return byId.get(r.uint())?.type; },
     Writer,
   };
 }

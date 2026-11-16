@@ -37,6 +37,10 @@ const revision = git('rev-parse', 'HEAD').trim();
 // The only runtime change on this branch exports the projection field declarations (no behaviour change).
 const DECLARATION_EXPORTS = ['shared/simulation/projection-contract.ts', 'shared/simulation/visibility.ts'];
 const json = { name: 'json', encode: m => Buffer.from(JSON.stringify(m)), decode: b => JSON.parse(b.toString()) };
+// The capped probe's sections in priority order, and the bodies layer forms it records (helpers below).
+const CAPPED_SECTIONS = ['ownPlayer', 'ownBody', 'otherPlayers', 'otherBodies'];
+const LAYER_FORMS = ['none', 'plain', 'all', 'set', 'empty'];
+const SECTION_TYPES = { ownPlayer: 'Player', ownBody: 'Body', otherPlayers: 'Player', otherBodies: 'Body' };
 
 const lock = await acquireMachineLock('bench', { mode: timing ? 'exclusive' : 'shared' });
 let match;
@@ -170,10 +174,24 @@ try {
     capped[view] = { descriptor: [], 'msgpackr-provisioned': [] };
     for (const row of corpus[view]) {
       const sections = prioritySections(row.ref, viewers[view], row.viewer);
-      capped[view].descriptor.push(cappedDescriptor(D, sections, CAP));
-      capped[view]['msgpackr-provisioned'].push(cappedMsgpackr(sections, CAP, structures));
+      const d = cappedDescriptor(D, sections, CAP), m = cappedMsgpackr(sections, CAP, structures);
+      verifyCapped(decodeCappedDescriptor(D, d.encoded), sections, d); verifyCapped(decodeCappedMsgpackr(m.encoded, structures), sections, m);
+      for (const [name, result] of [['descriptor', d], ['msgpackr-provisioned', m]]) {
+        assert.equal(result.encoded.length, result.bytes, `${name} capped byte count`);
+        assert.ok(result.bytes <= CAP || !result.mandatoryFits, `${name} capped within cap`);
+        delete result.encoded; capped[view][name].push({ ...result, verified: true });
+      }
     }
     for (const name of Object.keys(capped[view])) capped[view][name] = summarizeCapped(capped[view][name]);
+  }
+  // Review 858's witness: mandatory content alone over the cap must be reported, not hidden.
+  {
+    const row = corpus.contestant.at(-1), big = structuredClone(row.ref);
+    big.state.version = 'v'.repeat(4000);
+    big.state.bodies = { k: 7, set: [], drop: Array.from({ length: 200 }, (_, i) => `item:item-${i}`) };
+    const s = prioritySections(big, viewers.contestant, row.viewer);
+    for (const result of [cappedDescriptor(D, s, CAP), cappedMsgpackr(s, CAP, structures)])
+      assert.ok(!result.mandatoryFits && !result.complete && result.mandatoryBytes > CAP, 'oversized mandatory content is reported');
   }
 
   // ---- Specimens: control (server→client) and input (client→server, measurement only) ---------------
@@ -321,53 +339,97 @@ function changesAgainst(baseline, list, k) {
   return { k, ...(set.length ? { set } : {}), ...(drop.length ? { drop } : {}) };
 }
 function withBodies(message, bodies) { return { ...message, state: { ...message.state, bodies } }; }
-// Priority sections for the capped probe: header + the viewer's own player and body, other players
-// nearest first, then the layer's changed/keyframe bodies nearest first (directed views: id order).
+// Capped probe (review 858 on PR #1133). Mandatory content is the whole state header (every field but
+// players and bodies), the bodies layer's metadata (form, keyframe k, every drop id) and the viewer's
+// own player and own body. Optional sections follow in priority order: other players nearest first,
+// then the layer's other bodies nearest first (directed views: list order). Every section's count
+// slot is reserved before any record is admitted; the first record that does not fit ends packing.
 function prioritySections(message, viewerId, at) {
   const { players = [], bodies, ...header } = message.state;
   const dist = r => at ? Math.hypot(r.x - at.x, r.y - at.y) : 0;
-  const own = players.filter(p => p.id === viewerId), others = players.filter(p => p.id !== viewerId).sort((a, b) => dist(a) - dist(b));
   const entries = Array.isArray(bodies) ? bodies : [...(bodies?.all ?? []), ...(bodies?.set ?? [])];
-  const ownBody = entries.filter(b => viewerId && b.actorId === viewerId), rest = entries.filter(b => !(viewerId && b.actorId === viewerId)).sort((a, b) => dist(a) - dist(b));
-  return { header, players: [...own, ...others], bodies: [...ownBody, ...rest], bodiesK: Array.isArray(bodies) ? null : bodies?.k, required: { players: own.length, bodies: ownBody.length } };
+  const mine = b => viewerId !== undefined && b.actorId === viewerId;
+  const layer = bodies === undefined ? { form: 'none' } : Array.isArray(bodies) ? { form: 'plain' }
+    : { form: bodies.all ? 'all' : bodies.set ? 'set' : 'empty', k: bodies.k, drop: bodies.drop ?? [] };
+  return { header, layer, lists: {
+    ownPlayer: players.filter(p => p.id === viewerId), ownBody: entries.filter(mine),
+    otherPlayers: players.filter(p => p.id !== viewerId).sort((a, b) => dist(a) - dist(b)),
+    otherBodies: entries.filter(b => !mine(b)).sort((a, b) => dist(a) - dist(b)) } };
 }
-// Descriptor: header record, then [u16 count][records] per section with the count back-patched. A record
-// that overflows the cap is rewound (one record re-done, never the whole message) and the section ends.
+function cappedResult(s, sent, bytes, mandatoryFits, mandatoryBytes) {
+  const sections = Object.fromEntries(CAPPED_SECTIONS.map(k => [k, { sent: sent[k] ?? 0, total: s.lists[k].length }]));
+  return { bytes, mandatoryBytes, mandatoryFits, sections, complete: mandatoryFits && Object.values(sections).every(x => x.sent === x.total) };
+}
+// Descriptor: header record (State with an empty player list), layer metadata, then four [u16 count]
+// sections with back-patched counts. A record that overflows is rewound: one record redone, never the message.
 function cappedDescriptor(codec, s, cap) {
   const w = new Writer(2048); codec.header(w, 'state');
-  const { players, bodies, ...rest } = { ...s.header };
-  codec.writeValue(w, { map: 'str' }, {}, 'probe'); // a zero-length map: the probe's fixed header slot
-  codec.writeValue(w, 'uint', s.header.tick, 'tick');
-  const out = { headerBytes: w.at, sections: {} };
-  let full = false;
-  for (const [name, list, type] of [['players', s.players, 'Player'], ['bodies', s.bodies, 'Body']]) {
-    const slot = w.at; w.u16(0); let n = 0;
-    for (const record of full ? [] : list) {
-      const mark = w.at; codec.writeValue(w, type, record, name);
-      if (w.at > cap) { w.at = mark; full = true; break; }
+  codec.writeValue(w, 'State', { ...s.header, players: [] });
+  w.byte(LAYER_FORMS.indexOf(s.layer.form));
+  if (s.layer.k !== undefined) { codec.writeValue(w, 'uint', s.layer.k); codec.writeValue(w, { list: 'id' }, s.layer.drop); }
+  const slots = {}, sent = {};
+  for (const k of CAPPED_SECTIONS) { slots[k] = w.at; w.u16(0); }
+  // Sections are written in order after all their slots, so no later section needs space reserved.
+  let mandatoryFits = w.at <= cap, mandatoryBytes = w.at, full = !mandatoryFits;
+  for (const k of CAPPED_SECTIONS) {
+    let n = 0;
+    for (const record of full ? [] : s.lists[k]) {
+      const mark = w.at; codec.writeValue(w, SECTION_TYPES[k], record);
+      if (w.at > cap) { w.at = mark; full = true; if (k === 'ownPlayer' || k === 'ownBody') mandatoryFits = false; break; }
       n++;
     }
-    w.view.setUint16(slot, n, true);
-    out.sections[name] = { sent: n, total: list.length };
+    w.view.setUint16(slots[k], n, true); sent[k] = n;
+    if (k === 'ownBody') mandatoryBytes = w.at;
   }
-  out.bytes = w.at;
-  return out;
+  return { ...cappedResult(s, sent, w.at, mandatoryFits, mandatoryBytes), encoded: w.finish() };
 }
-// msgpackr: one pack call per record behind a counted list; shapes outside the provisioned table carry
-// their record definition with every record, which is the hybrid overhead this probe measures.
+function decodeCappedDescriptor(codec, bytes) {
+  const r = codec.reader(bytes);
+  if (codec.readHeader(r) !== 'state') throw new Error('capped: not a state message');
+  const header = codec.readValue(r, 'State'), form = LAYER_FORMS[r.byte()], layer = { form };
+  if (!['none', 'plain'].includes(form)) { layer.k = codec.readValue(r, 'uint'); layer.drop = codec.readValue(r, { list: 'id' }); }
+  const counts = CAPPED_SECTIONS.map(() => r.u16()), lists = {};
+  CAPPED_SECTIONS.forEach((k, i) => { lists[k] = Array.from({ length: counts[i] }, () => codec.readValue(r, SECTION_TYPES[k])); });
+  if (r.at !== bytes.length) throw new Error('capped: trailing bytes');
+  return { header, layer, lists };
+}
+// msgpackr: the header and layer metadata as one value, then four array16 sections of individually
+// packed records (shapes outside the provisioned table carry their definitions each time). Each
+// section's 3-byte array header is reserved before records are admitted.
 var cappedPackr; // var: the helpers run from top-level code above this line
 function cappedMsgpackr(s, cap, structures) {
   cappedPackr ??= new Packr({ useRecords: true, structures: structures.map(k => [...k]), maxSharedStructures: structures.length });
-  let used = 3 + cappedPackr.pack(s.header.tick).length; const out = { sections: {} }; let full = false;
-  for (const [name, list] of [['players', s.players], ['bodies', s.bodies]]) {
-    used += 3; let n = 0;
-    for (const record of full ? [] : list) { const b = cappedPackr.pack(record); if (used + b.length > cap) { full = true; break; } used += b.length; n++; }
-    out.sections[name] = { sent: n, total: list.length };
+  const parts = [Uint8Array.of(0xd2, 1, 1), Uint8Array.from(cappedPackr.pack({ header: { ...s.header, players: [] }, layer: s.layer }))];
+  let used = parts[0].length + parts[1].length + 3 * CAPPED_SECTIONS.length;
+  let mandatoryFits = used <= cap, mandatoryBytes = used, full = !mandatoryFits; const sent = {};
+  for (const k of CAPPED_SECTIONS) {
+    const records = [];
+    for (const record of full ? [] : s.lists[k]) {
+      const b = Uint8Array.from(cappedPackr.pack(record));
+      if (used + b.length > cap) { full = true; if (k === 'ownPlayer' || k === 'ownBody') mandatoryFits = false; break; }
+      used += b.length; records.push(b);
+    }
+    parts.push(Uint8Array.of(0xdc, records.length >> 8, records.length & 0xff), ...records); sent[k] = records.length;
+    if (k === 'ownBody') mandatoryBytes = used;
   }
-  out.bytes = used; return out;
+  const encoded = new Uint8Array(used); let at = 0; for (const p of parts) { encoded.set(p, at); at += p.length; }
+  return { ...cappedResult(s, sent, used, mandatoryFits, mandatoryBytes), encoded };
+}
+function decodeCappedMsgpackr(bytes, structures) {
+  if (bytes[0] !== 0xd2) throw new Error('capped: bad format');
+  const values = new Unpackr({ useRecords: true, mapsAsObjects: true, structures: structures.map(k => [...k]), maxSharedStructures: structures.length }).unpackMultiple(bytes.subarray(3));
+  if (values.length !== 1 + CAPPED_SECTIONS.length) throw new Error('capped: section count');
+  return { header: values[0].header, layer: values[0].layer, lists: Object.fromEntries(CAPPED_SECTIONS.map((k, i) => [k, values[i + 1]])) };
+}
+// The retained sections must rebuild exactly: the full header, layer metadata and the admitted prefix of each section.
+function verifyCapped(decoded, s, result) {
+  assert.deepStrictEqual(decoded.header, { ...s.header, players: [] }, 'capped header');
+  assert.deepStrictEqual(decoded.layer, s.layer, 'capped layer metadata');
+  for (const k of CAPPED_SECTIONS) assert.deepStrictEqual(decoded.lists[k], s.lists[k].slice(0, result.sections[k].sent), `capped ${k}`);
 }
 function summarizeCapped(rows) {
-  const sent = k => mean(rows.map(r => r.sections[k].sent)), total = k => mean(rows.map(r => r.sections[k].total));
-  return { messages: rows.length, meanBytes: mean(rows.map(r => r.bytes)), players: { sent: sent('players'), total: total('players') },
-    bodies: { sent: sent('bodies'), total: total('bodies') }, complete: rows.filter(r => Object.values(r.sections).every(x => x.sent === x.total)).length };
+  const section = k => ({ sent: mean(rows.map(r => r.sections[k].sent)), total: mean(rows.map(r => r.sections[k].total)) });
+  return { messages: rows.length, meanBytes: mean(rows.map(r => r.bytes)), meanMandatoryBytes: mean(rows.map(r => r.mandatoryBytes)),
+    mandatoryOverflow: rows.filter(r => !r.mandatoryFits).length, verified: rows.filter(r => r.verified).length,
+    sections: Object.fromEntries(CAPPED_SECTIONS.map(k => [k, section(k)])), complete: rows.filter(r => r.complete).length };
 }
