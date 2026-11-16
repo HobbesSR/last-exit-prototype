@@ -41,7 +41,7 @@ export interface LiveLoot {
 export const LIVE_LOOT: Readonly<LiveLoot> = Object.freeze({
   keep: 0.1,
   roofCellsPerItem: 20,
-  cellShare: Object.freeze([0, 0.01, 0.02, 0.035, 0.05]),
+  cellShare: Object.freeze([0, 0.02, 0.04, 0.07, 0.1]),
   others: Object.freeze({ weapon: 3, med: 1, shield: 1 }),
   starterCell: false,
 });

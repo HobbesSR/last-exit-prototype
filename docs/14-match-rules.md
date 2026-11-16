@@ -474,9 +474,9 @@ old 0.04 and 0.09 were scaled by 0.37 to keep about 950 sites per live map
 building, then adds one item per 20 roof cells on clear ground under roofs, as a stand-in
 for loot indoors and off the open path (`LIVE_LOOT` in `map/live.ts`; Corey, 2026-11-15, #1126).
 Over seeds 1 to 20 a map averaged 911 items before this tuning, 301 of them cells and under 2%
-of sites inside buildings; after it, 191 items, 56% of them under roofs and 6 of them cells.
+of sites inside buildings; after it, 190 items, 55% of them under roofs and 14 of them cells.
 A placed item is a cell with a probability set by its spatial mix
-(the selector under "Weapon quality"): 0, 1, 2, 3.5 and 5% for mixes 1 to 5, so cells grow
+(the selector under "Weapon quality"): 0, 2, 4, 7 and 10% for mixes 1 to 5, so cells grow
 commoner toward the right and away from the middle row. The rest split weapon 3, medkit 1,
 shield 1. Keys (access) are out of the pool until locked doors exist. A weapon
 selects pistol, rifle or scattergun equally. Cells start uncharged. Tier metadata
