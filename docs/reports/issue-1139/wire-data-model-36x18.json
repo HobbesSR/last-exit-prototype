@@ -1,0 +1,2419 @@
+{
+ "issue": 1139,
+ "date": "2026-11-16T19:28:13.980Z",
+ "node": "v24.15.0",
+ "revision": "5fda8a00730802b52eebc8f1969a0ede68569c23",
+ "cache": {
+  "path": "test-results/wire-1093-tuned-36x18.v8",
+  "sha256": "a6d2bc67c744689f096e94a44d03a643cfc37d534280589532bdbeca0fea28e3",
+  "size": "36x18",
+  "seed": 4217,
+  "content": "content-7",
+  "source": "5cdcd5cbad63397d011f951d4196e03f0e2c0bbb",
+  "generatedAt": "2026-11-16T04:25:46.727Z",
+  "generator": "chain-live-2",
+  "declarationExportsDiffSha256": "abfbfc898fe0ead63c81b3171096b0922856e5e8ac5c032eb8f5401cadb522df"
+ },
+ "scale": 40,
+ "ticks": 1200,
+ "actualTicks": 1200,
+ "stride": 1,
+ "viewers": 12,
+ "projections": 14412,
+ "sources": {
+  "./wire-data-model.mjs": "2e3e14d3167e50056f54f9e3e109e50d768c8a265143ef75fd71d10386b3cf36",
+  "./wire-cached-match.mjs": "70ec1b3aa90acbac3639c57f47e8b7c0effbbeeecc4e2f06a022cd6709eac0f0",
+  "./wire-slice-fields.mjs": "7224601dce053b1586e13198ec60f841ff452bb6eef943dcaf4da61cf0cbcfcf"
+ },
+ "coverage": {
+  "header": {
+   "declared": 23,
+   "observed": 23,
+   "neverObserved": [],
+   "undeclared": []
+  },
+  "ownPlayer": {
+   "declared": 35,
+   "observed": 29,
+   "neverObserved": [
+    "inputStalled",
+    "reserves",
+    "respawnAt",
+    "cell",
+    "nodeId",
+    "heard"
+   ],
+   "undeclared": []
+  },
+  "observedPlayer": {
+   "declared": 15,
+   "observed": 15,
+   "neverObserved": [],
+   "undeclared": []
+  },
+  "item": {
+   "declared": 17,
+   "observed": 14,
+   "neverObserved": [
+    "count",
+    "quality",
+    "family"
+   ],
+   "undeclared": []
+  },
+  "gate": {
+   "declared": 9,
+   "observed": 9,
+   "neverObserved": [],
+   "undeclared": []
+  },
+  "trap": {
+   "declared": 13,
+   "observed": 0,
+   "neverObserved": [
+    "id",
+    "kind",
+    "x",
+    "y",
+    "homeX",
+    "homeY",
+    "heading",
+    "offset",
+    "cooldown",
+    "spent",
+    "aiming",
+    "firing",
+    "warning"
+   ],
+   "undeclared": []
+  },
+  "projectile": {
+   "declared": 9,
+   "observed": 8,
+   "neverObserved": [
+    "trap"
+   ],
+   "undeclared": []
+  },
+  "effect": {
+   "declared": 6,
+   "observed": 6,
+   "neverObserved": [],
+   "undeclared": []
+  },
+  "event": {
+   "declared": 3,
+   "observed": 3,
+   "neverObserved": [],
+   "undeclared": []
+  },
+  "body": {
+   "declared": 14,
+   "observed": 14,
+   "neverObserved": [],
+   "undeclared": []
+  },
+  "shape": {
+   "declared": 5,
+   "observed": 2,
+   "neverObserved": [
+    "hx",
+    "hy",
+    "vertices"
+   ],
+   "undeclared": []
+  },
+  "vertex": {
+   "declared": 2,
+   "observed": 0,
+   "neverObserved": [
+    "x",
+    "y"
+   ],
+   "undeclared": []
+  },
+  "heard": {
+   "declared": 4,
+   "observed": 0,
+   "neverObserved": [
+    "x",
+    "y",
+    "tick",
+    "until"
+   ],
+   "undeclared": []
+  },
+  "tether": {
+   "declared": 3,
+   "observed": 0,
+   "neverObserved": [
+    "id",
+    "a",
+    "b"
+   ],
+   "undeclared": []
+  },
+  "hookFlight": {
+   "declared": 4,
+   "observed": 0,
+   "neverObserved": [
+    "id",
+    "a",
+    "x",
+    "y"
+   ],
+   "undeclared": []
+  },
+  "predictionMotor": {
+   "declared": 4,
+   "observed": 4,
+   "neverObserved": [],
+   "undeclared": []
+  },
+  "reload": {
+   "declared": 3,
+   "observed": 0,
+   "neverObserved": [
+    "slot",
+    "instanceId",
+    "until"
+   ],
+   "undeclared": []
+  }
+ },
+ "recordCounts": {
+  "(state)": 14412,
+  "players[own]": 13211,
+  "players[observed]": 83080,
+  "items[]": 2622348,
+  "gates[]": 11342244,
+  "bodies[]": 172539,
+  "bodies[].shape": 172539,
+  "predictionMotor": 13211,
+  "players[own].inventory[]": 9451,
+  "effects[]": 1382,
+  "projectiles[]": 4193,
+  "events[]": 15756
+ },
+ "families": {
+  "header": {
+   "(state)": {
+    "version": {
+     "present": 14412,
+     "kinds": {
+      "string": 14412
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 21,
+      "values": [
+       "last-exit-0.8-physics"
+      ]
+     }
+    },
+    "duration": {
+     "present": 14412,
+     "kinds": {
+      "number": 14412
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 12000,
+      "max": 12000,
+      "maxAbsInteger": 12000
+     }
+    },
+    "cellChargeTicks": {
+     "present": 14412,
+     "kinds": {
+      "number": 14412
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 100,
+      "max": 100,
+      "maxAbsInteger": 100
+     }
+    },
+    "tick": {
+     "present": 14412,
+     "kinds": {
+      "number": 14412
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 1200,
+      "maxAbsInteger": 1200
+     }
+    },
+    "phase": {
+     "present": 14412,
+     "kinds": {
+      "string": 14412
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 4,
+      "values": [
+       "live"
+      ]
+     }
+    },
+    "hazardX": {
+     "present": 14412,
+     "kinds": {
+      "number": 14412
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": -80,
+      "max": -80,
+      "maxAbsInteger": 80
+     }
+    },
+    "slots": {
+     "present": 14412,
+     "kinds": {
+      "number": 14412
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 3,
+      "max": 3,
+      "maxAbsInteger": 3
+     }
+    },
+    "players": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 0
+    },
+    "items": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 2006
+    },
+    "items[]": {
+     "present": 2622348,
+     "kinds": {
+      "object": 2622348
+     }
+    },
+    "gates": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 787
+    },
+    "gates[]": {
+     "present": 11342244,
+     "kinds": {
+      "object": 11342244
+     }
+    },
+    "traps": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 0
+    },
+    "projectiles": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 8
+    },
+    "effects": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 8
+    },
+    "events": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 3
+    },
+    "directed": {
+     "present": 14412,
+     "kinds": {
+      "boolean": 14412
+     },
+     "absentShare": 0,
+     "booleans": {
+      "true": 1201,
+      "false": 13211
+     }
+    },
+    "contestantsActive": {
+     "present": 14412,
+     "kinds": {
+      "number": 14412
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 5,
+      "max": 8,
+      "maxAbsInteger": 8
+     }
+    },
+    "physicsProfile": {
+     "present": 14412,
+     "kinds": {
+      "string": 14412
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 21,
+      "values": [
+       "last-exit-0.8-physics"
+      ]
+     }
+    },
+    "bodies": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 80
+    },
+    "bodies[]": {
+     "present": 172539,
+     "kinds": {
+      "object": 172539
+     }
+    },
+    "tethers": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 0
+    },
+    "hookFlights": {
+     "present": 14412,
+     "kinds": {
+      "array": 14412
+     },
+     "absentShare": 0,
+     "maxListLength": 0
+    },
+    "predictionMotor": {
+     "present": 13211,
+     "kinds": {
+      "object": 13211
+     },
+     "absentShare": 0.0833
+    },
+    "predictionTethered": {
+     "present": 13211,
+     "kinds": {
+      "boolean": 13211
+     },
+     "absentShare": 0.0833,
+     "booleans": {
+      "true": 0,
+      "false": 13211
+     }
+    },
+    "hookActive": {
+     "present": 13211,
+     "kinds": {
+      "boolean": 13211
+     },
+     "absentShare": 0.0833,
+     "booleans": {
+      "true": 0,
+      "false": 13211
+     }
+    },
+    "effects[]": {
+     "present": 1382,
+     "kinds": {
+      "object": 1382
+     }
+    },
+    "projectiles[]": {
+     "present": 4193,
+     "kinds": {
+      "object": 4193
+     }
+    },
+    "events[]": {
+     "present": 15756,
+     "kinds": {
+      "object": 15756
+     }
+    }
+   }
+  },
+  "ownPlayer": {
+   "players[own]": {
+    "id": {
+     "present": 13211,
+     "kinds": {
+      "string": 13211
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 11,
+      "maxLength": 2,
+      "values": [
+       "c0",
+       "c1",
+       "c2",
+       "c3",
+       "c4",
+       "c5",
+       "c6",
+       "c7",
+       "g0",
+       "g1",
+       "g2"
+      ]
+     }
+    },
+    "name": {
+     "present": 13211,
+     "kinds": {
+      "string": 13211
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 11,
+      "maxLength": 8,
+      "values": [
+       "Mica",
+       "Juno",
+       "Patch",
+       "Pip",
+       "Nova",
+       "Rook",
+       "Echo",
+       "Sol",
+       "IRONCLAD",
+       "VESPER",
+       "BLAZE"
+      ]
+     }
+    },
+    "role": {
+     "present": 13211,
+     "kinds": {
+      "string": 13211
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 2,
+      "maxLength": 10,
+      "values": [
+       "contestant",
+       "gladiator"
+      ]
+     }
+    },
+    "kit": {
+     "present": 13211,
+     "kinds": {
+      "string": 13211
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 3,
+      "maxLength": 7,
+      "values": [
+       "warden",
+       "specter",
+       "striker"
+      ]
+     }
+    },
+    "x": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0018,
+      "float32": 0.3072,
+      "scaledFloat32": 0.691,
+      "float64": 0,
+      "min": 36,
+      "max": 51780,
+      "maxAbsInteger": 51780,
+      "nonIntegerRange": [
+       41.62498474121094,
+       51774.6484375
+      ]
+     }
+    },
+    "y": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0013,
+      "float32": 0.26,
+      "scaledFloat32": 0.7387,
+      "float64": 0,
+      "min": 10404,
+      "max": 14916,
+      "maxAbsInteger": 14916,
+      "nonIntegerRange": [
+       10404.000244140625,
+       14915.599365234375
+      ]
+     }
+    },
+    "hp": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 360,
+      "maxAbsInteger": 360
+     }
+    },
+    "maxHp": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 100,
+      "max": 360,
+      "maxAbsInteger": 360
+     }
+    },
+    "shield": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "keys": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "weapon": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 1,
+      "maxAbsInteger": 1
+     }
+    },
+    "kills": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 2,
+      "maxAbsInteger": 2
+     }
+    },
+    "level": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 1,
+      "max": 1,
+      "maxAbsInteger": 1
+     }
+    },
+    "status": {
+     "present": 13211,
+     "kinds": {
+      "string": 13211
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 2,
+      "maxLength": 10,
+      "values": [
+       "active",
+       "eliminated"
+      ]
+     }
+    },
+    "cooldown": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "attackCd": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 8,
+      "maxAbsInteger": 8
+     }
+    },
+    "railCd": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "cloak": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "revealed": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "boost": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "stun": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "heading": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0014,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0.9986,
+      "min": -3.141540866160591,
+      "max": 3.1415887327470586,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       -3.141540866160591,
+       3.1415887327470586
+      ]
+     }
+    },
+    "lastSeq": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": -1,
+      "max": -1,
+      "maxAbsInteger": 1
+     }
+    },
+    "seat": {
+     "present": 9608,
+     "kinds": {
+      "number": 9608
+     },
+     "absentShare": 0.2727,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 7,
+      "maxAbsInteger": 7
+     }
+    },
+    "inventory": {
+     "present": 9608,
+     "kinds": {
+      "array": 9608
+     },
+     "absentShare": 0.2727,
+     "maxListLength": 6
+    },
+    "inventory[]": {
+     "present": 57648,
+     "kinds": {
+      "null": 48197,
+      "object": 9451
+     },
+     "nullShare": 0.8361
+    },
+    "selectedSlot": {
+     "present": 9608,
+     "kinds": {
+      "number": 9608
+     },
+     "absentShare": 0.2727,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "discovered": {
+     "present": 9608,
+     "kinds": {
+      "array": 9608
+     },
+     "absentShare": 0.2727,
+     "maxListLength": 471
+    },
+    "discovered[]": {
+     "present": 1672586,
+     "kinds": {
+      "number": 1672586
+     },
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 14580,
+      "max": 21626,
+      "maxAbsInteger": 21626
+     }
+    },
+    "charging": {
+     "present": 1313,
+     "kinds": {
+      "null": 1313
+     },
+     "absentShare": 0.9006,
+     "nullShare": 1
+    },
+    "reload": {
+     "present": 1313,
+     "kinds": {
+      "null": 1313
+     },
+     "absentShare": 0.9006,
+     "nullShare": 1
+    }
+   }
+  },
+  "observedPlayer": {
+   "players[observed]": {
+    "id": {
+     "present": 83080,
+     "kinds": {
+      "string": 83080
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 11,
+      "maxLength": 2,
+      "values": [
+       "c1",
+       "c2",
+       "c3",
+       "c4",
+       "c5",
+       "c6",
+       "c7",
+       "c0",
+       "g1",
+       "g2",
+       "g0"
+      ]
+     }
+    },
+    "role": {
+     "present": 83080,
+     "kinds": {
+      "string": 83080
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 2,
+      "maxLength": 10,
+      "values": [
+       "contestant",
+       "gladiator"
+      ]
+     }
+    },
+    "kit": {
+     "present": 83080,
+     "kinds": {
+      "string": 83080
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 3,
+      "maxLength": 7,
+      "values": [
+       "warden",
+       "specter",
+       "striker"
+      ]
+     }
+    },
+    "name": {
+     "present": 83080,
+     "kinds": {
+      "string": 83080
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 11,
+      "maxLength": 8,
+      "values": [
+       "Juno",
+       "Patch",
+       "Pip",
+       "Nova",
+       "Rook",
+       "Echo",
+       "Sol",
+       "Mica",
+       "VESPER",
+       "BLAZE",
+       "IRONCLAD"
+      ]
+     }
+    },
+    "x": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0018,
+      "float32": 0.2341,
+      "scaledFloat32": 0.7641,
+      "float64": 0,
+      "min": 36,
+      "max": 51780,
+      "maxAbsInteger": 51780,
+      "nonIntegerRange": [
+       41.62498474121094,
+       51774.6484375
+      ]
+     }
+    },
+    "y": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0013,
+      "float32": 0.3376,
+      "scaledFloat32": 0.661,
+      "float64": 0,
+      "min": 10404,
+      "max": 14916,
+      "maxAbsInteger": 14916,
+      "nonIntegerRange": [
+       10404.000244140625,
+       14915.599365234375
+      ]
+     }
+    },
+    "heading": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0016,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0.9984,
+      "min": -3.141540866160591,
+      "max": 3.1415887327470586,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       -3.141540866160591,
+       3.1415887327470586
+      ]
+     }
+    },
+    "status": {
+     "present": 83080,
+     "kinds": {
+      "string": 83080
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 2,
+      "maxLength": 10,
+      "values": [
+       "active",
+       "eliminated"
+      ]
+     }
+    },
+    "hp": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 360,
+      "maxAbsInteger": 360
+     }
+    },
+    "maxHp": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 100,
+      "max": 360,
+      "maxAbsInteger": 360
+     }
+    },
+    "shield": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "weapon": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 1,
+      "maxAbsInteger": 1
+     }
+    },
+    "cloak": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "revealed": {
+     "present": 83080,
+     "kinds": {
+      "number": 83080
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "seat": {
+     "present": 72271,
+     "kinds": {
+      "number": 72271
+     },
+     "absentShare": 0.1301,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 7,
+      "maxAbsInteger": 7
+     }
+    }
+   }
+  },
+  "item": {
+   "items[]": {
+    "id": {
+     "present": 2622348,
+     "kinds": {
+      "string": 2622348
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": ">48",
+      "maxLength": 10,
+      "values": [
+       "item-32233",
+       "item-32234",
+       "item-32235",
+       "item-32236",
+       "item-32237",
+       "item-32238",
+       "item-32239",
+       "item-32240",
+       "item-32241",
+       "item-33263",
+       "item-33262",
+       "item-32352"
+      ]
+     }
+    },
+    "x": {
+     "present": 2622348,
+     "kinds": {
+      "number": 2622348
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.9347,
+      "float32": 0.003,
+      "scaledFloat32": 0.0258,
+      "float64": 0.0365,
+      "min": 75.99999904632568,
+      "max": 51768,
+      "maxAbsInteger": 51768,
+      "nonIntegerRange": [
+       75.99999904632568,
+       51435.70815027505
+      ]
+     }
+    },
+    "y": {
+     "present": 2622348,
+     "kinds": {
+      "number": 2622348
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.9342,
+      "float32": 0.0031,
+      "scaledFloat32": 0.0262,
+      "float64": 0.0365,
+      "min": 306.34181284010407,
+      "max": 25848,
+      "maxAbsInteger": 25848,
+      "nonIntegerRange": [
+       306.34181284010407,
+       25123.450956492128
+      ]
+     }
+    },
+    "kind": {
+     "present": 2622348,
+     "kinds": {
+      "string": 2622348
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 4,
+      "maxLength": 6,
+      "values": [
+       "weapon",
+       "med",
+       "shield",
+       "cell"
+      ]
+     }
+    },
+    "weaponType": {
+     "present": 1456591,
+     "kinds": {
+      "string": 1456591
+     },
+     "absentShare": 0.4445,
+     "strings": {
+      "distinct": 3,
+      "maxLength": 10,
+      "values": [
+       "pistol",
+       "rifle",
+       "scattergun"
+      ]
+     }
+    },
+    "tier": {
+     "present": 2622046,
+     "kinds": {
+      "number": 2622046
+     },
+     "absentShare": 0.0001,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 1,
+      "max": 5,
+      "maxAbsInteger": 5
+     }
+    },
+    "nodeId": {
+     "present": 1325074,
+     "kinds": {
+      "string": 1325074
+     },
+     "absentShare": 0.4947,
+     "strings": {
+      "distinct": ">48",
+      "maxLength": 18,
+      "values": [
+       "arrival@0,216",
+       "cover@1056,294",
+       "departure@1068,294",
+       "depot@1032,228",
+       "park@1044,300",
+       "park@1062,312",
+       "rubble@1038,318",
+       "rubble@1050,288",
+       "rubble@1059,318",
+       "block@252,108",
+       "block@36,234",
+       "block@372,396"
+      ]
+     }
+    },
+    "buildingId": {
+     "present": 888824,
+     "kinds": {
+      "string": 888824
+     },
+     "absentShare": 0.6611,
+     "strings": {
+      "distinct": ">48",
+      "maxLength": 14,
+      "values": [
+       "building-316",
+       "building-6854",
+       "building-7008",
+       "building-6991",
+       "building-6814",
+       "building-6951",
+       "building-31",
+       "building-129",
+       "building-631",
+       "building-823",
+       "building-889",
+       "building-1002"
+      ]
+     }
+    },
+    "charge": {
+     "present": 217577,
+     "kinds": {
+      "number": 217577
+     },
+     "absentShare": 0.917,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "lineageId": {
+     "present": 302,
+     "kinds": {
+      "string": 302
+     },
+     "absentShare": 0.9999,
+     "strings": {
+      "distinct": 3,
+      "maxLength": 10,
+      "values": [
+       "item-32233",
+       "item-32240",
+       "item-32238"
+      ]
+     }
+    },
+    "ammo": {
+     "present": 302,
+     "kinds": {
+      "number": 302
+     },
+     "absentShare": 0.9999,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 38,
+      "max": 72,
+      "maxAbsInteger": 72
+     }
+    },
+    "droppedBy": {
+     "present": 302,
+     "kinds": {
+      "string": 302
+     },
+     "absentShare": 0.9999,
+     "strings": {
+      "distinct": 3,
+      "maxLength": 2,
+      "values": [
+       "c0",
+       "c7",
+       "c5"
+      ]
+     }
+    },
+    "pickupAfter": {
+     "present": 302,
+     "kinds": {
+      "number": 302
+     },
+     "absentShare": 0.9999,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 655,
+      "max": 921,
+      "maxAbsInteger": 921
+     }
+    }
+   },
+   "players[own].inventory[]": {
+    "kind": {
+     "present": 9451,
+     "kinds": {
+      "string": 9451
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 6,
+      "values": [
+       "weapon"
+      ]
+     }
+    },
+    "weaponType": {
+     "present": 9451,
+     "kinds": {
+      "string": 9451
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 3,
+      "maxLength": 10,
+      "values": [
+       "pistol",
+       "rifle",
+       "scattergun"
+      ]
+     }
+    },
+    "ammo": {
+     "present": 9451,
+     "kinds": {
+      "number": 9451
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 24,
+      "max": 119,
+      "maxAbsInteger": 119
+     }
+    },
+    "instanceId": {
+     "present": 9451,
+     "kinds": {
+      "string": 9451
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 10,
+      "maxLength": 10,
+      "values": [
+       "item-32233",
+       "item-32234",
+       "item-32235",
+       "item-32236",
+       "item-32237",
+       "item-32238",
+       "item-32239",
+       "item-32240",
+       "item-33263",
+       "item-33845"
+      ]
+     }
+    },
+    "lineageId": {
+     "present": 9451,
+     "kinds": {
+      "string": 9451
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 10,
+      "maxLength": 10,
+      "values": [
+       "item-32233",
+       "item-32234",
+       "item-32235",
+       "item-32236",
+       "item-32237",
+       "item-32238",
+       "item-32239",
+       "item-32240",
+       "item-33263",
+       "item-33845"
+      ]
+     }
+    }
+   }
+  },
+  "gate": {
+   "gates[]": {
+    "id": {
+     "present": 11342244,
+     "kinds": {
+      "string": 11342244
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": ">48",
+      "maxLength": 10,
+      "values": [
+       "door-30",
+       "door-44",
+       "door-45",
+       "door-46",
+       "door-77",
+       "door-104",
+       "door-142",
+       "door-143",
+       "door-144",
+       "door-179",
+       "door-180",
+       "door-181"
+      ]
+     }
+    },
+    "x": {
+     "present": 11342244,
+     "kinds": {
+      "number": 11342244
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 1896,
+      "max": 51738,
+      "maxAbsInteger": 51738
+     }
+    },
+    "y": {
+     "present": 11342244,
+     "kinds": {
+      "number": 11342244
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 1320,
+      "max": 25848,
+      "maxAbsInteger": 25848
+     }
+    },
+    "w": {
+     "present": 11342244,
+     "kinds": {
+      "number": 11342244
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 12,
+      "max": 96,
+      "maxAbsInteger": 96
+     }
+    },
+    "h": {
+     "present": 11342244,
+     "kinds": {
+      "number": 11342244
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 12,
+      "max": 96,
+      "maxAbsInteger": 96
+     }
+    },
+    "open": {
+     "present": 11342244,
+     "kinds": {
+      "boolean": 11342244
+     },
+     "absentShare": 0,
+     "booleans": {
+      "true": 157164,
+      "false": 11185080
+     }
+    },
+    "locked": {
+     "present": 11342244,
+     "kinds": {
+      "boolean": 11342244
+     },
+     "absentShare": 0,
+     "booleans": {
+      "true": 0,
+      "false": 11342244
+     }
+    },
+    "kind": {
+     "present": 11342244,
+     "kinds": {
+      "string": 11342244
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 4,
+      "values": [
+       "door"
+      ]
+     }
+    },
+    "buildingId": {
+     "present": 10837824,
+     "kinds": {
+      "string": 10837824
+     },
+     "absentShare": 0.0445,
+     "strings": {
+      "distinct": ">48",
+      "maxLength": 14,
+      "values": [
+       "building-31",
+       "building-129",
+       "building-159",
+       "building-224",
+       "building-247",
+       "building-316",
+       "building-340",
+       "building-372",
+       "building-473",
+       "building-496",
+       "building-570",
+       "building-593"
+      ]
+     }
+    }
+   }
+  },
+  "body": {
+   "bodies[]": {
+    "id": {
+     "present": 172539,
+     "kinds": {
+      "string": 172539
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": ">48",
+      "maxLength": 15,
+      "values": [
+       "actor:c0",
+       "actor:c1",
+       "actor:c2",
+       "actor:c3",
+       "actor:c4",
+       "actor:c5",
+       "actor:c6",
+       "actor:c7",
+       "item:item-32233",
+       "item:item-32234",
+       "item:item-32235",
+       "item:item-32236"
+      ]
+     }
+    },
+    "kind": {
+     "present": 172539,
+     "kinds": {
+      "string": 172539
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 2,
+      "maxLength": 5,
+      "values": [
+       "actor",
+       "prop"
+      ]
+     }
+    },
+    "shape": {
+     "present": 172539,
+     "kinds": {
+      "object": 172539
+     },
+     "absentShare": 0
+    },
+    "x": {
+     "present": 172539,
+     "kinds": {
+      "number": 172539
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0957,
+      "float32": 0.1825,
+      "scaledFloat32": 0.7218,
+      "float64": 0,
+      "min": 35.999999046325684,
+      "max": 51780,
+      "maxAbsInteger": 51780,
+      "nonIntegerRange": [
+       35.999999046325684,
+       51774.6484375
+      ]
+     }
+    },
+    "y": {
+     "present": 172539,
+     "kinds": {
+      "number": 172539
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.0883,
+      "float32": 0.1697,
+      "scaledFloat32": 0.742,
+      "float64": 0,
+      "min": 5255.999755859375,
+      "max": 19464.000244140625,
+      "maxAbsInteger": 18120,
+      "nonIntegerRange": [
+       5255.999755859375,
+       19464.000244140625
+      ]
+     }
+    },
+    "angle": {
+     "present": 172539,
+     "kinds": {
+      "number": 172539
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "vx": {
+     "present": 115800,
+     "kinds": {
+      "number": 115800
+     },
+     "absentShare": 0.3288,
+     "numbers": {
+      "integer": 0.8145,
+      "float32": 0.052,
+      "scaledFloat32": 0.1335,
+      "float64": 0,
+      "min": -180,
+      "max": 180,
+      "maxAbsInteger": 180,
+      "nonIntegerRange": [
+       -179.99998092651367,
+       179.99998092651367
+      ]
+     }
+    },
+    "vy": {
+     "present": 115800,
+     "kinds": {
+      "number": 115800
+     },
+     "absentShare": 0.3288,
+     "numbers": {
+      "integer": 0.8169,
+      "float32": 0.0515,
+      "scaledFloat32": 0.1317,
+      "float64": 0,
+      "min": -180,
+      "max": 180,
+      "maxAbsInteger": 180,
+      "nonIntegerRange": [
+       -179.99998092651367,
+       179.99998092651367
+      ]
+     }
+    },
+    "omega": {
+     "present": 115800,
+     "kinds": {
+      "number": 115800
+     },
+     "absentShare": 0.3288,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 0,
+      "maxAbsInteger": 0
+     }
+    },
+    "sleeping": {
+     "present": 115800,
+     "kinds": {
+      "boolean": 115800
+     },
+     "absentShare": 0.3288,
+     "booleans": {
+      "true": 90783,
+      "false": 25017
+     }
+    },
+    "generation": {
+     "present": 172539,
+     "kinds": {
+      "number": 172539
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 31204,
+      "max": 32092,
+      "maxAbsInteger": 32092
+     }
+    },
+    "actorId": {
+     "present": 80535,
+     "kinds": {
+      "string": 80535
+     },
+     "absentShare": 0.5332,
+     "strings": {
+      "distinct": 11,
+      "maxLength": 2,
+      "values": [
+       "c0",
+       "c1",
+       "c2",
+       "c3",
+       "c4",
+       "c5",
+       "c6",
+       "c7",
+       "g0",
+       "g1",
+       "g2"
+      ]
+     }
+    },
+    "discontinuity": {
+     "present": 410,
+     "kinds": {
+      "string": 410
+     },
+     "absentShare": 0.9976,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 6,
+      "values": [
+       "placed"
+      ]
+     }
+    },
+    "itemId": {
+     "present": 92004,
+     "kinds": {
+      "string": 92004
+     },
+     "absentShare": 0.4668,
+     "strings": {
+      "distinct": ">48",
+      "maxLength": 10,
+      "values": [
+       "item-32233",
+       "item-32234",
+       "item-32235",
+       "item-32236",
+       "item-32237",
+       "item-32238",
+       "item-32239",
+       "item-32240",
+       "item-32241",
+       "item-32242",
+       "item-32243",
+       "item-32244"
+      ]
+     }
+    }
+   }
+  },
+  "shape": {
+   "bodies[].shape": {
+    "kind": {
+     "present": 172539,
+     "kinds": {
+      "string": 172539
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 6,
+      "values": [
+       "circle"
+      ]
+     }
+    },
+    "radius": {
+     "present": 172539,
+     "kinds": {
+      "number": 172539
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0.5332,
+      "float32": 0.0835,
+      "scaledFloat32": 0,
+      "float64": 0.3832,
+      "min": 6,
+      "max": 16.25,
+      "maxAbsInteger": 6,
+      "nonIntegerRange": [
+       11.2875,
+       16.25
+      ]
+     }
+    }
+   }
+  },
+  "predictionMotor": {
+   "predictionMotor": {
+    "acceleration": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 3600,
+      "max": 3600,
+      "maxAbsInteger": 3600
+     }
+    },
+    "braking": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 3600,
+      "max": 3600,
+      "maxAbsInteger": 3600
+     }
+    },
+    "maxSpeed": {
+     "present": 13211,
+     "kinds": {
+      "number": 13211
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 600,
+      "max": 600,
+      "maxAbsInteger": 600
+     }
+    },
+    "surfaces": {
+     "present": 13211,
+     "kinds": {
+      "boolean": 13211
+     },
+     "absentShare": 0,
+     "booleans": {
+      "true": 13211,
+      "false": 0
+     }
+    }
+   }
+  },
+  "effect": {
+   "effects[]": {
+    "id": {
+     "present": 1382,
+     "kinds": {
+      "number": 1382
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 0,
+      "max": 85,
+      "maxAbsInteger": 85
+     }
+    },
+    "x": {
+     "present": 1382,
+     "kinds": {
+      "number": 1382
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0,
+      "float32": 0.4689,
+      "scaledFloat32": 0.5311,
+      "float64": 0,
+      "min": 41.62498474121094,
+      "max": 4727.550048828125,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       41.62498474121094,
+       4727.550048828125
+      ]
+     }
+    },
+    "y": {
+     "present": 1382,
+     "kinds": {
+      "number": 1382
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0,
+      "float32": 0.1563,
+      "scaledFloat32": 0.8437,
+      "float64": 0,
+      "min": 10404.000244140625,
+      "max": 13517.574462890625,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       10404.000244140625,
+       13517.574462890625
+      ]
+     }
+    },
+    "kind": {
+     "present": 1382,
+     "kinds": {
+      "string": 1382
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 1,
+      "maxLength": 4,
+      "values": [
+       "loot"
+      ]
+     }
+    },
+    "radius": {
+     "present": 1382,
+     "kinds": {
+      "number": 1382
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 30,
+      "max": 30,
+      "maxAbsInteger": 30
+     }
+    },
+    "life": {
+     "present": 1382,
+     "kinds": {
+      "number": 1382
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 1,
+      "max": 12,
+      "maxAbsInteger": 12
+     }
+    }
+   }
+  },
+  "projectile": {
+   "projectiles[]": {
+    "id": {
+     "present": 4193,
+     "kinds": {
+      "number": 4193
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 11,
+      "max": 89,
+      "maxAbsInteger": 89
+     }
+    },
+    "owner": {
+     "present": 4193,
+     "kinds": {
+      "string": 4193
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 6,
+      "maxLength": 2,
+      "values": [
+       "c3",
+       "c6",
+       "c5",
+       "c0",
+       "c7",
+       "c2"
+      ]
+     }
+    },
+    "x": {
+     "present": 4193,
+     "kinds": {
+      "number": 4193
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 1,
+      "min": 2684.357103206279,
+      "max": 6835.007115432079,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       2684.357103206279,
+       6835.007115432079
+      ]
+     }
+    },
+    "y": {
+     "present": 4193,
+     "kinds": {
+      "number": 4193
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 1,
+      "min": 10371.332123265136,
+      "max": 11427.188111789845,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       10371.332123265136,
+       11427.188111789845
+      ]
+     }
+    },
+    "dx": {
+     "present": 4193,
+     "kinds": {
+      "number": 4193
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 1,
+      "min": -34.999973232645736,
+      "max": 34.983298348307954,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       -34.999973232645736,
+       34.983298348307954
+      ]
+     }
+    },
+    "dy": {
+     "present": 4193,
+     "kinds": {
+      "number": 4193
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 0,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 1,
+      "min": -34.740347390983985,
+      "max": 34.998699748335376,
+      "maxAbsInteger": 0,
+      "nonIntegerRange": [
+       -34.740347390983985,
+       34.998699748335376
+      ]
+     }
+    },
+    "life": {
+     "present": 4193,
+     "kinds": {
+      "number": 4193
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 1,
+      "max": 23,
+      "maxAbsInteger": 23
+     }
+    },
+    "damage": {
+     "present": 4193,
+     "kinds": {
+      "number": 4193
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 10,
+      "max": 10,
+      "maxAbsInteger": 10
+     }
+    }
+   }
+  },
+  "event": {
+   "events[]": {
+    "id": {
+     "present": 15756,
+     "kinds": {
+      "number": 15756
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 27,
+      "max": 83,
+      "maxAbsInteger": 83
+     }
+    },
+    "tick": {
+     "present": 15756,
+     "kinds": {
+      "number": 15756
+     },
+     "absentShare": 0,
+     "numbers": {
+      "integer": 1,
+      "float32": 0,
+      "scaledFloat32": 0,
+      "float64": 0,
+      "min": 635,
+      "max": 901,
+      "maxAbsInteger": 901
+     }
+    },
+    "text": {
+     "present": 15756,
+     "kinds": {
+      "string": 15756
+     },
+     "absentShare": 0,
+     "strings": {
+      "distinct": 3,
+      "maxLength": 23,
+      "values": [
+       "Mica eliminated by Rook",
+       "Sol eliminated by Echo",
+       "Rook eliminated by Echo"
+      ]
+     }
+    }
+   }
+  }
+ },
+ "contention": {
+  "wallMs": 21174.9631,
+  "selfCpuMs": 23703,
+  "otherBusyShare": 0.0591,
+  "contended": false,
+  "threshold": 0.25
+ }
+}
