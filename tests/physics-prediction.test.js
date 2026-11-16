@@ -13,7 +13,8 @@ const body = (extra = {}) => ({ id: 'actor:self', actorId: 'self', kind: 'actor'
 const frame = (tick, extra = {}) => ({ tick, physicsProfile: 'P2',
   predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4 },
   players: [player()], bodies: [body()], tethers: [], gates: [], ...extra });
-const move = seq => ({ seq, x: 1, y: 0, sneak: false, attack: true, interact: true });
+// Stamped for the tick after the correction `after`, one tick per sequence number (#1096).
+const move = (seq, after = 1) => ({ seq, tick: after + 1 + seq, x: 1, y: 0, sneak: false, attack: true, interact: true });
 const predictor = (arena = map(), clock = () => 0) => createPhysicsPrediction(arena, 'self', { clock });
 
 test('optional step observer captures input and replay contacts without changing prediction', async () => {
@@ -32,16 +33,16 @@ test('optional step observer captures input and replay contacts without changing
     const correction = frame(1, { bodies: [body(), proxy] });
     for (const p of [plain, observed]) {
       p.correct(correction);
-      for (let seq = 0; seq < 3; seq++) p.input(move(seq));
+      for (let seq = 0; seq < 3; seq++) p.input({ ...move(seq), ...(seq === 2 ? { tick: 5 } : {}) });
     }
     assert.deepEqual(observed.value(), plain.value());
     assert.deepEqual(observed.stats(), plain.stats());
-    for (const p of [plain, observed]) p.correct(frame(2, { bodies: [body(), proxy] }));
+    for (const p of [plain, observed]) p.correct(frame(2, { players: [player({ lastSeq: 0 })], bodies: [body(), proxy] }));
     assert.deepEqual(observed.value(), plain.value(), 'observing replay leaves the result unchanged');
     assert.deepEqual(observed.stats(), plain.stats());
-    assert.equal(samples.filter(s => s.context === 'input').length, 3);
+    assert.equal(samples.filter(s => s.context === 'input').length, 4);
     assert.equal(samples.filter(s => s.context === 'replay').length, 3);
-    assert.deepEqual(samples.filter(s => s.context === 'input').map(s => s.seq), [0, 1, 2]);
+    assert.deepEqual(samples.filter(s => s.context === 'input').map(s => s.seq), [0, 1, undefined, 2]);
     for (const context of ['input', 'replay']) assert.ok(samples.some(s => s.context === context &&
       s.contacts.some(c => c.a === 'actor:self' && c.b === 'proxy:prop:witness' && c.type === 'start')),
     `${context} reports an actual predictor contact`);
@@ -53,28 +54,63 @@ test('local prediction moves with Rapier, replays unconsumed inputs once, and ke
   try {
     const correction = frame(10);
     p.correct(correction);
-    const first = p.input(move(0));
+    const first = p.input(move(0, 10));
     assert.ok(first.x > 100 && first.x < 130, `one tick moved ${first.x}`);
     assert.equal(first.y, 200);
     const once = { ...p.value() };
-    p.input(move(0));
+    p.input(move(0, 10));
     assert.deepEqual(p.value(), once, 'duplicate sequence cannot advance the world');
     assert.deepEqual([p.value().inventory, p.value().health], [['kept'], 80],
       'predicted attack and interact do not resolve gameplay');
     assert.deepEqual(correction, frame(10), 'input does not mutate the correction');
-
-    p.correct(frame(11, { players: [player({ lastSeq: 0 })], bodies: [body({ x: once.x, vx: once.vx })] }));
-    assert.equal(p.stats().replayed, 0, 'consumed sequence is not replayed');
-    assert.equal(p.value().x, once.x);
-    p.input(move(0));
-    assert.equal(p.value().x, once.x, 'acknowledged input cannot run twice');
-    p.input(move(1));
+    p.input(move(1, 10));
     const twice = p.value().x;
     assert.ok(twice > once.x);
-    p.correct(frame(12, { players: [player({ lastSeq: 0 })], bodies: [body({ x: once.x, vx: once.vx })] }));
-    assert.equal(p.stats().replayed, 1);
+
+    // Tick 11 ran and spent the input stamped for it; the one stamped 12 is still to come.
+    p.correct(frame(11, { players: [player({ lastSeq: 0 })], bodies: [body({ x: once.x, vx: once.vx })] }));
+    assert.equal(p.stats().replayed, 1, 'only the input for a tick not yet run is replayed');
     assert.ok(Math.abs(p.value().x - twice) < 0.001, 'fresh correction replays one pending tick');
+    p.input(move(0, 10)); p.input(move(1, 10));
+    assert.ok(Math.abs(p.value().x - twice) < 0.001, 'a sent input cannot run twice');
   } finally { p.dispose(); }
+});
+
+test('a tick no input was stamped for replays as a repeat, and a stamp stepping back supersedes', async () => {
+  const steady = await predictor(), gapped = await predictor();
+  try {
+    steady.correct(frame(1)); gapped.correct(frame(1));
+    for (let seq = 0; seq < 3; seq++) steady.input(move(seq));
+    // No input for tick 3: the server repeats the held movement, so prediction does too.
+    gapped.input(move(0)); gapped.input({ ...move(1), tick: 4 });
+    assert.ok(Math.abs(gapped.value().x - steady.value().x) < 0.001, 'a gap moves as the held input');
+    assert.equal(gapped.stats().tick, 4);
+    // The client's clock steps back to tick 3: what was predicted for tick 4 is dropped, as the server drops it.
+    gapped.input({ ...move(2), tick: 3, x: 0 });
+    assert.equal(gapped.stats().inputs, 2);
+    assert.equal(gapped.stats().tick, 3);
+  } finally { steady.dispose(); gapped.dispose(); }
+});
+
+test('a late discarded press or release cannot become held movement after correction', async () => {
+  for (const heldX of [0, 1]) {
+    const discarded = await predictor(), control = await predictor();
+    try {
+      for (const p of [discarded, control]) {
+        p.correct(frame(1));
+        p.input({ seq: 0, tick: 2, x: heldX });
+        p.correct(frame(2, { players: [player({ lastSeq: 0 })] }));
+      }
+      discarded.input({ seq: 1, tick: 3, x: 1 - heldX });
+      // Authority spent seq 0 and repeated it: seq 1 arrived too late for tick 3.
+      for (const p of [discarded, control]) {
+        p.correct(frame(3, { players: [player({ lastSeq: 0, inputStalled: 1 })] }));
+        p.input({ seq: 2, tick: 5, x: 0 });
+      }
+      assert.deepEqual(discarded.value(), control.value(), 'tick 4 repeats the acknowledged movement');
+      assert.equal(discarded.stats().tick, 5);
+    } finally { discarded.dispose(); control.dispose(); }
+  }
 });
 
 test('same-tick authorized proxy blocks movement; omission of hidden body does not supply its collision', async () => {
@@ -136,7 +172,7 @@ test('prediction reads authored surfaces only when the authority says it does', 
     const p = await predictor(arena);
     try {
       p.correct(frame(10, { predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4, surfaces } }));
-      return p.input(move(0)).x - 100;
+      return p.input(move(0, 10)).x - 100;
     } finally { p.dispose(); }
   };
   const bare = await moved(map(), true);
@@ -159,7 +195,8 @@ test('map wall remains a fixed blocker in the prediction island', async () => {
 test('sensor loot lifecycle does not invalidate an unrelated local contact island', async () => {
   const p = await predictor();
   try {
-    p.correct(frame(1)); p.input(move(0));
+    // Stamped for tick 3, so the frame for tick 2 leaves it to replay.
+    p.correct(frame(1)); p.input(move(0, 2));
     const loot = { ...body({ id: 'item:loot', actorId: undefined }), kind: 'prop', itemId: 'loot' };
     p.correct(frame(2, { bodies: [body(), loot] }));
     assert.equal(p.stats().reason, null);

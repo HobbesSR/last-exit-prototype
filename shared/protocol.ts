@@ -17,7 +17,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 2;
+export const WIRE_VERSION = 3;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -134,6 +134,8 @@ export interface ChooseMessage {
 export type InputMessage = PlayerInput & {
   type: typeof CLIENT_MESSAGE.INPUT;
   seq: number;
+  /** The tick the input is for (#1096, `shared/simulation/input.ts`). */
+  tick: Tick;
 };
 
 export interface PongMessage {
@@ -925,12 +927,16 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
       if (!safeInteger(data.seq) || data.seq < 0) {
         return { ok: false, type, reason: 'Input seq must be a non-negative safe integer.' };
       }
+      if (!safeInteger(data.tick) || data.tick < 0) {
+        return { ok: false, type, reason: 'Input tick must be a non-negative safe integer.' };
+      }
       return {
         ok: true,
         message: {
           type: CLIENT_MESSAGE.INPUT,
           ...sanitizeInput(data as unknown as PlayerInput, data.seq),
           seq: data.seq,
+          tick: data.tick,
         },
       };
     }

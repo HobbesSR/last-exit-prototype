@@ -35,7 +35,8 @@ try {
     const predictor = await createPhysicsPrediction(map, 'self', { clock: () => clock });
     try {
       predictor.correct(frame(1));
-      const afterInput = { ...predictor.input({ seq: 0, x: 1, y: 0, attack: true }) };
+      // Stamped a tick ahead of the next, as the client's clock aims (#1096), so frame 2 leaves it pending.
+      const afterInput = { ...predictor.input({ seq: 0, tick: 3, x: 1, y: 0, attack: true }) };
       clock = 75; // A 75 ms synthetic delivery delay.
       const beforeCorrection = { ...predictor.value() };
       predictor.correct(frame(2, -1));
@@ -44,7 +45,7 @@ try {
       predictor.correct(frame(3, 0, afterInput.x, afterInput.vx));
       const acknowledged = { ...predictor.value() };
       for (let seq = 1; seq <= PREDICTION_LIMITS.replay + 1; seq++)
-        predictor.input({ seq, x: 1, y: 0 });
+        predictor.input({ seq, tick: 3 + seq, x: 1, y: 0 });
       const cap = predictor.stats();
       return { afterInput, beforeCorrection, afterReplay, replayed, acknowledged, cap,
         resources: performance.getEntriesByType('resource').map(entry => entry.name) };

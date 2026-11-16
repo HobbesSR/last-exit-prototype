@@ -9,6 +9,7 @@ import os from 'node:os';
 import { createGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { resetInput } from '../../shared/simulation/input.ts';
+import { createInputClock } from '../../shared/input-clock.ts';
 import { createPhysicsPrediction, PREDICTION_LIMITS } from '../../public/physics-prediction.js';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 
@@ -45,6 +46,8 @@ const profiles = [
   { name: 'reconnect', rtt: 100, reconnect: true },
   { name: 'hidden-contact', rtt: 50, hidden: true },
   { name: 'stale-known-door', rtt: 50, staleDoor: true },
+  // Named for the arrival-order queue it once trimmed; stamped inputs now exercise supersession
+  // with one explicit backward stamp in the burst, followed by the existing delivery stall.
   { name: 'queue-trim-and-repeats', rtt: 100, burst: true, stall: true },
 ];
 
@@ -101,6 +104,9 @@ async function run(profile, variant = null) {
   const game = await createGame(441, map, content);
   for (const player of game.players) player.bot = false;
   let now = 0, predictor = await createPhysicsPrediction(game.map, 'c0', { clock: () => now });
+  // The client's own input clock (#1096) stamps each input. Sends stay on this witness's fixed schedule,
+  // so its time dilation is not exercised here; tests/bench-input-timing.mjs measures that.
+  let inputClock = createInputClock();
   const events = [], errors = [], correctionErrors = [], correctionCpu = [], inputCpu = [];
   const reasons = {}, ackSessions = [[]], depths = [], repeats = [];
   let order = 0, seq = 0, inputBytes = 0, frameBytes = 0, correctionCount = 0, maxReplay = 0, predictedTicks = 0;
@@ -122,8 +128,12 @@ async function run(profile, variant = null) {
       : lastDownAt = Math.max(proposed, lastDownAt + 0.001);
     enqueue(at, priority, () => { if (sentEpoch === connectionEpoch) run(); });
   };
-  const input = (tick, burst = false) => {
-    const fields = { seq: seq++, ...(profile.input ? profile.input(tick) : { x: tick < 50 ? 1 : tick < 60 ? -1 : 0, y: 0 }), sneak: false };
+  const input = (tick, burst = false, stepBack = false) => {
+    // Like the client, nothing is sent before a delivered frame has shown where the server's ticks are.
+    const stamp = inputClock.stamp(now, profile.rtt);
+    if (stamp === null) return;
+    // Inject a bounded clock step-back for this profile; normal stamps still come from the real clock.
+    const fields = { seq: seq++, tick: stamp - (stepBack ? 3 : 0), ...(profile.input ? profile.input(tick) : { x: tick < 50 ? 1 : tick < 60 ? -1 : 0, y: 0 }), sneak: false };
     const bytes = Buffer.byteLength(JSON.stringify(fields)); inputBytes += bytes;
     const begin = process.hrtime.bigint(); predictor.input(fields);
     inputCpu.push(Number(process.hrtime.bigint() - begin) / 1e6);
@@ -131,13 +141,17 @@ async function run(profile, variant = null) {
     delivery(tick, 'up', 1, () => {
       const queueBefore = game.players[0].inputQueue?.length ?? 0;
       const accepted = setInput(game, 'c0', sent);
-      if (accepted && queueBefore === 4) trimmedInputs++;
+      // A stamped buffer drops nothing for depth; this counts superseded inputs instead.
+      if (accepted && game.players[0].inputQueue.length <= queueBefore) trimmedInputs++;
       if (burst) depths.push(game.players[0].inputQueue?.length ?? 0);
     });
   };
-  const deliver = wire => {
+  // `delivered` is false for the frames this witness hands over in place, with no flight: they say
+  // nothing about when the server's ticks run, so the input clock does not see them.
+  const deliver = (wire, delivered = true) => {
     if (!predictor || wire.tick <= lastCorrectionTick) return;
     if (variant !== null) wire = quantizeFrame(wire, variant, tally);
+    if (delivered) inputClock.observe(wire.tick, now, wire.players.find(p => p.id === 'c0')?.inputMargin);
     const begin = process.hrtime.bigint(); predictor.correct(wire);
     correctionCpu.push(Number(process.hrtime.bigint() - begin) / 1e6);
     correctionCount++;
@@ -151,14 +165,14 @@ async function run(profile, variant = null) {
     const initial = playerView(game, snapshot(game), 'c0');
     for (const body of initial.bodies) if (body.actorId) radii[body.actorId] = body.shape.radius;
     radii.maxSpeed = initial.predictionMotor.maxSpeed;
-    deliver(initial);
+    deliver(initial, false);
     if (profile.background) {
       enqueue(23 * TICK_MS, -1, () => { predictor.dispose(); predictor = null; });
       enqueue(39 * TICK_MS, -1, async () => {
         predictor = await createPhysicsPrediction(game.map, 'c0', { clock: () => now });
         predictorResets++;
         lastCorrectionTick = -Infinity;
-        deliver(playerView(game, snapshot(game), 'c0'));
+        deliver(playerView(game, snapshot(game), 'c0'), false);
       });
     }
     if (profile.reconnect) {
@@ -168,12 +182,12 @@ async function run(profile, variant = null) {
       enqueue(36 * TICK_MS, -1, async () => {
         resetInput(game.players.find(player => player.id === 'c0'));
         serverQueueResets++;
-        seq = 0; connectionEpoch++; lastUpAt = lastDownAt = -Infinity;
+        seq = 0; inputClock = createInputClock(); connectionEpoch++; lastUpAt = lastDownAt = -Infinity;
         ackSessions.push([]);
         predictor = await createPhysicsPrediction(game.map, 'c0', { clock: () => now });
         predictorResets++;
         lastCorrectionTick = -Infinity;
-        deliver(playerView(game, snapshot(game), 'c0'));
+        deliver(playerView(game, snapshot(game), 'c0'), false);
       });
     }
     for (let tick = 1; tick <= LAST_TICK; tick++) {
@@ -181,7 +195,7 @@ async function run(profile, variant = null) {
       enqueue(at, 0, () => {
         if (profile.background && tick >= 23 && tick <= 38) return;
         if (profile.reconnect && tick >= 28 && tick <= 35) return;
-        if (profile.burst && tick === 20) for (let i = 0; i < 10; i++) input(tick, true);
+        if (profile.burst && tick === 20) for (let i = 0; i < 10; i++) input(tick, true, i === 9);
         else input(tick);
       });
       enqueue(at, 2, () => {
@@ -237,8 +251,8 @@ async function run(profile, variant = null) {
       `${profile.name}: ordered acknowledgement within session`);
     if (profile.frameGaps) assert.ok(reasons['frame-gap'] > 0, 'application frame gap cut occurred');
     if (profile.burst) {
-      assert.equal(Math.max(...depths), 4, 'server queue filled to cap');
-      assert.ok(trimmedInputs > 0, 'server queue trimmed oldest input');
+      assert.ok(Math.max(...depths) > 1, 'server buffered the burst by stamp');
+      assert.ok(trimmedInputs > 0, 'the clock stepped back and superseded buffered input');
       assert.ok(repeats.some(value => value > 0), 'authority repeated during starvation');
     }
     if (profile.hidden || profile.staleDoor)
@@ -277,7 +291,7 @@ async function run(profile, variant = null) {
 const files = ['tools/physics/prediction-network.mjs', 'tests/physics-prediction.browser.mjs',
   'public/physics-prediction.js', 'public/physics-prediction-limits.js',
   'shared/physics/world.ts', 'shared/physics/motion-limits.ts', 'shared/simulation/game.ts', 'shared/simulation/tick.ts',
-  'shared/simulation/visibility.ts', 'shared/simulation/input.ts', 'shared/simulation/actor-physics.ts',
+  'shared/simulation/visibility.ts', 'shared/simulation/input.ts', 'shared/input-clock.ts', 'shared/simulation/actor-physics.ts',
   'shared/simulation/content.ts', 'package-lock.json',
   'node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm'];
 const hashes = Object.fromEntries(files.map(file => [file, createHash('sha256').update(readFileSync(file)).digest('hex')]));

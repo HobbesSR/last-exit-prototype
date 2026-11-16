@@ -1,5 +1,5 @@
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
-import { resetInput } from '../shared/simulation/input.ts';
+import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
@@ -119,9 +119,10 @@ function matchOf(game, payloads) {
       return { type: 'input', id, input: structuredClone(accepted), seq: command.seq };
     },
     /**
-     * Tell the simulation how far behind this player's view runs, from a round trip the server
-     * measured itself. The conversion belongs to the simulation, which owns how much rewind it will
-     * grant; the application only reports what it observed.
+     * Tell the simulation how far behind this player's view runs, and how far ahead its input may be
+     * stamped, from a round trip the server measured itself. The conversions belong to the
+     * simulation, which owns how much rewind and lead it will grant; the application only reports
+     * what it observed.
      */
     setViewLag(id, roundTripMs) {
       const p = game.players.find(p => p.id === id);
@@ -130,6 +131,8 @@ function matchOf(game, payloads) {
       // Absent rather than zero when there is nothing to compensate, so a player with no measured
       // latency carries no trace of the mechanism into snapshots or recordings.
       if (ticks > 0) p.viewLagTicks = ticks; else delete p.viewLagTicks;
+      // The same measurement bounds how far ahead its input stamps may run (#1096).
+      if (roundTripMs != null) p.inputLeadTicks = inputLeadFrom(roundTripMs); else delete p.inputLeadTicks;
       return true;
     },
     /** A dev teleport (24), as the command the recording keeps, or null when refused. */

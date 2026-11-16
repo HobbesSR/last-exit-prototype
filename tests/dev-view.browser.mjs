@@ -5,6 +5,7 @@ import { mkdir } from 'node:fs/promises';
 import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js';
 import { canOccupy } from '../shared/movement.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
+import { MAX_INPUT_LEAD_TICKS } from '../shared/simulation/input.ts';
 
 await mkdir('test-results', { recursive: true });
 const { server, base, browser, close } = await serveDevWithBrowser({ roomThreads: false });
@@ -43,17 +44,17 @@ try {
   await page.keyboard.press('KeyV');
   await page.waitForFunction(() => window.arenaDebug().fog === false && window.arenaDebug().viewer === null && window.arenaDebug().vision === null);
   assert.ok(room.match.roster().some(p => p.id === subject), 'stepping out keeps the slot');
-  const seqOf = () => room.match.snapshot().players.find(p => p.id === subject).lastSeq;
-  await until(() => body.lastSeq === body.receivedSeq && !(body.inputQueue?.length),
-    () => `the last player inputs drained: ${body.lastSeq} vs ${body.receivedSeq}, queued ${body.inputQueue?.length ?? 0}`);
-  const parked = seqOf();
+  // Received, not spent: a stamped input that arrived late is discarded (#1096), so `lastSeq` need never
+  // catch up with `receivedSeq`. What matters is that nothing more arrives.
+  await until(() => !(body.inputQueue?.length), () => `the last player inputs drained: queued ${body.inputQueue?.length ?? 0}`);
+  const parked = body.receivedSeq;
   await page.keyboard.down('KeyD'); await page.waitForTimeout(400); await page.keyboard.up('KeyD');
-  assert.equal(seqOf(), parked, 'no input reaches the player while in the dev view');
+  assert.equal(body.receivedSeq, parked, 'no input reaches the player while in the dev view');
   await page.locator('#dev-focus').selectOption(far.id);
   await page.evaluate(() => document.activeElement.blur());
   await page.keyboard.press('Backquote');
   await page.waitForFunction(() => !window.arenaDebug().devFeed && !window.arenaDebug().directed && window.arenaDebug().vision);
-  await until(() => seqOf() > parked + 3, () => `input resumes after stepping back: ${seqOf()} vs ${parked}`);
+  await until(() => body.lastSeq > parked + 3, () => `input resumes after stepping back: ${body.lastSeq} vs ${parked}`);
   assert.equal(room.spectators, 0, 'the dev socket closed');
   await page.getByRole('button', { name: 'Dev view', exact: true }).click();
   await page.waitForFunction(id => window.arenaDebug().devFeed && window.arenaDebug().follow === id && window.arenaDebug().fog === false, far.id);
@@ -259,12 +260,30 @@ try {
     .catch(async () => assert.fail(`the player saw the pause: ${await tabs()}`));
   await dev.waitForFunction(() => window.arenaDebug().paused, null, { timeout: 5000 })
     .catch(async () => assert.fail(`the dev tab saw the pause: ${await tabs()}`));
-  await page.waitForTimeout(300);
+  // Tick time stops while performance.now keeps running. Retaining pre-pause sync samples would
+  // stamp inputs beyond the measured lead on resume; inspect the first sends, before it recovers.
+  await page.evaluate(() => {
+    window.pauseInputs = [];
+    const send = WebSocket.prototype.send;
+    window.restorePauseSend = () => { WebSocket.prototype.send = send; };
+    WebSocket.prototype.send = function(data) {
+      const message = JSON.parse(data);
+      if (message.type === 'input') window.pauseInputs.push({ tick: message.tick, frameTick: window.arenaDebug().tick });
+      return send.call(this, data);
+    };
+  });
+  await page.waitForTimeout(1600);
   assert.equal(room.match.tick, pausedAt, 'a paused room does not advance');
   await dev.screenshot({ path: 'test-results/dev-paused.png' });
   await dev.keyboard.press('Space');
   await until(() => room.pausedAt == null && room.match.tick > pausedAt, () => 'Space resumed the room');
   await page.waitForFunction(() => !window.arenaDebug().paused && document.getElementById('paused-banner').hidden);
+  await page.waitForFunction(() => window.pauseInputs.length >= 3);
+  const resumedInputs = await page.evaluate(() => { window.restorePauseSend(); return window.pauseInputs.slice(0, 3); });
+  const lead = body.inputLeadTicks ?? MAX_INPUT_LEAD_TICKS;
+  for (const input of resumedInputs) assert.ok(input.tick - (input.frameTick + 1) <= lead,
+    `first resumed input fits the measured lead ${lead}: ${JSON.stringify(input)}`);
+  await until(() => body.lastSeq >= body.receivedSeq - 3, () => 'resumed input is spent without a sync-window stall');
   await dev.close();
 
   // The lobby browser (#254) offers a dev view of a listed room under this policy. The role Join uses
