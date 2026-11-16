@@ -1,8 +1,8 @@
 {
  "issue": 1139,
- "date": "2026-11-16T20:44:04.204Z",
+ "date": "2026-11-16T20:50:18.808Z",
  "node": "v24.15.0",
- "revision": "7e748e4904f23cc3a3370c029cbb06abc2cd1c3a",
+ "revision": "54e2c24273218672efba6429d31fb6b8f72c708c",
  "cache": {
   "path": "test-results/wire-1093-tuned-36x18.v8",
   "sha256": "a6d2bc67c744689f096e94a44d03a643cfc37d534280589532bdbeca0fea28e3",
@@ -13,9 +13,9 @@
   "generatedAt": "2026-11-16T04:25:46.727Z",
   "generator": "chain-live-2",
   "reviewedChanges": {
-   "shared/simulation/projection-contract.ts": "ae1f5f909075afcef5ebc05fe26b5fc7e3dd8bc1d56243e0b351b047bde14ca5",
-   "shared/simulation/visibility.ts": "22f588c1a8ebf8aa5579dc52293aef49e318f3f0a6b627c63f072fce7044cf08",
-   "shared/physics/world.ts": "4c56acfe33a6a89a5419b3a1ef330322c9dc497af943aba3d568251546bc9a1d"
+   "shared/simulation/projection-contract.ts": "ef7faa0413b84eb2dfa2d892f1d3a44a171f6759c0c7adc20ff7c0f5c8184a4c",
+   "shared/simulation/visibility.ts": "0184fb27a8dc2a0fbb85ac4fb5a403527d72c068a63519f3c871d88630538549",
+   "shared/physics/world.ts": "c21b8715b3327414fc1f8c9ac7947bc3a41ca741103683c39b0b57ac5bc33dd1"
   }
  },
  "scale": 40,
@@ -25,8 +25,8 @@
  "viewers": 12,
  "projections": 14412,
  "sources": {
-  "./wire-data-model.mjs": "ceeea3b62a89aed6194d277c69230886802457a9bf8de6a06e4004acc766f5c1",
-  "./wire-cached-match.mjs": "ed0779204ab42fddee061d411ca8a36d6a45745c2fbbfb65661b38ee32313033",
+  "./wire-data-model.mjs": "4795187899c337202a70648278454356061d06c96ffbd284315967d3d85a23be",
+  "./wire-cached-match.mjs": "8e8c49cd14aa3be8896d67c357748bb2e2dad6dfc22a9b7f27fa96038a1c1bc5",
   "./wire-slice-fields.mjs": "7224601dce053b1586e13198ec60f841ff452bb6eef943dcaf4da61cf0cbcfcf"
  },
  "coverage": {
@@ -2783,9 +2783,9 @@
   }
  },
  "contention": {
-  "wallMs": 23174.1421,
-  "selfCpuMs": 25969,
-  "otherBusyShare": 0.0751,
+  "wallMs": 21732.5963,
+  "selfCpuMs": 24219,
+  "otherBusyShare": 0.0647,
   "contended": false,
   "threshold": 0.25
  }

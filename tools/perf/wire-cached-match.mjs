@@ -17,7 +17,8 @@ const sha = data => createHash('sha256').update(data).digest('hex');
 
 /** The LF-normalized diff of one file from a revision, and its hash. */
 export function fileDiff(revision, path) {
-  const diff = execFileSync('git', ['diff', revision, '--', path], { encoding: 'utf8' }).replace(/\r\n/g, '\n');
+  // Full blob ids: the default abbreviation grows with the repository, which would change the hash of an unchanged diff.
+  const diff = execFileSync('git', ['diff', '--full-index', '--no-color', '--no-ext-diff', revision, '--', path], { encoding: 'utf8' }).replace(/\r\n/g, '\n');
   return { diff, sha256: sha(diff) };
 }
 

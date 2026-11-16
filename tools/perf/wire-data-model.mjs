@@ -19,9 +19,9 @@ if (!args.has('maps-cache') || !args.has('out')) throw new Error('--maps-cache a
 // Reviewed declaration-only changes since the caches' source revision, pinned by the hash of their diff (review 868):
 // a different change to these files is refused, not trusted by file name.
 const REVIEWED_CHANGES = {
-  'shared/simulation/projection-contract.ts': 'ae1f5f909075afcef5ebc05fe26b5fc7e3dd8bc1d56243e0b351b047bde14ca5',
-  'shared/simulation/visibility.ts': '22f588c1a8ebf8aa5579dc52293aef49e318f3f0a6b627c63f072fce7044cf08',
-  'shared/physics/world.ts': '4c56acfe33a6a89a5419b3a1ef330322c9dc497af943aba3d568251546bc9a1d',
+  'shared/simulation/projection-contract.ts': 'ef7faa0413b84eb2dfa2d892f1d3a44a171f6759c0c7adc20ff7c0f5c8184a4c',
+  'shared/simulation/visibility.ts': '0184fb27a8dc2a0fbb85ac4fb5a403527d72c068a63519f3c871d88630538549',
+  'shared/physics/world.ts': 'c21b8715b3327414fc1f8c9ac7947bc3a41ca741103683c39b0b57ac5bc33dd1',
 };
 const STRING_CAP = 48;
 
