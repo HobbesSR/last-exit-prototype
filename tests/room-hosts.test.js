@@ -198,10 +198,13 @@ test('both hosts record the same frames for the same map and seed', async () => 
     } finally { await h.finish(); }
   }
   const [a, b] = [runs.false, runs.true];
-  const shared = [...a.recorded.keys()].filter(tick => b.recorded.has(tick));
-  assert.ok(shared.some(tick => tick >= 40), 'the archives overlap past tick 40');
+  // `finish` follows a real-time wait, so each run ends at its own tick; compare only what precedes both ends.
+  const end = Math.min(...[a, b].map(run => Math.min(...[...run.recorded].filter(([, s]) => s.phase !== 'live').map(([tick]) => tick))));
+  const shared = [...a.recorded.keys()].filter(tick => b.recorded.has(tick) && tick < end);
+  // `finish` was sent only after tick 40 was seen live, so both archives are live through tick 39.
+  assert.ok(end >= 40 && shared.includes(end - 1), 'the archives overlap up to the earlier finish');
   for (const tick of shared) assert.deepEqual(b.recorded.get(tick), a.recorded.get(tick), `archived tick ${tick}`);
-  const seenBoth = [...a.seen.keys()].filter(tick => b.seen.has(tick));
+  const seenBoth = [...a.seen.keys()].filter(tick => b.seen.has(tick) && tick < end);
   assert.ok(seenBoth.length > 0, 'the dev watchers share a tick');
   for (const tick of seenBoth) assert.deepEqual(b.seen.get(tick), a.seen.get(tick), `dev frame at tick ${tick}`);
 });
