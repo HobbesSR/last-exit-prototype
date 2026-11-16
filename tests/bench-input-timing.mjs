@@ -108,7 +108,9 @@ function policyB(net, target) {
         margins.push(stamp[j] - tickOf(arr[j])); if (margins.length > WINDOW) margins.shift();
         return false;
       });
-      if (stamp0 === null) stamp0 = tickOf(t + net.fwd[0]) + target;
+      // The origin comes from a time-sync estimate (the best of the first 20 one-way times), not from input 0, which a
+      // datagram link may lose.
+      if (stamp0 === null) stamp0 = tickOf(t + Math.min(...Array.from({ length: 20 }, (_, i) => net.fwd[i]).filter(Number.isFinite))) + target;
       const recentLate = margins.slice(-3).some(m => m < 0);
       period = recentLate || (margins.length && Math.min(...margins) < target) ? TICK * SPEED_UP
         : margins.length >= WINDOW && Math.min(...margins) > target ? TICK * SLOW_DOWN : TICK;
