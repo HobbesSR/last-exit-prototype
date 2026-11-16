@@ -1,5 +1,5 @@
 // Benchmark-only Node codec. Its corpus-derived dictionary is not a protocol schema.
-const NULL = 0, FALSE = 1, TRUE = 2, INTEGER = 3, FLOAT = 4, STRING = 5, ARRAY = 6, OBJECT = 7;
+const NULL = 0, FALSE = 1, TRUE = 2, POSITIVE = 3, FLOAT = 4, STRING = 5, ARRAY = 6, OBJECT = 7, NEGATIVE = 8;
 
 export function collectKeys(value, keys) {
   if (!value || typeof value !== 'object') return;
@@ -15,11 +15,16 @@ export function createCodec(keys) {
   const indices = new Map(keys.map((key, index) => [key, index]));
   if (indices.size !== keys.length || keys.some(key => typeof key !== 'string')) throw new TypeError('Invalid dictionary');
   function encode(value) {
-    const parts = [];
-    const byte = n => parts.push(Buffer.from([n]));
+    let buffer = Buffer.allocUnsafe(1024), offset = 0;
+    const reserve = n => {
+      if (offset + n <= buffer.length) return;
+      let size = buffer.length;
+      while (size < offset + n) size *= 2;
+      const larger = Buffer.allocUnsafe(size); buffer.copy(larger, 0, 0, offset); buffer = larger;
+    };
+    const byte = n => { reserve(1); buffer[offset++] = n; };
     const uint = n => {
-      n = BigInt(n);
-      do { const next = Number(n % 128n); n /= 128n; byte(next + (n ? 128 : 0)); } while (n);
+      do { const next = n % 128; n = Math.floor(n / 128); byte(next + (n ? 128 : 0)); } while (n);
     };
     const put = v => {
       if (v == null || (typeof v === 'number' && !Number.isFinite(v))) return byte(NULL);
@@ -27,12 +32,13 @@ export function createCodec(keys) {
       if (v === true) return byte(TRUE);
       if (typeof v === 'number') {
         if (Number.isSafeInteger(v)) {
-          byte(INTEGER); const n = BigInt(v); uint(n < 0n ? -2n * n - 1n : 2n * n); return;
+          byte(v < 0 ? NEGATIVE : POSITIVE); uint(Math.abs(v)); return;
         }
-        byte(FLOAT); const b = Buffer.allocUnsafe(8); b.writeDoubleLE(v); parts.push(b); return;
+        byte(FLOAT); reserve(8); buffer.writeDoubleLE(v, offset); offset += 8; return;
       }
       if (typeof v === 'string') {
-        const b = Buffer.from(v, 'utf8'); byte(STRING); uint(b.length); parts.push(b); return;
+        const size = Buffer.byteLength(v, 'utf8'); byte(STRING); uint(size); reserve(size);
+        offset += buffer.write(v, offset, size, 'utf8'); return;
       }
       if (Array.isArray(v)) {
         byte(ARRAY); uint(v.length); for (const entry of v) put(entry === undefined ? null : entry); return;
@@ -50,31 +56,30 @@ export function createCodec(keys) {
       throw new TypeError(`Unsupported value: ${typeof v}`);
     };
     put(value);
-    return Buffer.concat(parts);
+    return Buffer.from(buffer.subarray(0, offset));
   }
   function decode(bytes) {
     const b = Buffer.from(bytes); let offset = 0;
     const byte = () => { if (offset >= b.length) throw new RangeError('Truncated input'); return b[offset++]; };
     const uint = () => {
-      let n = 0n, factor = 1n;
+      let n = 0, factor = 1;
       for (let i = 0; i < 8; i++) {
-        const v = byte(); n += BigInt(v % 128) * factor;
+        const v = byte(), digit = v % 128;
+        if (digit > Math.floor((Number.MAX_SAFE_INTEGER - n) / factor)) throw new RangeError('Integer out of range');
+        n += digit * factor;
         if (v < 128) return n;
-        factor *= 128n;
+        factor *= 128;
       }
       throw new RangeError('Invalid varuint');
     };
-    const length = () => { const n = uint(); if (n > BigInt(b.length)) throw new RangeError('Invalid length'); return Number(n); };
+    const length = () => { const n = uint(); if (n > b.length) throw new RangeError('Invalid length'); return n; };
     const get = () => {
       switch (byte()) {
         case NULL: return null;
         case FALSE: return false;
         case TRUE: return true;
-        case INTEGER: {
-          const u = uint(), n = u % 2n ? -(u + 1n) / 2n : u / 2n;
-          if (n < BigInt(Number.MIN_SAFE_INTEGER) || n > BigInt(Number.MAX_SAFE_INTEGER)) throw new RangeError('Integer out of range');
-          return Number(n);
-        }
+        case POSITIVE: return uint();
+        case NEGATIVE: { const n = uint(); return n === 0 ? 0 : -n; }
         case FLOAT: {
           if (offset + 8 > b.length) throw new RangeError('Truncated float');
           const n = b.readDoubleLE(offset); offset += 8;
@@ -91,8 +96,8 @@ export function createCodec(keys) {
         case OBJECT: {
           const n = length(), value = {};
           for (let i = 0; i < n; i++) {
-            const index = uint(); if (index >= BigInt(keys.length)) throw new RangeError('Unknown key index');
-            Object.defineProperty(value, keys[Number(index)], { value: get(), enumerable: true, writable: true, configurable: true });
+            const index = uint(); if (index >= keys.length) throw new RangeError('Unknown key index');
+            Object.defineProperty(value, keys[index], { value: get(), enumerable: true, writable: true, configurable: true });
           }
           return value;
         }
