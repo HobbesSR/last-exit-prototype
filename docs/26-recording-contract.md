@@ -28,12 +28,13 @@ Recording failure must never reach gameplay. Default content is `content-7` unde
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. Recordings write schema **18**
+existing `"no longer reads"` message while remaining downloadable. Recordings write schema **19**
 and `minSchema` 17 (`minimumReaderForMatch`, `LINES_SCHEMA`): since #901 they are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
 `GameMap.{modules,nodes,routes,streets}`, `physics.{profile,settings,world.pending}`) while remaining
-compatible with schema 17 readers. This build still reads every schema from 10. Optional appearance
+compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
+([Schema 19](#schema-19-tick-stamped-input-1096)). This build still reads every schema from 10. Optional appearance
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
@@ -131,6 +132,7 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 19 | Optional input `tick` stamp on recorded commands and buffered input, and player `inputMargin`, `inputMarginNext` and `inputLeadTicks` (#1096) | unchanged |
 | 18 | Retired `Player.path`, `GameMap.{modules,nodes,routes,streets}`, and private `physics.{profile,settings,world.pending}` (#948, #949) | unchanged |
 | 17 | Lines (NDJSON) with keyframes and delta frames, interval checkpoints and a stored-line digest (#901) | 17 |
 | 16 | Optional contestant roster place `seat` in recorded player state (#792) | unchanged |
@@ -434,6 +436,24 @@ and requires `playableArea` on drawn maps and replays. Simulation rules at the
 time stayed `last-exit-0.7` and tuning stayed `content-2`. Frozen simulation
 characterization continues to use its stored legacy maps offline and is not
 regenerated.
+
+## Schema 19: tick-stamped input (#1096)
+
+Schema 19 records the tick each client input is for ([24](24-networking-privacy.md#tick-stamped-input)).
+A recorded `input` command keeps its `input` as accepted, now with `tick`; the player's buffered
+`inputQueue` entries carry the same stamp; and recorded player state gains `inputMargin` (the margin the
+client was told this tick), `inputMarginNext` (arrivals gathered for the next tick) and
+`inputLeadTicks` (the lead its measured round trip grants). Every field is optional and present only
+when a stamped input or a measurement put it there, so in-process matches that queue unstamped input
+(the physics fixture among them) record exactly what they did before. The change is additive and
+`minSchema` stays at 17: playback draws stored frames and reads none of these.
+
+An input refused as late or too far ahead never reaches the simulation and is not recorded; that it
+arrived shows only in the next frame's `inputMargin`. Which tick spent a recorded input follows from its
+stamp, which the recording carries, so the rules version stays `last-exit-0.8-physics`: nothing
+dispatches on it, and the recording states what a reader needs. The supported recording remains a record
+of authoritative ticks; there is no delayed sealing, and no recorded tick is rewritten (#1096's option 2
+was not built).
 
 ## Schema 16: contestant roster place (#792)
 

@@ -108,7 +108,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     assert.equal(we.state.players.length, server.rooms.get(room.id).game.players.length);
     // Watching neither starts the match, consumes a slot, nor grants any authority over one.
     assert.equal(server.rooms.get(room.id).started, false);
-    eye.send(JSON.stringify({ type: 'input', seq: 1, x: 1 }));
+    eye.send(JSON.stringify({ type: 'input', seq: 1, tick: we.state.tick + 1, x: 1 }));
     assert.equal(server.rooms.get(room.id).game.players.every(p => p.bot), true);
     const player = await open(base);
     const welcomePlayer = next(player, 'welcome'); player.send(JSON.stringify({ type: 'join', room: room.id, role: 'contestant', name: 'P' }));
@@ -170,7 +170,8 @@ test('two clients share authority; replay preserves each recorded frame and surv
     a.send(JSON.stringify({ type: 'start' }));
     // A yard frame can already be on the socket when the start is sent, as in server-matchmaking.test.js.
     const live = await next(a, 'state', 5000, frame => frame.state.phase !== 'waiting'); assert.equal(live.state.phase, 'live');
-    a.send(JSON.stringify({ type: 'input', seq: 1, x: 1, hp: 99999, interact: true, moveSlot: { from: 0, to: 5 } }));
+    // Stamped a tick ahead, as the client's clock aims (#1096), so a tick between frame and send cannot make it late.
+    a.send(JSON.stringify({ type: 'input', seq: 1, tick: live.state.tick + 2, x: 1, hp: 99999, interact: true, moveSlot: { from: 0, to: 5 } }));
     await next(a, 'state'); await next(a, 'state');
     const saved = next(a, 'saved'); a.send(JSON.stringify({ type: 'finish' })); const metadata = (await saved).replay;
     const served = await (await fetch(base + `/api/replays/${room.id}`)).text();

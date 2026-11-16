@@ -143,8 +143,10 @@ try {
   const arenaBox = await page.locator('#game canvas').boundingBox();
   await dragInventory(4, { x: arenaBox.x + arenaBox.width / 2, y: arenaBox.y + arenaBox.height / 2 });
   await page.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  const gestureDrop = server.rooms.get(ownerRoom).game.map.items.find(item => item.droppedBy === ownerPlayer && item.weaponType === 'rifle');
-  assert.equal(gestureDrop?.ammo, 7, 'world drag drops the unselected source with its ammunition');
+  // The ground record can be admitted a tick after the slot empties (pending physical admission), so wait for it.
+  const droppedRifle = () => server.rooms.get(ownerRoom).game.map.items.find(item => item.droppedBy === ownerPlayer && item.weaponType === 'rifle');
+  for (let waited = 0; !droppedRifle() && waited < 2000; waited += 50) await page.waitForTimeout(50);
+  assert.equal(droppedRifle()?.ammo, 7, 'world drag drops the unselected source with its ammunition');
   // Live guest admission below needs its replaceable bot slots back.
   for (const { player, bot } of inventoryOthers) player.bot = bot;
   await page.screenshot({ path: 'test-results/desktop.png' });

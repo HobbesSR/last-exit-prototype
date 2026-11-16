@@ -675,6 +675,11 @@ export interface PlayerInput {
   transit?: StationId | undefined;
   /** Monotonic client sequence number; the server rejects anything not newer than the last. */
   seq?: number | undefined;
+  /**
+   * The tick this input is for (#1096): the tick that spends it, or nothing does. Every wire input
+   * carries one; only in-process inputs omit it, and a tick spends those in arrival order.
+   */
+  tick?: Tick | undefined;
 }
 
 export interface Player extends Vec2 {
@@ -704,12 +709,22 @@ export interface Player extends Vec2 {
   input: PlayerInput;
   /** The newest sequence a tick has *consumed*. What the client reconciles against. */
   lastSeq: number;
-  /** Inputs accepted but not yet spent. A tick spends exactly one. */
+  /** Inputs accepted but not yet spent, in sequence order. A tick spends at most one. */
   inputQueue?: PlayerInput[] | undefined;
   /** The newest sequence *accepted*, which guards ordering and duplicates on arrival. */
   receivedSeq?: number | undefined;
-  /** Consecutive ticks the queue has been empty, so a repeat is distinguishable from a real input. */
+  /** Consecutive ticks with no input to spend, so a repeat is distinguishable from a real input. */
   inputStalled?: number | undefined;
+  /**
+   * The smallest margin, in ticks, of the stamped inputs that arrived before this tick: how long
+   * before its tick each was buffered, negative when it came too late and was discarded. Absent when
+   * none arrived. The client steers its send rate by it (`shared/input-clock.ts`).
+   */
+  inputMargin?: number | undefined;
+  /** The same, gathered for the next tick from arrivals since the last. Never transmitted. */
+  inputMarginNext?: number | undefined;
+  /** How far ahead of the next tick a stamp may be, from latency the server measured itself. */
+  inputLeadTicks?: number | undefined;
   /** How far behind this player's view runs, in ticks, from latency the server measured itself. */
   viewLagTicks?: number | undefined;
   inventory?: Inventory | undefined;

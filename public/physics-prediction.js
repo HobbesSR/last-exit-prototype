@@ -3,6 +3,7 @@ import { buildPhysicsGeometry, physicsGate } from '../shared/simulation/physics-
 import { characterMotor } from '../shared/simulation/actor-physics.ts';
 import { movementSpeed } from '../shared/movement.ts';
 import { HZ } from '../shared/simulation/rules.ts';
+import { REPEAT_TICKS } from '../shared/simulation/input.ts';
 import { bodyRadius } from '../shared/physics/presentation-geometry.ts';
 
 import { PREDICTION_LIMITS } from './physics-prediction-limits.js';
@@ -12,8 +13,11 @@ export { PREDICTION_LIMITS } from './physics-prediction-limits.js';
 export async function createPhysicsPrediction(map, playerId, { clock = () => performance.now() } = {}) {
   const factory = await createPhysicsWorldFactory();
   const geometry = buildPhysicsGeometry(map);
-  let world, authority, own, motor, value, tick, receivedAt = -Infinity, floor = -1;
-  let inputs = [], frames = [], identity;
+  // `floor` is the newest stamp a cut took from `inputs`: ticks up to it no longer count as pending.
+  let world, authority, own, motor, value, tick, receivedAt = -Infinity, floor = -1, newestSeq = -1;
+  // `dropped` keeps what a cut took out of `inputs`: the server still spends those on their ticks, so a
+  // replay steps them there, though they no longer count as pending.
+  let inputs = [], frames = [], identity, held = null, retired = null, dropped = [];
   const poses = new Map();
   let lastReason = 'initial', replayed = 0, rebuilds = 0, cuts = 0, error = 0;
   const close = () => { world?.dispose(); world = null; };
@@ -24,14 +28,34 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     return Math.abs(body.x - own.x) <= reach + radius && Math.abs(body.y - own.y) <= reach + radius;
   };
   const proxiesFor = frame => frame.bodies.filter(b => b.id !== own.id && b.itemId === undefined && near(b));
-  const pending = () => inputs.filter(i => i.seq > Math.max(floor, authority?.lastSeq ?? -1));
+  // Inputs are reconciled by their stamps (#1096): the frame for tick T has spent, or discarded,
+  // everything stamped T or earlier, and will spend each later stamp on its own tick.
+  const corrected = () => frames.at(-1)?.tick ?? -1;
+  const pending = () => inputs.filter(i => i.tick > Math.max(floor, corrected()));
+  // Ticks a replay steps: every tick up to the newest stamp, including those no input was sent for.
+  const span = () => { const last = pending().at(-1); return last ? last.tick - corrected() : 0; };
   const cut = reason => {
     close(); lastReason = reason; cuts++;
-    floor = Math.max(floor, ...inputs.map(i => i.seq));
+    floor = Math.max(floor, ...inputs.map(i => i.tick));
+    dropped = [...dropped, ...inputs].slice(-PREDICTION_LIMITS.inputs);
     inputs = []; value = authority && { ...authority, ...(own ? { x: own.x, y: own.y } : {}) }; tick = frames.at(-1)?.tick;
   };
+  // A tick with no pending input for it spends what the server will spend there: an input a cut
+  // dropped, else a repeat of the last input's movement.
+  function fill() {
+    const known = dropped.find(i => i.tick === tick + 1);
+    // The server stops repeating once the last input it spent is REPEAT_TICKS old.
+    const holding = held && tick + 1 - held.tick <= REPEAT_TICKS;
+    if (known) { step(known); held = known; } else step(holding ? { x: held.x, y: held.y, sneak: held.sneak } : {});
+  }
+  /** Steps up to and including the input's own tick; returns how many ticks that took. */
+  function advance(input) {
+    let steps = 1;
+    while (tick + 1 < input.tick) { fill(); steps++; }
+    step(input); held = input;
+    return steps;
+  }
   function step(input) {
-    input.tick = tick + 1;
     // Timers precede motors on authority too. Ability activation waits for authority.
     value.boost = Math.max(0, (value.boost ?? 0) - 1);
     value.stun = Math.max(0, (value.stun ?? 0) - 1);
@@ -58,7 +82,8 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
       for (const body of bodies) world.queueAddBody(body);
       world.commitMutations();
       value = { ...authority, x: own.x, y: own.y }; tick = frame.tick;
-      for (const input of pending()) { step(input); replayed++; }
+      held = retired;
+      for (const input of pending()) replayed += advance(input);
     } catch (e) { close(); throw e; }
   }
   function correct(frame) {
@@ -71,7 +96,10 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     receivedAt = clock(); replayed = 0;
     // Retain detached, tick-indexed projected history only. Never read render frames.
     frames.push(frame); frames = frames.slice(-PREDICTION_LIMITS.frames);
-    inputs = inputs.filter(i => i.seq > (authority?.lastSeq ?? -1));
+    // What the frame retired is what its ticks repeat until a newer input arrives.
+    retired = [...dropped, ...inputs].filter(i => i.tick <= frame.tick).sort((a, b) => a.tick - b.tick).at(-1) ?? retired;
+    inputs = inputs.filter(i => i.tick > frame.tick);
+    dropped = dropped.filter(i => i.tick > frame.tick);
     const nextIdentity = own && JSON.stringify([frame.physicsProfile, own.id, own.generation, own.shape, motor]);
     let reason;
     if (!authority || authority.status !== 'active' || !own || !motor || !Number.isFinite(own.vx) || !Number.isFinite(own.vy)) reason = 'unsupported';
@@ -79,9 +107,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     else if (identity !== undefined && nextIdentity !== identity) reason = 'profile-or-generation';
     else if (own.discontinuity) reason = 'placement';
     else if (previousTick !== undefined && frame.tick !== previousTick + 1) reason = 'frame-gap';
-    else if (pending().length > PREDICTION_LIMITS.replay) reason = 'replay-cap';
-    else if (inputs.length && (inputs[0].seq > Math.max(floor, authority.lastSeq) + 1 ||
-      inputs.some((input, index) => index > 0 && input.seq !== inputs[index - 1].seq + 1))) reason = 'missing-input';
+    else if (span() > PREDICTION_LIMITS.replay) reason = 'replay-cap';
     identity = nextIdentity;
     error = previousPose && authority ? Math.hypot(previousPose.x - authority.x, previousPose.y - authority.y) : null;
     if (reason) cut(reason);
@@ -89,12 +115,21 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     return value;
   }
   function input(input) {
-    if (!Number.isSafeInteger(input.seq) || input.seq <= Math.max(floor, authority?.lastSeq ?? -1, inputs.at(-1)?.seq ?? -1)) return value;
-    inputs.push({ seq: input.seq, x: input.x, y: input.y, sneak: input.sneak });
+    if (!Number.isSafeInteger(input.seq) || input.seq <= newestSeq || !Number.isSafeInteger(input.tick) || input.tick <= corrected()) return value;
+    newestSeq = input.seq;
+    // A stamp at or before one already predicted is the client's clock stepping back. The server lets it
+    // supersede what it buffered for those ticks, so prediction drops them too and replays from authority.
+    const back = input.tick <= Math.max(floor, inputs.at(-1)?.tick ?? -1);
+    if (back) {
+      inputs = inputs.filter(i => i.tick < input.tick); dropped = dropped.filter(i => i.tick < input.tick);
+      floor = Math.min(floor, input.tick - 1);
+    }
+    inputs.push({ seq: input.seq, tick: input.tick, x: input.x, y: input.y, sneak: input.sneak });
     if (inputs.length > PREDICTION_LIMITS.inputs) { cut('input-cap'); return value; }
     if (clock() - receivedAt > PREDICTION_LIMITS.staleMs) { cut('stale-authority'); return value; }
-    if (pending().length > PREDICTION_LIMITS.replay) { cut('replay-cap'); return value; }
-    if (world) step(inputs.at(-1));
+    if (span() > PREDICTION_LIMITS.replay) { cut('replay-cap'); return value; }
+    if (world && back) rebuild(frames.at(-1));
+    else if (world) advance(inputs.at(-1));
     return value;
   }
   return { correct, input, dispose: close, value: () => value,

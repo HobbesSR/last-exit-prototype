@@ -23,7 +23,7 @@ const ITEM_TYPES = { id: 'id', x: 'num', y: 'num', kind: 'str', weaponType: 'str
   buildingId: 'str', droppedBy: 'str', pickupAfter: 'num', nodeId: 'str', tier: 'num', instanceId: 'id', lineageId: 'id', quality: 'num', family: 'str' };
 const OWN_TYPES = { id: 'str', name: 'str', role: 'str', kit: 'str', seat: 'uint', x: 'num', y: 'num', hp: 'num', maxHp: 'num', shield: 'num',
   keys: 'num', weapon: 'uint', kills: 'num', level: 'num', status: 'str', cooldown: 'num', attackCd: 'num', railCd: 'num', cloak: 'num',
-  revealed: 'num', boost: 'num', stun: 'num', heading: 'num', lastSeq: 'num', inputStalled: 'num',
+  revealed: 'num', boost: 'num', stun: 'num', heading: 'num', lastSeq: 'num', inputStalled: 'num', inputMargin: 'num',
   inventory: { list: { nullable: 'Item' } }, selectedSlot: 'uint', reserves: { map: 'num' }, reload: { nullable: 'Reload' },
   charging: { nullable: 'str' }, respawnAt: { nullable: 'num' }, cell: 'Item', nodeId: 'str', discovered: { layer: 'uint' }, heard: { list: 'Heard' } };
 const OBSERVED_TYPES = Object.fromEntries(['id', 'role', 'kit', 'name', 'x', 'y', 'heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed', 'seat'].map(k => [k, OWN_TYPES[k]]));

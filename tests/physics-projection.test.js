@@ -109,7 +109,7 @@ test('projection gates actors, prop bounds, item associations and both tether en
 });
 
 test('physics recording floor is explicit and stamped by the room writer', async () => {
-  assert.equal(SCHEMA, 18);
+  assert.equal(SCHEMA, 19);
   // Lines with delta frames (#901) need a reader of at least schema 17; this build still reads from MIN_SCHEMA.
   assert.equal(minimumReaderForMatch(), 17);
   assert.equal(MIN_SCHEMA, 10);
