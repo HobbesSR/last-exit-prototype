@@ -215,6 +215,17 @@ avoiding an unbounded separate gap list. No surviving frames means publication f
 state must never be invented; `endTick` records the actual match endpoint, even if the last surviving
 frame is earlier.
 
+<a id="proposed-viewer-publication"></a>
+
+### Proposed direction: viewer publication and archive split (#1098, #1074, #1123)
+
+Status: proposed direction ([17.4](17.4-live-service.md) #16); nothing below is implemented yet, and `#1098` remains an open decision for Corey.
+
+- **Separate sinks from a shared immutable frame source.** An authoritative tick (or sealed tick if `#1096` adopts delayed input sealing) feeds independent **recording** and **public viewer-publication** (`#1123`) sinks. Neither sink may depend on successful delivery or storage by the other: recording omissions or storage failures remain isolated from gameplay and viewer publication.
+- **Open archive-split and access decisions (`#1098`, `#1074`).** `#1098` asks whether to split recordings into two artifacts: a **private evidence archive** (full authoritative state, commands, and diagnostic marks under owner/operator access and lifetime rules, `#1074`, `17.4` #3) and a **shareable viewer replay** projecting viewer-safe fields via `playerView(..., null)` (`shared/simulation/visibility.ts`), the closed allowlists in `shared/simulation/projection-contract.ts`, and `publicMap` (`server/map-payload.js`). Even for viewer-safe streams or artifacts, disclosure rules do not settle public accessibility: audience access remains explicit (`17.4` #6, [24](24-networking-privacy.md#two-tier-spectators)).
+- **Format boundary.** `delta-1` (`shared/recording-format.ts`) is retained provisionally alongside shared projection rules and keyed-list delta primitives (`shared/keyed-list.ts`), keeping live-wire encoding (`#1093`/`#1094`) and recording contracts separate unless benchmarks justify merging. Forward-only progressive spectation over a bounded window stays independent of `#1102`'s arbitrary-seek on-demand archive rebuilding.
+- **Room-thread cost.** Today `remember()` retains up to 62 snapshot references in `room.history` while `writer.append()` (`frameParts` in `server/replay-writer.js`) serializes top-level fields synchronously on the room thread, reusing cached `items`/`gates` JSON, before `replay-worker.js` compares fields, encodes deltas, hashes, and gzips; room-thread egress cost must be measured rather than assumed free.
+
 ## Schema 17: lines and delta frames (#901)
 
 Whole-state frames made long default-size recordings unloadable: the browser reads an archive as one
