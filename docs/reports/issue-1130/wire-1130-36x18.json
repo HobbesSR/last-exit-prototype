@@ -1,0 +1,4892 @@
+{
+  "issue": 1130,
+  "revision": "bbd623a800cd35eb083897dcdb0c496f951e9bb5",
+  "timing": true,
+  "date": "2026-11-16T06:17:07.678Z",
+  "node": "v24.15.0",
+  "platform": "win32",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "sources": {
+    "./wire-codec-selection.mjs": "4ba1cf44b6d024b73a77fddde17366ad524214612ead66ae40d071d8527a50a7",
+    "./wire-descriptor-codec.mjs": "be51b2e137e12cbb2706f4d0e11bdc975aed972258ab93c79d4983dd59a60024",
+    "./wire-msgpackr-codec.mjs": "8e753e7022b386889d01d09064a56c5148bd6422de7874615e0ae7105b18588b",
+    "./wire-slice-schema.mjs": "769a420f23233d78cb4aa273b728209cd10b9860e5fb9cbca8dd6ad34405f4d8",
+    "./wire-slice-fields.mjs": "7224601dce053b1586e13198ec60f841ff452bb6eef943dcaf4da61cf0cbcfcf",
+    "./wire-codec-browser.mjs": "a27cd1419ad85ccf00f014001379831197c9d5109e5e01616dbc2e9e4eb5e48a"
+  },
+  "declarationExportsDiffSha256": "c2e6f2e876a5a09d89286a22a7f51f8f5281a9c43c8cc0340edb04ef2921997f",
+  "declarationExportsDiffLines": 9,
+  "cache": {
+    "path": "test-results/wire-1093-tuned-36x18.v8",
+    "sha256": "a6d2bc67c744689f096e94a44d03a643cfc37d534280589532bdbeca0fea28e3",
+    "size": "36x18",
+    "seed": 4217,
+    "content": "content-7",
+    "source": "5cdcd5cbad63397d011f951d4196e03f0e2c0bbb",
+    "generatedAt": "2026-11-16T04:25:46.727Z",
+    "generator": "chain-live-2"
+  },
+  "ticks": 1200,
+  "actualTicks": 1200,
+  "stride": 20,
+  "repeats": 3,
+  "minBatchMs": 200,
+  "cap": 1200,
+  "deliveriesVerified": 4804,
+  "samples": {
+    "contestant": 61,
+    "gladiator": 61,
+    "dev": 61,
+    "spectator": 61
+  },
+  "population": {
+    "contestant": {
+      "players": 8,
+      "bodies": 17
+    },
+    "gladiator": {
+      "players": 6,
+      "bodies": 3
+    },
+    "dev": {
+      "players": 11,
+      "bodies": 80
+    },
+    "spectator": {
+      "players": 11,
+      "bodies": 80
+    }
+  },
+  "lists": {
+    "own": [
+      "id",
+      "name",
+      "role",
+      "kit",
+      "seat",
+      "x",
+      "y",
+      "hp",
+      "maxHp",
+      "shield",
+      "keys",
+      "weapon",
+      "kills",
+      "level",
+      "status",
+      "cooldown",
+      "attackCd",
+      "railCd",
+      "cloak",
+      "revealed",
+      "boost",
+      "stun",
+      "heading",
+      "lastSeq",
+      "inputStalled",
+      "inventory",
+      "selectedSlot",
+      "reserves",
+      "reload",
+      "charging",
+      "respawnAt",
+      "cell",
+      "nodeId",
+      "discovered",
+      "heard"
+    ],
+    "heard": [
+      "x",
+      "y",
+      "tick",
+      "until"
+    ],
+    "observed": [
+      "id",
+      "role",
+      "kit",
+      "name",
+      "x",
+      "y",
+      "heading",
+      "status",
+      "hp",
+      "maxHp",
+      "shield",
+      "weapon",
+      "cloak",
+      "revealed",
+      "seat"
+    ],
+    "item": [
+      "id",
+      "x",
+      "y",
+      "kind",
+      "weaponType",
+      "ammo",
+      "charge",
+      "count",
+      "buildingId",
+      "droppedBy",
+      "pickupAfter",
+      "nodeId",
+      "tier",
+      "instanceId",
+      "lineageId",
+      "quality",
+      "family"
+    ],
+    "body": {
+      "required": [
+        "id",
+        "kind",
+        "shape",
+        "x",
+        "y",
+        "angle",
+        "generation"
+      ],
+      "optional": [
+        "vx",
+        "vy",
+        "omega",
+        "sleeping",
+        "actorId",
+        "itemId",
+        "discontinuity"
+      ],
+      "order": [
+        "id",
+        "kind",
+        "shape",
+        "x",
+        "y",
+        "angle",
+        "vx",
+        "vy",
+        "omega",
+        "sleeping",
+        "generation",
+        "actorId",
+        "itemId",
+        "discontinuity"
+      ]
+    },
+    "shapes": {
+      "circle": [
+        "kind",
+        "radius"
+      ],
+      "box": [
+        "kind",
+        "hx",
+        "hy"
+      ],
+      "convex": [
+        "kind",
+        "vertices"
+      ]
+    },
+    "vertex": [
+      "x",
+      "y"
+    ]
+  },
+  "structures": [
+    [
+      "id",
+      "role",
+      "kit",
+      "name",
+      "x",
+      "y",
+      "heading",
+      "status",
+      "hp",
+      "maxHp",
+      "shield",
+      "weapon",
+      "cloak",
+      "revealed"
+    ],
+    [
+      "id",
+      "role",
+      "kit",
+      "name",
+      "x",
+      "y",
+      "heading",
+      "status",
+      "hp",
+      "maxHp",
+      "shield",
+      "weapon",
+      "cloak",
+      "revealed",
+      "seat"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation",
+      "actorId"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation",
+      "itemId"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation",
+      "actorId",
+      "itemId"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation",
+      "discontinuity"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation",
+      "actorId",
+      "discontinuity"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation",
+      "itemId",
+      "discontinuity"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "generation",
+      "actorId",
+      "itemId",
+      "discontinuity"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation",
+      "actorId"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation",
+      "itemId"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation",
+      "actorId",
+      "itemId"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation",
+      "discontinuity"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation",
+      "actorId",
+      "discontinuity"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation",
+      "itemId",
+      "discontinuity"
+    ],
+    [
+      "id",
+      "kind",
+      "shape",
+      "x",
+      "y",
+      "angle",
+      "vx",
+      "vy",
+      "omega",
+      "sleeping",
+      "generation",
+      "actorId",
+      "itemId",
+      "discontinuity"
+    ],
+    [
+      "kind",
+      "radius"
+    ],
+    [
+      "kind",
+      "hx",
+      "hy"
+    ],
+    [
+      "kind",
+      "vertices"
+    ],
+    [
+      "x",
+      "y"
+    ],
+    [
+      "acceleration",
+      "braking",
+      "maxSpeed",
+      "surfaces"
+    ],
+    [
+      "x",
+      "y",
+      "tick",
+      "until"
+    ]
+  ],
+  "quanta": {
+    "Own": {
+      "x": 256,
+      "y": 256,
+      "heading": 10430.378350470453
+    },
+    "Observed": {
+      "x": 256,
+      "y": 256,
+      "heading": 10430.378350470453
+    },
+    "Body": {
+      "x": 256,
+      "y": 256,
+      "vx": 256,
+      "vy": 256,
+      "angle": 10430.378350470453,
+      "omega": 4096
+    }
+  },
+  "numbers": {
+    "integer": 22926,
+    "float32": 3358,
+    "float64": 10164
+  },
+  "exactness": {
+    "json": {
+      "checked": 244,
+      "failed": 0,
+      "examples": []
+    },
+    "json-deflate": {
+      "checked": 244,
+      "failed": 0,
+      "examples": []
+    },
+    "descriptor": {
+      "checked": 244,
+      "failed": 0,
+      "examples": []
+    },
+    "msgpackr-inline": {
+      "checked": 244,
+      "failed": 0,
+      "examples": []
+    },
+    "msgpackr-provisioned": {
+      "checked": 244,
+      "failed": 0,
+      "examples": []
+    }
+  },
+  "freshDecoders": {
+    "descriptor": 244,
+    "msgpackr-inline": 244,
+    "msgpackr-provisioned": 244
+  },
+  "provisionedTableUnchanged": true,
+  "quantizedCheck": {
+    "checked": 488,
+    "maxError": {
+      "players.x": 0.001953125,
+      "players.y": 0.001953125,
+      "players.heading": 0.00004778245710168605,
+      "bodies.all.x": 0.001953125,
+      "bodies.all.y": 0.0018310546875,
+      "bodies.all.vx": 0,
+      "bodies.all.vy": 0,
+      "bodies.all.angle": 0,
+      "bodies.all.omega": 0,
+      "bodies.set.x": 0.001953125,
+      "bodies.set.y": 0.001953125,
+      "bodies.set.vx": 0.001953125,
+      "bodies.set.vy": 0.001953125,
+      "bodies.set.angle": 0,
+      "bodies.set.omega": 0
+    }
+  },
+  "bytes": {
+    "contestant": {
+      "json": {
+        "first": 5910,
+        "steadyMean": 3334.0333333333333,
+        "max": 5910
+      },
+      "json-deflate": {
+        "first": 1094,
+        "steadyMean": 1010.8333333333334,
+        "max": 1451
+      },
+      "descriptor": {
+        "first": 1483,
+        "steadyMean": 935.65,
+        "max": 1483
+      },
+      "msgpackr-inline": {
+        "first": 2495,
+        "steadyMean": 1690.75,
+        "max": 2495
+      },
+      "msgpackr-provisioned": {
+        "first": 2135,
+        "steadyMean": 1412.8,
+        "max": 2135
+      },
+      "descriptor-quantized": {
+        "first": 1340,
+        "steadyMean": 781.2333333333333,
+        "max": 1340
+      },
+      "msgpackr-provisioned-quantized": {
+        "first": 2042,
+        "steadyMean": 1264.45,
+        "max": 2042
+      },
+      "json-deflate-context": {
+        "first": 1094,
+        "steadyMean": 238.83333333333334,
+        "max": 1094
+      },
+      "descriptor-deflate-context": {
+        "first": 618,
+        "steadyMean": 159.63333333333333,
+        "max": 618
+      },
+      "msgpackr-provisioned-deflate-context": {
+        "first": 945,
+        "steadyMean": 166.35,
+        "max": 945
+      },
+      "descriptor-deflate": {
+        "first": 618,
+        "steadyMean": 517.2166666666667,
+        "max": 899
+      },
+      "msgpackr-provisioned-deflate": {
+        "first": 945,
+        "steadyMean": 827.3333333333334,
+        "max": 1284
+      }
+    },
+    "gladiator": {
+      "json": {
+        "first": 1534,
+        "steadyMean": 1891.7333333333333,
+        "max": 2328
+      },
+      "json-deflate": {
+        "first": 584,
+        "steadyMean": 726.3833333333333,
+        "max": 839
+      },
+      "descriptor": {
+        "first": 356,
+        "steadyMean": 509.4166666666667,
+        "max": 645
+      },
+      "msgpackr-inline": {
+        "first": 992,
+        "steadyMean": 1159.3166666666666,
+        "max": 1339
+      },
+      "msgpackr-provisioned": {
+        "first": 717,
+        "steadyMean": 872.6833333333333,
+        "max": 1010
+      },
+      "descriptor-quantized": {
+        "first": 350,
+        "steadyMean": 420.9166666666667,
+        "max": 528
+      },
+      "msgpackr-provisioned-quantized": {
+        "first": 723,
+        "steadyMean": 780.7,
+        "max": 892
+      },
+      "json-deflate-context": {
+        "first": 584,
+        "steadyMean": 153,
+        "max": 584
+      },
+      "descriptor-deflate-context": {
+        "first": 247,
+        "steadyMean": 99.31666666666666,
+        "max": 247
+      },
+      "msgpackr-provisioned-deflate-context": {
+        "first": 484,
+        "steadyMean": 101.26666666666667,
+        "max": 484
+      },
+      "descriptor-deflate": {
+        "first": 247,
+        "steadyMean": 336.5833333333333,
+        "max": 417
+      },
+      "msgpackr-provisioned-deflate": {
+        "first": 484,
+        "steadyMean": 580.4833333333333,
+        "max": 658
+      }
+    },
+    "dev": {
+      "json": {
+        "first": 20770,
+        "steadyMean": 5009.583333333333,
+        "max": 20770
+      },
+      "json-deflate": {
+        "first": 2222,
+        "steadyMean": 1209.9166666666667,
+        "max": 2222
+      },
+      "descriptor": {
+        "first": 5139,
+        "steadyMean": 1426.9166666666667,
+        "max": 5139
+      },
+      "msgpackr-inline": {
+        "first": 6837,
+        "steadyMean": 1964.4166666666667,
+        "max": 6837
+      },
+      "msgpackr-provisioned": {
+        "first": 6502,
+        "steadyMean": 1721.2166666666667,
+        "max": 6502
+      },
+      "descriptor-quantized": {
+        "first": 4519,
+        "steadyMean": 1090.3666666666666,
+        "max": 4519
+      },
+      "msgpackr-provisioned-quantized": {
+        "first": 6049,
+        "steadyMean": 1383.7166666666667,
+        "max": 6049
+      },
+      "json-deflate-context": {
+        "first": 2222,
+        "steadyMean": 559.6,
+        "max": 2222
+      },
+      "descriptor-deflate-context": {
+        "first": 1574,
+        "steadyMean": 371.51666666666665,
+        "max": 1574
+      },
+      "msgpackr-provisioned-deflate-context": {
+        "first": 1761,
+        "steadyMean": 377.03333333333336,
+        "max": 1761
+      },
+      "descriptor-deflate": {
+        "first": 1574,
+        "steadyMean": 766.5166666666667,
+        "max": 1574
+      },
+      "msgpackr-provisioned-deflate": {
+        "first": 1761,
+        "steadyMean": 869.3,
+        "max": 1761
+      }
+    },
+    "spectator": {
+      "json": {
+        "first": 20770,
+        "steadyMean": 4889.083333333333,
+        "max": 20770
+      },
+      "json-deflate": {
+        "first": 2222,
+        "steadyMean": 1173.6,
+        "max": 2222
+      },
+      "descriptor": {
+        "first": 5139,
+        "steadyMean": 1389.6,
+        "max": 5139
+      },
+      "msgpackr-inline": {
+        "first": 6837,
+        "steadyMean": 1915.9666666666667,
+        "max": 6837
+      },
+      "msgpackr-provisioned": {
+        "first": 6502,
+        "steadyMean": 1676.8666666666666,
+        "max": 6502
+      },
+      "descriptor-quantized": {
+        "first": 4519,
+        "steadyMean": 1070.6,
+        "max": 4519
+      },
+      "msgpackr-provisioned-quantized": {
+        "first": 6049,
+        "steadyMean": 1357.0166666666667,
+        "max": 6049
+      },
+      "json-deflate-context": {
+        "first": 2222,
+        "steadyMean": 536.65,
+        "max": 2222
+      },
+      "descriptor-deflate-context": {
+        "first": 1575,
+        "steadyMean": 356.18333333333334,
+        "max": 1575
+      },
+      "msgpackr-provisioned-deflate-context": {
+        "first": 1761,
+        "steadyMean": 361.93333333333334,
+        "max": 1761
+      },
+      "descriptor-deflate": {
+        "first": 1575,
+        "steadyMean": 743.0166666666667,
+        "max": 1575
+      },
+      "msgpackr-provisioned-deflate": {
+        "first": 1761,
+        "steadyMean": 845.3166666666667,
+        "max": 1761
+      }
+    }
+  },
+  "distinct": {
+    "contestant": {
+      "1": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 2614.4666666666667,
+          "json-deflate": 852,
+          "descriptor": 710.7777777777778,
+          "msgpackr-provisioned": 1141.2
+        }
+      },
+      "4": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 2658.6833333333334,
+          "json-deflate": 858.6055555555556,
+          "descriptor": 724.5611111111111,
+          "msgpackr-provisioned": 1158.3333333333333
+        }
+      },
+      "16": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 2754.148611111111,
+          "json-deflate": 874.7541666666667,
+          "descriptor": 758.6388888888889,
+          "msgpackr-provisioned": 1199.7875
+        }
+      }
+    },
+    "gladiator": {
+      "1": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 1981.3333333333333,
+          "json-deflate": 751.6,
+          "descriptor": 538.0666666666667,
+          "msgpackr-provisioned": 903.9111111111112
+        }
+      },
+      "4": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 1981.3333333333333,
+          "json-deflate": 751.9388888888889,
+          "descriptor": 538.0666666666667,
+          "msgpackr-provisioned": 903.9111111111112
+        }
+      },
+      "16": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 1981.3333333333333,
+          "json-deflate": 751.9916666666667,
+          "descriptor": 538.0666666666667,
+          "msgpackr-provisioned": 903.9111111111112
+        }
+      }
+    },
+    "dev": {
+      "1": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 4741.9111111111115,
+          "json-deflate": 1176.7555555555555,
+          "descriptor": 1356.3777777777777,
+          "msgpackr-provisioned": 1636.088888888889
+        }
+      },
+      "4": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 4792.044444444445,
+          "json-deflate": 1181.6833333333334,
+          "descriptor": 1369.2444444444445,
+          "msgpackr-provisioned": 1652.0555555555557
+        }
+      },
+      "16": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 4903.445833333333,
+          "json-deflate": 1193.1194444444445,
+          "descriptor": 1399.8277777777778,
+          "msgpackr-provisioned": 1689.0958333333333
+        }
+      }
+    },
+    "spectator": {
+      "1": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 4788.444444444444,
+          "json-deflate": 1181.9777777777779,
+          "descriptor": 1364.9777777777779,
+          "msgpackr-provisioned": 1651.1555555555556
+        }
+      },
+      "4": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 4838.577777777778,
+          "json-deflate": 1186.888888888889,
+          "descriptor": 1377.8444444444444,
+          "msgpackr-provisioned": 1667.1222222222223
+        }
+      },
+      "16": {
+        "ticks": 45,
+        "bytesPerVariant": {
+          "json": 5129.729166666667,
+          "json-deflate": 1216.075,
+          "descriptor": 1458.8152777777777,
+          "msgpackr-provisioned": 1762.45
+        }
+      }
+    }
+  },
+  "capped": {
+    "contestant": {
+      "descriptor": {
+        "messages": 61,
+        "meanBytes": 930.7377049180328,
+        "meanMandatoryBytes": 287.91803278688525,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 1,
+            "total": 1
+          },
+          "ownBody": {
+            "sent": 0.5245901639344263,
+            "total": 0.5245901639344263
+          },
+          "otherPlayers": {
+            "sent": 5.524590163934426,
+            "total": 5.524590163934426
+          },
+          "otherBodies": {
+            "sent": 5.721311475409836,
+            "total": 6.147540983606557
+          }
+        },
+        "complete": 53
+      },
+      "msgpackr-provisioned": {
+        "messages": 61,
+        "meanBytes": 1092.4262295081967,
+        "meanMandatoryBytes": 676.3770491803278,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 1,
+            "total": 1
+          },
+          "ownBody": {
+            "sent": 0.5245901639344263,
+            "total": 0.5245901639344263
+          },
+          "otherPlayers": {
+            "sent": 5.032786885245901,
+            "total": 5.524590163934426
+          },
+          "otherBodies": {
+            "sent": 1.0655737704918034,
+            "total": 6.147540983606557
+          }
+        },
+        "complete": 18
+      }
+    },
+    "gladiator": {
+      "descriptor": {
+        "messages": 61,
+        "meanBytes": 514.9016393442623,
+        "meanMandatoryBytes": 224.50819672131146,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 1,
+            "total": 1
+          },
+          "ownBody": {
+            "sent": 1,
+            "total": 1
+          },
+          "otherPlayers": {
+            "sent": 3.098360655737705,
+            "total": 3.098360655737705
+          },
+          "otherBodies": {
+            "sent": 2,
+            "total": 2
+          }
+        },
+        "complete": 61
+      },
+      "msgpackr-provisioned": {
+        "messages": 61,
+        "meanBytes": 881.1311475409836,
+        "meanMandatoryBytes": 541.1475409836065,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 1,
+            "total": 1
+          },
+          "ownBody": {
+            "sent": 1,
+            "total": 1
+          },
+          "otherPlayers": {
+            "sent": 3.098360655737705,
+            "total": 3.098360655737705
+          },
+          "otherBodies": {
+            "sent": 2,
+            "total": 2
+          }
+        },
+        "complete": 61
+      }
+    },
+    "dev": {
+      "descriptor": {
+        "messages": 61,
+        "meanBytes": 1168.3934426229507,
+        "meanMandatoryBytes": 76.65573770491804,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 0,
+            "total": 0
+          },
+          "ownBody": {
+            "sent": 0,
+            "total": 0
+          },
+          "otherPlayers": {
+            "sent": 11,
+            "total": 11
+          },
+          "otherBodies": {
+            "sent": 5.540983606557377,
+            "total": 11.065573770491802
+          }
+        },
+        "complete": 0
+      },
+      "msgpackr-provisioned": {
+        "messages": 61,
+        "meanBytes": 1164.016393442623,
+        "meanMandatoryBytes": 189.27868852459017,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 0,
+            "total": 0
+          },
+          "ownBody": {
+            "sent": 0,
+            "total": 0
+          },
+          "otherPlayers": {
+            "sent": 11,
+            "total": 11
+          },
+          "otherBodies": {
+            "sent": 2.6065573770491803,
+            "total": 11.065573770491802
+          }
+        },
+        "complete": 0
+      }
+    },
+    "spectator": {
+      "descriptor": {
+        "messages": 61,
+        "meanBytes": 1140.5573770491803,
+        "meanMandatoryBytes": 75.72131147540983,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 0,
+            "total": 0
+          },
+          "ownBody": {
+            "sent": 0,
+            "total": 0
+          },
+          "otherPlayers": {
+            "sent": 11,
+            "total": 11
+          },
+          "otherBodies": {
+            "sent": 5.295081967213115,
+            "total": 10.672131147540984
+          }
+        },
+        "complete": 3
+      },
+      "msgpackr-provisioned": {
+        "messages": 61,
+        "meanBytes": 1144.049180327869,
+        "meanMandatoryBytes": 188.44262295081967,
+        "mandatoryOverflow": 0,
+        "verified": 61,
+        "sections": {
+          "ownPlayer": {
+            "sent": 0,
+            "total": 0
+          },
+          "ownBody": {
+            "sent": 0,
+            "total": 0
+          },
+          "otherPlayers": {
+            "sent": 11,
+            "total": 11
+          },
+          "otherBodies": {
+            "sent": 2.5081967213114753,
+            "total": 10.672131147540984
+          }
+        },
+        "complete": 3
+      }
+    }
+  },
+  "specimens": {
+    "ping": {
+      "json": 50,
+      "descriptor": 26,
+      "msgpackr-inline": 49,
+      "msgpackr-provisioned": 49
+    },
+    "input": {
+      "json": 122,
+      "descriptor": 37,
+      "msgpackr-inline": 74,
+      "msgpackr-provisioned": 74
+    }
+  },
+  "timings": {
+    "contestant": {
+      "first": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 8111,
+              "wallUs": 24.67388731352483,
+              "cpuUs": 55.85008013808408
+            },
+            {
+              "iterations": 11010,
+              "wallUs": 18.170517711171467,
+              "cpuUs": 18.52861035422343
+            },
+            {
+              "iterations": 11665,
+              "wallUs": 17.146943849121108,
+              "cpuUs": 16.030861551650236
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 9652,
+              "wallUs": 20.725839204309974,
+              "cpuUs": 21.135515955242436
+            },
+            {
+              "iterations": 9804,
+              "wallUs": 20.402315381477045,
+              "cpuUs": 20.705834353325173
+            },
+            {
+              "iterations": 9878,
+              "wallUs": 20.253593844907744,
+              "cpuUs": 20.65195383680907
+            }
+          ],
+          "encodeMedian": 18.170517711171467,
+          "encodeCpuMedian": 18.52861035422343,
+          "decodeMedian": 20.402315381477045,
+          "decodeCpuMedian": 20.705834353325173
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 14250,
+              "wallUs": 14.037936842105282,
+              "cpuUs": 14.175438596491228
+            },
+            {
+              "iterations": 13654,
+              "wallUs": 14.649260290024948,
+              "cpuUs": 14.794199501977442
+            },
+            {
+              "iterations": 13342,
+              "wallUs": 14.993081996702202,
+              "cpuUs": 15.21511017838405
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 8736,
+              "wallUs": 22.899004120878978,
+              "cpuUs": 23.237179487179485
+            },
+            {
+              "iterations": 9318,
+              "wallUs": 21.46697789225138,
+              "cpuUs": 21.785790942262288
+            },
+            {
+              "iterations": 5765,
+              "wallUs": 34.70149176062466,
+              "cpuUs": 35.212489158716394
+            }
+          ],
+          "encodeMedian": 14.649260290024948,
+          "encodeCpuMedian": 14.794199501977442,
+          "decodeMedian": 22.899004120878978,
+          "decodeCpuMedian": 23.237179487179485
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 3217,
+              "wallUs": 62.18638483058728,
+              "cpuUs": 63.41311781162574
+            },
+            {
+              "iterations": 3325,
+              "wallUs": 60.168842105263856,
+              "cpuUs": 70.67669172932331
+            },
+            {
+              "iterations": 3077,
+              "wallUs": 74.24033149171271,
+              "cpuUs": 131.9467013324667
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 4150,
+              "wallUs": 48.20318072289158,
+              "cpuUs": 116.62650602409639
+            },
+            {
+              "iterations": 4834,
+              "wallUs": 41.382478278858166,
+              "cpuUs": 90.60819197352089
+            },
+            {
+              "iterations": 4759,
+              "wallUs": 42.02924984240353,
+              "cpuUs": 108.42613994536667
+            }
+          ],
+          "encodeMedian": 62.18638483058728,
+          "encodeCpuMedian": 70.67669172932331,
+          "decodeMedian": 42.02924984240353,
+          "decodeCpuMedian": 108.42613994536667
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 9143,
+              "wallUs": 21.877501914032376,
+              "cpuUs": 23.952750738269714
+            },
+            {
+              "iterations": 9340,
+              "wallUs": 21.418308351177977,
+              "cpuUs": 21.734475374732334
+            },
+            {
+              "iterations": 9057,
+              "wallUs": 22.084995031467265,
+              "cpuUs": 22.413602738213537
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 11947,
+              "wallUs": 16.74474763538972,
+              "cpuUs": 18.330961747719094
+            },
+            {
+              "iterations": 12960,
+              "wallUs": 15.434058641975483,
+              "cpuUs": 15.66358024691358
+            },
+            {
+              "iterations": 12830,
+              "wallUs": 15.590584567420144,
+              "cpuUs": 15.822291504286827
+            }
+          ],
+          "encodeMedian": 21.877501914032376,
+          "encodeCpuMedian": 22.413602738213537,
+          "decodeMedian": 15.590584567420144,
+          "decodeCpuMedian": 15.822291504286827
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 8266,
+              "wallUs": 24.199818533752765,
+              "cpuUs": 26.37309460440358
+            },
+            {
+              "iterations": 9078,
+              "wallUs": 22.0341815377838,
+              "cpuUs": 22.361753690240143
+            },
+            {
+              "iterations": 7185,
+              "wallUs": 27.8402226861516,
+              "cpuUs": 28.25330549756437
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 8490,
+              "wallUs": 23.560636042402855,
+              "cpuUs": 31.33097762073027
+            },
+            {
+              "iterations": 6595,
+              "wallUs": 30.329552691433186,
+              "cpuUs": 68.68840030326004
+            },
+            {
+              "iterations": 9086,
+              "wallUs": 22.015617433414285,
+              "cpuUs": 27.5148580233326
+            }
+          ],
+          "encodeMedian": 24.199818533752765,
+          "encodeCpuMedian": 26.37309460440358,
+          "decodeMedian": 23.560636042402855,
+          "decodeCpuMedian": 31.33097762073027
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 9888,
+              "wallUs": 20.229571197411254,
+              "cpuUs": 20.529935275080906
+            },
+            {
+              "iterations": 10190,
+              "wallUs": 19.629960745829436,
+              "cpuUs": 19.921491658488716
+            },
+            {
+              "iterations": 10038,
+              "wallUs": 19.926947599123185,
+              "cpuUs": 20.2231520223152
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 21132,
+              "wallUs": 9.465483626727268,
+              "cpuUs": 10.363429869392391
+            },
+            {
+              "iterations": 23084,
+              "wallUs": 8.665252989083301,
+              "cpuUs": 8.100849072950961
+            },
+            {
+              "iterations": 18617,
+              "wallUs": 10.744599022398962,
+              "cpuUs": 10.904012461728527
+            }
+          ],
+          "encodeMedian": 19.926947599123185,
+          "encodeCpuMedian": 20.2231520223152,
+          "decodeMedian": 9.465483626727268,
+          "decodeCpuMedian": 10.363429869392391
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 9502,
+              "wallUs": 21.051494422226767,
+              "cpuUs": 23.04777941486003
+            },
+            {
+              "iterations": 9452,
+              "wallUs": 21.162833262801538,
+              "cpuUs": 21.58273381294964
+            },
+            {
+              "iterations": 8288,
+              "wallUs": 24.135111003861084,
+              "cpuUs": 24.613899613899616
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 12633,
+              "wallUs": 15.833562890841627,
+              "cpuUs": 16.06902556795694
+            },
+            {
+              "iterations": 12482,
+              "wallUs": 16.02534049030589,
+              "cpuUs": 16.26341932382631
+            },
+            {
+              "iterations": 12803,
+              "wallUs": 15.624158400375004,
+              "cpuUs": 15.855658829961728
+            }
+          ],
+          "encodeMedian": 21.162833262801538,
+          "encodeCpuMedian": 23.04777941486003,
+          "decodeMedian": 15.833562890841627,
+          "decodeCpuMedian": 16.06902556795694
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 5816,
+              "wallUs": 34.394497936726495,
+              "cpuUs": 34.90371389270977
+            },
+            {
+              "iterations": 5576,
+              "wallUs": 35.87659612625563,
+              "cpuUs": 33.715925394548066
+            },
+            {
+              "iterations": 5810,
+              "wallUs": 34.43096385542179,
+              "cpuUs": 34.76764199655766
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 8919,
+              "wallUs": 22.426639757820343,
+              "cpuUs": 22.760399147886535
+            },
+            {
+              "iterations": 9204,
+              "wallUs": 21.733061712299016,
+              "cpuUs": 20.317253368100825
+            },
+            {
+              "iterations": 9203,
+              "wallUs": 21.735281973269615,
+              "cpuUs": 22.058024557209606
+            }
+          ],
+          "encodeMedian": 34.43096385542179,
+          "encodeCpuMedian": 34.76764199655766,
+          "decodeMedian": 21.735281973269615,
+          "decodeCpuMedian": 22.058024557209606
+        }
+      },
+      "steady": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 14400,
+              "wallUs": 13.935409722222277,
+              "cpuUs": 14.097222222222221
+            },
+            {
+              "iterations": 14880,
+              "wallUs": 13.500288978494481,
+              "cpuUs": 13.64247311827957
+            },
+            {
+              "iterations": 15060,
+              "wallUs": 13.303552456839112,
+              "cpuUs": 13.47941567065073
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 15540,
+              "wallUs": 12.895308880308953,
+              "cpuUs": 13.063063063063064
+            },
+            {
+              "iterations": 16740,
+              "wallUs": 11.952311827957136,
+              "cpuUs": 11.230585424133812
+            },
+            {
+              "iterations": 16800,
+              "wallUs": 11.935083333333058,
+              "cpuUs": 12.083333333333334
+            }
+          ],
+          "encodeMedian": 13.500288978494481,
+          "encodeCpuMedian": 13.64247311827957,
+          "decodeMedian": 11.952311827957136,
+          "decodeCpuMedian": 12.083333333333334
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 17340,
+              "wallUs": 11.566960784313785,
+              "cpuUs": 11.764705882352942
+            },
+            {
+              "iterations": 17100,
+              "wallUs": 11.721415204678156,
+              "cpuUs": 11.871345029239766
+            },
+            {
+              "iterations": 17280,
+              "wallUs": 11.584861111111456,
+              "cpuUs": 11.747685185185185
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 17580,
+              "wallUs": 11.401609783845187,
+              "cpuUs": 11.547212741751991
+            },
+            {
+              "iterations": 17400,
+              "wallUs": 11.509936781609401,
+              "cpuUs": 11.724137931034482
+            },
+            {
+              "iterations": 16560,
+              "wallUs": 12.123230676328875,
+              "cpuUs": 12.258454106280194
+            }
+          ],
+          "encodeMedian": 11.584861111111456,
+          "encodeCpuMedian": 11.764705882352942,
+          "decodeMedian": 11.509936781609401,
+          "decodeCpuMedian": 11.724137931034482
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 3420,
+              "wallUs": 63.81894736842106,
+              "cpuUs": 118.71345029239767
+            },
+            {
+              "iterations": 3480,
+              "wallUs": 58.01847701149273,
+              "cpuUs": 94.25287356321839
+            },
+            {
+              "iterations": 3840,
+              "wallUs": 52.63695312499976,
+              "cpuUs": 52.864583333333336
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 6480,
+              "wallUs": 30.965694444444967,
+              "cpuUs": 79.62962962962963
+            },
+            {
+              "iterations": 6600,
+              "wallUs": 30.364257575757538,
+              "cpuUs": 78.03030303030303
+            },
+            {
+              "iterations": 6000,
+              "wallUs": 38.002150000000256,
+              "cpuUs": 112
+            }
+          ],
+          "encodeMedian": 58.01847701149273,
+          "encodeCpuMedian": 94.25287356321839,
+          "decodeMedian": 30.965694444444967,
+          "decodeCpuMedian": 79.62962962962963
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 14580,
+              "wallUs": 13.73825788751725,
+              "cpuUs": 13.92318244170096
+            },
+            {
+              "iterations": 16260,
+              "wallUs": 12.319421894218712,
+              "cpuUs": 12.484624846248462
+            },
+            {
+              "iterations": 15540,
+              "wallUs": 12.889498069497918,
+              "cpuUs": 13.063063063063064
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 17820,
+              "wallUs": 11.237216610550034,
+              "cpuUs": 12.289562289562289
+            },
+            {
+              "iterations": 20580,
+              "wallUs": 9.727327502429853,
+              "cpuUs": 10.641399416909621
+            },
+            {
+              "iterations": 18120,
+              "wallUs": 11.059470198675308,
+              "cpuUs": 10.32008830022075
+            }
+          ],
+          "encodeMedian": 12.889498069497918,
+          "encodeCpuMedian": 13.063063063063064,
+          "decodeMedian": 11.059470198675308,
+          "decodeCpuMedian": 10.641399416909621
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 14340,
+              "wallUs": 13.960509065550893,
+              "cpuUs": 13.04044630404463
+            },
+            {
+              "iterations": 14460,
+              "wallUs": 13.84949515905919,
+              "cpuUs": 12.93222683264177
+            },
+            {
+              "iterations": 13680,
+              "wallUs": 14.65313596491206,
+              "cpuUs": 14.912280701754385
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 14580,
+              "wallUs": 13.720377229080862,
+              "cpuUs": 15.020576131687243
+            },
+            {
+              "iterations": 14820,
+              "wallUs": 13.53897435897413,
+              "cpuUs": 14.777327935222672
+            },
+            {
+              "iterations": 13800,
+              "wallUs": 14.532123188405619,
+              "cpuUs": 15.797101449275363
+            }
+          ],
+          "encodeMedian": 13.960509065550893,
+          "encodeCpuMedian": 13.04044630404463,
+          "decodeMedian": 13.720377229080862,
+          "decodeCpuMedian": 15.020576131687243
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 16860,
+              "wallUs": 11.884341637010616,
+              "cpuUs": 12.040332147093713
+            },
+            {
+              "iterations": 16380,
+              "wallUs": 12.233931623931477,
+              "cpuUs": 12.393162393162394
+            },
+            {
+              "iterations": 16320,
+              "wallUs": 12.26916666666654,
+              "cpuUs": 12.5
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 29160,
+              "wallUs": 6.866021947873867,
+              "cpuUs": 7.510288065843621
+            },
+            {
+              "iterations": 29640,
+              "wallUs": 6.753424426450632,
+              "cpuUs": 7.388663967611336
+            },
+            {
+              "iterations": 28500,
+              "wallUs": 7.0305929824560796,
+              "cpuUs": 7.12280701754386
+            }
+          ],
+          "encodeMedian": 12.233931623931477,
+          "encodeCpuMedian": 12.393162393162394,
+          "decodeMedian": 6.866021947873867,
+          "decodeCpuMedian": 7.388663967611336
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 15960,
+              "wallUs": 12.551904761904668,
+              "cpuUs": 12.719298245614034
+            },
+            {
+              "iterations": 15480,
+              "wallUs": 12.932377260981776,
+              "cpuUs": 13.113695090439277
+            },
+            {
+              "iterations": 15780,
+              "wallUs": 12.691755386565307,
+              "cpuUs": 12.864385297845374
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 20100,
+              "wallUs": 9.954169154228822,
+              "cpuUs": 10.099502487562189
+            },
+            {
+              "iterations": 20340,
+              "wallUs": 9.847507374631197,
+              "cpuUs": 9.980334316617503
+            },
+            {
+              "iterations": 20100,
+              "wallUs": 9.958034825870513,
+              "cpuUs": 10.099502487562189
+            }
+          ],
+          "encodeMedian": 12.691755386565307,
+          "encodeCpuMedian": 12.864385297845374,
+          "decodeMedian": 9.954169154228822,
+          "decodeCpuMedian": 10.099502487562189
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 10260,
+              "wallUs": 19.53365497076029,
+              "cpuUs": 21.34502923976608
+            },
+            {
+              "iterations": 10440,
+              "wallUs": 19.249703065134046,
+              "cpuUs": 19.444444444444443
+            },
+            {
+              "iterations": 10140,
+              "wallUs": 19.78507889546346,
+              "cpuUs": 18.441814595660748
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 14940,
+              "wallUs": 13.439738955823373,
+              "cpuUs": 12.583668005354752
+            },
+            {
+              "iterations": 15000,
+              "wallUs": 13.346693333333436,
+              "cpuUs": 13.533333333333333
+            },
+            {
+              "iterations": 15180,
+              "wallUs": 13.199479578392602,
+              "cpuUs": 13.438735177865613
+            }
+          ],
+          "encodeMedian": 19.53365497076029,
+          "encodeCpuMedian": 19.444444444444443,
+          "decodeMedian": 13.346693333333436,
+          "decodeCpuMedian": 13.438735177865613
+        },
+        "json-deflate-context-per-socket": {
+          "encode": [
+            {
+              "iterations": 1380,
+              "wallUs": 146.77268115942158,
+              "cpuUs": 237.68115942028984
+            }
+          ]
+        }
+      },
+      "distinct": {
+        "1": {
+          "json": 13.974817136886248,
+          "json-deflate": 57.64084388185729,
+          "descriptor": 9.57184229390693,
+          "msgpackr-provisioned": 10.075947712418445
+        },
+        "4": {
+          "json": 53.98412315930429,
+          "json-deflate": 216.93005291005153,
+          "descriptor": 40.978858307849855,
+          "msgpackr-provisioned": 40.5941865079368
+        },
+        "16": {
+          "json": 220.7869444444441,
+          "json-deflate": 838.5388888888917,
+          "descriptor": 160.27158730158547,
+          "msgpackr-provisioned": 203.64940170939707
+        }
+      },
+      "capped": {
+        "descriptor": 13.785679845708868,
+        "msgpackr-provisioned": 17.492779909312745
+      }
+    },
+    "gladiator": {
+      "first": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 43686,
+              "wallUs": 4.578588106029369,
+              "cpuUs": 4.303438172412214
+            },
+            {
+              "iterations": 44728,
+              "wallUs": 4.471963870506271,
+              "cpuUs": 4.560901448756931
+            },
+            {
+              "iterations": 45972,
+              "wallUs": 4.350931001479175,
+              "cpuUs": 4.393978943704864
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 31381,
+              "wallUs": 6.3743347885661965,
+              "cpuUs": 6.468882444791435
+            },
+            {
+              "iterations": 34108,
+              "wallUs": 5.864348539932065,
+              "cpuUs": 5.951682889644658
+            },
+            {
+              "iterations": 33896,
+              "wallUs": 5.901126976634537,
+              "cpuUs": 5.546377153646448
+            }
+          ],
+          "encodeMedian": 4.471963870506271,
+          "encodeCpuMedian": 4.393978943704864,
+          "decodeMedian": 5.901126976634537,
+          "decodeCpuMedian": 5.951682889644658
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 55495,
+              "wallUs": 3.6043751689341246,
+              "cpuUs": 3.6579872060545995
+            },
+            {
+              "iterations": 54117,
+              "wallUs": 3.6961324537576075,
+              "cpuUs": 3.751131807010736
+            },
+            {
+              "iterations": 58017,
+              "wallUs": 3.447646379509488,
+              "cpuUs": 3.4989744385266386
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 35194,
+              "wallUs": 5.683443200545505,
+              "cpuUs": 5.341819628345741
+            },
+            {
+              "iterations": 34532,
+              "wallUs": 5.792496814548823,
+              "cpuUs": 5.415266998725819
+            },
+            {
+              "iterations": 35665,
+              "wallUs": 5.608327491938893,
+              "cpuUs": 5.691854759568204
+            }
+          ],
+          "encodeMedian": 3.6043751689341246,
+          "encodeCpuMedian": 3.6579872060545995,
+          "decodeMedian": 5.683443200545505,
+          "decodeCpuMedian": 5.415266998725819
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 5917,
+              "wallUs": 33.806337671117795,
+              "cpuUs": 60.67263816123035
+            },
+            {
+              "iterations": 5762,
+              "wallUs": 34.71430059007209,
+              "cpuUs": 54.32141617493926
+            },
+            {
+              "iterations": 6113,
+              "wallUs": 32.72182234582044,
+              "cpuUs": 74.1043677408801
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 7924,
+              "wallUs": 25.284338717819317,
+              "cpuUs": 80.76728924785462
+            },
+            {
+              "iterations": 7483,
+              "wallUs": 26.77265802485655,
+              "cpuUs": 87.66537484965923
+            },
+            {
+              "iterations": 8675,
+              "wallUs": 23.057164265130048,
+              "cpuUs": 81.03746397694525
+            }
+          ],
+          "encodeMedian": 33.806337671117795,
+          "encodeCpuMedian": 60.67263816123035,
+          "decodeMedian": 25.284338717819317,
+          "decodeCpuMedian": 81.03746397694525
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 30356,
+              "wallUs": 6.589422190011871,
+              "cpuUs": 6.720252997759916
+            },
+            {
+              "iterations": 27618,
+              "wallUs": 7.2424686798464455,
+              "cpuUs": 7.929611123180535
+            },
+            {
+              "iterations": 29902,
+              "wallUs": 6.689321784495856,
+              "cpuUs": 7.859006086549394
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 43500,
+              "wallUs": 4.598285057471233,
+              "cpuUs": 4.666666666666667
+            },
+            {
+              "iterations": 44028,
+              "wallUs": 4.543111201962441,
+              "cpuUs": 4.610702280367039
+            },
+            {
+              "iterations": 44077,
+              "wallUs": 4.5380198289356555,
+              "cpuUs": 4.242575492887447
+            }
+          ],
+          "encodeMedian": 6.689321784495856,
+          "encodeCpuMedian": 7.859006086549394,
+          "decodeMedian": 4.543111201962441,
+          "decodeCpuMedian": 4.610702280367039
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 22655,
+              "wallUs": 8.829190024277253,
+              "cpuUs": 8.254248510262634
+            },
+            {
+              "iterations": 24118,
+              "wallUs": 8.293328634215039,
+              "cpuUs": 8.416949995853718
+            },
+            {
+              "iterations": 24296,
+              "wallUs": 8.233145373724117,
+              "cpuUs": 8.355284820546592
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 26559,
+              "wallUs": 7.531198463797786,
+              "cpuUs": 8.24579238676155
+            },
+            {
+              "iterations": 24359,
+              "wallUs": 8.211548093107227,
+              "cpuUs": 7.717886612750934
+            },
+            {
+              "iterations": 26395,
+              "wallUs": 7.578166319378607,
+              "cpuUs": 8.297025951884827
+            }
+          ],
+          "encodeMedian": 8.293328634215039,
+          "encodeCpuMedian": 8.355284820546592,
+          "decodeMedian": 7.578166319378607,
+          "decodeCpuMedian": 8.24579238676155
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 28845,
+              "wallUs": 6.934283237996096,
+              "cpuUs": 7.03761483792685
+            },
+            {
+              "iterations": 28872,
+              "wallUs": 6.927822804100913,
+              "cpuUs": 7.031033527292879
+            },
+            {
+              "iterations": 29504,
+              "wallUs": 6.779382456615899,
+              "cpuUs": 6.914316702819956
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 43583,
+              "wallUs": 4.5894087144069715,
+              "cpuUs": 5.024895027877842
+            },
+            {
+              "iterations": 46007,
+              "wallUs": 4.347644923598625,
+              "cpuUs": 4.412372030343208
+            },
+            {
+              "iterations": 44160,
+              "wallUs": 4.529497282608618,
+              "cpuUs": 4.596920289855072
+            }
+          ],
+          "encodeMedian": 6.927822804100913,
+          "encodeCpuMedian": 7.031033527292879,
+          "decodeMedian": 4.529497282608618,
+          "decodeCpuMedian": 4.596920289855072
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 27499,
+              "wallUs": 7.273882686643134,
+              "cpuUs": 7.382086621331685
+            },
+            {
+              "iterations": 28230,
+              "wallUs": 7.085398512220985,
+              "cpuUs": 6.624158696422246
+            },
+            {
+              "iterations": 30435,
+              "wallUs": 6.572166913093483,
+              "cpuUs": 6.144241826844094
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 42848,
+              "wallUs": 4.668168876026828,
+              "cpuUs": 4.737677371172516
+            },
+            {
+              "iterations": 41321,
+              "wallUs": 4.840725055056762,
+              "cpuUs": 4.912756225647976
+            },
+            {
+              "iterations": 41960,
+              "wallUs": 4.767116301239291,
+              "cpuUs": 4.837940896091515
+            }
+          ],
+          "encodeMedian": 7.085398512220985,
+          "encodeCpuMedian": 6.624158696422246,
+          "decodeMedian": 4.767116301239291,
+          "decodeCpuMedian": 4.837940896091515
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 18904,
+              "wallUs": 10.580871773169616,
+              "cpuUs": 10.73846804909014
+            },
+            {
+              "iterations": 19086,
+              "wallUs": 10.480111076181402,
+              "cpuUs": 10.688462747563658
+            },
+            {
+              "iterations": 18677,
+              "wallUs": 10.70956791775963,
+              "cpuUs": 11.725651871285539
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 25237,
+              "wallUs": 7.925989618417429,
+              "cpuUs": 8.043745294607124
+            },
+            {
+              "iterations": 25570,
+              "wallUs": 7.822780602268296,
+              "cpuUs": 7.938991005084083
+            },
+            {
+              "iterations": 25285,
+              "wallUs": 7.910911607672495,
+              "cpuUs": 8.02847538066047
+            }
+          ],
+          "encodeMedian": 10.580871773169616,
+          "encodeCpuMedian": 10.73846804909014,
+          "decodeMedian": 7.910911607672495,
+          "decodeCpuMedian": 8.02847538066047
+        }
+      },
+      "steady": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 30540,
+              "wallUs": 6.550000000000128,
+              "cpuUs": 6.64702030124427
+            },
+            {
+              "iterations": 27660,
+              "wallUs": 7.237979031091808,
+              "cpuUs": 7.339117859725235
+            },
+            {
+              "iterations": 30720,
+              "wallUs": 6.514674479166634,
+              "cpuUs": 6.575520833333333
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 28800,
+              "wallUs": 6.953600694444554,
+              "cpuUs": 7.048611111111111
+            },
+            {
+              "iterations": 28440,
+              "wallUs": 7.035523909986058,
+              "cpuUs": 7.137834036568214
+            },
+            {
+              "iterations": 28440,
+              "wallUs": 7.0360372714488655,
+              "cpuUs": 7.172995780590718
+            }
+          ],
+          "encodeMedian": 6.550000000000128,
+          "encodeCpuMedian": 6.64702030124427,
+          "decodeMedian": 7.035523909986058,
+          "decodeCpuMedian": 7.137834036568214
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 37500,
+              "wallUs": 5.3387706666666785,
+              "cpuUs": 5.44
+            },
+            {
+              "iterations": 34920,
+              "wallUs": 5.734306987399724,
+              "cpuUs": 5.813287514318442
+            },
+            {
+              "iterations": 35640,
+              "wallUs": 5.62253647586994,
+              "cpuUs": 5.246913580246914
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 28860,
+              "wallUs": 6.932751212751217,
+              "cpuUs": 7.033957033957034
+            },
+            {
+              "iterations": 28680,
+              "wallUs": 6.981499302650063,
+              "cpuUs": 6.5550906555090656
+            },
+            {
+              "iterations": 29340,
+              "wallUs": 6.82961486025916,
+              "cpuUs": 6.952965235173824
+            }
+          ],
+          "encodeMedian": 5.62253647586994,
+          "encodeCpuMedian": 5.44,
+          "decodeMedian": 6.932751212751217,
+          "decodeCpuMedian": 6.952965235173824
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 4260,
+              "wallUs": 47.130774647887165,
+              "cpuUs": 106.33802816901408
+            },
+            {
+              "iterations": 4200,
+              "wallUs": 47.85621428571349,
+              "cpuUs": 107.61904761904762
+            },
+            {
+              "iterations": 4500,
+              "wallUs": 44.71720000000076,
+              "cpuUs": 100.44444444444444
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 7860,
+              "wallUs": 27.34262086514001,
+              "cpuUs": 79.51653944020356
+            },
+            {
+              "iterations": 7920,
+              "wallUs": 26.091691919191362,
+              "cpuUs": 82.95454545454545
+            },
+            {
+              "iterations": 7860,
+              "wallUs": 25.632213740457956,
+              "cpuUs": 81.55216284987277
+            }
+          ],
+          "encodeMedian": 47.130774647887165,
+          "encodeCpuMedian": 106.33802816901408,
+          "decodeMedian": 26.091691919191362,
+          "decodeCpuMedian": 81.55216284987277
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 25920,
+              "wallUs": 7.7200810185185675,
+              "cpuUs": 7.83179012345679
+            },
+            {
+              "iterations": 26460,
+              "wallUs": 7.564036281179315,
+              "cpuUs": 7.709750566893424
+            },
+            {
+              "iterations": 25740,
+              "wallUs": 7.786880341880373,
+              "cpuUs": 10.334110334110335
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 36840,
+              "wallUs": 5.429603691639452,
+              "cpuUs": 5.510314875135722
+            },
+            {
+              "iterations": 38280,
+              "wallUs": 5.231355799373064,
+              "cpuUs": 4.911180773249739
+            },
+            {
+              "iterations": 38040,
+              "wallUs": 5.268328075709817,
+              "cpuUs": 6.151419558359621
+            }
+          ],
+          "encodeMedian": 7.7200810185185675,
+          "encodeCpuMedian": 7.83179012345679,
+          "decodeMedian": 5.268328075709817,
+          "decodeCpuMedian": 5.510314875135722
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 21060,
+              "wallUs": 9.50726495726487,
+              "cpuUs": 9.639126305792972
+            },
+            {
+              "iterations": 21720,
+              "wallUs": 9.227453959484253,
+              "cpuUs": 9.392265193370166
+            },
+            {
+              "iterations": 16020,
+              "wallUs": 12.487702871410729,
+              "cpuUs": 12.671660424469414
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 23940,
+              "wallUs": 8.36800751879696,
+              "cpuUs": 8.521303258145364
+            },
+            {
+              "iterations": 23760,
+              "wallUs": 8.435462962962916,
+              "cpuUs": 8.501683501683502
+            },
+            {
+              "iterations": 23940,
+              "wallUs": 8.365563909774437,
+              "cpuUs": 8.47953216374269
+            }
+          ],
+          "encodeMedian": 9.50726495726487,
+          "encodeCpuMedian": 9.639126305792972,
+          "decodeMedian": 8.36800751879696,
+          "decodeCpuMedian": 8.501683501683502
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 24360,
+              "wallUs": 8.211116584565112,
+              "cpuUs": 8.333333333333334
+            },
+            {
+              "iterations": 25620,
+              "wallUs": 7.8146955503513444,
+              "cpuUs": 7.923497267759563
+            },
+            {
+              "iterations": 25860,
+              "wallUs": 7.744988399071952,
+              "cpuUs": 7.888631090487239
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 41460,
+              "wallUs": 4.82864447660411,
+              "cpuUs": 4.8962855764592375
+            },
+            {
+              "iterations": 40680,
+              "wallUs": 4.919370698131824,
+              "cpuUs": 5.383480825958702
+            },
+            {
+              "iterations": 40560,
+              "wallUs": 4.9371351084811375,
+              "cpuUs": 4.215976331360947
+            }
+          ],
+          "encodeMedian": 7.8146955503513444,
+          "encodeCpuMedian": 7.923497267759563,
+          "decodeMedian": 4.919370698131824,
+          "decodeCpuMedian": 4.8962855764592375
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 25740,
+              "wallUs": 7.787432012432241,
+              "cpuUs": 7.264957264957265
+            },
+            {
+              "iterations": 25860,
+              "wallUs": 7.7457076566123915,
+              "cpuUs": 7.849961330239752
+            },
+            {
+              "iterations": 25800,
+              "wallUs": 7.764790697674048,
+              "cpuUs": 7.906976744186046
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 35760,
+              "wallUs": 5.596403803131923,
+              "cpuUs": 6.124161073825503
+            },
+            {
+              "iterations": 36720,
+              "wallUs": 5.449172113289764,
+              "cpuUs": 5.092592592592593
+            },
+            {
+              "iterations": 37500,
+              "wallUs": 5.3376320000000606,
+              "cpuUs": 5.84
+            }
+          ],
+          "encodeMedian": 7.764790697674048,
+          "encodeCpuMedian": 7.849961330239752,
+          "decodeMedian": 5.449172113289764,
+          "decodeCpuMedian": 5.84
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 15780,
+              "wallUs": 12.703992395437092,
+              "cpuUs": 12.864385297845374
+            },
+            {
+              "iterations": 16740,
+              "wallUs": 11.950937873357312,
+              "cpuUs": 12.126642771804063
+            },
+            {
+              "iterations": 16320,
+              "wallUs": 12.25749387254908,
+              "cpuUs": 12.438725490196079
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 20280,
+              "wallUs": 9.870532544378872,
+              "cpuUs": 10.009861932938856
+            },
+            {
+              "iterations": 23580,
+              "wallUs": 8.49002968617482,
+              "cpuUs": 9.287531806615776
+            },
+            {
+              "iterations": 23520,
+              "wallUs": 8.524472789115423,
+              "cpuUs": 9.311224489795919
+            }
+          ],
+          "encodeMedian": 12.25749387254908,
+          "encodeCpuMedian": 12.438725490196079,
+          "decodeMedian": 8.524472789115423,
+          "decodeCpuMedian": 9.311224489795919
+        },
+        "json-deflate-context-per-socket": {
+          "encode": [
+            {
+              "iterations": 1740,
+              "wallUs": 117.49551724138216,
+              "cpuUs": 224.13793103448276
+            }
+          ]
+        }
+      },
+      "distinct": {
+        "1": {
+          "json": 8.454499411071867,
+          "json-deflate": 49.6325185185192,
+          "descriptor": 7.64059564719353,
+          "msgpackr-provisioned": 8.05615942028948
+        },
+        "4": {
+          "json": 35.0508699397073,
+          "json-deflate": 195.8772946859835,
+          "descriptor": 30.101591591592953,
+          "msgpackr-provisioned": 37.44999999999807
+        },
+        "16": {
+          "json": 135.34228956229438,
+          "json-deflate": 965.8008888889001,
+          "descriptor": 124.14716049382228,
+          "msgpackr-provisioned": 126.32388888889159
+        }
+      },
+      "capped": {
+        "descriptor": 9.15394766884329,
+        "msgpackr-provisioned": 13.847243549837302
+      }
+    },
+    "dev": {
+      "first": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 3013,
+              "wallUs": 66.39478924659826,
+              "cpuUs": 67.70660471291072
+            },
+            {
+              "iterations": 2989,
+              "wallUs": 66.91816661090694,
+              "cpuUs": 67.91569086651054
+            },
+            {
+              "iterations": 3175,
+              "wallUs": 63.009448818895436,
+              "cpuUs": 59.21259842519685
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 2992,
+              "wallUs": 66.85534759358696,
+              "cpuUs": 62.5
+            },
+            {
+              "iterations": 2916,
+              "wallUs": 68.59571330589813,
+              "cpuUs": 69.6159122085048
+            },
+            {
+              "iterations": 2984,
+              "wallUs": 67.04272788203828,
+              "cpuUs": 68.02949061662198
+            }
+          ],
+          "encodeMedian": 66.39478924659826,
+          "encodeCpuMedian": 67.70660471291072,
+          "decodeMedian": 67.04272788203828,
+          "decodeCpuMedian": 68.02949061662198
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 3537,
+              "wallUs": 56.56395250211924,
+              "cpuUs": 57.675996607294316
+            },
+            {
+              "iterations": 2127,
+              "wallUs": 94.04184297132198,
+              "cpuUs": 235.07287259050307
+            },
+            {
+              "iterations": 3603,
+              "wallUs": 55.52847626977334,
+              "cpuUs": 56.341937274493475
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 3025,
+              "wallUs": 66.12558677685755,
+              "cpuUs": 67.10743801652893
+            },
+            {
+              "iterations": 2921,
+              "wallUs": 68.48952413556994,
+              "cpuUs": 69.49674768914755
+            },
+            {
+              "iterations": 2950,
+              "wallUs": 67.80481355932199,
+              "cpuUs": 63.389830508474574
+            }
+          ],
+          "encodeMedian": 56.56395250211924,
+          "encodeCpuMedian": 57.675996607294316,
+          "decodeMedian": 67.80481355932199,
+          "decodeCpuMedian": 67.10743801652893
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 1165,
+              "wallUs": 171.73793991416085,
+              "cpuUs": 174.24892703862662
+            },
+            {
+              "iterations": 1021,
+              "wallUs": 196.20166503427558,
+              "cpuUs": 199.8041136141038
+            },
+            {
+              "iterations": 1179,
+              "wallUs": 169.72527565734055,
+              "cpuUs": 159.45716709075487
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 1728,
+              "wallUs": 115.79369212962673,
+              "cpuUs": 262.15277777777777
+            },
+            {
+              "iterations": 1713,
+              "wallUs": 116.83788674840083,
+              "cpuUs": 99.82486865148861
+            },
+            {
+              "iterations": 1792,
+              "wallUs": 111.65675223214423,
+              "cpuUs": 226.5625
+            }
+          ],
+          "encodeMedian": 171.73793991416085,
+          "encodeCpuMedian": 174.24892703862662,
+          "decodeMedian": 115.79369212962673,
+          "decodeCpuMedian": 226.5625
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 3265,
+              "wallUs": 61.26153139356676,
+              "cpuUs": 57.274119448698315
+            },
+            {
+              "iterations": 3130,
+              "wallUs": 63.92172523961568,
+              "cpuUs": 64.85623003194888
+            },
+            {
+              "iterations": 2468,
+              "wallUs": 81.06012965964396,
+              "cpuUs": 183.54943273905997
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 3995,
+              "wallUs": 50.07566958698266,
+              "cpuUs": 54.81852315394243
+            },
+            {
+              "iterations": 4012,
+              "wallUs": 49.86585244267095,
+              "cpuUs": 46.85942173479561
+            },
+            {
+              "iterations": 4132,
+              "wallUs": 48.41200387221451,
+              "cpuUs": 49.37076476282672
+            }
+          ],
+          "encodeMedian": 63.92172523961568,
+          "encodeCpuMedian": 64.85623003194888,
+          "decodeMedian": 49.86585244267095,
+          "decodeCpuMedian": 49.37076476282672
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 3132,
+              "wallUs": 63.8626756066431,
+              "cpuUs": 64.81481481481481
+            },
+            {
+              "iterations": 3105,
+              "wallUs": 64.43101449275498,
+              "cpuUs": 65.37842190016103
+            },
+            {
+              "iterations": 3100,
+              "wallUs": 64.53145161290341,
+              "cpuUs": 65.48387096774194
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 6851,
+              "wallUs": 29.1967450007294,
+              "cpuUs": 29.630710845132096
+            },
+            {
+              "iterations": 6704,
+              "wallUs": 29.84045346061945,
+              "cpuUs": 32.66706443914081
+            },
+            {
+              "iterations": 6919,
+              "wallUs": 28.911547911548535,
+              "cpuUs": 29.339499927735222
+            }
+          ],
+          "encodeMedian": 64.43101449275498,
+          "encodeCpuMedian": 65.37842190016103,
+          "decodeMedian": 29.1967450007294,
+          "decodeCpuMedian": 29.630710845132096
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 3228,
+              "wallUs": 61.96610904584802,
+              "cpuUs": 62.88723667905824
+            },
+            {
+              "iterations": 3184,
+              "wallUs": 62.82889447235752,
+              "cpuUs": 63.756281407035175
+            },
+            {
+              "iterations": 3211,
+              "wallUs": 62.292369978199446,
+              "cpuUs": 68.20305200872002
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 11189,
+              "wallUs": 17.87708463669695,
+              "cpuUs": 16.802216462597194
+            },
+            {
+              "iterations": 11341,
+              "wallUs": 17.63833877083125,
+              "cpuUs": 16.488845780795344
+            },
+            {
+              "iterations": 11667,
+              "wallUs": 17.144398731464012,
+              "cpuUs": 16.02811348247193
+            }
+          ],
+          "encodeMedian": 62.292369978199446,
+          "encodeCpuMedian": 63.756281407035175,
+          "decodeMedian": 17.63833877083125,
+          "decodeCpuMedian": 16.488845780795344
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 3067,
+              "wallUs": 65.23051842191241,
+              "cpuUs": 66.18845777632866
+            },
+            {
+              "iterations": 2616,
+              "wallUs": 76.46383792048908,
+              "cpuUs": 71.48318042813456
+            },
+            {
+              "iterations": 3026,
+              "wallUs": 66.11454064771652,
+              "cpuUs": 67.08526107072042
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 4164,
+              "wallUs": 48.041066282418484,
+              "cpuUs": 48.751200768491834
+            },
+            {
+              "iterations": 4217,
+              "wallUs": 47.44076357600304,
+              "cpuUs": 48.37562248043633
+            },
+            {
+              "iterations": 4216,
+              "wallUs": 47.45434060720828,
+              "cpuUs": 48.14990512333966
+            }
+          ],
+          "encodeMedian": 66.11454064771652,
+          "encodeCpuMedian": 67.08526107072042,
+          "decodeMedian": 47.45434060720828,
+          "decodeCpuMedian": 48.37562248043633
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 1670,
+              "wallUs": 119.82712574850547,
+              "cpuUs": 121.55688622754491
+            },
+            {
+              "iterations": 1671,
+              "wallUs": 119.70335128665744,
+              "cpuUs": 121.48414123279473
+            },
+            {
+              "iterations": 1652,
+              "wallUs": 121.14969733655889,
+              "cpuUs": 122.88135593220339
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 3013,
+              "wallUs": 66.39518752074324,
+              "cpuUs": 67.374709591769
+            },
+            {
+              "iterations": 2732,
+              "wallUs": 73.25058565154073,
+              "cpuUs": 68.81405563689604
+            },
+            {
+              "iterations": 2971,
+              "wallUs": 67.33214405923913,
+              "cpuUs": 63.27835745540222
+            }
+          ],
+          "encodeMedian": 119.82712574850547,
+          "encodeCpuMedian": 121.55688622754491,
+          "decodeMedian": 67.33214405923913,
+          "decodeCpuMedian": 67.374709591769
+        }
+      },
+      "steady": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 10080,
+              "wallUs": 19.926537698413288,
+              "cpuUs": 20.13888888888889
+            },
+            {
+              "iterations": 10140,
+              "wallUs": 19.741696252465673,
+              "cpuUs": 20.118343195266274
+            },
+            {
+              "iterations": 9900,
+              "wallUs": 20.25062626262573,
+              "cpuUs": 20.505050505050505
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 11760,
+              "wallUs": 17.03034013605501,
+              "cpuUs": 17.261904761904763
+            },
+            {
+              "iterations": 11880,
+              "wallUs": 16.90509259259171,
+              "cpuUs": 15.74074074074074
+            },
+            {
+              "iterations": 11820,
+              "wallUs": 16.968494077833743,
+              "cpuUs": 17.174280879864636
+            }
+          ],
+          "encodeMedian": 19.926537698413288,
+          "encodeCpuMedian": 20.13888888888889,
+          "decodeMedian": 16.968494077833743,
+          "decodeCpuMedian": 17.174280879864636
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 11280,
+              "wallUs": 17.73852836879396,
+              "cpuUs": 18.085106382978722
+            },
+            {
+              "iterations": 11280,
+              "wallUs": 17.800682624112326,
+              "cpuUs": 23.581560283687942
+            },
+            {
+              "iterations": 11520,
+              "wallUs": 17.414253472221237,
+              "cpuUs": 17.62152777777778
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 12120,
+              "wallUs": 16.537986798679228,
+              "cpuUs": 15.429042904290428
+            },
+            {
+              "iterations": 12240,
+              "wallUs": 16.39331699346323,
+              "cpuUs": 16.584967320261438
+            },
+            {
+              "iterations": 12300,
+              "wallUs": 16.28180487804982,
+              "cpuUs": 16.504065040650406
+            }
+          ],
+          "encodeMedian": 17.73852836879396,
+          "encodeCpuMedian": 18.085106382978722,
+          "decodeMedian": 16.39331699346323,
+          "decodeCpuMedian": 16.504065040650406
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 2820,
+              "wallUs": 71.4318439716311,
+              "cpuUs": 71.98581560283688
+            },
+            {
+              "iterations": 3000,
+              "wallUs": 67.6925999999997,
+              "cpuUs": 67.66666666666667
+            },
+            {
+              "iterations": 3000,
+              "wallUs": 67.70630000000044,
+              "cpuUs": 67.66666666666667
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 4680,
+              "wallUs": 46.15391025641019,
+              "cpuUs": 140.17094017094018
+            },
+            {
+              "iterations": 4500,
+              "wallUs": 47.00071111110932,
+              "cpuUs": 135.33333333333334
+            },
+            {
+              "iterations": 4860,
+              "wallUs": 49.17386831275732,
+              "cpuUs": 144.65020576131687
+            }
+          ],
+          "encodeMedian": 67.70630000000044,
+          "encodeCpuMedian": 67.66666666666667,
+          "decodeMedian": 47.00071111110932,
+          "decodeCpuMedian": 140.17094017094018
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 11820,
+              "wallUs": 16.934788494076933,
+              "cpuUs": 15.820642978003384
+            },
+            {
+              "iterations": 10800,
+              "wallUs": 18.58654629629638,
+              "cpuUs": 18.703703703703702
+            },
+            {
+              "iterations": 11760,
+              "wallUs": 17.057074829931572,
+              "cpuUs": 17.346938775510203
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 16260,
+              "wallUs": 12.31410824108262,
+              "cpuUs": 12.484624846248462
+            },
+            {
+              "iterations": 14400,
+              "wallUs": 13.930159722223026,
+              "cpuUs": 14.166666666666666
+            },
+            {
+              "iterations": 16140,
+              "wallUs": 12.415954151177546,
+              "cpuUs": 11.586121437422552
+            }
+          ],
+          "encodeMedian": 17.057074829931572,
+          "encodeCpuMedian": 17.346938775510203,
+          "decodeMedian": 12.415954151177546,
+          "decodeCpuMedian": 12.484624846248462
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 12360,
+              "wallUs": 16.225533980582956,
+              "cpuUs": 16.423948220064727
+            },
+            {
+              "iterations": 12540,
+              "wallUs": 15.998508771929735,
+              "cpuUs": 14.912280701754385
+            },
+            {
+              "iterations": 11820,
+              "wallUs": 16.950313028765066,
+              "cpuUs": 17.174280879864636
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 13020,
+              "wallUs": 15.417127496159736,
+              "cpuUs": 15.591397849462366
+            },
+            {
+              "iterations": 13380,
+              "wallUs": 14.992660687593723,
+              "cpuUs": 15.246636771300448
+            },
+            {
+              "iterations": 13620,
+              "wallUs": 14.689537444934322,
+              "cpuUs": 14.904552129221733
+            }
+          ],
+          "encodeMedian": 16.225533980582956,
+          "encodeCpuMedian": 16.423948220064727,
+          "decodeMedian": 14.992660687593723,
+          "decodeCpuMedian": 15.246636771300448
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 13560,
+              "wallUs": 14.80167404129764,
+              "cpuUs": 15.044247787610619
+            },
+            {
+              "iterations": 13560,
+              "wallUs": 14.800914454276326,
+              "cpuUs": 14.970501474926253
+            },
+            {
+              "iterations": 13380,
+              "wallUs": 14.981733931240743,
+              "cpuUs": 15.246636771300448
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 33600,
+              "wallUs": 5.957175595238022,
+              "cpuUs": 6.488095238095238
+            },
+            {
+              "iterations": 33420,
+              "wallUs": 5.989901256732791,
+              "cpuUs": 6.074207061639736
+            },
+            {
+              "iterations": 33960,
+              "wallUs": 5.899260895170862,
+              "cpuUs": 5.977620730270907
+            }
+          ],
+          "encodeMedian": 14.80167404129764,
+          "encodeCpuMedian": 15.044247787610619,
+          "decodeMedian": 5.957175595238022,
+          "decodeCpuMedian": 6.074207061639736
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 11340,
+              "wallUs": 17.71809523809437,
+              "cpuUs": 17.901234567901234
+            },
+            {
+              "iterations": 10680,
+              "wallUs": 18.788305243444743,
+              "cpuUs": 19.10112359550562
+            },
+            {
+              "iterations": 11340,
+              "wallUs": 17.71189594356244,
+              "cpuUs": 17.901234567901234
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 14820,
+              "wallUs": 13.506923076922455,
+              "cpuUs": 12.685560053981106
+            },
+            {
+              "iterations": 15420,
+              "wallUs": 12.975907911803668,
+              "cpuUs": 13.164721141374837
+            },
+            {
+              "iterations": 15420,
+              "wallUs": 12.988683527885742,
+              "cpuUs": 14.202334630350194
+            }
+          ],
+          "encodeMedian": 17.71809523809437,
+          "encodeCpuMedian": 17.901234567901234,
+          "decodeMedian": 12.988683527885742,
+          "decodeCpuMedian": 13.164721141374837
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 7380,
+              "wallUs": 27.20910569105818,
+              "cpuUs": 27.506775067750677
+            },
+            {
+              "iterations": 7680,
+              "wallUs": 26.208723958332786,
+              "cpuUs": 26.432291666666668
+            },
+            {
+              "iterations": 7380,
+              "wallUs": 27.138834688346755,
+              "cpuUs": 27.506775067750677
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 13080,
+              "wallUs": 15.302729357798455,
+              "cpuUs": 15.519877675840979
+            },
+            {
+              "iterations": 12420,
+              "wallUs": 16.15916264090219,
+              "cpuUs": 16.344605475040257
+            },
+            {
+              "iterations": 12780,
+              "wallUs": 15.663200312989597,
+              "cpuUs": 14.63223787167449
+            }
+          ],
+          "encodeMedian": 27.138834688346755,
+          "encodeCpuMedian": 27.506775067750677,
+          "decodeMedian": 15.663200312989597,
+          "decodeCpuMedian": 15.519877675840979
+        },
+        "json-deflate-context-per-socket": {
+          "encode": [
+            {
+              "iterations": 1320,
+              "wallUs": 172.80378787878416,
+              "cpuUs": 331.8181818181818
+            }
+          ]
+        }
+      },
+      "distinct": {
+        "1": {
+          "json": 19.11572722937571,
+          "json-deflate": 82.3314747474782,
+          "descriptor": 15.744310954062922,
+          "msgpackr-provisioned": 15.361325670497793
+        },
+        "4": {
+          "json": 78.77750487329364,
+          "json-deflate": 335.229047619029,
+          "descriptor": 63.98847619048043,
+          "msgpackr-provisioned": 58.31757575757486
+        },
+        "16": {
+          "json": 317.9082539682563,
+          "json-deflate": 1192.104999999962,
+          "descriptor": 265.39673202614426,
+          "msgpackr-provisioned": 279.4922222222279
+        }
+      },
+      "capped": {
+        "descriptor": 16.23983119623426,
+        "msgpackr-provisioned": 22.729315997739118
+      }
+    },
+    "spectator": {
+      "first": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 3113,
+              "wallUs": 64.26029553485415,
+              "cpuUs": 65.21040796659172
+            },
+            {
+              "iterations": 2870,
+              "wallUs": 69.69310104529448,
+              "cpuUs": 70.73170731707317
+            },
+            {
+              "iterations": 3171,
+              "wallUs": 63.079407127089006,
+              "cpuUs": 58.97193314411857
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 2763,
+              "wallUs": 72.40941006152912,
+              "cpuUs": 79.26167209554832
+            },
+            {
+              "iterations": 2977,
+              "wallUs": 67.19213973798728,
+              "cpuUs": 68.52536110178032
+            },
+            {
+              "iterations": 2986,
+              "wallUs": 67.00405224380376,
+              "cpuUs": 67.98392498325519
+            }
+          ],
+          "encodeMedian": 64.26029553485415,
+          "encodeCpuMedian": 65.21040796659172,
+          "decodeMedian": 67.19213973798728,
+          "decodeCpuMedian": 68.52536110178032
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 3316,
+              "wallUs": 60.328890229188104,
+              "cpuUs": 61.21833534378769
+            },
+            {
+              "iterations": 3488,
+              "wallUs": 57.36143922018077,
+              "cpuUs": 58.19954128440367
+            },
+            {
+              "iterations": 3496,
+              "wallUs": 57.217591533179665,
+              "cpuUs": 58.35240274599543
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 3095,
+              "wallUs": 64.63172859450677,
+              "cpuUs": 65.58966074313409
+            },
+            {
+              "iterations": 3050,
+              "wallUs": 65.58616393442804,
+              "cpuUs": 66.55737704918033
+            },
+            {
+              "iterations": 3094,
+              "wallUs": 64.65904977375493,
+              "cpuUs": 65.61085972850678
+            }
+          ],
+          "encodeMedian": 57.36143922018077,
+          "encodeCpuMedian": 58.35240274599543,
+          "decodeMedian": 64.65904977375493,
+          "decodeCpuMedian": 65.61085972850678
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 1169,
+              "wallUs": 171.15568862275927,
+              "cpuUs": 174.50812660393498
+            },
+            {
+              "iterations": 1139,
+              "wallUs": 175.74503950833594,
+              "cpuUs": 178.22651448639158
+            },
+            {
+              "iterations": 1092,
+              "wallUs": 183.2588827838886,
+              "cpuUs": 185.89743589743588
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 1753,
+              "wallUs": 114.27067883627282,
+              "cpuUs": 257.843696520251
+            },
+            {
+              "iterations": 1762,
+              "wallUs": 113.54381384789639,
+              "cpuUs": 248.01362088535754
+            },
+            {
+              "iterations": 1509,
+              "wallUs": 132.5992710404267,
+              "cpuUs": 248.5089463220676
+            }
+          ],
+          "encodeMedian": 175.74503950833594,
+          "encodeCpuMedian": 178.22651448639158,
+          "decodeMedian": 114.27067883627282,
+          "decodeCpuMedian": 248.5089463220676
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 2445,
+              "wallUs": 81.83141104294442,
+              "cpuUs": 153.78323108384458
+            },
+            {
+              "iterations": 3275,
+              "wallUs": 61.08787786259533,
+              "cpuUs": 61.98473282442748
+            },
+            {
+              "iterations": 3219,
+              "wallUs": 62.144982913947985,
+              "cpuUs": 63.06306306306306
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 4157,
+              "wallUs": 48.131729612701015,
+              "cpuUs": 48.83329324031754
+            },
+            {
+              "iterations": 4267,
+              "wallUs": 46.878696976800356,
+              "cpuUs": 47.57440824935552
+            },
+            {
+              "iterations": 4335,
+              "wallUs": 46.14304498269979,
+              "cpuUs": 46.82814302191465
+            }
+          ],
+          "encodeMedian": 62.144982913947985,
+          "encodeCpuMedian": 63.06306306306306,
+          "decodeMedian": 46.878696976800356,
+          "decodeCpuMedian": 47.57440824935552
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 2323,
+              "wallUs": 86.11566939302895,
+              "cpuUs": 87.38699956952217
+            },
+            {
+              "iterations": 3139,
+              "wallUs": 63.72812997769548,
+              "cpuUs": 64.98884995221408
+            },
+            {
+              "iterations": 3086,
+              "wallUs": 64.8252754374586,
+              "cpuUs": 66.1049902786779
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 6820,
+              "wallUs": 29.33058651026379,
+              "cpuUs": 29.765395894428153
+            },
+            {
+              "iterations": 6969,
+              "wallUs": 28.703329028555746,
+              "cpuUs": 29.12899985650739
+            },
+            {
+              "iterations": 6912,
+              "wallUs": 28.939814814815758,
+              "cpuUs": 29.369212962962962
+            }
+          ],
+          "encodeMedian": 64.8252754374586,
+          "encodeCpuMedian": 66.1049902786779,
+          "decodeMedian": 28.939814814815758,
+          "decodeCpuMedian": 29.369212962962962
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 3084,
+              "wallUs": 64.87295719844643,
+              "cpuUs": 60.9597924773022
+            },
+            {
+              "iterations": 3237,
+              "wallUs": 61.797096076611545,
+              "cpuUs": 63.02131603336423
+            },
+            {
+              "iterations": 3253,
+              "wallUs": 61.50365816169712,
+              "cpuUs": 57.485398094067016
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 7737,
+              "wallUs": 25.85601654387944,
+              "cpuUs": 26.23755977769161
+            },
+            {
+              "iterations": 11213,
+              "wallUs": 17.838357263890355,
+              "cpuUs": 16.677071256577186
+            },
+            {
+              "iterations": 11830,
+              "wallUs": 16.908605240912937,
+              "cpuUs": 17.159763313609467
+            }
+          ],
+          "encodeMedian": 61.797096076611545,
+          "encodeCpuMedian": 60.9597924773022,
+          "decodeMedian": 17.838357263890355,
+          "decodeCpuMedian": 17.159763313609467
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 2921,
+              "wallUs": 68.47963026360664,
+              "cpuUs": 69.49674768914755
+            },
+            {
+              "iterations": 3068,
+              "wallUs": 65.2117992177306,
+              "cpuUs": 71.05606258148632
+            },
+            {
+              "iterations": 3070,
+              "wallUs": 65.16879478827174,
+              "cpuUs": 66.44951140065146
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 4213,
+              "wallUs": 47.477379539522126,
+              "cpuUs": 48.18419178732495
+            },
+            {
+              "iterations": 4153,
+              "wallUs": 48.168552853357674,
+              "cpuUs": 48.8803274741151
+            },
+            {
+              "iterations": 4177,
+              "wallUs": 47.88994493655902,
+              "cpuUs": 48.59947330620062
+            }
+          ],
+          "encodeMedian": 65.2117992177306,
+          "encodeCpuMedian": 69.49674768914755,
+          "decodeMedian": 47.88994493655902,
+          "decodeCpuMedian": 48.59947330620062
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 1660,
+              "wallUs": 120.52271084337326,
+              "cpuUs": 122.28915662650603
+            },
+            {
+              "iterations": 1686,
+              "wallUs": 118.67627520759093,
+              "cpuUs": 110.91340450771055
+            },
+            {
+              "iterations": 1611,
+              "wallUs": 124.22166356300679,
+              "cpuUs": 135.31967721911855
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 3031,
+              "wallUs": 66.00260640052754,
+              "cpuUs": 66.97459584295612
+            },
+            {
+              "iterations": 3049,
+              "wallUs": 65.62030173827505,
+              "cpuUs": 66.90718268284684
+            },
+            {
+              "iterations": 3028,
+              "wallUs": 66.07272126816672,
+              "cpuUs": 61.75693527080581
+            }
+          ],
+          "encodeMedian": 120.52271084337326,
+          "encodeCpuMedian": 122.28915662650603,
+          "decodeMedian": 66.00260640052754,
+          "decodeCpuMedian": 66.90718268284684
+        }
+      },
+      "steady": {
+        "json": {
+          "encode": [
+            {
+              "iterations": 10320,
+              "wallUs": 19.45700581395366,
+              "cpuUs": 19.670542635658915
+            },
+            {
+              "iterations": 10260,
+              "wallUs": 19.513538011695694,
+              "cpuUs": 19.883040935672515
+            },
+            {
+              "iterations": 10200,
+              "wallUs": 19.656000000000393,
+              "cpuUs": 16.862745098039216
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 12120,
+              "wallUs": 16.569744224422177,
+              "cpuUs": 16.74917491749175
+            },
+            {
+              "iterations": 11820,
+              "wallUs": 17.048172588832095,
+              "cpuUs": 15.820642978003384
+            },
+            {
+              "iterations": 12000,
+              "wallUs": 16.729641666666186,
+              "cpuUs": 16.916666666666668
+            }
+          ],
+          "encodeMedian": 19.513538011695694,
+          "encodeCpuMedian": 19.670542635658915,
+          "decodeMedian": 16.729641666666186,
+          "decodeCpuMedian": 16.74917491749175
+        },
+        "json-string": {
+          "encode": [
+            {
+              "iterations": 11760,
+              "wallUs": 17.01299319727844,
+              "cpuUs": 15.986394557823129
+            },
+            {
+              "iterations": 11400,
+              "wallUs": 17.554885964912643,
+              "cpuUs": 21.92982456140351
+            },
+            {
+              "iterations": 11820,
+              "wallUs": 17.009035532994623,
+              "cpuUs": 17.174280879864636
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 12300,
+              "wallUs": 16.38282113821067,
+              "cpuUs": 16.504065040650406
+            },
+            {
+              "iterations": 12360,
+              "wallUs": 16.215946601941255,
+              "cpuUs": 16.423948220064727
+            },
+            {
+              "iterations": 12600,
+              "wallUs": 15.94876984126925,
+              "cpuUs": 16.11111111111111
+            }
+          ],
+          "encodeMedian": 17.01299319727844,
+          "encodeCpuMedian": 17.174280879864636,
+          "decodeMedian": 16.215946601941255,
+          "decodeCpuMedian": 16.423948220064727
+        },
+        "json-deflate": {
+          "encode": [
+            {
+              "iterations": 3000,
+              "wallUs": 67.17286666667012,
+              "cpuUs": 67.66666666666667
+            },
+            {
+              "iterations": 3060,
+              "wallUs": 67.08859477124254,
+              "cpuUs": 66.33986928104575
+            },
+            {
+              "iterations": 2940,
+              "wallUs": 69.2993537415,
+              "cpuUs": 69.04761904761905
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 4560,
+              "wallUs": 46.86756578947161,
+              "cpuUs": 140.5701754385965
+            },
+            {
+              "iterations": 4380,
+              "wallUs": 46.862945205478326,
+              "cpuUs": 146.11872146118722
+            },
+            {
+              "iterations": 5760,
+              "wallUs": 35.02701388888959,
+              "cpuUs": 56.94444444444444
+            }
+          ],
+          "encodeMedian": 67.17286666667012,
+          "encodeCpuMedian": 67.66666666666667,
+          "decodeMedian": 46.862945205478326,
+          "decodeCpuMedian": 140.5701754385965
+        },
+        "descriptor": {
+          "encode": [
+            {
+              "iterations": 12000,
+              "wallUs": 16.679008333333815,
+              "cpuUs": 22.083333333333332
+            },
+            {
+              "iterations": 11940,
+              "wallUs": 16.770100502512612,
+              "cpuUs": 15.745393634840871
+            },
+            {
+              "iterations": 8760,
+              "wallUs": 22.85853881278534,
+              "cpuUs": 51.71232876712329
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 16320,
+              "wallUs": 12.29310049019588,
+              "cpuUs": 12.5
+            },
+            {
+              "iterations": 16380,
+              "wallUs": 12.246379731380056,
+              "cpuUs": 12.393162393162394
+            },
+            {
+              "iterations": 16080,
+              "wallUs": 12.442468905472161,
+              "cpuUs": 12.624378109452737
+            }
+          ],
+          "encodeMedian": 16.770100502512612,
+          "encodeCpuMedian": 22.083333333333332,
+          "decodeMedian": 12.29310049019588,
+          "decodeCpuMedian": 12.5
+        },
+        "msgpackr-inline": {
+          "encode": [
+            {
+              "iterations": 12540,
+              "wallUs": 15.955741626794769,
+              "cpuUs": 16.188197767145134
+            },
+            {
+              "iterations": 12480,
+              "wallUs": 16.038060897435805,
+              "cpuUs": 16.266025641025642
+            },
+            {
+              "iterations": 12240,
+              "wallUs": 16.387524509803793,
+              "cpuUs": 16.666666666666668
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 13740,
+              "wallUs": 14.58885007278064,
+              "cpuUs": 14.77438136826783
+            },
+            {
+              "iterations": 11580,
+              "wallUs": 17.321485319516732,
+              "cpuUs": 17.530224525043177
+            },
+            {
+              "iterations": 13680,
+              "wallUs": 14.633391812865696,
+              "cpuUs": 16.00877192982456
+            }
+          ],
+          "encodeMedian": 16.038060897435805,
+          "encodeCpuMedian": 16.266025641025642,
+          "decodeMedian": 14.633391812865696,
+          "decodeCpuMedian": 16.00877192982456
+        },
+        "msgpackr-provisioned": {
+          "encode": [
+            {
+              "iterations": 13860,
+              "wallUs": 14.48445887445889,
+              "cpuUs": 14.646464646464647
+            },
+            {
+              "iterations": 13680,
+              "wallUs": 14.630950292397841,
+              "cpuUs": 14.839181286549708
+            },
+            {
+              "iterations": 13260,
+              "wallUs": 15.139313725490402,
+              "cpuUs": 15.309200603318251
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 34020,
+              "wallUs": 5.885770135214772,
+              "cpuUs": 5.967078189300412
+            },
+            {
+              "iterations": 34260,
+              "wallUs": 5.84807939287815,
+              "cpuUs": 5.4582603619381205
+            },
+            {
+              "iterations": 33480,
+              "wallUs": 5.975627240143324,
+              "cpuUs": 6.541218637992832
+            }
+          ],
+          "encodeMedian": 14.630950292397841,
+          "encodeCpuMedian": 14.839181286549708,
+          "decodeMedian": 5.885770135214772,
+          "decodeCpuMedian": 5.967078189300412
+        },
+        "descriptor-quantized": {
+          "encode": [
+            {
+              "iterations": 11580,
+              "wallUs": 17.310120898099818,
+              "cpuUs": 14.853195164075993
+            },
+            {
+              "iterations": 11400,
+              "wallUs": 17.5624649122798,
+              "cpuUs": 17.80701754385965
+            },
+            {
+              "iterations": 11700,
+              "wallUs": 17.137076923077423,
+              "cpuUs": 17.35042735042735
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 14280,
+              "wallUs": 14.01726190476135,
+              "cpuUs": 14.215686274509803
+            },
+            {
+              "iterations": 15720,
+              "wallUs": 12.74097964376561,
+              "cpuUs": 11.959287531806616
+            },
+            {
+              "iterations": 15840,
+              "wallUs": 12.658743686868988,
+              "cpuUs": 12.815656565656566
+            }
+          ],
+          "encodeMedian": 17.310120898099818,
+          "encodeCpuMedian": 17.35042735042735,
+          "decodeMedian": 12.74097964376561,
+          "decodeCpuMedian": 12.815656565656566
+        },
+        "msgpackr-provisioned-quantized": {
+          "encode": [
+            {
+              "iterations": 7680,
+              "wallUs": 26.13712239583303,
+              "cpuUs": 26.432291666666668
+            },
+            {
+              "iterations": 7560,
+              "wallUs": 26.56088624338466,
+              "cpuUs": 26.85185185185185
+            },
+            {
+              "iterations": 7620,
+              "wallUs": 26.42241469816243,
+              "cpuUs": 26.64041994750656
+            }
+          ],
+          "decode": [
+            {
+              "iterations": 13020,
+              "wallUs": 15.376520737327532,
+              "cpuUs": 15.591397849462366
+            },
+            {
+              "iterations": 13080,
+              "wallUs": 15.350718654434333,
+              "cpuUs": 15.596330275229358
+            },
+            {
+              "iterations": 12360,
+              "wallUs": 16.186213592233084,
+              "cpuUs": 16.423948220064727
+            }
+          ],
+          "encodeMedian": 26.42241469816243,
+          "encodeCpuMedian": 26.64041994750656,
+          "decodeMedian": 15.376520737327532,
+          "decodeCpuMedian": 15.596330275229358
+        },
+        "json-deflate-context-per-socket": {
+          "encode": [
+            {
+              "iterations": 1380,
+              "wallUs": 163.261739130436,
+              "cpuUs": 328.2608695652174
+            }
+          ]
+        }
+      },
+      "distinct": {
+        "1": {
+          "json": 19.33696618357365,
+          "json-deflate": 87.38553376906032,
+          "descriptor": 15.751519434629019,
+          "msgpackr-provisioned": 20.662088477366364
+        },
+        "4": {
+          "json": 78.64600389863507,
+          "json-deflate": 336.7633333333374,
+          "descriptor": 62.85017214397844,
+          "msgpackr-provisioned": 60.54441441441662
+        },
+        "16": {
+          "json": 330.75650793651306,
+          "json-deflate": 1278.9238888889183,
+          "descriptor": 291.777083333323,
+          "msgpackr-provisioned": 247.98617283950193
+        }
+      },
+      "capped": {
+        "descriptor": 16.94371584699516,
+        "msgpackr-provisioned": 23.055519889945806
+      }
+    },
+    "specimens": {
+      "ping": {
+        "json": {
+          "encode": 0.4497782774904276,
+          "decode": 0.7814059515018967
+        },
+        "descriptor": {
+          "encode": 0.26066014720907865,
+          "decode": 0.32774872884760226
+        },
+        "msgpackr-inline": {
+          "encode": 0.7187974815464947,
+          "decode": 0.6402563355665017
+        },
+        "msgpackr-provisioned": {
+          "encode": 0.6948998558201674,
+          "decode": 0.710218516756277
+        }
+      },
+      "input": {
+        "json": {
+          "encode": 0.6478442817025525,
+          "decode": 0.7493739556561321
+        },
+        "descriptor": {
+          "encode": 0.6047255235716917,
+          "decode": 0.33942486038113723
+        },
+        "msgpackr-inline": {
+          "encode": 1.2499284468911915,
+          "decode": 0.8033472702517186
+        },
+        "msgpackr-provisioned": {
+          "encode": 1.2283317468601638,
+          "decode": 0.8945477070046988
+        }
+      }
+    }
+  },
+  "allocation": {
+    "contestant": {
+      "json": {
+        "encodeBytes": 3567.56,
+        "decodeBytes": 7901.7733333333335
+      },
+      "descriptor": {
+        "encodeBytes": 3930.3,
+        "decodeBytes": 11095.206666666667
+      },
+      "msgpackr-inline": {
+        "encodeBytes": 1220.4,
+        "decodeBytes": 19590.173333333332
+      },
+      "msgpackr-provisioned": {
+        "encodeBytes": 1086.46,
+        "decodeBytes": 11903.853333333333
+      }
+    },
+    "dev": {
+      "json": {
+        "encodeBytes": 5239.5,
+        "decodeBytes": 10319.44
+      },
+      "descriptor": {
+        "encodeBytes": 6571.1,
+        "decodeBytes": 12826.42
+      },
+      "msgpackr-inline": {
+        "encodeBytes": 1664.0466666666666,
+        "decodeBytes": 20784.513333333332
+      },
+      "msgpackr-provisioned": {
+        "encodeBytes": 1537.96,
+        "decodeBytes": 12004.353333333333
+      }
+    }
+  },
+  "browser": {
+    "chrome": "157.0.8103.51",
+    "date": "2026-11-16T06:17:07.554Z",
+    "rounds": 3,
+    "minBatchMs": 200,
+    "views": {
+      "contestant": {
+        "messages": 61,
+        "sizes": {
+          "json": {
+            "firstBytes": 5910,
+            "steadyBytesPerMessage": 3334.0333333333333
+          },
+          "json-string": {
+            "firstBytes": 5910,
+            "steadyBytesPerMessage": 3334.0333333333333
+          },
+          "descriptor": {
+            "firstBytes": 1483,
+            "steadyBytesPerMessage": 935.65
+          },
+          "msgpackr-inline": {
+            "firstBytes": 2495,
+            "steadyBytesPerMessage": 1690.75
+          },
+          "msgpackr-provisioned": {
+            "firstBytes": 2135,
+            "steadyBytesPerMessage": 1412.8
+          }
+        },
+        "first": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.011431672760171364,
+                0.01112099644128114,
+                0.01152073732718894
+              ],
+              "medianMs": 0.011431672760171364
+            },
+            "encode": {
+              "rounds": [
+                0.018115942028985508,
+                0.018628912071535022,
+                0.01858283803807945
+              ],
+              "medianMs": 0.01858283803807945
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.010980026339384366,
+                0.010711225364181662,
+                0.010941601050357649
+              ],
+              "medianMs": 0.010941601050357649
+            },
+            "encode": {
+              "rounds": [
+                0.011210762331838564,
+                0.011488970588235295,
+                0.011190689346463742
+              ],
+              "medianMs": 0.011210762331838564
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.013213530655391121,
+                0.012774514811602446,
+                0.012709603658157998
+              ],
+              "medianMs": 0.012774514811602446
+            },
+            "encode": {
+              "rounds": [
+                0.017934002869440458,
+                0.017815170939640274,
+                0.01802953890516753
+              ],
+              "medianMs": 0.017934002869440458
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.016556291390728478,
+                0.017131849315833964,
+                0.01589104193091165
+              ],
+              "medianMs": 0.016556291390728478
+            },
+            "encode": {
+              "rounds": [
+                0.02629989495759188,
+                0.026176778241119126,
+                0.030956064357818797
+              ],
+              "medianMs": 0.02629989495759188
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.008254950495418346,
+                0.00829462508294625,
+                0.008520790729379687
+              ],
+              "medianMs": 0.00829462508294625
+            },
+            "encode": {
+              "rounds": [
+                0.023709753787526013,
+                0.02482638888925846,
+                0.025303643724696356
+              ],
+              "medianMs": 0.02482638888925846
+            }
+          }
+        },
+        "steady": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.007356617646839689,
+                0.007305669199298656,
+                0.007426514251560256
+              ],
+              "medianMs": 0.007356617646839689
+            },
+            "encode": {
+              "rounds": [
+                0.012562751004203078,
+                0.0124564243024178,
+                0.012249020568617819
+              ],
+              "medianMs": 0.0124564243024178
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.006706008583690987,
+                0.007192174913693901,
+                0.006819421713038734
+              ],
+              "medianMs": 0.006819421713038734
+            },
+            "encode": {
+              "rounds": [
+                0.007719000617018053,
+                0.00887784090909091,
+                0.007575757575757576
+              ],
+              "medianMs": 0.007719000617018053
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.007783312577833126,
+                0.008164598301763554,
+                0.007734230056004201
+              ],
+              "medianMs": 0.007783312577833126
+            },
+            "encode": {
+              "rounds": [
+                0.010936132983377077,
+                0.010955302366345312,
+                0.011832466918538502
+              ],
+              "medianMs": 0.010955302366345312
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.011081560283687944,
+                0.0112985108301568,
+                0.011242138364947227
+              ],
+              "medianMs": 0.011242138364947227
+            },
+            "encode": {
+              "rounds": [
+                0.01618693402352686,
+                0.017426880223100648,
+                0.01717891483465312
+              ],
+              "medianMs": 0.01717891483465312
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.006341958396752917,
+                0.006393788343843964,
+                0.006322711178553364
+              ],
+              "medianMs": 0.006341958396752917
+            },
+            "encode": {
+              "rounds": [
+                0.014269406392694063,
+                0.015270146519691661,
+                0.01482799525504152
+              ],
+              "medianMs": 0.01482799525504152
+            }
+          }
+        },
+        "alloc": {
+          "json": {
+            "decodeBytesPerMessage": 2566.5690235690236,
+            "encodeBytesPerMessage": 3702.2915824915826
+          },
+          "json-string": {
+            "decodeBytesPerMessage": 2575.9151515151516,
+            "encodeBytesPerMessage": 3591.8565656565656
+          },
+          "descriptor": {
+            "decodeBytesPerMessage": 6049.30303030303,
+            "encodeBytesPerMessage": 2249.240404040404
+          },
+          "msgpackr-inline": {
+            "decodeBytesPerMessage": 12495.56835016835,
+            "encodeBytesPerMessage": 876.0276094276094
+          },
+          "msgpackr-provisioned": {
+            "decodeBytesPerMessage": 8254.694276094277,
+            "encodeBytesPerMessage": 782.8208754208754
+          }
+        }
+      },
+      "gladiator": {
+        "messages": 61,
+        "sizes": {
+          "json": {
+            "firstBytes": 1534,
+            "steadyBytesPerMessage": 1891.7333333333333
+          },
+          "json-string": {
+            "firstBytes": 1534,
+            "steadyBytesPerMessage": 1891.7333333333333
+          },
+          "descriptor": {
+            "firstBytes": 356,
+            "steadyBytesPerMessage": 509.4166666666667
+          },
+          "msgpackr-inline": {
+            "firstBytes": 992,
+            "steadyBytesPerMessage": 1159.3166666666666
+          },
+          "msgpackr-provisioned": {
+            "firstBytes": 717,
+            "steadyBytesPerMessage": 872.6833333333333
+          }
+        },
+        "first": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.0036753895912966772,
+                0.0037257824143070045,
+                0.003703703703703704
+              ],
+              "medianMs": 0.003703703703703704
+            },
+            "encode": {
+              "rounds": [
+                0.006734913793103448,
+                0.006517205422314911,
+                0.006500260010400416
+              ],
+              "medianMs": 0.006517205422314911
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.003351206434316354,
+                0.0033884521550555705,
+                0.0034597287572654305
+              ],
+              "medianMs": 0.0033884521550555705
+            },
+            "encode": {
+              "rounds": [
+                0.00388681592039801,
+                0.0038936021172349916,
+                0.003835532371893219
+              ],
+              "medianMs": 0.00388681592039801
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.004106438896189225,
+                0.004517528008673654,
+                0.004234417344173441
+              ],
+              "medianMs": 0.004234417344173441
+            },
+            "encode": {
+              "rounds": [
+                0.005876821814762577,
+                0.0059751434034416824,
+                0.006234421734609905
+              ],
+              "medianMs": 0.0059751434034416824
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.006677350427350427,
+                0.007246376811594203,
+                0.007098239636570131
+              ],
+              "medianMs": 0.007098239636570131
+            },
+            "encode": {
+              "rounds": [
+                0.009904912836767036,
+                0.009773260359655981,
+                0.010413197336018979
+              ],
+              "medianMs": 0.009904912836767036
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.004399859204505456,
+                0.004461737424387725,
+                0.004364525139664804
+              ],
+              "medianMs": 0.004399859204505456
+            },
+            "encode": {
+              "rounds": [
+                0.008211588968895253,
+                0.009069071790882866,
+                0.008440243079000676
+              ],
+              "medianMs": 0.008440243079000676
+            }
+          }
+        },
+        "steady": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.004498020870816841,
+                0.004672897196261682,
+                0.004614248800295312
+              ],
+              "medianMs": 0.004614248800295312
+            },
+            "encode": {
+              "rounds": [
+                0.008832097458021746,
+                0.00853825136612022,
+                0.008602890571231933
+              ],
+              "medianMs": 0.008602890571231933
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.004115903852486006,
+                0.004193223750419322,
+                0.004326756663205262
+              ],
+              "medianMs": 0.004193223750419322
+            },
+            "encode": {
+              "rounds": [
+                0.005432775846927659,
+                0.0054972527470889985,
+                0.0056255625562556255
+              ],
+              "medianMs": 0.0054972527470889985
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.004686914135733034,
+                0.004791107704101188,
+                0.0047169811320754715
+              ],
+              "medianMs": 0.0047169811320754715
+            },
+            "encode": {
+              "rounds": [
+                0.006631299734748011,
+                0.006702412868632708,
+                0.006987143655673561
+              ],
+              "medianMs": 0.006702412868632708
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.007200460829493088,
+                0.00799744081893794,
+                0.00726321905868681
+              ],
+              "medianMs": 0.00726321905868681
+            },
+            "encode": {
+              "rounds": [
+                0.010989674868680839,
+                0.011146390373999528,
+                0.01156336725254394
+              ],
+              "medianMs": 0.011146390373999528
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.004533913674283642,
+                0.004595588235294118,
+                0.004555393586005831
+              ],
+              "medianMs": 0.004555393586005831
+            },
+            "encode": {
+              "rounds": [
+                0.009307520476545048,
+                0.00974657012166728,
+                0.009479166666807776
+              ],
+              "medianMs": 0.009479166666807776
+            }
+          }
+        },
+        "alloc": {
+          "json": {
+            "decodeBytesPerMessage": 1247.2901515151516,
+            "encodeBytesPerMessage": 2220.9973484848483
+          },
+          "json-string": {
+            "decodeBytesPerMessage": 1249.6318181818183,
+            "encodeBytesPerMessage": 2108.971590909091
+          },
+          "descriptor": {
+            "decodeBytesPerMessage": 4210.478409090909,
+            "encodeBytesPerMessage": 1397.7034090909092
+          },
+          "msgpackr-inline": {
+            "decodeBytesPerMessage": 8621.251893939394,
+            "encodeBytesPerMessage": 689.248106060606
+          },
+          "msgpackr-provisioned": {
+            "decodeBytesPerMessage": 6133.374242424243,
+            "encodeBytesPerMessage": 608.4507575757576
+          }
+        }
+      },
+      "dev": {
+        "messages": 61,
+        "sizes": {
+          "json": {
+            "firstBytes": 20770,
+            "steadyBytesPerMessage": 5009.583333333333
+          },
+          "json-string": {
+            "firstBytes": 20770,
+            "steadyBytesPerMessage": 5009.583333333333
+          },
+          "descriptor": {
+            "firstBytes": 5139,
+            "steadyBytesPerMessage": 1426.9166666666667
+          },
+          "msgpackr-inline": {
+            "firstBytes": 6837,
+            "steadyBytesPerMessage": 1964.4166666666667
+          },
+          "msgpackr-provisioned": {
+            "firstBytes": 6502,
+            "steadyBytesPerMessage": 1721.2166666666667
+          }
+        },
+        "first": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.0405542071197411,
+                0.039888535030067535,
+                0.041931438125844385
+              ],
+              "medianMs": 0.0405542071197411
+            },
+            "encode": {
+              "rounds": [
+                0.04344618055620231,
+                0.04208754208754209,
+                0.04210858585733155
+              ],
+              "medianMs": 0.04210858585733155
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.03454765193267257,
+                0.034951117318956046,
+                0.035463881021940674
+              ],
+              "medianMs": 0.034951117318956046
+            },
+            "encode": {
+              "rounds": [
+                0.020658003300022664,
+                0.020868113522537562,
+                0.02074004975062599
+              ],
+              "medianMs": 0.02074004975062599
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.03992834395082418,
+                0.039888535030067535,
+                0.0397023809541549
+              ],
+              "medianMs": 0.039888535030067535
+            },
+            "encode": {
+              "rounds": [
+                0.05386266094340659,
+                0.058197674419471,
+                0.05602678571345417
+              ],
+              "medianMs": 0.05602678571345417
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.026000519749745262,
+                0.027393326041017633,
+                0.025535714286094417
+              ],
+              "medianMs": 0.026000519749745262
+            },
+            "encode": {
+              "rounds": [
+                0.07606060606512156,
+                0.08116883116883117,
+                0.07560240963743214
+              ],
+              "medianMs": 0.07606060606512156
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.01749125874073772,
+                0.017926217765309834,
+                0.018257299269529154
+              ],
+              "medianMs": 0.017926217765309834
+            },
+            "encode": {
+              "rounds": [
+                0.07652439024276668,
+                0.0795312499976717,
+                0.07511227545021715
+              ],
+              "medianMs": 0.07652439024276668
+            }
+          }
+        },
+        "steady": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.00982423409313338,
+                0.010349462365745462,
+                0.010711225364181662
+              ],
+              "medianMs": 0.010349462365745462
+            },
+            "encode": {
+              "rounds": [
+                0.011601345083142367,
+                0.011384335154826957,
+                0.011241007194244604
+              ],
+              "medianMs": 0.011384335154826957
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.00919793966151582,
+                0.009314456035767511,
+                0.009431561085691908
+              ],
+              "medianMs": 0.009314456035767511
+            },
+            "encode": {
+              "rounds": [
+                0.005378657487091222,
+                0.005661231884057971,
+                0.005387931034482759
+              ],
+              "medianMs": 0.005387931034482759
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.010146103896103896,
+                0.01079447322970639,
+                0.010267857143315922
+              ],
+              "medianMs": 0.010267857143315922
+            },
+            "encode": {
+              "rounds": [
+                0.015664160401002505,
+                0.014727941176251454,
+                0.014863258026159334
+              ],
+              "medianMs": 0.014863258026159334
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.011101243339253997,
+                0.011431672760171364,
+                0.010955302366345312
+              ],
+              "medianMs": 0.011101243339253997
+            },
+            "encode": {
+              "rounds": [
+                0.02385496183206107,
+                0.019694881890643768,
+                0.021414811643197723
+              ],
+              "medianMs": 0.021414811643197723
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.005075111652456354,
+                0.004841208365608056,
+                0.005112474437627812
+              ],
+              "medianMs": 0.005075111652456354
+            },
+            "encode": {
+              "rounds": [
+                0.0191131498470948,
+                0.018638226528403568,
+                0.0184186303395564
+              ],
+              "medianMs": 0.018638226528403568
+            }
+          }
+        },
+        "alloc": {
+          "json": {
+            "decodeBytesPerMessage": 3097.8474747474747,
+            "encodeBytesPerMessage": 5141.60303030303
+          },
+          "json-string": {
+            "decodeBytesPerMessage": 3132.030303030303,
+            "encodeBytesPerMessage": 5025.708080808081
+          },
+          "descriptor": {
+            "decodeBytesPerMessage": 7322.473737373737,
+            "encodeBytesPerMessage": 3628.3171717171717
+          },
+          "msgpackr-inline": {
+            "decodeBytesPerMessage": 12421.223232323233,
+            "encodeBytesPerMessage": 951.4767676767676
+          },
+          "msgpackr-provisioned": {
+            "decodeBytesPerMessage": 7261.827272727272,
+            "encodeBytesPerMessage": 874.239393939394
+          }
+        }
+      },
+      "spectator": {
+        "messages": 61,
+        "sizes": {
+          "json": {
+            "firstBytes": 20770,
+            "steadyBytesPerMessage": 4889.083333333333
+          },
+          "json-string": {
+            "firstBytes": 20770,
+            "steadyBytesPerMessage": 4889.083333333333
+          },
+          "descriptor": {
+            "firstBytes": 5139,
+            "steadyBytesPerMessage": 1389.6
+          },
+          "msgpackr-inline": {
+            "firstBytes": 6837,
+            "steadyBytesPerMessage": 1915.9666666666667
+          },
+          "msgpackr-provisioned": {
+            "firstBytes": 6502,
+            "steadyBytesPerMessage": 1676.8666666666666
+          }
+        },
+        "first": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.04044354838589507,
+                0.039576740508097445,
+                0.04235641891766038
+              ],
+              "medianMs": 0.04044354838589507
+            },
+            "encode": {
+              "rounds": [
+                0.04533482143056712,
+                0.04241525423791954,
+                0.043750000000651275
+              ],
+              "medianMs": 0.043750000000651275
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.03609510086294296,
+                0.03626811594256888,
+                0.034853760446201296
+              ],
+              "medianMs": 0.03609510086294296
+            },
+            "encode": {
+              "rounds": [
+                0.02061367380590818,
+                0.020948492461687555,
+                0.021674610051347437
+              ],
+              "medianMs": 0.020948492461687555
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.045902014652014655,
+                0.04018429487060087,
+                0.03972222222281354
+              ],
+              "medianMs": 0.04018429487060087
+            },
+            "encode": {
+              "rounds": [
+                0.05398706896712297,
+                0.05539269911422007,
+                0.05827546296037595
+              ],
+              "medianMs": 0.05539269911422007
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.0257201646090535,
+                0.026054687501164152,
+                0.026453488372486816
+              ],
+              "medianMs": 0.026054687501164152
+            },
+            "encode": {
+              "rounds": [
+                0.08462837837460274,
+                0.0836092715231788,
+                0.08012820512820513
+              ],
+              "medianMs": 0.0836092715231788
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.017806267806267807,
+                0.017723087818960714,
+                0.017714235128270247
+              ],
+              "medianMs": 0.017723087818960714
+            },
+            "encode": {
+              "rounds": [
+                0.0779503105636339,
+                0.0753388554194426,
+                0.07492514969613738
+              ],
+              "medianMs": 0.0753388554194426
+            }
+          }
+        },
+        "steady": {
+          "json": {
+            "decode": {
+              "rounds": [
+                0.009865824782951855,
+                0.010008006405124099,
+                0.010416666666666666
+              ],
+              "medianMs": 0.010008006405124099
+            },
+            "encode": {
+              "rounds": [
+                0.011644553072278838,
+                0.01156336725254394,
+                0.011111111111111112
+              ],
+              "medianMs": 0.01156336725254394
+            }
+          },
+          "json-string": {
+            "decode": {
+              "rounds": [
+                0.009184423218221896,
+                0.009088844476473453,
+                0.009064539521392313
+              ],
+              "medianMs": 0.009088844476473453
+            },
+            "encode": {
+              "rounds": [
+                0.005316886431305828,
+                0.0052992584748130485,
+                0.005186721991701245
+              ],
+              "medianMs": 0.0052992584748130485
+            }
+          },
+          "descriptor": {
+            "decode": {
+              "rounds": [
+                0.010439273789338456,
+                0.010399334442595673,
+                0.009968102073365232
+              ],
+              "medianMs": 0.010399334442595673
+            },
+            "encode": {
+              "rounds": [
+                0.014730565371682913,
+                0.014518002322880372,
+                0.01437500000064229
+              ],
+              "medianMs": 0.014518002322880372
+            }
+          },
+          "msgpackr-inline": {
+            "decode": {
+              "rounds": [
+                0.010562711148334012,
+                0.010850694444444444,
+                0.01059851694883684
+              ],
+              "medianMs": 0.01059851694883684
+            },
+            "encode": {
+              "rounds": [
+                0.020148953301427158,
+                0.019440124416796267,
+                0.02144082332761578
+              ],
+              "medianMs": 0.020148953301427158
+            }
+          },
+          "msgpackr-provisioned": {
+            "decode": {
+              "rounds": [
+                0.004865706500583885,
+                0.00481881264456438,
+                0.005381346816075212
+              ],
+              "medianMs": 0.004865706500583885
+            },
+            "encode": {
+              "rounds": [
+                0.018257299269529154,
+                0.018204148471073465,
+                0.03415300546448088
+              ],
+              "medianMs": 0.018257299269529154
+            }
+          }
+        },
+        "alloc": {
+          "json": {
+            "decodeBytesPerMessage": 3083.356862745098,
+            "encodeBytesPerMessage": 5020.522549019608
+          },
+          "json-string": {
+            "decodeBytesPerMessage": 3036.4794117647057,
+            "encodeBytesPerMessage": 4905.9607843137255
+          },
+          "descriptor": {
+            "decodeBytesPerMessage": 7184.321568627451,
+            "encodeBytesPerMessage": 3558.55
+          },
+          "msgpackr-inline": {
+            "decodeBytesPerMessage": 12150.561764705883,
+            "encodeBytesPerMessage": 937.6823529411764
+          },
+          "msgpackr-provisioned": {
+            "decodeBytesPerMessage": 7090.459803921569,
+            "encodeBytesPerMessage": 855.2333333333333
+          }
+        }
+      }
+    },
+    "verify": "ok"
+  },
+  "footprint": {
+    "descriptor": {
+      "files": [
+        "wire-descriptor-codec.mjs",
+        "wire-slice-schema.mjs"
+      ],
+      "gzipBytes": 8942,
+      "codecLines": 273,
+      "schemaLines": 83
+    },
+    "msgpackr": {
+      "version": "2.1.3",
+      "nativeAccelerationInNode": true,
+      "servedSourceGzipBytes": 25110,
+      "minifiedGzipBytes": 12568,
+      "adapterLines": 33,
+      "provisionedTableJsonBytes": 1685,
+      "provisionedStructures": 24
+    }
+  },
+  "contention": {
+    "wallMs": 199390.75040000002,
+    "selfCpuMs": 183313,
+    "otherBusyShare": 0.0497,
+    "contended": false,
+    "threshold": 0.25
+  }
+}
