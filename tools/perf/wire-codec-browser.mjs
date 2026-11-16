@@ -17,6 +17,9 @@ const ROUTES = {
   '/msgpackr/pack.js': path.join(msgpackrDir, 'pack.js'),
   '/msgpackr/unpack.js': path.join(msgpackrDir, 'unpack.js'),
   '/msgpackr/iterators.js': path.join(msgpackrDir, 'iterators.js'),
+  // #1130 protobuf follow-up (opt-in: runBrowser({ protobuf: true })). The light build is protobufjs' reflection UMD.
+  '/wire-protobuf-codec.mjs': path.join(here, 'wire-protobuf-codec.mjs'),
+  '/protobufjs/light.min.js': path.join(root, 'node_modules', 'protobufjs', 'dist', 'light', 'protobuf.min.js'),
 };
 const PAGE = '<!doctype html><meta charset="utf-8"><title>wire codec bench</title><body></body>';
 
@@ -33,7 +36,7 @@ function serve() {
 }
 
 // Runs in the page. Builds codecs, verifies round trips and stores state on window.
-async function pageSetup({ corpus, base }) {
+async function pageSetup({ corpus, base, protobuf }) {
   const { createDescriptorCodec } = await import(`${base}/wire-descriptor-codec.mjs`);
   const { createMsgpackrCodec } = await import(`${base}/wire-msgpackr-codec.mjs`);
   const { sliceSchema } = await import(`${base}/wire-slice-schema.mjs`);
@@ -46,6 +49,15 @@ async function pageSetup({ corpus, base }) {
     'msgpackr-inline': createMsgpackrCodec({ Packr, Unpackr }, { mode: 'inline' }),
     'msgpackr-provisioned': createMsgpackrCodec({ Packr, Unpackr }, { mode: 'provisioned', structures: corpus.structures }),
   };
+  if (protobuf) {
+    await new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = `${base}/protobufjs/light.min.js`; s.onload = resolve; s.onerror = reject; document.head.append(s); });
+    const { createProtobufCodec } = await import(`${base}/wire-protobuf-codec.mjs`);
+    for (const numbers of ['double', 'narrow', 'narrow32']) {
+      const P = codecs[`protobuf-${numbers}`] = createProtobufCodec(window.protobuf, sliceSchema(corpus.lists), { numbers });
+      // Library only: input already shaped for protobuf, decode without the back-transform (no round-trip check).
+      codecs[`protobuf-${numbers}-library-only`] = { raw: true, prepare: m => P.shape(m), encode: s => P.encodeShaped('state', s), decode: b => P.decodeRaw(b) };
+    }
+  }
   const eq = (a, b) => {
     if (a === b || (a !== a && b !== b)) return true;
     if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
@@ -62,9 +74,9 @@ async function pageSetup({ corpus, base }) {
       const c = codecs[name];
       let first = 0, steady = 0;
       msgs.forEach((m, i) => {
-        const enc = c.encode(m);
+        const enc = c.encode(c.prepare ? c.prepare(m) : m);
         const back = c.decode(enc);
-        if (!eq(back, m)) throw new Error(`round trip mismatch: ${name} ${view} message ${i}`);
+        if (!c.raw && !eq(back, m)) throw new Error(`round trip mismatch: ${name} ${view} message ${i}`);
         const n = c.bytes ? c.bytes(enc) : enc.length;
         if (i === 0) first = n; else steady += n;
       });
@@ -74,13 +86,15 @@ async function pageSetup({ corpus, base }) {
   const views = {};
   for (const [view, msgs] of Object.entries(corpus.views)) {
     views[view] = { first: [msgs[0]], steady: msgs.slice(1), all: msgs };
+    const input = (n, list) => (codecs[n].prepare ? list.map(codecs[n].prepare) : list);
+    views[view].input = Object.fromEntries(names.map(n => [n, { first: input(n, views[view].first), steady: input(n, views[view].steady), all: input(n, msgs) }]));
     views[view].enc = Object.fromEntries(names.map(n => [n, {
-      first: views[view].first.map(m => codecs[n].encode(m)), steady: views[view].steady.map(m => codecs[n].encode(m)),
+      first: views[view].input[n].first.map(m => codecs[n].encode(m)), steady: views[view].input[n].steady.map(m => codecs[n].encode(m)),
     }]));
   }
   // Warm every codec on every message once.
   for (const view of Object.values(views)) for (const n of names) {
-    for (const m of view.all) codecs[n].decode(codecs[n].encode(m));
+    for (const m of view.input[n].all) codecs[n].decode(codecs[n].encode(m));
   }
   window.__st = { codecs, views, names, sink: 0 };
   return { names, sizes };
@@ -111,7 +125,7 @@ async function pageTime({ rounds, minBatchMs }) {
     for (const view of Object.keys(views)) for (const sub of ['first', 'steady']) for (const n of order) {
       const c = codecs[n], v = views[view];
       const d = batch(b => c.decode(b), v.enc[n][sub]);
-      const e = batch(m => c.encode(m), v[sub]);
+      const e = batch(m => c.encode(m), v.input[n][sub]);
       if (d !== null) out[view][sub][n].decode.rounds.push(d);
       if (e !== null) out[view][sub][n].encode.rounds.push(e);
     }
@@ -124,7 +138,7 @@ function pageAlloc({ view, name, op, passes }) {
   const { codecs, views } = window.__st;
   const c = codecs[name], v = views[view];
   const fn = op === "decode" ? b => c.decode(b) : m => c.encode(m);
-  const inputs = op === 'decode' ? v.enc[name].steady : v.steady;
+  const inputs = op === 'decode' ? v.enc[name].steady : v.input[name].steady;
   let sink = 0;
   for (let p = 0; p < passes; p++) for (let i = 0; i < inputs.length; i++) sink += fn(inputs[i]) ? 1 : 0;
   window.__st.sink += sink;
@@ -134,7 +148,7 @@ function pageAlloc({ view, name, op, passes }) {
 const median = a => { const s = [...a].sort((x, y) => x - y); const n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null; };
 const sumSelf = node => (node.selfSize ?? 0) + (node.children ?? []).reduce((t, c) => t + sumSelf(c), 0);
 
-export async function runBrowser({ corpus, rounds = 3, minBatchMs = 200, heapSampling = true, headless = true }) {
+export async function runBrowser({ corpus, rounds = 3, minBatchMs = 200, heapSampling = true, headless = true, protobuf = false }) {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}`;
   let browser;
@@ -143,7 +157,7 @@ export async function runBrowser({ corpus, rounds = 3, minBatchMs = 200, heapSam
     const page = await browser.newPage();
     page.on('pageerror', e => console.error('page error:', e.message));
     await page.goto(`${base}/`);
-    const { names, sizes } = await page.evaluate(pageSetup, { corpus, base });
+    const { names, sizes } = await page.evaluate(pageSetup, { corpus, base, protobuf });
     const timed = await page.evaluate(pageTime, { rounds, minBatchMs });
     const views = {};
     for (const [view, msgs] of Object.entries(corpus.views)) {
