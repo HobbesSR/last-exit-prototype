@@ -170,6 +170,9 @@ const room = createRoomConnection({
     $('paused-banner').hidden = !paused;
     // Packet gaps across a pause are the pause, not the network.
     forgetTiming();
+    // Wall time advances while room ticks stop. Neither sync samples nor pending inputs from
+    // that clock survive a pause transition; resume learns the clock from fresh frames.
+    prediction.forgetInputs();
     if (paused) clearInput();
     devView.showPaused(paused);
   },

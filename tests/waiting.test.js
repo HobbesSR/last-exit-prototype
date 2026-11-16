@@ -27,11 +27,15 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
     const walked = w.players.find(p => p.id === 'a');
     assert.ok(walked.x > start.x, 'moved east'); assert.equal(walked.lastSeq, 4, 'the queue holds four, so the first was dropped');
     assert.equal(walked.hp, walked.maxHp, 'an attack does nothing here');
+    walked.inputLeadTicks = 5;
 
     assert.equal(changeWaiting(w, 'nobody', 'gladiator', 'specter'), null);
     changeWaiting(w, 'a', 'gladiator', 'specter');
     const changed = w.players.find(p => p.id === 'a');
+    assert.equal(changed.inputLeadTicks, 5, 'a same-connection role/kit change keeps the measured input lead');
     assert.deepEqual({ x: changed.x, y: changed.y, role: changed.role, kit: changed.kit, lastSeq: changed.lastSeq }, { x: walked.x, y: walked.y, role: 'gladiator', kit: 'specter', lastSeq: 4 });
+    assert.equal(waitingInput(w, 'a', { seq: 5, tick: w.tick + 1 + changed.inputLeadTicks + 1 }), false, 'a stamp beyond the preserved lead is refused');
+    assert.equal(waitingInput(w, 'a', { seq: 6, tick: w.tick + 1 + changed.inputLeadTicks }), true, 'the preserved lead remains the accepted boundary');
     assert.equal(w.players.length, 2, 'the same person, not another');
 
     const view = waitingView(w, 'b');

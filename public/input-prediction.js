@@ -53,7 +53,7 @@ export function createInputPrediction({ getMap, getPlayerId, getState, directed,
     resetPhysics,
     /** A new connection: nothing predicted and the sequence from zero. */
     reset() { pending = []; seq = 0; predicted = null; clock.reset(); resetPhysics(); },
-    /** A new map starts its own ticks, so neither inputs predicted on the old one nor its clock carry over. */
+    /** A new map or stopped room clock discards pending inputs and time sync, preserving the sequence. */
     forgetInputs() { pending = []; clock.reset(); },
     /** There is no own player in the frame shown. */
     abandon() { predicted = null; resetPhysics(); },

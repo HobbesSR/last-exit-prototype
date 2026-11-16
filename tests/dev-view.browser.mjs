@@ -5,6 +5,7 @@ import { mkdir } from 'node:fs/promises';
 import { collectBrowserErrors, serveDevWithBrowser } from './helpers/browser.js';
 import { canOccupy } from '../shared/movement.ts';
 import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
+import { MAX_INPUT_LEAD_TICKS } from '../shared/simulation/input.ts';
 
 await mkdir('test-results', { recursive: true });
 const { server, base, browser, close } = await serveDevWithBrowser({ roomThreads: false });
@@ -259,12 +260,30 @@ try {
     .catch(async () => assert.fail(`the player saw the pause: ${await tabs()}`));
   await dev.waitForFunction(() => window.arenaDebug().paused, null, { timeout: 5000 })
     .catch(async () => assert.fail(`the dev tab saw the pause: ${await tabs()}`));
-  await page.waitForTimeout(300);
+  // Tick time stops while performance.now keeps running. Retaining pre-pause sync samples would
+  // stamp inputs beyond the measured lead on resume; inspect the first sends, before it recovers.
+  await page.evaluate(() => {
+    window.pauseInputs = [];
+    const send = WebSocket.prototype.send;
+    window.restorePauseSend = () => { WebSocket.prototype.send = send; };
+    WebSocket.prototype.send = function(data) {
+      const message = JSON.parse(data);
+      if (message.type === 'input') window.pauseInputs.push({ tick: message.tick, frameTick: window.arenaDebug().tick });
+      return send.call(this, data);
+    };
+  });
+  await page.waitForTimeout(1600);
   assert.equal(room.match.tick, pausedAt, 'a paused room does not advance');
   await dev.screenshot({ path: 'test-results/dev-paused.png' });
   await dev.keyboard.press('Space');
   await until(() => room.pausedAt == null && room.match.tick > pausedAt, () => 'Space resumed the room');
   await page.waitForFunction(() => !window.arenaDebug().paused && document.getElementById('paused-banner').hidden);
+  await page.waitForFunction(() => window.pauseInputs.length >= 3);
+  const resumedInputs = await page.evaluate(() => { window.restorePauseSend(); return window.pauseInputs.slice(0, 3); });
+  const lead = body.inputLeadTicks ?? MAX_INPUT_LEAD_TICKS;
+  for (const input of resumedInputs) assert.ok(input.tick - (input.frameTick + 1) <= lead,
+    `first resumed input fits the measured lead ${lead}: ${JSON.stringify(input)}`);
+  await until(() => body.lastSeq >= body.receivedSeq - 3, () => 'resumed input is spent without a sync-window stall');
   await dev.close();
 
   // The lobby browser (#254) offers a dev view of a listed room under this policy. The role Join uses

@@ -139,8 +139,8 @@ function place(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string, con
   if (old) {
     p.heading = old.heading;
     if (continuing) Object.assign(p, { input: old.input, lastSeq: old.lastSeq, receivedSeq: old.receivedSeq, inputQueue: old.inputQueue, inputTick: old.inputTick, inputStalled: old.inputStalled });
-    // Margins only when there are some, so a waiting player without stamped input carries no trace of them.
-    if (continuing) for (const key of ['inputMargin', 'inputMarginNext'] as const) if (old[key] !== undefined) p[key] = old[key];
+    // Timing metadata only when present, so an unstamped waiting player carries no trace of it.
+    if (continuing) for (const key of ['inputMargin', 'inputMarginNext', 'inputLeadTicks'] as const) if (old[key] !== undefined) p[key] = old[key];
     w.players[w.players.indexOf(old)] = p;
   } else w.players.push(p);
   syncActorBody(w, p, oldRole);
