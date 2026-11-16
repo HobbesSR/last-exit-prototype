@@ -13,7 +13,7 @@ import { buildPortalGraph } from './navigation.ts';
 import { attachPortalGraph } from '../shared/navigation/portal-graph.ts';
 import type { ChainMap, ChainParams } from './macro/src/chain/types.ts';
 import type { BuiltMap, RegionElement } from './micro/types.ts';
-import type { ChargerId, GameMap, ItemKind, MatchContent, NodeId, StationId, Vec2, WeaponType } from '../shared/types.ts';
+import type { BuildingId, ChargerId, GameMap, ItemKind, MatchContent, NodeId, StationId, Vec2, WeaponType } from '../shared/types.ts';
 
 /** Names live placement policy without changing the chain library or strategies. */
 const LIVE_MAP_VERSION = 'chain-live-2';
@@ -24,8 +24,13 @@ const TRANSIT_STATION_COUNT = 6;
  * the pool until locked doors exist.
  */
 export interface LiveLoot {
-  /** The share of generated loot sites that get an item. */
+  /** The share of generated loot sites that get an item. Sites under a roof are always kept. */
   keep: number;
+  /**
+   * Roof cells per extra item placed on clear ground under roofs, a stand-in for builders putting loot
+   * indoors and off the open path. A roof gets cells / this, the fraction as a chance of one more.
+   */
+  roofCellsPerItem: number;
   /** The share of kept sites that hold a cell, for spatial mixes 1..5 (`shared/loot-tiers.ts`): rarer at the left and the middle row. */
   cellShare: readonly number[];
   /** How the sites that hold no cell divide among the other kinds. */
@@ -34,8 +39,9 @@ export interface LiveLoot {
   starterCell: boolean;
 }
 export const LIVE_LOOT: Readonly<LiveLoot> = Object.freeze({
-  keep: 0.2,
-  cellShare: Object.freeze([0, 0.03, 0.06, 0.1, 0.15]),
+  keep: 0.1,
+  roofCellsPerItem: 20,
+  cellShare: Object.freeze([0, 0.01, 0.02, 0.035, 0.05]),
   others: Object.freeze({ weapon: 3, med: 1, shield: 1 }),
   starterCell: false,
 });
@@ -176,12 +182,28 @@ export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, c
   }
   // stampBuiltMap preserves loot order, so retain tier and building ownership by index.
   const tiers = built.regions.flatMap(r => r.loot.map(site => site.tier));
-  for (const [i, spot] of context.spots.entries()) {
-    if (context.random() >= loot.keep) continue;
+  const placeLoot = (spot: Vec2, extra: { tier: number; nodeId?: NodeId | undefined; buildingId?: BuildingId | undefined }, separation?: number) => {
     const kind = lootKind(loot, spatialMix(virtualZone(map, spot)), context.random());
     const weaponType = kind === 'weapon' ? WEAPON_TYPES[Math.floor(context.random() * WEAPON_TYPES.length)]! : undefined;
-    context.place(spot.x, spot.y, kind, { tier: tiers[i]!, ...(weaponType ? { weaponType } : {}),
-      ...(kind === 'cell' ? { charge: 0 } : {}), ...(spot.buildingId ? { buildingId: spot.buildingId } : {}), nodeId: spot.nodeId }, 0);
+    return context.place(spot.x, spot.y, kind, { tier: extra.tier, ...(weaponType ? { weaponType } : {}),
+      ...(kind === 'cell' ? { charge: 0 } : {}), ...(extra.buildingId ? { buildingId: extra.buildingId } : {}), ...(extra.nodeId ? { nodeId: extra.nodeId } : {}) }, separation);
+  };
+  for (const [i, spot] of context.spots.entries()) {
+    if (!spot.buildingId && context.random() >= loot.keep) continue;
+    placeLoot(spot, { tier: tiers[i]!, nodeId: spot.nodeId, buildingId: spot.buildingId }, 0);
+  }
+  // Extra loot under roofs, on clear cells drawn in a seeded order; the place's spacing keeps items apart.
+  // The adapter places these, not a region, so they name no region (`nodeId` marks a region's own loot site).
+  for (const roof of map.roofs ?? []) {
+    const share = roof.cells.length / loot.roofCellsPerItem;
+    let wanted = Math.floor(share) + (context.random() < share % 1 ? 1 : 0);
+    const cells = [...roof.cells];
+    for (let n = cells.length - 1; n > 0; n--) { const j = Math.floor(context.random() * (n + 1)); [cells[n], cells[j]] = [cells[j]!, cells[n]!]; }
+    for (const cell of cells) {
+      if (wanted <= 0) break;
+      const spot = { x: roof.origin.x + (cell.x + 0.5) * roof.cellSize, y: roof.origin.y + (cell.y + 0.5) * roof.cellSize };
+      if (placeLoot(spot, { tier: virtualZone(map, spot).col + 1, buildingId: roof.buildingId })) wanted--;
+    }
   }
   return map as GameMap;
 }
