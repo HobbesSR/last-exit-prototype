@@ -1,26 +1,36 @@
 // Input-timing study (#1096): how three ways of spending client input behave under simulated latency, jitter and
 // loss. No physics runs; the model is the input path only, so it takes seconds and needs no machine lock.
 //
-//   A  today's arrival-order queue: the real `queueInput`/`consumeInput` from shared/simulation/input.ts.
-//   B  tick-stamped inputs with a server jitter buffer and a client lead that adapts to measured lateness;
-//      a late input is dropped, the world is never rewound (#1096 option 1, or option 3 with rewind for hits).
-//   C  delayed sealing: inputs stamped as in B but with a minimal lead, a late input inside the sealing window W
-//      is applied by resimulating from its tick (#1096 option 2). Only the resimulation load is modelled.
+//   A  today's arrival-order queue: the real `queueInput`/`consumeInput` from shared/simulation/input.ts, with the
+//      client sending on a free-running 20 Hz clock as it does today.
+//   B  tick-stamped inputs with a server jitter buffer (#1096 option 1, or option 3 with rewind for hits). Stamps
+//      advance exactly one tick per input, so one tick spends at most one input and sequence order is kept. The
+//      client controls how far ahead its inputs land by adjusting its send rate (time dilation): faster after a
+//      late input, slower while every recent input arrived with more than the target margin. A late input is
+//      discarded, the world is never rewound for movement, and a stamp too far ahead is refused.
+//   C  delayed sealing: B's client and stamps, but a late input inside the sealing window W is applied by
+//      resimulating from its tick rather than discarded (#1096 option 2). Only the resimulation load is modelled.
 //
-// Time is milliseconds, the server ticks at HZ, every client sends one input per tick on a free-running clock, and
-// each profile is replayed with the same seeded randomness for every policy. Usage:
-//   node tests/bench-input-timing.mjs [--seconds=600] [--players=8] [--seed=1096] [--tick-ms=7.4,17.8,34]
+// Time is milliseconds. Each profile is replayed with the same seeded network for every policy. Usage:
+//   node tests/bench-input-timing.mjs [--seconds=600] [--players=8] [--seed=1096] [--tick-ms=3.7,7.7,16.1]
 import { queueInput, consumeInput, resetInput } from '../shared/simulation/input.ts';
 import { HZ } from '../shared/simulation/rules.ts';
 import { cliArgs } from './helpers/args.js';
 
 const args = cliArgs();
 const seconds = Number(args.get('seconds') ?? 600), players = Number(args.get('players') ?? 8), seed = Number(args.get('seed') ?? 1096);
-// Mean simulation cost per tick at 12x6, 24x12 and 36x18 (docs/42.22); the budget is one tick period.
-const tickCosts = (args.get('tick-ms') ?? '7.4,17.8,34').split(',').map(Number);
+// Whole-tick cost at 36x18 from docs/42.22's 2026-11-09 multi-room check (main a837cc0, content-7, 8 clients plus a
+// spectator, recording on), upper ends of the ranges: one room's simulation alone (tick mean 7.70 less broadcast
+// 3.68 and recording 0.33), one room's whole tick, and two rooms sharing one loop. A resimulated tick re-runs the
+// simulation, not broadcast, so the first is the closest estimate. Restore cost is not included at all because no
+// production exact restore exists (29.2).
+const tickCosts = (args.get('tick-ms') ?? '3.7,7.7,16.1').split(',').map(Number);
+const costLabels = args.has('tick-ms') ? tickCosts.map(c => `${c} ms`) : ['1 room sim only', '1 room whole tick', '2 rooms whole tick'];
+const TICK = 1000 / HZ, TICKS = Math.floor(seconds * HZ), WARMUP = 10 * HZ;
 // A stamp further ahead than this is refused: it bounds the jitter buffer, and a claimed past is never honoured.
 const MAX_LEAD = 10;
-const TICK = 1000 / HZ, TICKS = Math.floor(seconds * HZ), WARMUP = 3 * HZ;
+// Time dilation: how much faster a client sends after a late input, and how much slower while it is too far ahead.
+const SPEED_UP = 0.9, SLOW_DOWN = 1.05, WINDOW = 20;
 
 // rtt and jitter in ms; jitter is the mean of an exponential extra delay on each one-way trip. `ws` is a reliable
 // ordered socket, where loss becomes a stall that also holds every later packet; `dg` is an unreliable datagram,
@@ -36,141 +46,139 @@ const profiles = [
 function rng(s) { let a = s >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const pct = (xs, q) => { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
 const mean = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
-
-/** Send and arrival times of every input one client sends over one link; `Infinity` is a lost datagram. */
-function link(profile, transport, r) {
-  const phase = r() * TICK, sendT = [], arr = [];
-  let lastArrival = 0;
-  for (let k = 0; k < TICKS; k++) {
-    const t = phase + k * TICK;
-    let a = t + profile.rtt / 2 - profile.jitter * Math.log(1 - r());
-    if (r() < profile.loss) {
-      if (transport === 'dg') a = Infinity;
-      else a += Math.max(200, profile.rtt * 1.5); // retransmission timeout
-    }
-    if (transport === 'ws') { a = Math.max(a, lastArrival); lastArrival = a; }
-    sendT.push(t); arr.push(a);
-  }
-  return { sendT, arr, phase };
-}
-const arrivalOrder = l => l.arr.map((a, k) => k).filter(k => l.arr[k] < Infinity).sort((i, j) => l.arr[i] - l.arr[j]);
-// Input available to server tick n: everything that has arrived by that tick's start.
 const tickOf = a => Math.ceil(a / TICK);
 
-function policyA(l) {
+/**
+ * One client's network, drawn independently of when it sends: per-input forward delay (Infinity when a datagram is
+ * lost) and the return delay of the server's acknowledgement. Several inputs need a slot past TICKS because a client
+ * that speeds up sends more than one per tick.
+ */
+function network(profile, transport, r) {
+  const n = TICKS * 2, fwd = new Float64Array(n), back = new Float64Array(n);
+  const oneWay = () => profile.rtt / 2 - profile.jitter * Math.log(1 - r());
+  for (let k = 0; k < n; k++) {
+    fwd[k] = oneWay(); back[k] = oneWay();
+    if (r() < profile.loss) fwd[k] = transport === 'dg' ? Infinity : fwd[k] + Math.max(200, profile.rtt * 1.5);
+  }
+  return { fwd, back, transport, phase: r() * TICK };
+}
+/** Arrival times for a send schedule; a reliable socket also holds each packet behind the one before it. */
+function arrivals(net, sendT) {
+  const arr = sendT.map((t, k) => t + net.fwd[k]);
+  if (net.transport === 'ws') for (let k = 1; k < arr.length; k++) arr[k] = Math.max(arr[k], arr[k - 1]);
+  return arr;
+}
+
+function policyA(net) {
+  const sendT = Array.from({ length: TICKS }, (_, k) => net.phase + k * TICK), arr = arrivals(net, sendT);
+  const order = arr.map((a, k) => k).filter(k => arr[k] < Infinity).sort((i, j) => arr[i] - arr[j]);
   const p = {}; resetInput(p);
-  const order = arrivalOrder(l); let next = 0;
-  const delays = [], depths = [], spentSeqs = new Set(); let stalls = 0, rejected = 0, idle = 0, measured = 0, lastSpent = -1;
+  const delays = [], depths = []; let next = 0, stalls = 0, rejected = 0, measured = 0, spent = 0, lastSpent = -1;
   for (let n = 0; n < TICKS; n++) {
-    while (next < order.length && l.arr[order[next]] <= n * TICK) { const k = order[next++]; if (!queueInput(p, { seq: k, x: 1 }, n)) rejected++; }
+    while (next < order.length && arr[order[next]] <= n * TICK) { const k = order[next++]; if (!queueInput(p, { seq: k, x: 1 }, n) && n >= WARMUP) rejected++; }
     const depth = p.inputQueue.length;
     consumeInput(p, n);
-    if (n < WARMUP) continue;
+    if (n < WARMUP) { lastSpent = p.lastSeq; continue; }
     measured++; depths.push(depth);
-    if (p.lastSeq !== lastSpent) { lastSpent = p.lastSeq; spentSeqs.add(p.lastSeq); delays.push(n * TICK - l.sendT[p.lastSeq]); }
-    else if (!p.input.x && p.input.x !== 0) idle++;
-    if (depth === 0) { stalls++; if (!p.input.x) idle++; }
+    if (depth === 0) stalls++;
+    if (p.lastSeq !== lastSpent) { lastSpent = p.lastSeq; spent++; delays.push(n * TICK - sendT[p.lastSeq]); }
   }
-  const sent = TICKS - WARMUP;
-  return { delays, depths, stallRate: stalls / measured, idleRate: idle / measured, lostRate: Math.max(0, 1 - spentSeqs.size / sent) , rejectedRate: rejected / sent, queueMean: mean(depths) };
+  return { delays, stallRate: stalls / measured, rejectedRate: rejected / measured, queueMean: mean(depths) };
 }
 
-/** Client-side stamping shared by B and C: aim at the server tick an input should be spent on. */
-function stamper(l, lead0, adaptive) {
-  const recent = []; let owd = l.arr.find(a => a < Infinity) - l.sendT[0], lead = lead0, last = -1, margins = [];
-  const stamp = new Array(TICKS), on = new Array(TICKS);
-  const order = arrivalOrder(l);
-  // The estimate is the minimum of the last 20 one-way times, the same shape as the server's ping figure (24), so a stall
-  // cannot inflate it. The estimate and the lead only learn from arrivals, in arrival order, so stamps for inputs sent before an
-  // arrival cannot use it. Walk send times and fold in arrivals up to each send time.
-  let next = 0;
-  for (let k = 0; k < TICKS; k++) {
-    while (next < order.length && l.arr[order[next]] <= l.sendT[k]) {
-      const j = order[next++]; recent.push(l.arr[j] - l.sendT[j]); if (recent.length > 20) recent.shift(); owd = Math.min(...recent);
-      const m = stamp[j] - tickOf(l.arr[j]); on[j] = m;
-      if (adaptive) {
-        if (m < 0) { lead = Math.min(lead + 1, 8); margins = []; }
-        else { margins.push(m); if (margins.length >= 20) { if (Math.min(...margins) >= 2) lead = Math.max(lead0, lead - 1); margins = []; } }
-      }
+/**
+ * B's client and server together. The client sends input k stamped `stamp0 + k` and chooses when to send the next
+ * one from acknowledgements it has received (each one a round trip late): an acknowledgement reports the margin, in
+ * ticks, by which its input arrived ahead of its stamp. `target` is the margin the client aims to keep.
+ */
+function policyB(net, target) {
+  const sendT = [], arr = [], stamp = [];
+  let t = net.phase, stamp0 = null, period = TICK;
+  const known = [], margins = [];
+  let pending = [];
+  const delays = []; let buffer = new Map(), late = 0, capped = 0, stalls = 0, spent = 0, measured = 0, k = 0, n = 0;
+  const periods = [], lateEvents = [];
+  const deliver = upTo => {
+    // Send every input due before the server tick at `upTo` starts.
+    while (t <= upTo) {
+      // Fold in acknowledgements that have reached the client by now.
+      pending = pending.filter(j => {
+        const ackAt = Math.max(arr[j], tickOf(arr[j]) * TICK) + net.back[j];
+        if (ackAt > t) return true;
+        margins.push(stamp[j] - tickOf(arr[j])); if (margins.length > WINDOW) margins.shift();
+        return false;
+      });
+      if (stamp0 === null) stamp0 = tickOf(t + net.fwd[0]) + target;
+      const recentLate = margins.slice(-3).some(m => m < 0);
+      period = recentLate || (margins.length && Math.min(...margins) < target) ? TICK * SPEED_UP
+        : margins.length >= WINDOW && Math.min(...margins) > target ? TICK * SLOW_DOWN : TICK;
+      sendT[k] = t; stamp[k] = stamp0 + k;
+      arr[k] = t + net.fwd[k];
+      if (net.transport === 'ws' && k > 0) arr[k] = Math.max(arr[k], arr[k - 1]);
+      if (arr[k] < Infinity) { known.push(k); pending.push(k); }
+      k++; t += period;
+      if (n >= WARMUP) periods.push(period);
     }
-    stamp[k] = last = Math.max(last + 1, tickOf(l.sendT[k] + owd) + lead);
-  }
-  return { stamp, order };
-}
-
-function policyB(l, maxLeadTicks) {
-  const { stamp, order } = stamper(l, 0, true);
-  const buffer = new Map(), delays = []; let next = 0, stalls = 0, late = 0, capped = 0, spent = 0, measured = 0, leadSum = 0;
-  for (let n = 0; n < TICKS; n++) {
-    while (next < order.length && l.arr[order[next]] <= n * TICK) {
-      const k = order[next++];
-      if (stamp[k] < n) { if (n >= WARMUP) late++; continue; }
-      if (stamp[k] > n + maxLeadTicks) { capped++; continue; }
-      if (!buffer.has(stamp[k])) buffer.set(stamp[k], k);
-    }
-    const k = buffer.get(n); buffer.delete(n);
+  };
+  let inFlight = [];
+  for (n = 0; n < TICKS; n++) {
+    deliver(n * TICK);
+    // Server: admit everything that has arrived by this tick's start.
+    inFlight = inFlight.concat(known.splice(0));
+    inFlight = inFlight.filter(j => {
+      if (arr[j] > n * TICK) return true;
+      if (stamp[j] < n) { if (n >= WARMUP) { late++; lateEvents.push({ n, behind: n - stamp[j] }); } return false; }
+      if (stamp[j] > n + MAX_LEAD) { if (n >= WARMUP) capped++; return false; }
+      buffer.set(stamp[j], j); return false;
+    });
+    const j = buffer.get(n); buffer.delete(n);
     if (n < WARMUP) continue;
     measured++;
-    if (k === undefined) stalls++; else { spent++; delays.push(n * TICK - l.sendT[k]); }
+    if (j === undefined) stalls++; else { spent++; delays.push(n * TICK - sendT[j]); }
   }
-  return { delays, stallRate: stalls / measured, lateRate: late / (TICKS - WARMUP), cappedRate: capped / (TICKS - WARMUP), lostRate: 1 - spent / measured };
-}
-
-function policyC(l, window) {
-  const { stamp, order } = stamper(l, 0, false);
-  const resim = new Array(TICKS).fill(0); let next = 0, late = 0, dropped = 0;
-  const arrivals = order.map(k => ({ k, n: tickOf(l.arr[k]) }));
-  for (const { k, n } of arrivals) {
-    if (n >= TICKS) continue;
-    const behind = n - stamp[k];
-    if (behind <= 0) continue;
-    if (n >= WARMUP) { if (behind > window) dropped++; else late++; }
-    if (behind <= window) resim[n] = Math.max(resim[n], behind);
-  }
-  return { resim, lateRate: late / (TICKS - WARMUP), droppedRate: dropped / (TICKS - WARMUP) };
+  return { delays, stallRate: stalls / measured, lateRate: late / measured, cappedRate: capped / measured, rateMean: TICK / mean(periods), lateEvents };
 }
 
 const f = (x, d = 1) => x.toFixed(d), p = x => `${f(x * 100, 1)}%`;
-const run = (transport, name, one) => profiles.map(profile => {
-  const rs = Array.from({ length: players }, (_, i) => one(link(profile, transport, rng(seed + i * 7919 + profile.rtt))));
-  return { profile, rs };
-});
+const nets = (profile, transport) => Array.from({ length: players }, (_, i) => network(profile, transport, rng(seed + i * 7919 + profile.rtt)));
 const agg = (rs, key) => mean(rs.map(r => r[key]));
 const pooled = (rs, key) => rs.flatMap(r => r[key]);
 
 console.log(`# Input timing model (#1096): ${seconds}s per cell, ${players} clients, ${HZ} Hz, seed ${seed}\n`);
-console.log('## A. Arrival-order queue (today), reliable ordered socket\n');
-console.log('| profile | rtt/jitter/loss | spend delay mean / p95 ms | extra over one-way ms | queue depth mean | starved ticks | input never spent |');
-console.log('| --- | --- | --- | --- | --- | --- | --- |');
-for (const { profile: q, rs } of run('ws', 'A', policyA)) {
-  const d = pooled(rs, 'delays');
-  console.log(`| ${q.name} | ${q.rtt}/${q.jitter}/${p(q.loss)} | ${f(mean(d))} / ${f(pct(d, 0.95))} | ${f(mean(d) - q.rtt / 2)} | ${f(agg(rs, 'queueMean'), 2)} | ${p(agg(rs, 'stallRate'))} | ${p(agg(rs, 'lostRate'))} |`);
-}
-console.log('\n## A on unreliable datagrams (reorder and real loss), same queue\n');
-console.log('| profile | spend delay mean / p95 ms | queue depth mean | starved ticks | rejected as out of order | never spent |');
-console.log('| --- | --- | --- | --- | --- | --- |');
-for (const { profile: q, rs } of run('dg', 'A', policyA)) {
-  const d = pooled(rs, 'delays');
-  console.log(`| ${q.name} | ${f(mean(d))} / ${f(pct(d, 0.95))} | ${f(agg(rs, 'queueMean'), 2)} | ${p(agg(rs, 'stallRate'))} | ${p(agg(rs, 'rejectedRate'))} | ${p(agg(rs, 'lostRate'))} |`);
+for (const [transport, label] of [['ws', 'reliable ordered socket'], ['dg', 'unreliable datagrams']]) {
+  console.log(`## A. Arrival-order queue (today), ${label}\n`);
+  console.log('| profile | rtt/jitter/loss | spend delay mean / p95 ms | extra over one-way ms | queue depth mean | starved ticks | rejected out of order |');
+  console.log('| --- | --- | --- | --- | --- | --- | --- |');
+  for (const q of profiles) {
+    const rs = nets(q, transport).map(policyA), d = pooled(rs, 'delays');
+    console.log(`| ${q.name} | ${q.rtt}/${q.jitter}/${p(q.loss)} | ${f(mean(d))} / ${f(pct(d, 0.95))} | ${f(mean(d) - q.rtt / 2)} | ${f(agg(rs, 'queueMean'), 2)} | ${p(agg(rs, 'stallRate'))} | ${p(agg(rs, 'rejectedRate'))} |`);
+  }
+  console.log('');
 }
 for (const [transport, label] of [['ws', 'reliable ordered socket'], ['dg', 'unreliable datagrams']]) {
-  console.log(`\n## B. Tick-stamped with jitter buffer and adaptive lead, ${label}\n`);
-  console.log('| profile | spend delay mean / p95 ms | extra over one-way ms | starved ticks (repeat) | late, discarded | over the latency cap |');
-  console.log('| --- | --- | --- | --- | --- | --- |');
-  for (const { profile: q, rs } of run(transport, 'B', l => policyB(l, MAX_LEAD))) {
-    const d = pooled(rs, 'delays');
-    console.log(`| ${q.name} | ${f(mean(d))} / ${f(pct(d, 0.95))} | ${f(mean(d) - q.rtt / 2)} | ${p(agg(rs, 'stallRate'))} | ${p(agg(rs, 'lateRate'))} | ${p(agg(rs, 'cappedRate'))} |`);
+  console.log(`## B. Tick-stamped, jitter buffer, client time dilation, ${label}\n`);
+  console.log('| profile | target margin | spend delay mean / p95 ms | extra over one-way ms | starved ticks | late, discarded | over the lead cap | mean send rate / tick rate |');
+  console.log('| --- | --- | --- | --- | --- | --- | --- | --- |');
+  for (const q of profiles) for (const target of [0, 1, 2]) {
+    const rs = nets(q, transport).map(net => policyB(net, target)), d = pooled(rs, 'delays');
+    console.log(`| ${q.name} | ${target} | ${f(mean(d))} / ${f(pct(d, 0.95))} | ${f(mean(d) - q.rtt / 2)} | ${p(agg(rs, 'stallRate'))} | ${p(agg(rs, 'lateRate'))} | ${p(agg(rs, 'cappedRate'))} | ${f(agg(rs, 'rateMean'), 3)} |`);
   }
+  console.log('');
 }
 
-console.log('\n## C. Delayed sealing: resimulation load per late input, reliable ordered socket\n');
-console.log(`Tick cost ${tickCosts.map(c => `${c} ms`).join(' / ')} (docs/42.22 at 12x6 / 24x12 / 36x18); budget ${f(TICK)} ms per tick.`);
-console.log(`Load = (1 + resimulated ticks) x tick cost on a tick where any of ${players} clients' late inputs forces a resimulation.\n`);
-console.log(`| profile | window | late (resim) | dropped past window | ticks with a resim | mean resim ticks | p99 resim ticks | ${tickCosts.map(c => `ticks over budget @${c} ms`).join(' | ')} |`);
-console.log(`| --- | --- | --- | --- | --- | --- | --- | ${tickCosts.map(() => '---').join(' | ')} |`);
-for (const profile of profiles) for (const window of [2, 4, 8]) {
-  const rs = Array.from({ length: players }, (_, i) => policyC(link(profile, 'ws', rng(seed + i * 7919 + profile.rtt)), window));
-  const merged = Array.from({ length: TICKS }, (_, n) => Math.max(...rs.map(r => r.resim[n]))).slice(WARMUP);
-  const hit = merged.filter(x => x > 0);
-  console.log(`| ${profile.name} | ${window} (${window * TICK} ms) | ${p(agg(rs, 'lateRate'))} | ${p(agg(rs, 'droppedRate'))} | ${p(hit.length / merged.length)} | ${f(mean(hit), 2)} | ${pct(hit, 0.99)} | ${tickCosts.map(c => p(merged.filter(x => (1 + x) * c > TICK).length / merged.length)).join(' | ')} |`);
+console.log('## C. Delayed sealing: resimulation load, reliable ordered socket\n');
+console.log('C keeps B\'s client and stamps, but a late input within the window is applied by resimulating from its tick');
+console.log('instead of being discarded. The late inputs are B\'s at the same target margin, so a smaller margin trades');
+console.log(`input delay for resimulation. Cost per tick: ${tickCosts.map((c, i) => `${costLabels[i]} ${c} ms`).join(', ')};`);
+console.log(`budget ${f(TICK)} ms. A tick's load is (1 + resimulated ticks) x cost, the deepest late input among ${players} clients.\n`);
+console.log(`| profile | target margin | window | late inputs per client | beyond window | ticks with a resim | mean / p99 resim ticks | ${costLabels.map(l => `over budget @${l}`).join(' | ')} |`);
+console.log(`| --- | --- | --- | --- | --- | --- | --- | ${costLabels.map(() => '---').join(' | ')} |`);
+for (const profile of profiles) for (const target of [0, 1]) {
+  const rs = nets(profile, 'ws').map(net => policyB(net, target));
+  for (const window of [2, 4, 8]) {
+    const depth = new Array(TICKS).fill(0); let beyond = 0;
+    for (const r of rs) for (const { n, behind } of r.lateEvents) { if (behind > window) beyond++; else depth[n] = Math.max(depth[n], behind); }
+    const merged = depth.slice(WARMUP), hit = merged.filter(x => x > 0), measured = merged.length;
+    console.log(`| ${profile.name} | ${target} | ${window} (${window * TICK} ms) | ${p(agg(rs, 'lateRate'))} | ${p(beyond / players / measured)} | ${p(hit.length / measured)} | ${f(mean(hit), 2)} / ${pct(hit, 0.99)} | ${tickCosts.map(c => p(merged.filter(x => (1 + x) * c > TICK).length / measured)).join(' | ')} |`);
+  }
 }
