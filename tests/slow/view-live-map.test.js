@@ -5,23 +5,46 @@ import { generateLiveMap } from '../../map/live.ts';
 
 // Moved from tests/view.test.js (#849): it builds two live maps, so it is slow-tier work (31).
 
-test('live map: roofs have unique ids, keep map id order, and declare multi-room groups', () => {
-  // #530's grounds, infill, #534's market, #647's yards, #532's structures, #533's warehouses/winged library, #717's fallback, #750's cord-routed park and #759/#760's cord-routed rubble and plant and park fronts, #787's cord-routed cover, ruins, depot and hall, #849's matched libraries with cover and park edge walls, #857's placement lookahead (seed 2's layout), #895's sparse-sides libraries and #1126's interim loot tuning (items) change counts.
-  // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
-  const map1 = generateLiveMap(1);
-  assert.equal(map1.obstacles?.at(-1)?.id, 'o3709', 'obstacle IDs stay pinned on seed 1');
-  assert.equal(map1.gates?.at(-1)?.id, 'door-2269', 'gate IDs stay pinned on seed 1');
-  assert.equal(map1.items?.at(-1)?.id, 'item-3917', 'item IDs stay pinned on seed 1');
+const SHARED_ID_FIELDS = [
+  ['buildings', /^building-(\d+)$/],
+  ['obstacles', /^o(\d+)$/],
+  ['gates', /^door-(\d+)$/],
+  ['chargers', /^charger-(\d+)$/],
+  ['stations', /^rail-(\d+)$/],
+  ['items', /^item-(\d+)$/],
+  ['sensors', /^sensor-(\d+)$/],
+  ['traps', /^trap-(\d+)$/],
+];
 
-  const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o3610', 'obstacle IDs stay pinned on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-2203', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-3813', 'item IDs stay pinned on seed 2');
+test('live map: roofs have unique ids, take no shared serials, and declare multi-room groups', () => {
+  // Roofs use placement-scoped ids (`building-*` or `roofs-*.*`) rather than the shared `nextId`
+  // serial, so roof creation leaves no gaps in building/obstacle/gate/charger/station/item serials (#343, #1135).
+  const maps = [1, 2].map(seed => ({ seed, map: generateLiveMap(seed) }));
 
-  assert.ok([map1, map2].some(map => [...roofGroups(map).values()].some(group => group.length > 1)),
+  assert.ok(maps.some(({ map }) => [...roofGroups(map).values()].some(group => group.length > 1)),
     'the live-map sample declares a multi-room group');
 
-  for (const map of [map1, map2]) {
+  for (const { seed, map } of maps) {
+    const serials = [];
+    for (const [field, pattern] of SHARED_ID_FIELDS) {
+      for (const entry of map[field] ?? []) {
+        const match = pattern.exec(entry.id);
+        assert.ok(match, `seed ${seed} ${field} entry has unexpected id ${entry.id}`);
+        serials.push(Number(match[1]));
+      }
+    }
+    serials.sort((a, b) => a - b);
+    assert.ok(serials.length > 0, `seed ${seed} generated shared-serial entities`);
+    const gapIndex = serials.findIndex((n, i) => n !== i);
+    assert.equal(gapIndex, -1,
+      `seed ${seed} shared ID serials have no gap or duplicate (index ${gapIndex}, got ${serials[gapIndex]})`);
+
+    for (const roof of map.roofs) {
+      const owned = roof.buildingId && (roof.id === roof.buildingId || roof.id.startsWith(`${roof.buildingId}.`));
+      assert.ok(owned || /^roofs-\d+\./.test(roof.id),
+        `seed ${seed} roof ${roof.id} stays in the placement-scoped roof id space`);
+    }
+
     const ids = new Set(map.roofs.map(r => r.id));
     assert.equal(ids.size, map.roofs.length, 'all roof ids are distinct across the live map');
 
