@@ -9,7 +9,7 @@ import { PREDICTION_LIMITS } from './physics-prediction-limits.js';
 export { PREDICTION_LIMITS } from './physics-prediction-limits.js';
 
 /** Approximate local motor only. No simulation, inventory, damage or joint owner is imported. */
-export async function createPhysicsPrediction(map, playerId, { clock = () => performance.now() } = {}) {
+export async function createPhysicsPrediction(map, playerId, { clock = () => performance.now(), observeStep } = {}) {
   const factory = await createPhysicsWorldFactory();
   const geometry = buildPhysicsGeometry(map);
   let world, authority, own, motor, value, tick, receivedAt = -Infinity, floor = -1;
@@ -30,17 +30,20 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     floor = Math.max(floor, ...inputs.map(i => i.seq));
     inputs = []; value = authority && { ...authority, ...(own ? { x: own.x, y: own.y } : {}) }; tick = frames.at(-1)?.tick;
   };
-  function step(input) {
+  function step(input, context) {
     input.tick = tick + 1;
     // Timers precede motors on authority too. Ability activation waits for authority.
     value.boost = Math.max(0, (value.boost ?? 0) - 1);
     value.stun = Math.max(0, (value.stun ?? 0) - 1);
     world.setMotor(own.id, characterMotor(motor, motor.surfaces ? map.motorSurfaces : undefined, value,
       input.x ?? 0, input.y ?? 0, movementSpeed(value, input, HZ)));
-    world.step(); world.drainContacts();
+    world.step();
+    const contacts = world.drainContacts();
     Object.assign(value, world.getTransform(own.id)); tick++;
     poses.set(tick, { x: value.x, y: value.y });
     while (poses.size > PREDICTION_LIMITS.frames) poses.delete(poses.keys().next().value);
+    // Notify after publishing the completed pose/tick. Ordinary prediction does no debug contact query.
+    if (observeStep) observeStep({ tick, seq: input.seq, context, contacts: structuredClone(contacts) });
   }
   function rebuild(frame) {
     close();
@@ -58,7 +61,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
       for (const body of bodies) world.queueAddBody(body);
       world.commitMutations();
       value = { ...authority, x: own.x, y: own.y }; tick = frame.tick;
-      for (const input of pending()) { step(input); replayed++; }
+      for (const input of pending()) { step(input, 'replay'); replayed++; }
     } catch (e) { close(); throw e; }
   }
   function correct(frame) {
@@ -94,7 +97,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     if (inputs.length > PREDICTION_LIMITS.inputs) { cut('input-cap'); return value; }
     if (clock() - receivedAt > PREDICTION_LIMITS.staleMs) { cut('stale-authority'); return value; }
     if (pending().length > PREDICTION_LIMITS.replay) { cut('replay-cap'); return value; }
-    if (world) step(inputs.at(-1));
+    if (world) step(inputs.at(-1), 'input');
     return value;
   }
   return { correct, input, dispose: close, value: () => value,

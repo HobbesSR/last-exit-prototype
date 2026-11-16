@@ -16,6 +16,38 @@ const frame = (tick, extra = {}) => ({ tick, physicsProfile: 'P2',
 const move = seq => ({ seq, x: 1, y: 0, sneak: false, attack: true, interact: true });
 const predictor = (arena = map(), clock = () => 0) => createPhysicsPrediction(arena, 'self', { clock });
 
+test('optional step observer captures input and replay contacts without changing prediction', async () => {
+  const samples = [];
+  const plain = await predictor();
+  const observed = await createPhysicsPrediction(map(), 'self', { clock: () => 0, observeStep(sample) {
+    assert.equal(observed.stats().tick, sample.tick, 'callback sees the completed step tick');
+    assert.ok(observed.value().x > 100, 'callback sees the completed movement');
+    samples.push(structuredClone(sample));
+    // Diagnostics belong to the observer, never to retained solver state.
+    sample.contacts.length = 0;
+  } });
+  const proxy = { id: 'prop:witness', kind: 'prop', shape: { kind: 'circle', radius: 12 },
+    x: 130, y: 200, angle: 0, vx: 0, vy: 0, generation: 1 };
+  try {
+    const correction = frame(1, { bodies: [body(), proxy] });
+    for (const p of [plain, observed]) {
+      p.correct(correction);
+      for (let seq = 0; seq < 3; seq++) p.input(move(seq));
+    }
+    assert.deepEqual(observed.value(), plain.value());
+    assert.deepEqual(observed.stats(), plain.stats());
+    for (const p of [plain, observed]) p.correct(frame(2, { bodies: [body(), proxy] }));
+    assert.deepEqual(observed.value(), plain.value(), 'observing replay leaves the result unchanged');
+    assert.deepEqual(observed.stats(), plain.stats());
+    assert.equal(samples.filter(s => s.context === 'input').length, 3);
+    assert.equal(samples.filter(s => s.context === 'replay').length, 3);
+    assert.deepEqual(samples.filter(s => s.context === 'input').map(s => s.seq), [0, 1, 2]);
+    for (const context of ['input', 'replay']) assert.ok(samples.some(s => s.context === context &&
+      s.contacts.some(c => c.a === 'actor:self' && c.b === 'proxy:prop:witness' && c.type === 'start')),
+    `${context} reports an actual predictor contact`);
+  } finally { plain.dispose(); observed.dispose(); }
+});
+
 test('local prediction moves with Rapier, replays unconsumed inputs once, and keeps gameplay authoritative', async () => {
   const p = await predictor();
   try {
