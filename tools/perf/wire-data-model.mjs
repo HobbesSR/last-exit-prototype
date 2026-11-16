@@ -37,11 +37,20 @@ try {
   const fields = new Map(), records = new Map();
   const field = path => { let f = fields.get(path); if (!f) fields.set(path, f = newField()); return f; };
   const roster = match.snapshot().players, viewers = [...roster.map(p => p.id), undefined];
+  // The same pose sent twice: a player's x/y beside its actor body's, and a ground item's beside its item body's.
+  const duplicates = { player: { pairs: 0, identical: 0, maxDifference: 0, withoutBody: 0 }, item: { pairs: 0, identical: 0, maxDifference: 0 } };
   let current, projections = 0;
   for (let at = 0; at <= ticks; at++) {
     current = at ? match.advance() : match.snapshot();
-    if (at % stride === 0) for (const viewer of viewers) { walkRecord(match.project(current, viewer), '', viewer); projections++; }
+    if (at % stride === 0) for (const viewer of viewers) { const view = match.project(current, viewer); walkRecord(view, '', viewer); comparePoses(view); projections++; }
     if (match.phase !== 'live') break;
+  }
+
+  function comparePoses(view) {
+    const bodies = new Map((view.bodies ?? []).map(b => [b.id, b]));
+    const note = (d, a, b) => { const diff = Math.hypot(a.x - b.x, a.y - b.y); d.pairs++; if (diff === 0) d.identical++; d.maxDifference = Math.max(d.maxDifference, diff); };
+    for (const p of view.players) { const b = bodies.get(`actor:${p.id}`); if (b) note(duplicates.player, p, b); else duplicates.player.withoutBody++; }
+    for (const i of view.items) { const b = bodies.get(`item:${i.id}`); if (b) note(duplicates.item, i, b); }
   }
 
   function walkRecord(record, path, viewer) {
@@ -107,7 +116,7 @@ try {
   const result = { issue: 1139, date: new Date().toISOString(), node: process.version, revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
     cache: loaded.provenance, scale: SCALE, ticks, actualTicks: current.tick, stride, viewers: viewers.length, projections,
     sources: Object.fromEntries(await Promise.all(['./wire-data-model.mjs', './wire-cached-match.mjs', './wire-slice-fields.mjs'].map(async p => [p, hash(String(await file(p)).replace(/\r\n/g, '\n'))]))),
-    coverage, recordCounts, families, contention: lock.contention() };
+    coverage, duplicates, recordCounts, families, contention: lock.contention() };
   await writeFile(args.get('out'), JSON.stringify(result, null, 1) + '\n');
   console.log(JSON.stringify({ size: loaded.provenance.size, out: args.get('out'), projections, coverage: Object.fromEntries(Object.entries(coverage).map(([k, v]) => [k, `${v.observed}/${v.declared}` + (v.undeclared.length ? ` +${v.undeclared}` : '')])) }));
 } finally { match?.dispose(); lock.release(); }

@@ -1,8 +1,8 @@
 {
  "issue": 1139,
- "date": "2026-11-16T19:28:13.980Z",
+ "date": "2026-11-16T20:06:32.296Z",
  "node": "v24.15.0",
- "revision": "5fda8a00730802b52eebc8f1969a0ede68569c23",
+ "revision": "78b02baaba6a50eb40e3dee63d099549c030e55f",
  "cache": {
   "path": "test-results/wire-1093-tuned-36x18.v8",
   "sha256": "a6d2bc67c744689f096e94a44d03a643cfc37d534280589532bdbeca0fea28e3",
@@ -21,7 +21,7 @@
  "viewers": 12,
  "projections": 14412,
  "sources": {
-  "./wire-data-model.mjs": "2e3e14d3167e50056f54f9e3e109e50d768c8a265143ef75fd71d10386b3cf36",
+  "./wire-data-model.mjs": "c7d4a1f51e2dc793eee382a60f3ba67c578d058383819347155a816ea5d342f7",
   "./wire-cached-match.mjs": "70ec1b3aa90acbac3639c57f47e8b7c0effbbeeecc4e2f06a022cd6709eac0f0",
   "./wire-slice-fields.mjs": "7224601dce053b1586e13198ec60f841ff452bb6eef943dcaf4da61cf0cbcfcf"
  },
@@ -179,6 +179,19 @@
     "until"
    ],
    "undeclared": []
+  }
+ },
+ "duplicates": {
+  "player": {
+   "pairs": 80535,
+   "identical": 80451,
+   "maxDifference": 0.0009765625,
+   "withoutBody": 15756
+  },
+  "item": {
+   "pairs": 92004,
+   "identical": 92004,
+   "maxDifference": 0
   }
  },
  "recordCounts": {
@@ -2410,9 +2423,9 @@
   }
  },
  "contention": {
-  "wallMs": 21174.9631,
-  "selfCpuMs": 23703,
-  "otherBusyShare": 0.0591,
+  "wallMs": 21437.5983,
+  "selfCpuMs": 24297,
+  "otherBusyShare": 0.0639,
   "contended": false,
   "threshold": 0.25
  }
