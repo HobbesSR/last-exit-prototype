@@ -215,6 +215,17 @@ avoiding an unbounded separate gap list. No surviving frames means publication f
 state must never be invented; `endTick` records the actual match endpoint, even if the last surviving
 frame is earlier.
 
+<a id="proposed-viewer-publication"></a>
+
+### Proposed direction: viewer publication and archive split (#1098, #1074, #1123)
+
+Status: proposed direction ([17.4](17.4-live-service.md) #16); nothing below is implemented yet.
+
+- **Separate sinks from a shared immutable frame source.** An authoritative tick (or sealed tick if `#1096` adopts delayed input sealing) feeds independent **private evidence** and **public viewer-publication** sinks. Neither sink may depend on successful delivery or storage by the other: recording omissions or storage failures remain isolated from gameplay and viewer publication.
+- **Two artifacts / access boundaries (`#1098`, `#1074`).** Private evidence archives retain full authoritative state, commands, and diagnostic marks under owner/operator access and lifetime rules (`#1074`, `17.4` #3). Public viewer publication and any shareable viewer replays project only viewer-safe fields through `shared/simulation/projection-contract.ts` and remain subject to explicit audience access policy (`17.4` #6, [24](24-networking-privacy.md#two-tier-spectators)).
+- **Format boundary.** `delta-1` (`shared/recording-format.ts`) is retained provisionally alongside shared projection rules and keyed-list delta primitives (`shared/keyed-list.ts`), keeping live-wire encoding (`#1093`/`#1094`) and recording contracts separate unless benchmarks justify merging. Forward-only progressive spectation over a bounded window stays independent of `#1102`'s arbitrary-seek on-demand archive rebuilding.
+- **Room-thread cost.** Today `remember()` retains up to 62 snapshot references in `room.history` while `writer.append()` (`frameParts` in `server/replay-writer.js`) still serializes changed top-level fields synchronously on the room thread before `replay-worker.js` encodes deltas and gzips; room-thread egress cost must be measured rather than assumed free.
+
 ## Schema 17: lines and delta frames (#901)
 
 Whole-state frames made long default-size recordings unloadable: the browser reads an archive as one
