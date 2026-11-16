@@ -73,6 +73,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
 | [24.1-wire-encoding-design.md](24.1-wire-encoding-design.md) | Accepted application-owned wire-encoding direction (#1093); backend unselected, current JSON runtime unchanged, no live implementation |
 | [24.2-lossy-transport-deltas.md](24.2-lossy-transport-deltas.md) | Proposed lossy-transport delta design (#1094): reliable slow layers plus acknowledged-baseline datagrams for fast state, sharing, overflow and quantization activation; awaiting Corey's decisions, not implemented |
+| [24.3-wire-data-model.md](24.3-wire-data-model.md) | Engine data model for the wire (#1139): per-field types, sources, observed value classes and prediction exactness of the live state message, with engine-side proposals for Corey; not implemented |
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
 | [26-recording-contract.md](26-recording-contract.md) | Replay format, integrity, bounded recording, failure and recovery, playback |
 | [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, the one math library both sides need, and the order of an incremental, fixture-checked port |

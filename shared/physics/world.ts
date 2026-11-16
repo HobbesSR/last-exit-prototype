@@ -4,7 +4,8 @@ import { constraintForce, validateConstraint } from './constraints.ts';
 import type { BodySpec, ConstraintSpec, MotorIntent, PhysicsContact, PhysicsSnapshot, Point, Transform } from './types.ts';
 import { cos, hypot, sin } from '../math.ts';
 
-const SCALE = 40;
+// World units per Rapier metre. Exported so wire probes can test whether a world value is a scaled float32 (#1139).
+export const SCALE = 40;
 const SUBSTEPS = 4;
 const DT = PHYSICS_SUBSTEP_SECONDS;
 const MAX_DYNAMIC = 128;

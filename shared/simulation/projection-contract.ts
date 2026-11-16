@@ -11,17 +11,23 @@ const projection = (fields: string) => {
     return result;
   };
 };
-export const frameFields = projection('version duration cellChargeTicks tick phase hazardX slots players items gates traps projectiles effects events');
 // Exported so a wire schema reads its field lists from these declarations, not a second list (24.1).
+export const FRAME_FIELDS = 'version duration cellChargeTicks tick phase hazardX slots players items gates traps projectiles effects events';
+export const frameFields = projection(FRAME_FIELDS);
 export const OWN_FIELDS = 'id name role kit seat x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered';
 const ownFields = projection(OWN_FIELDS);
 export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family';
 export const itemFields = projection(ITEM_FIELDS);
-export const gateFields = projection('id x y w h open locked kind buildingId');
-export const trapFields = projection('id kind x y homeX homeY heading offset cooldown spent aiming firing warning');
-export const projectileFields = projection('id owner trap x y dx dy life damage');
-export const effectFields = projection('id x y kind radius life');
-export const eventFields = projection('id tick text');
+export const GATE_FIELDS = 'id x y w h open locked kind buildingId';
+export const gateFields = projection(GATE_FIELDS);
+export const TRAP_FIELDS = 'id kind x y homeX homeY heading offset cooldown spent aiming firing warning';
+export const trapFields = projection(TRAP_FIELDS);
+export const PROJECTILE_FIELDS = 'id owner trap x y dx dy life damage';
+export const projectileFields = projection(PROJECTILE_FIELDS);
+export const EFFECT_FIELDS = 'id x y kind radius life';
+export const effectFields = projection(EFFECT_FIELDS);
+export const EVENT_FIELDS = 'id tick text';
+export const eventFields = projection(EVENT_FIELDS);
 // Physics display records use the same closed boundary as other live fields, including nested shapes.
 function physicsShapeFields(shape: BodyShape): BodyShape {
   if (shape.kind === 'circle') return { kind: 'circle', radius: shape.radius };
