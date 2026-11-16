@@ -16,7 +16,13 @@ import { loadCachedMatch } from './wire-cached-match.mjs';
 
 const args = cliArgs(), ticks = Number(args.get('ticks') ?? 1200), stride = Number(args.get('stride') ?? 1);
 if (!args.has('maps-cache') || !args.has('out')) throw new Error('--maps-cache and --out required');
-const DECLARATION_EXPORTS = ['shared/simulation/projection-contract.ts', 'shared/simulation/visibility.ts', 'shared/physics/world.ts'];
+// Reviewed declaration-only changes since the caches' source revision, pinned by the hash of their diff (review 868):
+// a different change to these files is refused, not trusted by file name.
+const REVIEWED_CHANGES = {
+  'shared/simulation/projection-contract.ts': 'ae1f5f909075afcef5ebc05fe26b5fc7e3dd8bc1d56243e0b351b047bde14ca5',
+  'shared/simulation/visibility.ts': '22f588c1a8ebf8aa5579dc52293aef49e318f3f0a6b627c63f072fce7044cf08',
+  'shared/physics/world.ts': '4c56acfe33a6a89a5419b3a1ef330322c9dc497af943aba3d568251546bc9a1d',
+};
 const STRING_CAP = 48;
 
 // Where a record sits: the path of its list or field, with list entries as [] and the player union split by viewer.
@@ -32,7 +38,7 @@ const MAPS = new Set(['players[own].reserves']);
 const lock = await acquireMachineLock('bench', { mode: 'shared' });
 let match;
 try {
-  const loaded = await loadCachedMatch(args.get('maps-cache'), { declarationExports: DECLARATION_EXPORTS });
+  const loaded = await loadCachedMatch(args.get('maps-cache'), { reviewedChanges: REVIEWED_CHANGES });
   match = loaded.match;
   const fields = new Map(), records = new Map();
   const field = path => { let f = fields.get(path); if (!f) fields.set(path, f = newField()); return f; };
@@ -123,11 +129,15 @@ try {
 
 function newField() {
   return { present: 0, kinds: { undefined: 0, null: 0, number: 0, string: 0, boolean: 0, array: 0, object: 0, other: 0 },
-    integers: 0, float32: 0, scaledFloat32: 0, float64: 0, negativeZero: 0, min: Infinity, max: -Infinity, maxAbsInteger: 0, nonInteger: { min: Infinity, max: -Infinity },
+    integers: 0, float32: 0, scaledFloat32: 0, float64: 0, metreRoundTrip: 0, metreFailures: [], negativeZero: 0, min: Infinity, max: -Infinity, maxAbsInteger: 0, nonInteger: { min: Infinity, max: -Infinity },
     strings: new Set(), stringOverflow: false, maxStringLength: 0, trues: 0, falses: 0, maxLength: 0 };
 }
 function noteNumber(f, v) {
   f.kinds.number++;
+  // The float32-metre encoding tested on every value, integers and float32 values included (review 868): send
+  // fround(v / SCALE), decode by multiplying by SCALE. It is exact only when that round trip returns v.
+  if (Math.fround(v / SCALE) * SCALE === v) f.metreRoundTrip++;
+  else if (f.metreFailures.length < 4 && !f.metreFailures.includes(v)) f.metreFailures.push(v);
   if (Object.is(v, -0)) f.negativeZero++;
   if (v < f.min) f.min = v; if (v > f.max) f.max = v;
   if (Number.isInteger(v)) { f.integers++; f.maxAbsInteger = Math.max(f.maxAbsInteger, Math.abs(v)); return; }
@@ -147,6 +157,7 @@ function summarize(f, parentRecords) {
   if (f.kinds.number) {
     const n = f.kinds.number;
     row.numbers = { integer: +(f.integers / n).toFixed(4), float32: +(f.float32 / n).toFixed(4), scaledFloat32: +(f.scaledFloat32 / n).toFixed(4), float64: +(f.float64 / n).toFixed(4),
+      metreRoundTrip: +(f.metreRoundTrip / n).toFixed(4), metreFailures: f.kinds.number - f.metreRoundTrip, ...(f.metreFailures.length ? { metreFailureExamples: f.metreFailures } : {}),
       min: f.min, max: f.max, maxAbsInteger: f.maxAbsInteger, ...(f.integers < n ? { nonIntegerRange: [f.nonInteger.min, f.nonInteger.max] } : {}),
       ...(f.negativeZero ? { negativeZero: f.negativeZero } : {}) };
   }
