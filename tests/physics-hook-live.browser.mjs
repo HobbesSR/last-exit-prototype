@@ -57,13 +57,15 @@ try {
       if (caster.welcome.id === near.welcome.id || near.welcome.id === far.welcome.id) throw new Error('duplicate seats');
       caster.ws.send(JSON.stringify({ type: 'start' }));
       await until(() => [caster, near, far].every(client => client.frames.some(frame => frame.phase === 'live' && frame.tick === 0)), 'initial live state');
-      caster.ws.send(JSON.stringify({ type: 'input', seq: 1, skill: true, aim: 0 }));
+      // Stamped a tick ahead of the newest frame, as the client's clock aims (#1096).
+      const ahead = () => caster.frames.at(-1).tick + 2;
+      caster.ws.send(JSON.stringify({ type: 'input', seq: 1, tick: ahead(), skill: true, aim: 0 }));
       const flight = await until(() => caster.frames.find(frame => frame.hookFlights?.length), 'flying hook');
       const attach = await until(() => caster.frames.find(frame => frame.tethers?.some(t => t.id === flight.hookFlights[0].id)), 'attached tether');
       const nearAtFlight = await until(() => near.frames.find(frame => frame.tick === flight.tick), 'near flight tick');
       const farAtFlight = await until(() => far.frames.find(frame => frame.tick === flight.tick), 'far flight tick');
       const farAtAttach = await until(() => far.frames.find(frame => frame.tick === attach.tick), 'far attach tick');
-      caster.ws.send(JSON.stringify({ type: 'input', seq: 2, skill: true }));
+      caster.ws.send(JSON.stringify({ type: 'input', seq: 2, tick: ahead(), skill: true }));
       const cancelled = await until(() => caster.frames.find(frame => frame.tick > attach.tick &&
         !frame.tethers?.some(t => t.id === flight.hookFlights[0].id)), 'cancelled tether');
       caster.ws.send(JSON.stringify({ type: 'finish' }));

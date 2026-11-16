@@ -72,11 +72,31 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
   const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
   const peer = () => {
     const messages = [], closes = [], layers = createLayerDecoder();
+    let seen = 0, stamped = -1;
     // Frames are kept decoded, as the client reads them, and `sizes` keeps what each payload weighed.
-    const deliver = payload => { const data = JSON.parse(payload); if (data.type === 'state') layers.decode(data.state); messages.push(data); sizes.push(payload.length); };
+    const deliver = payload => {
+      const data = JSON.parse(payload);
+      if (data.type === 'state') layers.decode(data.state);
+      // Welcome and ready carry a whole frame too; each tells where the server's ticks are.
+      const tick = ['state', 'welcome', 'ready'].includes(data.type) ? data.state?.tick : undefined;
+      if (tick !== undefined) {
+        // A tick that runs backwards is a new clock (the waiting area gave way to the match).
+        if (tick < seen) stamped = -1;
+        seen = tick;
+      }
+      messages.push(data); sizes.push(payload.length);
+    };
     const sizes = [];
     const session = service.connect({ deliver, close: (...args) => { closes.push(args); service.disconnect(session); } });
-    return { session, messages, sizes, closes, send: message => directory.receive(session, message) };
+    // An input without a stamp is stamped for the next tick after the last frame seen, or after the last
+    // stamp: with no network between them, each input is spent on the next free tick in the order sent,
+    // as the client's clock would place it. A test about stamps sends its own `tick`.
+    const stamp = message => {
+      if (message?.type !== 'input' || message.tick !== undefined) return message;
+      stamped = Math.max(stamped + 1, seen + 1);
+      return { ...message, tick: stamped };
+    };
+    return { session, messages, sizes, closes, send: message => directory.receive(session, stamp(message)) };
   };
   const joined = (room, extra = {}) => {
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;

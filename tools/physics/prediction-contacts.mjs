@@ -118,7 +118,8 @@ async function run(profile) {
       const time = tick * 50;
       enqueue(time, () => {
         if (profile.stale && tick >= 20 && tick <= 33) return;
-        const input = { seq: seq++, x: tick < 70 ? 1 : 0, y: profile.prop ? 0.08 : 0, sneak: false };
+        // The synthetic input arrives before its scheduled authority tick; this is not a clock model.
+        const input = { seq: seq++, tick: tick + profile.delay + 1, x: tick < 70 ? 1 : 0, y: profile.prop ? 0.08 : 0, sneak: false };
         operation('input', input);
         enqueue(now + profile.delay * 50, () => setInput(game, 'c0', input));
       });
@@ -188,6 +189,7 @@ const report = { witness: '#1142 predictor contact quantization', date: new Date
   settings: { tickMs: 50, ticks: 80, content: 'content-7', authoredSeed: 441, generatedSeed: 9,
     generatedArena: ARENA_FILE, profiles, variants,
     delivery: 'one-way input and correction delay = profile.delay * 50 ms; FIFO ordered events',
+    stamps: 'input tick = synthetic send tick + profile.delay + 1; no client clock model',
     sampling: 'after every input/correction operation; contacts after every new-input and replay solver step',
     controls: 'exact and repeat receive identical unrounded projections from the same authoritative game',
     events: 'Each profile stores exact.coverage.events in full; other variants store eventsRef = exact.coverage.events when their event arrays deeply match, otherwise their own full events array.',

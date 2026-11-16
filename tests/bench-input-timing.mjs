@@ -10,10 +10,14 @@
 //      discarded, the world is never rewound for movement, and a stamp too far ahead is refused.
 //   C  delayed sealing: B's client and stamps, but a late input inside the sealing window W is applied by
 //      resimulating from its tick rather than discarded (#1096 option 2). Only the resimulation load is modelled.
+//   R  the implementation of B as built (#1096): the real client clock (`shared/input-clock.ts`), fed by frames
+//      that carry the server's reported margin, and the real buffer (`queueInput`/`consumeInput`) with its lead
+//      bounded by the round trip. A and R share each profile's seeded network.
 //
 // Time is milliseconds. Each profile is replayed with the same seeded network for every policy. Usage:
 //   node tests/bench-input-timing.mjs [--seconds=600] [--players=8] [--seed=1096] [--tick-ms=3.7,7.7,16.1]
-import { queueInput, consumeInput, resetInput } from '../shared/simulation/input.ts';
+import { queueInput, consumeInput, resetInput, inputLeadFrom } from '../shared/simulation/input.ts';
+import { createInputClock } from '../shared/input-clock.ts';
 import { HZ } from '../shared/simulation/rules.ts';
 import { cliArgs } from './helpers/args.js';
 
@@ -141,6 +145,53 @@ function policyB(net, target) {
   return { delays, stallRate: stalls / measured, lateRate: late / measured, cappedRate: capped / measured, rateMean: TICK / mean(periods), lateEvents };
 }
 
+/**
+ * R: the implementation. The client sends when its clock says, stamps from its own estimate of the server's tick,
+ * and steers by the margin each frame reports; frames leave the server after each tick and take the return delay
+ * of the same seeded network (ordered on the reliable socket). The server admits every input that has arrived by a
+ * tick's start, then spends one. The round trip the server measures is taken as the profile's.
+ */
+function policyR(net, target, rtt) {
+  const clock = createInputClock({ target }), p = {}; resetInput(p); p.inputLeadTicks = inputLeadFrom(rtt);
+  const sendT = [], arr = [], stamp = [], delays = [];
+  let frames = [], inFlight = [], nextSend = net.phase, lastFrameAt = 0, lastArr = 0;
+  let measured = 0, stalls = 0, late = 0, capped = 0, refused = 0;
+  for (let n = 1; n < TICKS; n++) {
+    const T = n * TICK;
+    // Client events before this tick, in time order: frames arriving and inputs due.
+    for (;;) {
+      const frameAt = frames[0]?.at ?? Infinity;
+      if (Math.min(frameAt, nextSend) > T) break;
+      if (frameAt <= nextSend) { const fr = frames.shift(); clock.observe(fr.tick, fr.at, fr.margin); continue; }
+      const at = nextSend, tick = clock.stamp(at, rtt);
+      if (tick === null) { nextSend += TICK; continue; }
+      const k = sendT.length;
+      sendT[k] = at; stamp[k] = tick; arr[k] = at + net.fwd[k];
+      if (net.transport === 'ws') arr[k] = lastArr = Math.max(arr[k], lastArr);
+      if (arr[k] < Infinity) inFlight.push(k);
+      nextSend = at + clock.delay(at);
+    }
+    // Server: admit what has arrived, in arrival order, then spend one input.
+    inFlight.sort((i, j) => arr[i] - arr[j]);
+    while (inFlight.length && arr[inFlight[0]] <= T) {
+      const k = inFlight.shift();
+      if (queueInput(p, { seq: k, tick: stamp[k], x: 1 }, n - 1) || n < WARMUP) continue;
+      const margin = stamp[k] - n;
+      if (margin < 0) late++; else if (margin > p.inputLeadTicks) capped++; else refused++;
+    }
+    const before = p.lastSeq;
+    consumeInput(p, n);
+    let at = T + net.back[n];
+    if (net.transport === 'ws') at = lastFrameAt = Math.max(at, lastFrameAt);
+    frames.push({ at, tick: n, margin: p.inputMargin });
+    if (net.transport !== 'ws') frames.sort((a, b) => a.at - b.at);
+    if (n < WARMUP) continue;
+    measured++;
+    if (p.lastSeq === before) stalls++; else delays.push(T - sendT[p.lastSeq]);
+  }
+  return { delays, stallRate: stalls / measured, lateRate: late / measured, cappedRate: capped / measured, refusedRate: refused / measured };
+}
+
 const f = (x, d = 1) => x.toFixed(d), p = x => `${f(x * 100, 1)}%`;
 const nets = (profile, transport) => Array.from({ length: players }, (_, i) => network(profile, transport, rng(seed + i * 7919 + profile.rtt)));
 const agg = (rs, key) => mean(rs.map(r => r[key]));
@@ -164,6 +215,17 @@ for (const [transport, label] of [['ws', 'reliable ordered socket'], ['dg', 'unr
   for (const q of profiles) for (const target of [0, 1, 2]) {
     const rs = nets(q, transport).map(net => policyB(net, target)), d = pooled(rs, 'delays');
     console.log(`| ${q.name} | ${target} | ${f(mean(d))} / ${f(pct(d, 0.95))} | ${f(mean(d) - q.rtt / 2)} | ${p(agg(rs, 'stallRate'))} | ${p(agg(rs, 'lateRate'))} | ${p(agg(rs, 'cappedRate'))} | ${f(agg(rs, 'rateMean'), 3)} |`);
+  }
+  console.log('');
+}
+
+for (const [transport, label] of [['ws', 'reliable ordered socket'], ['dg', 'unreliable datagrams']]) {
+  console.log(`## R. The implementation (shared/input-clock.ts, shared/simulation/input.ts), ${label}\n`);
+  console.log('| profile | target margin | lead cap ticks | spend delay mean / p95 ms | starved ticks | late, discarded | over the lead cap | out of order |');
+  console.log('| --- | --- | --- | --- | --- | --- | --- | --- |');
+  for (const q of profiles) for (const target of [0, 1]) {
+    const rs = nets(q, transport).map(net => policyR(net, target, q.rtt)), d = pooled(rs, 'delays');
+    console.log(`| ${q.name} | ${target} | ${inputLeadFrom(q.rtt)} | ${f(mean(d))} / ${f(pct(d, 0.95))} | ${p(agg(rs, 'stallRate'))} | ${p(agg(rs, 'lateRate'))} | ${p(agg(rs, 'cappedRate'))} | ${p(agg(rs, 'refusedRate'))} |`);
   }
   console.log('');
 }

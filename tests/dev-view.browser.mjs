@@ -43,17 +43,17 @@ try {
   await page.keyboard.press('KeyV');
   await page.waitForFunction(() => window.arenaDebug().fog === false && window.arenaDebug().viewer === null && window.arenaDebug().vision === null);
   assert.ok(room.match.roster().some(p => p.id === subject), 'stepping out keeps the slot');
-  const seqOf = () => room.match.snapshot().players.find(p => p.id === subject).lastSeq;
-  await until(() => body.lastSeq === body.receivedSeq && !(body.inputQueue?.length),
-    () => `the last player inputs drained: ${body.lastSeq} vs ${body.receivedSeq}, queued ${body.inputQueue?.length ?? 0}`);
-  const parked = seqOf();
+  // Received, not spent: a stamped input that arrived late is discarded (#1096), so `lastSeq` need never
+  // catch up with `receivedSeq`. What matters is that nothing more arrives.
+  await until(() => !(body.inputQueue?.length), () => `the last player inputs drained: queued ${body.inputQueue?.length ?? 0}`);
+  const parked = body.receivedSeq;
   await page.keyboard.down('KeyD'); await page.waitForTimeout(400); await page.keyboard.up('KeyD');
-  assert.equal(seqOf(), parked, 'no input reaches the player while in the dev view');
+  assert.equal(body.receivedSeq, parked, 'no input reaches the player while in the dev view');
   await page.locator('#dev-focus').selectOption(far.id);
   await page.evaluate(() => document.activeElement.blur());
   await page.keyboard.press('Backquote');
   await page.waitForFunction(() => !window.arenaDebug().devFeed && !window.arenaDebug().directed && window.arenaDebug().vision);
-  await until(() => seqOf() > parked + 3, () => `input resumes after stepping back: ${seqOf()} vs ${parked}`);
+  await until(() => body.lastSeq > parked + 3, () => `input resumes after stepping back: ${body.lastSeq} vs ${parked}`);
   assert.equal(room.spectators, 0, 'the dev socket closed');
   await page.getByRole('button', { name: 'Dev view', exact: true }).click();
   await page.waitForFunction(id => window.arenaDebug().devFeed && window.arenaDebug().follow === id && window.arenaDebug().fog === false, far.id);

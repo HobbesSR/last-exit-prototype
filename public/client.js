@@ -295,9 +295,9 @@ function togglePause() {
   room.send({ type: CLIENT_MESSAGE.DEV, action: room.paused() ? 'resume' : 'pause' });
 }
 function inputTick() {
-  if (state?.physicsProfile && document.hidden) return;
+  if (state?.physicsProfile && document.hidden) return false;
   const predicted = prediction.predicted();
-  if (room.paused() || devView.feeding() || replayController.active() || !state || !predicted || !room.isOpen() || predicted.status !== 'active') { hudController.cancelDrag(); return; }
+  if (room.paused() || devView.feeding() || replayController.active() || !state || !predicted || !room.isOpen() || predicted.status !== 'active') { hudController.cancelDrag(); return false; }
   const blocked = document.querySelector('dialog:modal');
   if (blocked) hudController.cancelDrag();
   let pointerAim;
@@ -305,10 +305,14 @@ function inputTick() {
     const point = scene.cameras.main.getWorldPoint(scene.input.activePointer.x, scene.input.activePointer.y);
     pointerAim = Math.atan2(point.y - predicted.y, point.x - predicted.x);
   }
-  const input = { type: CLIENT_MESSAGE.INPUT, seq: prediction.nextSeq(), ...inputController.collectIntent({ blocked, pointerAim }) };
+  // Nothing is sent until a frame has shown where the server's ticks are.
+  const stamp = prediction.stamp(room.roundTripMs());
+  if (!stamp) return false;
+  const input = { type: CLIENT_MESSAGE.INPUT, ...stamp, ...inputController.collectIntent({ blocked, pointerAim }) };
   room.send(input); prediction.apply(input, state);
   inputController.consumeActions();
   hudController.setSneak(input.sneak);
+  return true;
 }
 const lobby = createLobbyController({
   getRoomId: () => room.roomId(), getPlayerId: () => room.playerId(), isOwner: () => room.isOwner(), getPresentation: () => room.presentation(),
@@ -383,7 +387,9 @@ const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColo
 // are tessellated and batched, so it must be timed separately or draw cost is invisible here.
 game.events.on('prerender', () => profiler.start('render.draw'));
 game.events.on('postrender', () => profiler.stop('render.draw'));
-setInterval(inputTick, 50);
+// Not a fixed interval: the input clock sends a little faster or slower to keep inputs arriving just
+// before their ticks (#1096). A client not sending polls at the tick rate.
+(function sendInputs() { setTimeout(sendInputs, inputTick() ? prediction.sendDelay() : 50); })();
 const initialParams = new URLSearchParams(location.search);
 const initialRoom = initialParams.get('room');
 // `?seed=` names the arena a new room generates (`?size=24x12` its zone size), as the Map Lab's "Play in the game" link does (53).
