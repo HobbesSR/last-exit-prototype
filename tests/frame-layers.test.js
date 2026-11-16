@@ -24,7 +24,8 @@ test('a directed view rebuilds exactly from keyframes and changes, at a fraction
       const view = match.project(match.advance(), null), encoded = encoder.encode(view);
       const payload = wire(encoded, view, held);
       if ('all' in payload.items) keyframes++;
-      whole += JSON.stringify(view).length; sent += JSON.stringify(payload).length;
+      // Only the layered lists: the rest goes whole either way, so a whole-frame ratio would measure the map's item count.
+      for (const layer of Object.keys(encoded)) { whole += JSON.stringify(view[layer]).length; sent += JSON.stringify(payload[layer]).length; }
       assert.deepEqual(decoder.decode(payload), JSON.parse(JSON.stringify(view)), `tick ${tick}`);
     }
     assert.ok(sent < whole / 10, `sent ${sent} of ${whole} bytes`);
@@ -79,15 +80,15 @@ test('a session is sent the keyframe after a skipped frame, while others keep sh
   const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room } = await h.live();
   try {
     const watcher = () => {
-      const sizes = [], frames = [], decoder = createLayerDecoder(); let skip = false;
+      const sizes = [], frames = [], keyed = [], decoder = createLayerDecoder(); let skip = false;
       const session = h.service.connect({ close() {}, deliver(payload, droppable) {
         if (skip && droppable) return false;
         const data = JSON.parse(payload);
-        if (data.type === 'state') { sizes.push(payload.length); frames.push(decoder.decode(data.state)); }
+        if (data.type === 'state') { sizes.push(payload.length); keyed.push('all' in data.state.items); frames.push(decoder.decode(data.state)); }
         return true;
       } });
       h.service.receive(session, { type: 'join', room: room.id, mode: 'dev' });
-      return { sizes, frames, skipping: on => { skip = on; } };
+      return { sizes, frames, keyed, skipping: on => { skip = on; } };
     };
     const a = watcher(), b = watcher();
     for (let i = 0; i < 5; i++) h.wake(50);
@@ -96,7 +97,7 @@ test('a session is sent the keyframe after a skipped frame, while others keep sh
     a.skipping(true);
     room.layerEncoders.get('dev').encode({ items: [] }); h.wake(50);
     a.skipping(false); h.wake(50);
-    assert.ok(a.sizes.at(-1) > b.sizes.at(-1) * 5, 'the session that missed the keyframe gets it whole');
+    assert.ok(a.keyed.at(-1) && !b.keyed.at(-1), 'the session that missed the keyframe gets it whole; the other gets changes');
     const truth = room.match.project(room.match.snapshot(), null);
     assert.deepEqual(a.frames.at(-1).items, truth.items); assert.equal(a.frames.at(-1).stale, undefined);
     assert.deepEqual(b.frames.at(-1).items, truth.items);

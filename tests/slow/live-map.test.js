@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveRecipeMismatch, LIVE_ZONE_SIZES } from '../../map/live.ts';
+import { LIVE_LOOT, generateLiveMap, liveChainParams, liveMapFromBuilt, liveRecipeMismatch, LIVE_ZONE_SIZES } from '../../map/live.ts';
 import { generate, generateMacro } from '../../map/chain.ts';
 import { mapViews } from '../../map/macro/src/chain/map.ts';
 import { chainMapToBson, chainMapToJson, decodeChainMap, readChainMap } from '../../map/macro/src/chain/saving.ts';
@@ -61,7 +61,7 @@ test('at the larger authored size macro states a room recipe, and its briefs giv
 
 test('a chain live map supplies usable authored sites and retained loot metadata', () => {
   const map = live(), content = defaultContent();
-  assert.equal(map.generator, 'chain-live-1');
+  assert.equal(map.generator, 'chain-live-2');
   assert.deepEqual([map.width, map.height], [17280, 8640]);
   assert.equal(map.playableArea.cellSize, 48);
   assert.ok(map.playableArea.rows.length > 0);
@@ -71,10 +71,11 @@ test('a chain live map supplies usable authored sites and retained loot metadata
   assert.ok(map.chargers.length > 0);
   for (const [sites, radius] of [[map.spawns, 12], [map.hunterSpawns, 23], [[map.exit], 23], [map.chargers, 24], [map.stations, 25]])
     for (const site of sites) assert.ok(canOccupy(map, site.x, site.y, radius), `site at ${site.x},${site.y}`);
-  for (const spawn of map.spawns) {
+  for (const spawn of map.spawns)
     assert.ok(map.items.some(item => item.kind === 'weapon' && item.weaponType === 'pistol' && distance(item, spawn) <= 100), 'starter pistol');
-    assert.ok(map.items.some(item => item.kind === 'cell' && distance(item, spawn) <= 100), 'early cell');
-  }
+  // The early cell is a tuning switch (#1126); whether it is on is placeholder tuning, but switched on it reaches every start.
+  const kitted = liveMapFromBuilt(1, liveBuilt(), content, { ...LIVE_LOOT, starterCell: true });
+  for (const spawn of kitted.spawns) assert.ok(kitted.items.some(item => item.kind === 'cell' && distance(item, spawn) <= 100), 'early cell');
   assert.ok(map.items.every(item => item.kind !== 'weapon' || ['pistol', 'rifle', 'scattergun'].includes(item.weaponType)));
   const owned = [...map.chargers, ...map.stations, ...map.items.filter(item => item.nodeId)];
   assert.ok(new Set(owned.map(site => site.nodeId)).size > 1, 'sites retain distinct region ownership');
