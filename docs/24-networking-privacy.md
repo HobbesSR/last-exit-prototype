@@ -1,5 +1,10 @@
 # 24. Networking and privacy
 
+Accepted encoding direction and candidate field precision (#1093) are in
+[24.1](24.1-wire-encoding-design.md), with measurements in
+[42.47](42.47-wire-encoding.md). Backend selection and live adoption remain future
+work; the live protocol below remains JSON.
+
 The rules this mechanism enforces are in [15](15-information-rules.md).
 
 Dynamic-physics prediction and projection ([29.2](29.2-physics-state-networking.md))

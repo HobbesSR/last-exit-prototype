@@ -71,6 +71,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [22.8-development-tools.md](22.8-development-tools.md) | Development tools' contract (one core; lab, CLI and MCP faces; state documents, links, in-page handle, pictures), the inventory of tools by domain, and the appearance tools design (#772) |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
+| [24.1-wire-encoding-design.md](24.1-wire-encoding-design.md) | Accepted application-owned wire-encoding direction (#1093); backend unselected, current JSON runtime unchanged, no live implementation |
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
 | [26-recording-contract.md](26-recording-contract.md) | Replay format, integrity, bounded recording, failure and recovery, playback |
 | [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, the one math library both sides need, and the order of an incremental, fixture-checked port |
@@ -99,7 +100,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | File | Holds |
 | --- | --- |
 | [41-roadmap.md](41-roadmap.md) | The order between efforts and the reason for each, with each one's tracker; the retired plans 41.1–41.3 are archived |
-| [42-performance-history.md](42-performance-history.md) | Guide to measured baselines and their limits, from completed verification passes; children 42.1–42.46 by topic (runtime, navigation, physics stages, generation and content) |
+| [42-performance-history.md](42-performance-history.md) | Guide to measured baselines and their limits, from completed verification passes; children 42.1–42.47 by topic (runtime, navigation, physics stages, generation, content and wire encoding) |
 
 ### 5x — Map generation
 

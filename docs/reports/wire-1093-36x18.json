@@ -1,0 +1,878 @@
+{
+  "issue": 1093,
+  "revision": "5cdcd5cbad63397d011f951d4196e03f0e2c0bbb",
+  "timing": true,
+  "harnessSha256": "271bd96afeb30288fd428a0708903efc8dd224ff37e96ee2d7e214a9bed39f08",
+  "codecSha256": "1ad28dcc5b1f4206702986ed99779e65c3e2ee5523cdcb953de6dad2ffb4e7c2",
+  "date": "2026-11-16T04:28:33.917Z",
+  "node": "v24.15.0",
+  "platform": "win32",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "cache": {
+    "path": "test-results/wire-1093-tuned-36x18.v8",
+    "sha256": "a6d2bc67c744689f096e94a44d03a643cfc37d534280589532bdbeca0fea28e3",
+    "size": "36x18",
+    "seed": 4217,
+    "content": "content-7",
+    "source": "5cdcd5cbad63397d011f951d4196e03f0e2c0bbb",
+    "generatedAt": "2026-11-16T04:25:46.727Z",
+    "generator": "chain-live-2"
+  },
+  "ticks": 1200,
+  "actualTicks": 1200,
+  "stride": 20,
+  "repeats": 3,
+  "corpusSha256": "2258f29a6ec05daaecda3a4c9ff37e2f7af898c7aa8cb11dc8bf32beb1e331ec",
+  "streamSha256": "b507151f091ee962407fcdad6dca076f39e4632669de88163daeb311950b166b",
+  "deliveriesVerified": 4804,
+  "population": {
+    "contestant": {
+      "players": 8,
+      "items": 10,
+      "bodies": 17,
+      "traps": 0,
+      "projectiles": 8,
+      "effects": 8,
+      "tethers": 0,
+      "hookFlights": 0
+    },
+    "gladiator": {
+      "players": 6,
+      "items": 83,
+      "bodies": 3,
+      "traps": 0,
+      "projectiles": 0,
+      "effects": 0,
+      "tethers": 0,
+      "hookFlights": 0
+    },
+    "dev": {
+      "players": 11,
+      "items": 2006,
+      "bodies": 80,
+      "traps": 0,
+      "projectiles": 8,
+      "effects": 8,
+      "tethers": 0,
+      "hookFlights": 0
+    },
+    "spectator": {
+      "players": 11,
+      "items": 2006,
+      "bodies": 80,
+      "traps": 0,
+      "projectiles": 8,
+      "effects": 8,
+      "tethers": 0,
+      "hookFlights": 0
+    }
+  },
+  "scales": {
+    "players": {
+      "x": 256,
+      "y": 256,
+      "heading": 10430.378350470453
+    },
+    "items": {
+      "x": 256,
+      "y": 256
+    },
+    "traps": {
+      "x": 256,
+      "y": 256,
+      "homeX": 256,
+      "homeY": 256,
+      "heading": 10430.378350470453
+    },
+    "projectiles": {
+      "x": 256,
+      "y": 256,
+      "dx": 256,
+      "dy": 256
+    },
+    "effects": {
+      "x": 256,
+      "y": 256
+    },
+    "bodies": {
+      "x": 256,
+      "y": 256,
+      "vx": 256,
+      "vy": 256,
+      "angle": 10430.378350470453,
+      "omega": 4096
+    },
+    "hookFlights": {
+      "x": 256,
+      "y": 256
+    }
+  },
+  "quantization": {
+    "players.x": {
+      "count": 1990,
+      "maxError": 0.001953125,
+      "bound": 0.001953125,
+      "maxMagnitude": 51780
+    },
+    "players.y": {
+      "count": 1990,
+      "maxError": 0.001953125,
+      "bound": 0.001953125,
+      "maxMagnitude": 14916
+    },
+    "players.heading": {
+      "count": 1990,
+      "maxError": 0.00004778245710168605,
+      "bound": 0.000047936899621426287,
+      "maxMagnitude": 3.141386992932026
+    },
+    "items.x": {
+      "count": 4910,
+      "maxError": 0.001953125,
+      "bound": 0.001953125,
+      "maxMagnitude": 51768
+    },
+    "items.y": {
+      "count": 4910,
+      "maxError": 0.0019371598959310177,
+      "bound": 0.001953125,
+      "maxMagnitude": 25848
+    },
+    "bodies.x": {
+      "count": 1916,
+      "maxError": 0.001953125,
+      "bound": 0.001953125,
+      "maxMagnitude": 51780
+    },
+    "bodies.y": {
+      "count": 1916,
+      "maxError": 0.001953125,
+      "bound": 0.001953125,
+      "maxMagnitude": 19464.000244140625
+    },
+    "bodies.vx": {
+      "count": 1495,
+      "maxError": 0.001953125,
+      "bound": 0.001953125,
+      "maxMagnitude": 180
+    },
+    "bodies.vy": {
+      "count": 1495,
+      "maxError": 0.001953125,
+      "bound": 0.001953125,
+      "maxMagnitude": 180
+    },
+    "bodies.angle": {
+      "count": 1916,
+      "maxError": 0,
+      "bound": 0.000047936899621426287,
+      "maxMagnitude": 0
+    },
+    "bodies.omega": {
+      "count": 1495,
+      "maxError": 0,
+      "bound": 0.0001220703125,
+      "maxMagnitude": 0
+    },
+    "projectiles.x": {
+      "count": 76,
+      "maxError": 0.0018541777399150305,
+      "bound": 0.001953125,
+      "maxMagnitude": 5878.745582769411
+    },
+    "projectiles.y": {
+      "count": 76,
+      "maxError": 0.001895556488307193,
+      "bound": 0.001953125,
+      "maxMagnitude": 11297.517651610113
+    },
+    "projectiles.dx": {
+      "count": 76,
+      "maxError": 0.0019437970272662142,
+      "bound": 0.001953125,
+      "maxMagnitude": 34.983298348307954
+    },
+    "projectiles.dy": {
+      "count": 76,
+      "maxError": 0.00184010901601539,
+      "bound": 0.001953125,
+      "maxMagnitude": 34.998699748335376
+    },
+    "effects.x": {
+      "count": 4,
+      "maxError": 0.0015869140625,
+      "bound": 0.001953125,
+      "maxMagnitude": 4727.550048828125
+    },
+    "effects.y": {
+      "count": 4,
+      "maxError": 0.001708984375,
+      "bound": 0.001953125,
+      "maxMagnitude": 13517.574462890625
+    }
+  },
+  "dictionary": [
+    "acceleration",
+    "actorId",
+    "all",
+    "ammo",
+    "angle",
+    "attackCd",
+    "bodies",
+    "boost",
+    "braking",
+    "buildingId",
+    "cellChargeTicks",
+    "charge",
+    "charging",
+    "cloak",
+    "contestantsActive",
+    "cooldown",
+    "damage",
+    "directed",
+    "discontinuity",
+    "discovered",
+    "drop",
+    "droppedBy",
+    "duration",
+    "dx",
+    "dy",
+    "effects",
+    "events",
+    "gates",
+    "generation",
+    "h",
+    "hazardX",
+    "heading",
+    "hookActive",
+    "hookFlights",
+    "hp",
+    "id",
+    "instanceId",
+    "inventory",
+    "itemId",
+    "items",
+    "k",
+    "keys",
+    "kills",
+    "kind",
+    "kit",
+    "lastSeq",
+    "level",
+    "life",
+    "lineageId",
+    "locked",
+    "maxHp",
+    "maxSpeed",
+    "name",
+    "nodeId",
+    "omega",
+    "open",
+    "owner",
+    "phase",
+    "physicsProfile",
+    "pickupAfter",
+    "players",
+    "predictionMotor",
+    "predictionTethered",
+    "projectiles",
+    "radius",
+    "railCd",
+    "reload",
+    "revealed",
+    "role",
+    "seat",
+    "selectedSlot",
+    "set",
+    "shape",
+    "shield",
+    "sleeping",
+    "slots",
+    "state",
+    "status",
+    "stun",
+    "surfaces",
+    "tethers",
+    "text",
+    "tick",
+    "tier",
+    "traps",
+    "type",
+    "version",
+    "vx",
+    "vy",
+    "w",
+    "weapon",
+    "weaponType",
+    "x",
+    "y"
+  ],
+  "dictionaryBytes": 889,
+  "groups": {
+    "contestant": {
+      "json": {
+        "samples": 61,
+        "firstBytes": 103433,
+        "meanBytes": 6822.55737704918,
+        "steadyMeanBytes": 5212.383333333333,
+        "maxBytes": 103433,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 10431,
+              "wallMsPerFrame": 0.01927167098073075,
+              "cpuMsPerFrame": 0.02099511072763877
+            },
+            "decode": {
+              "iterations": 8906,
+              "wallMsPerFrame": 0.022556265439029836,
+              "cpuMsPerFrame": 0.02099708061980687
+            }
+          },
+          {
+            "encode": {
+              "iterations": 10126,
+              "wallMsPerFrame": 0.019807623938376467,
+              "cpuMsPerFrame": 0.020047402725656725
+            },
+            "decode": {
+              "iterations": 8174,
+              "wallMsPerFrame": 0.02449721066797164,
+              "cpuMsPerFrame": 0.024834842182529973
+            }
+          },
+          {
+            "encode": {
+              "iterations": 10187,
+              "wallMsPerFrame": 0.019645607146362893,
+              "cpuMsPerFrame": 0.018454893491705114
+            },
+            "decode": {
+              "iterations": 8906,
+              "wallMsPerFrame": 0.02258672804850663,
+              "cpuMsPerFrame": 0.02279362227711655
+            }
+          }
+        ]
+      },
+      "binaryExact": {
+        "samples": 61,
+        "firstBytes": 46848,
+        "meanBytes": 2988.6065573770493,
+        "steadyMeanBytes": 2257.616666666667,
+        "maxBytes": 46848,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 4636,
+              "wallMsPerFrame": 0.04358895599654921,
+              "cpuMsPerFrame": 0.04378774805867127
+            },
+            "decode": {
+              "iterations": 1952,
+              "wallMsPerFrame": 0.1039528176229508,
+              "cpuMsPerFrame": 0.10399590163934426
+            }
+          },
+          {
+            "encode": {
+              "iterations": 4209,
+              "wallMsPerFrame": 0.04774112615823234,
+              "cpuMsPerFrame": 0.044666191494416724
+            },
+            "decode": {
+              "iterations": 1769,
+              "wallMsPerFrame": 0.11372125494629608,
+              "cpuMsPerFrame": 0.11475409836065574
+            }
+          },
+          {
+            "encode": {
+              "iterations": 4514,
+              "wallMsPerFrame": 0.0446392999556938,
+              "cpuMsPerFrame": 0.041426672574213556
+            },
+            "decode": {
+              "iterations": 1891,
+              "wallMsPerFrame": 0.1064285034373333,
+              "cpuMsPerFrame": 0.10735060814383923
+            }
+          }
+        ]
+      },
+      "binaryQuantized": {
+        "samples": 61,
+        "firstBytes": 46675,
+        "meanBytes": 2826.6065573770493,
+        "steadyMeanBytes": 2095.8,
+        "maxBytes": 46675,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 3416,
+              "wallMsPerFrame": 0.0592335772833722,
+              "cpuMsPerFrame": 0.0778688524590164
+            },
+            "decode": {
+              "iterations": 1769,
+              "wallMsPerFrame": 0.1140161107970613,
+              "cpuMsPerFrame": 0.11475409836065574
+            }
+          },
+          {
+            "encode": {
+              "iterations": 3721,
+              "wallMsPerFrame": 0.054134560601989144,
+              "cpuMsPerFrame": 0.05455522708949207
+            },
+            "decode": {
+              "iterations": 1708,
+              "wallMsPerFrame": 0.11934953161592408,
+              "cpuMsPerFrame": 0.11885245901639344
+            }
+          },
+          {
+            "encode": {
+              "iterations": 3843,
+              "wallMsPerFrame": 0.05281397345823508,
+              "cpuMsPerFrame": 0.05698672911787666
+            },
+            "decode": {
+              "iterations": 1708,
+              "wallMsPerFrame": 0.11881855971896754,
+              "cpuMsPerFrame": 0.1094847775175644
+            }
+          }
+        ]
+      }
+    },
+    "gladiator": {
+      "json": {
+        "samples": 61,
+        "firstBytes": 100704,
+        "meanBytes": 5687.852459016393,
+        "steadyMeanBytes": 4104.25,
+        "maxBytes": 100704,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 13115,
+              "wallMsPerFrame": 0.01527568433091876,
+              "cpuMsPerFrame": 0.015554708349218451
+            },
+            "decode": {
+              "iterations": 9760,
+              "wallMsPerFrame": 0.02053656762295088,
+              "cpuMsPerFrame": 0.02069672131147541
+            }
+          },
+          {
+            "encode": {
+              "iterations": 12139,
+              "wallMsPerFrame": 0.01652476316006278,
+              "cpuMsPerFrame": 0.016722959057582996
+            },
+            "decode": {
+              "iterations": 10370,
+              "wallMsPerFrame": 0.01931528447444561,
+              "cpuMsPerFrame": 0.01957569913211186
+            }
+          },
+          {
+            "encode": {
+              "iterations": 14823,
+              "wallMsPerFrame": 0.013548606894690816,
+              "cpuMsPerFrame": 0.013694933549214059
+            },
+            "decode": {
+              "iterations": 10736,
+              "wallMsPerFrame": 0.018671749254843672,
+              "cpuMsPerFrame": 0.017418032786885244
+            }
+          }
+        ]
+      },
+      "binaryExact": {
+        "samples": 61,
+        "firstBytes": 45916,
+        "meanBytes": 2552.9180327868853,
+        "steadyMeanBytes": 1830.2,
+        "maxBytes": 45916,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 5368,
+              "wallMsPerFrame": 0.03757099478390492,
+              "cpuMsPerFrame": 0.0378166915052161
+            },
+            "decode": {
+              "iterations": 2257,
+              "wallMsPerFrame": 0.09076300398759418,
+              "cpuMsPerFrame": 0.08994240141781125
+            }
+          },
+          {
+            "encode": {
+              "iterations": 5063,
+              "wallMsPerFrame": 0.03968984791625539,
+              "cpuMsPerFrame": 0.04009480545131345
+            },
+            "decode": {
+              "iterations": 1708,
+              "wallMsPerFrame": 0.1182277517564408,
+              "cpuMsPerFrame": 0.11943793911007025
+            }
+          },
+          {
+            "encode": {
+              "iterations": 5124,
+              "wallMsPerFrame": 0.039081010928961296,
+              "cpuMsPerFrame": 0.03669008587041374
+            },
+            "decode": {
+              "iterations": 2257,
+              "wallMsPerFrame": 0.08862866637129038,
+              "cpuMsPerFrame": 0.08994240141781125
+            }
+          }
+        ]
+      },
+      "binaryQuantized": {
+        "samples": 61,
+        "firstBytes": 45970,
+        "meanBytes": 2479.3934426229507,
+        "steadyMeanBytes": 1754.55,
+        "maxBytes": 45970,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 4087,
+              "wallMsPerFrame": 0.04908886713971098,
+              "cpuMsPerFrame": 0.049669684365059946
+            },
+            "decode": {
+              "iterations": 1952,
+              "wallMsPerFrame": 0.10276367827868928,
+              "cpuMsPerFrame": 0.10450819672131148
+            }
+          },
+          {
+            "encode": {
+              "iterations": 4392,
+              "wallMsPerFrame": 0.045646334244080065,
+              "cpuMsPerFrame": 0.04622040072859745
+            },
+            "decode": {
+              "iterations": 2074,
+              "wallMsPerFrame": 0.09858428158148395,
+              "cpuMsPerFrame": 0.09787849566055931
+            }
+          },
+          {
+            "encode": {
+              "iterations": 4697,
+              "wallMsPerFrame": 0.043009644453906606,
+              "cpuMsPerFrame": 0.043219076005961254
+            },
+            "decode": {
+              "iterations": 2074,
+              "wallMsPerFrame": 0.09653601735776308,
+              "cpuMsPerFrame": 0.09787849566055931
+            }
+          }
+        ]
+      }
+    },
+    "dev": {
+      "json": {
+        "samples": 61,
+        "firstBytes": 320185,
+        "meanBytes": 12357.934426229509,
+        "steadyMeanBytes": 7227.483333333334,
+        "maxBytes": 320185,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 5734,
+              "wallMsPerFrame": 0.03504180327868863,
+              "cpuMsPerFrame": 0.0355772584583188
+            },
+            "decode": {
+              "iterations": 4636,
+              "wallMsPerFrame": 0.043556535806730155,
+              "cpuMsPerFrame": 0.04378774805867127
+            }
+          },
+          {
+            "encode": {
+              "iterations": 5856,
+              "wallMsPerFrame": 0.03428738046448073,
+              "cpuMsPerFrame": 0.034665300546448084
+            },
+            "decode": {
+              "iterations": 5002,
+              "wallMsPerFrame": 0.040449340263894545,
+              "cpuMsPerFrame": 0.04078368652538984
+            }
+          },
+          {
+            "encode": {
+              "iterations": 5856,
+              "wallMsPerFrame": 0.03416757172131189,
+              "cpuMsPerFrame": 0.034665300546448084
+            },
+            "decode": {
+              "iterations": 5002,
+              "wallMsPerFrame": 0.04030717712914836,
+              "cpuMsPerFrame": 0.03738504598160736
+            }
+          }
+        ]
+      },
+      "binaryExact": {
+        "samples": 61,
+        "firstBytes": 163423,
+        "meanBytes": 5821.836065573771,
+        "steadyMeanBytes": 3195.15,
+        "maxBytes": 163423,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 2501,
+              "wallMsPerFrame": 0.08029956017592968,
+              "cpuMsPerFrame": 0.08076769292283087
+            },
+            "decode": {
+              "iterations": 1098,
+              "wallMsPerFrame": 0.18498943533697576,
+              "cpuMsPerFrame": 0.1848816029143898
+            }
+          },
+          {
+            "encode": {
+              "iterations": 2501,
+              "wallMsPerFrame": 0.08126089564174269,
+              "cpuMsPerFrame": 0.08156737305077968
+            },
+            "decode": {
+              "iterations": 1098,
+              "wallMsPerFrame": 0.18965628415300675,
+              "cpuMsPerFrame": 0.19854280510018216
+            }
+          },
+          {
+            "encode": {
+              "iterations": 2562,
+              "wallMsPerFrame": 0.07982689305230208,
+              "cpuMsPerFrame": 0.07923497267759563
+            },
+            "decode": {
+              "iterations": 1098,
+              "wallMsPerFrame": 0.18696147540983601,
+              "cpuMsPerFrame": 0.1848816029143898
+            }
+          }
+        ]
+      },
+      "binaryQuantized": {
+        "samples": 61,
+        "firstBytes": 166700,
+        "meanBytes": 5511.672131147541,
+        "steadyMeanBytes": 2825.2,
+        "maxBytes": 166700,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 1891,
+              "wallMsPerFrame": 0.10790512956107787,
+              "cpuMsPerFrame": 0.10735060814383923
+            },
+            "decode": {
+              "iterations": 976,
+              "wallMsPerFrame": 0.21178063524590082,
+              "cpuMsPerFrame": 0.20901639344262296
+            }
+          },
+          {
+            "encode": {
+              "iterations": 1891,
+              "wallMsPerFrame": 0.10582744579587482,
+              "cpuMsPerFrame": 0.10735060814383923
+            },
+            "decode": {
+              "iterations": 976,
+              "wallMsPerFrame": 0.2125657786885268,
+              "cpuMsPerFrame": 0.20799180327868852
+            }
+          },
+          {
+            "encode": {
+              "iterations": 1830,
+              "wallMsPerFrame": 0.1094202732240431,
+              "cpuMsPerFrame": 0.11092896174863388
+            },
+            "decode": {
+              "iterations": 976,
+              "wallMsPerFrame": 0.21349508196721084,
+              "cpuMsPerFrame": 0.22438524590163936
+            }
+          }
+        ]
+      }
+    },
+    "spectator": {
+      "json": {
+        "samples": 61,
+        "firstBytes": 320185,
+        "meanBytes": 12139.704918032787,
+        "steadyMeanBytes": 7005.616666666667,
+        "maxBytes": 320185,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 5917,
+              "wallMsPerFrame": 0.03384698326854829,
+              "cpuMsPerFrame": 0.03430792631401048
+            },
+            "decode": {
+              "iterations": 5002,
+              "wallMsPerFrame": 0.040075429828068415,
+              "cpuMsPerFrame": 0.04058376649340264
+            }
+          },
+          {
+            "encode": {
+              "iterations": 5429,
+              "wallMsPerFrame": 0.03704943820224727,
+              "cpuMsPerFrame": 0.037391784859090074
+            },
+            "decode": {
+              "iterations": 4819,
+              "wallMsPerFrame": 0.0417975098568162,
+              "cpuMsPerFrame": 0.04212492218302553
+            }
+          },
+          {
+            "encode": {
+              "iterations": 5673,
+              "wallMsPerFrame": 0.03547440507667881,
+              "cpuMsPerFrame": 0.035783536047946415
+            },
+            "decode": {
+              "iterations": 4758,
+              "wallMsPerFrame": 0.04253883984867575,
+              "cpuMsPerFrame": 0.039512400168137875
+            }
+          }
+        ]
+      },
+      "binaryExact": {
+        "samples": 61,
+        "firstBytes": 163423,
+        "meanBytes": 5722.737704918033,
+        "steadyMeanBytes": 3094.4,
+        "maxBytes": 163423,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 2562,
+              "wallMsPerFrame": 0.0798044886807182,
+              "cpuMsPerFrame": 0.07962529274004684
+            },
+            "decode": {
+              "iterations": 1098,
+              "wallMsPerFrame": 0.18220264116575519,
+              "cpuMsPerFrame": 0.1848816029143898
+            }
+          },
+          {
+            "encode": {
+              "iterations": 2562,
+              "wallMsPerFrame": 0.07942931303669092,
+              "cpuMsPerFrame": 0.07962529274004684
+            },
+            "decode": {
+              "iterations": 1037,
+              "wallMsPerFrame": 0.19911976856316607,
+              "cpuMsPerFrame": 0.19575699132111862
+            }
+          },
+          {
+            "encode": {
+              "iterations": 2501,
+              "wallMsPerFrame": 0.0815353058776488,
+              "cpuMsPerFrame": 0.08116753298680528
+            },
+            "decode": {
+              "iterations": 1098,
+              "wallMsPerFrame": 0.18364262295082173,
+              "cpuMsPerFrame": 0.1848816029143898
+            }
+          }
+        ]
+      },
+      "binaryQuantized": {
+        "samples": 61,
+        "firstBytes": 166700,
+        "meanBytes": 5429.5901639344265,
+        "steadyMeanBytes": 2741.75,
+        "maxBytes": 166700,
+        "rounds": [
+          {
+            "encode": {
+              "iterations": 1952,
+              "wallMsPerFrame": 0.10381219262295104,
+              "cpuMsPerFrame": 0.09631147540983606
+            },
+            "decode": {
+              "iterations": 976,
+              "wallMsPerFrame": 0.21278247950819648,
+              "cpuMsPerFrame": 0.22438524590163936
+            }
+          },
+          {
+            "encode": {
+              "iterations": 1952,
+              "wallMsPerFrame": 0.10485251024590152,
+              "cpuMsPerFrame": 0.10399590163934426
+            },
+            "decode": {
+              "iterations": 915,
+              "wallMsPerFrame": 0.2257656830601094,
+              "cpuMsPerFrame": 0.23825136612021858
+            }
+          },
+          {
+            "encode": {
+              "iterations": 1830,
+              "wallMsPerFrame": 0.10930923497267701,
+              "cpuMsPerFrame": 0.11092896174863388
+            },
+            "decode": {
+              "iterations": 915,
+              "wallMsPerFrame": 0.22488371584699787,
+              "cpuMsPerFrame": 0.22185792349726777
+            }
+          }
+        ]
+      }
+    }
+  },
+  "contention": {
+    "wallMs": 32701.320000000003,
+    "selfCpuMs": 36484,
+    "otherBusyShare": 0.0386,
+    "contended": false,
+    "threshold": 0.25
+  },
+  "limits": [
+    "Node reflective prototype, not generated codec or browser timing",
+    "dictionary learned from corpus, paid once out of band; no production schema",
+    "encode/decode only, excludes projection, delta comparison, layer rebuild, network and rendering",
+    "first simulated minute; not capacity, loss, or prediction evidence",
+    "views follow bot-controlled actors, not human input/prediction traces",
+    "sampled messages are not independently replayable; full JSON layer stream verified before sampling",
+    "quantization happens after production layer comparison; changes and keyframe cadence are unchanged",
+    "welcomes/maps/control/input envelopes not measured; no bit packing, string interning or compression"
+  ]
+}
