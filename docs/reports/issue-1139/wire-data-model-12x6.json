@@ -1,8 +1,8 @@
 {
  "issue": 1139,
- "date": "2026-11-16T20:06:10.327Z",
+ "date": "2026-11-16T20:43:40.542Z",
  "node": "v24.15.0",
- "revision": "78b02baaba6a50eb40e3dee63d099549c030e55f",
+ "revision": "7e748e4904f23cc3a3370c029cbb06abc2cd1c3a",
  "cache": {
   "path": "test-results/wire-1093-tuned-12x6.v8",
   "sha256": "447289321fe885839922693831c9377e1dc8e59b4ae38c082dbf92665af69789",
@@ -12,7 +12,11 @@
   "source": "5cdcd5cbad63397d011f951d4196e03f0e2c0bbb",
   "generatedAt": "2026-11-16T04:23:54.552Z",
   "generator": "chain-live-2",
-  "declarationExportsDiffSha256": "abfbfc898fe0ead63c81b3171096b0922856e5e8ac5c032eb8f5401cadb522df"
+  "reviewedChanges": {
+   "shared/simulation/projection-contract.ts": "ae1f5f909075afcef5ebc05fe26b5fc7e3dd8bc1d56243e0b351b047bde14ca5",
+   "shared/simulation/visibility.ts": "22f588c1a8ebf8aa5579dc52293aef49e318f3f0a6b627c63f072fce7044cf08",
+   "shared/physics/world.ts": "4c56acfe33a6a89a5419b3a1ef330322c9dc497af943aba3d568251546bc9a1d"
+  }
  },
  "scale": 40,
  "ticks": 1200,
@@ -21,8 +25,8 @@
  "viewers": 12,
  "projections": 14412,
  "sources": {
-  "./wire-data-model.mjs": "c7d4a1f51e2dc793eee382a60f3ba67c578d058383819347155a816ea5d342f7",
-  "./wire-cached-match.mjs": "70ec1b3aa90acbac3639c57f47e8b7c0effbbeeecc4e2f06a022cd6709eac0f0",
+  "./wire-data-model.mjs": "ceeea3b62a89aed6194d277c69230886802457a9bf8de6a06e4004acc766f5c1",
+  "./wire-cached-match.mjs": "ed0779204ab42fddee061d411ca8a36d6a45745c2fbbfb65661b38ee32313033",
   "./wire-slice-fields.mjs": "7224601dce053b1586e13198ec60f841ff452bb6eef943dcaf4da61cf0cbcfcf"
  },
  "coverage": {
@@ -235,6 +239,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 12000,
       "max": 12000,
       "maxAbsInteger": 12000
@@ -251,6 +257,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 100,
       "max": 100,
       "maxAbsInteger": 100
@@ -267,6 +275,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.2007,
+      "metreFailures": 11520,
+      "metreFailureExamples": [
+       1,
+       2,
+       3,
+       4
+      ],
       "min": 0,
       "max": 1200,
       "maxAbsInteger": 1200
@@ -297,6 +313,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": -80,
       "max": -80,
       "maxAbsInteger": 80
@@ -313,6 +331,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 14412,
+      "metreFailureExamples": [
+       3
+      ],
       "min": 3,
       "max": 3,
       "maxAbsInteger": 3
@@ -408,6 +431,13 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 14412,
+      "metreFailureExamples": [
+       8,
+       7,
+       6
+      ],
       "min": 6,
       "max": 8,
       "maxAbsInteger": 8
@@ -598,6 +628,14 @@
       "float32": 0.2921,
       "scaledFloat32": 0.7058,
       "float64": 0,
+      "metreRoundTrip": 0.9995,
+      "metreFailures": 7,
+      "metreFailureExamples": [
+       36,
+       516,
+       228,
+       396
+      ],
       "min": 36,
       "max": 17220,
       "maxAbsInteger": 17220,
@@ -618,6 +656,14 @@
       "float32": 0.1683,
       "scaledFloat32": 0.83,
       "float64": 0,
+      "metreRoundTrip": 0.9994,
+      "metreFailures": 8,
+      "metreFailureExamples": [
+       4572,
+       4332,
+       4092,
+       5124
+      ],
       "min": 2073.0380249023438,
       "max": 5210.5963134765625,
       "maxAbsInteger": 5124,
@@ -638,6 +684,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 360,
       "maxAbsInteger": 360
@@ -654,6 +702,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 100,
       "max": 360,
       "maxAbsInteger": 360
@@ -670,6 +720,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 60,
       "maxAbsInteger": 60
@@ -686,6 +738,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -702,6 +756,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.3412,
+      "metreFailures": 8703,
+      "metreFailureExamples": [
+       1
+      ],
       "min": 0,
       "max": 1,
       "maxAbsInteger": 1
@@ -718,6 +777,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.9326,
+      "metreFailures": 891,
+      "metreFailureExamples": [
+       1
+      ],
       "min": 0,
       "max": 1,
       "maxAbsInteger": 1
@@ -734,6 +798,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 13211,
+      "metreFailureExamples": [
+       1
+      ],
       "min": 1,
       "max": 1,
       "maxAbsInteger": 1
@@ -765,6 +834,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -781,6 +852,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.9029,
+      "metreFailures": 1283,
+      "metreFailureExamples": [
+       19,
+       18,
+       17,
+       16
+      ],
       "min": 0,
       "max": 20,
       "maxAbsInteger": 20
@@ -797,6 +876,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -813,6 +894,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -829,6 +912,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -845,6 +930,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -861,6 +948,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -877,6 +966,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0.9983,
+      "metreRoundTrip": 0.0017,
+      "metreFailures": 13188,
+      "metreFailureExamples": [
+       1.5707963267948966,
+       0.7853981633974523,
+       3.1056492362674337,
+       -3.123957797590933
+      ],
       "min": -3.141583270946404,
       "max": 3.141592653589793,
       "maxAbsInteger": 0,
@@ -897,6 +994,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 13211,
+      "metreFailureExamples": [
+       -1
+      ],
       "min": -1,
       "max": -1,
       "maxAbsInteger": 1
@@ -913,6 +1015,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.25,
+      "metreFailures": 7206,
+      "metreFailureExamples": [
+       1,
+       2,
+       3,
+       4
+      ],
       "min": 0,
       "max": 7,
       "maxAbsInteger": 7
@@ -945,6 +1055,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.9994,
+      "metreFailures": 6,
+      "metreFailureExamples": [
+       1
+      ],
       "min": 0,
       "max": 1,
       "maxAbsInteger": 1
@@ -968,6 +1083,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.2185,
+      "metreFailures": 1277471,
+      "metreFailureExamples": [
+       1621,
+       1622,
+       1623,
+       1624
+      ],
       "min": 756,
       "max": 2724,
       "maxAbsInteger": 2724
@@ -1083,6 +1206,14 @@
       "float32": 0.278,
       "scaledFloat32": 0.7188,
       "float64": 0,
+      "metreRoundTrip": 0.9993,
+      "metreFailures": 46,
+      "metreFailureExamples": [
+       36,
+       516,
+       228,
+       396
+      ],
       "min": 36,
       "max": 17220,
       "maxAbsInteger": 17220,
@@ -1103,6 +1234,14 @@
       "float32": 0.1323,
       "scaledFloat32": 0.8652,
       "float64": 0,
+      "metreRoundTrip": 0.9992,
+      "metreFailures": 54,
+      "metreFailureExamples": [
+       4572,
+       4332,
+       4092,
+       5124
+      ],
       "min": 2073.0380249023438,
       "max": 5210.5963134765625,
       "maxAbsInteger": 5124,
@@ -1123,6 +1262,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0.9974,
+      "metreRoundTrip": 0.0026,
+      "metreFailures": 64331,
+      "metreFailureExamples": [
+       1.5707963267948966,
+       0.7853981633974523,
+       -3.123957797590933,
+       3.141592653589793
+      ],
       "min": -3.141583270946404,
       "max": 3.141592653589793,
       "maxAbsInteger": 0,
@@ -1158,6 +1305,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 360,
       "maxAbsInteger": 360
@@ -1174,6 +1323,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 100,
       "max": 360,
       "maxAbsInteger": 360
@@ -1190,6 +1341,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 60,
       "maxAbsInteger": 60
@@ -1206,6 +1359,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.321,
+      "metreFailures": 43796,
+      "metreFailureExamples": [
+       1
+      ],
       "min": 0,
       "max": 1,
       "maxAbsInteger": 1
@@ -1222,6 +1380,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -1238,6 +1398,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -1254,6 +1416,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.2222,
+      "metreFailures": 41759,
+      "metreFailureExamples": [
+       1,
+       2,
+       3,
+       4
+      ],
       "min": 0,
       "max": 7,
       "maxAbsInteger": 7
@@ -1299,6 +1469,14 @@
       "float32": 0.0242,
       "scaledFloat32": 0.2171,
       "float64": 0.003,
+      "metreRoundTrip": 0.4504,
+      "metreFailures": 218965,
+      "metreFailureExamples": [
+       15768,
+       15336,
+       15576,
+       9288
+      ],
       "min": 75.99999904632568,
       "max": 17161.573486328125,
       "maxAbsInteger": 15960,
@@ -1319,6 +1497,14 @@
       "float32": 0.0077,
       "scaledFloat32": 0.2456,
       "float64": 0.003,
+      "metreRoundTrip": 0.4635,
+      "metreFailures": 213713,
+      "metreFailureExamples": [
+       5112,
+       4104,
+       3864,
+       4392
+      ],
       "min": 216,
       "max": 7853.2794189453125,
       "maxAbsInteger": 6984,
@@ -1372,6 +1558,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.2211,
+      "metreFailures": 309158,
+      "metreFailureExamples": [
+       1,
+       3,
+       4,
+       2
+      ],
       "min": 1,
       "max": 5,
       "maxAbsInteger": 5
@@ -1388,6 +1582,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -1468,6 +1664,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 85,
       "max": 85,
       "maxAbsInteger": 85
@@ -1498,6 +1696,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 1463,
+      "metreFailureExamples": [
+       858
+      ],
       "min": 858,
       "max": 858,
       "maxAbsInteger": 858
@@ -1547,6 +1750,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.0612,
+      "metreFailures": 8176,
+      "metreFailureExamples": [
+       48,
+       96,
+       47,
+       46
+      ],
       "min": 36,
       "max": 96,
       "maxAbsInteger": 96
@@ -1613,6 +1824,11 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 226,
+      "metreFailureExamples": [
+       1
+      ],
       "min": 1,
       "max": 1,
       "maxAbsInteger": 1
@@ -1629,6 +1845,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -1674,6 +1892,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.1579,
+      "metreFailures": 1152960,
+      "metreFailureExamples": [
+       15024,
+       15888,
+       15096,
+       15552
+      ],
       "min": 5256,
       "max": 16104,
       "maxAbsInteger": 16104
@@ -1690,6 +1916,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.1684,
+      "metreFailures": 1138548,
+      "metreFailureExamples": [
+       4104,
+       5112,
+       4248,
+       4416
+      ],
       "min": 216,
       "max": 6984,
       "maxAbsInteger": 6984
@@ -1706,6 +1940,12 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 1369140,
+      "metreFailureExamples": [
+       12,
+       96
+      ],
       "min": 12,
       "max": 96,
       "maxAbsInteger": 96
@@ -1722,6 +1962,12 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 1369140,
+      "metreFailureExamples": [
+       96,
+       12
+      ],
       "min": 12,
       "max": 96,
       "maxAbsInteger": 96
@@ -1850,6 +2096,8 @@
       "float32": 0.1707,
       "scaledFloat32": 0.7145,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 35.999999046325684,
       "max": 17220,
       "maxAbsInteger": 17220,
@@ -1870,6 +2118,8 @@
       "float32": 0.075,
       "scaledFloat32": 0.8363,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 360,
       "max": 7853.2794189453125,
       "maxAbsInteger": 6600,
@@ -1890,6 +2140,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -1906,6 +2158,8 @@
       "float32": 0.0392,
       "scaledFloat32": 0.0976,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": -179.98641967773438,
       "max": 180,
       "maxAbsInteger": 180,
@@ -1926,6 +2180,8 @@
       "float32": 0.0412,
       "scaledFloat32": 0.1015,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": -180,
       "max": 180,
       "maxAbsInteger": 180,
@@ -1946,6 +2202,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 0,
       "max": 0,
       "maxAbsInteger": 0
@@ -1973,6 +2231,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.1848,
+      "metreFailures": 150085,
+      "metreFailureExamples": [
+       3368,
+       3369,
+       3371,
+       3372
+      ],
       "min": 3368,
       "max": 3562,
       "maxAbsInteger": 3562
@@ -2070,6 +2336,12 @@
       "float32": 0.0783,
       "scaledFloat32": 0,
       "float64": 0.2857,
+      "metreRoundTrip": 0.0783,
+      "metreFailures": 169694,
+      "metreFailureExamples": [
+       11.2875,
+       6
+      ],
       "min": 6,
       "max": 16.25,
       "maxAbsInteger": 6,
@@ -2094,6 +2366,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 3600,
       "max": 3600,
       "maxAbsInteger": 3600
@@ -2110,6 +2384,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 3600,
       "max": 3600,
       "maxAbsInteger": 3600
@@ -2126,6 +2402,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 600,
       "max": 600,
       "maxAbsInteger": 600
@@ -2157,6 +2435,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.189,
+      "metreFailures": 1236,
+      "metreFailureExamples": [
+       1,
+       2,
+       3,
+       4
+      ],
       "min": 0,
       "max": 69,
       "maxAbsInteger": 69
@@ -2173,6 +2459,8 @@
       "float32": 0.4331,
       "scaledFloat32": 0.4961,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 41.62498474121094,
       "max": 5849.6453857421875,
       "maxAbsInteger": 540,
@@ -2193,6 +2481,8 @@
       "float32": 0.0709,
       "scaledFloat32": 0.8583,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 3134.0362548828125,
       "max": 4572.0001220703125,
       "maxAbsInteger": 3780,
@@ -2227,6 +2517,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 30,
       "max": 30,
       "maxAbsInteger": 30
@@ -2243,6 +2535,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.1667,
+      "metreFailures": 1270,
+      "metreFailureExamples": [
+       12,
+       11,
+       9,
+       8
+      ],
       "min": 1,
       "max": 12,
       "maxAbsInteger": 12
@@ -2263,6 +2563,12 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 10692,
+      "metreFailureExamples": [
+       33,
+       67
+      ],
       "min": 33,
       "max": 67,
       "maxAbsInteger": 67
@@ -2279,6 +2585,12 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0,
+      "metreFailures": 10692,
+      "metreFailureExamples": [
+       673,
+       838
+      ],
       "min": 673,
       "max": 838,
       "maxAbsInteger": 838
@@ -2314,6 +2626,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.3082,
+      "metreFailures": 321,
+      "metreFailureExamples": [
+       36,
+       37,
+       39,
+       43
+      ],
       "min": 35,
       "max": 66,
       "maxAbsInteger": 66
@@ -2347,6 +2667,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 1,
+      "metreRoundTrip": 0,
+      "metreFailures": 464,
+      "metreFailureExamples": [
+       3694.6642885655747,
+       3678.7206669748994,
+       3662.777045384224,
+       3665.2334005730395
+      ],
       "min": 3662.777045384224,
       "max": 4884.487771254598,
       "maxAbsInteger": 0,
@@ -2367,6 +2695,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 1,
+      "metreRoundTrip": 0,
+      "metreFailures": 464,
+      "metreFailureExamples": [
+       3218.5173092758946,
+       3187.3596307588205,
+       3156.2019522417463,
+       3142.368619433945
+      ],
       "min": 3134.1779296671593,
       "max": 5272.54314745899,
       "maxAbsInteger": 0,
@@ -2387,6 +2723,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 1,
+      "metreRoundTrip": 0,
+      "metreFailures": 464,
+      "metreFailureExamples": [
+       -15.943621590675509,
+       21.82336639335202,
+       -26.61294545171784,
+       -19.338405348039146
+      ],
       "min": -34.99999991958583,
       "max": 34.996951336757505,
       "maxAbsInteger": 0,
@@ -2407,6 +2751,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 1,
+      "metreRoundTrip": 0,
+      "metreFailures": 464,
+      "metreFailureExamples": [
+       -31.157678517074178,
+       27.36312626988213,
+       -22.732160794431547,
+       29.172351269565688
+      ],
       "min": -31.157678517074178,
       "max": 29.172351269565688,
       "maxAbsInteger": 0,
@@ -2427,6 +2779,14 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 0.1336,
+      "metreFailures": 402,
+      "metreFailureExamples": [
+       23,
+       22,
+       21,
+       19
+      ],
       "min": 1,
       "max": 23,
       "maxAbsInteger": 23
@@ -2443,6 +2803,8 @@
       "float32": 0,
       "scaledFloat32": 0,
       "float64": 0,
+      "metreRoundTrip": 1,
+      "metreFailures": 0,
       "min": 10,
       "max": 10,
       "maxAbsInteger": 10
@@ -2452,9 +2814,9 @@
   }
  },
  "contention": {
-  "wallMs": 6710.7102,
-  "selfCpuMs": 8516,
-  "otherBusyShare": 0.0756,
+  "wallMs": 7272.7379,
+  "selfCpuMs": 9125,
+  "otherBusyShare": 0.0798,
   "contended": false,
   "threshold": 0.25
  }
