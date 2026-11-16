@@ -17,6 +17,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.49](42.49-wire-codec-selection.md) | Codec backend comparison on the players+bodies slice (#1130): descriptor/DataView versus msgpackr records, JSON and JSON+deflate, in Node and Chrome. Covers bytes, CPU, allocation, exactness, malformed input, distinct baselines, plus the capped-packing and quantized probes |
 | [42.50](42.50-lossy-deltas.md) | Acknowledged-baseline deltas under simulated loss (#1094): today's reliable layers against all-datagram and split delivery, bytes, fit, staleness, shared baselines, history memory, diff CPU and quantized prediction; an offline model over real projections |
 | [42.51](42.51-protobuf-head-to-head.md) | Stock protobuf (protobufjs, schema generated from the descriptor schema) head-to-head with the descriptor codec on 42.49's slice (#1130): bytes, Node and Chrome CPU, allocation, adapter cost against library-only cost, semantics and malformed input |
+| [42.52](42.52-predictor-contacts.md) | Predictor-side contact qualification under candidate quantization (#1142): exact controls, rotated props, moving actors and stored generated geometry; poses, contact events and fallback cuts |
 
 ### Navigation
 
