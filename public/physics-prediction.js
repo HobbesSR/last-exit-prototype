@@ -39,11 +39,11 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
       input.x ?? 0, input.y ?? 0, movementSpeed(value, input, HZ)));
     world.step();
     const contacts = world.drainContacts();
-    // Optional private diagnostics receive a detached copy; ordinary prediction does no debug contact query.
-    if (observeStep) observeStep({ tick: tick + 1, seq: input.seq, context, contacts: structuredClone(contacts) });
     Object.assign(value, world.getTransform(own.id)); tick++;
     poses.set(tick, { x: value.x, y: value.y });
     while (poses.size > PREDICTION_LIMITS.frames) poses.delete(poses.keys().next().value);
+    // Notify after publishing the completed pose/tick. Ordinary prediction does no debug contact query.
+    if (observeStep) observeStep({ tick, seq: input.seq, context, contacts: structuredClone(contacts) });
   }
   function rebuild(frame) {
     close();

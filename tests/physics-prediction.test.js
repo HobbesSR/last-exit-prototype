@@ -20,6 +20,8 @@ test('optional step observer captures input and replay contacts without changing
   const samples = [];
   const plain = await predictor();
   const observed = await createPhysicsPrediction(map(), 'self', { clock: () => 0, observeStep(sample) {
+    assert.equal(observed.stats().tick, sample.tick, 'callback sees the completed step tick');
+    assert.ok(observed.value().x > 100, 'callback sees the completed movement');
     samples.push(structuredClone(sample));
     // Diagnostics belong to the observer, never to retained solver state.
     sample.contacts.length = 0;

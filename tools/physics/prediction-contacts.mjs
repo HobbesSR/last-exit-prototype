@@ -1,7 +1,9 @@
-﻿// #1142: paired production predictor contact witness. Synthetic ordered tick deliveries.
+// #1142: paired production predictor contact witness. Synthetic ordered tick deliveries.
 import assert from 'node:assert/strict';
+import { isDeepStrictEqual } from 'node:util';
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createGame, disposePhysics, playerView, setInput, snapshot, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
@@ -10,6 +12,17 @@ import { arena } from '../../tests/helpers/arena.js';
 import { readArena, ARENA_FILE } from '../room-arena.mjs';
 
 const variants = ['exact', 'repeat', 'own-player', 'own-body', 'proxies', 'xy-only', 'angle-only', 'velocity-only', 'omega-only', 'all'];
+const variantNumericFields = {
+  'xy-only': ['x','y'],
+  'angle-only': ['heading','angle'],
+  'velocity-only': ['vx','vy'],
+  'omega-only': ['omega'],
+};
+const ownershipFields = {
+  'own-player': ['x','y','heading'],
+  'own-body': ['x','y','angle','vx','vy','omega'],
+  proxies: ['x','y','angle','vx','vy','omega'],
+};
 const profiles = [
   { name: 'rotated-prop', delay: 1, prop: true },
   { name: 'moving-actor', delay: 1, actor: true },
@@ -21,7 +34,7 @@ const profiles = [
 ];
 const quanta = { x: 1/256, y: 1/256, vx: 1/256, vy: 1/256, angle: 2*Math.PI/65536, heading: 2*Math.PI/65536, omega: 1/4096 };
 const budget = 2/512;
-const numericFieldsForVariant = variant => ({ 'xy-only': ['x','y'], 'angle-only': ['heading','angle'], 'velocity-only': ['vx','vy'], 'omega-only': ['omega'] }[variant] ?? []);
+const numericFieldsForVariant = variant => variantNumericFields[variant] ?? [];
 function quantize(frame, variant, tally) {
   const result = structuredClone(frame);
   const apply = (record, fields, family) => {
@@ -33,19 +46,26 @@ function quantize(frame, variant, tally) {
       record[key] = rounded;
     }
   };
-  const numericFields = { 'xy-only': ['x','y'], 'angle-only': ['heading','angle'], 'velocity-only': ['vx','vy'], 'omega-only': ['omega'] };
-  const fields = list => numericFields[variant] ? list.filter(key => numericFields[variant].includes(key)) : list;
-  if (variant === 'own-player' || variant === 'all' || numericFields[variant]) {
+  const numericFields = numericFieldsForVariant(variant);
+  const fields = list => numericFields.length ? list.filter(key => numericFields.includes(key)) : list;
+  if (variant === 'own-player' || variant === 'all' || numericFields.length) {
     const player = result.players.find(p => p.id === 'c0');
-    if (player) apply(player, fields(['x','y','heading']), 'own-player');
+    if (player) apply(player, fields(ownershipFields['own-player']), 'own-player');
   }
   for (const body of result.bodies ?? []) {
-    if (body.actorId === 'c0' && (variant === 'own-body' || variant === 'all' || numericFields[variant])) apply(body, fields(['x','y','angle','vx','vy','omega']), 'own-body');
-    else if (body.actorId !== 'c0' && body.itemId === undefined && (variant === 'proxies' || variant === 'all' || numericFields[variant])) apply(body, fields(['x','y','angle','vx','vy','omega']), 'proxies');
+    if (body.actorId === 'c0' && (variant === 'own-body' || variant === 'all' || numericFields.length)) apply(body, fields(ownershipFields['own-body']), 'own-body');
+    else if (body.actorId !== 'c0' && body.itemId === undefined && (variant === 'proxies' || variant === 'all' || numericFields.length)) apply(body, fields(ownershipFields.proxies), 'proxies');
   }
   return result;
 }
-const selectedFields = variant => variant === 'own-player' ? ['own-player.x','own-player.y','own-player.heading'] : variant === 'own-body' ? ['own-body.x','own-body.y','own-body.angle','own-body.vx','own-body.vy','own-body.omega'] : variant === 'proxies' ? ['proxies.x','proxies.y','proxies.angle','proxies.vx','proxies.vy','proxies.omega'] : (variant === 'exact' || variant === 'repeat') ? [] : ['own-player.x','own-player.y','own-player.heading','own-body.x','own-body.y','own-body.angle','own-body.vx','own-body.vy','own-body.omega','proxies.x','proxies.y','proxies.angle','proxies.vx','proxies.vy','proxies.omega'].filter(key => variant === 'all' || numericFieldsForVariant(variant).includes(key.split('.')[1]));
+const selectedFields = variant => {
+  if (variant === 'exact' || variant === 'repeat') return [];
+  const families = variant === 'own-player' ? ['own-player'] : variant === 'own-body' ? ['own-body'] : variant === 'proxies' ? ['proxies'] : Object.keys(ownershipFields);
+  const numericFields = numericFieldsForVariant(variant);
+  return families.flatMap(family => ownershipFields[family]
+    .filter(field => variant === 'all' || variant === family || numericFields.includes(field))
+    .map(field => `${family}.${field}`));
+};
 const percentile = (xs, p) => { const a = [...xs].sort((x,y) => x-y); return a[Math.max(0, Math.ceil(a.length*p)-1)] ?? 0; };
 function fixture(profile) {
   if (profile.seed9) return readArena().map;
@@ -170,6 +190,7 @@ const report = { witness: '#1142 predictor contact quantization', date: new Date
     delivery: 'one-way input and correction delay = profile.delay * 50 ms; FIFO ordered events',
     sampling: 'after every input/correction operation; contacts after every new-input and replay solver step',
     controls: 'exact and repeat receive identical unrounded projections from the same authoritative game',
+    events: 'Each profile stores exact.coverage.events in full; other variants store eventsRef = exact.coverage.events when their event arrays deeply match, otherwise their own full events array.',
     hashes: 'SHA-256 of working-tree bytes; commit pins repository sources, including line-ending normalization' },
   budget: { maxPairedPose: budget, maxP99AndMaxCorrectionErrorRise: budget, availabilityAndCutDifferences: 0, contactEventStepDifferences: 0 },
   limitations: ['Synthetic ordered tick deliveries; no socket or browser scheduling. Existing jitter, reconnect, background, hidden-contact, stale-door and burst profiles are not reproduced.', 'Fallbacks are injected into production projections; generated geometry uses the stored seed 9 map.', 'Proxy lists record delivered candidates, while contact IDs demonstrate actual island inclusion.', 'Qualification requires every profile to pass and every selected field to be perturbed somewhere in the workload. Proxies are fixed, so their velocity and omega are not consumed by the predictor; own body omega and player heading are also not consumed by the motor solve.'], results: {} };
@@ -181,6 +202,20 @@ report.summary = Object.fromEntries(variants.map(variant => {
   const failingProfiles = results.filter(([,result]) => !result.passed).map(([name]) => name);
   return [variant, { qualified: failingProfiles.length === 0 && unexercisedFields.length === 0, perturbedFields, unexercisedFields, failingProfiles }];
 }));
+for (const profile of profiles) {
+  const exactEvents = report.results[profile.name].exact.coverage.events;
+  for (const variant of variants) {
+    if (variant === 'exact') continue;
+    const coverage = report.results[profile.name][variant].coverage;
+    if (isDeepStrictEqual(coverage.events, exactEvents)) {
+      delete coverage.events;
+      coverage.eventsRef = 'exact.coverage.events';
+    }
+  }
+}
 const out = process.argv.find(a => a.startsWith('--out='))?.slice(6);
-if (out) writeFileSync(out, `${JSON.stringify(report,null,2)}\n`);
-console.log(JSON.stringify(report));
+if (out) {
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, `${JSON.stringify(report,null,2)}\n`);
+  console.log(`${JSON.stringify(report.summary)}\n${out}`);
+} else console.log(JSON.stringify(report));
