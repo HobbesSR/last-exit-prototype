@@ -39,7 +39,8 @@ slot and input validation depends on player state and remains authoritative.
 The more difficult production work remains content rollout policy, session routing and
 draining, archive retention/access, and idempotent persistent match results. These
 need the batch policies in [17](17-open-questions.md). Do not build a service registry or split processes
-before those ownership and failure contracts have concrete consumers.
+before those ownership and failure contracts have concrete consumers. Where the seams are, and a
+proposed order for splitting processes and hosts, is in [28.1](28.1-deployment-topology.md) (#1121).
 
 Replay ownership/lifetime and BSON encoding, configurable spectator access/delay,
 and lobby/game-server deployment remain separate follow-ups. The lobby, matchmaking
