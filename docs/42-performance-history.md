@@ -14,6 +14,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.22](42.22-tick-cost-attribution.md) | Server tick cost by stage and size, scaling exponents, over-budget tick classification, per-tick change fraction, physics ladder to 96x48 (#637, #655) |
 | [42.47](42.47-wire-encoding.md) | JSON versus dictionary binary and quantized binary on tuned 12x6/36x18 broadcast state (#1093): bytes, serialization CPU and limitations |
 | [42.48](42.48-input-timing.md) | Input spend policies under simulated latency, jitter and loss: arrival queue, tick-stamped jitter buffer, resimulation load (#1096); a model, not a live measurement |
+| [42.49](42.49-wire-codec-selection.md) | Codec backend comparison on the players+bodies slice (#1130): descriptor/DataView versus msgpackr records, JSON and JSON+deflate, in Node and Chrome. Covers bytes, CPU, allocation, exactness, malformed input, distinct baselines, plus the capped-packing and quantized probes |
 
 ### Navigation
 

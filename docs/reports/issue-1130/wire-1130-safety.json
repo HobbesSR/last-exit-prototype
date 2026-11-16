@@ -1,0 +1,1066 @@
+{
+ "issue": 1130,
+ "date": "2026-11-16T06:17:23.904Z",
+ "node": "v24.15.0",
+ "corpus": "test-results/wire-1130-corpus-12x6.json",
+ "safetySha256": "b4075668b8df5bf088da641d788964e523be430c07f3c97d8eefc4b9d70718b4",
+ "descriptor": {
+  "semantics": {
+   "specimens": 111,
+   "exact": 104,
+   "acceptedRefusals": [
+    "input extra unknown field [encode-refused] field extra is not in $input",
+    "string as player name: 4097 chars [encode-refused] string too long",
+    "string as player name: 5000-char name [encode-refused] string too long",
+    "string as player name: 1500 CJK chars (4500 UTF-8 bytes) [encode-refused] string too long",
+    "string as ping token: 4097 chars [encode-refused] string too long",
+    "string as ping token: 5000-char name [encode-refused] string too long",
+    "string as ping token: 1500 CJK chars (4500 UTF-8 bytes) [encode-refused] string too long"
+   ],
+   "failures": []
+  },
+  "malformed": {
+   "samples": [
+    1348,
+    1189,
+    1002,
+    428,
+    4865,
+    1489,
+    4865,
+    610,
+    13,
+    11
+   ],
+   "truncation": {
+    "cases": 14090,
+    "threw": 14090,
+    "returned": 0,
+    "maxMs": 0.361,
+    "nonError": 0,
+    "errors": {
+     "RangeError: truncated message": 13775,
+     "RangeError: collection length out of bounds": 315
+    },
+    "firstReturned": []
+   },
+   "trailingByte": {
+    "cases": 10,
+    "threw": 10,
+    "returned": 0,
+    "maxMs": 0.069,
+    "nonError": 0,
+    "errors": {
+     "RangeError: trailing bytes": 10
+    },
+    "firstReturned": []
+   },
+   "header": {
+    "wrongFormat": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.011,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unknown format": 10
+     },
+     "firstReturned": []
+    },
+    "wrongVersion": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.01,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unsupported schema version": 10
+     },
+     "firstReturned": []
+    },
+    "unknownMessageId": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.008,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unknown message type": 10
+     },
+     "firstReturned": []
+    }
+   },
+   "corruption": {
+    "cases": 2000,
+    "threw": 1582,
+    "returnedDifferent": 418,
+    "returnedIdentical": 0,
+    "nonError": 0,
+    "maxMs": 0.266,
+    "errors": {
+     "TypeError: The encoded data was not valid for encoding utf-8": 605,
+     "RangeError: bad id tag": 69,
+     "RangeError: unknown format": 97,
+     "RangeError: non-canonical string": 89,
+     "RangeError: bad union tag": 56,
+     "RangeError: bad presence mask": 46,
+     "RangeError: unknown message type": 53,
+     "RangeError: bad number tag": 210,
+     "RangeError: unsupported schema version": 68,
+     "RangeError: string too long": 95,
+     "RangeError: bad enum value": 40,
+     "RangeError: truncated message": 45,
+     "RangeError: bad boolean": 73,
+     "RangeError: bad nullable tag": 15,
+     "RangeError: trailing bytes": 8,
+     "RangeError: non-canonical number": 7,
+     "RangeError: collection length out of bounds": 6
+    }
+   },
+   "crafted": [
+    {
+     "name": "players count 2**31, no payload",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.023,
+     "error": "RangeError: collection length out of bounds"
+    },
+    {
+     "name": "players count 2**31 with 16 bytes after",
+     "bytes": 28,
+     "outcome": "threw",
+     "ms": 0.017,
+     "error": "RangeError: collection length out of bounds"
+    },
+    {
+     "name": "players count 65536 (at cap) with 3 bytes after",
+     "bytes": 13,
+     "outcome": "threw",
+     "ms": 0.011,
+     "error": "RangeError: collection length out of bounds"
+    },
+    {
+     "name": "players count 65537 (above cap) with 70000 bytes after",
+     "bytes": 70010,
+     "outcome": "threw",
+     "ms": 0.01,
+     "error": "RangeError: collection length out of bounds"
+    },
+    {
+     "name": "players count 40000 of empty Observed with matching zeros (cheap loop)",
+     "bytes": 40010,
+     "outcome": "threw",
+     "ms": 1.703,
+     "error": "RangeError: truncated message"
+    },
+    {
+     "name": "bodies list count 2**31 (layer tag 0)",
+     "bytes": 14,
+     "outcome": "threw",
+     "ms": 0.025,
+     "error": "RangeError: collection length out of bounds"
+    },
+    {
+     "name": "bodies layer all-count 2**31 (layer tag 3)",
+     "bytes": 15,
+     "outcome": "threw",
+     "ms": 0.013,
+     "error": "RangeError: collection length out of bounds"
+    },
+    {
+     "name": "version string length 2**31",
+     "bytes": 11,
+     "outcome": "threw",
+     "ms": 0.02,
+     "error": "RangeError: string too long"
+    },
+    {
+     "name": "version string UTF-16 length 2**31",
+     "bytes": 9,
+     "outcome": "threw",
+     "ms": 0.017,
+     "error": "RangeError: string too long"
+    },
+    {
+     "name": "version string length 4097 (just over maxString) with payload",
+     "bytes": 4105,
+     "outcome": "threw",
+     "ms": 0.01,
+     "error": "RangeError: string too long"
+    },
+    {
+     "name": "varint of 10 continuation bytes",
+     "bytes": 14,
+     "outcome": "threw",
+     "ms": 0.017,
+     "error": "RangeError: varint too long"
+    },
+    {
+     "name": "varint above 2**53",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.014,
+     "error": "RangeError: varint out of range"
+    },
+    {
+     "name": "presence mask with all bits set",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.009,
+     "error": "RangeError: bad presence mask"
+    },
+    {
+     "name": "control: small valid message with an Own player (a decode is expected to succeed)",
+     "bytes": 12,
+     "outcome": "returned",
+     "ms": 0.006
+    },
+    {
+     "name": "ping with token length 2**31",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.01,
+     "error": "RangeError: string too long"
+    },
+    {
+     "name": "ping with huge declared length and 0 bytes",
+     "bytes": 3,
+     "outcome": "threw",
+     "ms": 0.011,
+     "error": "RangeError: truncated message"
+    },
+    {
+     "name": "header only",
+     "bytes": 3,
+     "outcome": "threw",
+     "ms": 0.009,
+     "error": "RangeError: truncated message"
+    },
+    {
+     "name": "empty input",
+     "bytes": 0,
+     "outcome": "threw",
+     "ms": 0.009,
+     "error": "RangeError: truncated message"
+    },
+    {
+     "name": "1 MiB + 1 bytes (expect refusal by size)",
+     "bytes": 1048577,
+     "outcome": "threw",
+     "ms": 0.01,
+     "error": "RangeError: message too large"
+    }
+   ],
+   "maxMs": 1.703
+  }
+ },
+ "msgpackr-inline": {
+  "semantics": {
+   "specimens": 111,
+   "exact": 97,
+   "acceptedRefusals": [],
+   "failures": [
+    "key present with value undefined (body.vx) [mismatch] $.state.bodies.all[0].vx: unexpected key present with value undefined",
+    "key present with value undefined (player.hp) [mismatch] $.state.players[0].hp: unexpected key present with value undefined",
+    "key present with value undefined (state.directed) [mismatch] $.state.directed: unexpected key present with value undefined",
+    "input optional undefined [mismatch] $.x: unexpected key present with value undefined",
+    "string as player name: lone high surrogate [mismatch] $.state.players[0].name: \"���\" (U+FFFD U+FFFD U+FFFD) vs expected \"\\ud800\" (U+D800)",
+    "string as player name: lone low surrogate in text [mismatch] $.state.players[0].name: \"a���b\" (U+0061 U+FFFD U+FFFD U+FFFD U+0062) vs expected \"a\\udc00b\" (U+0061 U+DC00 U+0062)",
+    "string as player name: reversed pair [mismatch] $.state.players[0].name: \"������\" (U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD) vs expected \"\\ude00\\ud83d\" (U+DE00 U+D83D)",
+    "string as ping token: lone high surrogate [mismatch] $.token: \"���\" (U+FFFD U+FFFD U+FFFD) vs expected \"\\ud800\" (U+D800)",
+    "string as ping token: lone low surrogate in text [mismatch] $.token: \"a���b\" (U+0061 U+FFFD U+FFFD U+FFFD U+0062) vs expected \"a\\udc00b\" (U+0061 U+DC00 U+0062)",
+    "string as ping token: reversed pair [mismatch] $.token: \"������\" (U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD) vs expected \"\\ude00\\ud83d\" (U+DE00 U+D83D)",
+    "string as body id (id type, lone surrogate) [mismatch] $.state.bodies.all[0].id: \"a���\" (U+0061 U+FFFD U+FFFD U+FFFD) vs expected \"a\\ud800\" (U+0061 U+D800)",
+    "reserves map with __proto__ and constructor [mismatch] $.state.players[0].reserves.__proto__: missing, expected 1",
+    "reserves map key with lone surrogate and empty key [mismatch] $.state.players[0].reserves.\ud800: missing, expected 2",
+    "reserves map with undefined value [mismatch] $.state.players[0].reserves.b: unexpected key present with value undefined"
+   ]
+  },
+  "malformed": {
+   "samples": [
+    2366,
+    1952,
+    1918,
+    1037,
+    6661,
+    2046,
+    6661,
+    876,
+    40,
+    60
+   ],
+   "truncation": {
+    "cases": 18295,
+    "threw": 18295,
+    "returned": 0,
+    "maxMs": 1.636,
+    "nonError": 0,
+    "errors": {
+     "RangeError: unknown format": 10,
+     "RangeError: unsupported version": 10,
+     "RangeError: unknown message type": 8,
+     "Error: Unexpected end of MessagePack data": 14467,
+     "Error: Unknown extension undefined": 64,
+     "RangeError: Offset is outside the bounds of the DataView": 3736
+    },
+    "firstReturned": []
+   },
+   "trailingByte": {
+    "cases": 10,
+    "threw": 10,
+    "returned": 0,
+    "maxMs": 0.267,
+    "nonError": 0,
+    "errors": {
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"versio": 8,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":\"abc\",\"rt": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seq\":3,\"x\":1,\"y": 1
+    },
+    "firstReturned": []
+   },
+   "header": {
+    "wrongFormat": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.009,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unknown format": 10
+     },
+     "firstReturned": []
+    },
+    "wrongVersion": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.007,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unsupported version": 10
+     },
+     "firstReturned": []
+    },
+    "unknownMessageId": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.006,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unknown message type": 10
+     },
+     "firstReturned": []
+    }
+   },
+   "corruption": {
+    "cases": 2000,
+    "threw": 896,
+    "returnedDifferent": 1100,
+    "returnedIdentical": 4,
+    "nonError": 0,
+    "maxMs": 0.475,
+    "errors": {
+     "Error: Unexpected end of MessagePack data": 116,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"versio": 359,
+     "RangeError: unknown format": 28,
+     "RangeError: message type mismatch": 98,
+     "Error: Data read, but end of buffer not reached {\"type\":\"statF\",\"state\":{\"112\":1": 1,
+     "TypeError: read(...).map is not a function": 22,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"119\":107,\"t2pe\":111}": 1,
+     "Error: Unknown extension 96": 1,
+     "Error: Data read, but end of buffer not reached {\"111\":110,\"116\":101,\"type�\":107": 1,
+     "Error: Unknown extension type 64": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"30\":10": 1,
+     "Error: Invalid property type for record: object. A MessagePack map with non-stri": 52,
+     "RangeError: unknown message type": 21,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"to1en\":\"abc\",\"rt": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"ver�io": 1,
+     "Error: Unknown extension type 219": 2,
+     "Error: Data read, but end of buffer not reached {\"121\":-1,\"typ.\":\"moveSlot\",\"seq": 1,
+     "Error: Data read, but end of buffer not reached {\"84\":\"x\",\"101\":\"input\",\"112\":\"m": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"0\":\"ti": 1,
+     "Error: Data read, but end of buffer not reached {\"83\":1,\"101\":3,\"108\":-1,\"118\":\"": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seq\":3,\"x\":1,\"�": 1,
+     "Error: Data read, but end of buffer not reached {\"25\":116,\"type\":114,\"token\":116": 1,
+     "Error: Data read, but end of buffer not reached {\"61\":116,\"typP\":114,\"token\":116": 1,
+     "Error: Unknown extension 250": 1,
+     "RangeError: unsupported version": 27,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seO\":3,\"x\":1,\"y": 1,
+     "Error: Data read, but end of buffer not reached {\"61\":1,\"121\":-1,\"type\":\"moveSlo": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"pi�g\",\"tokpn\":-7,\"rtt\":": 1,
+     "Error: Data read, but end of buffer not reached {\"120\":1,\"type\":\"moveSlot\",\"seq\"": 1,
+     "Error: Unknown extension 55": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"45\":10": 1,
+     "Error: Unknown extension 90": 1,
+     "Error: Data read, but end of buffer not reached {\"114\":64}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"97\":\"l": 2,
+     "Error: Data read, but end of buffer not reached {\"32\":107,\"116\":101,\"�ype\":111}": 1,
+     "Error: Unknown extension 4": 1,
+     "Error: Data read, but end of buffer not reached {\"29\":112,\"116\":101,\"121\":\"token": 1,
+     "Error: Unknown extension 164": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seq\":3,\"x\":1,\"y": 3,
+     "Error: Data read, but end of buffer not reached {\"97\":\"m�veSlot\",\"123\":107,\"type": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":97,\"rtt\":": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":79,\"rtt\":": 1,
+     "Error: Unknown extension 226": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"31\":84": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"pin�\",\"token\":-32,\"rtt\"": 1,
+     "Error: Data read, but end of buffer not reached {\"23\":116,\"type\":114,\"token\":116": 1,
+     "TypeError: Cannot read properties of null (reading 'get')": 1,
+     "Error: Data read, but end of buffer not reached {\"26\":\"attack\",\"101\":\"input\",\"11": 1,
+     "Error: Unknown extension 239": 1,
+     "Error: Unknown extension type 205": 1,
+     "Error: Unknown extension 119": 1,
+     "Error: Data read, but end of buffer not reached {\"typ�\":\"state\",\"state\":{\"versio": 1,
+     "Error: Unknown extension type 99": 2,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"99\":11": 1,
+     "Error: Data read, but end of buffer not reached {\"84\":3,\"120\":1,\"type\":\"moveSlot": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":\"abc\",\"rt": 2,
+     "Error: Data read, but end of buffer not reached {\"51\":62,\"116\":101,\"type\":111}": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"121\":\"toke \",\"126\":1": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"v�rsio": 1,
+     "Error: Unknown extension 35": 1,
+     "Error: Unknown extension 172": 1,
+     "Error: Data read, but end of buffer not reached {\"62\":3,\"120\":1,\"type\":\"moveSlot": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":109,\"seq\":111,\"x\":118,\"y": 2,
+     "Error: Unknown extension 219": 1,
+     "Error: Data read, but end of buffer not reached -32": 1,
+     "Error: Unknown extension 131": 1,
+     "Error: Unknown extension 92": 1,
+     "Error: Unknown extension 69": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"126\":107,\"type\":111}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"84\":80": 1,
+     "Error: Data read, but end of buffer not reached -29": 1,
+     "Error: Unknown extension 181": 1,
+     "Error: Data read, but end of buffer not reached 95": 1,
+     "Error: Data read, but end of buffer not reached 120": 1,
+     "Error: Unknown extension type 8": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"ssate\":{\"versio": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seq\":3,\"x\":-29,": 1,
+     "Error: Data read, but end of buffer not reached {\"90\":\"x\",\"101\":\"input\",\"103\":\"y": 1,
+     "Error: Data read, but end of buffer not reached {\"120\":108,\"typ\\u0000\":109,\"seq\"": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"stat�\",\"state\":{\"versio": 1,
+     "Error: Data read, but end of buffer not reached {\"59\":116,\"type\":114,\"toke�\":116": 1,
+     "Error: Data read, but end of buffer not reached {\"60\":105,\"120\":110,\"typu\":\"m�ve": 1,
+     "Error: Unknown extension 138": 1,
+     "Error: Data read, but end of buffer not reached \"r@��type�tok\"": 1,
+     "Error: Data read, but end of buffer not reached {\"101\":116,\"113\":116,\"115\":97,\"t": 1,
+     "Error: Unknown extension type 194": 2,
+     "Error: Unknown extension 123": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":78,\"rtt\":": 1,
+     "Error: Unknown extension 100": 1,
+     "Error: Data read, but end of buffer not reached {\"75\":\"attack\",\"101\":\"input\",\"11": 1,
+     "Error: Data read, but end of buffer not reached {\"79\":116,\"type\":114,\"ײken\":116}": 1,
+     "Error: Unknown extension 84": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"30\":\"p": 1,
+     "Error: Unknown extension 210": 1,
+     "Error: Data read, but end of buffer not reached {\"44\":\"atta\\u0012k\",\"101\":\"input": 1,
+     "Error: Data read, but end of buffer not reached 20": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"56\":20": 1,
+     "Error: Data read, but end of buffer not reached 5": 1,
+     "Error: Data read, but end of buffer not reached {\"t�pe\":\"state\",\"state\":{\"versio": 1,
+     "Error: Data read, but end of buffer not reached {\"2\":114,\"type\":\"input\",\"seq\":3,": 1,
+     "Error: Unknown extension type 7": 1,
+     "Error: Unknown extension 140": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"62\":\"p": 1,
+     "Error: Unknown extension 15": 1,
+     "Error: Data read, but end of buffer not reached {\"33\":\"x\",\"101\":\"input\",\"112\":\"m": 1,
+     "Error: Data read, but end of buffer not reached {\"mype\":\"input\",\"seq\":3,\"x\":1,\"�": 1,
+     "Error: Unknown extension type 67": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"ve/sio": 1,
+     "Error: Data read, but end of buffer not reached {\"64\":112,\"116\":101,\"-4\":\"token\"": 1,
+     "Error: Data read, but end of buffer not reached 49": 1,
+     "Error: Unknown extension 199": 1,
+     "Error: Unknown extension 254": 1,
+     "Error: Unknown extension 188": 1,
+     "Error: Data read, but end of buffer not reached {\"ttpe\":\"ping\",\"token\":97,\"rtt\":": 1,
+     "Error: Data read, but end of buffer not reached {\"20\":3,\"120\":1,\"type\":\"moveSlot": 1,
+     "Error: Unknown extension type 114": 1,
+     "Error: Data read, but end of buffer not reached {\"115\":97,\"type\":116}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"sta�e\",\"state\":{\"versio": 1,
+     "Error: Data read, but end of buffer not reached 32": 2,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"44\":\"p": 1,
+     "Error: Data read, but end of buffer not reached {\"100\":3,\"120\":1,\"type\":\"moveSlo": 1,
+     "Error: Data read, but end of buffer not reached {\"9\":107,\"116\":101,\"type\":111}": 1,
+     "Error: Unknown extension 99": 2,
+     "Error: Data read, but end of buffer not reached {\"type\":null,\"token\":112,\"rtt\":1": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":83,\"state\":115}": 1,
+     "Error: Data read, but end of buffer not reached {\"2\":112,\"116\":101,\"121\":\"token\"": 1,
+     "Error: Data read, but end of buffer not reached {\"82\":121,\"116\":112}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"101\":\"": 1,
+     "Error: Data read, but end of buffer not reached 14": 1,
+     "Error: Data read, but end of buffer not reached {\"ty�e\":-31,\"seq\":105,\"x\":110,\"y": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"100\":t": 1,
+     "Error: Unknown extension 24": 1,
+     "Error: Data read, but end of buffer not reached {\"34\":107,\"116\":101,\"type\":111}": 1,
+     "Error: Unknown extension type 71": 1,
+     "Error: Unknown extension 83": 1,
+     "Error: Unknown extension 243": 1,
+     "Error: Unknown extension type 169": 1,
+     "Error: Data read, but end of buffer not reached {\"79\":107,\"116\":101,\"ty\\fe\":111}": 1,
+     "Error: Unknown extension 217": 1,
+     "Error: Unknown extension 110": 1,
+     "Error: Data read, but end of buffer not reached {\"97\":\"moveSlot\",\"type\":116,\"seq": 1,
+     "Error: Data read, but end of buffer not reached {\"70\":116,\"type\":114,\"token\":116": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"19\":\"p": 1,
+     "Error: Data read, but end of buffer not reached {\"101\":\"input\",\"112\":\"moveSlot\",": 1,
+     "Error: Data read, but end of buffer not reached {\"100\":116,\"type\":114,\"token\":11": 1,
+     "RangeError: Offset is outside the bounds of the DataView": 2,
+     "Error: Data read, but end of buffer not reached 27": 1,
+     "Error: Unknown extension 238": 1,
+     "Error: Unknown extension 206": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"s�ate\":{\"versio": 1,
+     "Error: Data read, but end of buffer not reached 53": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":115,\"-25\":116}": 1,
+     "Error: Data read, but end of buffer not reached {\"34\":121,\"116\":112}": 1,
+     "Error: Unknown extension type 203": 1,
+     "Error: Data read, but end of buffer not reached {\"8\":108,\"type\":109,\"�eq\":111,\"x": 1,
+     "Error: Unknown extension 184": 1,
+     "Error: Unknown extension 130": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"name\":": 1,
+     "Error: Unknown extension 225": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"20\":97": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"105\":\"": 1,
+     "Error: Unknown extension 158": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":\"��c\",\"rt": 1,
+     "Error: Data read, but end of buffer not reached {\"102\":107,\"116\":-6,\"type\":111}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"inp�t\",\"seq\":3,\"x\":1,\"y": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":29,\"token\":112,\"rtt\":105": 1,
+     "Error: Data read, but end of buffer not reached \"r@\"": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"112\":1": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"121\":\"token\",\"-14\":1": 1,
+     "Error: Unknown extension 211": 1
+    }
+   },
+   "crafted": [
+    {
+     "name": "array32 length 0xffffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.021,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "array32 length 0xffffffff with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.016,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "array32 length 100000000 with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.014,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "str32 length 0x7fffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.012,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "str32 length 0xffffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.011,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "map32 length 0xffffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.014,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "map32 length 100000000 with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.013,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "bin32 length 0x7fffffff with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.023,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "ext32 length 0x7fffffff, type 0x72",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.015,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "ext32 length 0xffffffff, type 1",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.012,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "uint64 0xffffffffffffffff",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.009,
+     "error": "RangeError: message type mismatch"
+    },
+    {
+     "name": "fixext1 record ref to undefined structure 0x40",
+     "bytes": 6,
+     "outcome": "threw",
+     "ms": 0.023,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "fixext1 record ref to undefined structure 0x20 (shared range)",
+     "bytes": 6,
+     "outcome": "threw",
+     "ms": 0.021,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "ext8 record definition, 255 keys, truncated",
+     "bytes": 27,
+     "outcome": "threw",
+     "ms": 0.013,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "100000 nested one-element arrays then nil",
+     "bytes": 100004,
+     "outcome": "threw",
+     "ms": 2.14,
+     "error": "RangeError: Maximum call stack size exceeded"
+    },
+    {
+     "name": "30000 nested single-key maps then nil",
+     "bytes": 90004,
+     "outcome": "threw",
+     "ms": 1.59,
+     "error": "RangeError: Maximum call stack size exceeded"
+    },
+    {
+     "name": "header only",
+     "bytes": 3,
+     "outcome": "threw",
+     "ms": 0.022,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "empty input",
+     "bytes": 0,
+     "outcome": "threw",
+     "ms": 0.006,
+     "error": "RangeError: unknown format"
+    },
+    {
+     "name": "1 MiB + 1 bytes (expect refusal by size)",
+     "bytes": 1048577,
+     "outcome": "threw",
+     "ms": 0.014,
+     "error": "RangeError: message too large"
+    }
+   ],
+   "maxMs": 2.14
+  }
+ },
+ "msgpackr-provisioned": {
+  "semantics": {
+   "specimens": 111,
+   "exact": 97,
+   "acceptedRefusals": [],
+   "failures": [
+    "key present with value undefined (body.vx) [mismatch] $.state.bodies.all[0].vx: unexpected key present with value undefined",
+    "key present with value undefined (player.hp) [mismatch] $.state.players[0].hp: unexpected key present with value undefined",
+    "key present with value undefined (state.directed) [mismatch] $.state.directed: unexpected key present with value undefined",
+    "input optional undefined [mismatch] $.x: unexpected key present with value undefined",
+    "string as player name: lone high surrogate [mismatch] $.state.players[0].name: \"���\" (U+FFFD U+FFFD U+FFFD) vs expected \"\\ud800\" (U+D800)",
+    "string as player name: lone low surrogate in text [mismatch] $.state.players[0].name: \"a���b\" (U+0061 U+FFFD U+FFFD U+FFFD U+0062) vs expected \"a\\udc00b\" (U+0061 U+DC00 U+0062)",
+    "string as player name: reversed pair [mismatch] $.state.players[0].name: \"������\" (U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD) vs expected \"\\ude00\\ud83d\" (U+DE00 U+D83D)",
+    "string as ping token: lone high surrogate [mismatch] $.token: \"���\" (U+FFFD U+FFFD U+FFFD) vs expected \"\\ud800\" (U+D800)",
+    "string as ping token: lone low surrogate in text [mismatch] $.token: \"a���b\" (U+0061 U+FFFD U+FFFD U+FFFD U+0062) vs expected \"a\\udc00b\" (U+0061 U+DC00 U+0062)",
+    "string as ping token: reversed pair [mismatch] $.token: \"������\" (U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD U+FFFD) vs expected \"\\ude00\\ud83d\" (U+DE00 U+D83D)",
+    "string as body id (id type, lone surrogate) [mismatch] $.state.bodies.all[0].id: \"a���\" (U+0061 U+FFFD U+FFFD U+FFFD) vs expected \"a\\ud800\" (U+0061 U+D800)",
+    "reserves map with __proto__ and constructor [mismatch] $.state.players[0].reserves.__proto__: missing, expected 1",
+    "reserves map key with lone surrogate and empty key [mismatch] $.state.players[0].reserves.\ud800: missing, expected 2",
+    "reserves map with undefined value [mismatch] $.state.players[0].reserves.b: unexpected key present with value undefined"
+   ]
+  },
+  "malformed": {
+   "samples": [
+    2006,
+    1700,
+    1563,
+    790,
+    6326,
+    1805,
+    6326,
+    717,
+    40,
+    60
+   ],
+   "truncation": {
+    "cases": 16681,
+    "threw": 16681,
+    "returned": 0,
+    "maxMs": 0.637,
+    "nonError": 0,
+    "errors": {
+     "RangeError: unknown format": 10,
+     "RangeError: unsupported version": 10,
+     "RangeError: unknown message type": 8,
+     "Error: Unexpected end of MessagePack data": 12804,
+     "Error: Unknown extension undefined": 33,
+     "RangeError: Offset is outside the bounds of the DataView": 3816
+    },
+    "firstReturned": []
+   },
+   "trailingByte": {
+    "cases": 10,
+    "threw": 10,
+    "returned": 0,
+    "maxMs": 0.195,
+    "nonError": 0,
+    "errors": {
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"versio": 8,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":\"abc\",\"rt": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seq\":3,\"x\":1,\"y": 1
+    },
+    "firstReturned": []
+   },
+   "header": {
+    "wrongFormat": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.014,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unknown format": 10
+     },
+     "firstReturned": []
+    },
+    "wrongVersion": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.008,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unsupported version": 10
+     },
+     "firstReturned": []
+    },
+    "unknownMessageId": {
+     "cases": 10,
+     "threw": 10,
+     "returned": 0,
+     "maxMs": 0.007,
+     "nonError": 0,
+     "errors": {
+      "RangeError: unknown message type": 10
+     },
+     "firstReturned": []
+    }
+   },
+   "corruption": {
+    "cases": 2000,
+    "threw": 992,
+    "returnedDifferent": 1003,
+    "returnedIdentical": 5,
+    "nonError": 0,
+    "maxMs": 0.434,
+    "errors": {
+     "Error: Unexpected end of MessagePack data": 253,
+     "RangeError: unknown format": 30,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"versio": 342,
+     "RangeError: message type mismatch": 98,
+     "TypeError: read(...).map is not a function": 19,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"119\":107,\"t2pe\":111}": 1,
+     "Error: Unknown extension 96": 1,
+     "Error: Data read, but end of buffer not reached {\"111\":110,\"116\":101,\"type�\":107": 1,
+     "Error: Invalid property type for record: object. A MessagePack map with non-stri": 57,
+     "RangeError: unknown message type": 22,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"to1en\":\"abc\",\"rt": 1,
+     "Error: Data read, but end of buffer not reached {\"121\":-1,\"typ.\":\"moveSlot\",\"seq": 1,
+     "Error: Unknown extension type 99": 2,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seq\":3,\"x\":1,\"�": 1,
+     "Error: Data read, but end of buffer not reached {\"25\":116,\"type\":114,\"token\":116": 1,
+     "Error: Data read, but end of buffer not reached {\"61\":116,\"typP\":114,\"token\":116": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"101\":\"": 4,
+     "RangeError: unsupported version": 25,
+     "Error: Unknown extension 218": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seO\":3,\"x\":1,\"y": 1,
+     "Error: Data read, but end of buffer not reached {\"61\":1,\"121\":-1,\"type\":\"moveSlo": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"pi�g\",\"tokpn\":-7,\"rtt\":": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"89\":{\"": 1,
+     "Error: Data read, but end of buffer not reached {\"120\":1,\"type\":\"moveSlot\",\"seq\"": 1,
+     "Error: Unknown extension 55": 1,
+     "Error: Unknown extension 90": 1,
+     "Error: Data read, but end of buffer not reached {\"114\":88}": 1,
+     "Error: Unknown extension 16": 1,
+     "Error: Data read, but end of buffer not reached {\"32\":107,\"116\":101,\"�ype\":111}": 1,
+     "Error: Unknown extension 4": 1,
+     "Error: Data read, but end of buffer not reached {\"29\":112,\"116\":101,\"121\":\"token": 1,
+     "Error: Unknown extension 164": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"input\",\"seq\":3,\"x\":1,\"y": 3,
+     "Error: Data read, but end of buffer not reached {\"97\":\"m�veSlot\",\"123\":107,\"type": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":97,\"rtt\":": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"ver�io": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"100\":8": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"pin�\",\"token\":-32,\"rtt\"": 1,
+     "Error: Data read, but end of buffer not reached {\"23\":116,\"type\":114,\"token\":116": 1,
+     "Error: Data read, but end of buffer not reached {\"26\":\"attack\",\"101\":\"input\",\"11": 1,
+     "Error: Unknown extension 239": 1,
+     "Error: Unknown extension type 219": 2,
+     "Error: Unknown extension 119": 1,
+     "Error: Unknown extension 58": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"112\":\"": 2,
+     "Error: Data read, but end of buffer not reached {\"51\":62,\"116\":101,\"type\":111}": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"121\":\"toke \",\"126\":1": 1,
+     "Error: Unknown extension 35": 1,
+     "Error: Unknown extension 172": 1,
+     "Error: Data read, but end of buffer not reached {\"62\":3,\"120\":1,\"type\":\"moveSlot": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":109,\"seq\":111,\"x\":118,\"y": 1,
+     "Error: Unknown extension 131": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":\"abc\",\"rt": 1,
+     "Error: Unknown extension 194": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"126\":107,\"type\":111}": 1,
+     "Error: Unknown extension 171": 1,
+     "Error: Unknown extension 125": 1,
+     "SyntaxError: Invalid flags supplied to RegExp constructor 'p'": 1,
+     "Error: Data read, but end of buffer not reached -29": 1,
+     "Error: Data read, but end of buffer not reached 19": 1,
+     "Error: Data read, but end of buffer not reached 95": 1,
+     "Error: Data read, but end of buffer not reached 120": 1,
+     "Error: Unknown extension type 6": 1,
+     "Error: Unknown extension type 166": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":97,\"st\":116}": 1,
+     "Error: Data read, but end of buffer not reached {\"90\":\"x\",\"101\":\"input\",\"103\":\"y": 1,
+     "Error: Data read, but end of buffer not reached {\"120\":\"input\",\"typ\\u0000\":109,\"": 1,
+     "Error: Data read, but end of buffer not reached {\"59\":116,\"type\":114,\"toke�\":116": 1,
+     "Error: Data read, but end of buffer not reached {\"60\":105,\"120\":110,\"typu\":\"m�ve": 1,
+     "Error: Unknown extension 138": 1,
+     "Error: Data read, but end of buffer not reached \"rX��type�tok\"": 1,
+     "Error: Unknown extension 100": 1,
+     "Error: Unknown extension 245": 1,
+     "Error: Unknown extension 84": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"\\u0000tate\":{\"v": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"18\":\"p": 1,
+     "Error: Data read, but end of buffer not reached {\"44\":\"atta\\u0012k\",\"101\":\"input": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"51\":\"b": 1,
+     "Error: Unknown extension 2": 1,
+     "Error: Data read, but end of buffer not reached 20": 1,
+     "Error: Data read, but end of buffer not reached 5": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":112,\"125\":121}": 1,
+     "Error: Data read, but end of buffer not reached {\"2\":114,\"type\":\"input\",\"seq\":3,": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"98\":\"l": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"v�rsio": 1,
+     "Error: Unknown extension 140": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"121\":t": 1,
+     "Error: Unknown extension 15": 1,
+     "Error: Data read, but end of buffer not reached {\"33\":\"x\",\"101\":\"input\",\"112\":\"m": 1,
+     "Error: Unknown extension 47": 1,
+     "Error: Data read, but end of buffer not reached 49": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":115,\"true\":116}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"st�te\",\"state\":{\"versio": 1,
+     "Error: Unknown extension type 1": 1,
+     "Error: Data read, but end of buffer not reached {\"ttpe\":\"ping\",\"token\":97,\"rtt\":": 1,
+     "Error: Data read, but end of buffer not reached {\"20\":3,\"120\":1,\"type\":\"moveSlot": 1,
+     "Error: Data read, but end of buffer not reached {\"�ype\":\"state\",\"state\":{\"versio": 1,
+     "Error: Data read, but end of buffer not reached 32": 2,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"45\":\"p": 1,
+     "Error: Data read, but end of buffer not reached {\"100\":3,\"120\":1,\"type\":\"moveSlo": 1,
+     "Error: Data read, but end of buffer not reached {\"9\":107,\"116\":101,\"type\":111}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":null,\"token\":112,\"rtt\":1": 1,
+     "Error: Data read, but end of buffer not reached {\"2\":112,\"116\":101,\"121\":\"token\"": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":22}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"ktate\":{\"28\":{\"": 1,
+     "Error: Data read, but end of buffer not reached 14": 1,
+     "Error: Data read, but end of buffer not reached {\"ty�e\":-31,\"seq\":105,\"x\":110,\"y": 1,
+     "Error: Unknown extension 24": 1,
+     "Error: Data read, but end of buffer not reached {\"34\":107,\"116\":101,\"type\":111}": 1,
+     "Error: Unknown extension 83": 1,
+     "Error: Unknown extension 243": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"105\":\"": 1,
+     "Error: Unknown extension type 162": 1,
+     "Error: Unknown extension type 119": 1,
+     "Error: Unknown extension 217": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"vers�o": 1,
+     "Error: Data read, but end of buffer not reached {\"97\":\"moveSlot\",\"type\":116,\"seq": 1,
+     "Error: Data read, but end of buffer not reached {\"101\":\"input\",\"112\":\"moveSlot\",": 1,
+     "Error: Data read, but end of buffer not reached {\"100\":116,\"type\":114,\"token\":11": 1,
+     "RangeError: Offset is outside the bounds of the DataView": 2,
+     "Error: Data read, but end of buffer not reached 27": 1,
+     "Error: Unknown extension type 114": 1,
+     "Error: Data read, but end of buffer not reached {\"19\":116,\"type\":115}": 1,
+     "Error: Data read, but end of buffer not reached 53": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":15,\"state\":115}": 1,
+     "Error: Unknown extension type 17": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":112,\"-30\":121}": 1,
+     "Error: Data read, but end of buffer not reached {\"8\":-1,\"type\":109,\"�eq\":111,\"x\"": 1,
+     "Error: Unknown extension 184": 1,
+     "Error: Unknown extension 130": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state�rY��versio\",\"stat": 1,
+     "Error: Unknown extension 225": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"stat\\f\",\"state\":{\"versi": 1,
+     "Error: Data read, but end of buffer not reached 56": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"ping\",\"token\":\"��c\",\"rt": 1,
+     "Error: Data read, but end of buffer not reached {\"102\":107,\"116\":-6,\"type\":111}": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"state\":{\"99\":\"l": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"inp�t\",\"seq\":3,\"x\":1,\"y": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":29,\"token\":112,\"rtt\":105": 1,
+     "Error: Unknown extension 203": 1,
+     "Error: Data read, but end of buffer not reached \"rX\"": 1,
+     "Error: Data read, but end of buffer not reached {\"type\":\"state\",\"\\ftate\":{\"versi": 1,
+     "Error: Data read, but end of buffer not reached {\"116\":101,\"121\":\"token\",\"-14\":1": 1,
+     "Error: Unknown extension 173": 1
+    }
+   },
+   "crafted": [
+    {
+     "name": "array32 length 0xffffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.021,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "array32 length 0xffffffff with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.017,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "array32 length 100000000 with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.015,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "str32 length 0x7fffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.014,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "str32 length 0xffffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.013,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "map32 length 0xffffffff, no payload",
+     "bytes": 8,
+     "outcome": "threw",
+     "ms": 0.015,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "map32 length 100000000 with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.016,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "bin32 length 0x7fffffff with 16 bytes",
+     "bytes": 24,
+     "outcome": "threw",
+     "ms": 0.014,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "ext32 length 0x7fffffff, type 0x72",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.014,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "ext32 length 0xffffffff, type 1",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.013,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "uint64 0xffffffffffffffff",
+     "bytes": 12,
+     "outcome": "threw",
+     "ms": 0.007,
+     "error": "RangeError: message type mismatch"
+    },
+    {
+     "name": "fixext1 record ref to undefined structure 0x40",
+     "bytes": 6,
+     "outcome": "threw",
+     "ms": 0.017,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "fixext1 record ref to undefined structure 0x20 (shared range)",
+     "bytes": 6,
+     "outcome": "threw",
+     "ms": 0.016,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "ext8 record definition, 255 keys, truncated",
+     "bytes": 27,
+     "outcome": "threw",
+     "ms": 0.013,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "100000 nested one-element arrays then nil",
+     "bytes": 100004,
+     "outcome": "threw",
+     "ms": 0.543,
+     "error": "RangeError: Maximum call stack size exceeded"
+    },
+    {
+     "name": "30000 nested single-key maps then nil",
+     "bytes": 90004,
+     "outcome": "threw",
+     "ms": 0.977,
+     "error": "RangeError: Maximum call stack size exceeded"
+    },
+    {
+     "name": "header only",
+     "bytes": 3,
+     "outcome": "threw",
+     "ms": 0.025,
+     "error": "Error: Unexpected end of MessagePack data"
+    },
+    {
+     "name": "empty input",
+     "bytes": 0,
+     "outcome": "threw",
+     "ms": 0.01,
+     "error": "RangeError: unknown format"
+    },
+    {
+     "name": "1 MiB + 1 bytes (expect refusal by size)",
+     "bytes": 1048577,
+     "outcome": "threw",
+     "ms": 0.009,
+     "error": "RangeError: message too large"
+    }
+   ],
+   "maxMs": 0.977
+  }
+ },
+ "seconds": 2.5
+}
