@@ -1,9 +1,9 @@
 # 24. Networking and privacy
 
-Proposed binary encoding and field precision (#1093) are in
+Accepted encoding direction and candidate field precision (#1093) are in
 [24.1](24.1-wire-encoding-design.md), with measurements in
-[42.47](42.47-wire-encoding.md). These are a design for review; the live protocol
-below remains JSON.
+[42.47](42.47-wire-encoding.md). Backend selection and live adoption remain future
+work; the live protocol below remains JSON.
 
 The rules this mechanism enforces are in [15](15-information-rules.md).
 
