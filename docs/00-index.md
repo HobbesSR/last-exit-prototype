@@ -126,6 +126,15 @@ existed.
 | [56.1-roofs.md](56.1-roofs.md) | Declared roofs: cell-grid geometry, relationship to Building, invariant sight rules, versioning (#292) |
 | [56.2-ground-decals.md](56.2-ground-decals.md) | Ground decals at outside doors and windows: the primitive, derivation, themes, drawing (#293) |
 
+## References
+
+Reference material informs decisions but creates no requirements ([33](33-maintenance.md#where-a-fact-belongs)).
+A requirement drawn from one is recorded, with its evidence, in its owning numbered document.
+
+| File | What it is |
+| --- | --- |
+| [references/door-primer.md](references/door-primer.md) | DOOR: data-oriented, object-oriented and relational techniques used together; Corey's architectural primer and agent guidance (2026-11-16), untested theory to move toward where justified |
+
 ## Other places facts live
 
 `AGENTS.md` at the repository root carries session start rules and project
