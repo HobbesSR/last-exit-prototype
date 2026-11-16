@@ -120,10 +120,13 @@ try {
   // Real pointer gestures travel through the client, wire validation and fixed tick.
   const inventoryGame = server.rooms.get(ownerRoom).game;
   const inventoryPlayer = inventoryGame.players.find(p => p.id === ownerPlayer);
-  // As in the touch fixture below, keep other players from collecting the dropped weapon before the browser
-  // observes its authoritative ground record: stopped, they spend no input, and the engine collects only on one.
-  const inventoryOthers = inventoryGame.players.filter(p => p.id !== inventoryPlayer.id).map(player => ({ player, bot: player.bot }));
-  for (const { player } of inventoryOthers) { player.bot = false; player.input = {}; }
+  // Neutral input still collects nearby loot. Park other actors at a distant authored spawn while
+  // the browser observes the drop, then restore their positions and bot control.
+  const awayFrom = (game, player) => [...game.map.spawns, ...game.map.hunterSpawns]
+    .sort((a, b) => Math.hypot(b.x - player.x, b.y - player.y) - Math.hypot(a.x - player.x, a.y - player.y))[0];
+  const inventoryOthers = inventoryGame.players.filter(p => p.id !== inventoryPlayer.id)
+    .map(player => ({ player, bot: player.bot, x: player.x, y: player.y }));
+  for (const { player } of inventoryOthers) { player.bot = false; player.input = {}; Object.assign(player, awayFrom(inventoryGame, inventoryPlayer)); }
   inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: 'browser-rifle' };
   inventoryPlayer.selectedSlot = 0;
   await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7);
@@ -143,12 +146,11 @@ try {
   const arenaBox = await page.locator('#game canvas').boundingBox();
   await dragInventory(4, { x: arenaBox.x + arenaBox.width / 2, y: arenaBox.y + arenaBox.height / 2 });
   await page.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  // The ground record can be admitted a tick after the slot empties (pending physical admission), so wait for it.
-  const droppedRifle = () => server.rooms.get(ownerRoom).game.map.items.find(item => item.droppedBy === ownerPlayer && item.weaponType === 'rifle');
+  const droppedRifle = () => server.rooms.get(ownerRoom).game.map.items.find(item => item.id === 'browser-rifle' && item.droppedBy === ownerPlayer);
   for (let waited = 0; !droppedRifle() && waited < 2000; waited += 50) await page.waitForTimeout(50);
   assert.equal(droppedRifle()?.ammo, 7, 'world drag drops the unselected source with its ammunition');
   // Live guest admission below needs its replaceable bot slots back.
-  for (const { player, bot } of inventoryOthers) player.bot = bot;
+  for (const { player, bot, x, y } of inventoryOthers) Object.assign(player, { bot, x, y });
   await page.screenshot({ path: 'test-results/desktop.png' });
   
   await page.waitForTimeout(200);
@@ -596,9 +598,10 @@ try {
   const mobileInfo = await mobile.evaluate(() => window.arenaDebug());
   const mobileGame = server.rooms.get(mobileInfo.room).game;
   const mobilePlayer = mobileGame.players.find(p => p.id === mobileInfo.me.id);
-  // Inventory gestures need the dropped item to survive until the assertion;
-  // nearby bots can otherwise collect it within the same server tick, so they stop.
-  for (const other of mobileGame.players) if (other.id !== mobilePlayer.id) { other.bot = false; other.input = {}; }
+  // As on desktop, keep automatic pickups away from the drop throughout these gestures.
+  for (const other of mobileGame.players) if (other.id !== mobilePlayer.id) {
+    other.bot = false; other.input = {}; Object.assign(other, awayFrom(mobileGame, mobilePlayer));
+  }
   mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: 'browser-mobile-rifle' };
   mobilePlayer.inventory[4] = null;
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7 && !window.arenaDebug().me.inventory[4]);
@@ -621,7 +624,7 @@ try {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [worldTouch] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.droppedBy === mobilePlayer.id && item.weaponType === 'rifle')?.ammo, 7, 'touch world drag preserves source ammo');
+  assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.id === 'browser-mobile-rifle' && item.droppedBy === mobilePlayer.id)?.ammo, 7, 'touch world drag preserves source ammo');
   // Fixed-coordinate sight and projectile probes stand on the geometry scene; the normal rooms above and the
   // spectator below exercise the live chain map.
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: SCENE.geometry }) })).json();

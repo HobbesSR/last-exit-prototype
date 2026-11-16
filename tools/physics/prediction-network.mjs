@@ -46,8 +46,8 @@ const profiles = [
   { name: 'reconnect', rtt: 100, reconnect: true },
   { name: 'hidden-contact', rtt: 50, hidden: true },
   { name: 'stale-known-door', rtt: 50, staleDoor: true },
-  // Named for the arrival-order queue it once trimmed; inputs are stamped now (#1096), so the burst is
-  // buffered by tick and the client's clock steps back over it.
+  // Named for the arrival-order queue it once trimmed; stamped inputs now exercise supersession
+  // with one explicit backward stamp in the burst, followed by the existing delivery stall.
   { name: 'queue-trim-and-repeats', rtt: 100, burst: true, stall: true },
 ];
 
@@ -128,11 +128,12 @@ async function run(profile, variant = null) {
       : lastDownAt = Math.max(proposed, lastDownAt + 0.001);
     enqueue(at, priority, () => { if (sentEpoch === connectionEpoch) run(); });
   };
-  const input = (tick, burst = false) => {
+  const input = (tick, burst = false, stepBack = false) => {
     // Like the client, nothing is sent before a delivered frame has shown where the server's ticks are.
     const stamp = inputClock.stamp(now, profile.rtt);
     if (stamp === null) return;
-    const fields = { seq: seq++, tick: stamp, ...(profile.input ? profile.input(tick) : { x: tick < 50 ? 1 : tick < 60 ? -1 : 0, y: 0 }), sneak: false };
+    // Inject a bounded clock step-back for this profile; normal stamps still come from the real clock.
+    const fields = { seq: seq++, tick: stamp - (stepBack ? 3 : 0), ...(profile.input ? profile.input(tick) : { x: tick < 50 ? 1 : tick < 60 ? -1 : 0, y: 0 }), sneak: false };
     const bytes = Buffer.byteLength(JSON.stringify(fields)); inputBytes += bytes;
     const begin = process.hrtime.bigint(); predictor.input(fields);
     inputCpu.push(Number(process.hrtime.bigint() - begin) / 1e6);
@@ -194,7 +195,7 @@ async function run(profile, variant = null) {
       enqueue(at, 0, () => {
         if (profile.background && tick >= 23 && tick <= 38) return;
         if (profile.reconnect && tick >= 28 && tick <= 35) return;
-        if (profile.burst && tick === 20) for (let i = 0; i < 10; i++) input(tick, true);
+        if (profile.burst && tick === 20) for (let i = 0; i < 10; i++) input(tick, true, i === 9);
         else input(tick);
       });
       enqueue(at, 2, () => {
