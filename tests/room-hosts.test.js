@@ -10,6 +10,8 @@ import { CLOSE_REASON, MAX_BUFFERED_BYTES } from '../server/protocol.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { readArchive } from './helpers/recordings.js';
+import { profileFields } from '../server/http-api.js';
+import { profileResponse } from '../shared/protocol.ts';
 
 // The room lifecycle (room.js) run on both hosts of it: every room in this thread, and each on its own
 // worker thread (#1089), through the same scenarios. Maps are the pregenerated arena, never generated here.
@@ -196,10 +198,13 @@ test('both hosts record the same frames for the same map and seed', async () => 
     } finally { await h.finish(); }
   }
   const [a, b] = [runs.false, runs.true];
-  const shared = [...a.recorded.keys()].filter(tick => b.recorded.has(tick));
-  assert.ok(shared.some(tick => tick >= 40), 'the archives overlap past tick 40');
+  // `finish` follows a real-time wait, so each run ends at its own tick; compare only what precedes both ends.
+  const end = Math.min(...[a, b].map(run => Math.min(...[...run.recorded].filter(([, s]) => s.phase !== 'live').map(([tick]) => tick))));
+  const shared = [...a.recorded.keys()].filter(tick => b.recorded.has(tick) && tick < end);
+  // `finish` was sent only after tick 40 was seen live, so both archives are live through tick 39.
+  assert.ok(end >= 40 && shared.includes(end - 1), 'the archives overlap up to the earlier finish');
   for (const tick of shared) assert.deepEqual(b.recorded.get(tick), a.recorded.get(tick), `archived tick ${tick}`);
-  const seenBoth = [...a.seen.keys()].filter(tick => b.seen.has(tick));
+  const seenBoth = [...a.seen.keys()].filter(tick => b.seen.has(tick) && tick < end);
   assert.ok(seenBoth.length > 0, 'the dev watchers share a tick');
   for (const tick of seenBoth) assert.deepEqual(b.seen.get(tick), a.seen.get(tick), `dev frame at tick ${tick}`);
 });
@@ -242,4 +247,30 @@ test('a socket that drains after blocking state frames gets them again with no o
     await until(() => states.length > blockedAt, 'state frames once the socket drains');
     assert.deepEqual(h.errors, []);
   } finally { await h.finish(); }
+});
+
+test('the profile endpoint reports each threaded room\'s own series (#1115)', async () => {
+  const h = await host(true);
+  try {
+    // Profiling on before the room exists, so its thread also records preparation.
+    h.service.setProfiling(true);
+    const room = h.service.makeRoom(9, false, undefined, generatedMap(9));
+    const owner = h.join(room, { ownerKey: room.ownerKey, name: 'Owner' });
+    await room.ready;
+    await until(() => owner.has('welcome'), 'welcome');
+    owner.send({ type: 'start' });
+    await until(() => owner.frames.filter(f => f.phase === 'live').length >= 5, 'live frames');
+
+    const payload = profileResponse(await profileFields(h.service));
+    assert.equal(payload.roomProfiles.length, 1);
+    const [own] = payload.roomProfiles, names = new Set(own.series.map(s => s.name));
+    assert.equal(own.id, room.id);
+    assert.ok(own.frames > 0 && names.has('loop.tick') && names.has('sim.tickPacing') && names.has('prepare.staticsStep'), [...names].join());
+    assert.ok(own.effectiveHz > 0 && payload.effectiveHz > 0, 'pacing from the room thread');
+    assert.ok(!payload.series.some(s => s.name === 'sim.tickPacing'), 'the host thread paces no room itself');
+
+    await h.service.close();
+    assert.deepEqual(await h.service.roomProfiles(), [], 'a closed room reports nothing');
+    assert.deepEqual(h.errors, []);
+  } finally { h.service.setProfiling(false); await h.finish(); }
 });
