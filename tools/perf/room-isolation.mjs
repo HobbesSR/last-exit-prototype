@@ -9,10 +9,12 @@
 //   node tools/perf/room-isolation.mjs --size=36x18 --host=threads --pairs=3 --maps-cache=test-results/iso-36.bin --out=test-results/iso-36-threads.json
 // --host=inline runs both rooms on the host thread (the pre-#1089 shape) for the comparison.
 // --profile (threads only, #1119) turns profiling on and reads each room thread's own series (#1115) per
-// window: preparation (to ready), tick 1 (from just before start until the room has simulated a tick), the
-// early window (A: the settle period; B: the tail), and A's steady and startup windows. A thread's series are
-// reset between windows, so each window's maxima are its own. Profiling adds work, so isolation figures
-// should come from a run without it.
+// window: preparation (to ready), tick 1 (from just before start until the room has simulated a tick), each
+// room's early window (its first 10 s after tick 1; A's settle period is stretched to cover it), and A's
+// steady and startup windows. A thread's series are reset between windows, so each window's maxima are its
+// own. The profiler keeps 600 samples per series and the room's loop banks a frame per wake (about 70-80 a
+// second), so a long window is read in chunks and merged; a chunk that overflowed fails the run. Profiling
+// adds work, so isolation figures should come from a run without it.
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -40,6 +42,8 @@ if (!['threads', 'inline'].includes(host)) throw new RangeError('--host is threa
 const seed = Number(args.get('seed') ?? 4217), pairs = Number(args.get('pairs') ?? 3);
 const steadyMs = Number(args.get('steady-ms') ?? 3000), settleMs = Number(args.get('settle-ms') ?? 2000), tailMs = 1500;
 const profile = args.has('profile');
+// Each room's early window, and the most a profiled window may span before it is read (well under 600 wakes).
+const EARLY_MS = 10000, CHUNK_MS = 2000, RETAINED = 600;
 if (profile && host !== 'threads') throw new RangeError('--profile reads room threads; use --host=threads');
 
 // A packed map is consumed by its transfer, so each room is given its own copy of the bytes.
@@ -96,17 +100,48 @@ const stats = gaps => {
 };
 const cpuMs = usage => (usage.user + usage.system) / 1000;
 
-// One room thread's series for a window, then cleared so the next window starts empty (enable(false) resets).
-async function takeWindow(room) {
+// Clears a room thread's series (enable(false) resets them), so the next window starts empty.
+const resetWindow = room => { room.setProfiling(false); room.setProfiling(true); };
+async function readWindow(room) {
   const answer = await room.profile(5000);
   if (!answer) throw new Error(`room ${room.id} did not answer its profile request`);
-  room.setProfiling(false); room.setProfiling(true);
+  if (answer.frames > RETAINED) throw new Error(`room ${room.id}: a window of ${answer.frames} frames overflowed the profiler's ${RETAINED} retained samples`);
   return answer;
+}
+// One room thread's series for a window, then cleared.
+async function takeWindow(room) {
+  const answer = await readWindow(room);
+  resetWindow(room);
+  return answer;
+}
+// Windows read one after another, as one: sums of samples and events, sample-weighted means, the largest
+// maximum. Percentiles cannot be merged, so they are left out.
+function mergeWindows(answers) {
+  const rows = new Map();
+  for (const answer of answers) for (const r of answer.series) {
+    const m = rows.get(r.name);
+    if (!m) { rows.set(r.name, { ...r, p50: null, p95: null }); continue; }
+    const n = m.samples + r.samples, weigh = (x, y) => n ? (x * m.samples + y * r.samples) / n : 0;
+    m.mean = weigh(m.mean, r.mean);
+    m.calls = r.scope === 'event' ? m.calls + r.calls : weigh(m.calls, r.calls);
+    m.max = Math.max(m.max, r.max);
+    m.samples = n;
+  }
+  return { frames: answers.reduce((sum, answer) => sum + answer.frames, 0), windows: answers.length, series: [...rows.values()] };
+}
+// Watches a room for `ms`, reading its series every CHUNK_MS so none overflows.
+async function watchWindow(room, ms) {
+  const chunks = [];
+  for (const end = performance.now() + ms; performance.now() < end;) {
+    await sleep(Math.min(CHUNK_MS, end - performance.now()));
+    chunks.push(await takeWindow(room));
+  }
+  return chunks;
 }
 const row = (answer, name) => answer.series.find(r => r.name === name);
 // The few figures a reader compares; the full rows stay in the --out file.
 function condense(answer) {
-  const out = { frames: answer.frames }, steps = row(answer, 'loop.simSteps');
+  const out = { frames: answer.frames, ...(answer.windows ? { windows: answer.windows } : {}) }, steps = row(answer, 'loop.simSteps');
   if (steps) out.simSteps = Math.round(steps.mean * steps.samples);
   for (const name of ['loop.tick', 'sim.solve', 'loop.record', 'loop.broadcast']) {
     const r = row(answer, name);
@@ -122,9 +157,9 @@ function condense(answer) {
 // tick before the answer, which `simSteps` shows.
 async function tickOneWindow(room) {
   for (const deadline = performance.now() + 10000; performance.now() < deadline; await sleep(10)) {
-    const answer = await room.profile(5000);
-    const steps = answer && row(answer, 'loop.simSteps');
-    if (steps && steps.mean * steps.samples >= 1) return takeWindow(room);
+    const answer = await readWindow(room);
+    const steps = row(answer, 'loop.simSteps');
+    if (steps && steps.mean * steps.samples >= 1) { resetWindow(room); return answer; }
   }
   throw new Error(`room ${room.id} simulated no tick within 10 s of starting`);
 }
@@ -150,9 +185,11 @@ async function runPair(index, [mapA, mapB]) {
     const viewerA = await clients.rpc('join', { url, room: a.id, ownerKey: a.ownerKey, record: true });
     if (profile) await takeWindow(thread(a));
     await clients.rpc('start', { clientId: viewerA });
-    if (profile) profiles.A.tick1 = await tickOneWindow(thread(a));
-    await sleep(settleMs);
-    if (profile) profiles.A.early = await takeWindow(thread(a));
+    if (profile) {
+      profiles.A.tick1 = await tickOneWindow(thread(a));
+      // The settle period is at least A's early window.
+      profiles.A.early = mergeWindows(await watchWindow(thread(a), Math.max(settleMs, EARLY_MS)));
+    } else await sleep(settleMs);
     const steadyFrom = performance.now(), steadyCpu = process.cpuUsage();
     await sleep(steadyMs);
     const steadyTo = performance.now(), steady = { wallMs: steadyTo - steadyFrom, cpuMs: cpuMs(process.cpuUsage(steadyCpu)) };
@@ -166,10 +203,16 @@ async function runPair(index, [mapA, mapB]) {
     if (profile) await takeWindow(thread(b));
     await clients.rpc('start', { clientId: viewerB });
     const firstStateMs = performance.now() - startFrom;
-    if (profile) profiles.B.tick1 = await tickOneWindow(thread(b));
+    let bEarlyFrom;
+    if (profile) { profiles.B.tick1 = await tickOneWindow(thread(b)); bEarlyFrom = performance.now(); }
     await sleep(tailMs);
     const startTo = performance.now(), startup = { wallMs: startTo - startFrom, cpuMs: cpuMs(process.cpuUsage(startCpu)), readyMs, firstStateMs };
-    if (profile) [profiles.A.duringB, profiles.B.early] = await Promise.all([takeWindow(thread(a)), takeWindow(thread(b))]);
+    if (profile) {
+      const [duringB, bFirst] = await Promise.all([takeWindow(thread(a)), takeWindow(thread(b))]);
+      profiles.A.duringB = duringB;
+      // B's early window goes on past the startup window, to its own first 10 s; the timed windows are done.
+      profiles.B.early = mergeWindows([bFirst, ...await watchWindow(thread(b), EARLY_MS - (performance.now() - bEarlyFrom))]);
+    }
     stopScheduler();
     await service.close();
     await clients.close();
@@ -198,7 +241,7 @@ const lock = await acquireMachineLock('bench');
 try {
   const results = [];
   for (let i = 0; i < pairs; i++) results.push(await runPair(i, maps));
-  const result = { meta: { size: sizeName, host, seed, pairs, steadyMs, settleMs, tailMs, profile, node: process.version,
+  const result = { meta: { size: sizeName, host, seed, pairs, steadyMs, settleMs, tailMs, profile, ...(profile ? { earlyMs: EARLY_MS, chunkMs: CHUNK_MS } : {}), node: process.version,
     delivery: 'Room A dev viewer state receipts, parsed in a socket client worker',
     cpu: 'process.cpuUsage over the window: every thread, including the socket client worker' },
   contention: lock.contention(), results };

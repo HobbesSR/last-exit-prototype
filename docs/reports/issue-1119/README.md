@@ -8,13 +8,17 @@ Owning measurement: [42.22](../../42.22-tick-cost-attribution.md#room-startup-on
 
 ## Workloads
 
-- **Profiled.** `room-isolation.mjs --host=threads --pairs=3 --profile --settle-ms=10000`
-  at 12x6 and 36x18. Each size runs in one process. Each pair is a fresh room service
-  with two rooms: room A (seed 4217) and room B (seed 4218). Maps were generated once
-  before timing and handed over packed. Real loopback sockets, a real file archive
-  and one dev viewer per room.
+- **Profiled.** `room-isolation.mjs --host=threads --pairs=3 --profile` at 12x6 and
+  36x18. Each size runs in one process. Each pair is a fresh room service with two
+  rooms: room A (seed 4217) and room B (seed 4218). Maps were generated once before
+  timing and handed over packed. Real loopback sockets, a real file archive and one
+  dev viewer per room.
   - **Windows.** Each room's own series are read per window: preparation, tick 1,
-    and an early window. A's early window is its first 10 s; B's is the 1.5 s tail.
+    and its first 10 s after tick 1.
+  - **Chunked reads.** The profiler keeps 600 samples per series and a room's loop
+    banks one frame per wake (about 70–80 a second), so the 10 s windows are read
+    every 2 s and merged. Each early window holds all 200 ticks (`loop.simSteps`
+    equals `sim.tickPacing`'s count) in 5–7 chunks of at most about 170 frames.
   - **Cold room.** Only pair 0's room A is the first room thread in its process.
     B in pair 0, and both rooms in pairs 1 and 2, start in a process that has
     already run a room.
@@ -22,46 +26,54 @@ Owning measurement: [42.22](../../42.22-tick-cost-attribution.md#room-startup-on
   (2 s settle, 3 s steady), as in [42.46](../../42.46-room-threads.md).
 
 All runs were under the exclusive machine lock, with no contention. The other processes'
-busy share was 3.1–3.6 %. No run reported an error, and no recorder dropped a frame. Map
+busy share was 2.7–4.3 %. No run reported an error, and no recorder dropped a frame. Map
 cache SHA-256 values are in the summary.
+
+**A discarded first set.** The first profiled set read a 10 s early window in one piece. It
+overflowed the 600-sample retention, dropping A's first 1.3–2.4 s after tick 1 (review 847), and it
+observed B for only 1.5 s (review 849). Its early-window figures are withdrawn. Its preparation and
+tick 1 windows were within the retention and agree with the cold-process finding below. Every tick
+cost in it ran about 20–25 % higher than in this set, also uncontended; that difference was not
+traced. This set replaces it.
 
 ## Findings
 
 | 12x6, pair 0 / 1 / 2 | Room A | Room B |
 | --- | --- | --- |
-| Make/ready wall, ms | 673.5 / 600.9 / 597.1 | 628.5 / 623.3 / 613.5 |
-| `prepare.staticsStep`, ms | **40.3** / 2.5 / 2.6 | 2.9 / 2.5 / 2.6 |
-| Tick 1 `loop.tick` (ticks in window), ms | **31.6** (1) / 19.6 (1) / 19.0 (1) | 21.7 (1) / 21.0 (1) / 22.2 (1) |
-| Tick 1 `sim.solve`, ms | **10.5** / 3.4 / 3.4 | 3.7 / 3.7 / 3.7 |
-| Largest early tick, ms | 30.6 / 32.4 / 30.7 | 47.9 / 62.4 / 50.6 |
+| Make/ready wall, ms | 623.6 / 534.3 / 523.2 | 579.3 / 550.8 / 548.1 |
+| `prepare.staticsStep`, ms | **38.0** / 2.3 / 2.4 | 2.6 / 2.4 / 2.5 |
+| Tick 1 `loop.tick`, ms | **22.2** / 15.1 / 14.9 | 16.4 / 15.6 / 16.0 |
+| Tick 1 `sim.solve`, ms | **7.0** / 2.6 / 2.6 | 2.9 / 2.8 / 2.8 |
+| Largest tick in the first 10 s, ms | 28.9 / 27.8 / 27.7 | 38.2 / 34.5 / 36.1 |
 
 | 36x18, pair 0 / 1 / 2 | Room A | Room B |
 | --- | --- | --- |
-| Make/ready wall, ms | 1506.8 / 1310.7 / 1305.8 | 1401.8 / 1446.5 / 1424.6 |
-| `prepare.staticsStep`, ms | **66.0** / 21.0 / 20.9 | 24.8 / 23.7 / 24.2 |
-| Tick 1 `loop.tick` (ticks in window), ms | **60.0** (2) / 46.5 (2) / 45.0 (2) | 40.3 (2) / 44.1 (1) / 43.5 (2) |
-| Tick 1 `sim.solve`, ms | **8.9** / 5.7 / 5.5 | 6.5 / 6.2 / 6.2 |
-| Largest early tick, ms | 20.7 / 18.9 / 19.0 | 61.2 / 60.9 / 57.4 |
+| Make/ready wall, ms | 1304.6 / 1192.8 / 1170.2 | 1283.5 / 1274.2 / 1248.7 |
+| `prepare.staticsStep`, ms | **58.0** / 20.6 / 20.4 | 21.7 / 22.2 / 21.9 |
+| Tick 1 `loop.tick`, ms | **39.3** / 33.6 / 33.4 | 33.4 / 31.9 / 30.9 |
+| Tick 1 `sim.solve`, ms | **7.8** / 4.8 / 4.7 | 4.5 / 4.7 / 4.6 |
+| Largest tick in the first 10 s, ms | 34.9 / 33.2 / 33.1 | 44.0 / 43.2 / 43.7 |
 
-A's make/ready process CPU was 1265 / 766 / 766 ms at 12x6 and 2750 / 1938 / 1891 ms at 36x18.
+Each tick 1 window held one simulated tick. A's make/ready process CPU was 1062 / 671 / 719 ms at
+12x6 and 2313 / 1531 / 1969 ms at 36x18.
 
 1. **The cold cost is paid once per process, not once per thread.** Only the first room thread in a
-   process pays it: a statics step of 40 ms against 2.5–2.9 ms at 12x6, and 66 ms against 21–25 ms at 36x18.
-   It also pays more `sim.solve` in tick 1, and about 0.5 s (12x6) or 0.85 s (36x18) more make/ready
-   process CPU. Every later room thread starts warm, including the first room of pairs 1 and 2, whose
-   threads started after pair 0's had ended. The warm 36x18 statics step (21–25 ms) matches #1087's
-   second-match-in-process broad phase (19–20 ms of a 22–23 ms step). That fits V8 keeping compiled wasm
-   for the process. The mechanism was not verified.
-2. **Tick 1 is now mostly bots.** Tick 1 is 19–22 ms at 12x6 and 40–47 ms at 36x18 in a warm thread.
-   `sim.bots` is 5–7 ms and 14–22 ms of that, against 3.4–6.5 ms of `sim.solve`. Some 36x18 windows
-   held a catch-up tick as well; the count is in parentheses.
-3. **The largest early tick is first route planning, not startup.** In B's first 1.5 s every run had a
-   48–62 ms tick, at both sizes and in warm threads. `sim.bots.plan` was 40–54 ms of it. Room A's
-   first 10 s peaked at 19–32 ms, also bot planning. B is always seed 4218, so this is that seed's
-   first plans. 42.22's #867 section saw them at tick 13 (about 35 ms) and said each room's own tick
-   was under 50 ms. For seed 4218 it now is not.
-4. **The other room is not disturbed.** During B's startup, A's own `loop.tick` maximum was 9.2–17.2 ms,
-   against 8.8–15.9 ms in its steady window.
+   process pays it:
+   - a statics step of 38 ms against 2.3–2.6 ms at 12x6, and 58 ms against 20.4–22.2 ms at 36x18;
+   - more tick 1 `sim.solve` (7.0 against 2.6–2.9 ms, and 7.8 against 4.5–4.8 ms);
+   - about 0.35–0.8 s more make/ready process CPU at both sizes.
+
+   Every later room thread starts warm, including the first room of pairs 1 and 2, whose threads
+   started after pair 0's had ended. The warm 36x18 statics step (about 21 ms) matches #1087's
+   second-match-in-process broad phase (19–20 ms of a 22–23 ms step). That fits V8 keeping compiled
+   wasm for the process. The mechanism was not verified.
+2. **Tick 1 is mostly bots.** In a warm thread tick 1 is 15–16 ms at 12x6 and 31–34 ms at 36x18.
+   Within it, `sim.bots` is 4–5 ms and 11–15 ms, against 2.6–4.8 ms of `sim.solve`.
+3. **The largest tick in each room's first 10 s is route planning, not startup.** `sim.bots.plan` was
+   26–34 ms of the largest tick at 12x6 and 22–30 ms at 36x18. No run had a tick over 50 ms. Seed 4218
+   (B) plans more than seed 4217 (A).
+4. **The other room is not disturbed.** During B's startup, A's own `loop.tick` maximum was
+   5.7–6.4 ms at 12x6 (steady 6.1–10.1 ms) and 11.1–12.1 ms at 36x18 (steady 9.7–14.2 ms).
 
 ## Isolation re-run (36x18, unprofiled)
 
@@ -73,9 +85,11 @@ A's make/ready process CPU was 1265 / 766 / 766 ms at 12x6 and 2750 / 1938 / 189
 
 These are in the range of #1089's runs: startup maxima of 64–90 ms with at most one gap over 75 ms. B is
 ready about 0.2–0.25 s later than in #1089's runs (1198–1257 ms). #1088's earlier header accounts for
-about 140 ms of that; the rest was not traced. A recorded 164 frames and B 32, and neither dropped any.
+about 140 ms of that; the rest was not traced. The profiled set's B was ready in 1249–1284 ms. A recorded
+164 frames and B 32, and neither dropped any.
 
 ## Retained files
 
-- `summary.json.gz`: the three `--out` files, with every window's full series rows, plus the base commit
-  and the map cache digests.
+- `summary.json.gz`: the profiled `--out` files for both sizes and the isolation `--out` file, with every
+  window's full series rows (merged windows carry their chunk count), plus the base commit and the map
+  cache digests.
