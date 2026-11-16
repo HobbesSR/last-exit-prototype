@@ -23,7 +23,7 @@ import { adoptPackedTiles } from '../../shared/free-space.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { cliArgs } from '../../tests/helpers/args.js';
 import { collectKeys, createCodec } from './wire-codec-prototype.mjs';
-import { encodeDelta, applyDelta, quantizeFrame, ENVELOPE_KEYS } from './wire-1094-delta-format.mjs';
+import { encodeDelta, applyDelta, quantizeFrame, predictionDependency, ENVELOPE_KEYS } from './wire-1094-delta-format.mjs';
 
 setFlagsFromString('--expose-gc');
 const gc = runInNewContext('gc');
@@ -37,7 +37,7 @@ const hash = data => createHash('sha256').update(data).digest('hex');
 const DECLARATION_EXPORTS = ['shared/simulation/projection-contract.ts', 'shared/simulation/visibility.ts'];
 
 // 42.48's profiles unchanged (rtt ms, mean exponential jitter ms, independent loss), plus one bursty profile:
-// Gilbert-Elliott with 3% stationary loss and a mean burst of 4 packets, at typical's rtt and jitter.
+// Gilbert-Elliott over 50 ms send slots, 3% of slots lost with a mean outage of 4 slots, at typical's rtt and jitter.
 const PROFILES = [
   { name: 'lan', rtt: 4, jitter: 1, loss: 0 },
   { name: 'good', rtt: 40, jitter: 4, loss: 0.002 },
@@ -48,17 +48,26 @@ const PROFILES = [
 ];
 function rng(s) { let a = s >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const seedOf = (...parts) => parseInt(hash(parts.join('|')).slice(0, 8), 16) ^ seed;
-/** One direction of one connection: packet loss (independent or bursty) and one-way delay. */
+// A counter-based draw: one number per (stream, slot, packet, purpose), whatever else was drawn, so every candidate
+// meets the same network (review 863 on PR #1137: a shared sequential stream drifted with fragment counts).
+function draw(stream, n) {
+  let x = (stream ^ Math.imul(n, 0x9E3779B1)) >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B) >>> 0; x = Math.imul(x ^ (x >>> 13), 0xC2B2AE35) >>> 0;
+  return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+}
+/**
+ * One direction of one connection as a fixed trace. A slot is a 50 ms send time (a tick downstream, an input
+ * upstream); `packet` numbers the packets sent in that slot (fragments, segments). Bursty loss is a property of
+ * the slot: an outage loses every packet sent during it.
+ */
 function channel(profile, ...key) {
-  const r = rng(seedOf(profile.name, ...key)), stay = profile.burst ? 1 - 1 / profile.burst : 0;
-  const enter = profile.burst ? profile.loss * (1 - stay) / (1 - profile.loss) : 0;
-  let bad = false;
+  const stream = seedOf(profile.name, ...key), at = (slot, packet, purpose) => draw(stream, ((slot * 256 + packet) * 4 + purpose) >>> 0);
+  const stay = profile.burst ? 1 - 1 / profile.burst : 0, enter = profile.burst ? profile.loss * (1 - stay) / (1 - profile.loss) : 0;
+  const outage = [];
+  const bad = slot => { for (let i = outage.length; i <= slot; i++) outage.push((i && outage[i - 1]) ? at(i, 0, 3) < stay : at(i, 0, 3) < enter); return outage[slot]; };
   return {
-    lost() {
-      if (!profile.burst) return r() < profile.loss;
-      bad = bad ? r() < stay : r() < enter; return bad;
-    },
-    delay: () => profile.rtt / 2 - profile.jitter * Math.log(1 - r()),
+    lost: (slot, packet) => { assert.ok(packet < 256, 'packet index within a slot'); return profile.burst ? bad(slot) : at(slot, packet, 0) < profile.loss; },
+    delay: (slot, packet) => profile.rtt / 2 - profile.jitter * Math.log(1 - at(slot, packet, 1)),
     stall: () => Math.max(200, profile.rtt * 1.5),
   };
 }
@@ -135,6 +144,8 @@ try {
     S: (view, i) => fastCache(view, i, 'S', () => fast(frames[view][i])),
     Aq: (view, i) => fastCache(view, i, 'Aq', () => quantizeFrame(frames[view][i])),
     Sq: (view, i) => fastCache(view, i, 'Sq', () => quantizeFrame(forms.S(view, i))),
+    // Quantized except what prediction collides with: own state and every possible proxy stay exact (review 863).
+    Sp: (view, i) => fastCache(view, i, 'Sp', () => quantizeFrame(forms.S(view, i), predictionDependency(view))),
   };
   const formCache = new Map();
   function fastCache(view, i, form, make) {
@@ -158,18 +169,23 @@ try {
 
   // ---- Channels ----------------------------------------------------------------------------------------
   const fragments = bytes => bytes <= CAP ? 1 : Math.ceil(bytes / (CAP - FRAGMENT_HEADER));
-  /** A reliable ordered stream: a lost segment stalls its message and everything behind it. */
-  function reliable(profile, key, sends) {
-    const ch = channel(profile, key, 'reliable'); let last = -Infinity;
+  /**
+   * A reliable ordered stream: a lost segment stalls its message and everything behind it. It reads the socket's
+   * downstream trace, so today's stream and the datagrams meet the same losses; `first` offsets its packet numbers
+   * when it shares a slot with another stream of the same connection (S's reliable half).
+   */
+  function reliable(profile, key, sends, first = 0) {
+    const ch = channel(profile, key, 'down'); let last = -Infinity;
     return sends.map(({ at, bytes }) => {
-      let arrival = at + ch.delay();
-      for (let s = Math.ceil(bytes / SEGMENT); s > 0; s--) if (ch.lost()) { arrival += ch.stall(); break; }
+      const slot = Math.round(at / TICK_MS);
+      let arrival = at + ch.delay(slot, first);
+      for (let s = 0; s < Math.ceil(bytes / SEGMENT); s++) if (ch.lost(slot, first + s)) { arrival += ch.stall(); break; }
       return last = Math.max(arrival, last + 0.001);
     });
   }
   /** Datagrams with acknowledged baselines. Acks ride the client's 20 Hz input packets upstream. */
   function datagrams(profile, form, view, key = view) {
-    // One network realization per socket, shared by every datagram candidate, so the comparison is paired.
+    // The socket's fixed traces: every candidate meets the same losses and delays (channel above).
     const down = channel(profile, key, 'down'), up = channel(profile, key, 'up');
     const phase = rng(seedOf('phase', key))() * TICK_MS, received = [], pending = [], rows = [];
     let upIndex = 0, serverAck = -1, clientNewest = -1;
@@ -179,13 +195,13 @@ try {
       // Client input packets sent before now: each acknowledges the newest frame the client then held.
       for (let sendAt = phase + upIndex * TICK_MS; sendAt <= now; sendAt = phase + ++upIndex * TICK_MS) {
         for (let i = pending.length - 1; i >= 0; i--) if (pending[i].arrival <= sendAt) { clientNewest = Math.max(clientNewest, pending[i].t); pending.splice(i, 1); }
-        if (clientNewest >= 0 && !up.lost()) upstream.push({ arrival: sendAt + up.delay(), ack: clientNewest });
+        if (clientNewest >= 0 && !up.lost(upIndex, 0)) upstream.push({ arrival: sendAt + up.delay(upIndex, 0), ack: clientNewest });
       }
       for (let i = upstream.length - 1; i >= 0; i--) if (upstream[i].arrival <= now) { serverAck = Math.max(serverAck, upstream[i].ack); upstream.splice(i, 1); }
       const b = serverAck >= 0 && t - serverAck <= HISTORY ? serverAck : -1;
       const m = message(form, view, b, t), n = fragments(m.meter);
       let arrival = -Infinity;
-      for (let f = 0; f < n; f++) { if (down.lost()) { arrival = Infinity; } else arrival = Math.max(arrival, now + down.delay()); }
+      for (let f = 0; f < n; f++) { if (down.lost(t, f)) arrival = Infinity; else arrival = Math.max(arrival, now + down.delay(t, f)); }
       rows.push({ t, b, ...m, n, arrival });
       if (arrival < Infinity) { pending.push({ t, arrival }); received.push({ t, arrival }); }
     }
@@ -218,7 +234,7 @@ try {
       const st = staleness(arrivals.map((arrival, t) => ({ t, arrival })));
       r.ages.push(...st.ages); r.first.push(st.first); r.firstMessage.push({ meter: meterToday(view, 0), json: sizes[0], segments: Math.ceil(sizes[0] / SEGMENT) });
       for (let t = WARMUP; t <= lastIndex; t++) { r.reliable.push(sizes[t]); r.bytes.push(meterToday(view, t)); }
-      for (const form of ['A', 'Aq', 'S', 'Sq']) {
+      for (const form of ['A', 'Aq', 'S', 'Sq', 'Sp']) {
         const c = bucket(role[view], form), { rows, received } = datagrams(profile, form, view), st2 = staleness(received);
         c.ages.push(...st2.ages); c.first.push(st2.first); c.firstMessage.push({ meter: rows[0].meter, json: rows[0].json, fragments: rows[0].n });
         // Events are the last six (shared/simulation/loot.ts): one pushed out before any frame holding it arrives is never seen.
@@ -232,7 +248,7 @@ try {
         if (form[0] === 'S') {
           // Its reliable stream, and whether a body's item is held when that body's frame is.
           const msgs = slow[view].messages, msgBytes = msgs.map(m => meter(m.message));
-          const slowArrivals = reliable(profile, `${view}|slow`, msgs.map(m => ({ at: m.tick * TICK_MS, bytes: Buffer.byteLength(JSON.stringify(m.message)) })));
+          const slowArrivals = reliable(profile, view, msgs.map(m => ({ at: m.tick * TICK_MS, bytes: Buffer.byteLength(JSON.stringify(m.message)) })), 128);
           let steadyBytes = 0; msgs.forEach((m, i) => { if (m.tick >= WARMUP) steadyBytes += msgBytes[i]; });
           c.reliable.push(steadyBytes / (lastIndex - WARMUP + 1));
           let j = 0, held = -1;
@@ -318,7 +334,7 @@ try {
   for (const view of views) frames[view].length = 0;
   const heap = () => { gc(); gc(); return getHeapStatistics().used_heap_size; };
   const memory = { frames: HISTORY, views: views.length, playerViews: playerViews.length };
-  let quantizedWindow = window.map(list => list.map(quantizeFrame));
+  let quantizedWindow = window.map(list => list.map(frame => quantizeFrame(frame)));
   let h0 = heap(); quantizedWindow = null; let h1 = heap();
   memory.quantizedCopyBytes = h0 - h1;
   let held = window; h0 = heap(); held.length = 0; held = null; h1 = heap();

@@ -137,11 +137,20 @@ const quantizeFields = (record, scales) => {
   }
   return out;
 };
-/** A copy of a projected frame with 24.1's candidate fields in integer quanta. Unchanged records keep identity per call. */
-export function quantizeFrame(frame) {
+/**
+ * A copy of a projected frame with 24.1's candidate fields in integer quanta. Unchanged records keep identity per
+ * call. `exact(family, record)` keeps a record unrounded (its own correction state, collision proxies).
+ */
+export function quantizeFrame(frame, exact = () => false) {
   const out = { ...frame };
-  for (const [family, scales] of Object.entries(QUANTA)) if (Array.isArray(frame[family])) out[family] = frame[family].map(record => quantizeRecord(record, scales));
+  for (const [family, scales] of Object.entries(QUANTA)) if (Array.isArray(frame[family])) out[family] = frame[family].map(record => exact(family, record) ? record : quantizeRecord(record, scales));
   return out;
 }
+/**
+ * What client prediction reads as collision state (public/physics-prediction.js): the viewer's own player record,
+ * and every body without an item, since actors and solid props are proxy candidates and the own body is the actor.
+ */
+export const predictionDependency = viewer => (family, record) =>
+  (family === 'players' && record.id === viewer) || (family === 'bodies' && record.itemId === undefined);
 /** Message fields that are not part of the frame: used to train the meter's dictionary. */
 export const ENVELOPE_KEYS = ['t', 'b', 'h', 'u', 'f', 'a', 's', 'd', 'o', 'append', 'sv'];
