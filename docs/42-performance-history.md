@@ -15,6 +15,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.47](42.47-wire-encoding.md) | JSON versus dictionary binary and quantized binary on tuned 12x6/36x18 broadcast state (#1093): bytes, serialization CPU and limitations |
 | [42.48](42.48-input-timing.md) | Input spend policies under simulated latency, jitter and loss: arrival queue, tick-stamped jitter buffer, resimulation load (#1096); a model, not a live measurement |
 | [42.49](42.49-wire-codec-selection.md) | Codec backend comparison on the players+bodies slice (#1130): descriptor/DataView versus msgpackr records, JSON and JSON+deflate, in Node and Chrome. Covers bytes, CPU, allocation, exactness, malformed input, distinct baselines, plus the capped-packing and quantized probes |
+| [42.50](42.50-lossy-deltas.md) | Acknowledged-baseline deltas under simulated loss (#1094): today's reliable layers against all-datagram and split delivery, bytes, fit, staleness, shared baselines, history memory, diff CPU and quantized prediction; an offline model over real projections |
 
 ### Navigation
 

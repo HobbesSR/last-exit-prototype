@@ -1,0 +1,6264 @@
+{
+ "witness": "#1094 acknowledged-baseline delta simulation",
+ "date": "2026-11-16T17:33:37.253Z",
+ "revision": "d6d5535d8ca364d9e2d7fad1d824a661a85bc1ff",
+ "dirty": [
+  "M docs/reports/issue-1094/wire-1094-12x6.json",
+  " M tools/perf/wire-1094-delta-format.mjs",
+  " M tools/perf/wire-1094-deltas.mjs"
+ ],
+ "sourceHashesLf": {
+  "tools/perf/wire-1094-deltas.mjs": "80f61db6862bcfc10d38c1ca1a0a9576727245ded863abbf61affa5168d74165",
+  "tools/perf/wire-1094-delta-format.mjs": "b03f62eb66ae2a1f6c335f31c78a1b50ca501003406559ca18c551acfeedfad6",
+  "tools/perf/wire-codec-prototype.mjs": "a10553b2d9b71e57670e9c66d588e8b57de7dd55f853da657da6d1669506b27d",
+  "shared/frame-layers.ts": "989c6caa3ea2a96c6066e6e4c62d58eb0afc2a6ba50ae8b4effe47ec15229075",
+  "shared/keyed-list.ts": "96c426a3282a9c1f1b3523b568aff97fd707545e8a9b9200480c0039d5d9d535",
+  "server/room-views.js": "be87bd9ac012d2ddd2eafcf3e9ebbe9463ca9672eb8629fe7a309069532e8b12"
+ },
+ "runtime": {
+  "node": "v24.15.0",
+  "platform": "win32",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "lock": "exclusive"
+ },
+ "workload": {
+  "cache": "test-results/wire-1093-tuned-36x18.v8",
+  "cacheSha256": "a6d2bc67c744689f096e94a44d03a643cfc37d534280589532bdbeca0fea28e3",
+  "size": "36x18",
+  "seed": 4217,
+  "content": "content-7",
+  "source": "5cdcd5cbad63397d011f951d4196e03f0e2c0bbb",
+  "ticks": 1200,
+  "warmupTicks": 40,
+  "views": {
+   "contestant": 8,
+   "gladiator": 3,
+   "dev": 1
+  }
+ },
+ "settings": {
+  "historyTicks": 32,
+  "datagramCap": 1200,
+  "fragmentHeader": 4,
+  "tcpSegment": 1448,
+  "profiles": [
+   {
+    "name": "lan",
+    "rtt": 4,
+    "jitter": 1,
+    "loss": 0
+   },
+   {
+    "name": "good",
+    "rtt": 40,
+    "jitter": 4,
+    "loss": 0.002
+   },
+   {
+    "name": "typical",
+    "rtt": 80,
+    "jitter": 12,
+    "loss": 0.01
+   },
+   {
+    "name": "wifi",
+    "rtt": 120,
+    "jitter": 35,
+    "loss": 0.03
+   },
+   {
+    "name": "poor",
+    "rtt": 220,
+    "jitter": 70,
+    "loss": 0.05
+   },
+   {
+    "name": "bursty",
+    "rtt": 80,
+    "jitter": 12,
+    "loss": 0.03,
+    "burst": 4
+   }
+  ],
+  "sharedSockets": 16,
+  "channelSeed": 1094
+ },
+ "verifiedReconstructions": 319242,
+ "distinctMessages": 330437,
+ "results": {
+  "lan": {
+   "contestant": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 9288,
+      "mean": 2418.52,
+      "p50": 2480,
+      "p95": 2879,
+      "p99": 2993,
+      "max": 4005
+     },
+     "reliableBytesPerTick": {
+      "n": 9288,
+      "mean": 5545.77,
+      "p50": 5693,
+      "p95": 6548,
+      "p99": 6803,
+      "max": 8464
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 2.83,
+      "p50": 2.6051004273292806,
+      "p95": 4.1646824759602215,
+      "p99": 4.1646824759602215,
+      "max": 4.1646824759602215
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46847.5,
+       "p50": 46805,
+       "p95": 46997,
+       "p99": 46997,
+       "max": 46997
+      },
+      "json": {
+       "n": 8,
+       "mean": 103430.63,
+       "p50": 103339,
+       "p95": 103714,
+       "p99": 103714,
+       "max": 103714
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 72,
+       "p50": 72,
+       "p95": 72,
+       "p99": 72,
+       "max": 72
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 416.49,
+      "p50": 452,
+      "p95": 637,
+      "p99": 730,
+      "max": 966
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 895.7,
+      "p50": 955,
+      "p95": 1382,
+      "p99": 1596,
+      "max": 1993
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 1.17,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 5.74,
+      "p50": 5.169760545780971,
+      "p95": 7.298693527695143,
+      "p99": 7.298693527695143,
+      "max": 7.298693527695143
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46830.5,
+       "p50": 46788,
+       "p95": 46980,
+       "p99": 46980,
+       "max": 46980
+      },
+      "json": {
+       "n": 8,
+       "mean": 103380.75,
+       "p50": 103292,
+       "p95": 103663,
+       "p99": 103663,
+       "max": 103663
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 40,
+       "p50": 40,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 280.62,
+      "p50": 303,
+      "p95": 429,
+      "p99": 505,
+      "max": 753
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 571.58,
+      "p50": 617,
+      "p95": 880,
+      "p99": 1059,
+      "max": 1524
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 1.17,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 5.74,
+      "p50": 5.169760545780971,
+      "p95": 7.298693527695143,
+      "p99": 7.298693527695143,
+      "max": 7.298693527695143
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46656.75,
+       "p50": 46612,
+       "p95": 46810,
+       "p99": 46810,
+       "max": 46810
+      },
+      "json": {
+       "n": 8,
+       "mean": 102908.75,
+       "p50": 102817,
+       "p95": 103196,
+       "p99": 103196,
+       "max": 103196
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 39.5,
+       "p50": 39,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 411.55,
+      "p50": 439,
+      "p95": 621,
+      "p99": 709,
+      "max": 904
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 886.76,
+      "p50": 943,
+      "p95": 1341,
+      "p99": 1549,
+      "max": 1880
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 1.17,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 3.24,
+      "p50": 2.9688377467412503,
+      "p95": 4.1646824759602215,
+      "p99": 4.1646824759602215,
+      "max": 4.1646824759602215
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2387,
+       "p50": 2387,
+       "p95": 2387,
+       "p99": 2387,
+       "max": 2387
+      },
+      "json": {
+       "n": 8,
+       "mean": 5755,
+       "p50": 5755,
+       "p95": 5755,
+       "p99": 5755,
+       "max": 5755
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 275.79,
+      "p50": 296,
+      "p95": 415,
+      "p99": 482,
+      "max": 678
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 562.93,
+      "p50": 609,
+      "p95": 855,
+      "p99": 1025,
+      "max": 1357
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 1.17,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 3.24,
+      "p50": 2.9688377467412503,
+      "p95": 4.1646824759602215,
+      "p99": 4.1646824759602215,
+      "max": 4.1646824759602215
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2280,
+       "p50": 2280,
+       "p95": 2280,
+       "p99": 2280,
+       "max": 2280
+      },
+      "json": {
+       "n": 8,
+       "mean": 5456,
+       "p50": 5456,
+       "p95": 5456,
+       "p99": 5456,
+       "max": 5456
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 340.54,
+      "p50": 363,
+      "p95": 508,
+      "p99": 571,
+      "max": 773
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 714.42,
+      "p50": 762,
+      "p95": 1069,
+      "p99": 1219,
+      "max": 1543
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 1.17,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 3.24,
+      "p50": 2.9688377467412503,
+      "p95": 4.1646824759602215,
+      "p99": 4.1646824759602215,
+      "max": 4.1646824759602215
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2339,
+       "p50": 2339,
+       "p95": 2339,
+       "p99": 2339,
+       "max": 2339
+      },
+      "json": {
+       "n": 8,
+       "mean": 5609.63,
+       "p50": 5610,
+       "p95": 5610,
+       "p99": 5610,
+       "max": 5610
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   },
+   "gladiator": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 3483,
+      "mean": 1859.81,
+      "p50": 1656,
+      "p95": 4685,
+      "p99": 5946,
+      "max": 6461
+     },
+     "reliableBytesPerTick": {
+      "n": 3483,
+      "mean": 4164.54,
+      "p50": 3833,
+      "p95": 9360,
+      "p99": 11574,
+      "max": 12577
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 2.58,
+      "p50": 2.6035183403723123,
+      "p95": 2.631581740679058,
+      "p99": 2.631581740679058,
+      "max": 2.631581740679058
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45664,
+       "p50": 45916,
+       "p95": 45978,
+       "p99": 45978,
+       "max": 45978
+      },
+      "json": {
+       "n": 3,
+       "mean": 100248,
+       "p50": 100708,
+       "p95": 100822,
+       "p99": 100822,
+       "max": 100822
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 69.67,
+       "p50": 70,
+       "p95": 70,
+       "p99": 70,
+       "max": 70
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 363.35,
+      "p50": 262,
+      "p95": 1001,
+      "p99": 1265,
+      "max": 1385
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 666.63,
+      "p50": 548,
+      "p95": 1411,
+      "p99": 1688,
+      "max": 1921
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 2.04,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 1.33,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 5.59,
+      "p50": 5.71512685632541,
+      "p95": 6.307589011107661,
+      "p99": 6.307589011107661,
+      "max": 6.307589011107661
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45653,
+       "p50": 45905,
+       "p95": 45967,
+       "p99": 45967,
+       "max": 45967
+      },
+      "json": {
+       "n": 3,
+       "mean": 100212,
+       "p50": 100672,
+       "p95": 100786,
+       "p99": 100786,
+       "max": 100786
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 288.38,
+      "p50": 188,
+      "p95": 926,
+      "p99": 1193,
+      "max": 1320
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 503.6,
+      "p50": 389,
+      "p95": 1245,
+      "p99": 1537,
+      "max": 1780
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0.92,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 1.33,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 5.59,
+      "p50": 5.71512685632541,
+      "p95": 6.307589011107661,
+      "p99": 6.307589011107661,
+      "max": 6.307589011107661
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45693,
+       "p50": 45959,
+       "p95": 46021,
+       "p99": 46021,
+       "max": 46021
+      },
+      "json": {
+       "n": 3,
+       "mean": 100256.67,
+       "p50": 100740,
+       "p95": 100854,
+       "p99": 100854,
+       "max": 100854
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 260.93,
+      "p50": 262,
+      "p95": 262,
+      "p99": 262,
+      "max": 436
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 544.42,
+      "p50": 546,
+      "p95": 552,
+      "p99": 554,
+      "max": 905
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 1.33,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 2.58,
+      "p50": 2.6035183403723123,
+      "p95": 2.631581740679058,
+      "p99": 2.631581740679058,
+      "max": 2.631581740679058
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 655,
+       "p50": 655,
+       "p95": 655,
+       "p99": 655,
+       "max": 655
+      },
+      "json": {
+       "n": 3,
+       "mean": 1678,
+       "p50": 1678,
+       "p95": 1678,
+       "p99": 1678,
+       "max": 1678
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 185.45,
+      "p50": 187,
+      "p95": 189,
+      "p99": 189,
+      "max": 348
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 380.53,
+      "p50": 386,
+      "p95": 390,
+      "p99": 393,
+      "max": 717
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 1.33,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 2.58,
+      "p50": 2.6035183403723123,
+      "p95": 2.631581740679058,
+      "p99": 2.631581740679058,
+      "max": 2.631581740679058
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 656,
+       "p50": 656,
+       "p95": 656,
+       "p99": 656,
+       "max": 656
+      },
+      "json": {
+       "n": 3,
+       "mean": 1672,
+       "p50": 1672,
+       "p95": 1672,
+       "p99": 1672,
+       "max": 1672
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 233.83,
+      "p50": 236,
+      "p95": 236,
+      "p99": 236,
+      "max": 395
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 484.06,
+      "p50": 488,
+      "p95": 494,
+      "p99": 496,
+      "max": 820
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 1.33,
+      "p50": 1,
+      "p95": 2,
+      "p99": 2,
+      "max": 2
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 49
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 2.58,
+      "p50": 2.6035183403723123,
+      "p95": 2.631581740679058,
+      "p99": 2.631581740679058,
+      "max": 2.631581740679058
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 661,
+       "p50": 661,
+       "p95": 661,
+       "p99": 661,
+       "max": 661
+      },
+      "json": {
+       "n": 3,
+       "mean": 1688,
+       "p50": 1688,
+       "p95": 1688,
+       "p99": 1688,
+       "max": 1688
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   }
+  },
+  "good": {
+   "contestant": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 9288,
+      "mean": 2418.52,
+      "p50": 2480,
+      "p95": 2879,
+      "p99": 2993,
+      "max": 4005
+     },
+     "reliableBytesPerTick": {
+      "n": 9288,
+      "mean": 5545.77,
+      "p50": 5693,
+      "p95": 6548,
+      "p99": 6803,
+      "max": 8464
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 53.64,
+      "p50": 49,
+      "p95": 49,
+      "p99": 199,
+      "max": 249
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 48.11,
+      "p50": 22.34306996938806,
+      "p95": 222.97130840530727,
+      "p99": 222.97130840530727,
+      "max": 222.97130840530727
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46847.5,
+       "p50": 46805,
+       "p95": 46997,
+       "p99": 46997,
+       "max": 46997
+      },
+      "json": {
+       "n": 8,
+       "mean": 103430.63,
+       "p50": 103339,
+       "p95": 103714,
+       "p99": 103714,
+       "max": 103714
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 72,
+       "p50": 72,
+       "p95": 72,
+       "p99": 72,
+       "max": 72
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 425.77,
+      "p50": 464,
+      "p95": 654,
+      "p99": 764,
+      "max": 1015
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 914.93,
+      "p50": 981,
+      "p95": 1411,
+      "p99": 1671,
+      "max": 2092
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 2.02,
+      "p50": 2,
+      "p95": 2,
+      "p99": 3,
+      "max": 4
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49.13,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 37.65,
+      "p50": 34.107723149806375,
+      "p95": 45.65809832792222,
+      "p99": 45.65809832792222,
+      "max": 45.65809832792222
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46830.5,
+       "p50": 46788,
+       "p95": 46980,
+       "p99": 46980,
+       "max": 46980
+      },
+      "json": {
+       "n": 8,
+       "mean": 103380.75,
+       "p50": 103292,
+       "p95": 103663,
+       "p99": 103663,
+       "max": 103663
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 40,
+       "p50": 40,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 287.95,
+      "p50": 309,
+      "p95": 446,
+      "p99": 542,
+      "max": 793
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 585.72,
+      "p50": 630,
+      "p95": 918,
+      "p99": 1136,
+      "max": 1567
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 2.02,
+      "p50": 2,
+      "p95": 2,
+      "p99": 3,
+      "max": 4
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49.13,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 36.32,
+      "p50": 34.107723149806375,
+      "p95": 45.65809832792222,
+      "p99": 45.65809832792222,
+      "max": 45.65809832792222
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46656.75,
+       "p50": 46612,
+       "p95": 46810,
+       "p99": 46810,
+       "max": 46810
+      },
+      "json": {
+       "n": 8,
+       "mean": 102908.75,
+       "p50": 102817,
+       "p95": 103196,
+       "p99": 103196,
+       "max": 103196
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 39.5,
+       "p50": 39,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 417.81,
+      "p50": 444,
+      "p95": 631,
+      "p99": 733,
+      "max": 931
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 900.72,
+      "p50": 958,
+      "p95": 1379,
+      "p99": 1616,
+      "max": 1947
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 2.02,
+      "p50": 2,
+      "p95": 2,
+      "p99": 3,
+      "max": 4
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49.13,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 24.13,
+      "p50": 22.901311985211198,
+      "p95": 27.296149731646707,
+      "p99": 27.296149731646707,
+      "max": 27.296149731646707
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2387,
+       "p50": 2387,
+       "p95": 2387,
+       "p99": 2387,
+       "max": 2387
+      },
+      "json": {
+       "n": 8,
+       "mean": 5755,
+       "p50": 5755,
+       "p95": 5755,
+       "p99": 5755,
+       "max": 5755
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 2.01,
+      "p50": 0,
+      "p95": 0,
+      "p99": 100,
+      "max": 200
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 280.08,
+      "p50": 300,
+      "p95": 426,
+      "p99": 505,
+      "max": 718
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 571.79,
+      "p50": 614,
+      "p95": 885,
+      "p99": 1081,
+      "max": 1400
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 2.02,
+      "p50": 2,
+      "p95": 2,
+      "p99": 3,
+      "max": 4
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49.13,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 24.13,
+      "p50": 22.901311985211198,
+      "p95": 27.296149731646707,
+      "p99": 27.296149731646707,
+      "max": 27.296149731646707
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2280,
+       "p50": 2280,
+       "p95": 2280,
+       "p99": 2280,
+       "max": 2280
+      },
+      "json": {
+       "n": 8,
+       "mean": 5456,
+       "p50": 5456,
+       "p95": 5456,
+       "p99": 5456,
+       "max": 5456
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 2.01,
+      "p50": 0,
+      "p95": 0,
+      "p99": 100,
+      "max": 200
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 345.48,
+      "p50": 367,
+      "p95": 518,
+      "p99": 592,
+      "max": 807
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 724.98,
+      "p50": 775,
+      "p95": 1090,
+      "p99": 1272,
+      "max": 1604
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 2.02,
+      "p50": 2,
+      "p95": 2,
+      "p99": 3,
+      "max": 4
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 49.13,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 24.13,
+      "p50": 22.901311985211198,
+      "p95": 27.296149731646707,
+      "p99": 27.296149731646707,
+      "max": 27.296149731646707
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2339,
+       "p50": 2339,
+       "p95": 2339,
+       "p99": 2339,
+       "max": 2339
+      },
+      "json": {
+       "n": 8,
+       "mean": 5609.63,
+       "p50": 5610,
+       "p95": 5610,
+       "p99": 5610,
+       "max": 5610
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 2.01,
+      "p50": 0,
+      "p95": 0,
+      "p99": 100,
+      "max": 200
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   },
+   "gladiator": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 3483,
+      "mean": 1859.81,
+      "p50": 1656,
+      "p95": 4685,
+      "p99": 5946,
+      "max": 6461
+     },
+     "reliableBytesPerTick": {
+      "n": 3483,
+      "mean": 4164.54,
+      "p50": 3833,
+      "p95": 9360,
+      "p99": 11574,
+      "max": 12577
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 51.63,
+      "p50": 49,
+      "p95": 49,
+      "p99": 199,
+      "max": 249
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 23.83,
+      "p50": 22.34366418586179,
+      "p95": 27.112499796525633,
+      "p99": 27.112499796525633,
+      "max": 27.112499796525633
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45664,
+       "p50": 45916,
+       "p95": 45978,
+       "p99": 45978,
+       "max": 45978
+      },
+      "json": {
+       "n": 3,
+       "mean": 100248,
+       "p50": 100708,
+       "p95": 100822,
+       "p99": 100822,
+       "max": 100822
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 69.67,
+       "p50": 70,
+       "p95": 70,
+       "p99": 70,
+       "max": 70
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 409.77,
+      "p50": 262,
+      "p95": 1080,
+      "p99": 1282,
+      "max": 1387
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 722.76,
+      "p50": 550,
+      "p95": 1501,
+      "p99": 1720,
+      "max": 1921
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 2.96,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 2.01,
+      "p50": 2,
+      "p95": 2,
+      "p99": 2,
+      "max": 3
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49.11,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 39.13,
+      "p50": 38.387046548377484,
+      "p95": 45.90584325023407,
+      "p99": 45.90584325023407,
+      "max": 45.90584325023407
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45653,
+       "p50": 45905,
+       "p95": 45967,
+       "p99": 45967,
+       "max": 45967
+      },
+      "json": {
+       "n": 3,
+       "mean": 100212,
+       "p50": 100672,
+       "p95": 100786,
+       "p99": 100786,
+       "max": 100786
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 334.88,
+      "p50": 189,
+      "p95": 1010,
+      "p99": 1213,
+      "max": 1324
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 559.69,
+      "p50": 390,
+      "p95": 1345,
+      "p99": 1566,
+      "max": 1780
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 1.38,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 2.01,
+      "p50": 2,
+      "p95": 2,
+      "p99": 2,
+      "max": 3
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49.11,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 39.13,
+      "p50": 38.387046548377484,
+      "p95": 45.90584325023407,
+      "p99": 45.90584325023407,
+      "max": 45.90584325023407
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45693,
+       "p50": 45959,
+       "p95": 46021,
+       "p99": 46021,
+       "max": 46021
+      },
+      "json": {
+       "n": 3,
+       "mean": 100256.67,
+       "p50": 100740,
+       "p95": 100854,
+       "p99": 100854,
+       "max": 100854
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 261.39,
+      "p50": 262,
+      "p95": 262,
+      "p99": 262,
+      "max": 436
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 545.37,
+      "p50": 546,
+      "p95": 552,
+      "p99": 554,
+      "max": 905
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 2.01,
+      "p50": 2,
+      "p95": 2,
+      "p99": 2,
+      "max": 3
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49.11,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 23.83,
+      "p50": 22.34366418586179,
+      "p95": 27.112499796525633,
+      "p99": 27.112499796525633,
+      "max": 27.112499796525633
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 655,
+       "p50": 655,
+       "p95": 655,
+       "p99": 655,
+       "max": 655
+      },
+      "json": {
+       "n": 3,
+       "mean": 1678,
+       "p50": 1678,
+       "p95": 1678,
+       "p99": 1678,
+       "max": 1678
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 2.02,
+      "p50": 0,
+      "p95": 0,
+      "p99": 100,
+      "max": 200
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 185.72,
+      "p50": 187,
+      "p95": 189,
+      "p99": 189,
+      "max": 348
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 381.03,
+      "p50": 386,
+      "p95": 390,
+      "p99": 392,
+      "max": 717
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 2.01,
+      "p50": 2,
+      "p95": 2,
+      "p99": 2,
+      "max": 3
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49.11,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 23.83,
+      "p50": 22.34366418586179,
+      "p95": 27.112499796525633,
+      "p99": 27.112499796525633,
+      "max": 27.112499796525633
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 656,
+       "p50": 656,
+       "p95": 656,
+       "p99": 656,
+       "max": 656
+      },
+      "json": {
+       "n": 3,
+       "mean": 1672,
+       "p50": 1672,
+       "p95": 1672,
+       "p99": 1672,
+       "max": 1672
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 2.02,
+      "p50": 0,
+      "p95": 0,
+      "p99": 100,
+      "max": 200
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 234.21,
+      "p50": 236,
+      "p95": 236,
+      "p99": 236,
+      "max": 395
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 484.78,
+      "p50": 488,
+      "p95": 494,
+      "p99": 497,
+      "max": 820
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 2.01,
+      "p50": 2,
+      "p95": 2,
+      "p99": 2,
+      "max": 3
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 49.11,
+      "p50": 49,
+      "p95": 49,
+      "p99": 49,
+      "max": 99
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 23.83,
+      "p50": 22.34366418586179,
+      "p95": 27.112499796525633,
+      "p99": 27.112499796525633,
+      "max": 27.112499796525633
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 661,
+       "p50": 661,
+       "p95": 661,
+       "p99": 661,
+       "max": 661
+      },
+      "json": {
+       "n": 3,
+       "mean": 1688,
+       "p50": 1688,
+       "p95": 1688,
+       "p99": 1688,
+       "max": 1688
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 2.02,
+      "p50": 0,
+      "p95": 0,
+      "p99": 100,
+      "max": 200
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   }
+  },
+  "typical": {
+   "contestant": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 9288,
+      "mean": 2418.52,
+      "p50": 2480,
+      "p95": 2879,
+      "p99": 2993,
+      "max": 4005
+     },
+     "reliableBytesPerTick": {
+      "n": 9288,
+      "mean": 5545.77,
+      "p50": 5693,
+      "p95": 6548,
+      "p99": 6803,
+      "max": 8464
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 93.52,
+      "p50": 99,
+      "p95": 249,
+      "p99": 299,
+      "max": 349
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 154.21,
+      "p50": 62.87546995358697,
+      "p95": 268.30438182042144,
+      "p99": 268.30438182042144,
+      "max": 268.30438182042144
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46847.5,
+       "p50": 46805,
+       "p95": 46997,
+       "p99": 46997,
+       "max": 46997
+      },
+      "json": {
+       "n": 8,
+       "mean": 103430.63,
+       "p50": 103339,
+       "p95": 103714,
+       "p99": 103714,
+       "max": 103714
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 72,
+       "p50": 72,
+       "p95": 72,
+       "p99": 72,
+       "max": 72
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 435.28,
+      "p50": 472,
+      "p95": 679,
+      "p99": 810,
+      "max": 1018
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 934.54,
+      "p50": 1007,
+      "p95": 1462,
+      "p99": 1748,
+      "max": 2100
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.11,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 73.04,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 199
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 102.15,
+      "p50": 90.56030050060129,
+      "p95": 128.08410180672826,
+      "p99": 128.08410180672826,
+      "max": 128.08410180672826
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46830.5,
+       "p50": 46788,
+       "p95": 46980,
+       "p99": 46980,
+       "max": 46980
+      },
+      "json": {
+       "n": 8,
+       "mean": 103380.75,
+       "p50": 103292,
+       "p95": 103663,
+       "p99": 103663,
+       "max": 103663
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 40,
+       "p50": 40,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 298.57,
+      "p50": 319,
+      "p95": 475,
+      "p99": 593,
+      "max": 808
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 610.93,
+      "p50": 656,
+      "p95": 975,
+      "p99": 1213,
+      "max": 1620
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.11,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 73.04,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 199
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 102.15,
+      "p50": 90.56030050060129,
+      "p95": 128.08410180672826,
+      "p99": 128.08410180672826,
+      "max": 128.08410180672826
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46656.75,
+       "p50": 46612,
+       "p95": 46810,
+       "p99": 46810,
+       "max": 46810
+      },
+      "json": {
+       "n": 8,
+       "mean": 102908.75,
+       "p50": 102817,
+       "p95": 103196,
+       "p99": 103196,
+       "max": 103196
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 39.5,
+       "p50": 39,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 423.65,
+      "p50": 458,
+      "p95": 649,
+      "p99": 754,
+      "max": 934
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 913.71,
+      "p50": 983,
+      "p95": 1405,
+      "p99": 1653,
+      "max": 1959
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.11,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 73.04,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 199
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 57.46,
+      "p50": 56.423511958699116,
+      "p95": 68.30438182042143,
+      "p99": 68.30438182042143,
+      "max": 68.30438182042143
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2387,
+       "p50": 2387,
+       "p95": 2387,
+       "p99": 2387,
+       "max": 2387
+      },
+      "json": {
+       "n": 8,
+       "mean": 5755,
+       "p50": 5755,
+       "p95": 5755,
+       "p99": 5755,
+       "max": 5755
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 20.2,
+      "p50": 0,
+      "p95": 100,
+      "p99": 200,
+      "max": 250
+     },
+     "orphanedItemBodyTicksPercent": 0.16,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 287.02,
+      "p50": 308,
+      "p95": 440,
+      "p99": 526,
+      "max": 733
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 590.37,
+      "p50": 636,
+      "p95": 924,
+      "p99": 1123,
+      "max": 1453
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.11,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 73.04,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 199
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 57.46,
+      "p50": 56.423511958699116,
+      "p95": 68.30438182042143,
+      "p99": 68.30438182042143,
+      "max": 68.30438182042143
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2280,
+       "p50": 2280,
+       "p95": 2280,
+       "p99": 2280,
+       "max": 2280
+      },
+      "json": {
+       "n": 8,
+       "mean": 5456,
+       "p50": 5456,
+       "p95": 5456,
+       "p99": 5456,
+       "max": 5456
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 20.2,
+      "p50": 0,
+      "p95": 100,
+      "p99": 200,
+      "max": 250
+     },
+     "orphanedItemBodyTicksPercent": 0.16,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 352.12,
+      "p50": 378,
+      "p95": 529,
+      "p99": 615,
+      "max": 822
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 742.5,
+      "p50": 798,
+      "p95": 1127,
+      "p99": 1330,
+      "max": 1657
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.11,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 73.04,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 199
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 57.46,
+      "p50": 56.423511958699116,
+      "p95": 68.30438182042143,
+      "p99": 68.30438182042143,
+      "max": 68.30438182042143
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2339,
+       "p50": 2339,
+       "p95": 2339,
+       "p99": 2339,
+       "max": 2339
+      },
+      "json": {
+       "n": 8,
+       "mean": 5609.63,
+       "p50": 5610,
+       "p95": 5610,
+       "p99": 5610,
+       "max": 5610
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 20.2,
+      "p50": 0,
+      "p95": 100,
+      "p99": 200,
+      "max": 250
+     },
+     "orphanedItemBodyTicksPercent": 0.16,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    }
+   },
+   "gladiator": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 3483,
+      "mean": 1859.81,
+      "p50": 1656,
+      "p95": 4685,
+      "p99": 5946,
+      "max": 6461
+     },
+     "reliableBytesPerTick": {
+      "n": 3483,
+      "mean": 4164.54,
+      "p50": 3833,
+      "p95": 9360,
+      "p99": 11574,
+      "max": 12577
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 91.03,
+      "p50": 99,
+      "p95": 249,
+      "p99": 299,
+      "max": 349
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 115.03,
+      "p50": 54.62629506752734,
+      "p95": 246.0069357261698,
+      "p99": 246.0069357261698,
+      "max": 246.0069357261698
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45664,
+       "p50": 45916,
+       "p95": 45978,
+       "p99": 45978,
+       "max": 45978
+      },
+      "json": {
+       "n": 3,
+       "mean": 100248,
+       "p50": 100708,
+       "p95": 100822,
+       "p99": 100822,
+       "max": 100822
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 69.67,
+       "p50": 70,
+       "p95": 70,
+       "p99": 70,
+       "max": 70
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 472.48,
+      "p50": 280,
+      "p95": 1154,
+      "p99": 1309,
+      "max": 1474
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 799.63,
+      "p50": 572,
+      "p95": 1622,
+      "p99": 1754,
+      "max": 2149
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 4.34,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.09,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 73.96,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 149
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 111.36,
+      "p50": 95.23675637063107,
+      "p95": 152.4051573521416,
+      "p99": 152.4051573521416,
+      "max": 152.4051573521416
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45653,
+       "p50": 45905,
+       "p95": 45967,
+       "p99": 45967,
+       "max": 45967
+      },
+      "json": {
+       "n": 3,
+       "mean": 100212,
+       "p50": 100672,
+       "p95": 100786,
+       "p99": 100786,
+       "max": 100786
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 398.11,
+      "p50": 205,
+      "p95": 1081,
+      "p99": 1238,
+      "max": 1419
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 640.42,
+      "p50": 415,
+      "p95": 1472,
+      "p99": 1607,
+      "max": 2020
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 2.15,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.08,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 73.65,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 149
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 111.36,
+      "p50": 95.23675637063107,
+      "p95": 152.4051573521416,
+      "p99": 152.4051573521416,
+      "max": 152.4051573521416
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45693,
+       "p50": 45959,
+       "p95": 46021,
+       "p99": 46021,
+       "max": 46021
+      },
+      "json": {
+       "n": 3,
+       "mean": 100256.67,
+       "p50": 100740,
+       "p95": 100854,
+       "p99": 100854,
+       "max": 100854
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 262.13,
+      "p50": 262,
+      "p95": 262,
+      "p99": 262,
+      "max": 436
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 546.94,
+      "p50": 546,
+      "p95": 552,
+      "p99": 554,
+      "max": 906
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.08,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 73.45,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 149
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 48.36,
+      "p50": 46.006935726169786,
+      "p95": 54.62629506752734,
+      "p99": 54.62629506752734,
+      "max": 54.62629506752734
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 655,
+       "p50": 655,
+       "p95": 655,
+       "p99": 655,
+       "max": 655
+      },
+      "json": {
+       "n": 3,
+       "mean": 1678,
+       "p50": 1678,
+       "p95": 1678,
+       "p99": 1678,
+       "max": 1678
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 22.01,
+      "p50": 0,
+      "p95": 100,
+      "p99": 200,
+      "max": 250
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 187.98,
+      "p50": 188,
+      "p95": 189,
+      "p99": 189,
+      "max": 348
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 387.36,
+      "p50": 388,
+      "p95": 391,
+      "p99": 393,
+      "max": 717
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.08,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 73.45,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 149
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 48.36,
+      "p50": 46.006935726169786,
+      "p95": 54.62629506752734,
+      "p99": 54.62629506752734,
+      "max": 54.62629506752734
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 656,
+       "p50": 656,
+       "p95": 656,
+       "p99": 656,
+       "max": 656
+      },
+      "json": {
+       "n": 3,
+       "mean": 1672,
+       "p50": 1672,
+       "p95": 1672,
+       "p99": 1672,
+       "max": 1672
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 22.01,
+      "p50": 0,
+      "p95": 100,
+      "p99": 200,
+      "max": 250
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 235.68,
+      "p50": 236,
+      "p95": 236,
+      "p99": 236,
+      "max": 395
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 488.84,
+      "p50": 489,
+      "p95": 495,
+      "p99": 498,
+      "max": 820
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.08,
+      "p50": 3,
+      "p95": 4,
+      "p99": 4,
+      "max": 5
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 73.45,
+      "p50": 49,
+      "p95": 99,
+      "p99": 99,
+      "max": 149
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 48.36,
+      "p50": 46.006935726169786,
+      "p95": 54.62629506752734,
+      "p99": 54.62629506752734,
+      "max": 54.62629506752734
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 661,
+       "p50": 661,
+       "p95": 661,
+       "p99": 661,
+       "max": 661
+      },
+      "json": {
+       "n": 3,
+       "mean": 1688,
+       "p50": 1688,
+       "p95": 1688,
+       "p99": 1688,
+       "max": 1688
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 22.01,
+      "p50": 0,
+      "p95": 100,
+      "p99": 200,
+      "max": 250
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   }
+  },
+  "wifi": {
+   "contestant": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 9288,
+      "mean": 2418.52,
+      "p50": 2480,
+      "p95": 2879,
+      "p99": 2993,
+      "max": 4005
+     },
+     "reliableBytesPerTick": {
+      "n": 9288,
+      "mean": 5545.77,
+      "p50": 5693,
+      "p95": 6548,
+      "p99": 6803,
+      "max": 8464
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 180.01,
+      "p50": 149,
+      "p95": 349,
+      "p99": 399,
+      "max": 499
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 298.27,
+      "p50": 276.42812798769717,
+      "p95": 405.4234876668688,
+      "p99": 405.4234876668688,
+      "max": 405.4234876668688
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46847.5,
+       "p50": 46805,
+       "p95": 46997,
+       "p99": 46997,
+       "max": 46997
+      },
+      "json": {
+       "n": 8,
+       "mean": 103430.63,
+       "p50": 103339,
+       "p95": 103714,
+       "p99": 103714,
+       "max": 103714
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 72,
+       "p50": 72,
+       "p95": 72,
+       "p99": 72,
+       "max": 72
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 447.55,
+      "p50": 488,
+      "p95": 704,
+      "p99": 836,
+      "max": 1085
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 959.5,
+      "p50": 1032,
+      "p95": 1506,
+      "p99": 1816,
+      "max": 2191
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 4.71,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 9
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 118.17,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 299
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 252.19,
+      "p50": 248.17491341713577,
+      "p95": 331.2419511341633,
+      "p99": 331.2419511341633,
+      "max": 331.2419511341633
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46830.5,
+       "p50": 46788,
+       "p95": 46980,
+       "p99": 46980,
+       "max": 46980
+      },
+      "json": {
+       "n": 8,
+       "mean": 103380.75,
+       "p50": 103292,
+       "p95": 103663,
+       "p99": 103663,
+       "max": 103663
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 40,
+       "p50": 40,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 309.52,
+      "p50": 346,
+      "p95": 503,
+      "p99": 618,
+      "max": 879
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 633.12,
+      "p50": 697,
+      "p95": 1026,
+      "p99": 1274,
+      "max": 1643
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 4.71,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 9
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 118.17,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 299
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 252.19,
+      "p50": 248.17491341713577,
+      "p95": 331.2419511341633,
+      "p99": 331.2419511341633,
+      "max": 331.2419511341633
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46656.75,
+       "p50": 46612,
+       "p95": 46810,
+       "p99": 46810,
+       "max": 46810
+      },
+      "json": {
+       "n": 8,
+       "mean": 102908.75,
+       "p50": 102817,
+       "p95": 103196,
+       "p99": 103196,
+       "max": 103196
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 39.5,
+       "p50": 39,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 430.82,
+      "p50": 467,
+      "p95": 663,
+      "p99": 786,
+      "max": 939
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 929.62,
+      "p50": 1011,
+      "p95": 1461,
+      "p99": 1700,
+      "max": 2043
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 4.71,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 9
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 118.17,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 299
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 106.28,
+      "p50": 87.49591648434908,
+      "p95": 180.9048996792544,
+      "p99": 180.9048996792544,
+      "max": 180.9048996792544
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2387,
+       "p50": 2387,
+       "p95": 2387,
+       "p99": 2387,
+       "max": 2387
+      },
+      "json": {
+       "n": 8,
+       "mean": 5755,
+       "p50": 5755,
+       "p95": 5755,
+       "p99": 5755,
+       "max": 5755
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 42.31,
+      "p50": 0,
+      "p95": 200,
+      "p99": 250,
+      "max": 450
+     },
+     "orphanedItemBodyTicksPercent": 0.48,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 292.83,
+      "p50": 316,
+      "p95": 458,
+      "p99": 546,
+      "max": 733
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 603.48,
+      "p50": 654,
+      "p95": 966,
+      "p99": 1159,
+      "max": 1453
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 4.71,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 9
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 118.17,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 299
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 106.28,
+      "p50": 87.49591648434908,
+      "p95": 180.9048996792544,
+      "p99": 180.9048996792544,
+      "max": 180.9048996792544
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2280,
+       "p50": 2280,
+       "p95": 2280,
+       "p99": 2280,
+       "max": 2280
+      },
+      "json": {
+       "n": 8,
+       "mean": 5456,
+       "p50": 5456,
+       "p95": 5456,
+       "p99": 5456,
+       "max": 5456
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 42.31,
+      "p50": 0,
+      "p95": 200,
+      "p99": 250,
+      "max": 450
+     },
+     "orphanedItemBodyTicksPercent": 0.48,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 358.33,
+      "p50": 389,
+      "p95": 542,
+      "p99": 630,
+      "max": 822
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 756.52,
+      "p50": 827,
+      "p95": 1162,
+      "p99": 1362,
+      "max": 1657
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 4.71,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 9
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 118.17,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 299
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 106.28,
+      "p50": 87.49591648434908,
+      "p95": 180.9048996792544,
+      "p99": 180.9048996792544,
+      "max": 180.9048996792544
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2339,
+       "p50": 2339,
+       "p95": 2339,
+       "p99": 2339,
+       "max": 2339
+      },
+      "json": {
+       "n": 8,
+       "mean": 5609.63,
+       "p50": 5610,
+       "p95": 5610,
+       "p99": 5610,
+       "max": 5610
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 42.31,
+      "p50": 0,
+      "p95": 200,
+      "p99": 250,
+      "max": 450
+     },
+     "orphanedItemBodyTicksPercent": 0.48,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    }
+   },
+   "gladiator": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 3483,
+      "mean": 1859.81,
+      "p50": 1656,
+      "p95": 4685,
+      "p99": 5946,
+      "max": 6461
+     },
+     "reliableBytesPerTick": {
+      "n": 3483,
+      "mean": 4164.54,
+      "p50": 3833,
+      "p95": 9360,
+      "p99": 11574,
+      "max": 12577
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 167.6,
+      "p50": 149,
+      "p95": 299,
+      "p99": 349,
+      "max": 549
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 231.66,
+      "p50": 261.9805761501192,
+      "p95": 269.51069167333515,
+      "p99": 269.51069167333515,
+      "max": 269.51069167333515
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45664,
+       "p50": 45916,
+       "p95": 45978,
+       "p99": 45978,
+       "max": 45978
+      },
+      "json": {
+       "n": 3,
+       "mean": 100248,
+       "p50": 100708,
+       "p95": 100822,
+       "p99": 100822,
+       "max": 100822
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 69.67,
+       "p50": 70,
+       "p95": 70,
+       "p99": 70,
+       "max": 70
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 550.97,
+      "p50": 284,
+      "p95": 1257,
+      "p99": 1356,
+      "max": 1474
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 897.68,
+      "p50": 586,
+      "p95": 1693,
+      "p99": 1854,
+      "max": 2151
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 6.95,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 4.77,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 8
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 119.3,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 249
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 338.92,
+      "p50": 339.39030503638014,
+      "p95": 513.8659898035299,
+      "p99": 513.8659898035299,
+      "max": 513.8659898035299
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45653,
+       "p50": 45905,
+       "p95": 45967,
+       "p99": 45967,
+       "max": 45967
+      },
+      "json": {
+       "n": 3,
+       "mean": 100212,
+       "p50": 100672,
+       "p95": 100786,
+       "p99": 100786,
+       "max": 100786
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 476.32,
+      "p50": 210,
+      "p95": 1183,
+      "p99": 1288,
+      "max": 1419
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 738.54,
+      "p50": 428,
+      "p95": 1543,
+      "p99": 1704,
+      "max": 2020
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 3.93,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 4.76,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 8
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 118.94,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 249
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 338.92,
+      "p50": 339.39030503638014,
+      "p95": 513.8659898035299,
+      "p99": 513.8659898035299,
+      "max": 513.8659898035299
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45693,
+       "p50": 45959,
+       "p95": 46021,
+       "p99": 46021,
+       "max": 46021
+      },
+      "json": {
+       "n": 3,
+       "mean": 100256.67,
+       "p50": 100740,
+       "p95": 100854,
+       "p99": 100854,
+       "max": 100854
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 262.87,
+      "p50": 262,
+      "p95": 262,
+      "p99": 428,
+      "max": 436
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 548.48,
+      "p50": 546,
+      "p95": 552,
+      "p99": 902,
+      "max": 906
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 4.75,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 8
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 118.34,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 249
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 98.33,
+      "p50": 69.51069167333513,
+      "p95": 163.50319677939243,
+      "p99": 163.50319677939243,
+      "max": 163.50319677939243
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 655,
+       "p50": 655,
+       "p95": 655,
+       "p99": 655,
+       "max": 655
+      },
+      "json": {
+       "n": 3,
+       "mean": 1678,
+       "p50": 1678,
+       "p95": 1678,
+       "p99": 1678,
+       "max": 1678
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 42.06,
+      "p50": 0,
+      "p95": 200,
+      "p99": 250,
+      "max": 350
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 188.71,
+      "p50": 188,
+      "p95": 189,
+      "p99": 340,
+      "max": 348
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 389.03,
+      "p50": 389,
+      "p95": 391,
+      "p99": 708,
+      "max": 717
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 4.75,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 8
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 118.34,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 249
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 98.33,
+      "p50": 69.51069167333513,
+      "p95": 163.50319677939243,
+      "p99": 163.50319677939243,
+      "max": 163.50319677939243
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 656,
+       "p50": 656,
+       "p95": 656,
+       "p99": 656,
+       "max": 656
+      },
+      "json": {
+       "n": 3,
+       "mean": 1672,
+       "p50": 1672,
+       "p95": 1672,
+       "p99": 1672,
+       "max": 1672
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 42.06,
+      "p50": 0,
+      "p95": 200,
+      "p99": 250,
+      "max": 350
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 236.41,
+      "p50": 236,
+      "p95": 236,
+      "p99": 388,
+      "max": 395
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 490.46,
+      "p50": 489,
+      "p95": 495,
+      "p99": 809,
+      "max": 820
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 4.75,
+      "p50": 5,
+      "p95": 6,
+      "p99": 7,
+      "max": 8
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 118.34,
+      "p50": 99,
+      "p95": 149,
+      "p99": 199,
+      "max": 249
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 98.33,
+      "p50": 69.51069167333513,
+      "p95": 163.50319677939243,
+      "p99": 163.50319677939243,
+      "max": 163.50319677939243
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 661,
+       "p50": 661,
+       "p95": 661,
+       "p99": 661,
+       "max": 661
+      },
+      "json": {
+       "n": 3,
+       "mean": 1688,
+       "p50": 1688,
+       "p95": 1688,
+       "p99": 1688,
+       "max": 1688
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 42.06,
+      "p50": 0,
+      "p95": 200,
+      "p99": 250,
+      "max": 350
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   }
+  },
+  "poor": {
+   "contestant": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 9288,
+      "mean": 2418.52,
+      "p50": 2480,
+      "p95": 2879,
+      "p99": 2993,
+      "max": 4005
+     },
+     "reliableBytesPerTick": {
+      "n": 9288,
+      "mean": 5545.77,
+      "p50": 5693,
+      "p95": 6548,
+      "p99": 6803,
+      "max": 8464
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 394.91,
+      "p50": 399,
+      "p95": 599,
+      "p99": 699,
+      "max": 1149
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 499.37,
+      "p50": 483.18440677592446,
+      "p95": 559.9177301624727,
+      "p99": 559.9177301624727,
+      "max": 559.9177301624727
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46847.5,
+       "p50": 46805,
+       "p95": 46997,
+       "p99": 46997,
+       "max": 46997
+      },
+      "json": {
+       "n": 8,
+       "mean": 103430.63,
+       "p50": 103339,
+       "p95": 103714,
+       "p99": 103714,
+       "max": 103714
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 72,
+       "p50": 72,
+       "p95": 72,
+       "p99": 72,
+       "max": 72
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 467.81,
+      "p50": 535,
+      "p95": 746,
+      "p99": 897,
+      "max": 1096
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 1000.78,
+      "p50": 1143,
+      "p95": 1620,
+      "p99": 1921,
+      "max": 2301
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 7.6,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 14
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 189.11,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 732.7,
+      "p50": 676.8076521898861,
+      "p95": 1287.9926630497616,
+      "p99": 1287.9926630497616,
+      "max": 1287.9926630497616
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46830.5,
+       "p50": 46788,
+       "p95": 46980,
+       "p99": 46980,
+       "max": 46980
+      },
+      "json": {
+       "n": 8,
+       "mean": 103380.75,
+       "p50": 103292,
+       "p95": 103663,
+       "p99": 103663,
+       "max": 103663
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 40,
+       "p50": 40,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 328.07,
+      "p50": 385,
+      "p95": 542,
+      "p99": 688,
+      "max": 888
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 671.11,
+      "p50": 773,
+      "p95": 1136,
+      "p99": 1365,
+      "max": 1735
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 7.6,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 14
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 189.11,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 726.07,
+      "p50": 676.8076521898861,
+      "p95": 1287.9926630497616,
+      "p99": 1287.9926630497616,
+      "max": 1287.9926630497616
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46656.75,
+       "p50": 46612,
+       "p95": 46810,
+       "p99": 46810,
+       "max": 46810
+      },
+      "json": {
+       "n": 8,
+       "mean": 102908.75,
+       "p50": 102817,
+       "p95": 103196,
+       "p99": 103196,
+       "max": 103196
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 39.5,
+       "p50": 39,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 442.14,
+      "p50": 505,
+      "p95": 705,
+      "p99": 825,
+      "max": 993
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 954.62,
+      "p50": 1081,
+      "p95": 1540,
+      "p99": 1813,
+      "max": 2116
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 7.6,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 14
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 189.11,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 207.74,
+      "p50": 188.39396004532,
+      "p95": 325.61309249185035,
+      "p99": 325.61309249185035,
+      "max": 325.61309249185035
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2387,
+       "p50": 2387,
+       "p95": 2387,
+       "p99": 2387,
+       "max": 2387
+      },
+      "json": {
+       "n": 8,
+       "mean": 5755,
+       "p50": 5755,
+       "p95": 5755,
+       "p99": 5755,
+       "max": 5755
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 137.96,
+      "p50": 100,
+      "p95": 350,
+      "p99": 500,
+      "max": 700
+     },
+     "orphanedItemBodyTicksPercent": 0.88,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0.01,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 302.37,
+      "p50": 346,
+      "p95": 494,
+      "p99": 593,
+      "max": 756
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 625.15,
+      "p50": 724,
+      "p95": 1030,
+      "p99": 1237,
+      "max": 1506
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 7.6,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 14
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 189.11,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 207.74,
+      "p50": 188.39396004532,
+      "p95": 325.61309249185035,
+      "p99": 325.61309249185035,
+      "max": 325.61309249185035
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2280,
+       "p50": 2280,
+       "p95": 2280,
+       "p99": 2280,
+       "max": 2280
+      },
+      "json": {
+       "n": 8,
+       "mean": 5456,
+       "p50": 5456,
+       "p95": 5456,
+       "p99": 5456,
+       "max": 5456
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 137.96,
+      "p50": 100,
+      "p95": 350,
+      "p99": 500,
+      "max": 700
+     },
+     "orphanedItemBodyTicksPercent": 0.88,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0.01,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 368.39,
+      "p50": 415,
+      "p95": 580,
+      "p99": 678,
+      "max": 844
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 779.36,
+      "p50": 884,
+      "p95": 1244,
+      "p99": 1434,
+      "max": 1707
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 7.6,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 14
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 189.11,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 207.74,
+      "p50": 188.39396004532,
+      "p95": 325.61309249185035,
+      "p99": 325.61309249185035,
+      "max": 325.61309249185035
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2339,
+       "p50": 2339,
+       "p95": 2339,
+       "p99": 2339,
+       "max": 2339
+      },
+      "json": {
+       "n": 8,
+       "mean": 5609.63,
+       "p50": 5610,
+       "p95": 5610,
+       "p99": 5610,
+       "max": 5610
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 137.96,
+      "p50": 100,
+      "p95": 350,
+      "p99": 500,
+      "max": 700
+     },
+     "orphanedItemBodyTicksPercent": 0.88,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0.01,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    }
+   },
+   "gladiator": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 3483,
+      "mean": 1859.81,
+      "p50": 1656,
+      "p95": 4685,
+      "p99": 5946,
+      "max": 6461
+     },
+     "reliableBytesPerTick": {
+      "n": 3483,
+      "mean": 4164.54,
+      "p50": 3833,
+      "p95": 9360,
+      "p99": 11574,
+      "max": 12577
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 377.29,
+      "p50": 399,
+      "p95": 599,
+      "p99": 749,
+      "max": 949
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 571.76,
+      "p50": 555.0395269484386,
+      "p95": 684.3296111161792,
+      "p99": 684.3296111161792,
+      "max": 684.3296111161792
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45664,
+       "p50": 45916,
+       "p95": 45978,
+       "p99": 45978,
+       "max": 45978
+      },
+      "json": {
+       "n": 3,
+       "mean": 100248,
+       "p50": 100708,
+       "p95": 100822,
+       "p99": 100822,
+       "max": 100822
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 69.67,
+       "p50": 70,
+       "p95": 70,
+       "p99": 70,
+       "max": 70
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 660.12,
+      "p50": 707,
+      "p95": 1288,
+      "p99": 1407,
+      "max": 1582
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 1037.12,
+      "p50": 1093,
+      "p95": 1770,
+      "p99": 2004,
+      "max": 2268
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 11.2,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 7.68,
+      "p50": 8,
+      "p95": 10,
+      "p99": 11,
+      "max": 13
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 193.2,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 770.54,
+      "p50": 714.0022290137975,
+      "p95": 1012.0675406611463,
+      "p99": 1012.0675406611463,
+      "max": 1012.0675406611463
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45653,
+       "p50": 45905,
+       "p95": 45967,
+       "p99": 45967,
+       "max": 45967
+      },
+      "json": {
+       "n": 3,
+       "mean": 100212,
+       "p50": 100672,
+       "p95": 100786,
+       "p99": 100786,
+       "max": 100786
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 587.47,
+      "p50": 637,
+      "p95": 1219,
+      "p99": 1346,
+      "max": 1528
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 881.08,
+      "p50": 925,
+      "p95": 1623,
+      "p99": 1863,
+      "max": 2142
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 6.72,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 7.66,
+      "p50": 8,
+      "p95": 10,
+      "p99": 11,
+      "max": 13
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 191.89,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 770.54,
+      "p50": 714.0022290137975,
+      "p95": 1012.0675406611463,
+      "p99": 1012.0675406611463,
+      "max": 1012.0675406611463
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45693,
+       "p50": 45959,
+       "p95": 46021,
+       "p99": 46021,
+       "max": 46021
+      },
+      "json": {
+       "n": 3,
+       "mean": 100256.67,
+       "p50": 100740,
+       "p95": 100854,
+       "p99": 100854,
+       "max": 100854
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 264.5,
+      "p50": 262,
+      "p95": 262,
+      "p99": 430,
+      "max": 436
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 551.92,
+      "p50": 546,
+      "p95": 552,
+      "p99": 903,
+      "max": 906
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 7.61,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 13
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 189.6,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 219.07,
+      "p50": 225.03952694843866,
+      "p95": 286.25047639244167,
+      "p99": 286.25047639244167,
+      "max": 286.25047639244167
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 655,
+       "p50": 655,
+       "p95": 655,
+       "p99": 655,
+       "max": 655
+      },
+      "json": {
+       "n": 3,
+       "mean": 1678,
+       "p50": 1678,
+       "p95": 1678,
+       "p99": 1678,
+       "max": 1678
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 142.12,
+      "p50": 100,
+      "p95": 400,
+      "p99": 500,
+      "max": 700
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 190.46,
+      "p50": 188,
+      "p95": 189,
+      "p99": 341,
+      "max": 348
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 393.02,
+      "p50": 389,
+      "p95": 392,
+      "p99": 710,
+      "max": 717
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 7.61,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 13
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 189.6,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 219.07,
+      "p50": 225.03952694843866,
+      "p95": 286.25047639244167,
+      "p99": 286.25047639244167,
+      "max": 286.25047639244167
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 656,
+       "p50": 656,
+       "p95": 656,
+       "p99": 656,
+       "max": 656
+      },
+      "json": {
+       "n": 3,
+       "mean": 1672,
+       "p50": 1672,
+       "p95": 1672,
+       "p99": 1672,
+       "max": 1672
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 142.12,
+      "p50": 100,
+      "p95": 400,
+      "p99": 500,
+      "max": 700
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 238.05,
+      "p50": 236,
+      "p95": 236,
+      "p99": 389,
+      "max": 395
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 494.09,
+      "p50": 490,
+      "p95": 495,
+      "p99": 812,
+      "max": 820
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 7.61,
+      "p50": 7,
+      "p95": 10,
+      "p99": 11,
+      "max": 13
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 189.6,
+      "p50": 199,
+      "p95": 249,
+      "p99": 299,
+      "max": 399
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 219.07,
+      "p50": 225.03952694843866,
+      "p95": 286.25047639244167,
+      "p99": 286.25047639244167,
+      "max": 286.25047639244167
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 661,
+       "p50": 661,
+       "p95": 661,
+       "p99": 661,
+       "max": 661
+      },
+      "json": {
+       "n": 3,
+       "mean": 1688,
+       "p50": 1688,
+       "p95": 1688,
+       "p99": 1688,
+       "max": 1688
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 142.12,
+      "p50": 100,
+      "p95": 400,
+      "p99": 500,
+      "max": 700
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   }
+  },
+  "bursty": {
+   "contestant": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 9288,
+      "mean": 2418.52,
+      "p50": 2480,
+      "p95": 2879,
+      "p99": 2993,
+      "max": 4005
+     },
+     "reliableBytesPerTick": {
+      "n": 9288,
+      "mean": 5545.77,
+      "p50": 5693,
+      "p95": 6548,
+      "p99": 6803,
+      "max": 8464
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 81.67,
+      "p50": 99,
+      "p95": 149,
+      "p99": 299,
+      "max": 349
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 71.91,
+      "p50": 46.65391411001447,
+      "p95": 242.53511855785882,
+      "p99": 242.53511855785882,
+      "max": 242.53511855785882
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46847.5,
+       "p50": 46805,
+       "p95": 46997,
+       "p99": 46997,
+       "max": 46997
+      },
+      "json": {
+       "n": 8,
+       "mean": 103430.63,
+       "p50": 103339,
+       "p95": 103714,
+       "p99": 103714,
+       "max": 103714
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 72,
+       "p50": 72,
+       "p95": 72,
+       "p99": 72,
+       "max": 72
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 436.4,
+      "p50": 472,
+      "p95": 681,
+      "p99": 816,
+      "max": 1018
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 937.09,
+      "p50": 1009,
+      "p95": 1467,
+      "p99": 1754,
+      "max": 2157
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.33,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 22
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 78.64,
+      "p50": 49,
+      "p95": 99,
+      "p99": 299,
+      "max": 999
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 100.04,
+      "p50": 86.91351077387677,
+      "p95": 189.49422100365135,
+      "p99": 189.49422100365135,
+      "max": 189.49422100365135
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46830.5,
+       "p50": 46788,
+       "p95": 46980,
+       "p99": 46980,
+       "max": 46980
+      },
+      "json": {
+       "n": 8,
+       "mean": 103380.75,
+       "p50": 103292,
+       "p95": 103663,
+       "p99": 103663,
+       "max": 103663
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 40,
+       "p50": 40,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 299.47,
+      "p50": 320,
+      "p95": 478,
+      "p99": 599,
+      "max": 808
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 612.98,
+      "p50": 662,
+      "p95": 980,
+      "p99": 1223,
+      "max": 1620
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.33,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 22
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 78.64,
+      "p50": 49,
+      "p95": 99,
+      "p99": 299,
+      "max": 999
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 100.04,
+      "p50": 86.91351077387677,
+      "p95": 189.49422100365135,
+      "p99": 189.49422100365135,
+      "max": 189.49422100365135
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 46656.75,
+       "p50": 46612,
+       "p95": 46810,
+       "p99": 46810,
+       "max": 46810
+      },
+      "json": {
+       "n": 8,
+       "mean": 102908.75,
+       "p50": 102817,
+       "p95": 103196,
+       "p99": 103196,
+       "max": 103196
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 39.5,
+       "p50": 39,
+       "p95": 40,
+       "p99": 40,
+       "max": 40
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 424.64,
+      "p50": 460,
+      "p95": 649,
+      "p99": 766,
+      "max": 939
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 915.97,
+      "p50": 988,
+      "p95": 1410,
+      "p99": 1686,
+      "max": 2123
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.33,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 22
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 78.64,
+      "p50": 49,
+      "p95": 99,
+      "p99": 299,
+      "max": 999
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 71.27,
+      "p50": 50.423927841023854,
+      "p95": 165.7305361477861,
+      "p99": 165.7305361477861,
+      "max": 165.7305361477861
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2387,
+       "p50": 2387,
+       "p95": 2387,
+       "p99": 2387,
+       "max": 2387
+      },
+      "json": {
+       "n": 8,
+       "mean": 5755,
+       "p50": 5755,
+       "p95": 5755,
+       "p99": 5755,
+       "max": 5755
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 16.4,
+      "p50": 0,
+      "p95": 50,
+      "p99": 200,
+      "max": 300
+     },
+     "orphanedItemBodyTicksPercent": 0.1,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 287.78,
+      "p50": 309,
+      "p95": 441,
+      "p99": 537,
+      "max": 733
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 592.11,
+      "p50": 636,
+      "p95": 928,
+      "p99": 1140,
+      "max": 1453
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.33,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 22
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 78.64,
+      "p50": 49,
+      "p95": 99,
+      "p99": 299,
+      "max": 999
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 71.27,
+      "p50": 50.423927841023854,
+      "p95": 165.7305361477861,
+      "p99": 165.7305361477861,
+      "max": 165.7305361477861
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2280,
+       "p50": 2280,
+       "p95": 2280,
+       "p99": 2280,
+       "max": 2280
+      },
+      "json": {
+       "n": 8,
+       "mean": 5456,
+       "p50": 5456,
+       "p95": 5456,
+       "p99": 5456,
+       "max": 5456
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 16.4,
+      "p50": 0,
+      "p95": 50,
+      "p99": 200,
+      "max": 300
+     },
+     "orphanedItemBodyTicksPercent": 0.1,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 9288,
+      "mean": 352.93,
+      "p50": 380,
+      "p95": 531,
+      "p99": 618,
+      "max": 822
+     },
+     "datagramJsonBytes": {
+      "n": 9288,
+      "mean": 744.33,
+      "p50": 799,
+      "p95": 1130,
+      "p99": 1340,
+      "max": 1657
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 844.57,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 9288,
+      "mean": 3.33,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 22
+     },
+     "stalenessMs": {
+      "n": 9288,
+      "mean": 78.64,
+      "p50": 49,
+      "p95": 99,
+      "p99": 299,
+      "max": 999
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 8,
+      "mean": 71.27,
+      "p50": 50.423927841023854,
+      "p95": 165.7305361477861,
+      "p99": 165.7305361477861,
+      "max": 165.7305361477861
+     },
+     "events": {
+      "total": 24,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 8,
+       "mean": 2339,
+       "p50": 2339,
+       "p95": 2339,
+       "p99": 2339,
+       "max": 2339
+      },
+      "json": {
+       "n": 8,
+       "mean": 5609.63,
+       "p50": 5610,
+       "p95": 5610,
+       "p99": 5610,
+       "max": 5610
+      },
+      "fragments": {
+       "n": 8,
+       "mean": 2,
+       "p50": 2,
+       "p95": 2,
+       "p99": 2,
+       "max": 2
+      }
+     },
+     "slowLagMs": {
+      "n": 9288,
+      "mean": 16.4,
+      "p50": 0,
+      "p95": 50,
+      "p99": 200,
+      "max": 300
+     },
+     "orphanedItemBodyTicksPercent": 0.1,
+     "orphanedItemBodies": {
+      "n": 9288,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 1
+     }
+    }
+   },
+   "gladiator": {
+    "R": {
+     "datagramMeterBytes": null,
+     "datagramJsonBytes": null,
+     "todayMeterBytes": {
+      "n": 3483,
+      "mean": 1859.81,
+      "p50": 1656,
+      "p95": 4685,
+      "p99": 5946,
+      "max": 6461
+     },
+     "reliableBytesPerTick": {
+      "n": 3483,
+      "mean": 4164.54,
+      "p50": 3833,
+      "p95": 9360,
+      "p99": 11574,
+      "max": 12577
+     },
+     "fragmentedPercent": null,
+     "wholeFramePercent": null,
+     "baselineAgeTicks": null,
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 84.06,
+      "p50": 99,
+      "p95": 199,
+      "p99": 299,
+      "max": 349
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 57.91,
+      "p50": 44.79178271163738,
+      "p95": 85.82025210976398,
+      "p99": 85.82025210976398,
+      "max": 85.82025210976398
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45664,
+       "p50": 45916,
+       "p95": 45978,
+       "p99": 45978,
+       "max": 45978
+      },
+      "json": {
+       "n": 3,
+       "mean": 100248,
+       "p50": 100708,
+       "p95": 100822,
+       "p99": 100822,
+       "max": 100822
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 69.67,
+       "p50": 70,
+       "p95": 70,
+       "p99": 70,
+       "max": 70
+      }
+     }
+    },
+    "A": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 483.26,
+      "p50": 280,
+      "p95": 1188,
+      "p99": 1320,
+      "max": 1474
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 812.51,
+      "p50": 573,
+      "p95": 1646,
+      "p99": 1766,
+      "max": 2149
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 4.88,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.29,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 20
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 81.5,
+      "p50": 99,
+      "p95": 99,
+      "p99": 349,
+      "max": 949
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 89.37,
+      "p50": 87.55545494295532,
+      "p95": 94.73219254710472,
+      "p99": 94.73219254710472,
+      "max": 94.73219254710472
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45653,
+       "p50": 45905,
+       "p95": 45967,
+       "p99": 45967,
+       "max": 45967
+      },
+      "json": {
+       "n": 3,
+       "mean": 100212,
+       "p50": 100672,
+       "p95": 100786,
+       "p99": 100786,
+       "max": 100786
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "Aq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 409.72,
+      "p50": 205,
+      "p95": 1117,
+      "p99": 1250,
+      "max": 1419
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 654.23,
+      "p50": 415,
+      "p95": 1493,
+      "p99": 1613,
+      "max": 2020
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": null,
+     "fragmentedPercent": 2.44,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.29,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 20
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 81.16,
+      "p50": 99,
+      "p95": 99,
+      "p99": 349,
+      "max": 949
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 89.37,
+      "p50": 87.55545494295532,
+      "p95": 94.73219254710472,
+      "p99": 94.73219254710472,
+      "max": 94.73219254710472
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 45693,
+       "p50": 45959,
+       "p95": 46021,
+       "p99": 46021,
+       "max": 46021
+      },
+      "json": {
+       "n": 3,
+       "mean": 100256.67,
+       "p50": 100740,
+       "p95": 100854,
+       "p99": 100854,
+       "max": 100854
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 38.67,
+       "p50": 39,
+       "p95": 39,
+       "p99": 39,
+       "max": 39
+      }
+     }
+    },
+    "S": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 262.26,
+      "p50": 262,
+      "p95": 262,
+      "p99": 262,
+      "max": 436
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 547.21,
+      "p50": 546,
+      "p95": 552,
+      "p99": 555,
+      "max": 906
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.29,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 20
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 80.81,
+      "p50": 99,
+      "p95": 99,
+      "p99": 349,
+      "max": 949
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 57.91,
+      "p50": 44.79178271163738,
+      "p95": 85.82025210976398,
+      "p99": 85.82025210976398,
+      "max": 85.82025210976398
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 655,
+       "p50": 655,
+       "p95": 655,
+       "p99": 655,
+       "max": 655
+      },
+      "json": {
+       "n": 3,
+       "mean": 1678,
+       "p50": 1678,
+       "p95": 1678,
+       "p99": 1678,
+       "max": 1678
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 16.51,
+      "p50": 0,
+      "p95": 50,
+      "p99": 200,
+      "max": 350
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sq": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 188.08,
+      "p50": 188,
+      "p95": 189,
+      "p99": 189,
+      "max": 348
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 387.58,
+      "p50": 388,
+      "p95": 391,
+      "p99": 393,
+      "max": 717
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.29,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 20
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 80.81,
+      "p50": 99,
+      "p95": 99,
+      "p99": 349,
+      "max": 949
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 57.91,
+      "p50": 44.79178271163738,
+      "p95": 85.82025210976398,
+      "p99": 85.82025210976398,
+      "max": 85.82025210976398
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 656,
+       "p50": 656,
+       "p95": 656,
+       "p99": 656,
+       "max": 656
+      },
+      "json": {
+       "n": 3,
+       "mean": 1672,
+       "p50": 1672,
+       "p95": 1672,
+       "p99": 1672,
+       "max": 1672
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 16.51,
+      "p50": 0,
+      "p95": 50,
+      "p99": 200,
+      "max": 350
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    },
+    "Sp": {
+     "datagramMeterBytes": {
+      "n": 3483,
+      "mean": 235.81,
+      "p50": 236,
+      "p95": 236,
+      "p99": 236,
+      "max": 395
+     },
+     "datagramJsonBytes": {
+      "n": 3483,
+      "mean": 489.12,
+      "p50": 489,
+      "p95": 495,
+      "p99": 498,
+      "max": 820
+     },
+     "todayMeterBytes": null,
+     "reliableBytesPerTick": 991.23,
+     "fragmentedPercent": 0,
+     "wholeFramePercent": 0,
+     "baselineAgeTicks": {
+      "n": 3483,
+      "mean": 3.29,
+      "p50": 3,
+      "p95": 4,
+      "p99": 9,
+      "max": 20
+     },
+     "stalenessMs": {
+      "n": 3483,
+      "mean": 80.81,
+      "p50": 99,
+      "p95": 99,
+      "p99": 349,
+      "max": 949
+     },
+     "neverReceivedSamples": 0,
+     "firstFrameMs": {
+      "n": 3,
+      "mean": 57.91,
+      "p50": 44.79178271163738,
+      "p95": 85.82025210976398,
+      "p99": 85.82025210976398,
+      "max": 85.82025210976398
+     },
+     "events": {
+      "total": 9,
+      "missed": 0
+     },
+     "firstMessage": {
+      "meter": {
+       "n": 3,
+       "mean": 661,
+       "p50": 661,
+       "p95": 661,
+       "p99": 661,
+       "max": 661
+      },
+      "json": {
+       "n": 3,
+       "mean": 1688,
+       "p50": 1688,
+       "p95": 1688,
+       "p99": 1688,
+       "max": 1688
+      },
+      "fragments": {
+       "n": 3,
+       "mean": 1,
+       "p50": 1,
+       "p95": 1,
+       "p99": 1,
+       "max": 1
+      }
+     },
+     "slowLagMs": {
+      "n": 3483,
+      "mean": 16.51,
+      "p50": 0,
+      "p95": 50,
+      "p99": 200,
+      "max": 350
+     },
+     "orphanedItemBodyTicksPercent": 0,
+     "orphanedItemBodies": {
+      "n": 3483,
+      "mean": 0,
+      "p50": 0,
+      "p95": 0,
+      "p99": 0,
+      "max": 0
+     }
+    }
+   }
+  }
+ },
+ "sharedVariants": {
+  "lan": {
+   "n": 1161,
+   "mean": 2,
+   "p50": 2,
+   "p95": 2,
+   "p99": 2,
+   "max": 2
+  },
+  "good": {
+   "n": 1161,
+   "mean": 2.21,
+   "p50": 2,
+   "p95": 3,
+   "p99": 3,
+   "max": 3
+  },
+  "typical": {
+   "n": 1161,
+   "mean": 2.81,
+   "p50": 3,
+   "p95": 4,
+   "p99": 4,
+   "max": 4
+  },
+  "wifi": {
+   "n": 1161,
+   "mean": 3.92,
+   "p50": 4,
+   "p95": 5,
+   "p99": 6,
+   "max": 8
+  },
+  "poor": {
+   "n": 1161,
+   "mean": 4.31,
+   "p50": 5,
+   "p95": 6,
+   "p99": 7,
+   "max": 8
+  },
+  "bursty": {
+   "n": 1161,
+   "mean": 3.44,
+   "p50": 3,
+   "p95": 5,
+   "p99": 6,
+   "max": 7
+  }
+ },
+ "memory": {
+  "frames": 32,
+  "views": 12,
+  "playerViews": 11,
+  "quantizedCopyBytes": 2494248,
+  "exactWindowBytes": 1618288,
+  "note": "Marginal used heap of retaining the window, after major GC; frozen item and gate records the live match still holds are shared and not counted"
+ },
+ "cpu": {
+  "todayStringify": {
+   "medianMicrosPerView": 16.91,
+   "rounds": [
+    17.24,
+    16.9,
+    16.91
+   ]
+  },
+  "diffExact": {
+   "medianMicrosPerView": 157.78,
+   "rounds": [
+    152.95,
+    157.78,
+    160.48
+   ]
+  },
+  "quantizeThenDiff": {
+   "medianMicrosPerView": 180.52,
+   "rounds": [
+    182.18,
+    177.6,
+    180.52
+   ]
+  },
+  "diffExactAge8": {
+   "medianMicrosPerView": 157.45,
+   "rounds": [
+    153.14,
+    159.43,
+    157.45
+   ]
+  },
+  "splitDiffExact": {
+   "medianMicrosPerView": 21,
+   "rounds": [
+    22.54,
+    21,
+    20.62
+   ]
+  },
+  "splitQuantizeThenDiff": {
+   "medianMicrosPerView": 31.68,
+   "rounds": [
+    46.44,
+    31.52,
+    31.68
+   ]
+  }
+ },
+ "limitations": [
+  "Bytes are 42.47's dictionary prototype (per-value tags, float64 for non-integers), a meter for ranking strategies, not the selected codec",
+  "Offline replay of bot projections: no human input, no bandwidth or congestion model, symmetric independent paths",
+  "Reliable stream: a lost segment stalls max(200, 1.5 rtt) as in 42.48; no TCP window, slow start or retransmission timer backoff",
+  "Acknowledgements ride every 20 Hz input packet; client input timing is a fixed phase, not #1096's adjusted clock"
+ ]
+}

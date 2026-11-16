@@ -20,7 +20,8 @@ const percentiles = values => {
   const at = p => sorted[Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1)] ?? 0;
   return { p50: at(0.5), p95: at(0.95), p99: at(0.99), max: sorted.at(-1) ?? 0 };
 };
-const round = number => Math.round(number * 1000) / 1000;
+// Quantized comparisons (#1094) need finer figures than the default report: a quantum is 1/256 unit.
+const round = number => { const scale = variants ? 1e6 : 1000; return Math.round(number * scale) / scale; };
 const stats = values => Object.fromEntries(Object.entries(percentiles(values.filter(Number.isFinite))).map(([key, value]) => [key, round(value)]));
 function fixture() {
   const map = { seed: 441, width: 800, height: 600,
@@ -47,9 +48,56 @@ const profiles = [
   { name: 'queue-trim-and-repeats', rtt: 100, burst: true, stall: true },
 ];
 
-async function run(profile) {
+// Quantized-delivery mode (#1094). Candidate quanta follow docs/24.1 "Candidate quantization".
+const argValue = name => process.argv.find(arg => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
+const VARIANTS = ['exact', 'own-player', 'own-body', 'proxies', 'all'];
+const quantizeArg = argValue('quantize');
+const variants = quantizeArg === undefined ? null : quantizeArg.split(',').filter(Boolean);
+if (variants) for (const variant of variants) assert.ok(VARIANTS.includes(variant), `unknown --quantize variant ${variant}`);
+if (variants && process.argv.includes('--write-report')) throw new Error('--write-report is for the default run only; use --out with --quantize');
+const TURN = 2 * Math.PI / 65536;
+const QUANTUM = { xy: 1 / 256, velocity: 1 / 256, omega: 1 / 4096, angle: TURN };
+const SCALE = { xy: 256, velocity: 256, omega: 4096 };
+const extraProfiles = [
+  // c0 drives diagonally into the wall face (x=600) and slides along it.
+  { name: 'wall-slide', rtt: 50, spawns: [{ x: 500, y: 150 }], input: tick => ({ x: tick < 75 ? 1 : 0, y: tick < 75 ? 0.35 : 0 }),
+    contact: 'wall' },
+  // c1 sits unmoving in c0's path; c0 pushes into it.
+  { name: 'proxy-press', rtt: 50, spawns: [{ x: 200, y: 300 }, { x: 260, y: 300 }], input: tick => ({ x: tick < 75 ? 1 : 0, y: 0 }),
+    contact: 'proxy' },
+];
+function quantizeFrame(frame, variant, tally) {
+  const copy = structuredClone(frame);
+  if (variant === 'exact') return copy;
+  const set = (record, key, kind) => {
+    const old = record[key];
+    if (typeof old !== 'number') return;
+    const next = kind === 'angle' ? Math.round(old / TURN) * TURN : Math.round(old * SCALE[kind]) / SCALE[kind];
+    const error = Math.abs(next - old);
+    assert.ok(error <= QUANTUM[kind] / 2 * (1 + 1e-9) + 1e-12, `quantization error beyond half a quantum for ${key}`);
+    if (next !== old) tally.changed++;
+    tally.maxError[kind] = Math.max(tally.maxError[kind] ?? 0, error);
+    record[key] = next;
+  };
+  const quantizeBody = body => {
+    set(body, 'x', 'xy'); set(body, 'y', 'xy'); set(body, 'angle', 'angle');
+    set(body, 'vx', 'velocity'); set(body, 'vy', 'velocity'); set(body, 'omega', 'omega');
+  };
+  const all = variant === 'all';
+  if (all || variant === 'own-player') {
+    const player = copy.players.find(p => p.id === 'c0');
+    if (player) { set(player, 'x', 'xy'); set(player, 'y', 'xy'); set(player, 'heading', 'angle'); }
+  }
+  for (const body of copy.bodies ?? []) {
+    if (body.actorId === 'c0' ? (all || variant === 'own-body') : (all || variant === 'proxies')) quantizeBody(body);
+  }
+  return copy;
+}
+
+async function run(profile, variant = null) {
   const { map, content } = fixture();
   if (profile.hidden) map.spawns[1] = { x: 174, y: 300 };
+  if (profile.spawns) profile.spawns.forEach((spawn, index) => { map.spawns[index] = spawn; });
   const game = await createGame(441, map, content);
   for (const player of game.players) player.bot = false;
   let now = 0, predictor = await createPhysicsPrediction(game.map, 'c0', { clock: () => now });
@@ -57,6 +105,8 @@ async function run(profile) {
   const reasons = {}, ackSessions = [[]], depths = [], repeats = [];
   let order = 0, seq = 0, inputBytes = 0, frameBytes = 0, correctionCount = 0, maxReplay = 0, predictedTicks = 0;
   let predictorResets = 0, serverQueueResets = 0, trimmedInputs = 0;
+  const trace = [], tally = { changed: 0, maxError: {} };
+  let contactTicks = 0, proxyNearTicks = 0, minWallGap = Infinity, radii = {};
   let doorAuthorityMaxX = -Infinity, doorPredictionMaxX = -Infinity, doorMaxDivergence = 0;
   let lastUpAt = -Infinity, lastDownAt = -Infinity, connectionEpoch = 0, lastCorrectionTick = -Infinity;
   const enqueue = (at, priority, run) => events.push({ at, priority, order: order++, run });
@@ -73,7 +123,7 @@ async function run(profile) {
     enqueue(at, priority, () => { if (sentEpoch === connectionEpoch) run(); });
   };
   const input = (tick, burst = false) => {
-    const fields = { seq: seq++, x: tick < 50 ? 1 : tick < 60 ? -1 : 0, y: 0, sneak: false };
+    const fields = { seq: seq++, ...(profile.input ? profile.input(tick) : { x: tick < 50 ? 1 : tick < 60 ? -1 : 0, y: 0 }), sneak: false };
     const bytes = Buffer.byteLength(JSON.stringify(fields)); inputBytes += bytes;
     const begin = process.hrtime.bigint(); predictor.input(fields);
     inputCpu.push(Number(process.hrtime.bigint() - begin) / 1e6);
@@ -87,6 +137,7 @@ async function run(profile) {
   };
   const deliver = wire => {
     if (!predictor || wire.tick <= lastCorrectionTick) return;
+    if (variant !== null) wire = quantizeFrame(wire, variant, tally);
     const begin = process.hrtime.bigint(); predictor.correct(wire);
     correctionCpu.push(Number(process.hrtime.bigint() - begin) / 1e6);
     correctionCount++;
@@ -97,7 +148,10 @@ async function run(profile) {
     lastCorrectionTick = wire.tick;
   };
   try {
-    deliver(playerView(game, snapshot(game), 'c0'));
+    const initial = playerView(game, snapshot(game), 'c0');
+    for (const body of initial.bodies) if (body.actorId) radii[body.actorId] = body.shape.radius;
+    radii.maxSpeed = initial.predictionMotor.maxSpeed;
+    deliver(initial);
     if (profile.background) {
       enqueue(23 * TICK_MS, -1, () => { predictor.dispose(); predictor = null; });
       enqueue(39 * TICK_MS, -1, async () => {
@@ -134,6 +188,19 @@ async function run(profile) {
         if (profile.staleDoor && tick === 5) game.map.gates[0].open = false;
         step(game);
         repeats.push(game.players[0].inputStalled ?? 0);
+        if (profile.contact) {
+          const [a, b] = game.players, WALL_FACE = 600;
+          if (profile.contact === 'wall') {
+            const gap = Math.abs(a.x - (WALL_FACE - radii.c0));
+            minWallGap = Math.min(minWallGap, gap);
+            if (gap < 3 && a.y > 100 && a.y < 500) contactTicks++;
+          } else if (Math.hypot(a.x - b.x, a.y - b.y) <= radii.c0 + radii.c1 + 0.5) {
+            contactTicks++;
+            // Same reach test the predictor applies to proxies (public/physics-prediction.js near()).
+            const reach = radii.c0 + radii.maxSpeed * PREDICTION_LIMITS.replay / (1000 / TICK_MS) + 48;
+            if (Math.abs(b.x - a.x) <= reach + radii.c1 && Math.abs(b.y - a.y) <= reach + radii.c1) proxyNearTicks++;
+          }
+        }
         if ((profile.frameGaps && tick >= 24 && tick <= 29) ||
           (profile.reconnect && tick >= 28 && tick <= 35)) return;
         const frame = playerView(game, snapshot(game), 'c0');
@@ -151,13 +218,14 @@ async function run(profile) {
         if (pose) {
           const authoritative = game.players.find(p => p.id === 'c0');
           errors.push(Math.hypot(pose.x - authoritative.x, pose.y - authoritative.y));
+          trace.push({ x: pose.x, y: pose.y });
           if (profile.staleDoor && tick >= 5 && tick <= 39) {
             doorAuthorityMaxX = Math.max(doorAuthorityMaxX, authoritative.x);
             doorPredictionMaxX = Math.max(doorPredictionMaxX, pose.x);
             doorMaxDivergence = Math.max(doorMaxDivergence, pose.x - authoritative.x);
           }
           if (predictor.stats().reason === null) predictedTicks++;
-        } else errors.push(null);
+        } else { errors.push(null); trace.push(null); }
       });
     }
     while (events.length) {
@@ -181,11 +249,18 @@ async function run(profile) {
     }
     if (profile.background) assert.equal(predictorResets, 1, 'background resume recreated predictor');
     if (profile.reconnect) assert.deepEqual([predictorResets, serverQueueResets], [1, 1], 'reconnect resets both sides');
+    if (profile.contact === 'wall') assert.ok(contactTicks >= 15, `${profile.name}: sliding wall contact (${contactTicks} ticks, min gap ${minWallGap})`);
+    if (profile.contact === 'proxy') {
+      assert.ok(contactTicks >= 15, `${profile.name}: proxy contact (${contactTicks} ticks)`);
+      assert.ok(proxyNearTicks === contactTicks, `${profile.name}: c1 is a predictor proxy`);
+    }
     const neutralInputTick = 60, settleStart = neutralInputTick - 1, threshold = 1;
     let settleTicks = null;
     for (let i = settleStart; i <= errors.length - 3; i++)
       if (errors.slice(i, i + 3).every(error => error !== null && error <= threshold)) { settleTicks = i - settleStart; break; }
-    return { name: profile.name, rttMs: profile.rtt, samples: errors.filter(Number.isFinite).length,
+    return { ...(variant === null ? {} : { variant, trace, quantized: tally,
+        ...(profile.contact ? { contact: { kind: profile.contact, contactTicks, proxyNearTicks, minWallGap: round(minWallGap) } } : {}) }),
+      name: profile.name, rttMs: profile.rtt, samples: errors.filter(Number.isFinite).length,
       errorUnits: stats(errors.filter(Number.isFinite)), preCorrectionErrorUnits: stats(correctionErrors),
       neutralInputTick, settleTicksAfterNeutral: settleTicks, settleThresholdUnits: threshold,
       corrections: correctionCount, predictedTicks, cutsByReason: reasons, maxReplay,
@@ -210,7 +285,69 @@ const packageVersion = JSON.parse(readFileSync('node_modules/@dimforge/rapier2d-
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const dirtySources = execFileSync('git', ['status', '--short', '--', ...files.filter(file => !file.startsWith('node_modules/'))], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
 const results = [];
-for (const profile of profiles) results.push(await run(profile));
+if (variants) {
+  for (const profile of [...profiles, ...extraProfiles]) for (const variant of variants) results.push(await run(profile, variant));
+} else for (const profile of profiles) results.push(await run(profile));
+const outPath = argValue('out');
+if (outPath !== undefined && !variants) throw new Error('--out requires --quantize');
+function comparison() {
+  const maxPoseDifference = (exact, other) => {
+    let max = 0;
+    exact.trace.forEach((pose, index) => {
+      const peer = other.trace[index];
+      if (pose && peer) max = Math.max(max, Math.hypot(pose.x - peer.x, pose.y - peer.y));
+    });
+    return round(max);
+  };
+  const entries = [];
+  for (const profile of [...profiles, ...extraProfiles]) {
+    const mine = results.filter(result => result.name === profile.name);
+    const exact = mine.find(result => result.variant === 'exact');
+    for (const result of mine) {
+      const { trace, cpuMs, bytes, ...kept } = result;
+      const entry = { profile: profile.name, variant: result.variant,
+        ...Object.fromEntries(['errorUnits', 'preCorrectionErrorUnits', 'corrections', 'predictedTicks', 'cutsByReason', 'door', 'contact', 'quantized']
+          .filter(key => kept[key] !== undefined).map(key => [key, kept[key]])) };
+      if (exact && result !== exact) {
+        const cutKeys = [...new Set([...Object.keys(exact.cutsByReason), ...Object.keys(result.cutsByReason)])].sort();
+        entry.deltaVsExact = {
+          preCorrectionP99: round(result.preCorrectionErrorUnits.p99 - exact.preCorrectionErrorUnits.p99),
+          preCorrectionMax: round(result.preCorrectionErrorUnits.max - exact.preCorrectionErrorUnits.max),
+          errorP99: round(result.errorUnits.p99 - exact.errorUnits.p99),
+          errorMax: round(result.errorUnits.max - exact.errorUnits.max),
+          corrections: result.corrections - exact.corrections, predictedTicks: result.predictedTicks - exact.predictedTicks,
+          cutReasonCountDifferences: Object.fromEntries(cutKeys.map(key => [key, (result.cutsByReason[key] ?? 0) - (exact.cutsByReason[key] ?? 0)])
+            .filter(([, difference]) => difference !== 0)),
+          maxPerTickPoseDifference: maxPoseDifference(exact, result) };
+      }
+      entries.push(entry);
+    }
+  }
+  return entries;
+}
+if (variants) {
+  const quantReport = { witness: 'P4 quantized-delivery comparison (#1094)', date: new Date().toISOString(),
+    commit, dirtySources, hashes,
+    runtime: { node: process.version, platform: process.platform, release: os.release(), arch: process.arch,
+      cpu: os.cpus()[0]?.model, rapierPackage: packageVersion },
+    settings: { seed: 441, map: 'authored 800x600 full mask, wall and gate; two contestants plus gladiator',
+      physicsContent: 'content-7 with sliced replanning', variants,
+      quanta: { worldXY: '1/256 unit', headingAndBodyAngle: '2*pi/65536 rad (signed turn quanta)', bodyVelocity: '1/256 unit/s', bodyOmega: '1/4096 rad/s' },
+      variantFields: { 'own-player': 'own player record x, y, heading', 'own-body': 'own actor body x, y, angle, vx, vy, omega',
+        proxies: 'every other body x, y, angle, vx, vy, omega where present', all: 'all of the above' },
+      source: 'docs/24.1-wire-encoding-design.md Candidate quantization',
+      profiles: [...profiles, ...extraProfiles], sampling: 'once per tick at t+49 ms after scheduled events',
+      clock: 'synthetic millisecond event time', ordering: 'reliable FIFO per connection direction' },
+    tickMs: TICK_MS, ticks: LAST_TICK,
+    limitations: ['Synthetic ordered/reliable message scheduling; no real socket, browser event loop, packet loss or bandwidth congestion',
+      'Hidden proxy withholding and stale gate memory are injected into projections for stress; not emitted by playerView in these nearby scenarios',
+      'Error samples compare current predictor pose with current authority each tick, including legitimate in-flight delay',
+      'Quantization applied to delivered frames only; authority exact; synthetic authored map'],
+    results: comparison() };
+  if (outPath !== undefined) writeFileSync(outPath, `${JSON.stringify(quantReport, null, 2)}
+`);
+  console.log(JSON.stringify(quantReport));
+}
 const report = { witness: 'P4 deterministic scheduled-delivery lab', date: new Date().toISOString(),
   commit, dirtySources, hashes,
   runtime: { node: process.version, platform: process.platform, release: os.release(), arch: process.arch,
@@ -225,5 +362,5 @@ const report = { witness: 'P4 deterministic scheduled-delivery lab', date: new D
     'CPU numbers are Node wall-clock samples for predictor calls and require uncontended repeat runs for regression claims',
     'Error samples compare current predictor pose with current authority each tick, including legitimate in-flight delay'],
   results };
-if (process.argv.includes('--write-report')) writeFileSync('docs/reports/physics-441-network.json', `${JSON.stringify(report, null, 2)}\n`);
-console.log(JSON.stringify(report));
+if (!variants && process.argv.includes('--write-report')) writeFileSync('docs/reports/physics-441-network.json', `${JSON.stringify(report, null, 2)}\n`);
+if (!variants) console.log(JSON.stringify(report));

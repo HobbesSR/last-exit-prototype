@@ -1,0 +1,2594 @@
+{
+  "witness": "P4 quantized-delivery comparison (#1094)",
+  "date": "2026-11-16T07:29:30.931Z",
+  "commit": "499d4d672e4554ca0552080086faf9d9c4f7a2ad",
+  "dirtySources": [
+    "M tools/physics/prediction-network.mjs"
+  ],
+  "hashes": {
+    "tools/physics/prediction-network.mjs": "40a0b398c746a00dbc68221895d2e096dc414956b828bef44ec65bf725b745f0",
+    "tests/physics-prediction.browser.mjs": "99ca9f2365cf3c59baa22cfcd9d7e0ae7351571ef536806abd4d5f0058b51492",
+    "public/physics-prediction.js": "0216a4004bce6852170f3de237187fd19cdbe0a9afed536cfaa19204f938b5b3",
+    "public/physics-prediction-limits.js": "04b2d0b56bbba17674337fc23bda57413ba2feaab44e9306d7a111ff27c0be59",
+    "shared/physics/world.ts": "a587b04129e7bb3a26ea20fc93355d91ad7e20f5a6dd4a7ab559dd9bed271ec0",
+    "shared/physics/motion-limits.ts": "51a7f97271a4f32fa3db23efa56940def0e09ccac531b8331866dc1ed0138975",
+    "shared/simulation/game.ts": "3e392abb8660735a1c536c9cd7b4ad5cb4cb3c8d072dd04514ac75e026889de1",
+    "shared/simulation/tick.ts": "86447297ddfd3facd1bb42091b6635e15c06d3ef1fe5e053e7b754dc4b543282",
+    "shared/simulation/visibility.ts": "c53740f80d2a1fb0e4ddfcb7a52b37f261cd11a12875c940af163e36fd833c44",
+    "shared/simulation/input.ts": "2c21974557eefad1ef5a481e761c94901abbf924b78e7d637fc784830a61a255",
+    "shared/simulation/actor-physics.ts": "b8dd6fb32b57a3ac58c485d9fd2ee3b98d8fb6a2df2d03e5d248f7c2d98f77db",
+    "shared/simulation/content.ts": "bf67eb17e42af3656229e1a3088d2aabb9ee98604136ad76f14e939f22451f22",
+    "package-lock.json": "06a4bad5fc1dd0307078e8d517ac310a2d97ba1ef27cb9851b1254708ccd52f3",
+    "node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm": "322b00649f412e75e047c79741b6b89e6323f6f81034d114a9e8ab872bae7435"
+  },
+  "runtime": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+    "rapierPackage": "0.21.0"
+  },
+  "settings": {
+    "seed": 441,
+    "map": "authored 800x600 full mask, wall and gate; two contestants plus gladiator",
+    "physicsContent": "content-7 with sliced replanning",
+    "variants": [
+      "exact",
+      "own-player",
+      "own-body",
+      "proxies",
+      "all"
+    ],
+    "quanta": {
+      "worldXY": "1/256 unit",
+      "headingAndBodyAngle": "2*pi/65536 rad (signed turn quanta)",
+      "bodyVelocity": "1/256 unit/s",
+      "bodyOmega": "1/4096 rad/s"
+    },
+    "variantFields": {
+      "own-player": "own player record x, y, heading",
+      "own-body": "own actor body x, y, angle, vx, vy, omega",
+      "proxies": "every other body x, y, angle, vx, vy, omega where present",
+      "all": "all of the above"
+    },
+    "source": "docs/24.1-wire-encoding-design.md Candidate quantization",
+    "profiles": [
+      {
+        "name": "rtt-0",
+        "rtt": 0
+      },
+      {
+        "name": "rtt-50",
+        "rtt": 50
+      },
+      {
+        "name": "rtt-100",
+        "rtt": 100
+      },
+      {
+        "name": "rtt-200",
+        "rtt": 200
+      },
+      {
+        "name": "jitter-and-stall",
+        "rtt": 100,
+        "jitter": true,
+        "stall": true
+      },
+      {
+        "name": "application-frame-gaps",
+        "rtt": 50,
+        "frameGaps": true
+      },
+      {
+        "name": "background-resume",
+        "rtt": 100,
+        "background": true
+      },
+      {
+        "name": "reconnect",
+        "rtt": 100,
+        "reconnect": true
+      },
+      {
+        "name": "hidden-contact",
+        "rtt": 50,
+        "hidden": true
+      },
+      {
+        "name": "stale-known-door",
+        "rtt": 50,
+        "staleDoor": true
+      },
+      {
+        "name": "queue-trim-and-repeats",
+        "rtt": 100,
+        "burst": true,
+        "stall": true
+      },
+      {
+        "name": "wall-slide",
+        "rtt": 50,
+        "spawns": [
+          {
+            "x": 500,
+            "y": 150
+          }
+        ],
+        "contact": "wall"
+      },
+      {
+        "name": "proxy-press",
+        "rtt": 50,
+        "spawns": [
+          {
+            "x": 200,
+            "y": 300
+          },
+          {
+            "x": 260,
+            "y": 300
+          }
+        ],
+        "contact": "proxy"
+      }
+    ],
+    "sampling": "once per tick at t+49 ms after scheduled events",
+    "clock": "synthetic millisecond event time",
+    "ordering": "reliable FIFO per connection direction"
+  },
+  "tickMs": 50,
+  "ticks": 85,
+  "limitations": [
+    "Synthetic ordered/reliable message scheduling; no real socket, browser event loop, packet loss or bandwidth congestion",
+    "Hidden proxy withholding and stale gate memory are injected into projections for stress; not emitted by playerView in these nearby scenarios",
+    "Error samples compare current predictor pose with current authority each tick, including legitimate in-flight delay",
+    "Quantization applied to delivered frames only; authority exact; synthetic authored map"
+  ],
+  "results": [
+    {
+      "profile": "rtt-0",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "rtt-0",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001801,
+        "p99": 0.001862,
+        "max": 0.001862
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 84,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001862,
+        "preCorrectionMax": 0.001862,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-0",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 0.000511,
+        "p95": 0.001801,
+        "p99": 0.001862,
+        "max": 0.001862
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001793,
+        "p99": 0.001869,
+        "max": 0.001869
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 84,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001869,
+        "preCorrectionMax": 0.001869,
+        "errorP99": 0.001862,
+        "errorMax": 0.001862,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001862
+      }
+    },
+    {
+      "profile": "rtt-0",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-0",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 0.000511,
+        "p95": 0.001801,
+        "p99": 0.001862,
+        "max": 0.001862
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.000259,
+        "p99": 0.003654,
+        "max": 0.003654
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 168,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.003654,
+        "preCorrectionMax": 0.003654,
+        "errorP99": 0.001862,
+        "errorMax": 0.001862,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001862
+      }
+    },
+    {
+      "profile": "rtt-50",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "rtt-50",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001801,
+        "p99": 0.001862,
+        "max": 0.001862
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001862,
+        "preCorrectionMax": 0.001862,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-50",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 8.999424,
+        "p95": 9.001865,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001793,
+        "p99": 0.001869,
+        "max": 0.001869
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001869,
+        "preCorrectionMax": 0.001869,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "rtt-50",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-50",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 8.999424,
+        "p95": 9.001865,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.000259,
+        "p99": 0.003654,
+        "max": 0.003654
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 166,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.003654,
+        "preCorrectionMax": 0.003654,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "rtt-100",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "rtt-100",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001801,
+        "p99": 0.001862,
+        "max": 0.001862
+      },
+      "corrections": 86,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001862,
+        "preCorrectionMax": 0.001862,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-100",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 8.999405,
+        "p95": 9.001865,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001793,
+        "p99": 0.001869,
+        "max": 0.001869
+      },
+      "corrections": 86,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001869,
+        "preCorrectionMax": 0.001869,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "rtt-100",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-100",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 8.999405,
+        "p95": 9.001865,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.000259,
+        "p99": 0.003654,
+        "max": 0.003654
+      },
+      "corrections": 86,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 166,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.003654,
+        "preCorrectionMax": 0.003654,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "rtt-200",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 18.000488,
+        "p95": 18.000488,
+        "p99": 18.000488,
+        "max": 18.000488
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "rtt-200",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 18.000488,
+        "p95": 18.000488,
+        "p99": 18.000488,
+        "max": 18.000488
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001801,
+        "p99": 0.001862,
+        "max": 0.001862
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 82,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001862,
+        "preCorrectionMax": 0.001862,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-200",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 17.999191,
+        "p95": 18.00211,
+        "p99": 18.002357,
+        "max": 18.002357
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000572,
+        "p95": 0.001793,
+        "p99": 0.001869,
+        "max": 0.001869
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 82,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001869,
+        "preCorrectionMax": 0.001869,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "rtt-200",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 18.000488,
+        "p95": 18.000488,
+        "p99": 18.000488,
+        "max": 18.000488
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "rtt-200",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 17.999191,
+        "p95": 18.00211,
+        "p99": 18.002357,
+        "max": 18.002357
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.000259,
+        "p99": 0.003654,
+        "max": 0.003654
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 164,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.003654,
+        "preCorrectionMax": 0.003654,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "jitter-and-stall",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 18.000488,
+        "p95": 45.001221,
+        "p99": 72.001953,
+        "max": 72.001953
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "jitter-and-stall",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 18.000488,
+        "p95": 45.001221,
+        "p99": 72.001953,
+        "max": 72.001953
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000725,
+        "p95": 0.001801,
+        "p99": 0.001884,
+        "max": 0.001884
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.00188446044921875,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001884,
+        "preCorrectionMax": 0.001884,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "jitter-and-stall",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 17.99942,
+        "p95": 45.002518,
+        "p99": 72.002777,
+        "max": 72.002777
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000725,
+        "p95": 0.001793,
+        "p99": 0.001869,
+        "max": 0.001869
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 85,
+        "maxError": {
+          "xy": 0.00188446044921875,
+          "angle": 0,
+          "velocity": 0.0000023655593395233154,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001869,
+        "preCorrectionMax": 0.001869,
+        "errorP99": 0.000824,
+        "errorMax": 0.000824,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "jitter-and-stall",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 18.000488,
+        "p95": 45.001221,
+        "p99": 72.001953,
+        "max": 72.001953
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "jitter-and-stall",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 17.99942,
+        "p95": 45.002518,
+        "p99": 72.002777,
+        "max": 72.002777
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.001007,
+        "p99": 0.003677,
+        "max": 0.003677
+      },
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 168,
+        "maxError": {
+          "xy": 0.00188446044921875,
+          "angle": 0,
+          "velocity": 0.0000023655593395233154,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.003677,
+        "preCorrectionMax": 0.003677,
+        "errorP99": 0.000824,
+        "errorMax": 0.000824,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "application-frame-gaps",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 80,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2,
+        "frame-gap": 1
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "application-frame-gaps",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000511,
+        "p95": 0.001801,
+        "p99": 0.001862,
+        "max": 0.001862
+      },
+      "corrections": 80,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2,
+        "frame-gap": 1
+      },
+      "quantized": {
+        "changed": 77,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001862,
+        "preCorrectionMax": 0.001862,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "application-frame-gaps",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 8.999176,
+        "p95": 9.001846,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000496,
+        "p95": 0.001793,
+        "p99": 0.001869,
+        "max": 0.001869
+      },
+      "corrections": 80,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2,
+        "frame-gap": 1
+      },
+      "quantized": {
+        "changed": 77,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001869,
+        "preCorrectionMax": 0.001869,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "application-frame-gaps",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 80,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2,
+        "frame-gap": 1
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "application-frame-gaps",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 8.999176,
+        "p95": 9.001846,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.001953,
+        "p99": 0.003654,
+        "max": 0.003654
+      },
+      "corrections": 80,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2,
+        "frame-gap": 1
+      },
+      "quantized": {
+        "changed": 154,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.003654,
+        "preCorrectionMax": 0.003654,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "background-resume",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 5.625,
+        "max": 5.625
+      },
+      "corrections": 70,
+      "predictedTicks": 67,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "background-resume",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000275,
+        "p95": 0.00174,
+        "p99": 5.624298,
+        "max": 5.624298
+      },
+      "corrections": 70,
+      "predictedTicks": 67,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 67,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000702,
+        "preCorrectionMax": -0.000702,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "background-resume",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 8.998928,
+        "p95": 9.001865,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000267,
+        "p95": 0.001755,
+        "p99": 5.625687,
+        "max": 5.625687
+      },
+      "corrections": 70,
+      "predictedTicks": 67,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 67,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.000687,
+        "preCorrectionMax": 0.000687,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "background-resume",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 5.625,
+        "max": 5.625
+      },
+      "corrections": 70,
+      "predictedTicks": 67,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "background-resume",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 8.998928,
+        "p95": 9.001865,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.000259,
+        "p99": 5.624985,
+        "max": 5.624985
+      },
+      "corrections": 70,
+      "predictedTicks": 67,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 134,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000015,
+        "preCorrectionMax": -0.000015,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "reconnect",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 5.625305,
+        "max": 5.625305
+      },
+      "corrections": 78,
+      "predictedTicks": 75,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "reconnect",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.001251,
+        "p95": 0.001862,
+        "p99": 5.625336,
+        "max": 5.625336
+      },
+      "corrections": 78,
+      "predictedTicks": 75,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 75,
+        "maxError": {
+          "xy": 0.001922607421875,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.000031,
+        "preCorrectionMax": 0.000031,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "reconnect",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 8.998756,
+        "p95": 9.001923,
+        "p99": 9.002151,
+        "max": 9.002151
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.001259,
+        "p95": 0.001869,
+        "p99": 5.625229,
+        "max": 5.625229
+      },
+      "corrections": 78,
+      "predictedTicks": 75,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 75,
+        "maxError": {
+          "xy": 0.001922607421875,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000076,
+        "preCorrectionMax": -0.000076,
+        "errorP99": 0.001907,
+        "errorMax": 0.001907,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001907
+      }
+    },
+    {
+      "profile": "reconnect",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 5.625305,
+        "max": 5.625305
+      },
+      "corrections": 78,
+      "predictedTicks": 75,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "reconnect",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 8.998756,
+        "p95": 9.001923,
+        "p99": 9.002151,
+        "max": 9.002151
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.003654,
+        "p99": 5.625259,
+        "max": 5.625259
+      },
+      "corrections": 78,
+      "predictedTicks": 75,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 150,
+        "maxError": {
+          "xy": 0.001922607421875,
+          "angle": 0,
+          "velocity": 0,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000046,
+        "preCorrectionMax": -0.000046,
+        "errorP99": 0.001907,
+        "errorMax": 0.001907,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001907
+      }
+    },
+    {
+      "profile": "hidden-contact",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 7.312622,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 5.060253,
+        "p95": 5.062637,
+        "p99": 5.062637,
+        "max": 5.062637
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "hidden-contact",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 7.312622,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 5.060291,
+        "p95": 5.063404,
+        "p99": 5.06345,
+        "max": 5.06345
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 84,
+        "maxError": {
+          "xy": 0.001911163330078125,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.000813,
+        "preCorrectionMax": 0.000813,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "hidden-contact",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 7.311954,
+        "p95": 9.001179,
+        "p99": 9.002151,
+        "max": 9.002151
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 5.058746,
+        "p95": 5.062275,
+        "p99": 5.063171,
+        "max": 5.063171
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 132,
+        "maxError": {
+          "xy": 0.001911163330078125,
+          "angle": 0,
+          "velocity": 0.0000095367431640625,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.000534,
+        "preCorrectionMax": 0.000534,
+        "errorP99": 0.001907,
+        "errorMax": 0.001907,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001907
+      }
+    },
+    {
+      "profile": "hidden-contact",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 7.312622,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 5.060253,
+        "p95": 5.062637,
+        "p99": 5.062637,
+        "max": 5.062637
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 1,
+        "maxError": {
+          "xy": 0.000003814697265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "hidden-contact",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 7.311954,
+        "p95": 9.001179,
+        "p99": 9.002151,
+        "max": 9.002151
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 5.058716,
+        "p95": 5.06263,
+        "p99": 5.06263,
+        "max": 5.06263
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 217,
+        "maxError": {
+          "xy": 0.001911163330078125,
+          "angle": 0,
+          "velocity": 0.0000095367431640625,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000007,
+        "preCorrectionMax": -0.000007,
+        "errorP99": 0.001907,
+        "errorMax": 0.001907,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001907
+      }
+    },
+    {
+      "profile": "stale-known-door",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 5.625,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 5.624886,
+        "p99": 5.625,
+        "max": 5.625
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "door": {
+        "authorityMaxX": 396.735458,
+        "predictionMaxX": 402.360458,
+        "maxPredictedLead": 9.000244
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "stale-known-door",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 5.625,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.001053,
+        "p95": 5.625969,
+        "p99": 5.626083,
+        "max": 5.626083
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "door": {
+        "authorityMaxX": 396.735458,
+        "predictionMaxX": 402.360458,
+        "maxPredictedLead": 9.000244
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001083,
+        "preCorrectionMax": 0.001083,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "stale-known-door",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 5.624046,
+        "p95": 9.001617,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.001049,
+        "p95": 5.623932,
+        "p99": 5.624657,
+        "max": 5.624657
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "door": {
+        "authorityMaxX": 396.735458,
+        "predictionMaxX": 402.35939,
+        "maxPredictedLead": 9.002113
+      },
+      "quantized": {
+        "changed": 88,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0.0000013783574104309082,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000343,
+        "preCorrectionMax": -0.000343,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "stale-known-door",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 5.625,
+        "p95": 9.000244,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 5.624886,
+        "p99": 5.625,
+        "max": 5.625
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "door": {
+        "authorityMaxX": 396.735458,
+        "predictionMaxX": 402.360458,
+        "maxPredictedLead": 9.000244
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "stale-known-door",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 5.624046,
+        "p95": 9.001617,
+        "p99": 9.002113,
+        "max": 9.002113
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000244,
+        "p95": 5.625015,
+        "p99": 5.625015,
+        "max": 5.625015
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "door": {
+        "authorityMaxX": 396.735458,
+        "predictionMaxX": 402.35939,
+        "maxPredictedLead": 9.002113
+      },
+      "quantized": {
+        "changed": 171,
+        "maxError": {
+          "xy": 0.001861572265625,
+          "angle": 0,
+          "velocity": 0.0000013783574104309082,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.000015,
+        "preCorrectionMax": 0.000015,
+        "errorP99": 0.001869,
+        "errorMax": 0.001869,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "queue-trim-and-repeats",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 54.001465,
+        "p99": 72.001953,
+        "max": 72.001953
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 79,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "queue-trim-and-repeats",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 54.001465,
+        "p99": 72.001953,
+        "max": 72.001953
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000725,
+        "p95": 0.001801,
+        "p99": 0.001884,
+        "max": 0.001884
+      },
+      "corrections": 86,
+      "predictedTicks": 79,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.00188446044921875,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001884,
+        "preCorrectionMax": 0.001884,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "queue-trim-and-repeats",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 9.001865,
+        "p95": 54.002289,
+        "p99": 72.002777,
+        "max": 72.002777
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000725,
+        "p95": 0.001793,
+        "p99": 0.001869,
+        "max": 0.001869
+      },
+      "corrections": 86,
+      "predictedTicks": 79,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 85,
+        "maxError": {
+          "xy": 0.00188446044921875,
+          "angle": 0,
+          "velocity": 0.0000023655593395233154,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.001869,
+        "preCorrectionMax": 0.001869,
+        "errorP99": 0.000824,
+        "errorMax": 0.000824,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "queue-trim-and-repeats",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 9.000244,
+        "p95": 54.001465,
+        "p99": 72.001953,
+        "max": 72.001953
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 79,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "queue-trim-and-repeats",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 9.001865,
+        "p95": 54.002289,
+        "p99": 72.002777,
+        "max": 72.002777
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.000237,
+        "p95": 0.001007,
+        "p99": 0.003677,
+        "max": 0.003677
+      },
+      "corrections": 86,
+      "predictedTicks": 79,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "quantized": {
+        "changed": 168,
+        "maxError": {
+          "xy": 0.00188446044921875,
+          "angle": 0,
+          "velocity": 0.0000023655593395233154,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.003677,
+        "preCorrectionMax": 0.003677,
+        "errorP99": 0.000824,
+        "errorMax": 0.000824,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001869
+      }
+    },
+    {
+      "profile": "wall-slide",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 0.849609,
+        "p95": 9.000096,
+        "p99": 9.000096,
+        "max": 9.000096
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "wall",
+        "contactTicks": 74,
+        "proxyNearTicks": 0,
+        "minWallGap": 0.000002
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "wall-slide",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 0.849609,
+        "p95": 9.000096,
+        "p99": 9.000096,
+        "max": 9.000096
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.001026,
+        "p95": 0.001936,
+        "p99": 0.002259,
+        "max": 0.002259
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "wall",
+        "contactTicks": 74,
+        "proxyNearTicks": 0,
+        "minWallGap": 0.000002
+      },
+      "quantized": {
+        "changed": 168,
+        "maxError": {
+          "xy": 0.00189208984375,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.002259,
+        "preCorrectionMax": 0.002259,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "wall-slide",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 0.848619,
+        "p95": 9.000391,
+        "p99": 9.002041,
+        "max": 9.002041
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.001011,
+        "p95": 0.001771,
+        "p99": 0.00248,
+        "max": 0.00248
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "wall",
+        "contactTicks": 74,
+        "proxyNearTicks": 0,
+        "minWallGap": 0.000002
+      },
+      "quantized": {
+        "changed": 256,
+        "maxError": {
+          "xy": 0.00189208984375,
+          "angle": 0,
+          "velocity": 0.0017671585083007812,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.00248,
+        "preCorrectionMax": 0.00248,
+        "errorP99": 0.001945,
+        "errorMax": 0.001945,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.00248
+      }
+    },
+    {
+      "profile": "wall-slide",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 0.849609,
+        "p95": 9.000096,
+        "p99": 9.000096,
+        "max": 9.000096
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "wall",
+        "contactTicks": 74,
+        "proxyNearTicks": 0,
+        "minWallGap": 0.000002
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {
+          "xy": 0,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0,
+        "preCorrectionMax": 0,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "wall-slide",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 0.848619,
+        "p95": 9.000391,
+        "p99": 9.002041,
+        "max": 9.002041
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0.001969,
+        "p95": 0.0024,
+        "p99": 0.004451,
+        "max": 0.004451
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "wall",
+        "contactTicks": 74,
+        "proxyNearTicks": 0,
+        "minWallGap": 0.000002
+      },
+      "quantized": {
+        "changed": 424,
+        "maxError": {
+          "xy": 0.00189208984375,
+          "angle": 0,
+          "velocity": 0.0017671585083007812,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.004451,
+        "preCorrectionMax": 0.004451,
+        "errorP99": 0.001945,
+        "errorMax": 0.001945,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.00248
+      }
+    },
+    {
+      "profile": "proxy-press",
+      "variant": "exact",
+      "errorUnits": {
+        "p50": 0.093498,
+        "p95": 0.109177,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 4.593468,
+        "p95": 4.593468,
+        "p99": 4.593563,
+        "max": 4.593563
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "proxy",
+        "contactTicks": 80,
+        "proxyNearTicks": 80,
+        "minWallGap": null
+      },
+      "quantized": {
+        "changed": 0,
+        "maxError": {}
+      }
+    },
+    {
+      "profile": "proxy-press",
+      "variant": "own-player",
+      "errorUnits": {
+        "p50": 0.093498,
+        "p95": 0.109177,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 4.592537,
+        "p95": 4.593666,
+        "p99": 4.593788,
+        "max": 4.593788
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "proxy",
+        "contactTicks": 80,
+        "proxyNearTicks": 80,
+        "minWallGap": null
+      },
+      "quantized": {
+        "changed": 83,
+        "maxError": {
+          "xy": 0.0019378662109375,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.000225,
+        "preCorrectionMax": 0.000225,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0
+      }
+    },
+    {
+      "profile": "proxy-press",
+      "variant": "own-body",
+      "errorUnits": {
+        "p50": 0.093651,
+        "p95": 0.1091,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 4.593544,
+        "p95": 4.594002,
+        "p99": 4.594059,
+        "max": 4.594059
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "proxy",
+        "contactTicks": 80,
+        "proxyNearTicks": 80,
+        "minWallGap": null
+      },
+      "quantized": {
+        "changed": 148,
+        "maxError": {
+          "xy": 0.0019378662109375,
+          "angle": 0,
+          "velocity": 0.000057220458984375,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": 0.000496,
+        "preCorrectionMax": 0.000496,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.000801
+      }
+    },
+    {
+      "profile": "proxy-press",
+      "variant": "proxies",
+      "errorUnits": {
+        "p50": 0.092888,
+        "p95": 0.108147,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 4.592819,
+        "p95": 4.593391,
+        "p99": 4.59343,
+        "max": 4.59343
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "proxy",
+        "contactTicks": 80,
+        "proxyNearTicks": 80,
+        "minWallGap": null
+      },
+      "quantized": {
+        "changed": 80,
+        "maxError": {
+          "xy": 0.0019378662109375,
+          "angle": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000133,
+        "preCorrectionMax": -0.000133,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001125
+      }
+    },
+    {
+      "profile": "proxy-press",
+      "variant": "all",
+      "errorUnits": {
+        "p50": 0.092964,
+        "p95": 0.108032,
+        "p99": 9.000244,
+        "max": 9.000244
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 4.592651,
+        "p95": 4.592735,
+        "p99": 4.592751,
+        "max": 4.592751
+      },
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "contact": {
+        "kind": "proxy",
+        "contactTicks": 80,
+        "proxyNearTicks": 80,
+        "minWallGap": null
+      },
+      "quantized": {
+        "changed": 311,
+        "maxError": {
+          "xy": 0.0019378662109375,
+          "angle": 0,
+          "velocity": 0.000057220458984375,
+          "omega": 0
+        }
+      },
+      "deltaVsExact": {
+        "preCorrectionP99": -0.000812,
+        "preCorrectionMax": -0.000812,
+        "errorP99": 0,
+        "errorMax": 0,
+        "corrections": 0,
+        "predictedTicks": 0,
+        "cutReasonCountDifferences": {},
+        "maxPerTickPoseDifference": 0.001564
+      }
+    }
+  ]
+}
