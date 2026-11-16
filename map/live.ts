@@ -5,6 +5,7 @@ import { composeRegions } from './micro/compose.ts';
 import { builtMapFrame, builtPlayableArea, stampBuiltMap } from './micro/adapter.ts';
 import { createGenerationContext } from '../shared/map/context.ts';
 import { canOccupy } from '../shared/movement.ts';
+import { spatialMix, virtualZone } from '../shared/loot-tiers.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { MAX_ARENA_SEED, isArenaSeed } from '../shared/simulation/rules.ts';
 import { firstDifference } from './micro/difference.ts';
@@ -15,9 +16,39 @@ import type { BuiltMap, RegionElement } from './micro/types.ts';
 import type { ChargerId, GameMap, ItemKind, MatchContent, NodeId, StationId, Vec2, WeaponType } from '../shared/types.ts';
 
 /** Names live placement policy without changing the chain library or strategies. */
-const LIVE_MAP_VERSION = 'chain-live-1';
+const LIVE_MAP_VERSION = 'chain-live-2';
 const TRANSIT_STATION_COUNT = 6;
-const LOOT_KINDS: readonly ItemKind[] = ['cell', 'cell', 'cell', 'weapon', 'weapon', 'weapon', 'med', 'shield', 'access'];
+/**
+ * Interim loot tuning for play rounds (#1126). Every value is a placeholder so that there is loot to
+ * play with: none is a requirement, and no test asserts one (14 "Live chain maps"). Keys are out of
+ * the pool until locked doors exist.
+ */
+export interface LiveLoot {
+  /** The share of generated loot sites that get an item. */
+  keep: number;
+  /** The share of kept sites that hold a cell, for spatial mixes 1..5 (`shared/loot-tiers.ts`): rarer at the left and the middle row. */
+  cellShare: readonly number[];
+  /** How the sites that hold no cell divide among the other kinds. */
+  others: Readonly<Partial<Record<ItemKind, number>>>;
+  /** Whether each contestant start also gets an uncharged cell nearby. Off, so a cell takes searching. */
+  starterCell: boolean;
+}
+export const LIVE_LOOT: Readonly<LiveLoot> = Object.freeze({
+  keep: 0.2,
+  cellShare: Object.freeze([0, 0.03, 0.06, 0.1, 0.15]),
+  others: Object.freeze({ weapon: 3, med: 1, shield: 1 }),
+  starterCell: false,
+});
+
+/** The kind a kept site holds, from one draw `u` in [0, 1). */
+function lootKind(loot: LiveLoot, mix: number, u: number): ItemKind {
+  const cell = loot.cellShare[mix - 1] ?? 0;
+  if (u < cell) return 'cell';
+  const others = Object.entries(loot.others) as [ItemKind, number][], total = others.reduce((sum, [, w]) => sum + w, 0);
+  let at = (u - cell) / (1 - cell) * total;
+  for (const [kind, w] of others) { if (at < w) return kind; at -= w; }
+  return others.findLast(([, w]) => w > 0)![0];
+}
 const WEAPON_TYPES: readonly WeaponType[] = ['pistol', 'rifle', 'scattergun'];
 const STARTER_DIRECTIONS: readonly (readonly [number, number])[] = [
   [1, 0],
@@ -48,9 +79,9 @@ export function liveChainParams(content: MatchContent = defaultContent(), size: 
   return chainParams({ mode: 'game', zoneWidth: size.zoneWidth, zoneHeight: size.zoneHeight, exitCount: 1, contestantCount: content.roster.contestants.length, hunterCount: content.roster.gladiators.length });
 }
 
-export function generateLiveMap(seed: number, content: MatchContent = defaultContent(), size: ZoneSize = DEFAULT_LIVE_ZONE_SIZE): GameMap {
+export function generateLiveMap(seed: number, content: MatchContent = defaultContent(), size: ZoneSize = DEFAULT_LIVE_ZONE_SIZE, loot: LiveLoot = LIVE_LOOT): GameMap {
   const chain = generate(seed, liveChainParams(content, size), undefined, DEFAULT_CELL_SIZE);
-  return liveMapFromBuilt(seed, composeRegions(chain.results), content);
+  return liveMapFromBuilt(seed, composeRegions(chain.results), content, loot);
 }
 
 /** The room seed a chain seed names: the number it spells exactly, when a room accepts it. */
@@ -97,7 +128,7 @@ export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSiz
 }
 
 /** Accept completed region results; keep their geometry and site coordinates authoritative. */
-export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, content: MatchContent = defaultContent()): GameMap {
+export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, content: MatchContent = defaultContent(), loot: LiveLoot = LIVE_LOOT): GameMap {
   const context = createGenerationContext(seed), { map } = context;
   const { width, height, origin } = builtMapFrame(built);
   map.width = width; map.height = height; map.generator = LIVE_MAP_VERSION;
@@ -130,8 +161,8 @@ export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, c
   if (map.stations.length !== TRANSIT_STATION_COUNT) throw new Error(`Live map needs ${TRANSIT_STATION_COUNT} authored transit sites.`);
   map.stations.sort((a, b) => a.x - b.x || a.y - b.y);
 
-  // Retain the starter pistol and early-cell rules, on nearby collision-clear ground.
-  for (const spawn of spawns) for (const kind of ['weapon', 'cell'] as const) {
+  // The starter pistol, and the early cell when the tuning keeps it, on nearby collision-clear ground.
+  for (const spawn of spawns) for (const kind of loot.starterCell ? ['weapon', 'cell'] as const : ['weapon'] as const) {
     let placed = false;
     for (const radius of [40, 60, 80, 100, 0]) {
       for (const [dx, dy] of STARTER_DIRECTIONS) {
@@ -146,7 +177,8 @@ export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, c
   // stampBuiltMap preserves loot order, so retain tier and building ownership by index.
   const tiers = built.regions.flatMap(r => r.loot.map(site => site.tier));
   for (const [i, spot] of context.spots.entries()) {
-    const kind = LOOT_KINDS[Math.floor(context.random() * LOOT_KINDS.length)]!;
+    if (context.random() >= loot.keep) continue;
+    const kind = lootKind(loot, spatialMix(virtualZone(map, spot)), context.random());
     const weaponType = kind === 'weapon' ? WEAPON_TYPES[Math.floor(context.random() * WEAPON_TYPES.length)]! : undefined;
     context.place(spot.x, spot.y, kind, { tier: tiers[i]!, ...(weaponType ? { weaponType } : {}),
       ...(kind === 'cell' ? { charge: 0 } : {}), ...(spot.buildingId ? { buildingId: spot.buildingId } : {}), nodeId: spot.nodeId }, 0);

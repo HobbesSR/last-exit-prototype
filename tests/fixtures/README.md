@@ -55,7 +55,7 @@ as `v8.serialize({ map, graph })` gzipped (the graph holds typed arrays). Room a
 play on it through `generatedMap(9)` (`tests/helpers/room-harness.js`) instead of building a map
 (31, "Test arenas"). It is not a behaviour baseline: `tests/slow/room-arena.test.js` fails when it
 is no longer seed 9's map, and the change that moved the map recaptures it with
-`node tools/room-arena.mjs` (`--check` compares without writing). Last recaptured for #948/#949 (`c7fce14`, removing dead `GameMap.{modules,nodes,routes,streets}` fields); previously captured for #1021 (exact unit vectors for live starter-loot placement in `map/live.ts`, which moved seed 9's starter cell `item-3602` from `x: 35.99999999999999` to `36` with the shipped content), and earlier for the sparse-sides and lighting batch (#895, `types-67`) with the legacy content (#920 moved the tool to the shipped content, which gave the same map and graph, so the file was not recaptured then).
+`node tools/room-arena.mjs` (`--check` compares without writing). Last recaptured for #1126 (interim loot tuning in `map/live.ts`, `chain-live-2`: a fifth of the generated loot sites, rarer cells, no keys and no starter cell); previously for #948/#949 (`c7fce14`, removing dead `GameMap.{modules,nodes,routes,streets}` fields); previously captured for #1021 (exact unit vectors for live starter-loot placement in `map/live.ts`, which moved seed 9's starter cell `item-3602` from `x: 35.99999999999999` to `36` with the shipped content), and earlier for the sparse-sides and lighting batch (#895, `types-67`) with the legacy content (#920 moved the tool to the shipped content, which gave the same map and graph, so the file was not recaptured then).
 
 ## Focused compound siting input (#340)
 

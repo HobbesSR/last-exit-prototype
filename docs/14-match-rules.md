@@ -397,7 +397,7 @@ Mine radius is 65 with a 120-unit blast and 45 damage; actual movement above 0.5
 
 ## Contestant PvP, bots, spawns and gladiator respawn
 
-Contestants can damage each other with projectiles. Bots retaliate immediately; roughly one third have an opportunistic temperament and may initiate fights after 30 seconds within 180 units, expanding to 320 units after two minutes. They avoid shooting directly through a third contestant and seek collision-clear space away from hunters within 170 units while returning fire. Starts are spread by the arrival strategy across its region, with a pistol and an uncharged cell within 100 units of every start. The former street map's four-block, 400-unit separation is not a promise of the chain map. These distances/times are provisional balance values.
+Contestants can damage each other with projectiles. Bots retaliate immediately; roughly one third have an opportunistic temperament and may initiate fights after 30 seconds within 180 units, expanding to 320 units after two minutes. They avoid shooting directly through a third contestant and seek collision-clear space away from hunters within 170 units while returning fire. Starts are spread by the arrival strategy across its region, with a pistol within 100 units of every start. No start gets a cell, so a cell takes searching; `LIVE_LOOT.starterCell` restores an uncharged one within 100 units (#1126). The former street map's four-block, 400-unit separation is not a promise of the chain map. These distances/times are provisional balance values.
 
 Contestant bots search rather than know (15, #230). With no known cell, or no known charger for an uncharged cell, or an unknown exit for a charged one, a bot heads for the frontier of what it has seen: the unseen discovery cell next to a seen one that is nearest, with each unit of lead toward the exit worth half a unit of distance, and at least 300 units ahead of the wall. It keeps that target until the cell is discovered, and gives a frontier cell up for good when it cannot be routed to, when the bot has stood inside it for a sample (10 ticks) and still not seen it, or when it is not approached by 16 units within 6 seconds. Coming near is not arriving: a roofed cell stays concealed until the bot is under the roof. An item it stops approaching the same way, such as one seen through a window, is set aside for 30 seconds. Live maps carry three chargers, one per band along the map (52, 55). These are provisional tuning values. Gladiators killed during a live match wait 20 seconds, then return at a valid transit station ahead of the wall and at least 1,000 units from active contestants; if none is safe, redeployment waits. Earned upgrades are retained.
 
@@ -440,7 +440,7 @@ The match finishes when all extraction slots are used, no active contestants rem
 
 ## Live chain maps
 
-Live matches use `chain-live-1` (`map/live.ts`): the authored chain library at
+Live matches use `chain-live-2` (`map/live.ts`): the authored chain library at
 48 world units per cell, on the diamond zone plan at its default size (55),
 yielding a 17,280 by 8,640 map. One physical extraction
 site shares the existing three slots. Core sites supply contestant starts,
@@ -470,8 +470,13 @@ rolls a loot chance per cell that starts at 0.012 in tier 1 and rises 0.027 a
 tier (`DEFAULT_CHAIN_PARAMS`); `open` rolls none (54). S5's bigger set pieces
 (#170) put a type that rolls loot on about 55% of the map, up from 13%, so the
 old 0.04 and 0.09 were scaled by 0.37 to keep about 950 sites per live map
-(Corey, 2026-10-04). The provisional
-seeded kind weights are cell 3, weapon 3, medkit 1, shield 1, access 1; a weapon
+(Corey, 2026-10-04). The live adapter keeps a fifth of those sites
+(`LIVE_LOOT` in `map/live.ts`; Corey, 2026-11-15, #1126). Over seeds 1 to 20 a map
+averaged 911 items before this tuning, 301 of them cells, and 186 after it, 21 of them cells.
+A kept site holds a cell with a probability set by its spatial mix
+(the selector under "Weapon quality"): 0, 3, 6, 10 and 15% for mixes 1 to 5, so cells grow
+commoner toward the right and away from the middle row. The rest split weapon 3, medkit 1,
+shield 1. Keys (access) are out of the pool until locked doors exist. A weapon
 selects pistol, rifle or scattergun equally. Cells start uncharged. Tier metadata
 does not change weapon statistics or inventory rules; weapon quality is the
 explicit L1 selection above. Traps, sensors and locked-door authoring remain deferred

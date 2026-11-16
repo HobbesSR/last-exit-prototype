@@ -67,7 +67,7 @@ test('item rolls are keyed by seed and id, not by order', () => {
 
 test('a live chain map: virtual columns are the generator zone tiers, only quality is added, the spawn kit is quality 1, and weapon quality rises with mix', () => {
   const map = generatedMap(), loot = map.items.filter(item => item.nodeId);
-  assert.ok(loot.length > 500, `generated loot: ${loot.length}`);
+  assert.ok(loot.length > 0, 'the map has generated loot'); // its amount is placeholder tuning (#1126), never asserted
   for (const item of loot) assert.equal(virtualZone(map, item).col + 1, item.tier, `${item.id} at ${item.x},${item.y}`);
   // Item setup needs no engine, so the shared constructor stands in for a match.
   const plain = createGameRecord(9, structuredClone(map), defaultContent());
