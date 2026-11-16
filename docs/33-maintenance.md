@@ -24,6 +24,7 @@ it restates something in another numbered file; if it does, link the number inst
 | The state of an issue or effort: open, assigned, blocked, awaiting an answer, swept so far | Its Forgejo issue or tracker, not a numbered document |
 | Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |
 | A dependency added, upgraded or newly served to browsers; a third-party asset | [21.1](21.1-third-party-licenses.md), `tools/third-party/components.json`, then `npm run notices` |
+| Reference material: architectural theory or outside guidance that informs decisions but creates no requirements | `docs/references/`, verbatim with a note saying so, and listed in [00](00-index.md#references). A decision that draws on a reference is recorded in its owning numbered document, with its own evidence, and cites the reference. The reference itself never becomes a requirement |
 | A superseded verbatim capture, retired guidance, or an explored path worth guarding against, including one taken out of a code comment | `docs/archive/<YYYY-MM-DD>-<topic>/`, as below |
 | Hosting, CI runners, network access, credentials, machine paths | The private `corey/studio-ops` repository on Forgejo, never this one ([34](34-forgejo-workflow.md#hosting)) |
 
