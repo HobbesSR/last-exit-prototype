@@ -6,6 +6,12 @@
 
 Closed vocabularies are literal unions rather than `string`, and carried items are a discriminated union so `ammo`, `charge` and `count` cannot be read off an item that has no such field. Collision and routing take the narrow map views they actually read, not the whole map, because they run during generation before the map is complete.
 
+The relational migration ([24.4](24.4-relational-data-model.md), #1147) introduces
+zero-cost numeric brands `PlayerIdx` and `GateIdx` for dense match-local array slots.
+Legacy string IDs still serve the external boundary in its preparatory slice.
+`shared/enum-tables.ts` declares frozen vocabulary order explicitly; content display
+descriptors and equipped weapon codes use that order rather than object insertion order.
+
 `erasableSyntaxOnly` and `exactOptionalPropertyTypes` are on; `noUncheckedIndexedAccess` is not. Enabling it is worthwhile and is deliberately left as separate work: this codebase indexes arrays constantly, and the change belongs in a pass that can consider each site rather than one that sprays assertions.
 
 The original conversion covered `shared/` only. `npm run typecheck` now checks two configurations: the root `tsconfig.json` (`shared/`, `map/micro/`, `map/kernel/` and the top-level `map/*.ts`), and `map/tools/tsconfig.json` (the tools, and what they import). `map/macro/` typechecks in its own `npm test`. `server/`, `public/` and `tests/` remain JavaScript and are not type checked; they import the shared modules by their `.ts` specifiers, which Node and the asset route both resolve.

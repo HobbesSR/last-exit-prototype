@@ -30,12 +30,16 @@ export function validateItemPayload(item: GroundItem | InventoryItem, s: Game): 
 /** Uses a counter independent of simulation RNG and event IDs. */
 export function allocateItemId(s: Game): ItemId {
   if (!Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0) throw new Error('Invalid item instance counter');
+  const scatter = s.scatterSerial ?? s.itemSerial!;
+  if (!Number.isSafeInteger(scatter) || scatter < 0) throw new Error('Invalid item scatter counter');
   const used = new Set<string>();
   for (const item of s.map.items) { if (validId(item.id)) used.add(item.id); if (validId(item.instanceId)) used.add(item.instanceId); }
   for (const player of s.players) for (const item of player.inventory ?? []) if (item && validId(item.instanceId)) used.add(item.instanceId);
   while (true) {
-    if (!Number.isSafeInteger(s.itemSerial) || s.itemSerial! >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
+    if (!Number.isSafeInteger(s.itemSerial) || s.itemSerial! >= Number.MAX_SAFE_INTEGER || (s.scatterSerial ?? scatter) >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
     const id = `instance-${s.itemSerial!++}` as ItemId;
+    // Compatibility schedule: even a skipped occupied legacy ID consumed one phase.
+    s.scatterSerial = (s.scatterSerial ?? scatter) + 1;
     if (!used.has(id)) return id;
   }
 }
@@ -49,7 +53,7 @@ export function ensureItemIdentity(s: Game, item: InventoryItem): void {
 /** Validate first, then assign legacy carried IDs in player and slot order. */
 export function initializeItemInstances(s: Game): void {
   const capacity = s.content.itemInstances.groundCapacity;
-  if (!Number.isSafeInteger(capacity) || capacity! < 0 || s.map.items.length > capacity! || s.itemSerial !== undefined && (!Number.isSafeInteger(s.itemSerial) || s.itemSerial < 0)) throw new Error('Invalid item instance configuration');
+  if (!Number.isSafeInteger(capacity) || capacity! < 0 || s.map.items.length > capacity! || s.itemSerial !== undefined && (!Number.isSafeInteger(s.itemSerial) || s.itemSerial < 0) || s.scatterSerial !== undefined && (!Number.isSafeInteger(s.scatterSerial) || s.scatterSerial < 0)) throw new Error('Invalid item instance configuration');
   const used = new Set<string>();
   for (const item of s.map.items) {
     if (!validId(item.id) || item.instanceId !== undefined && item.instanceId !== item.id || !validateItemPayload(item, s) || used.has(item.id)) throw new Error('Invalid ground item');
@@ -71,8 +75,12 @@ export function initializeItemInstances(s: Game): void {
     next = Math.max(next, serial + 1);
   }
   const missing = s.players.reduce((total, player) => total + (player.inventory ?? []).filter(item => item && !item.instanceId).length, 0);
-  if (missing > Number.MAX_SAFE_INTEGER - next) throw new Error('Item instance counter exhausted');
+  const scatter = s.scatterSerial ?? next;
+  if (missing > Number.MAX_SAFE_INTEGER - next || missing > Number.MAX_SAFE_INTEGER - scatter) throw new Error('Item instance counter exhausted');
   s.itemSerial = next;
+  // Temporary compatibility debt (24.4): preserve the legacy reservation phase,
+  // independently of the numeric item domain introduced in the subsequent migration.
+  s.scatterSerial = scatter;
   const players = [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   for (const player of players) for (const item of player.inventory ?? []) if (item) ensureItemIdentity(s, item);
 }

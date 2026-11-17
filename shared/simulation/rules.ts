@@ -1,4 +1,5 @@
 import { defaultContent } from './content.ts';
+import { ROLES as ROLE_ORDER } from '../enum-tables.ts';
 import type { Kit, MatchContent, Role, Tick } from '../types.ts';
 
 export const VERSION = 'last-exit-0.7';
@@ -40,7 +41,7 @@ export const RESPAWN_CLEARANCE_RADIUS = 25;
 /** A player's name is cut to this many UTF-16 code units. */
 export const MAX_PLAYER_NAME = 16;
 /** Roles in roster and identifier order. */
-export const ROLES: readonly Role[] = ['contestant', 'gladiator'];
+export const ROLES: readonly Role[] = ROLE_ORDER;
 /** The kit preferred when none is chosen; content must still offer it. */
 export const DEFAULT_KIT: Kit = 'warden';
 /** Escape pods a match starts with. A rule, not a roster capacity or a content field. */

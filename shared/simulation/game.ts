@@ -1,3 +1,4 @@
+import { gateAt } from './relations.ts';
 import { createGameRecord } from './state.ts';
 import { canOccupy, gateShape, prepareMovementGeometry } from '../movement.ts';
 import { actorRadius, validateActorPhysics } from './actor-physics.ts';
@@ -8,7 +9,7 @@ import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import { prepareBotGates } from './bot-routes.ts';
 import { prepareSweptGeometry, prepareSweptGates } from './swept.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
-import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
+import type { Game, GameMap, GateIdx, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
 import { start, stop, profiling, observe } from '../profiler.ts';
 
@@ -56,7 +57,7 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
   const runtime: PhysicsRuntime = { stepping: false, discontinuityCapacity: 256, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
-    gateOrder: [...s.map.gates].sort((a, b) => compare(a.id, b.id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [],
+    gateOrder: s.map.gates.map((_, i) => i as GateIdx).sort((a, b) => compare(s.map.gates[a].id, s.map.gates[b].id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [],
     synchronize: options => synchronize(s, runtime, runtime.stepping ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
@@ -161,7 +162,7 @@ export function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferI
     admitted.push(p);
   }
   for (let i = 0; i < r.gateOrder.length; i++) {
-    const gate = r.gateOrder[i]!, pushed = r.gates[i]!;
+    const gate = gateAt(s, r.gateOrder[i]!), pushed = r.gates[i]!;
     if (pushed === (gate.open ? 1 : 2)) continue;
     if (!gate.open && r.world.overlapsDynamicBox(gateShape(gate))) {
       // Closing is refused while any active actor or solid prop occupies the footprint; nothing

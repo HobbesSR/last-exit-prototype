@@ -1,3 +1,4 @@
+import { playerById } from './relations.ts';
 import { canOccupy } from '../movement.ts';
 import { clearRoute } from './geometry.ts';
 import { actorRadius } from './actor-physics.ts';
@@ -16,7 +17,7 @@ import { hypot } from '../math.ts';
  * it plans again from there; nothing else about the player changes.
  */
 export function teleport(s: Game, id: PlayerId, x: number, y: number): Vec2 | null {
-  const p = s.players.find(p => p.id === id);
+  const p = playerById(s, id);
   if (!p || p.status !== 'active' || !Number.isFinite(x) || !Number.isFinite(y)) return null;
   const at = { x: Math.round(x), y: Math.round(y) };
   const runtime = physicsRuntime(s), radius = actorRadius(s, p);
