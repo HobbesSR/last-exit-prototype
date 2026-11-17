@@ -12,8 +12,11 @@
 //   {"v": value}                    the whole value
 //   {"o": {key: patch}, "k"?: [..]} an object: these keys changed; `k` is the full key order when the
 //                                   key set or order changed (new keys arrive as {"v": …})
-//   {"a": {"s"?, "d"?, "r"?}}       a list keyed by `id` (or `spec.id`): entries set whole, ids dropped,
-//                                   and the full id order when it is not keyed-list.ts's default
+//   {"a": {"s"?, "d"?, "r"?}}       a keyed list: entries set whole, keys dropped, and the full key order
+//                                   when it is not keyed-list.ts's default. The key is `id` (or `spec.id`)
+//                                   up to schema 19, and `playerIdx`, else `gateIdx`, else that, from
+//                                   schema 20 (`recordKeyFor`). The rule is fixed by the header's schema;
+//                                   changing it needs a new schema or frame encoding (26).
 //   {}                              unchanged
 // Entities are replaced whole, never field by field. Commands are never deltas. The previous *stored*
 // frame is the base, so a frame the writer omitted under backpressure is never referenced.
@@ -23,7 +26,7 @@
 // frame, so a reader that rebuilds frames can prove the deltas reproduced what was recorded.
 
 import { rebuildKeyed, type Id } from './keyed-list.ts';
-import type { RecordingFit } from './recording.ts';
+import { RELATIONAL_SCHEMA, type RecordingFit } from './recording.ts';
 
 export const FRAME_ENCODING = 'delta-1';
 /** A keyframe at least every this many stored frames: 5 s at 20 Hz. Seeks rebuild at most this many. */
@@ -45,13 +48,24 @@ export type Checkpoint = { frame: number; sha256: string };
 
 const isPlain = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
-/** The id a recorded list entry is addressed by: `id`, else `spec.id` (physics world bodies). */
-export function recordKey(entry: unknown): Id | undefined {
-  if (!isPlain(entry)) return undefined;
-  const id = entry.playerIdx ?? entry.gateIdx ?? entry.id ?? (isPlain(entry.spec) ? entry.spec.id : undefined);
-  return typeof id === 'string' || typeof id === 'number' ? id : undefined;
+type KeyOf = (entry: unknown) => Id | undefined;
+const asKey = (id: unknown): Id | undefined => typeof id === 'string' || typeof id === 'number' ? id : undefined;
+/** Schemas 10-19: `id`, else `spec.id` (physics world bodies). */
+const idKey: KeyOf = entry => isPlain(entry) ? asKey(entry.id ?? (isPlain(entry.spec) ? entry.spec.id : undefined)) : undefined;
+/** Schema 20, relational: seat slot, else gate slot, else the id rule. */
+const relationalKey: KeyOf = entry => isPlain(entry) ? asKey(entry.playerIdx ?? entry.gateIdx ?? idKey(entry)) : undefined;
+/**
+ * The key rule a recording's list patches use, chosen once from its header's schema and never from the
+ * data: a schema below `RELATIONAL_SCHEMA` keys by id, a later one by the relational rule. A header with no
+ * schema (a bare test header) is read as the oldest rule; a schema that is not a whole number is refused.
+ * A later rule needs a new schema or frame encoding, since the reader of an old file must not guess.
+ */
+export function recordKeyFor(schema: unknown): KeyOf {
+  if (schema === undefined) return idKey;
+  if (!Number.isSafeInteger(schema) || (schema as number) < 0) throw damaged('the header schema is not a whole number');
+  return (schema as number) < RELATIONAL_SCHEMA ? idKey : relationalKey;
 }
-function keyable(list: unknown): list is unknown[] {
+function keyable(list: unknown, recordKey: KeyOf): list is unknown[] {
   if (!Array.isArray(list) || !list.length) return false;
   const seen = new Set<Id>();
   for (const entry of list) {
@@ -65,33 +79,33 @@ function keyable(list: unknown): list is unknown[] {
 // ---- encoding (the writer's worker) ----------------------------------------------------------------
 
 // Values here come from JSON.parse, so JSON.stringify gives back the bytes they were parsed from.
-function shadowOf(value: unknown, json?: string): Shadow {
-  if (keyable(value)) {
+function shadowOf(value: unknown, recordKey: KeyOf, json?: string): Shadow {
+  if (keyable(value, recordKey)) {
     const texts = new Map<Id, string>();
     for (const entry of value) texts.set(recordKey(entry)!, JSON.stringify(entry));
     return { kind: 'a', ids: value.map(entry => recordKey(entry)!), texts };
   }
   if (isPlain(value)) {
     const keys = Object.keys(value);
-    return { kind: 'o', keys, children: new Map(keys.map(key => [key, shadowOf(value[key])])) };
+    return { kind: 'o', keys, children: new Map(keys.map(key => [key, shadowOf(value[key], recordKey)])) };
   }
   return { kind: 'v', json: json ?? JSON.stringify(value) };
 }
 const sameOrder = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((value, i) => value === b[i]);
 
 // The patch from a value's shadow to its new value, and the new shadow. `json` is the value's text when known.
-function diff(prev: Shadow, value: unknown, json?: string): [Shadow, string | undefined] {
+function diff(prev: Shadow, value: unknown, recordKey: KeyOf, json?: string): [Shadow, string | undefined] {
   if (prev.kind === 'o' && isPlain(value)) {
     const keys = Object.keys(value), children = new Map<string, Shadow>(), parts: string[] = [];
     for (const key of keys) {
       const before = prev.children.get(key);
       if (before) {
-        const [child, patch] = diff(before, value[key]);
+        const [child, patch] = diff(before, value[key], recordKey);
         children.set(key, child);
         if (patch !== undefined) parts.push(`${JSON.stringify(key)}:${patch}`);
       } else {
         const text = JSON.stringify(value[key]);
-        children.set(key, shadowOf(value[key], text));
+        children.set(key, shadowOf(value[key], recordKey, text));
         parts.push(`${JSON.stringify(key)}:{"v":${text}}`);
       }
     }
@@ -100,7 +114,7 @@ function diff(prev: Shadow, value: unknown, json?: string): [Shadow, string | un
     if (!parts.length && !reordered) return [next, undefined];
     return [next, `{"o":{${parts.join(',')}}${reordered ? `,"k":${JSON.stringify(keys)}` : ''}}`];
   }
-  if (prev.kind === 'a' && keyable(value)) {
+  if (prev.kind === 'a' && keyable(value, recordKey)) {
     const texts = new Map<Id, string>(), ids: Id[] = [], set: string[] = [];
     for (const entry of value) {
       const key = recordKey(entry)!, text = JSON.stringify(entry);
@@ -120,7 +134,7 @@ function diff(prev: Shadow, value: unknown, json?: string): [Shadow, string | un
   }
   const text = json ?? JSON.stringify(value);
   if (prev.kind === 'v' && prev.json === text) return [prev, undefined];
-  return [shadowOf(value, text), `{"v":${text}}`];
+  return [shadowOf(value, recordKey, text), `{"v":${text}}`];
 }
 
 /** A frame's state as its top-level keys and their JSON text, in key order; and its commands' JSON. */
@@ -138,7 +152,8 @@ export function frameText({ entries, commands }: FrameEntries): string {
  * first frame, every `keyframeEvery` stored frames, and early when state churns (`EARLY_KEYFRAME_SHARE`).
  * Unchanged top-level values are recognised by their text and never parsed.
  */
-export function createFrameEncoder({ keyframeEvery = KEYFRAME_EVERY }: { keyframeEvery?: number } = {}) {
+export function createFrameEncoder({ keyframeEvery = KEYFRAME_EVERY, schema }: { keyframeEvery?: number; schema?: unknown } = {}) {
+  const recordKey = recordKeyFor(schema);
   let top: Map<string, { json: string; shadow?: Shadow }> | null = null, keys: string[] = [];
   let index = 0, sinceKey = 0, keyBytes = 0, deltaBytes = 0;
   let previous: { frame: FrameEntries | null; keyframe: boolean } | null = null;
@@ -168,7 +183,7 @@ export function createFrameEncoder({ keyframeEvery = KEYFRAME_EVERY }: { keyfram
         const was = top!.get(key);
         if (was?.json === json) continue;
         if (!was) { top!.set(key, { json }); parts.push(`${JSON.stringify(key)}:{"v":${json}}`); continue; }
-        const [shadow, patch] = diff(was.shadow ?? shadowOf(JSON.parse(was.json), was.json), JSON.parse(json), json);
+        const [shadow, patch] = diff(was.shadow ?? shadowOf(JSON.parse(was.json), recordKey, was.json), JSON.parse(json), recordKey, json);
         top!.set(key, { json, shadow });
         if (patch !== undefined) parts.push(`${JSON.stringify(key)}:${patch}`);
       }
@@ -207,14 +222,14 @@ function setOwn(object: Record<string, unknown>, key: string, value: unknown) {
 }
 
 /** A value with a delta patch applied. Unchanged parts are shared with `prev`, which is never modified. */
-export function applyPatch(prev: unknown, patch: unknown): unknown {
+export function applyPatch(prev: unknown, patch: unknown, schema?: unknown): unknown {
   if (!isPlain(patch)) throw damaged('a patch is not an object');
   if (own(patch, 'v')) return patch.v;
   if (own(patch, 'a')) {
     const change = patch.a as { s?: unknown; d?: unknown; r?: unknown };
     if (!Array.isArray(prev) || !isPlain(change)) throw damaged('a list change has no list');
     if ((change.s !== undefined && !Array.isArray(change.s)) || (change.d !== undefined && !Array.isArray(change.d)) || (change.r !== undefined && !Array.isArray(change.r))) throw damaged('a list change is malformed');
-    try { return rebuildKeyed(prev, entry => recordKey(entry) as Id, change.s as unknown[], change.d as Id[], change.r as Id[]); }
+    try { return rebuildKeyed(prev, entry => recordKeyFor(schema)(entry) as Id, change.s as unknown[], change.d as Id[], change.r as Id[]); }
     catch (error) { throw damaged((error as Error).message); }
   }
   if (own(patch, 'o') || own(patch, 'k')) {
@@ -223,7 +238,7 @@ export function applyPatch(prev: unknown, patch: unknown): unknown {
     const next: Record<string, unknown> = {};
     for (const key of order) {
       if (typeof key !== 'string') throw damaged('an object key is not text');
-      if (own(changes, key)) setOwn(next, key, applyPatch(prev[key], changes[key]));
+      if (own(changes, key)) setOwn(next, key, applyPatch(prev[key], changes[key], schema));
       else if (own(prev, key)) setOwn(next, key, prev[key]);
       else throw damaged(`an object change names a missing key ${key}`);
     }
@@ -256,6 +271,7 @@ export function createRecordingReader({ onHeader }: ReadOptions = {}) {
       header = value;
       if (Array.isArray(value.frames)) { legacy = value; return; }
       if (value.frameEncoding !== FRAME_ENCODING) throw new RecordingError(`Unknown frame encoding ${String(value.frameEncoding)}`, 'too-new');
+      recordKeyFor(value.schema); // refuse a malformed schema before any frame
       return;
     }
     if (legacy || ended) throw damaged('text after the end of the recording');
@@ -264,7 +280,7 @@ export function createRecordingReader({ onHeader }: ReadOptions = {}) {
     if (own(value, 'state')) state = value.state;
     else if (own(value, 'delta')) {
       if (!frames.length) throw damaged('the first frame is not a keyframe');
-      state = applyPatch(frames[frames.length - 1]!.state, value.delta);
+      state = applyPatch(frames[frames.length - 1]!.state, value.delta, header!.schema);
     } else throw damaged(`frame ${frames.length + 1} has neither state nor delta`);
     frames.push(own(value, 'commands') ? { state, commands: value.commands } : { state });
   }

@@ -43,7 +43,7 @@ const gzip = createGzip(workerData.gzipOptions), hash = createHash('sha256');
 const recording = pipeline(gzip, output);
 // The worker owns the stored form (26, shared/recording-format.ts): each frame becomes a keyframe or a
 // delta against the previous stored frame, and every few keyframes a checkpoint of a rebuilt frame.
-const encoder = createFrameEncoder(workerData.keyframeEvery ? { keyframeEvery: workerData.keyframeEvery } : {});
+const encoder = createFrameEncoder({ ...(workerData.keyframeEvery ? { keyframeEvery: workerData.keyframeEvery } : {}), schema: workerData.schema });
 const kept = {}, queue = [], checkpoints = [];
 let writing = false, ending = false;
 const sha256 = text => createHash('sha256').update(text).digest('hex');
