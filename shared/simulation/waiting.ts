@@ -9,6 +9,7 @@ import { characterMotor } from './actor-physics.ts';
 import { buildPhysicsGeometry } from './physics-geometry.ts';
 import { PhysicsIdentities } from './physics-identities.ts';
 import { PHYSICS_VERSION } from './physics-runtime.ts';
+import { wireIds, type WireIdKey, type WireIds } from './wire-ids.ts';
 import { initRapier, isRapierInitialized, PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsBodyView } from '../physics/types.ts';
 import type { GameMap, Kit, Player, PlayerId, PlayerIdx, PlayerInput, Role, Tick } from '../types.ts';
@@ -42,13 +43,15 @@ export interface Waiting {
   arrivals: number;
   world: PhysicsWorld | null;
   identities: PhysicsIdentities;
+  /** The yard's outward body IDs (#1164): its own key, drawn by the room like a match's. */
+  wire: WireIds;
   discontinuities: Set<string>;
   ready: Promise<void>;
   disposed: boolean;
   dispose(): void;
 }
 
-export function createWaiting(map: WaitingMap): Waiting {
+export function createWaiting(map: WaitingMap, { wireKey = null }: { wireKey?: WireIdKey | null } = {}): Waiting {
   const w: Waiting = {
     tick: 0,
     map,
@@ -58,6 +61,7 @@ export function createWaiting(map: WaitingMap): Waiting {
     arrivals: 0,
     world: null,
     identities: new PhysicsIdentities(),
+    wire: wireIds(wireKey),
     discontinuities: new Set(),
     ready: null!,
     disposed: false,
@@ -242,7 +246,7 @@ export function waitingView(w: Waiting, id: PlayerId) {
       generation: b.generation,
       owner: { kind: 'actor', playerIdx: actors.get(b.spec.id)! },
       ...(w.discontinuities.has(b.spec.id) ? { discontinuity: 'placed' as const } : {})
-    }, b.spec.id === `actor:${id}`));
+    }, b.spec.id === `actor:${id}`, w.wire));
 
   // A player with a body carries its pose there only (24.4): records are built without it, as in a match.
   const bodyPlayers = new Set(bodies.map(body => body.owner.kind === 'actor' ? body.owner.playerIdx : undefined));
@@ -261,7 +265,7 @@ export function waitingView(w: Waiting, id: PlayerId) {
         surfaces: true,
       }
     } : {}),
-    ...(viewer ? { self: ownPlayerFields(viewer, undefined, undefined, slotOf(w, id), posed(slotOf(w, id))) } : {}),
+    ...(viewer ? { self: ownPlayerFields(viewer, undefined, undefined, slotOf(w, id), w.wire, posed(slotOf(w, id))) } : {}),
     players: w.players.flatMap(p => p.id === id ? [] : [observed(p, slotOf(w, p.id), posed(slotOf(w, p.id)))]),
     items: [],
     gates: [],

@@ -52,6 +52,12 @@ solver. The shared event formatter accepts legacy `{ text }` records. Arbitrary
 backward seeks hydrate detached display values without editing archive frames,
 their order, checkpoint bytes or digest verification.
 
+Recordings keep internal IDs. Live views since #1164 send IDs from match-wide counters (bodies,
+tethers, items and `s.serial` for events, effects and projectiles) through a per-match keyed
+one-to-one mapping, so a live ID is a keyed view of the recorded one. The key is never recorded;
+a recording is published only after its match, and its playback never meets a keyed ID. Neither the
+schema nor the frame encoding changed for it ([24.4](24.4-relational-data-model.md#keyed-outward-ids-1164)).
+
 Rules remain `last-exit-0.8-physics`: #1153 deliberately changes projections, not
 simulation. The frozen fixture's arenas are retained; its reviewed projection
 update carries independent unchanged-gameplay/private-PhysicsWorld evidence.

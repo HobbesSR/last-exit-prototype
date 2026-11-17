@@ -11,6 +11,7 @@ import { publishGates, publishedGates, shareGatePublication } from './frame-gate
 import { settledLayer } from '../frame-layers.ts';
 import { heardBy } from './hearing.ts';
 import { capturePhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
+import { assertWireDomain, wireCache, wireIds, type WireIds } from './wire-ids.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
 // movement — so the client never has to wait on the server to show something that just became
@@ -46,10 +47,11 @@ export const observed = (p: Player<ItemKey>, playerIdx?: PlayerIdx, posed = true
   ...(playerIdx !== undefined ? { playerIdx } : {}),
   ...Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]])), ...(posed ? { x: p.x, y: p.y } : {}),
 });
-const projectedItems = new WeakMap<GroundItem, Projected<GroundItem>>();
-function projectedItem(item: GroundItem): Projected<GroundItem> {
+// Cached per source record and per mapping (#1164), so keyed IDs are mapped once per record, not per view.
+const itemCache = (wire: WireIds) => wireCache<GroundItem, Projected<GroundItem>>(wire, 'projectedItem');
+function projectedItem(item: GroundItem, wire: WireIds, projectedItems: WeakMap<GroundItem, Projected<GroundItem>>): Projected<GroundItem> {
   let projected = projectedItems.get(item);
-  if (!projected) { projected = itemFields(item); if (Object.isFrozen(item)) projectedItems.set(item, projected = Object.freeze(projected)); }
+  if (!projected) { projected = itemFields(item, wire); if (Object.isFrozen(item)) projectedItems.set(item, projected = Object.freeze(projected)); }
   return projected;
 }
 const gateLists = new WeakMap<readonly Gate[], GateState[]>(), gateRecords = new WeakMap<Gate, GateState>();
@@ -65,13 +67,15 @@ export function dynamicGates(gates: readonly Gate[]): GateState[] {
   }
   return list;
 }
-export function playerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined) {
+/** `wire` is the match's outward ID mapping (#1164); the identity unless the server keyed the match. */
+export function playerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds = wireIds()) {
   start('sim.playerView');
-  try { return buildPlayerView(s, frame, id); } finally { stop('sim.playerView'); }
+  try { return buildPlayerView(s, frame, id, wire); } finally { stop('sim.playerView'); }
 }
 // A viewer id that matches no player is a non-player client: it receives the directed view, which is
 // unfogged by design. Callers decide who is allowed to ask for one.
-function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined) {
+function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined, wire: WireIds) {
+  assertWireDomain(frame);
   // Directed clients have no player association, so skip both live and captured roster lookup.
   const liveIdx = id == null ? undefined : playerSlot(s, id);
   // A historical seat move or an unknown label needs only a short scan of this captured roster.
@@ -94,12 +98,13 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   const ground = hydrated.items as GroundItem[];
   shareItemPublication(frame.items, ground);
   const items = viewer ? framedItems(s, ground, viewer, POTENTIAL, inRange) : ground;
+  const projectedItems = itemCache(wire);
   const projectPlayer = (p: Player & { playerIdx: PlayerIdx }, own = false) => {
     const posed = !relations.byActor(p.playerIdx);
-    return own ? ownPlayerFields(p, discovery, heard, p.playerIdx, posed) : observed(p, p.playerIdx, posed);
+    return own ? ownPlayerFields(p, discovery, heard, p.playerIdx, wire, posed) : observed(p, p.playerIdx, posed);
   };
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
-    ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.playerIdx)), items, inRange) : {}),
+    ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.playerIdx)), items, inRange, wire) : {}),
     ...(frame.bodies && viewer ? { predictionMotor: {
       acceleration: s.content.actorPhysics.acceleration,
       braking: s.content.actorPhysics.braking,
@@ -110,9 +115,9 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
     ...(viewer ? { self: projectPlayer(viewer, true) } : {}),
     players: authorized.filter(p => p !== viewer).map(p => projectPlayer(p)),
-    items: items.map(item => { const projected = projectedItem(item); return itemBodies.has(item.id) ? omitPose(projected) : projected; }), gates: frame.gates,
-    traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
-    effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
+    items: items.map(item => { const projected = projectedItem(item, wire, projectedItems); return itemBodies.has(item.id) ? omitPose(projected) : projected; }), gates: frame.gates,
+    traps: (frame.traps || []).filter(inRange).map(trap => trapFields(trap)), projectiles: frame.projectiles.filter(inRange).map(shot => projectileFields(shot, wire)),
+    effects: frame.effects.filter(inRange).map(effect => effectFields(effect, wire)), events: frame.events?.map(event => eventFields(event, wire)) };
 }
 export function snapshot(s: Game): Snapshot {
   // Inclusive; presentation timing accumulates numeric capture and physical item pose publication.

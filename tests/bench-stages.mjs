@@ -7,6 +7,7 @@
 // joined player would not, so this is the bot room's cost plus the views.
 //
 // --size=12x6 --content=<id> --seed --ticks --rooms --clients=<player views> --spectators --no-record
+// --wire-key=none projects internal IDs; by default each room draws a key, as production does (#1164).
 // --tile=CxR repeats the --size map on a CxR grid at the same density (tests/helpers/tile-map.js), for sizes the
 // protocol does not serve. --out=<file.json> keeps the raw per-tick series.
 // --heap-profile=<file.heapprofile> samples allocations over the measured ticks (inspector sampling heap profiler,
@@ -27,6 +28,7 @@ import { contentById, CONTENT_ID } from '../shared/simulation/content.ts';
 import { prebuiltTiles } from '../shared/simulation/bot-routes.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
 import { createMatch } from '../server/match.js';
+import { randomWireIdKey } from '../server/wire-key.js';
 import { remember, broadcast, viewEncoders } from '../server/room-views.js';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
@@ -70,7 +72,7 @@ async function buildRoom(i) {
   const built = performance.now();
   for (const packed of prebuiltTiles(map, content)) adoptPackedTiles(map, packed);
   const tilesMs = performance.now() - built;
-  const match = await createMatch(seed + i, size, map, content);
+  const match = await createMatch(seed + i, size, map, content, { wireKey: args.get('wire-key') === 'none' ? null : randomWireIdKey() });
   const room = { match, history: [], clients: new Set(), ...viewEncoders(), items: map.items.length, obstacles: map.obstacles.length, tilesMs };
   const players = match.diagnosticState.players;
   for (let c = 0; c < clients; c++) room.clients.add({ playerId: players[c % players.length].id, deliver: () => true });
