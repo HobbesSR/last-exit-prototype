@@ -100,6 +100,7 @@ export function initializeItemInstances(s: Game): void {
     || s.scatterSerial !== undefined && (!Number.isSafeInteger(s.scatterSerial) || s.scatterSerial < 0)) throw new Error('Invalid item instance configuration');
   // At this one input boundary records can still carry artifact labels. Validate before mutating them.
   const all = [...s.map.items, ...s.players.flatMap(p => p.inventory?.filter(i => i !== null) ?? [])];
+  const reloads = s.players.flatMap(p => p.reload ? [p.reload] : []);
   const used = new Set<unknown>();
   const inputId = (id: unknown) => typeof id === 'string' && id.length > 0 || validId(id);
   let legacyNext = s.itemIdentities ? s.scatterSerial ?? 0 : s.itemSerial ?? 0;
@@ -131,6 +132,15 @@ export function initializeItemInstances(s: Game): void {
       }
     }
   }
+  for (const reload of reloads) {
+    const id = reload.instanceId;
+    if (!inputId(id)) throw new Error('Invalid reload item identity');
+    if (typeof id === 'number') {
+      if (id >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
+      itemLabel(s, id);
+      numericNext = Math.max(numericNext, id + 1);
+    }
+  }
   s.itemSerial = numericNext;
   registry(s);
   const normalize = (id: ItemId): ItemId => typeof id === 'string' ? registerItemLabel(s, id) : id;
@@ -139,10 +149,10 @@ export function initializeItemInstances(s: Game): void {
     if (item.instanceId !== undefined) item.instanceId = normalize(item.instanceId);
     if (item.lineageId !== undefined) item.lineageId = normalize(item.lineageId);
   }
+  for (const reload of reloads) reload.instanceId = normalize(reload.instanceId);
   s.scatterSerial ??= legacyNext;
   const players = [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   for (const player of players) {
     for (const item of player.inventory ?? []) if (item) ensureItemIdentity(s, item);
-    if (player.reload) player.reload.instanceId = normalize(player.reload.instanceId);
   }
 }

@@ -135,7 +135,7 @@ export function snapshot(s: Game): Snapshot {
     start('sim.snapshot.clone');
     // The ground and gate lists are shared, not cloned: their records are frozen and replaced when they change.
     // The physics state and its presentation are already the frame's own, apart from frozen shared records.
-    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.scatterSerial } : {}) }) as unknown as Snapshot;
+    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.scatterSerial !== undefined ? { itemSerial: s.scatterSerial } : {}) }) as unknown as Snapshot;
     frame.items = legacyItems(s, items);
     frame.players = legacyPlayers(s, frame.players as unknown as Player[]);
     frame.gates = s.map.gates && publishGates(s) as Gate[];

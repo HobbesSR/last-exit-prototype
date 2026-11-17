@@ -72,7 +72,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
 export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: number, mandatory = false): DropPlan | null {
   if (!Number.isSafeInteger(count) || count < 1 || ![p.x, p.y].every(Number.isFinite)) return null;
   if (!mandatory && s.map.items.length + 1 > s.content.itemInstances.groundCapacity) return null;
-  const point = scatterPoint(s, p, s.scatterSerial ?? s.itemSerial ?? 0, s.map.items);
+  const point = scatterPoint(s, p, s.scatterSerial ?? 0, s.map.items);
   if (!point && !mandatory) return null;
   const allocation = forkItemAllocation(s);
   try {

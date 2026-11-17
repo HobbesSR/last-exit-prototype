@@ -48,7 +48,7 @@ export function seedAmmo(s: Game, rest: Map<GroundItem, number>): void {
   if (!rules) return;
   for (const p of s.players) if (p.role === 'contestant') p.reserves = { pistol: 0, rifle: 0, shell: 0 };
   for (const [weapon, count] of rest) {
-    const at = scatterPoint(s, weapon, s.scatterSerial ?? s.itemSerial ?? 0, s.map.items) ?? { x: weapon.x, y: weapon.y };
+    const at = scatterPoint(s, weapon, s.scatterSerial ?? 0, s.map.items) ?? { x: weapon.x, y: weapon.y };
     const id = allocateItemId(s);
     addItems(s, { kind: 'ammo', id, lineageId: id, family: rules.weapons[weapon.weaponType ?? 'pistol'].family, count, x: at.x, y: at.y,
       ...(weapon.buildingId !== undefined ? { buildingId: weapon.buildingId } : {}) });
