@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PHYSICS_VERSION, createGame, disposePhysics, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { physicsRuntime, physicsState } from '../shared/simulation/physics-runtime.ts';
+import { hookSkill } from '../shared/simulation/hook.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { openArea } from './helpers/arena.js';
 
@@ -42,12 +43,34 @@ test('the hook is opt-in, launches once, misses at range and spends cooldown', a
     assert.equal(hooks(s)[0].casterIdx, s.players.indexOf(player(s, 'g0')));
     assert.equal('caster' in hooks(s)[0], false);
     assert.equal(snapshot(s).physics.hooks[0].caster, 'g0');
+    assert.deepEqual(Object.keys(snapshot(s).physics.hooks[0]),
+      ['id', 'caster', 'x', 'y', 'dx', 'dy', 'travelled', 'startedTick', 'phase', 'generationA'],
+      'legacy hook fields keep their insertion order');
     assert.equal('casterIdx' in snapshot(s).physics.hooks[0], false);
     advance(s, 12);
     assert.equal(hooks(s).length, 0);
     assert.equal(world(s).counts().constraints, 0);
     press(s, 'g0', { skill: true, aim: 0 }); step(s);
     assert.equal(hooks(s).length, 0, 'cooldown prevents relaunch');
+  } finally { disposePhysics(s); }
+});
+
+test('physics capture tolerates an explicitly undefined target and omits stale roster slots', async () => {
+  const s = await game();
+  try {
+    const hook = { id: 'hook:g0', casterIdx: s.players.indexOf(player(s, 'g0')), x: 200, y: 400, dx: 1, dy: 0,
+      travelled: 0, startedTick: s.tick, phase: 'flying', generationA: world(s).getGeneration('actor:g0'),
+      targetIdx: undefined, targetActorKey: 'actor:stale' };
+    hooks(s).push(hook);
+    assert.doesNotThrow(() => physicsState(s), 'diagnostic capture handles an explicit undefined target slot');
+    assert.deepEqual(Object.keys(physicsState(s).hooks[0]),
+      ['id', 'caster', 'x', 'y', 'dx', 'dy', 'travelled', 'startedTick', 'phase', 'generationA']);
+
+    hook.targetIdx = 99;
+    assert.deepEqual(physicsState(s).hooks, [], 'missing target slots are omitted');
+    hook.targetIdx = undefined;
+    hook.casterIdx = 99;
+    assert.deepEqual(physicsState(s).hooks, [], 'missing caster slots are omitted');
   } finally { disposePhysics(s); }
 });
 
@@ -114,6 +137,19 @@ test('gate closure blocks flight and a second press cancels without bypassing co
     assert.equal(world(c).counts().constraints, 0);
     assert.ok(player(c, 'g0').cooldown > 0);
   } finally { disposePhysics(c); }
+});
+
+test('hook cancellation requires the legacy hook ID to match its caster', async () => {
+  const s = await game();
+  try {
+    const malformed = { id: 'hook:stale', casterIdx: s.players.indexOf(player(s, 'g0')), x: 200, y: 400, dx: 1, dy: 0,
+      travelled: 0, startedTick: s.tick, phase: 'flying', generationA: world(s).getGeneration('actor:g0') };
+    hooks(s).push(malformed);
+    player(s, 'g0').cooldown = 0;
+    hookSkill(s, player(s, 'g0'));
+    assert.equal(hooks(s).includes(malformed), true, 'a stale ID does not count as this caster\'s active hook');
+    assert.ok(hooks(s).some(hook => hook.id === 'hook:g0'));
+  } finally { disposePhysics(s); }
 });
 
 test('closing a gate across an attached tether releases it before the next solve', async () => {

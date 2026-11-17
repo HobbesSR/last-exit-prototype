@@ -167,3 +167,19 @@ test('delayed viewer identity follows captured slots across session seat reassig
   assert.equal(playerView(s, current, 'session').players.find(p => p.id === 'session').role, 'gladiator');
   assert.equal(playerView(s, current, 'g0').directed, true);
 });
+
+
+test('directed views bypass roster lookup and unknown labels allocate no frame label table', async () => {
+  const { createGameRecord, snapshot, playerView } = await import('../shared/simulation.ts');
+  const { openField } = await import('./helpers/arena.js');
+  const { map } = openField(2000);
+  const s = createGameRecord(7, map);
+  const noRoster = { ...s, get players() { throw new Error('directed view read live roster'); } };
+  for (const id of [null, undefined, 'spectator', 'unknown']) {
+    // Fresh snapshots reproduce the per-tick allocation path; no test-only production hooks needed.
+    const frame = snapshot(s);
+    Object.defineProperty(frame.players, 'map', { value() { throw new Error('frame label table allocated'); } });
+    if (id == null) Object.defineProperty(frame.players, 'find', { value() { throw new Error('directed view searched captured roster'); } });
+    assert.equal(playerView(id == null ? noRoster : s, frame, id).directed, true);
+  }
+});

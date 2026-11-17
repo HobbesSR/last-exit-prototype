@@ -43,7 +43,7 @@ export function hookSkill(s: Game, p: Player): void {
   const r = physicsRuntime(s), tuning = s.content.hook;
   if (!r || p.kit !== 'hook' || p.role !== 'gladiator' || p.status !== 'active') return;
   const casterIdx = playerIndex(s, p);
-  const active = r.hooks.find(hook => hook.casterIdx === casterIdx);
+  const active = r.hooks.find(hook => hook.casterIdx === casterIdx && hook.id === `hook:${p.id}`);
   if (active) { remove(s, active); r.world.commitMutations(); return; }
   if (p.cooldown > 0) return;
   const activeJoints = r.hooks.filter(hook => r.world.hasConstraint(hook.id)).length;

@@ -62,7 +62,10 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   start('sim.bots');
   start('sim.bots.collect'); beginDynamicNavigationCollection(s); stop('sim.bots.collect');
   try {
-    for (const p of s.players) if (p.status === 'active') intents[playerIndex(s, p)] = p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) };
+    for (let idx = 0; idx < s.players.length; idx++) {
+      const p = s.players[idx];
+      if (p.status === 'active') intents[idx] = p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) };
+    }
   } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
   // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
   start('sim.actions');

@@ -19,7 +19,7 @@ export function indexRoster(players: readonly Player[], rebuild = false): Roster
   rosters.set(players, index);
   return index;
 }
-export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Player | undefined {
+export function playerSlot(s: Pick<Game, 'players'>, id: PlayerId | string): PlayerIdx | undefined {
   const index = indexRoster(s.players);
   let idx = index.byId.get(id as PlayerId);
   // Seat commands refresh explicitly. This guard also supports diagnostic ID assignments and
@@ -33,7 +33,7 @@ export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Pla
     if (!found) return undefined;
     idx = indexRoster(s.players, true).byId.get(id as PlayerId);
   }
-  return idx === undefined ? undefined : s.players[idx];
+  return idx;
 }
 /** Canonical gate identity is its map slot, even while CP1 preserves legacy world admission order. */
 export const gateAt = (s: Pick<Game, 'map'>, idx: GateIdx) => s.map.gates[idx];
@@ -46,8 +46,8 @@ export function playerIndex(s: Pick<Game, 'players'>, player: Player): PlayerIdx
   if (idx === undefined) throw new RangeError('player is not in this roster');
   return idx;
 }
-/** Resolve the external connection label once, before entering indexed simulation paths. */
-export function playerSlot(s: Pick<Game, 'players'>, id: PlayerId | string): PlayerIdx | undefined {
-  const player = playerById(s, id);
-  return player === undefined ? undefined : playerIndex(s, player);
+/** Resolve a legacy label at the boundary; internal relations retain the slot itself. */
+export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Player | undefined {
+  const idx = playerSlot(s, id);
+  return idx === undefined ? undefined : s.players[idx];
 }
