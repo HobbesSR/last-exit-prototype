@@ -103,7 +103,7 @@ try {
   assert.equal(replay.version, PHYSICS_VERSION);
   assert.equal(replay.contentId, 'content-6');
   assert.equal(replay.schema, SCHEMA);
-  assert.equal(replay.minSchema, 17);
+  assert.equal(replay.minSchema, 20);
   assert.ok(replay.frames.some(frame => frame.state.hookFlights?.length), 'recording retains the flight display frame');
   console.log(JSON.stringify({ passed: true, browser: browser.version(), checks: [
     'real WebSocket flight', 'near/far projection privacy', 'next-tick tether', 'cancelled tether' ] }));
