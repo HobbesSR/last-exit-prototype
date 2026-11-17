@@ -25,9 +25,11 @@ export interface ParcelOptions {
 }
 type Parcel = { handle: ParcelHandle; area: Shape[]; assembly: CanvasAssembly | undefined; settled: boolean };
 type Operation = { kind: 'assembly'; assembly: CanvasAssembly } | { kind: 'empty'; area: Shape[] } | { kind: 'parcel'; handle: ParcelHandle };
-type Refusal = 'stale' | 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle' | 'populated' | 'handoff' | 'rejected' | 'partition';
-type Failed = { ok: false; reason: Refusal; counters?: ReturnType<typeof discoverCordWitness>['counters'] };
-type Proposed = { ok: true; proposal: ParcelProposal; counters: ReturnType<typeof discoverCordWitness>['counters'] } | Failed;
+/** The reasons probeClaim (and so 	ryClaim) can refuse a candidate; the others arise later or elsewhere. */
+export type ProbeRefusal = 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle';
+type Refusal = ProbeRefusal | 'stale' | 'populated' | 'handoff' | 'rejected' | 'partition';
+type Failed<R extends Refusal = Refusal> = { ok: false; reason: R; counters?: ReturnType<typeof discoverCordWitness>['counters'] };
+type Proposed = { ok: true; proposal: ParcelProposal; counters: ReturnType<typeof discoverCordWitness>['counters'] } | Failed<ProbeRefusal>;
 
 /**
  * A mask no caller can change: frozen, with frozen bounds and cells, and `cells` a fresh copy
@@ -111,7 +113,7 @@ export function createProspectiveParcels(input: RegionBrief, options: ParcelOpti
   };
   const masksOf = () => masks?.brief === brief ? masks
     : (masks = { brief, fill: maskView(createFillMask(brief)), access: maskView(createAccessMask(brief)) });
-  const fail = (reason: Refusal): Failed => ({ ok: false, reason });
+  const fail = <R extends Refusal>(reason: R): Failed<R> => ({ ok: false, reason });
   const lookup = (handle: ParcelHandle) => parcels.find(p => p.handle === handle);
   const replay = (ps: Parcel[], ops = operations, target = brief) => {
     const trial = createBuilderCanvas(target, fixed);
