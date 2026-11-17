@@ -17,7 +17,7 @@ export interface PhysicsRuntime {
   itemLaunches: Map<ItemId, Vec2>;
   /** Dense gate indices in legacy world admission order, retained only for CP1 physics equivalence. */
   gateOrder: readonly GateIdx[];
-  /** What the world last saw of each gate, by its place in `gateOrder`: 0 nothing yet, 1 open, 2 closed. */
+  /** What the world last saw of each gate, by canonical GateIdx (independent of admission order): 0 nothing yet, 1 open, 2 closed. */
   gates: Uint8Array;
   synchronize: (options?: { deferItemAdmission?: boolean }) => void;
   placement: (p: Player, destination: Vec2) => Vec2 | null;
@@ -49,7 +49,9 @@ export function physicsState(s: Game): PhysicsGameplayState | undefined {
   // The world's snapshot is already the caller's own apart from its frozen, shared records; only the runtime's
   // own queues, which it edits in place, are copied (#655).
   return r && { world: r.world.snapshot({ includeStatic: false, includePending: false }),
-    hooks: structuredClone(r.hooks),
+    hooks: r.hooks.map(hook => Object.fromEntries(Object.entries(hook).flatMap(([key, value]) =>
+      key === 'targetActorKey' ? [] : key === 'casterIdx' ? [['caster', s.players[hook.casterIdx].id]] :
+      key === 'targetIdx' ? [['target', s.players[hook.targetIdx!].id]] : [[key, structuredClone(value)]])) as unknown as NonNullable<PhysicsGameplayState['hooks']>[number]),
     discontinuities: r.discontinuities.map(({ id, generation, kind }) => ({ id, generation, kind })),
     pendingSpawns: structuredClone(r.pendingSpawns), pendingImpulses: structuredClone(r.pendingImpulses),
     pendingAttachments: structuredClone(r.pendingAttachments) };

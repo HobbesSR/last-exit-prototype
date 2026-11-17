@@ -1,3 +1,4 @@
+import { playerIndex } from './relations.ts';
 import { bodyRadius, sweptClear, TILE } from '../movement.ts';
 import { cellCenter, discoveryGrid } from '../discovery.ts';
 import { navigationClearance } from '../map/navigation.ts';
@@ -210,7 +211,7 @@ export function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus 
   const contestant = p.role === 'contestant' && !!p.discovery;
   const knowledge = contestant ? contestantKnowledge(p.discovery!, p.keys) : fullKnowledge(s, p.keys);
   const planner = plannerOf(s.map, p.role), plan = plans.get(p);
-  const scheduled = (s.tick + s.players.indexOf(p)) % REPATH === 0;
+  const scheduled = (s.tick + playerIndex(s, p)) % REPATH === 0;
   let due = scheduled && !plan || !!plan && p.route !== plan.route;
   if (plan && !due && contestant && p.route?.length && distance(plan.goal, target) < GOAL_MOVED
     && plan.keys === knowledge.keys) due = repairNear(s, p, plan, planner, knowledge) === false;

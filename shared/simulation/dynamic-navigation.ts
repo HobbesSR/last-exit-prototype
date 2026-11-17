@@ -1,3 +1,4 @@
+import { playerIndex } from './relations.ts';
 import { sweptClear } from '../movement.ts';
 import { bounds, segmentShapeDistance, type Shape } from '../shape.ts';
 import { discoveryGrid } from '../discovery.ts';
@@ -125,7 +126,7 @@ export function dynamicWaypoint(s: Game, p: Player, destination: Vec2): Vec2 {
   let allowance = work.get(s);
   if (allowance?.tick !== s.tick) work.set(s, allowance = { tick: s.tick, edges: 0 });
   // Round-robin admission keeps a crowded room from always spending its allowance on its first bots.
-  if ((s.tick + s.players.indexOf(p)) % 4 !== 0) return advance();
+  if ((s.tick + playerIndex(s, p)) % 4 !== 0) return advance();
   const nodes: Vec2[] = [{ x: p.x, y: p.y }, goal];
   // Corners of conservative expanded bounds; all bodies still judge every edge, including overflow.
   for (const shape of shapes.slice().sort((a, b) => distance(p, a) - distance(p, b)).slice(0, 8)) {

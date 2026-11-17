@@ -1,5 +1,6 @@
 import { HZ, INTERPOLATION_DELAY_TICKS } from './rules.ts';
-import type { Game, Player, PlayerId, Tick, Vec2 } from '../types.ts';
+import type { Game, Player, Tick, Vec2 } from '../types.ts';
+import { playerIndex } from './relations.ts';
 
 /**
  * Where each player was, recently, and what a given shooter could actually see when they fired.
@@ -25,7 +26,7 @@ export const MAX_REWIND_TICKS = 10;
 /** One tick's positions, as the broadcast for that tick carried them. */
 interface RewindFrame {
   tick: Tick;
-  at: Map<PlayerId, Vec2>;
+  at: Vec2[];
 }
 
 /**
@@ -35,8 +36,7 @@ interface RewindFrame {
  * state a client actually drew. Recording mid-tick would rewind to a position no viewer ever saw.
  */
 export function recordRewind(s: Game): void {
-  const at = new Map<PlayerId, Vec2>();
-  for (const p of s.players) at.set(p.id, { x: p.x, y: p.y });
+  const at = s.players.map(p => ({ x: p.x, y: p.y }));
   s.rewind ??= [];
   s.rewind.push({ tick: s.tick, at });
   while (s.rewind.length > MAX_REWIND_TICKS) s.rewind.shift();
@@ -67,5 +67,5 @@ export function asSeenBy(s: Game, viewer: Player): (target: Player) => Vec2 {
   // end; anything older than the window falls back to the oldest kept rather than to the present,
   // because the present is the one answer known to be wrong.
   const frame: RewindFrame = s.rewind[Math.max(0, s.rewind.length - lag)]!;
-  return target => frame.at.get(target.id) ?? target;
+  return target => frame.at[playerIndex(s, target)] ?? target;
 }

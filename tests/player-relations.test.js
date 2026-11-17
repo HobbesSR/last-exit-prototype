@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makePlayer, joinGame, changeSeat } from '../shared/simulation/state.ts';
-import { gateAt, indexRoster, playerById } from '../shared/simulation/relations.ts';
+import { gateAt, indexRoster, playerById, playerIndex } from '../shared/simulation/relations.ts';
+import { asSeenBy, recordRewind } from '../shared/simulation/rewind.ts';
 
 const roster = () => ({ phase: 'live', players: [
   makePlayer('c0', 'C0', 'contestant', 'runner', 0),
@@ -86,4 +87,36 @@ test('legacy diagnostic edits refresh lookup without attaching substrate fields'
   assert.equal(Object.keys(s.players[0]).some(key => /idx|index/i.test(key)), false);
   const gates = [{ id: 'door-2' }, { id: 'door-10' }];
   assert.equal(gateAt({ map: { gates } }, 1), gates[1]);
+});
+
+test('dense player slots survive joins, role changes, and metadata renames', () => {
+  const s = roster(), [contestant, gladiator] = s.players;
+  assert.equal(playerIndex(s, contestant), 0);
+  assert.equal(playerIndex(s, gladiator), 1);
+  const joined = joinGame(s, 'human', 'contestant', 'runner', 'Human');
+  assert.equal(playerIndex(s, contestant), 0);
+  assert.equal(playerIndex(s, gladiator), 1);
+  assert.equal(playerIndex(s, joined), 0);
+
+  const moved = changeSeat(s, 'human', 'gladiator', 'hook');
+  assert.notEqual(moved, joined);
+  moved.name = 'Renamed';
+  joined.name = 'Former seat';
+  assert.equal(playerIndex(s, moved), 1);
+  assert.equal(playerIndex(s, joined), 0);
+  assert.equal(playerIndex(s, contestant), 0);
+  assert.equal(playerIndex(s, gladiator), 1);
+});
+
+test('rewind poses remain aligned to player slots when an ID label changes', () => {
+  const s = roster(), [target, viewer] = s.players;
+  Object.assign(target, { x: 123, y: 456 });
+  Object.assign(viewer, { x: 789, y: 234, viewLagTicks: 1 });
+  s.tick = 7;
+  recordRewind(s);
+
+  assert.deepEqual(s.rewind[0].at[0], { x: 123, y: 456 });
+  target.id = 'new-label';
+  Object.assign(target, { x: 900, y: 901 });
+  assert.deepEqual(asSeenBy(s, viewer)(target), { x: 123, y: 456 });
 });

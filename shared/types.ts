@@ -855,7 +855,7 @@ export interface Game {
    * from `Snapshot`: it is derivable from the frames a recording already holds, so carrying it would
    * multiply every recorded frame's position data to store what is already there.
    */
-  rewind?: { tick: Tick; at: Map<PlayerId, Vec2> }[] | undefined;
+  rewind?: { tick: Tick; at: Vec2[] }[] | undefined;
 }
 
 /** A complete authoritative state clone, as recorded and as sent to spectators. */

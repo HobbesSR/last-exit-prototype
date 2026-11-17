@@ -143,3 +143,27 @@ test('bucketed sight and reach checks match testing every edge', () => {
   }
   assert.ok(blocked > compared / 10 && blocked < compared * 0.9, `a mix of blocked and clear segments (${blocked} of ${compared})`);
 });
+
+
+test('delayed viewer identity follows captured slots across session seat reassignment', async () => {
+  const { createGameRecord, joinGame, snapshot, playerView } = await import('../shared/simulation.ts');
+  const { changeSeat } = await import('../shared/simulation/state.ts');
+  const { defaultContent } = await import('../shared/simulation/content.ts');
+  const { openField } = await import('./helpers/arena.js');
+  const { map } = openField(2000);
+  map.spawns = [{ x: 300, y: 500 }]; map.hunterSpawns = [{ x: 600, y: 500 }];
+  const content = { ...defaultContent(), roster: { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] } };
+  const s = createGameRecord(7, map, content);
+  joinGame(s, 'session', 'contestant', 'runner', 'Human');
+  const old = snapshot(s);
+  changeSeat(s, 'session', 'gladiator', 'hook');
+  const current = snapshot(s);
+  for (const frame of [old, structuredClone(old)]) {
+    const own = playerView(s, frame, 'session').players.find(p => p.id === 'session');
+    assert.equal(own.role, 'contestant');
+    assert.equal(own.x, 300);
+    assert.equal(playerView(s, frame, 'g0').directed, false);
+  }
+  assert.equal(playerView(s, current, 'session').players.find(p => p.id === 'session').role, 'gladiator');
+  assert.equal(playerView(s, current, 'g0').directed, true);
+});

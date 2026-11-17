@@ -1,4 +1,4 @@
-import { playerById } from './relations.ts';
+import { playerIndex } from './relations.ts';
 import { actorHitRadius, impact, solidContact } from './swept.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { HZ } from './rules.ts';
@@ -23,11 +23,12 @@ function remove(s: Game, hook: HookState): void {
 
 function endpoints(s: Game, hook: HookState): { caster: Player; target: Player; distance: number } | null {
   const r = physicsRuntime(s), tuning = s.content.hook;
-  if (!r || !hook.target || hook.generationB === undefined) return null;
-  const caster = playerById(s, hook.caster);
-  const target = playerById(s, hook.target);
+  if (!r || hook.targetIdx === undefined || hook.generationB === undefined) return null;
+  const caster = s.players[hook.casterIdx];
+  const target = s.players[hook.targetIdx];
   if (!caster || !target || caster.status !== 'active' || target.status !== 'active' ||
     caster.kit !== 'hook' || caster.role === target.role ||
+    hook.id !== `hook:${caster.id}` || hook.targetActorKey !== actor(target.id) ||
     r.world.getGeneration(actor(caster.id)) !== hook.generationA ||
     r.world.getGeneration(actor(target.id)) !== hook.generationB) return null;
   const a = r.world.getTransform(actor(caster.id)), b = r.world.getTransform(actor(target.id));
@@ -41,7 +42,8 @@ function endpoints(s: Game, hook: HookState): { caster: Player; target: Player; 
 export function hookSkill(s: Game, p: Player): void {
   const r = physicsRuntime(s), tuning = s.content.hook;
   if (!r || p.kit !== 'hook' || p.role !== 'gladiator' || p.status !== 'active') return;
-  const active = r.hooks.find(hook => hook.caster === p.id);
+  const casterIdx = playerIndex(s, p);
+  const active = r.hooks.find(hook => hook.casterIdx === casterIdx);
   if (active) { remove(s, active); r.world.commitMutations(); return; }
   if (p.cooldown > 0) return;
   const activeJoints = r.hooks.filter(hook => r.world.hasConstraint(hook.id)).length;
@@ -50,7 +52,7 @@ export function hookSkill(s: Game, p: Player): void {
   if (generationA === undefined) return;
   p.cooldown = tuning.cooldownTicks;
   const dx = cos(p.heading), dy = sin(p.heading);
-  r.hooks.push({ id: `hook:${p.id}`, caster: p.id, x: p.x, y: p.y, dx, dy,
+  r.hooks.push({ id: `hook:${p.id}`, casterIdx, x: p.x, y: p.y, dx, dy,
     travelled: 0, startedTick: s.tick, phase: 'flying', generationA });
   r.hooks.sort((a, b) => compare(a.id, b.id));
 }
@@ -61,10 +63,11 @@ export function prepareHooks(s: Game): void {
   if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase === 'flying') {
-      const caster = playerById(s, hook.caster);
+      const caster = s.players[hook.casterIdx];
       if (s.tick - hook.startedTick >= tuning.durationTicks ||
-        r.world.getGeneration(actor(hook.caster)) !== hook.generationA ||
-        caster?.status !== 'active' || caster.kit !== 'hook') remove(s, hook);
+        caster?.status !== 'active' || caster.kit !== 'hook' ||
+        hook.id !== `hook:${caster.id}` ||
+        r.world.getGeneration(actor(caster.id)) !== hook.generationA) remove(s, hook);
       continue;
     }
     const pair = endpoints(s, hook);
@@ -98,8 +101,9 @@ export function finishHooks(s: Game, paths: Record<string, Vec2[]>): void {
   if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase !== 'flying') continue;
-    const caster = playerById(s, hook.caster);
+    const caster = s.players[hook.casterIdx];
     if (!caster || caster.status !== 'active' || caster.kit !== 'hook' ||
+      hook.id !== `hook:${caster.id}` ||
       r.world.getGeneration(actor(caster.id)) !== hook.generationA ||
       s.tick - hook.startedTick >= tuning.durationTicks) { remove(s, hook); continue; }
     const distance = Math.min(tuning.speed / HZ, tuning.range - hook.travelled);
@@ -126,7 +130,8 @@ export function finishHooks(s: Game, paths: Record<string, Vec2[]>): void {
       hook.x = a.x + (b.x - a.x) * first.toi;
       hook.y = a.y + (b.y - a.y) * first.toi;
       hook.travelled += distance * first.toi;
-      hook.target = first.target.id;
+      hook.targetIdx = playerIndex(s, first.target);
+      hook.targetActorKey = actor(first.target.id);
       const generationB = r.world.getGeneration(actor(first.target.id));
       if (generationB === undefined) { remove(s, hook); continue; }
       hook.generationB = generationB;
@@ -145,9 +150,10 @@ export function reconcileHooks(s: Game): void {
   if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase === 'flying') {
-      const caster = playerById(s, hook.caster);
-      if (r.world.getGeneration(actor(hook.caster)) !== hook.generationA ||
-        caster?.status !== 'active' || caster.kit !== 'hook') remove(s, hook);
+      const caster = s.players[hook.casterIdx];
+      if (caster?.status !== 'active' || caster.kit !== 'hook' ||
+        hook.id !== `hook:${caster.id}` ||
+        r.world.getGeneration(actor(caster.id)) !== hook.generationA) remove(s, hook);
     } else if (!endpoints(s, hook) || hook.phase === 'pulling' && !r.world.hasConstraint(hook.id)) remove(s, hook);
   }
   r.world.commitMutations();

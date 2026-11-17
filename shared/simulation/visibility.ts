@@ -1,6 +1,6 @@
 import { itemIdForLabel } from '../item-instances.ts';
 import { legacyItems, legacyItemsInRange, legacyPlayers } from './item-boundary.ts';
-import { playerById } from './relations.ts';
+import { playerSlot } from './relations.ts';
 import { lineClear, VISION } from '../movement.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
@@ -76,6 +76,13 @@ function projectedGates(gates: readonly Gate[]): Projected<Gate>[] {
   }
   return list;
 }
+// Captured session-to-slot table belongs to this frame, never today's seat assignment.
+const frameSlots = new WeakMap<Snapshot, Map<PlayerId, number>>();
+function viewerSlot(frame: Snapshot, id: PlayerId): number | undefined {
+  let slots = frameSlots.get(frame);
+  if (!slots) frameSlots.set(frame, slots = new Map(frame.players.map((p, idx) => [p.id, idx])));
+  return slots.get(id);
+}
 export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
   start('sim.playerView');
   try { return buildPlayerView(s, frame, id); } finally { stop('sim.playerView'); }
@@ -83,11 +90,13 @@ export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
 // A viewer id that matches no player is a non-player client: it receives the directed view, which is
 // unfogged by design. Callers decide who is allowed to ask for one.
 function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
-  // Snapshot arrays are fresh each tick: a short scan avoids a per-frame lookup-map allocation.
-  // Direct numeric viewer indexing belongs to #1151.
-  const viewer = frame.players.find(p => p.id === id);
+  const liveIdx = playerSlot(s, id);
+  // The usual live view uses the seat directly. Delayed/cloned frames resolve their captured labels
+  // only if that session has since moved or left; today's occupant never replaces a historical viewer.
+  const idx = liveIdx !== undefined && frame.players[liveIdx]?.id === id ? liveIdx : viewerSlot(frame, id);
+  const viewer = idx === undefined ? undefined : frame.players[idx];
   // Discovery stays out of snapshots, so live state is its only source.
-  const live = playerById(s, id), discovery = live?.discovery;
+  const live = liveIdx === undefined ? undefined : s.players[liveIdx], discovery = live?.discovery;
   // Heard gunfire likewise; read at the frame's tick, which a player's own view is never behind.
   const heard = live ? heardBy(live, frame.tick) : [];
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
