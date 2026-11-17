@@ -5,6 +5,7 @@ import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
 import { CLIENT_MESSAGE, SERVER_MESSAGE } from '/shared/protocol.ts';
+import { readServerMessage } from '/shared/wire-schema.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { DEFAULT_CALLSIGN } from '/ui.js';
 
@@ -70,6 +71,8 @@ export function createRoomConnection({
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
     // Items and gates arrive as changes against a keyframe this socket was sent (shared/frame-layers.ts).
     ws = socket; const layers = createLayerDecoder(), frames = createFrameNormalizer();
+    // State may arrive in the descriptor codec's binary form as well as JSON (#1131, 24.1).
+    socket.binaryType = 'arraybuffer';
     socket.addEventListener('open', () => {
       disconnecting = false;
       let resumeKey;
@@ -80,7 +83,11 @@ export function createRoomConnection({
     });
     socket.addEventListener('message', event => {
       if (ws !== socket) return;
-      const data = JSON.parse(event.data);
+      let data;
+      // A message this build cannot read ends the connection: never a guess, and never a silent fallback.
+      try { data = readServerMessage(event.data); }
+      catch { toast('The arena sent a message this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); return; }
+      const bytes = typeof event.data === 'string' ? event.data.length : event.data.byteLength;
       if (data.type === SERVER_MESSAGE.WELCOME || data.type === SERVER_MESSAGE.READY) {
         const described = envelopePresentation(data);
         if (!described) { toast('The arena sent a match this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); return; }
@@ -103,14 +110,14 @@ export function createRoomConnection({
         liveMap = data.map; liveState = data.state;
         onReady(data);
       } else if (data.type === SERVER_MESSAGE.STATE) {
-        notePacket(event.data.length); layers.decode(data.state);
+        notePacket(bytes); layers.decode(data.state);
         data.state = frames.normalize(data.state);
         learn(data.state);
         // Gap between authoritative frames: separates server pacing from client render cost.
         const receivedAt = performance.now();
         if (lastStateAt) profiler.observe('net.stateGap', receivedAt - lastStateAt);
         lastStateAt = receivedAt;
-        profiler.observe('net.stateBytes', event.data.length, 'n');
+        profiler.observe('net.stateBytes', bytes, 'n');
         liveState = data.state;
         onState(data.state);
       } else if (data.type === SERVER_MESSAGE.SEATS) {

@@ -4,7 +4,7 @@ import { lineClear, VISION } from '../movement.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
-import { frameFields, ownPlayerFields, itemFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
+import { OBSERVED, frameFields, ownPlayerFields, itemFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, Gate, GateState, GateIdx, GroundItem, ItemKey, Player, PlayerId, PlayerIdx, Projected, Snapshot, Vec2, World } from '../types.ts';
 import { publishItems, framedItems, shareItemPublication } from './ground-items.ts';
 import { publishGates, publishedGates, shareGatePublication } from './frame-gates.ts';
@@ -38,10 +38,7 @@ export function visibleTo(s: Game, viewer: Player<ItemKey> | null | undefined, t
 export function visiblePoint(s: Game, viewer: Vec2, target: Vec2): boolean {
   return !roofConceals(s.map, viewer, target) && distance(viewer, target) < VISION && lineClear(s.map, viewer, target);
 }
-// What one client may learn about another player it can currently see. Everything omitted is either
-// private (inventory, ability timers, whether a slot is a bot) or unread by the renderer, so it never
-// leaves the server for anyone but the player it describes. Recordings keep the full state.
-export const OBSERVED = ['heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
+export { OBSERVED };
 // `posed` false leaves out the pose an actor's body already carries (24.4), rather than copying it out again.
 export const observed = (p: Player<ItemKey>, playerIdx?: PlayerIdx, posed = true) => ({
   ...(playerIdx !== undefined ? { playerIdx } : {}),

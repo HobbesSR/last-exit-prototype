@@ -3,7 +3,7 @@
 Accepted encoding direction and candidate field precision (#1093) are in
 [24.1](24.1-wire-encoding-design.md), with measurements in
 [42.47](42.47-wire-encoding.md). The backend is selected: the descriptor codec D (24.1,
-[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) remains future work; the live protocol below remains JSON. The proposed lossy-transport delta design (#1094)
+[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) is staged: its codec, typed `state` schema and client reader have landed (24.1 "Adoption status"), but the server still sends JSON, so the live protocol below remains JSON. The proposed lossy-transport delta design (#1094)
 is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data model of the
 live state, and the engine-side choices that shape a typed wire, are in
 [24.3](24.3-wire-data-model.md) (historical inventory and remaining proposals). The implemented relational data strategy,

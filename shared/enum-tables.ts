@@ -1,5 +1,5 @@
 /** Closed, explicitly ordered vocabularies for relational tables and outward descriptors. */
-import type { AmmoFamily, EffectKind, GameEventPayload, ItemKind, Kit, Phase, Role, TrapKind, WeaponType } from './types.ts';
+import type { AmmoFamily, EffectKind, GameEventPayload, ItemKind, Kit, Phase, PlayerStatus, Role, TrapKind, WeaponType } from './types.ts';
 import type { BodyKind, BodyShape } from './physics/types.ts';
 export const ROLES = Object.freeze(['contestant', 'gladiator'] as const);
 export const KITS = Object.freeze(['warden', 'specter', 'striker', 'hook'] as const);
@@ -12,6 +12,7 @@ export const SHAPE_KINDS = Object.freeze(['circle', 'box', 'convex'] as const);
 export const EFFECT_KINDS = Object.freeze(['shock', 'scan', 'slash', 'loot', 'upgrade', 'rail', 'charge', 'grapple'] as const);
 export const TRAP_KINDS = Object.freeze(['mine', 'turret', 'flame', 'spider'] as const);
 export const EVENT_KINDS = Object.freeze(['pod_powered', 'cell_charged', 'eliminated', 'respawned', 'match_finished'] as const);
+export const PLAYER_STATUSES = Object.freeze(['active', 'eliminated', 'respawning', 'escaped', 'stranded', 'transit'] as const);
 
 // Generic bounds reject extra entries; Exclude rejects missing members when a union grows.
 type Missing<T, Entries extends readonly T[]> = Exclude<T, Entries[number]>;
@@ -22,6 +23,7 @@ export type EnumTableCoverage = Complete<
   | Missing<ItemKind, typeof ITEM_KINDS> | Missing<BodyKind, typeof BODY_KINDS>
   | Missing<BodyShape['kind'], typeof SHAPE_KINDS> | Missing<EffectKind, typeof EFFECT_KINDS>
   | Missing<TrapKind, typeof TRAP_KINDS> | Missing<GameEventPayload['kind'], typeof EVENT_KINDS>
+  | Missing<PlayerStatus, typeof PLAYER_STATUSES>
 >;
 
 /** Check a content key against the build's closed vocabulary at the boundary. */
