@@ -16,6 +16,8 @@ export const FRAME_FIELDS = 'version duration cellChargeTicks tick phase hazardX
 export const frameFields = projection(FRAME_FIELDS);
 export const OWN_FIELDS = 'x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered';
 const ownFields = projection(OWN_FIELDS);
+// An actor with a body carries its pose there only (24.4): built without it rather than copied again (#1163).
+const ownFieldsWithoutPose = projection(OWN_FIELDS.replace(/^x y /, ''));
 export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family';
 export const itemFields = projection(ITEM_FIELDS);
 export const GATE_FIELDS = 'gateIdx open locked';
@@ -54,8 +56,8 @@ export function physicsTetherFields({ id, a, b }: PhysicsTetherView): PhysicsTet
 export function physicsHookFlightFields({ id, a, casterIdx, x, y }: import('../physics/types.ts').NumericHookFlight) {
   return { id, a, casterIdx, x, y };
 }
-export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[], playerIdx?: PlayerIdx): Projected<Player<I>> {
-  const result = ownFields(player);
+export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[], playerIdx?: PlayerIdx, posed = true): Projected<Player<I>> {
+  const result = (posed ? ownFields : ownFieldsWithoutPose)(player);
   if (playerIdx !== undefined) result.playerIdx = playerIdx;
   // Carried items are projected through the same item contract; both sides are wire records.
   if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item) : item) as Inventory<I>;
