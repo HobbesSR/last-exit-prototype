@@ -1,4 +1,4 @@
-import type { PlayerIdx } from '../types.ts';
+import type { BodyId, ItemId, PlayerIdx, PropId, TetherId } from '../types.ts';
 
 /** Public physics values use game world units and never expose Rapier objects. */
 export type Point = { x: number; y: number };
@@ -24,12 +24,12 @@ export type PhysicsContact = { a: string; b: string; substep: number; type: 'sta
 export type ConstraintSpec = { id: string; a: string; b: string; maxDistance: number;
   kind?: 'spring' | 'rope'; anchorA?: Point; anchorB?: Point; restLength?: number;
   stiffness?: number; damping?: number; maxForce?: number; breakDistance?: number };
-export type HookState = { id: string; casterIdx: PlayerIdx; x: number; y: number; dx: number; dy: number;
+export type HookState = { id: string; tetherId: TetherId; casterIdx: PlayerIdx; x: number; y: number; dx: number; dy: number;
   travelled: number; startedTick: number; phase: 'flying' | 'pending' | 'pulling'; generationA: number;
   targetIdx?: PlayerIdx;
   /** Captured backend key invalidates a tether if diagnostic setup renames its target. */
   targetActorKey?: string; generationB?: number; hitTick?: number; desiredLength?: number };
-export type LegacyHookState = Omit<HookState, 'casterIdx' | 'targetIdx' | 'targetActorKey'> & { caster: string; target?: string };
+export type LegacyHookState = Omit<HookState, 'tetherId' | 'casterIdx' | 'targetIdx' | 'targetActorKey'> & { caster: string; target?: string };
 export type PhysicsSnapshot = {
   bodies: Array<{ spec: BodySpec; transform: Transform; generation: number; motor?: MotorIntent }>;
   constraints: ConstraintSpec[];
@@ -44,6 +44,13 @@ export type PhysicsBodyView = Pick<Transform, 'x' | 'y' | 'angle'> & Partial<Pic
   actorId?: string; itemId?: string | number; discontinuity?: 'placed';
 };
 export type PhysicsTetherView = { id: string; a: string; b: string };
+
+/** Internal CP1 presentation. The temporary adapter retains the legacy outward fields. */
+export type PhysicsBodyOwner = { kind: 'actor'; playerIdx: PlayerIdx }
+  | { kind: 'item'; itemId: ItemId } | { kind: 'prop'; propId: PropId };
+export type NumericPhysicsBody = Omit<PhysicsBodyView, 'id' | 'actorId' | 'itemId'> & Transform & { id: BodyId; owner: PhysicsBodyOwner };
+export type NumericPhysicsTether = { id: TetherId; a: BodyId; b: BodyId };
+export type NumericHookFlight = { id: TetherId; a: BodyId; casterIdx: PlayerIdx; x: number; y: number };
 
 /** Private, engine-free authoritative state. This is not a backend continuation checkpoint. */
 export interface PhysicsGameplayState {

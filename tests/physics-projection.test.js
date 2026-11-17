@@ -6,7 +6,7 @@ import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { minimumReaderForMatch, MIN_SCHEMA, SCHEMA } from '../shared/recording.ts';
 import { createMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
-import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
+import { capturePhysicsPresentation, legacyPhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { openArea } from './helpers/arena.js';
@@ -60,8 +60,7 @@ test('real physics snapshot is detached and its public body is a closed display 
     const privateState = structuredClone(frame.physics), spec = privateState.world.bodies[0];
     privateState.world.bodies.push({ ...spec, spec: { ...spec.spec, id: 'actor:missing' } },
       { ...spec, spec: { ...spec.spec, id: 'item:missing', kind: 'prop' } });
-    const groundId = id => frame.items.find(item => String(item.id) === id)?.id;
-    assert.deepEqual(capturePhysicsPresentation(privateState, frame.players, groundId).bodies.map(b => b.id), [frame.bodies[0].id],
+    assert.deepEqual(legacyPhysicsPresentation(capturePhysicsPresentation(game, privateState)).bodies.map(b => b.id), [frame.bodies[0].id],
       'stale actor/item bodies cannot become unassociated public props');
   } finally { disposePhysics(game); }
 });

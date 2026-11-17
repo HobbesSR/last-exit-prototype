@@ -1,28 +1,82 @@
-import type { PhysicsBodyView, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
-import type { GroundItem, ItemLabel, ItemKey, Snapshot, Player, Vec2 } from '../types.ts';
+import type { NumericPhysicsBody, NumericPhysicsTether, NumericHookFlight, PhysicsBodyOwner, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
+import type { BodyId, Game, GroundItem, ItemKey, PlayerIdx, Snapshot, Player, TetherId, Vec2 } from '../types.ts';
 import { physicsBodyFields, physicsHookFlightFields, physicsTetherFields } from './projection-contract.ts';
-import { PHYSICS_VERSION } from './physics-runtime.ts';
+import { physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
+import { itemIdForLabel, itemLabel } from '../item-instances.ts';
+import { groundItem } from './ground-items.ts';
+
+export interface PhysicsPresentation {
+  physicsProfile: string;
+  bodies: NumericPhysicsBody[];
+  tethers: NumericPhysicsTether[];
+  hookFlights?: NumericHookFlight[];
+  /** Captured compatibility labels; never consult current owners when adapting a historical capture. */
+  legacy: { bodies: Map<BodyId, string>; actors: Map<PlayerIdx, string>; items: Map<BodyId, string>; tethers: Map<TetherId, string> };
+}
 
 /** Capture once, alongside private gameplay state. Complete lists express spawn/removal at each tick. */
-export function capturePhysicsPresentation(physics: PhysicsGameplayState, players: readonly Player[], groundId: (id: string) => ItemLabel | undefined, physicsProfile: string = PHYSICS_VERSION) {
-  const actors = new Map(players.map(p => [`actor:${p.id}`, p.id]));
-  // A physical item's body id is `item:<id>`; `groundId` looks the item up by id, so nothing walks the ground list.
-  const itemOf = (bodyId: string) => bodyId.startsWith('item:') ? groundId(bodyId.slice(5)) : undefined;
+export function capturePhysicsPresentation(s: Game, physics: PhysicsGameplayState, physicsProfile: string = PHYSICS_VERSION): PhysicsPresentation {
+  const r = physicsRuntime(s);
+  if (!r) throw new Error('physics mode required');
+  const actors = new Map(s.players.map((p, i) => [`actor:${p.id}`, i as PlayerIdx]));
+  const legacy: PhysicsPresentation['legacy'] = { bodies: new Map(), actors: new Map(s.players.map((p, i) => [i as PlayerIdx, p.id])), items: new Map(), tethers: new Map() };
   const placed = new Set(physics.discontinuities?.filter(d => d.kind === 'placed').map(d => d.id));
-  const bodies: PhysicsBodyView[] = physics.world.bodies.filter(b => b.spec.kind !== 'static'
-    && (b.spec.kind !== 'actor' || actors.has(b.spec.id))
-    && (!b.spec.id.startsWith('item:') || itemOf(b.spec.id) !== undefined)).map(b => physicsBodyFields({
-    id: b.spec.id, kind: b.spec.kind as 'actor' | 'prop', shape: b.spec.shape, ...b.transform, generation: b.generation,
-    ...(actors.has(b.spec.id) ? { actorId: actors.get(b.spec.id)! } : {}),
-    ...(itemOf(b.spec.id) !== undefined ? { itemId: itemOf(b.spec.id)! } : {}),
-    ...(placed.has(b.spec.id) ? { discontinuity: 'placed' as const } : {}),
+  const byKey = new Map<string, NumericPhysicsBody>();
+  const bodies: NumericPhysicsBody[] = [];
+  for (const b of physics.world.bodies) {
+    if (b.spec.kind === 'static') continue;
+    const playerIdx = actors.get(b.spec.id);
+    let owner: PhysicsBodyOwner;
+    if (b.spec.kind === 'actor') {
+      if (playerIdx === undefined) continue;
+      owner = { kind: 'actor', playerIdx };
+    } else if (b.spec.id.startsWith('item:')) {
+      const itemId = itemIdForLabel(s, b.spec.id.slice(5));
+      if (itemId === undefined || !groundItem(s, itemId)) continue;
+      owner = { kind: 'item', itemId };
+    } else owner = { kind: 'prop', propId: r.identities.prop(b.spec.id) };
+    const lifetime = r.world.bodyLifetime(b.spec.id);
+    if (!lifetime) continue;
+    const id = r.identities.body(lifetime);
+    const body: NumericPhysicsBody = { id, kind: b.spec.kind, shape: b.spec.shape, ...b.transform, generation: b.generation, owner,
+      ...(placed.has(b.spec.id) ? { discontinuity: 'placed' as const } : {}) };
+    bodies.push(body); byKey.set(b.spec.id, body); legacy.bodies.set(id, b.spec.id);
+    if (owner.kind === 'item') legacy.items.set(id, itemLabel(s, owner.itemId));
+  }
+  const hooks = new Map(r.hooks.map(hook => [hook.id, hook]));
+  const tetherId = (key: string, lifetime: object) => {
+    const hook = hooks.get(key);
+    // Hand-built diagnostic hooks still receive a logical lifetime without leaking new fields outward.
+    const id = hook ? hook.tetherId ??= r.identities.tether(hook) : r.identities.tether(lifetime);
+    legacy.tethers.set(id, key);
+    return id;
+  };
+  const tethers: NumericPhysicsTether[] = physics.world.constraints.flatMap(c => {
+    const a = byKey.get(c.a), b = byKey.get(c.b);
+    return a && b ? [{ id: tetherId(c.id, c), a: a.id, b: b.id }] : [];
+  });
+  const actorBodies = new Map(bodies.flatMap(body => body.owner.kind === 'actor' ? [[body.owner.playerIdx, body] as const] : []));
+  const hookFlights = physics.hooks && r.hooks.flatMap(hook => {
+    const a = actorBodies.get(hook.casterIdx);
+    return hook.phase === 'flying' && a?.owner.kind === 'actor'
+      ? [{ id: tetherId(hook.id, hook), a: a.id, casterIdx: a.owner.playerIdx, x: hook.x, y: hook.y }] : [];
+  });
+  return { physicsProfile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}), legacy };
+}
+
+/** CP1 boundary: legacy snapshots, views and recordings keep their exact field order and labels. */
+export function legacyPhysicsPresentation(presentation: PhysicsPresentation) {
+  const { legacy, physicsProfile } = presentation;
+  const bodies = presentation.bodies.map(body => physicsBodyFields({
+    id: legacy.bodies.get(body.id)!, kind: body.kind, shape: body.shape,
+    x: body.x, y: body.y, angle: body.angle, vx: body.vx, vy: body.vy, omega: body.omega, sleeping: body.sleeping, generation: body.generation,
+    ...(body.owner.kind === 'actor' ? { actorId: legacy.actors.get(body.owner.playerIdx)! } : {}),
+    ...(body.owner.kind === 'item' ? { itemId: legacy.items.get(body.id)! } : {}),
+    ...(body.discontinuity ? { discontinuity: body.discontinuity } : {}),
   }));
-  const ids = new Set(bodies.map(b => b.id));
-  const actorIds = new Set(bodies.filter(b => b.kind === 'actor').map(b => b.id));
-  const tethers = physics.world.constraints.filter(c => ids.has(c.a) && ids.has(c.b)).map(physicsTetherFields);
-  const hookFlights = physics.hooks?.filter(hook => hook.phase === 'flying' && actorIds.has(`actor:${hook.caster}`))
-    .map(hook => physicsHookFlightFields({ id: hook.id, a: `actor:${hook.caster}`, x: hook.x, y: hook.y }));
+  const tethers = presentation.tethers.map(t => physicsTetherFields({ id: legacy.tethers.get(t.id)!, a: legacy.bodies.get(t.a)!, b: legacy.bodies.get(t.b)! }));
+  const hookFlights = presentation.hookFlights?.map(h => physicsHookFlightFields({ id: legacy.tethers.get(h.id)!, a: legacy.bodies.get(h.a)!, x: h.x, y: h.y }));
   return { physicsProfile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}) };
 }
 

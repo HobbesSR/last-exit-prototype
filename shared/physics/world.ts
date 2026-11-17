@@ -136,7 +136,7 @@ function validateBody(input: BodySpec): BodySpec {
   return result;
 }
 
-type RecordBody = { spec: BodySpec; handle: number; collider: number; generation: number;
+type RecordBody = { spec: BodySpec; handle: number; collider: number; generation: number; lifetime: object;
   motor?: MotorIntent; minimumRadius: number; tipRadius: number };
 
 export async function createPhysicsWorld(): Promise<PhysicsWorld> {
@@ -315,7 +315,7 @@ export class PhysicsWorld {
     else if (spec.kind === 'actor') collider.setCollisionGroups(groups(ACTOR_GROUP, solidMask));
     else collider.setCollisionGroups(groups(PROP_GROUP, solidMask));
     const attached = this.native.createCollider(collider, body);
-    this.bodies.set(spec.id, { spec, handle: body.handle, collider: attached.handle,
+    this.bodies.set(spec.id, { spec, handle: body.handle, collider: attached.handle, lifetime: Object.freeze({}),
       generation: ++this.nextGeneration, minimumRadius, tipRadius });
     if (spec.kind === 'static') this.staticCount++;
     else { this.dynamicCount++; if (spec.kind === 'actor') this.actorCount++; }
@@ -395,6 +395,8 @@ export class PhysicsWorld {
     this.impulses = this.impulses.filter(entry => !removed.has(entry.id));
   }
   hasBody(id: string): boolean { this.ensure(); return this.bodies.has(id); }
+  /** Opaque admission lifetime, stable across teleports/damping; never a handle or serialized state. */
+  bodyLifetime(id: string): object | undefined { this.ensure(); return this.bodies.get(validId(id))?.lifetime; }
   hasConstraint(id: string): boolean { this.ensure(); return this.constraints.has(validId(id)); }
   /** Placement only; queries current colliders, including rotated props, without backend handles. */
   overlapsProp(x: number, y: number, radius: number): boolean {

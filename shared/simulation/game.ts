@@ -12,6 +12,7 @@ import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, GateIdx, MatchContent, Player, Vec2 } from '../types.ts';
 import { cos, hypot, sin } from '../math.ts';
 import { start, stop, profiling, observe } from '../profiler.ts';
+import { PhysicsIdentities } from './physics-identities.ts';
 
 export const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 export const actorId = (p: Player) => `actor:${p.id}`;
@@ -56,7 +57,7 @@ export async function createGame(seed: number, map: GameMap, content?: MatchCont
   if (s.players.length > 27) throw new RangeError('physics actor capacity is 27');
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
-  const runtime: PhysicsRuntime = { stepping: false, discontinuityCapacity: 256, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
+  const runtime: PhysicsRuntime = { identities: new PhysicsIdentities(), stepping: false, discontinuityCapacity: 256, world, actors: new Set(), items: new Set(), itemLaunches: new Map(),
     gateOrder: s.map.gates.map((_, i) => i as GateIdx).sort((a, b) => compare(s.map.gates[a].id, s.map.gates[b].id)), gates: new Uint8Array(s.map.gates.length), discontinuities: [],
     synchronize: options => synchronize(s, runtime, runtime.stepping ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),

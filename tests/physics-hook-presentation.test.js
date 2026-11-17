@@ -50,7 +50,7 @@ test('flight capture and projection disclose only an authorized caster and tip',
     assert.deepEqual(snapshot(s).hookFlights, []);
     const noHooks = structuredClone(frame.physics);
     delete noHooks.hooks;
-    assert.equal(Object.hasOwn(capturePhysicsPresentation(noHooks, frame.players, () => undefined), 'hookFlights'), false,
+    assert.equal(Object.hasOwn(capturePhysicsPresentation(s, noHooks), 'hookFlights'), false,
       'older physics captures preserve optional-field absence');
   } finally { disposePhysics(s); }
 });
