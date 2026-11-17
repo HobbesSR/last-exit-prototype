@@ -12,6 +12,17 @@ import { next, open, createRoom } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap, reusedMap } from './helpers/room-harness.js';
 import { archiveText, readArchive, storedDigest } from './helpers/recordings.js';
+import { wireIds } from '../shared/simulation/wire-ids.ts';
+import { WIRE_ID_FIELDS } from '../shared/simulation/projection-contract.ts';
+
+// A literal key, passed through the server's option rather than mocking its random source (#1164).
+const WIRE_KEY = [0x9e3779b9, 0x7f4a7c15, 0xf39cc060, 0x5ced8f5b], wire = wireIds(WIRE_KEY);
+/** A recorded record as a live view carries it: the declared counter IDs keyed (24, 26). */
+const outward = (kind, record) => {
+  const copy = { ...record };
+  for (const [field, domain] of Object.entries(WIRE_ID_FIELDS[kind])) if (typeof copy[field] === 'number') copy[field] = wire.id(copy[field], domain);
+  return copy;
+};
 
 // Rooms here are about the server, not their maps: every seed, the random ones too, plays seed 9's map.
 const fastMap = reusedMap;
@@ -106,6 +117,11 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     const we = await welcomeEye;
     assert.equal(we.id, null); assert.equal(we.spectator, true); assert.equal(we.state.directed, true);
     assert.equal(we.state.players.length, server.rooms.get(room.id).game.players.length);
+    // The composition root keys outward IDs by default (#1164): the map's item IDs are not the match's own.
+    const internal = server.rooms.get(room.id).game.map.items.map(item => item.id), sent = we.map.items.map(item => item.id);
+    assert.equal(sent.length, internal.length);
+    assert.notDeepEqual(sent, internal, 'createArenaServer draws a non-identity key');
+    assert.equal(new Set(sent).size, sent.length);
     // Watching neither starts the match, consumes a slot, nor grants any authority over one.
     assert.equal(server.rooms.get(room.id).started, false);
     eye.send(JSON.stringify({ type: 'input', seq: 1, tick: we.state.tick + 1, x: 1 }));
@@ -133,7 +149,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
 
 test('two clients share authority; replay preserves each recorded frame and survives restart', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-test-'));
-  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap, wireKey: WIRE_KEY });
   let restarted;
   try {
     const base = await listen(server);
@@ -201,8 +217,11 @@ test('two clients share authority; replay preserves each recorded frame and surv
         }
         for (const field of ['path', 'input', 'inputTick', 'bot']) assert.equal(Object.hasOwn(p, field), false, `${field} withheld`);
       }
-      for (const field of ['gates', 'events', 'hazardX', 'slots']) assert.deepEqual(frame[field], archived[field]);
-      for (const field of ['items', 'projectiles', 'effects']) for (const visible of frame[field]) assert.deepEqual(visible, archived[field].find(item => item.id === visible.id));
+      // Live counter IDs are a keyed view of the recorded ones (#1164); everything else is the same.
+      for (const field of ['gates', 'hazardX', 'slots']) assert.deepEqual(frame[field], archived[field]);
+      assert.deepEqual(frame.events, archived.events.map(event => outward('event', event)));
+      for (const [field, kind] of [['items', 'item'], ['projectiles', 'projectile'], ['effects', 'effect']])
+        for (const visible of frame[field]) assert.deepEqual(visible, outward(kind, archived[field].find(record => wire.id(record.id, WIRE_ID_FIELDS[kind].id) === visible.id)));
     }
     assert.equal(storedDigest(served), metadata.sha256);
     assert.equal(archiveText(await readFile(path.join(dir, `${room.id}.json.gz`))), served);

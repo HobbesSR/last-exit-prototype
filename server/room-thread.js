@@ -23,13 +23,13 @@ const asError = plain => Object.assign(new Error(plain.message), plain.stack ? {
  * `onFinalization`, `onDispose(roomId, clientIds)`, `published(meta)`, `reportError`, and `failed(roomId)`
  * when the thread dies unasked.
  */
-export function createRoomThread({ seed, matchmade, size, map, name, content, createdAt, devTools, replays, replayFinishTimeoutMs, profile, hooks }) {
+export function createRoomThread({ seed, matchmade, size, map, name, content, createdAt, devTools, replays, replayFinishTimeoutMs, profile, wireKey = null, hooks }) {
   const id = randomBytes(4).toString('hex'), ownerKey = randomUUID();
   const deferredMap = map !== undefined;
   const worker = new Worker(new URL('./room-worker.js', import.meta.url), {
     workerData: {
       room: { id, ownerKey, seed, matchmade, size, name, content, createdAt, deferredMap },
-      devTools, replays, replayFinishTimeoutMs, profile,
+      devTools, replays, replayFinishTimeoutMs, profile, wireKey,
     },
   });
   const capacity = role => role === 'gladiator' ? content.roster.gladiators.length : content.roster.contestants.length;

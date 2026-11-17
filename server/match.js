@@ -11,7 +11,9 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { setImmediate as preparationPause } from 'node:timers/promises';
 import { prepareMapPayload } from './map-payload.js';
-import { publishItems, itemsJson, prepareGroundItems } from '../shared/simulation/ground-items.ts';
+import { publishItems, itemsJson, prepareGroundItems, shareItemPublication } from '../shared/simulation/ground-items.ts';
+import { wireItemRecords } from '../shared/simulation/projection-contract.ts';
+import { wireIds } from '../shared/simulation/wire-ids.ts';
 import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
 import { profiling, observe } from '../shared/profiler.ts';
 
@@ -91,7 +93,10 @@ export function createLobby(content = defaultContent()) {
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
-export async function createMatch(seed, size, map, content = defaultContent()) {
+// `wireKey` keys the match's outward IDs (#1164, 24.4): drawn by the server's composition root, never
+// recorded, logged or sent. Without one the outward IDs are the internal ones.
+export async function createMatch(seed, size, map, content = defaultContent(), { wireKey = null } = {}) {
+  const wire = wireIds(wireKey);
   const game = await createGame(seed, map ?? generateLiveMap(seed, content, size), content,
     () => preparationPause());
   try {
@@ -101,11 +106,13 @@ export async function createMatch(seed, size, map, content = defaultContent()) {
     const beforeGround = profiling() ? performance.now() : undefined;
     await prepareGroundItems(publishItems(game), () => preparationPause());
     if (beforeGround !== undefined) observe('prepare.ground', performance.now() - beforeGround);
-    return matchOf(game, payloads);
+    return matchOf(game, payloads, wire);
   } catch (error) { disposePhysics(game); throw error; }
 }
 
-function matchOf(game, payloads) {
+function matchOf(game, payloads, wire) {
+  // Outward IDs for live payload items; recordings keep internal IDs (26).
+  const outward = items => { const mapped = wireItemRecords(items, wire); if (mapped !== items) shareItemPublication(items, mapped); return mapped; };
   let disposedFrame;
   return {
     get version() { return game.version; },
@@ -152,13 +159,14 @@ function matchOf(game, payloads) {
     advance() { if (disposedFrame) throw new Error('match disposed'); step(game); return snapshot(game); },
     snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
-    project: (frame, id) => playerView(game, frame, id),
+    project: (frame, id) => playerView(game, frame, id, wire),
     map: () => structuredClone({ ...game.map, gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) }),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
       if (!payloads) throw new Error('match disposed');
       const source = { ...game.map, gates: mergeGateGeometry({ gates: publishGates(game) }, kind === 'spectator' ? frame.gates : undefined),
-        items: kind === 'spectator' ? frame.items : publishItems(game), ...(kind !== 'recording' ? { traps: [] } : {}) };
+        items: kind === 'recording' ? publishItems(game) : outward(kind === 'spectator' ? frame.items : publishItems(game)),
+        ...(kind !== 'recording' ? { traps: [] } : {}) };
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
     },
     end({ strand = false } = {}) {

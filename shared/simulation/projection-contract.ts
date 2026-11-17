@@ -2,12 +2,39 @@
 // Iterate source keys so existing serialized field order and optional-field presence are preserved.
 import type { DiscoveryMemory, HeardCue, Inventory, ItemKey, Player, Projected, PlayerIdx } from '../types.ts';
 import type { BodyShape, PhysicsBodyView, PhysicsTetherView } from '../physics/types.ts';
+import { mapIdField, wireCache, wireIds, type WireIdDomain, type WireIds } from './wire-ids.ts';
 
-const projection = (fields: string) => {
-  const allowed = new Set(fields.split(' '));
-  return <T extends object>(value: T): Projected<T> => {
+/**
+ * Outward fields holding an ID from a match-wide counter (#1164, 24.4), each with the counter (domain) it
+ * comes from: bodies, tethers, items and `s.serial`. The one list: each projection below maps exactly
+ * these through the match's keyed one-to-one function for that domain (wire-ids.ts), and the property
+ * test walks them. `playerIdx`, `gateIdx` and `propId` are dense or authored slots, not counters, and are
+ * never mapped.
+ */
+export const WIRE_ID_FIELDS = {
+  item: { id: 'item', instanceId: 'item', lineageId: 'item' },
+  body: { id: 'body' },
+  bodyOwner: { itemId: 'item' },
+  tether: { id: 'tether', a: 'body', b: 'body' },
+  hookFlight: { id: 'tether', a: 'body' },
+  reload: { instanceId: 'item' },
+  projectile: { id: 'serial' },
+  effect: { id: 'serial' },
+  event: { id: 'serial' },
+} as const satisfies Record<string, Record<string, WireIdDomain>>;
+type IdFields = readonly (readonly [string, WireIdDomain])[];
+const idList = (fields: Readonly<Record<string, WireIdDomain>>): IdFields => Object.entries(fields);
+const IDENTITY = wireIds();
+const mapIds = (record: Record<string, unknown>, fields: IdFields, wire: WireIds) => {
+  if (!wire.identity) for (const [field, domain] of fields) mapIdField(record, field, domain, wire);
+};
+
+const projection = (fields: string, ids?: Readonly<Record<string, WireIdDomain>>) => {
+  const allowed = new Set(fields.split(' ')), idFields = ids ? idList(ids) : [];
+  return <T extends object>(value: T, wire: WireIds = IDENTITY): Projected<T> => {
     const result = {} as Projected<T>;
     for (const key of Object.keys(value) as (keyof T & string)[]) if (allowed.has(key)) result[key] = value[key];
+    mapIds(result as Record<string, unknown>, idFields, wire);
     return result;
   };
 };
@@ -17,19 +44,19 @@ export const frameFields = projection(FRAME_FIELDS);
 export const OWN_FIELDS = 'x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered';
 const ownFields = projection(OWN_FIELDS);
 export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family';
-export const itemFields = projection(ITEM_FIELDS);
+export const itemFields = projection(ITEM_FIELDS, WIRE_ID_FIELDS.item);
 export const GATE_FIELDS = 'gateIdx open locked';
 export const gateFields = projection(GATE_FIELDS);
 export const TRAP_FIELDS = 'id kind x y homeX homeY heading offset cooldown spent aiming firing warning';
 export const trapFields = projection(TRAP_FIELDS);
 export const PROJECTILE_FIELDS = 'id owner trap x y dx dy life damage';
-export const projectileFields = projection(PROJECTILE_FIELDS);
+export const projectileFields = projection(PROJECTILE_FIELDS, WIRE_ID_FIELDS.projectile);
 export const EFFECT_FIELDS = 'id x y kind radius life';
-export const effectFields = projection(EFFECT_FIELDS);
+export const effectFields = projection(EFFECT_FIELDS, WIRE_ID_FIELDS.effect);
 export const EVENT_FIELDS = 'id tick kind actor target source slotsRemaining text';
-const projectEvent = projection(EVENT_FIELDS);
-export function eventFields(event: import('../types.ts').GameEvent) {
-  const result = projectEvent(event);
+const projectEvent = projection(EVENT_FIELDS, WIRE_ID_FIELDS.event);
+export function eventFields(event: import('../types.ts').GameEvent, wire: WireIds = IDENTITY) {
+  const result = projectEvent(event, wire);
   for (const key of ['actor', 'target', 'source'] as const) {
     const participant = (result as Record<string, unknown>)[key] as import('../types.ts').EventParticipant | undefined;
     if (participant) (result as Record<string, unknown>)[key] = { playerIdx: participant.playerIdx, name: participant.name };
@@ -42,26 +69,68 @@ function physicsShapeFields(shape: BodyShape): BodyShape {
   if (shape.kind === 'box') return { kind: 'box', hx: shape.hx, hy: shape.hy };
   return { kind: 'convex', vertices: shape.vertices.map(({ x, y }) => ({ x, y })) };
 }
-export function physicsBodyFields(body: PhysicsBodyView, full = true): PhysicsBodyView {
+const BODY_IDS = idList(WIRE_ID_FIELDS.body), BODY_OWNER_IDS = idList(WIRE_ID_FIELDS.bodyOwner);
+const TETHER_IDS = idList(WIRE_ID_FIELDS.tether), FLIGHT_IDS = idList(WIRE_ID_FIELDS.hookFlight), RELOAD_IDS = idList(WIRE_ID_FIELDS.reload);
+export function physicsBodyFields(body: PhysicsBodyView, full = true, wire: WireIds = IDENTITY): PhysicsBodyView {
   const { id, kind, x, y, angle, vx, vy, omega, sleeping, generation } = body;
-  return { id, kind, shape: physicsShapeFields(body.shape), x, y, angle,
-    ...(full ? { vx, vy, omega, sleeping } : {}), generation,
-    owner: body.owner.kind === 'actor' ? { kind: 'actor', playerIdx: body.owner.playerIdx }
-      : body.owner.kind === 'item' ? { kind: 'item', itemId: body.owner.itemId } : { kind: 'prop', propId: body.owner.propId },
+  const owner = body.owner.kind === 'actor' ? { kind: 'actor' as const, playerIdx: body.owner.playerIdx }
+    : body.owner.kind === 'item' ? { kind: 'item' as const, itemId: body.owner.itemId } : { kind: 'prop' as const, propId: body.owner.propId };
+  const result: PhysicsBodyView = { id, kind, shape: physicsShapeFields(body.shape), x, y, angle,
+    ...(full ? { vx, vy, omega, sleeping } : {}), generation, owner,
     ...(body.discontinuity === 'placed' ? { discontinuity: 'placed' as const } : {}) };
+  mapIds(result as unknown as Record<string, unknown>, BODY_IDS, wire);
+  mapIds(owner as Record<string, unknown>, BODY_OWNER_IDS, wire);
+  return result;
 }
-export function physicsTetherFields({ id, a, b }: PhysicsTetherView): PhysicsTetherView { return { id, a, b }; }
-export function physicsHookFlightFields({ id, a, casterIdx, x, y }: import('../physics/types.ts').NumericHookFlight) {
-  return { id, a, casterIdx, x, y };
+export function physicsTetherFields({ id, a, b }: PhysicsTetherView, wire: WireIds = IDENTITY): PhysicsTetherView {
+  const result = { id, a, b };
+  mapIds(result as unknown as Record<string, unknown>, TETHER_IDS, wire);
+  return result;
 }
-export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[], playerIdx?: PlayerIdx): Projected<Player<I>> {
+export function physicsHookFlightFields({ id, a, casterIdx, x, y }: import('../physics/types.ts').NumericHookFlight, wire: WireIds = IDENTITY) {
+  const result = { id, a, casterIdx, x, y };
+  mapIds(result as unknown as Record<string, unknown>, FLIGHT_IDS, wire);
+  return result;
+}
+export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[], playerIdx?: PlayerIdx, wire: WireIds = IDENTITY): Projected<Player<I>> {
   const result = ownFields(player);
   if (playerIdx !== undefined) result.playerIdx = playerIdx;
   // Carried items are projected through the same item contract; both sides are wire records.
-  if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item) : item) as Inventory<I>;
-  if (result.cell) result.cell = itemFields(result.cell);
+  if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item, wire) : item) as Inventory<I>;
+  if (result.cell) result.cell = itemFields(result.cell, wire);
+  if (result.reload && !wire.identity) {
+    const reload = { ...result.reload };
+    mapIds(reload as Record<string, unknown>, RELOAD_IDS, wire);
+    result.reload = reload;
+  }
   if (discovery) result.discovered = Array.from(discovery.discovered);
   // Heard gunfire is the hearer's own (15): present only while a cue lasts, so other contents' frames are unchanged.
   if (heard?.length) result.heard = heard.map(({ x, y, tick, until }) => ({ x, y, tick, until }));
   return result;
+}
+
+const ITEM_IDS = idList(WIRE_ID_FIELDS.item);
+/**
+ * A list of whole item records (map payloads) with its outward IDs (#1164): the same list for the identity.
+ * Records and lists are cached per source and per mapping, so an unchanged ground maps nothing again and
+ * frozen sources yield frozen, reusable records whose JSON the published-list cache keeps.
+ */
+export function wireItemRecords<T extends object>(list: readonly T[], wire: WireIds): readonly T[] {
+  if (wire.identity) return list;
+  const lists = wireCache<readonly T[], readonly T[]>(wire, 'itemLists');
+  let mapped = lists.get(list);
+  if (!mapped) {
+    const records = wireCache<T, T>(wire, 'itemRecords');
+    mapped = list.map(item => {
+      let record = records.get(item);
+      if (!record) {
+        record = { ...item };
+        mapIds(record as Record<string, unknown>, ITEM_IDS, wire);
+        if (Object.isFrozen(item)) { Object.freeze(record); records.set(item, record); }
+      }
+      return record;
+    });
+    lists.set(list, mapped);
+  }
+  return mapped;
 }

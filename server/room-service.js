@@ -45,7 +45,7 @@ const asText = bytes => {
  */
 export function createRoomService({ replays, devTools = 'none', wallNow = Date.now, reportError = console.error,
   reportReject = console.warn, strictProtocol = false, threads = false,
-  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent, matchFactory = createMatch }) {
+  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent, matchFactory = createMatch, wireKey = null }) {
   if (threads && (matchFactory !== createMatch || !replays?.threadOptions)) {
     throw new TypeError('A room on its own thread records into a file store and builds its own match; run rooms here for an injected writer or match');
   }
@@ -137,7 +137,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function makeThreadedRoom(seed, matchmade, size, map, name) {
     return createRoomThread({
       seed, matchmade, size, map, name, content: content(), createdAt: wallNow(), devTools,
-      replays: replays.threadOptions, replayFinishTimeoutMs, profile: profiler.profiling(),
+      replays: replays.threadOptions, replayFinishTimeoutMs, profile: profiler.profiling(), wireKey,
       hooks: {
         deliver: (clientId, payload) => sessions.get(clientId)?.deliver(payload, false),
         backlog: clientId => sessions.get(clientId)?.buffered?.() ?? 0,
@@ -179,6 +179,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       setTimer,
       clearTimer,
       matchFactory,
+      wireKey,
       deliver: (clientId, payload, droppable) => sessions.get(clientId)?.deliver(payload, droppable),
       closeClient,
       onFinalization: trackFinalization,
