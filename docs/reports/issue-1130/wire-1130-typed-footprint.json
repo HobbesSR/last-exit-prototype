@@ -1,0 +1,177 @@
+{
+ "generatedAt": "2026-11-17T22:31:03.864Z",
+ "versions": {
+  "protobufjs": "8.8.1",
+  "protobufjs-cli": "2.7.1",
+  "esbuild": "0.28.2"
+ },
+ "footprint": {
+  "descriptor": {
+   "unminified": {
+    "file": "descriptor.mjs",
+    "bytes": 25099,
+    "gzipBytes": 6221,
+    "gzipKiB": 6.08,
+    "inputs": {
+     "tools/perf/wire-descriptor-codec.mjs": 18126,
+     "test-results/wire-typed/d-schema.json": 6621,
+     "test-results/wire-typed/d-entry.mjs": 204
+    }
+   },
+   "minified": {
+    "file": "descriptor.min.mjs",
+    "bytes": 15240,
+    "gzipBytes": 4865,
+    "gzipKiB": 4.75,
+    "inputs": {
+     "tools/perf/wire-descriptor-codec.mjs": 9738,
+     "test-results/wire-typed/d-schema.json": 5350,
+     "test-results/wire-typed/d-entry.mjs": 125
+    }
+   }
+  },
+  "protobuf-static": {
+   "unminified": {
+    "file": "protobuf-static.mjs",
+    "bytes": 183196,
+    "gzipBytes": 25161,
+    "gzipKiB": 24.57,
+    "inputs": {
+     "node_modules/protobufjs/src/util/aspromise.js": 1063,
+     "node_modules/protobufjs/src/util/base64.js": 3005,
+     "node_modules/protobufjs/src/util/eventemitter.js": 1380,
+     "node_modules/protobufjs/src/util/float.js": 7990,
+     "node_modules/protobufjs/src/util/utf8.js": 3945,
+     "node_modules/protobufjs/src/util/pool.js": 663,
+     "node_modules/protobufjs/src/util/longbits.js": 3628,
+     "node_modules/long/umd/index.js": 32609,
+     "node_modules/protobufjs/src/util/minimal.js": 7596,
+     "node_modules/protobufjs/src/writer.js": 13313,
+     "node_modules/protobufjs/src/writer_buffer.js": 1977,
+     "node_modules/protobufjs/src/reader.js": 19427,
+     "node_modules/protobufjs/src/reader_buffer.js": 1219,
+     "node_modules/protobufjs/src/rpc/service.js": 2586,
+     "node_modules/protobufjs/src/rpc.js": 167,
+     "node_modules/protobufjs/src/roots.js": 177,
+     "node_modules/protobufjs/src/index-minimal.js": 702,
+     "node_modules/protobufjs/minimal.js": 166,
+     "test-results/wire-typed/state-pb.mjs": 77550,
+     "tools/perf/wire-typed-protobuf.mjs": 1448,
+     "test-results/wire-typed/p-entry.mjs": 124
+    }
+   },
+   "minified": {
+    "file": "protobuf-static.min.mjs",
+    "bytes": 89105,
+    "gzipBytes": 18563,
+    "gzipKiB": 18.13,
+    "inputs": {
+     "node_modules/protobufjs/src/util/aspromise.js": 380,
+     "node_modules/protobufjs/src/util/base64.js": 1340,
+     "node_modules/protobufjs/src/util/eventemitter.js": 632,
+     "node_modules/protobufjs/src/util/float.js": 3043,
+     "node_modules/protobufjs/src/util/utf8.js": 1519,
+     "node_modules/protobufjs/src/util/pool.js": 214,
+     "node_modules/protobufjs/src/util/longbits.js": 1836,
+     "node_modules/long/umd/index.js": 10945,
+     "node_modules/protobufjs/src/util/minimal.js": 3599,
+     "node_modules/protobufjs/src/writer.js": 6586,
+     "node_modules/protobufjs/src/writer_buffer.js": 922,
+     "node_modules/protobufjs/src/reader.js": 9577,
+     "node_modules/protobufjs/src/reader_buffer.js": 635,
+     "node_modules/protobufjs/src/rpc/service.js": 1107,
+     "node_modules/protobufjs/src/rpc.js": 55,
+     "node_modules/protobufjs/src/roots.js": 65,
+     "node_modules/protobufjs/src/index-minimal.js": 296,
+     "node_modules/protobufjs/minimal.js": 50,
+     "test-results/wire-typed/state-pb.mjs": 44764,
+     "tools/perf/wire-typed-protobuf.mjs": 821,
+     "test-results/wire-typed/p-entry.mjs": 66
+    }
+   }
+  },
+  "protobuf-static-no-long": {
+   "unminified": {
+    "file": "protobuf-static-no-long.mjs",
+    "bytes": 151158,
+    "gzipBytes": 20097,
+    "gzipKiB": 19.63,
+    "inputs": {
+     "node_modules/protobufjs/src/util/aspromise.js": 1063,
+     "node_modules/protobufjs/src/util/base64.js": 3005,
+     "node_modules/protobufjs/src/util/eventemitter.js": 1380,
+     "node_modules/protobufjs/src/util/float.js": 7990,
+     "node_modules/protobufjs/src/util/utf8.js": 3945,
+     "node_modules/protobufjs/src/util/pool.js": 663,
+     "node_modules/protobufjs/src/util/longbits.js": 3628,
+     "test-results/wire-typed/no-long.mjs": 237,
+     "node_modules/protobufjs/src/util/minimal.js": 7630,
+     "node_modules/protobufjs/src/writer.js": 13313,
+     "node_modules/protobufjs/src/writer_buffer.js": 1977,
+     "node_modules/protobufjs/src/reader.js": 19427,
+     "node_modules/protobufjs/src/reader_buffer.js": 1219,
+     "node_modules/protobufjs/src/rpc/service.js": 2586,
+     "node_modules/protobufjs/src/rpc.js": 167,
+     "node_modules/protobufjs/src/roots.js": 177,
+     "node_modules/protobufjs/src/index-minimal.js": 702,
+     "node_modules/protobufjs/minimal.js": 166,
+     "test-results/wire-typed/state-pb.mjs": 77550,
+     "tools/perf/wire-typed-protobuf.mjs": 1448,
+     "test-results/wire-typed/p-entry.mjs": 124
+    }
+   },
+   "minified": {
+    "file": "protobuf-static-no-long.min.mjs",
+    "bytes": 78258,
+    "gzipBytes": 15263,
+    "gzipKiB": 14.91,
+    "inputs": {
+     "node_modules/protobufjs/src/util/aspromise.js": 380,
+     "node_modules/protobufjs/src/util/base64.js": 1323,
+     "node_modules/protobufjs/src/util/eventemitter.js": 627,
+     "node_modules/protobufjs/src/util/float.js": 3043,
+     "node_modules/protobufjs/src/util/utf8.js": 1506,
+     "node_modules/protobufjs/src/util/pool.js": 214,
+     "node_modules/protobufjs/src/util/longbits.js": 1822,
+     "test-results/wire-typed/no-long.mjs": 75,
+     "node_modules/protobufjs/src/util/minimal.js": 3607,
+     "node_modules/protobufjs/src/writer.js": 6563,
+     "node_modules/protobufjs/src/writer_buffer.js": 921,
+     "node_modules/protobufjs/src/reader.js": 9569,
+     "node_modules/protobufjs/src/reader_buffer.js": 625,
+     "node_modules/protobufjs/src/rpc/service.js": 1100,
+     "node_modules/protobufjs/src/rpc.js": 55,
+     "node_modules/protobufjs/src/roots.js": 65,
+     "node_modules/protobufjs/src/index-minimal.js": 295,
+     "node_modules/protobufjs/minimal.js": 50,
+     "test-results/wire-typed/state-pb.mjs": 44758,
+     "tools/perf/wire-typed-protobuf.mjs": 814,
+     "test-results/wire-typed/p-entry.mjs": 66
+    }
+   }
+  },
+  "converter": {
+   "unminified": {
+    "file": "converter.mjs",
+    "bytes": 15630,
+    "gzipBytes": 4620,
+    "gzipKiB": 4.51,
+    "inputs": {
+     "tools/perf/wire-typed-schema.mjs": 15554,
+     "test-results/wire-typed/converter-entry.mjs": 0
+    }
+   },
+   "minified": {
+    "file": "converter.min.mjs",
+    "bytes": 9434,
+    "gzipBytes": 3679,
+    "gzipKiB": 3.59,
+    "inputs": {
+     "tools/perf/wire-typed-schema.mjs": 9392,
+     "test-results/wire-typed/converter-entry.mjs": 0
+    }
+   }
+  }
+ },
+ "staticModuleBytes": 92495
+}

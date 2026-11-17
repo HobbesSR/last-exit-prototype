@@ -1,0 +1,234 @@
+{
+ "generatedAt": "2026-11-17T22:31:57.131Z",
+ "browserVersion": "157.0.8103.51",
+ "corpus": "test-results/wire-typed-corpus-12x6.json",
+ "rounds": 3,
+ "minBatchMs": 200,
+ "sink": 4575584,
+ "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+ "timing": {
+  "contestant": {
+   "first": {
+    "json.encode": {
+     "wallUs": 27.393
+    },
+    "json.decode": {
+     "wallUs": 11.537
+    },
+    "descriptor.encode": {
+     "wallUs": 15.402
+    },
+    "descriptor.decode": {
+     "wallUs": 7.336
+    },
+    "protobuf-static.encode": {
+     "wallUs": 12.419
+    },
+    "protobuf-static.decode": {
+     "wallUs": 6.684
+    },
+    "convert-to-native.encode": {
+     "wallUs": 13.262
+    },
+    "convert-from-native.decode": {
+     "wallUs": 15.625
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 14.005
+    },
+    "json.decode": {
+     "wallUs": 6.228
+    },
+    "descriptor.encode": {
+     "wallUs": 8.371
+    },
+    "descriptor.decode": {
+     "wallUs": 4.255
+    },
+    "protobuf-static.encode": {
+     "wallUs": 6.155
+    },
+    "protobuf-static.decode": {
+     "wallUs": 3.389
+    },
+    "convert-to-native.encode": {
+     "wallUs": 7.246
+    },
+    "convert-from-native.decode": {
+     "wallUs": 7.58
+    }
+   }
+  },
+  "gladiator": {
+   "first": {
+    "json.encode": {
+     "wallUs": 11.166
+    },
+    "json.decode": {
+     "wallUs": 10.045
+    },
+    "descriptor.encode": {
+     "wallUs": 11.553
+    },
+    "descriptor.decode": {
+     "wallUs": 5.841
+    },
+    "protobuf-static.encode": {
+     "wallUs": 10.432
+    },
+    "protobuf-static.decode": {
+     "wallUs": 5.71
+    },
+    "convert-to-native.encode": {
+     "wallUs": 10.602
+    },
+    "convert-from-native.decode": {
+     "wallUs": 13.284
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 4.515
+    },
+    "json.decode": {
+     "wallUs": 3.887
+    },
+    "descriptor.encode": {
+     "wallUs": 4.891
+    },
+    "descriptor.decode": {
+     "wallUs": 2.437
+    },
+    "protobuf-static.encode": {
+     "wallUs": 4.474
+    },
+    "protobuf-static.decode": {
+     "wallUs": 2.023
+    },
+    "convert-to-native.encode": {
+     "wallUs": 4.097
+    },
+    "convert-from-native.decode": {
+     "wallUs": 4.407
+    }
+   }
+  },
+  "dev": {
+   "first": {
+    "json.encode": {
+     "wallUs": 47.467
+    },
+    "json.decode": {
+     "wallUs": 47.063
+    },
+    "descriptor.encode": {
+     "wallUs": 50.607
+    },
+    "descriptor.decode": {
+     "wallUs": 24.133
+    },
+    "protobuf-static.encode": {
+     "wallUs": 45.712
+    },
+    "protobuf-static.decode": {
+     "wallUs": 25.893
+    },
+    "convert-to-native.encode": {
+     "wallUs": 47.695
+    },
+    "convert-from-native.decode": {
+     "wallUs": 60.862
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 10.339
+    },
+    "json.decode": {
+     "wallUs": 8.244
+    },
+    "descriptor.encode": {
+     "wallUs": 10.504
+    },
+    "descriptor.decode": {
+     "wallUs": 5.259
+    },
+    "protobuf-static.encode": {
+     "wallUs": 10.288
+    },
+    "protobuf-static.decode": {
+     "wallUs": 4.409
+    },
+    "convert-to-native.encode": {
+     "wallUs": 9.735
+    },
+    "convert-from-native.decode": {
+     "wallUs": 10.356
+    }
+   }
+  },
+  "spectator": {
+   "first": {
+    "json.encode": {
+     "wallUs": 48.975
+    },
+    "json.decode": {
+     "wallUs": 47.647
+    },
+    "descriptor.encode": {
+     "wallUs": 50.734
+    },
+    "descriptor.decode": {
+     "wallUs": 24.57
+    },
+    "protobuf-static.encode": {
+     "wallUs": 44.71
+    },
+    "protobuf-static.decode": {
+     "wallUs": 25.839
+    },
+    "convert-to-native.encode": {
+     "wallUs": 48.036
+    },
+    "convert-from-native.decode": {
+     "wallUs": 59.39
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 11.204
+    },
+    "json.decode": {
+     "wallUs": 8.013
+    },
+    "descriptor.encode": {
+     "wallUs": 10.314
+    },
+    "descriptor.decode": {
+     "wallUs": 5.167
+    },
+    "protobuf-static.encode": {
+     "wallUs": 9.824
+    },
+    "protobuf-static.decode": {
+     "wallUs": 4.358
+    },
+    "convert-to-native.encode": {
+     "wallUs": 9.209
+    },
+    "convert-from-native.decode": {
+     "wallUs": 10.005
+    }
+   }
+  }
+ },
+ "contention": {
+  "wallMs": 39238.8054,
+  "selfCpuMs": 640,
+  "otherBusyShare": 0.0848,
+  "contended": false,
+  "threshold": 0.25
+ }
+}
