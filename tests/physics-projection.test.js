@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, disposePhysics, snapshot, playerView, PHYSICS_VERSION } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, step, snapshot, playerView, PHYSICS_VERSION } from '../shared/simulation.ts';
+import { hookSkill } from '../shared/simulation/hook.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { minimumReaderForMatch, MIN_SCHEMA, SCHEMA } from '../shared/recording.ts';
@@ -57,10 +58,11 @@ test('real physics snapshot is detached and its public body is a closed display 
     assert.deepEqual(view.tethers, []);
     frame.bodies[0].vx = 999;
     assert.notEqual(snapshot(game).bodies[0].vx, 999);
-    const privateState = structuredClone(frame.physics), spec = privateState.world.bodies[0];
-    privateState.world.bodies.push({ ...spec, spec: { ...spec.spec, id: 'actor:missing' } },
-      { ...spec, spec: { ...spec.spec, id: 'item:missing', kind: 'prop' } });
-    assert.deepEqual(legacyPhysicsPresentation(capturePhysicsPresentation(game, privateState)).bodies.map(b => b.id), [frame.bodies[0].id],
+    const world = physicsRuntime(game).world, spec = frame.physics.world.bodies[0].spec;
+    world.queueAddBody({ ...spec, id: 'actor:missing' });
+    world.queueAddBody({ ...spec, id: 'item:missing', kind: 'prop' });
+    world.commitMutations();
+    assert.deepEqual(legacyPhysicsPresentation(capturePhysicsPresentation(game)).bodies.map(b => b.id), [frame.bodies[0].id],
       'stale actor/item bodies cannot become unassociated public props');
   } finally { disposePhysics(game); }
 });
@@ -106,6 +108,66 @@ test('projection gates actors, prop bounds, item associations and both tether en
     game.players[0].x = far.x; game.players[0].y = far.y;
     const delayed = playerView(game, frame, own.id);
     assert.deepEqual(delayed.bodies.map(b => b.id), view.bodies.map(b => b.id));
+  } finally { disposePhysics(game); }
+});
+
+test('live capture respects filtered hooks without mutating them and rejects detached state inputs', async () => {
+  const withHook = content();
+  withHook.roster.gladiators = [{ name: 'G', kit: 'hook' }];
+  const game = await createGame(1, arena(), withHook);
+  try {
+    const r = physicsRuntime(game), caster = game.players[1];
+    hookSkill(game, caster);
+    r.hooks[0].targetIdx = game.players.length;
+    const before = structuredClone(r.hooks);
+    const filtered = capturePhysicsPresentation(game);
+    assert.deepEqual(filtered.physics.hooks, []);
+    assert.deepEqual(filtered.hookFlights, [], 'an omitted stale target cannot reappear as a live flight');
+    assert.deepEqual(snapshot(game).hookFlights, []);
+    assert.deepEqual(r.hooks, before, 'capture leaves hook fields and reserved identities untouched');
+
+    r.hooks[0].targetIdx = undefined;
+    const flying = capturePhysicsPresentation(game), retained = structuredClone(flying);
+    assert.equal(flying.hookFlights[0].id, r.hooks[0].tetherId);
+    assert.equal(flying.hookFlights[0].x, flying.physics.hooks[0].x);
+    for (const state of [flying.physics, structuredClone(flying.physics), { ...flying.physics, hooks: [] }])
+      assert.throws(() => capturePhysicsPresentation(game, state), /accepts only a live game/);
+    r.hooks[0].x += 10;
+    r.hooks[0].phase = 'pending';
+    assert.deepEqual(capturePhysicsPresentation(game).hookFlights, []);
+    assert.deepEqual(flying, retained, 'retained flights keep the captured coordinates and phase');
+  } finally { disposePhysics(game); }
+});
+
+test('retained numeric captures and their clones keep body and tether identities after runtime replacement', async () => {
+  const withHook = content();
+  withHook.roster.gladiators = [{ name: 'G', kit: 'hook' }];
+  const map = arena();
+  map.spawns = [{ x: 250, y: 200 }]; map.hunterSpawns = [{ x: 150, y: 200 }];
+  const game = await createGame(1, map, withHook);
+  try {
+    game.players.forEach(p => { p.bot = false; });
+    setInput(game, 'g0', { seq: 1, skill: true, aim: 0 });
+    step(game); step(game); step(game);
+    const old = capturePhysicsPresentation(game), cloned = structuredClone(old);
+    const expected = legacyPhysicsPresentation(old), r = physicsRuntime(game), caster = game.players[1];
+    assert.equal(old.tethers.length, 1);
+    const bodyId = old.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).id;
+    const spec = old.physics.world.bodies.find(b => b.spec.id === 'actor:g0').spec;
+    hookSkill(game, caster);
+    r.world.queueRemoveBody(spec.id); r.world.commitMutations();
+    assert.deepEqual(legacyPhysicsPresentation(old), expected, 'removed live bodies remain in historical presentation');
+    r.world.queueAddBody(spec); r.world.commitMutations();
+    caster.cooldown = 0;
+    hookSkill(game, caster);
+    const fresh = capturePhysicsPresentation(game);
+    assert.notEqual(fresh.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).id, bodyId);
+    assert.ok(fresh.hookFlights[0].id > old.tethers[0].id, 'same backend hook key has a new logical identity');
+    assert.deepEqual(legacyPhysicsPresentation(old), expected);
+    assert.deepEqual(legacyPhysicsPresentation(cloned), expected);
+    assert.deepEqual(cloned.tethers, old.tethers, 'cloning numeric captures never allocates another identity');
+    assert.throws(() => capturePhysicsPresentation(game, old.physics), /accepts only a live game/);
+    assert.throws(() => capturePhysicsPresentation(game, structuredClone(old.physics)), /accepts only a live game/);
   } finally { disposePhysics(game); }
 });
 

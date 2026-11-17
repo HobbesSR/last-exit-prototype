@@ -1,12 +1,14 @@
 import type { NumericPhysicsBody, NumericPhysicsTether, NumericHookFlight, PhysicsBodyOwner, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
 import type { BodyId, Game, GroundItem, ItemKey, PlayerIdx, Snapshot, Player, TetherId, Vec2 } from '../types.ts';
 import { physicsBodyFields, physicsHookFlightFields, physicsTetherFields } from './projection-contract.ts';
-import { physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
+import { physicsRuntime, physicsState } from './physics-runtime.ts';
+import { start, stop } from '../profiler.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
 import { itemIdForLabel, itemLabel } from '../item-instances.ts';
 import { groundItem } from './ground-items.ts';
 
 export interface PhysicsPresentation {
+  physics: PhysicsGameplayState;
   physicsProfile: string;
   bodies: NumericPhysicsBody[];
   tethers: NumericPhysicsTether[];
@@ -15,10 +17,17 @@ export interface PhysicsPresentation {
   legacy: { bodies: Map<BodyId, string>; actors: Map<PlayerIdx, string>; items: Map<BodyId, string>; tethers: Map<TetherId, string> };
 }
 
-/** Capture once, alongside private gameplay state. Complete lists express spawn/removal at each tick. */
-export function capturePhysicsPresentation(s: Game, physics: PhysicsGameplayState, physicsProfile: string = PHYSICS_VERSION): PhysicsPresentation {
+/** Capture the live world and its identity relations synchronously, before any view filtering.
+ * Detached/private states are not inputs: retain this result and adapt it for historical use. */
+export function capturePhysicsPresentation(s: Game): PhysicsPresentation | undefined {
+  if (arguments.length !== 1) throw new TypeError('capturePhysicsPresentation accepts only a live game; retain its result for historical use');
   const r = physicsRuntime(s);
-  if (!r) throw new Error('physics mode required');
+  if (!r) return undefined;
+  start('sim.snapshot.world');
+  let physics: PhysicsGameplayState;
+  try { physics = physicsState(s)!; }
+  finally { stop('sim.snapshot.world'); }
+  start('sim.snapshot.presentation');
   const actors = new Map(s.players.map((p, i) => [`actor:${p.id}`, i as PlayerIdx]));
   const legacy: PhysicsPresentation['legacy'] = { bodies: new Map(), actors: new Map(s.players.map((p, i) => [i as PlayerIdx, p.id])), items: new Map(), tethers: new Map() };
   const placed = new Set(physics.discontinuities?.filter(d => d.kind === 'placed').map(d => d.id));
@@ -36,8 +45,7 @@ export function capturePhysicsPresentation(s: Game, physics: PhysicsGameplayStat
       if (itemId === undefined || !groundItem(s, itemId)) continue;
       owner = { kind: 'item', itemId };
     } else owner = { kind: 'prop', propId: r.identities.prop(b.spec.id) };
-    const lifetime = r.world.bodyLifetime(b.spec.id);
-    if (!lifetime) continue;
+    const lifetime = r.world.bodyLifetime(b.spec.id)!;
     const id = r.identities.body(lifetime);
     const body: NumericPhysicsBody = { id, kind: b.spec.kind, shape: b.spec.shape, ...b.transform, generation: b.generation, owner,
       ...(placed.has(b.spec.id) ? { discontinuity: 'placed' as const } : {}) };
@@ -47,8 +55,7 @@ export function capturePhysicsPresentation(s: Game, physics: PhysicsGameplayStat
   const hooks = new Map(r.hooks.map(hook => [hook.id, hook]));
   const tetherId = (key: string, lifetime: object) => {
     const hook = hooks.get(key);
-    // Hand-built diagnostic hooks still receive a logical lifetime without leaking new fields outward.
-    const id = hook ? hook.tetherId ??= r.identities.tether(hook) : r.identities.tether(lifetime);
+    const id = hook ? hook.tetherId : r.identities.tether(lifetime);
     legacy.tethers.set(id, key);
     return id;
   };
@@ -57,12 +64,15 @@ export function capturePhysicsPresentation(s: Game, physics: PhysicsGameplayStat
     return a && b ? [{ id: tetherId(c.id, c), a: a.id, b: b.id }] : [];
   });
   const actorBodies = new Map(bodies.flatMap(body => body.owner.kind === 'actor' ? [[body.owner.playerIdx, body] as const] : []));
-  const hookFlights = physics.hooks && r.hooks.flatMap(hook => {
-    const a = actorBodies.get(hook.casterIdx);
+  const hookFlights = physics.hooks?.flatMap(hook => {
+    const source = hooks.get(hook.id)!;
+    const a = actorBodies.get(source.casterIdx);
     return hook.phase === 'flying' && a?.owner.kind === 'actor'
       ? [{ id: tetherId(hook.id, hook), a: a.id, casterIdx: a.owner.playerIdx, x: hook.x, y: hook.y }] : [];
   });
-  return { physicsProfile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}), legacy };
+  const captured = { physics, physicsProfile: s.version, bodies, tethers, ...(hookFlights ? { hookFlights } : {}), legacy };
+  stop('sim.snapshot.presentation');
+  return captured;
 }
 
 /** CP1 boundary: legacy snapshots, views and recordings keep their exact field order and labels. */

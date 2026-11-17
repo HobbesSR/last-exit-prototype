@@ -4,17 +4,18 @@ import { createGame, disposePhysics, setInput, step, snapshot, playerView } from
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime, physicsState } from '../shared/simulation/physics-runtime.ts';
 import { capturePhysicsPresentation, legacyPhysicsPresentation, projectPhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
+import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { arena } from './helpers/arena.js';
 
-const fixture = () => ({
+const fixture = (cols = 8) => ({
   content: { ...structuredClone(contentById('content-7')), roster: { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] }, discovery: false },
-  map: arena({ seed: 446, cols: 8, rows: 8, cellSize: 100,
+  map: arena({ seed: 446, cols, rows: 8, cellSize: 100,
     items: [{ id: 'loot', kind: 'cell', charge: 100, x: 300, y: 400 }],
     physicsProps: [{ id: 'crate', profile: 'crate', x: 350, y: 400 }],
     entry: { x: 80, y: 400 }, exit: { x: 750, y: 400 },
     spawns: [{ x: 250, y: 400 }], hunterSpawns: [{ x: 150, y: 400 }] }).map,
 });
-const capture = s => capturePhysicsPresentation(s, physicsState(s));
+const capture = s => capturePhysicsPresentation(s);
 const byLabel = (p, label) => p.bodies.find(b => p.legacy.bodies.get(b.id) === label);
 
 test('body lifetime survives transforms and damping but committed re-admission mints a new id', async () => {
@@ -53,7 +54,7 @@ test('body lifetime survives transforms and damping but committed re-admission m
 });
 
 test('typed owners and captured labels survive metadata changes and viewer visibility', async () => {
-  const { map, content } = fixture(), s = await createGame(446, map, content);
+  const { map, content } = fixture(Math.ceil((POTENTIAL + 1000) / 100)), s = await createGame(446, map, content);
   try {
     const p = capture(s), actor = byLabel(p, 'actor:c0'), item = byLabel(p, 'item:loot'), prop = byLabel(p, 'prop:crate');
     assert.deepEqual(actor.owner, { kind: 'actor', playerIdx: 0 });
@@ -69,8 +70,20 @@ test('typed owners and captured labels survive metadata changes and viewer visib
       assert.deepEqual(view.bodies.map(b => numericByLabel.get(b.id)), p.bodies.map(b => b.id),
         'all authorized viewers share the match capture identities');
     }
-    const hidden = projectPhysicsPresentation(frame, s.players[0], new Set(['c0']), frame.items, () => false);
-    assert.equal(hidden.bodies.some(b => b.id === 'prop:crate'), false);
+    const world = physicsRuntime(s).world;
+    const propId = prop.id;
+    const viewer = s.players.find(p => p.id === 'c0');
+    world.setTransform('prop:crate', { x: viewer.x + POTENTIAL + 100, y: viewer.y, angle: 0 });
+    const outside = snapshot(s);
+    assert.equal(playerView(s, outside, 'c0').bodies.some(b => b.id === 'prop:crate'), false,
+      'a prop outside potential range is hidden');
+    world.setTransform('prop:crate', { x: 350, y: 400, angle: 0 });
+    const returned = snapshot(s);
+    const returnedView = playerView(s, returned, 'c0');
+    const returnedProp = returnedView.bodies.find(b => b.id === 'prop:crate');
+    assert.ok(returnedProp, 'the same prop becomes visible again on reentry');
+    assert.equal(numericByLabel.get(returnedProp.id), propId,
+      'the reappearing legacy label maps to the same captured numeric BodyId');
     const again = capture(s);
     assert.equal(byLabel(again, 'prop:crate').id, prop.id);
     assert.equal(byLabel(again, 'actor:c0').id, actor.id);

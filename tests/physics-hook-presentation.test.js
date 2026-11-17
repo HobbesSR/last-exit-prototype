@@ -4,7 +4,6 @@ import { createGame, disposePhysics, playerView, snapshot } from '../shared/simu
 import { contentById } from '../shared/simulation/content.ts';
 import { playerIndex } from '../shared/simulation/relations.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
-import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { openArea } from './helpers/arena.js';
 
@@ -29,7 +28,7 @@ test('flight capture and projection disclose only an authorized caster and tip',
     const id = 'hook:g0';
     r.hooks.push({ id, casterIdx: playerIndex(s, caster), x: 240, y: 400, dx: 1, dy: 0,
       travelled: 90, startedTick: s.tick, phase: 'flying', generationA: r.world.getGeneration('actor:g0'),
-      targetIdx: playerIndex(s, viewer), hitTick: 7, privateMarker: 'secret' });
+      targetIdx: playerIndex(s, viewer), hitTick: 7, tetherId: r.identities.newTether(), privateMarker: 'secret' });
     const frame = snapshot(s);
     assert.deepEqual(frame.hookFlights, [{ id, a: 'actor:g0', x: 240, y: 400 }]);
     assert.deepEqual(playerView(s, frame, viewer.id).hookFlights, frame.hookFlights);
@@ -48,10 +47,11 @@ test('flight capture and projection disclose only an authorized caster and tip',
     assert.deepEqual(snapshot(s).hookFlights, []);
     r.hooks[0].phase = 'pulling';
     assert.deepEqual(snapshot(s).hookFlights, []);
-    const noHooks = structuredClone(frame.physics);
-    delete noHooks.hooks;
-    assert.equal(Object.hasOwn(capturePhysicsPresentation(s, noHooks), 'hookFlights'), false,
-      'older physics captures preserve optional-field absence');
+    const older = structuredClone(frame);
+    delete older.hookFlights;
+    const projectedOlder = playerView(s, older, viewer.id);
+    assert.equal(Object.hasOwn(projectedOlder, 'hookFlights'), false,
+      'projecting an older snapshot preserves optional-field absence');
   } finally { disposePhysics(s); }
 });
 
@@ -63,7 +63,7 @@ test('only the caster learns its hook is active, through flight, pending and pul
     const r = physicsRuntime(s);
     assert.equal(playerView(s, snapshot(s), 'g0').hookActive, false);
     r.hooks.push({ id: 'hook:g0', casterIdx: playerIndex(s, s.players[1]), x: 240, y: 400, dx: 1, dy: 0, travelled: 90,
-      startedTick: s.tick, phase: 'flying', generationA: r.world.getGeneration('actor:g0') });
+      startedTick: s.tick, phase: 'flying', generationA: r.world.getGeneration('actor:g0'), tetherId: r.identities.newTether() });
     for (const phase of ['flying', 'pending', 'pulling']) {
       r.hooks[0].phase = phase;
       const frame = snapshot(s);

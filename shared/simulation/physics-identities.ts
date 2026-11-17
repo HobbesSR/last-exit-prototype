@@ -22,7 +22,7 @@ export class PhysicsIdentities {
   }
   /** Reserve at hook launch, independently of later presentation captures. */
   newTether(): TetherId { return ++this.tetherSerial as TetherId; }
-  /** Ordinary constraints use their admitted frozen spec; diagnostic hooks use their flight object. */
+  /** Ordinary constraints use their admitted frozen spec. Hooks reserve explicitly at launch. */
   tether(lifetime: object): TetherId {
     let id = this.tethers.get(lifetime);
     if (id === undefined) { id = this.newTether(); this.tethers.set(lifetime, id); }
