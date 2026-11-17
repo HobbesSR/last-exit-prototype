@@ -1,7 +1,7 @@
 import { rect, type Shape } from '../../shared/shape.ts';
 import { compareCells } from '../kernel/cell.ts';
 import { ownedOf, stretchesOf } from './hints.ts';
-import type { ParcelHandle, ParcelProposal, ProspectiveParcels } from './prospective-parcels.ts';
+import type { ParcelHandle, ParcelProposal, ProbeRefusal, ProspectiveParcels } from './prospective-parcels.ts';
 import type { Cell, RegionBrief } from './types.ts';
 
 /*
@@ -13,7 +13,7 @@ import type { Cell, RegionBrief } from './types.ts';
  */
 
 /** The coordinator's refusals, and `pruned` when the builder's own `admit` excluded a whole seed. */
-export type GrowthRefusal = 'allocation' | 'canvas' | 'budget' | 'external' | 'interior' | 'handle' | 'pruned';
+export type GrowthRefusal = ProbeRefusal | 'pruned';
 /**
  * Why growth stopped: `done` when the candidates ran out, `refused` when every candidate of a
  * step was refused, `attempts` or `steps` when a limit was reached first.
@@ -39,8 +39,8 @@ const limitOf = (value: number | undefined, fallback: number, name: string) => {
   if (!Number.isSafeInteger(n) || n < 0) throw new RangeError(`Growth ${name} must be a nonnegative safe integer.`);
   return n;
 };
-const refuse = (refusals: GrowthReport<unknown>['refusals'], reason: string) => {
-  refusals[reason as GrowthRefusal] = (refusals[reason as GrowthRefusal] ?? 0) + 1;
+const refuse = (refusals: GrowthReport<unknown>['refusals'], reason: GrowthRefusal) => {
+  refusals[reason] = (refusals[reason] ?? 0) + 1;
 };
 
 /**
