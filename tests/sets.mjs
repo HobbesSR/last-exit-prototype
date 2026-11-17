@@ -27,7 +27,7 @@ export const SETS = {
       'third-party-notices', 'vendor-modules', 'source-provenance', 'timing', 'profiler', 'sets',
       // tools/navigation/*.mjs, the navigation report's library; they import nothing under shared/navigation.
       'navigation-clearance', 'navigation-graph', 'navigation-optimistic'],
-    sources: ['tests/*.mjs', 'tests/helpers/**', 'tools/**', '.forgejo/**', 'docs/**', 'AGENTS.md', 'package.json', 'THIRD_PARTY_NOTICES*', 'shared/profiler.ts'],
+    sources: ['tests/*.mjs', 'tests/helpers/**', 'tools/**', '.forgejo/**', 'docs/**', 'AGENTS.md', 'package.json', 'THIRD-PARTY-NOTICES*', 'shared/profiler.ts'],
   },
   geometry: {
     about: 'shapes, clipping, math and free-space meshes every system shares',
