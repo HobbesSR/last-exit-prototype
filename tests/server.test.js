@@ -170,9 +170,12 @@ test('two clients share authority; replay preserves each recorded frame and surv
     a.send(JSON.stringify({ type: 'start' }));
     // A yard frame can already be on the socket when the start is sent, as in server-matchmaking.test.js.
     const live = await next(a, 'state', 5000, frame => frame.state.phase !== 'waiting'); assert.equal(live.state.phase, 'live');
-    // Stamped a tick ahead, as the client's clock aims (#1096), so a tick between frame and send cannot make it late.
-    a.send(JSON.stringify({ type: 'input', seq: 1, tick: live.state.tick + 2, x: 1, hp: 99999, interact: true, moveSlot: { from: 0, to: 5 } }));
-    await next(a, 'state'); await next(a, 'state');
+    // Let the start-of-match ready/map burst settle, then stamp comfortably ahead within
+    // MAX_INPUT_LEAD_TICKS (28) so CI scheduling jitter cannot make the stamp late (#1096).
+    const current = await next(a, 'state', 5000, frame => frame.state.phase === 'live');
+    const targetTick = current.state.tick + 10;
+    a.send(JSON.stringify({ type: 'input', seq: 1, tick: targetTick, x: 1, hp: 99999, interact: true, moveSlot: { from: 0, to: 5 } }));
+    await next(a, 'state', 5000, frame => frame.state.phase === 'live' && frame.state.tick >= targetTick);
     const saved = next(a, 'saved'); a.send(JSON.stringify({ type: 'finish' })); const metadata = (await saved).replay;
     const served = await (await fetch(base + `/api/replays/${room.id}`)).text();
     const replay = readArchive(served);
