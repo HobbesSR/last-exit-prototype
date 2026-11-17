@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createFrameNormalizer, bodyRelations, compactItems, hydrateFrame } from '../shared/relational-frame.ts';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { createPhysicsPrediction } from '../public/physics-prediction.js';
+import { createSnapshotBuffer } from '../public/snapshot-buffer.js';
 import { openArea } from './helpers/arena.js';
 
 const shape = { kind: 'circle', radius: 10 };
@@ -109,4 +110,35 @@ test('the client normalizer joins players across a gap in the seat roster', () =
   frames.seats([seat(0, 'a'), seat(1, 'd'), seat(2, 'c')]);
   const next = frames.normalize({ tick: 2, players: [{ playerIdx: 1, x: 2, y: 2 }, { playerIdx: 2, x: 5, y: 5 }] });
   assert.deepEqual(next.players.map(p => [p.playerIdx, p.id]), [[1, 'd'], [2, 'c']]);
+});
+
+const deepFreeze = value => { if (value && typeof value === 'object' && !Object.isFrozen(value)) { Object.freeze(value); Object.values(value).forEach(deepFreeze); } return value; };
+
+test('decoded frames, wire and replay shaped, survive the client pipeline frozen (shared records are never written)', async () => {
+  const seat = { playerIdx: 0, id: 'c0', name: 'Ada', role: 'contestant', kit: 'warden' };
+  const wire = tick => ({ tick, physicsProfile: 'P2', self: { playerIdx: 0, status: 'active', x: 20, y: 50, lastSeq: -1 },
+    players: [{ playerIdx: 1, status: 'active', x: 40, y: 50 }], items: [{ id: 8, kind: 'ammo', x: 10, y: 20 }], gates: [{ gateIdx: 0, open: tick > 1, locked: false }],
+    bodies: [actor(3, 0, 20 + tick), actor(4, 1, 40)], tethers: [], predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4 } });
+  const replay = tick => ({ tick, physicsProfile: 'P2', players: [{ id: 'c0', name: 'Ada', role: 'contestant', status: 'active', x: 1, y: 2 }],
+    items: [{ id: 'loot', x: 2, y: 3 }], gates: [{ id: 'door', open: true }],
+    bodies: [{ ...actor('actor:c0', 0, 10 + tick), owner: undefined, actorId: 'c0' }, { id: 'item:loot', kind: 'prop', itemId: 'loot', shape, x: 20, y: 30, angle: 0 }],
+    tethers: [{ id: 'hook:c0', a: 'actor:c0', b: 'item:loot' }], hookFlights: [{ id: 'flight', a: 'actor:c0', x: 15, y: 20 }] });
+  const roster = deepFreeze([seat, { ...seat, playerIdx: 1, id: 'c1', name: 'Bo' }]);
+  const frames = deepFreeze([wire(1), wire(2), wire(3)]), recorded = deepFreeze([replay(1), replay(2)]);
+
+  const normalizer = createFrameNormalizer(deepFreeze(structuredClone(map)), roster);
+  let now = 0;
+  const buffer = createSnapshotBuffer({ hz: 20, delayTicks: 1, clock: () => now });
+  const prediction = await createPhysicsPrediction(map, 'c0', { clock: () => 0 });
+  try {
+    for (const frame of frames) {
+      const joined = normalizer.normalize(frame);
+      normalizer.normalize(frame);
+      buffer.push(joined); now += 50; buffer.frame();
+      prediction.correct(frame);
+    }
+    const timeline = createReplayTimeline({ map: deepFreeze(structuredClone(map)), frames: recorded.map(state => ({ state })) });
+    for (const tick of [1, 1.5, 2]) timeline.at(tick);
+    for (const state of recorded) normalizer.normalize(state);
+  } finally { prediction.dispose(); }
 });
