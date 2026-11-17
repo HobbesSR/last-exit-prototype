@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
@@ -116,7 +117,7 @@ test('cells take individual slots and retain charge when dropped on death', asyn
     openField(2400, { items: [{ id: 'a', kind: 'cell', x: at.x, y: at.y - 10 }, { id: 'b', kind: 'cell', x: at.x, y: at.y + 10 }] }).map);
   try {
     // Every slot but one full, however many slots the content gives.
-    p.inventory = p.inventory.map((_, i, slots) => i < slots.length - 1 ? { kind: 'weapon', weaponType: 'pistol', instanceId: `w${i}` } : null);
+    p.inventory = p.inventory.map((_, i, slots) => i < slots.length - 1 ? { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, `w${i}`) } : null);
     // The engine collects on a tick that spends an input.
     input(s, p, {}); assert.equal(s.map.items.filter(i => i.kind === 'cell').length, 1, 'one free slot takes one cell');
     carriedCell(p).charge = 55;
@@ -133,7 +134,7 @@ test('gladiator kills upgrade the kit and refill ability, contestants can damage
     target.hp = 1; target.shield = 0; p.cooldown = 80;
     input(s, p, { attack: true, aim: Math.PI });
     assert.equal(target.status, 'eliminated'); assert.equal(p.kills, 1); assert.equal(p.level, 2); assert.equal(p.cooldown, 0);
-    const ground = { id: 'test-pistol', kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: a.x, y: a.y };
+    const ground = { id: itemId(s, 'test-pistol'), kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: a.x, y: a.y };
     s.map.items.push(ground);
     collectInstanceEquipment(s, a, { ...ground }, ground); a.selectedSlot = a.inventory.findIndex(i => i?.kind === 'weapon');
     const hp = b.hp;

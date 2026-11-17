@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createGame, disposePhysics, enqueuePhysicsAttachment,
@@ -84,7 +85,7 @@ test('phase 6 contested pickup uses stable actor ID and ignores roster order', a
   try {
     const [c0, c1] = physics.players;
     c0.x = 340; c0.y = 400; c1.x = 350; c1.y = 400;
-    physics.map.items = [{ id: 'prize', kind: 'med', x: 345, y: 400 }];
+    physics.map.items = [{ id: itemId(physics, 'prize'), kind: 'med', x: 345, y: 400 }];
     physics.players.reverse();
     step(physics);
     assert.equal(c0.inventory.some(i => i?.kind === 'med'), true, JSON.stringify(trace(physics)));
@@ -97,7 +98,7 @@ test('phase 6 impulse movement can trigger a mine after charging and pickup', as
   const { physics } = await pair(1);
   try {
     const c = physics.players[0]; c.x = 300; c.y = 400;
-    physics.map.items = [{ id: 'med', kind: 'med', x: 300, y: 400 }];
+    physics.map.items = [{ id: itemId(physics, 'med'), kind: 'med', x: 300, y: 400 }];
     physics.map.traps = [{ id: 'mine', kind: 'mine', x: 300, y: 400, homeX: 300, homeY: 400,
       heading: 0, offset: 0, cooldown: 0, spent: false }];
     enqueuePhysicsImpulse(physics, `actor:${c.id}`, { x: 100, y: 0 });
@@ -115,12 +116,12 @@ test('phase 5 lethal projectile prevents the victim from collecting in phase 6',
     const c = physics.players[0], g = physics.players[1];
     c.x = 300; c.y = 400; c.hp = 5;
     g.x = 600; g.y = 400;
-    physics.map.items = [{ id: 'left-behind', kind: 'med', x: 300, y: 400 }];
+    physics.map.items = [{ id: itemId(physics, 'left-behind'), kind: 'med', x: 300, y: 400 }];
     physics.projectiles.push({ id: 10, owner: g.id, x: 280, y: 400,
       dx: 40, dy: 0, damage: 10, life: 5 });
     step(physics);
     assert.equal(c.status, 'eliminated', JSON.stringify(trace(physics)));
-    assert.equal(physics.map.items.some(i => i.id === 'left-behind'), true);
+    assert.equal(physics.map.items.some(i => i.id === itemId(physics, 'left-behind')), true);
     assert.equal(c.inventory.some(Boolean), false);
   } finally { disposePhysics(physics); }
 });
@@ -145,11 +146,11 @@ test('a melee death is final before pickups, whatever the roster order', async (
     const c = physics.players[0], g = physics.players[1];
     c.x = 300; c.y = 400; c.hp = 10;
     g.x = 350; g.y = 400;
-    physics.map.items = [{ id: 'before-death', kind: 'med', x: 300, y: 400 }];
+    physics.map.items = [{ id: itemId(physics, 'before-death'), kind: 'med', x: 300, y: 400 }];
     input(physics, g.id, { attack: true, aim: Math.PI });
     step(physics);
     assert.equal(physics.players[0].status, 'eliminated', JSON.stringify(trace(physics)));
-    assert.equal(physics.map.items.some(i => i.id === 'before-death'), true);
+    assert.equal(physics.map.items.some(i => i.id === itemId(physics, 'before-death')), true);
   } finally { disposePhysics(physics); }
 });
 

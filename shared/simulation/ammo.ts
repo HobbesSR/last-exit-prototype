@@ -1,5 +1,5 @@
 import { AMMO_FAMILIES, equipped, isAmmoFamily } from '../equipment.ts';
-import { allocateItemId } from '../item-instances.ts';
+import { commitItemAllocation, allocateItemId } from '../item-instances.ts';
 import { planAmmoDrop, scatterPoint } from './loot.ts';
 import { addItems } from './ground-items.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
@@ -48,7 +48,7 @@ export function seedAmmo(s: Game, rest: Map<GroundItem, number>): void {
   if (!rules) return;
   for (const p of s.players) if (p.role === 'contestant') p.reserves = { pistol: 0, rifle: 0, shell: 0 };
   for (const [weapon, count] of rest) {
-    const at = scatterPoint(s, weapon, s.scatterSerial ?? s.itemSerial ?? 0, s.map.items) ?? { x: weapon.x, y: weapon.y };
+    const at = scatterPoint(s, weapon, s.scatterSerial ?? 0, s.map.items) ?? { x: weapon.x, y: weapon.y };
     const id = allocateItemId(s);
     addItems(s, { kind: 'ammo', id, lineageId: id, family: rules.weapons[weapon.weaponType ?? 'pistol'].family, count, x: at.x, y: at.y,
       ...(weapon.buildingId !== undefined ? { buildingId: weapon.buildingId } : {}) });
@@ -84,7 +84,7 @@ export function dropReserve(s: Game, p: Player, family: AmmoFamily, count: numbe
   const plan = planAmmoDrop(s, p, family, rounds, mandatory);
   // An optional drop also needs a body for its pickup where items are physical, as a slot drop does.
   if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
-  s.itemSerial = plan.itemSerial; s.scatterSerial = plan.scatterSerial; addItems(s, ...plan.records);
+  commitItemAllocation(s, plan.allocation); addItems(s, ...plan.records);
   p.reserves[family] -= rounds;
   launchPhysicalDrops(s, plan.records, p);
   return true;

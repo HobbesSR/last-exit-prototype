@@ -70,7 +70,10 @@ export type GateIdx = Brand<number, 'GateIdx'>;
 export type ObstacleId = Brand<string, 'ObstacleId'>;
 export type GateId = Brand<string, 'GateId'>;
 export type BuildingId = Brand<string, 'BuildingId'>;
-export type ItemId = Brand<string, 'ItemId'>;
+export type ItemId = Brand<number, 'ItemId'>;
+/** Temporary artifact/recording boundary, removed by coordinated outward adoption (24.4). */
+export type ItemLabel = Brand<string, 'ItemLabel'>;
+export type ItemKey = ItemId | ItemLabel;
 export type StationId = Brand<string, 'StationId'>;
 export type ChargerId = Brand<string, 'ChargerId'>;
 export type SensorId = Brand<string, 'SensorId'>;
@@ -282,37 +285,37 @@ export interface RecordingPresentation {
 }
 
 /** Optional only for legacy content/archives. L0 preserves instance and root lineage across owners. */
-export interface ItemIdentity {
-  instanceId?: ItemId | undefined;
-  lineageId?: ItemId | undefined;
+export interface ItemIdentity<I extends ItemKey = ItemId> {
+  instanceId?: I | undefined;
+  lineageId?: I | undefined;
   quality?: number | undefined;
 }
-export interface WeaponItem extends ItemIdentity {
+export interface WeaponItem<I extends ItemKey = ItemId> extends ItemIdentity<I> {
   kind: 'weapon';
   weaponType: WeaponType;
   ammo: number;
 }
-export interface CellItem extends ItemIdentity {
+export interface CellItem<I extends ItemKey = ItemId> extends ItemIdentity<I> {
   kind: 'cell';
   charge: Tick;
 }
-export interface StackItem extends ItemIdentity {
+export interface StackItem<I extends ItemKey = ItemId> extends ItemIdentity<I> {
   kind: StackKind;
   count: number;
 }
 
 /** A carried item. The discriminant guarantees `ammo`, `charge` and `count` cannot be confused. */
-export type InventoryItem = WeaponItem | CellItem | StackItem;
+export type InventoryItem<I extends ItemKey = ItemId> = WeaponItem<I> | CellItem<I> | StackItem<I>;
 
 /** A fixed-length array of `SLOT_COUNT` slots, each either an item or empty. */
-export type Inventory = (InventoryItem | null)[];
+export type Inventory<I extends ItemKey = ItemId> = (InventoryItem<I> | null)[];
 
 /**
  * An item lying in the world. It is deliberately wider than {@link InventoryItem}: generated loot
  * carries placement metadata, and the optional payload fields depend on `kind`.
  */
-export interface GroundItem extends ItemIdentity {
-  id: ItemId;
+export interface GroundItem<I extends ItemKey = ItemId> extends ItemIdentity<I> {
+  id: I;
   x: World;
   y: World;
   kind: ItemKind;
@@ -606,7 +609,7 @@ export interface PlayableArea {
   rows: Array<{ y: number; runs: Array<[number, number]> }>;
 }
 
-export interface GameMap {
+export interface GameMap<I extends ItemKey = ItemLabel> {
   /** Explicit inert crate authoring, never inferred from map art. */
   physicsProps?: Array<Vec2 & { id: string; profile: 'crate'; angle?: number }> | undefined;
   motorSurfaces?: MotorSurface[] | undefined;
@@ -627,7 +630,7 @@ export interface GameMap {
   stations: Station[];
   chargers: Charger[];
   sensors: Sensor[];
-  items: GroundItem[];
+  items: GroundItem<I>[];
   traps: Trap[];
   entry: Vec2;
   exit: Vec2;
@@ -685,7 +688,7 @@ export interface PlayerInput {
   tick?: Tick | undefined;
 }
 
-export interface Player extends Vec2 {
+export interface Player<I extends ItemKey = ItemId> extends Vec2 {
   id: PlayerId;
   name: string;
   role: Role;
@@ -730,12 +733,12 @@ export interface Player extends Vec2 {
   inputLeadTicks?: number | undefined;
   /** How far behind this player's view runs, in ticks, from latency the server measured itself. */
   viewLagTicks?: number | undefined;
-  inventory?: Inventory | undefined;
+  inventory?: Inventory<I> | undefined;
   selectedSlot?: SlotIndex | undefined;
   /** L2 reserve rounds per family, outside the six slots. Contestants only. */
   reserves?: Record<AmmoFamily, number> | undefined;
   /** An L2 reload in progress: the slot and weapon instance it fills, and the tick it completes. */
-  reload?: { slot: SlotIndex; instanceId: ItemId; until: Tick } | null | undefined;
+  reload?: { slot: SlotIndex; instanceId: I; until: Tick } | null | undefined;
   /** Remaining bot route in world points, for content that plans over free-space tiles (22.6). */
   route?: Vec2[] | undefined;
   /** The charger being used, or null when not charging. */
@@ -823,6 +826,8 @@ export interface GameEvent {
 }
 
 export interface Game {
+  /** Private match identity registry; staged plans fork it explicitly. */
+  itemIdentities?: import('./item-instances.ts').ItemRegistry | undefined;
   /** Temporary compatibility phase: preserves allocation-driven drop geometry (24.4). */
   scatterSerial?: number | undefined;
   /** L0 deterministic allocation counter; independent of legacy RNG/event IDs. */
@@ -835,7 +840,7 @@ export interface Game {
   rng: number;
   tick: Tick;
   phase: Phase;
-  map: GameMap;
+  map: GameMap<ItemId>;
   players: Player[];
   projectiles: Projectile[];
   effects: Effect[];
@@ -854,7 +859,7 @@ export interface Game {
 }
 
 /** A complete authoritative state clone, as recorded and as sent to spectators. */
-export interface Snapshot {
+export interface Snapshot<I extends ItemKey = ItemLabel> {
   itemSerial?: number | undefined;
   physicsProfile?: string;
   bodies?: import('./physics/types.ts').PhysicsBodyView[];
@@ -871,8 +876,8 @@ export interface Snapshot {
   hazardX: World;
   slots: number;
   serial: Serial;
-  players: Player[];
-  items: GroundItem[];
+  players: Player<I>[];
+  items: GroundItem<I>[];
   gates: Gate[];
   traps: Trap[];
   projectiles: Projectile[];

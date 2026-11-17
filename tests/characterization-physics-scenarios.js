@@ -9,6 +9,7 @@ import { attachPortalGraph, portalGraphOf } from '../shared/navigation/portal-gr
 import { teleport } from '../shared/simulation/dev.ts';
 import { removeItem } from '../shared/simulation/ground-items.ts';
 import { atan2, cos, hypot, sin } from '../shared/math.ts';
+import { identifyItems } from './helpers/item-identity.js';
 
 /** The content the characterization runs: the shipped default when it was captured, named, not followed. */
 export const CONTENT = 'content-7';
@@ -96,6 +97,7 @@ export async function scriptedTrace(arena) {
     capture('joined');
     p.inventory = [carried('pistol', 'weapon', { weaponType: 'pistol', ammo: 7 }), carried('med-a', 'med', { count: 2 }),
       carried('med-b', 'med', { count: 2 }), carried('shield', 'shield', { count: 1 }), carried('cell', 'cell', { charge: 0 }), null];
+    identifyItems(s);
     p.hp = 45;
     // Two inputs arriving between two ticks: each is spent by its own tick rather than merged.
     setInput(s, p.id, { seq: p.lastSeq + 1, slot: 1, moveSlot: { from: 1, to: 2 } });

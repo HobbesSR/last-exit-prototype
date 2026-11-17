@@ -10,7 +10,7 @@ import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
 import { initializeItemInstances } from '../item-instances.ts';
 import { assignWeaponQualities } from '../loot-tiers.ts';
 import { loadMapWeapons, seedAmmo } from './ammo.ts';
-import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
+import type { Game, GameMap, ItemId, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
 
 /**
  * `map` is the arena the game runs in, which is what lets behaviour be characterized against a stored
@@ -22,7 +22,7 @@ import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '..
 export function createGameRecord(seed: number, map: GameMap, content = defaultContent()): Game {
   assertEnumKeys(content.weapons, WEAPONS, 'weapon');
   assertEnumKeys(content.kits, KITS, 'kit');
-  const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
+  const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map: map as unknown as GameMap<ItemId>, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
   // Identifier and iteration order are part of the recorded contract, so both are derived from the
   // roster's own order rather than from anything that could reorder independently of it.
   for (const role of ROLES) {

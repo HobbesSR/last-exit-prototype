@@ -9,6 +9,7 @@ import { createMatch } from '../server/match.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { enqueueExplosionImpulses } from '../shared/simulation/explosion-physics.ts';
 import { openArea } from './helpers/arena.js';
+import { identifyItems, itemLabel } from './helpers/item-identity.js';
 
 const parts = () => ({ map: { seed: 445, width: 800, height: 400,
   playableArea: openArea(800, 400, 100),
@@ -74,17 +75,19 @@ test('staged swaps reserve full batches ahead of older mandatory overflow', asyn
       p.bot = false; p.x = 300; p.y = 200;
       for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i, instanceId: `out-${i}`, lineageId: `out-${i}` };
       if (copies === 2) p.inventory[0] = { kind: 'med', count: 2, instanceId: 'out-0', lineageId: 'out-0' };
+      identifyItems(s);
       let n = 0;
       // The two-unit drop needs its incoming slot plus one currently free slot.
       while (r.world.canAddBodies(copies)) r.world.queueAddBody({ id: `filler-${n++}`, kind: 'prop',
         x: 700, y: 50, shape: { kind: 'circle', radius: 2 } });
       r.world.commitMutations();
       s.map.items.push({ id: 'aaa-overflow', kind: 'cell', charge: 100, x: 500, y: 200 });
+      identifyItems(s);
       interact(s, p);
-      assert.equal(p.inventory[0].instanceId, 'sleeping');
-      const outgoing = s.map.items.filter(i => i.lineageId === 'out-0');
+      assert.equal(itemLabel(s, p.inventory[0].instanceId), 'sleeping');
+      const outgoing = s.map.items.filter(i => itemLabel(s, i.lineageId) === 'out-0');
       assert.equal(outgoing.length, copies);
-      assert.ok(outgoing.every(i => r.world.hasBody(`item:${i.id}`)));
+      assert.ok(outgoing.every(i => r.world.hasBody(`item:${itemLabel(s, i.id)}`)));
       assert.equal(r.world.hasBody('item:aaa-overflow'), false);
     } finally { disposePhysics(s); }
   }
@@ -108,13 +111,13 @@ test('forty physical pickup/drop cycles conserve the objective without body or j
       p.x = 120; p.y = 200; synchronizePhysics(s);
       assert.equal(dropInventorySlot(s, p, 0), true);
       const dropped = s.map.items[0];
-      assert.equal(dropped.id, 'sleeping'); assert.equal(dropped.charge, 100);
+      assert.equal(itemLabel(s, dropped.id), 'sleeping'); assert.equal(dropped.charge, 100);
       assert.equal(r.world.counts().dynamic, baseline + 1);
       const nextGeneration = r.world.getGeneration('item:sleeping');
       assert.ok(nextGeneration > generation); generation = nextGeneration;
       p.x = dropped.x; p.y = dropped.y; dropped.pickupAfter = 0;
       automaticPickups(s, p, {});
-      assert.equal(p.inventory[0].instanceId, 'sleeping'); assert.equal(p.inventory[0].charge, 100);
+      assert.equal(itemLabel(s, p.inventory[0].instanceId), 'sleeping'); assert.equal(p.inventory[0].charge, 100);
       assert.equal(s.map.items.length, 0);
       assert.equal(r.world.counts().dynamic, baseline);
       assert.equal(r.world.counts().constraints, 0);

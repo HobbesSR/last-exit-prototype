@@ -1,11 +1,11 @@
 import type { PhysicsBodyView, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
-import type { GroundItem, ItemId, Snapshot, Player, Vec2 } from '../types.ts';
+import type { GroundItem, ItemLabel, ItemKey, Snapshot, Player, Vec2 } from '../types.ts';
 import { physicsBodyFields, physicsHookFlightFields, physicsTetherFields } from './projection-contract.ts';
 import { PHYSICS_VERSION } from './physics-runtime.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
 
 /** Capture once, alongside private gameplay state. Complete lists express spawn/removal at each tick. */
-export function capturePhysicsPresentation(physics: PhysicsGameplayState, players: readonly Player[], groundId: (id: string) => ItemId | undefined, physicsProfile: string = PHYSICS_VERSION) {
+export function capturePhysicsPresentation(physics: PhysicsGameplayState, players: readonly Player[], groundId: (id: string) => ItemLabel | undefined, physicsProfile: string = PHYSICS_VERSION) {
   const actors = new Map(players.map(p => [`actor:${p.id}`, p.id]));
   // A physical item's body id is `item:<id>`; `groundId` looks the item up by id, so nothing walks the ground list.
   const itemOf = (bodyId: string) => bodyId.startsWith('item:') ? groundId(bodyId.slice(5)) : undefined;
@@ -27,7 +27,7 @@ export function capturePhysicsPresentation(physics: PhysicsGameplayState, player
 }
 
 /** Apply existing potential-visibility authorization to the captured tick, including delayed views. `items` are the frame's items the view holds. */
-export function projectPhysicsPresentation(frame: Snapshot, viewer: Player | undefined, authorizedPlayers: Set<string>, items: readonly GroundItem[], inRange: (p: Vec2 & { radius?: number }) => boolean) {
+export function projectPhysicsPresentation(frame: Snapshot, viewer: Player<ItemKey> | undefined, authorizedPlayers: Set<string>, items: readonly GroundItem<ItemKey>[], inRange: (p: Vec2 & { radius?: number }) => boolean) {
   if (!frame.bodies) return {};
   const authorizedItems = new Set<string | number>(items.map(i => i.id));
   const bodies = frame.bodies.filter(body => {

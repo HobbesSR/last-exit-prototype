@@ -6,6 +6,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { addItems } from '../shared/simulation/ground-items.ts';
 import { distance } from '../shared/simulation/geometry.ts';
+import { itemId } from './helpers/item-identity.js';
 
 // #641: a player's view reads its items through the ground grid. The grid may only spare testing items out of
 // reach; the potential-visibility rule still decides, so a view holds exactly what the whole-list filter gives:
@@ -19,7 +20,7 @@ test('a player view holds exactly the items within potential visibility, in list
     let serial = 0;
     for (const p of s.players) for (let k = 0; k < 24; k++) {
       const angle = k * Math.PI / 12, r = POTENTIAL + [-1e-9, 0, 1e-9, -40, 40][k % 5];
-      addItems(s, { id: `edge${serial++}`, kind: 'med', x: p.x + r * Math.cos(angle), y: p.y + r * Math.sin(angle) });
+      addItems(s, { id: itemId(s, `edge${serial++}`), kind: 'med', x: p.x + r * Math.cos(angle), y: p.y + r * Math.sin(angle) });
     }
     let frame = match.snapshot(), compared = 0, edgeIn = 0, edgeOut = 0;
     for (let tick = 0; tick < 240 && match.phase === 'live'; tick++, frame = match.advance()) {

@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord, disposePhysics, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
@@ -132,7 +133,7 @@ test('the simulation reads the pinned content, not the shipped constants', async
     try {
       Object.assign(shooter, { heading: 0, attackCd: 0 });
       Object.assign(target, { hp: 100, shield: 0 });
-      const ground = { id: 'test-pistol', kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: shooter.x, y: shooter.y };
+      const ground = { id: itemId(s, 'test-pistol'), kind: 'weapon', weaponType: 'pistol', ammo: s.content.weapons.pistol.ammo, x: shooter.x, y: shooter.y };
       s.map.items.push(ground);
       collectInstanceEquipment(s, shooter, { ...ground }, ground);
       shooter.selectedSlot = shooter.inventory.findIndex(i => i?.kind === 'weapon');

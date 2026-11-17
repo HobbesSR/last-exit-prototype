@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics, step, setInput, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
@@ -103,7 +104,7 @@ test('a door blocks both bodies until it is opened, and then admits them', async
 
 test('dropping a selected charged cell frees a slot, preserves charge, and does not immediately collect it again', async () => {
   await dispose(await stage(openField(LENGTH).map, [{ role: 'contestant', bot: false, x: 1500, y: Y }]), ({ s, players: [p] }) => {
-    p.inventory[0] = { kind: 'cell', charge: CELL_CHARGE_TICKS, instanceId: 'held-cell', lineageId: 'held-cell' };
+    p.inventory[0] = { kind: 'cell', charge: CELL_CHARGE_TICKS, instanceId: itemId(s, 'held-cell'), lineageId: itemId(s, 'held-cell') };
     // The dropper may not take it back for one second (14 "Equipment"), counted from the tick the drop is spent on,
     // which a step numbers before it runs: stated here rather than read off the dropped record, so a shortened
     // delay fails.
@@ -132,7 +133,7 @@ test('gladiators killed by contestants respawn after twenty seconds with upgrade
   const { map } = openField(LENGTH, { stations: [station] });
   await dispose(await stage(map, [{ role: 'contestant', bot: false, x: 1500, y: Y }, { role: 'gladiator', bot: false, x: 1532, y: Y }]), ({ s, players: [p, g] }) => {
     Object.assign(g, { hp: 1, maxHp: 400, level: 3, kills: 2 });
-    p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', instanceId: 'pistol-1', lineageId: 'pistol-1' };
+    p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, 'pistol-1'), lineageId: itemId(s, 'pistol-1') };
     setInput(s, p.id, { seq: p.lastSeq + 1, attack: true, aim: 0 });
     for (let i = 0; i < 10 && g.status !== 'respawning'; i++) step(s);
     assert.equal(g.status, 'respawning'); assert.equal(p.kills, 1);
@@ -175,7 +176,7 @@ test('bots open a building door to retrieve an indoor objective', async () => {
 
 test('contestant bots initiate close-range fights after opening grace without being attacked first', async () => {
   await dispose(await stage(openField(LENGTH).map, [{ role: 'contestant', x: 1500, y: Y, knows: 'everything' }, { role: 'contestant', bot: false, x: 1585, y: Y }]), ({ s, players: [p, target] }) => {
-    p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', instanceId: 'pistol-1', lineageId: 'pistol-1' };
+    p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', instanceId: itemId(s, 'pistol-1'), lineageId: itemId(s, 'pistol-1') };
     for (let i = 0; i < 5; i++) step(s);
     assert.equal(target.hp, 100, 'opening grace avoids an immediate spawn fight');
     s.tick = 30 * HZ + 1;
@@ -186,7 +187,7 @@ test('contestant bots initiate close-range fights after opening grace without be
 
 test('armed contestant bots create distance from a nearby hunter instead of walking into melee', async () => {
   await dispose(await stage(openField(LENGTH).map, [{ role: 'contestant', x: 1500, y: Y, knows: 'everything' }, { role: 'gladiator', bot: false, x: 1600, y: Y }]), ({ s, players: [p, hunter] }) => {
-    p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: 'pistol-1', lineageId: 'pistol-1' };
+    p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: itemId(s, 'pistol-1'), lineageId: itemId(s, 'pistol-1') };
     for (let i = 0; i < 12; i++) step(s);
     assert.ok(Math.hypot(p.x - hunter.x, p.y - hunter.y) > 150);
     assert.ok(hunter.hp < hunter.maxHp, 'retreating bot can still return fire');

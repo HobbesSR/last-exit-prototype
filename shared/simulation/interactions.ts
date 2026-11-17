@@ -1,3 +1,4 @@
+import { forkItemAllocation, commitItemAllocation, itemLabel } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
 import { lineClear, reachClear, gateShape } from '../movement.ts';
 import { carriedCell, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
@@ -23,13 +24,14 @@ function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
   const draft = { ...p, inventory: structuredClone(p.inventory), reserves: p.reserves && { ...p.reserves } }, incoming = structuredClone(pickup);
   draft.inventory![index] = null;
   // Collection reads only the ground list and carried identities, never map geometry.
-  const pickupStage: Game = { ...s, players: s.players.map(other => other === p ? draft : other), map: { ...s.map, items: s.map.items.map(item => item === pickup ? incoming : item) } };
+  const pickupStage: Game = { ...forkItemAllocation(s), players: s.players.map(other => other === p ? draft : other), map: { ...s.map, items: s.map.items.map(item => item === pickup ? incoming : item) } };
   if (!collectInstanceEquipment(pickupStage, draft, incoming)) return;
   const remaining = s.map.items.filter(item => item !== pickup);
-  const drop = planDrop(s, p, outgoing, false, remaining, pickupStage.itemSerial, pickupStage.scatterSerial);
+  const drop = planDrop(s, p, outgoing, false, remaining, pickupStage);
   if (!drop || !canRepresentPhysicalDrop(s, drop.records.length, [pickup])) return;
+  commitItemAllocation(s, drop.allocation);
   p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.reserves = draft.reserves; p.charging = null;
-  removeItem(s, pickup); addItems(s, ...drop.records); s.itemSerial = drop.itemSerial; s.scatterSerial = drop.scatterSerial;
+  removeItem(s, pickup); addItems(s, ...drop.records);
   launchPhysicalDrops(s, drop.records, p);
   syncWeapon(p, s.content.weapons);
 }
@@ -47,7 +49,7 @@ export function interact(s: Game, p: Player): void {
   }
   const pickup = p.inventory && itemsNear(s, p, PICKUP_REACH).filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < PICKUP_REACH && reachClear(s.map, p, i)
     && (i.droppedBy !== p.id || !(i.pickupAfter! > s.tick)))
-    .sort((a, b) => distance(p, a) - distance(p, b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0];
+    .sort((a, b) => distance(p, a) - distance(p, b) || (itemLabel(s, a.id) < itemLabel(s, b.id) ? -1 : itemLabel(s, a.id) > itemLabel(s, b.id) ? 1 : 0))[0];
   if (!p.bot && pickup && p.inventory!.every(Boolean)) {
     swapInstanceEquipment(s, p, pickup);
     return;

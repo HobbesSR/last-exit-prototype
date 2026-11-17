@@ -1,3 +1,4 @@
+import { itemLabel } from '../shared/item-instances.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MAX_ROOMS } from '../server/room-directory.js';
@@ -94,13 +95,14 @@ test('rooms that reuse a generated map each hold their own copy of it', async ()
     assert.equal(pooled.seed, 9, 'an unseeded room takes the reused map with its own seed');
     // The pregenerated arena, which tests/slow/room-arena keeps equal to inline generation (#849).
     // The match adds the physics props to its map, which the arena does not carry, and makes its obstacles read-only.
-    const bare = map => { const { physicsProps, ...rest } = map; return rest; };
-    const maps = [first, second, pooled].map(room => room.game.map), inline = readArena().map;
-    assert.deepEqual(bare(maps[0]), inline, 'the map inline generation would have made');
+    const bare = game => { const { physicsProps, ...rest } = game.map;
+      return { ...rest, items: rest.items.map(item => ({ ...item, id: itemLabel(game, item.id) })) }; };
+    const games = [first, second, pooled].map(room => room.game), maps = games.map(game => game.map), inline = readArena().map;
+    assert.deepEqual(bare(games[0]), inline, 'the map inline generation would have made');
     assert.equal(new Set(maps).size, 3);
     maps[0].spawns[0].x += 1; // the obstacles are read-only in a match, so the spawns are what one room can change
-    assert.deepEqual(bare(maps[1]), inline); assert.deepEqual(bare(maps[2]), inline);
-    assert.deepEqual(bare((await h.created(9)).game.map), inline, 'nor what later rooms are given');
+    assert.deepEqual(bare(games[1]), inline); assert.deepEqual(bare(games[2]), inline);
+    assert.deepEqual(bare((await h.created(9)).game), inline, 'nor what later rooms are given');
     assert.deepEqual(generatedMap(), inline);
   } finally { await h.service.close(); }
 });

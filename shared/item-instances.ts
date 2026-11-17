@@ -1,6 +1,6 @@
-import type { Game, GroundItem, InventoryItem, ItemId } from './types.ts';
+import type { Game, GroundItem, InventoryItem, ItemId, ItemLabel } from './types.ts';
 
-const validId = (id: unknown): id is ItemId => typeof id === 'string' && id.length > 0;
+const validId = (id: unknown): id is ItemId => Number.isSafeInteger(id) && (id as number) > 0;
 const validQuality = (quality: unknown): boolean => quality === undefined || Number.isInteger(quality) && (quality as number) >= 1 && (quality as number) <= 5;
 const validCount = (count: unknown): boolean => Number.isSafeInteger(count) && (count as number) > 0;
 
@@ -27,60 +27,132 @@ export function validateItemPayload(item: GroundItem | InventoryItem, s: Game): 
   return item.kind === 'access' && 'id' in item;
 }
 
-/** Uses a counter independent of simulation RNG and event IDs. */
+/** Labels are compatibility metadata, never runtime lookup keys. Forks hold only tentative additions. */
+export interface ItemRegistry {
+  ids: Map<string, ItemId>;
+  labels: Map<ItemId, ItemLabel>;
+  parent?: ItemRegistry | undefined;
+}
+const registry = (s: Game): ItemRegistry => s.itemIdentities ??= { ids: new Map(), labels: new Map() };
+function lookup<K, V>(r: ItemRegistry | undefined, field: 'ids' | 'labels', key: K): V | undefined {
+  for (; r; r = r.parent) {
+    const value = (r[field] as Map<K, V>).get(key);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+export const itemIdForLabel = (s: Game, label: string): ItemId | undefined => lookup(s.itemIdentities, 'ids', label);
+export function itemLabel(s: Game, id: ItemId): ItemLabel {
+  const label = lookup<ItemId, ItemLabel>(s.itemIdentities, 'labels', id);
+  if (label === undefined) throw new Error(`Unregistered item identity ${id}`);
+  return label;
+}
+/** Explicit match-load/scenario registration; registering metadata consumes no scatter phase. */
+export function registerItemLabel(s: Game, label: string): ItemId {
+  if (typeof label !== 'string' || !label.length) throw new Error('Invalid item label');
+  const existing = itemIdForLabel(s, label);
+  if (existing !== undefined) return existing;
+  const next = s.itemSerial ?? 1;
+  if (!Number.isSafeInteger(next) || next < 1 || next >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
+  const id = next as ItemId, r = registry(s);
+  r.ids.set(label, id); r.labels.set(id, label as ItemLabel); s.itemSerial = next + 1;
+  return id;
+}
+/** Copy-on-write identity transaction. Discarding this game discards all new labels and both counters. */
+export function forkItemAllocation(s: Game): Game {
+  return { ...s, itemIdentities: { ids: new Map(), labels: new Map(), parent: registry(s) } };
+}
+/** Publish only additions owned by this transaction, including a staged pickup's parent transaction. */
+export function commitItemAllocation(s: Game, stage: Game): void {
+  const target = registry(s), layers: ItemRegistry[] = [];
+  for (let r = stage.itemIdentities; r && r !== target; r = r.parent) layers.push(r);
+  for (const layer of layers.reverse()) {
+    for (const [label, id] of layer.ids) target.ids.set(label, id);
+    for (const [id, label] of layer.labels) target.labels.set(id, label);
+  }
+  s.itemSerial = stage.itemSerial; s.scatterSerial = stage.scatterSerial;
+}
+/** One monotonic numeric domain; legacy allocation labels preserve the independent scatter schedule. */
 export function allocateItemId(s: Game): ItemId {
-  if (!Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0) throw new Error('Invalid item instance counter');
-  const scatter = s.scatterSerial ?? s.itemSerial!;
+  let scatter = s.scatterSerial ?? 0;
   if (!Number.isSafeInteger(scatter) || scatter < 0) throw new Error('Invalid item scatter counter');
-  const used = new Set<string>();
-  for (const item of s.map.items) { if (validId(item.id)) used.add(item.id); if (validId(item.instanceId)) used.add(item.instanceId); }
-  for (const player of s.players) for (const item of player.inventory ?? []) if (item && validId(item.instanceId)) used.add(item.instanceId);
+  // Reachable identities and roots precede persisted scatter. Reserved labels need no live-item scan.
   while (true) {
-    if (!Number.isSafeInteger(s.itemSerial) || s.itemSerial! >= Number.MAX_SAFE_INTEGER || (s.scatterSerial ?? scatter) >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
-    const id = `instance-${s.itemSerial!++}` as ItemId;
-    // Compatibility schedule: even a skipped occupied legacy ID consumed one phase.
-    s.scatterSerial = (s.scatterSerial ?? scatter) + 1;
-    if (!used.has(id)) return id;
+    if (scatter >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
+    const label = `instance-${scatter++}`;
+    if (itemIdForLabel(s, label) !== undefined) continue;
+    const id = registerItemLabel(s, label);
+    s.scatterSerial = scatter;
+    return id;
   }
 }
-
 export function ensureItemIdentity(s: Game, item: InventoryItem): void {
   if (!validQuality(item.quality) || item.instanceId !== undefined && !validId(item.instanceId) || item.lineageId !== undefined && !validId(item.lineageId)) throw new Error('Invalid carried item identity');
   item.instanceId ??= allocateItemId(s);
   item.lineageId ??= item.instanceId;
+  itemLabel(s, item.instanceId); itemLabel(s, item.lineageId);
 }
-
-/** Validate first, then assign legacy carried IDs in player and slot order. */
+/** Match-load normalization. Original artifact labels and disappeared lineage roots remain registered. */
 export function initializeItemInstances(s: Game): void {
   const capacity = s.content.itemInstances.groundCapacity;
-  if (!Number.isSafeInteger(capacity) || capacity! < 0 || s.map.items.length > capacity! || s.itemSerial !== undefined && (!Number.isSafeInteger(s.itemSerial) || s.itemSerial < 0) || s.scatterSerial !== undefined && (!Number.isSafeInteger(s.scatterSerial) || s.scatterSerial < 0)) throw new Error('Invalid item instance configuration');
-  const used = new Set<string>();
-  for (const item of s.map.items) {
-    if (!validId(item.id) || item.instanceId !== undefined && item.instanceId !== item.id || !validateItemPayload(item, s) || used.has(item.id)) throw new Error('Invalid ground item');
-    used.add(item.id);
+  if (!Number.isSafeInteger(capacity) || capacity < 0 || s.map.items.length > capacity
+    || s.itemSerial !== undefined && (!Number.isSafeInteger(s.itemSerial) || s.itemSerial < 0)
+    || s.scatterSerial !== undefined && (!Number.isSafeInteger(s.scatterSerial) || s.scatterSerial < 0)) throw new Error('Invalid item instance configuration');
+  // At this one input boundary records can still carry artifact labels. Validate before mutating them.
+  const all = [...s.map.items, ...s.players.flatMap(p => p.inventory?.filter(i => i !== null) ?? [])];
+  const reloads = s.players.flatMap(p => p.reload ? [p.reload] : []);
+  const used = new Set<unknown>();
+  const inputId = (id: unknown) => typeof id === 'string' && id.length > 0 || validId(id);
+  let legacyNext = s.itemIdentities ? s.scatterSerial ?? 0 : s.itemSerial ?? 0;
+  let numericNext = s.itemIdentities ? s.itemSerial ?? 1 : 1;
+  for (const item of all) {
+    const ground = 'id' in item, id = ground ? item.id : item.instanceId;
+    const key = typeof id === 'number' ? itemLabel(s, id) : id;
+    if (ground && !inputId(id) || id !== undefined && (!inputId(id) || used.has(key))
+      || ground && item.instanceId !== undefined && item.instanceId !== id
+      || item.lineageId !== undefined && !inputId(item.lineageId)) throw new Error(ground ? 'Invalid ground item' : 'Invalid carried item');
+    if (id !== undefined) used.add(key);
+    // Payload validation does not interpret input identities until they have been normalized.
+    if (!validateItemPayload({ ...item, instanceId: undefined, lineageId: undefined }, s)) throw new Error('Invalid item payload');
+    for (const value of [id, item.instanceId, item.lineageId]) {
+      if (typeof value === 'number') {
+        if (value >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
+        numericNext = Math.max(numericNext, value + 1);
+        itemLabel(s, value);
+      }
+      const label = typeof value === 'number' ? itemLabel(s, value) : value;
+      // Only active legacy identities reserved scatter phases; lineage metadata does not.
+      if (value === id && typeof label === 'string') {
+        const match = /^instance-(0|[1-9]\d*)$/.exec(label);
+        if (match) {
+          const n = Number(match[1]);
+          if (!Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
+          legacyNext = Math.max(legacyNext, n + 1);
+        }
+      }
+    }
   }
-  for (const player of s.players) for (const item of player.inventory ?? []) {
-    if (!item) continue;
-    if (!validateItemPayload(item, s) || item.instanceId && used.has(item.instanceId)) throw new Error('Invalid carried item');
-    if (item.instanceId) used.add(item.instanceId);
+  for (const reload of reloads) {
+    const id = reload.instanceId;
+    if (!inputId(id)) throw new Error('Invalid reload item identity');
+    if (typeof id === 'number') {
+      if (id >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
+      itemLabel(s, id);
+      numericNext = Math.max(numericNext, id + 1);
+    }
   }
-  // Initial IDs may already occupy our allocation namespace. Reserve their numbers forever,
-  // including after the original item is consumed and disappears from the live state.
-  let next = s.itemSerial ?? 0;
-  for (const id of used) {
-    const match = /^instance-(0|[1-9]\d*)$/.exec(id);
-    if (!match) continue;
-    const serial = Number(match[1]);
-    if (!Number.isSafeInteger(serial) || serial >= Number.MAX_SAFE_INTEGER) throw new Error('Item instance counter exhausted');
-    next = Math.max(next, serial + 1);
+  s.itemSerial = numericNext;
+  registry(s);
+  const normalize = (id: ItemId): ItemId => typeof id === 'string' ? registerItemLabel(s, id) : id;
+  for (const item of all) {
+    if ('id' in item) item.id = normalize(item.id);
+    if (item.instanceId !== undefined) item.instanceId = normalize(item.instanceId);
+    if (item.lineageId !== undefined) item.lineageId = normalize(item.lineageId);
   }
-  const missing = s.players.reduce((total, player) => total + (player.inventory ?? []).filter(item => item && !item.instanceId).length, 0);
-  const scatter = s.scatterSerial ?? next;
-  if (missing > Number.MAX_SAFE_INTEGER - next || missing > Number.MAX_SAFE_INTEGER - scatter) throw new Error('Item instance counter exhausted');
-  s.itemSerial = next;
-  // Temporary compatibility debt (24.4): preserve the legacy reservation phase,
-  // independently of the numeric item domain introduced in the subsequent migration.
-  s.scatterSerial = scatter;
+  for (const reload of reloads) reload.instanceId = normalize(reload.instanceId);
+  s.scatterSerial ??= legacyNext;
   const players = [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-  for (const player of players) for (const item of player.inventory ?? []) if (item) ensureItemIdentity(s, item);
+  for (const player of players) {
+    for (const item of player.inventory ?? []) if (item) ensureItemIdentity(s, item);
+  }
 }

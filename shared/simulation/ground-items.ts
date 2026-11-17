@@ -1,4 +1,5 @@
-import type { Game, GroundItem, Vec2 } from '../types.ts';
+import { itemLabel } from '../item-instances.ts';
+import type { Game, GroundItem, ItemId, ItemKey, Vec2 } from '../types.ts';
 
 // The ground list follows the shared-frame model (#655, 22.1 "Frames"): a published frame holds `s.map.items`
 // and its records by reference, so both are frozen when published. A step that changes the ground replaces
@@ -6,18 +7,18 @@ import type { Game, GroundItem, Vec2 } from '../types.ts';
 // the first frame, may still edit records in place.
 
 /** Positions by item id, per list. Built on demand and carried across a copy that only replaces records. */
-const indexes = new WeakMap<readonly GroundItem[], Map<string, number>>();
+const indexes = new WeakMap<readonly GroundItem[], Map<ItemId, number>>();
 /** Records by id, independent of positions: removing a pickup need not rebuild the ground for body ownership checks. */
-const records = new WeakMap<readonly GroundItem[], Map<string, GroundItem>>();
+const records = new WeakMap<readonly GroundItem[], Map<ItemId, GroundItem>>();
 /** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
-const published = new WeakSet<readonly GroundItem[]>();
+const published = new WeakSet<readonly GroundItem<ItemKey>[]>();
 
 /** Only logical items awaiting a body, ordered by id; carried across the live list's copies. */
 interface Admission { admitted: ReadonlySet<string>; items: GroundItem[]; size: number }
 const admissions = new WeakMap<readonly GroundItem[], Admission>();
-function admissionPosition(items: readonly GroundItem[], id: string): number {
+function admissionPosition(s: Game, items: readonly GroundItem[], id: ItemId): number {
   let lo = 0, hi = items.length;
-  while (lo < hi) { const mid = (lo + hi) >>> 1; if (items[mid]!.id < id) lo = mid + 1; else hi = mid; }
+  while (lo < hi) { const mid = (lo + hi) >>> 1; if (itemLabel(s, items[mid]!.id) < itemLabel(s, id)) lo = mid + 1; else hi = mid; }
   return lo;
 }
 function admissionOf(s: Game, admitted: ReadonlySet<string>): Admission {
@@ -25,8 +26,8 @@ function admissionOf(s: Game, admitted: ReadonlySet<string>): Admission {
   let pending = admissions.get(list);
   // Scenario setup may replace the list or edit its length without the ground-list helpers.
   if (!pending || pending.admitted !== admitted || pending.size !== list.length) {
-    pending = { admitted, size: list.length, items: list.filter(item => !admitted.has(`item:${item.id}`))
-      .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) };
+    pending = { admitted, size: list.length, items: list.filter(item => !admitted.has(`item:${itemLabel(s, item.id)}`))
+      .sort((a, b) => itemLabel(s, a.id) < itemLabel(s, b.id) ? -1 : itemLabel(s, a.id) > itemLabel(s, b.id) ? 1 : 0) };
     admissions.set(list, pending);
   }
   return pending;
@@ -46,7 +47,7 @@ export function* unadmittedItems(s: Game, admitted: ReadonlySet<string>): Genera
 export function admitItem(s: Game, item: GroundItem): void {
   const pending = admissions.get(s.map.items);
   if (!pending) return;
-  const at = admissionPosition(pending.items, item.id);
+  const at = admissionPosition(s, pending.items, item.id);
   if (pending.items[at]?.id === item.id) pending.items.splice(at, 1);
 }
 
@@ -181,26 +182,26 @@ export function groundList(s: Game): GroundItem[] {
 /** Put records on the ground, after everything already there. */
 export function addItems(s: Game, ...items: GroundItem[]): void {
   const list = writable(s), grid = grids.get(list), index = indexes.get(list), pending = admissions.get(list);
-  if (index) for (let i = 0; i < items.length; i++) index.set(String(items[i]!.id), list.length + i);
+  if (index) for (let i = 0; i < items.length; i++) index.set(items[i]!.id, list.length + i);
   list.push(...items);
   const byId = records.get(list);
-  if (byId) for (const item of items) byId.set(String(item.id), item);
+  if (byId) for (const item of items) byId.set(item.id, item);
   if (grid) for (const item of items) enter(grid, item);
   if (pending) {
-    for (const item of items) if (!pending.admitted.has(`item:${item.id}`))
-      pending.items.splice(admissionPosition(pending.items, item.id), 0, item);
+    for (const item of items) if (!pending.admitted.has(`item:${itemLabel(s, item.id)}`))
+      pending.items.splice(admissionPosition(s, pending.items, item.id), 0, item);
     pending.size = list.length;
   }
 }
 
 /** Take a record off the ground; later records keep their order. Returns where it was, which is now where the next one is. */
 export function removeItem(s: Game, item: GroundItem): number {
-  const list = writable(s), hinted = indexes.get(list)?.get(String(item.id));
+  const list = writable(s), hinted = indexes.get(list)?.get(item.id);
   const at = hinted !== undefined && list[hinted] === item ? hinted : list.indexOf(item);
   if (at < 0) throw new Error(`ground item ${item.id} is not on the ground`);
   indexes.delete(list);
   list.splice(at, 1);
-  records.get(list)?.delete(String(item.id));
+  records.get(list)?.delete(item.id);
   leave(list, item);
   admitItem(s, item);
   const pending = admissions.get(list);
@@ -247,18 +248,18 @@ export function framedItems(s: Game, frame: readonly GroundItem[], at: Vec2, rea
   return out;
 }
 
-function positions(list: readonly GroundItem[]): Map<string, number> {
+function positions(list: readonly GroundItem[]): Map<ItemId, number> {
   let index = indexes.get(list);
-  if (!index) { index = new Map(list.map((item, i) => [String(item.id), i])); indexes.set(list, index); }
+  if (!index) { index = new Map(list.map((item, i) => [item.id, i])); indexes.set(list, index); }
   return index;
 }
 
 /** Where the ground record with this id sits in `s.map.items`, without scanning the list on every call. */
-export function groundPosition(s: Game, id: string): number | undefined {
+export function groundPosition(s: Game, id: ItemId): number | undefined {
   const list = s.map.items;
   let index = positions(list), at = index.get(id);
   // A list edited in place without groundList (a test arranging a scenario) is indexed again.
-  if (index.size !== list.length || at !== undefined && String(list[at]?.id) !== id) {
+  if (index.size !== list.length || at !== undefined && list[at]?.id !== id) {
     indexes.delete(list); admissions.delete(list); records.delete(list); index = positions(list); at = index.get(id);
   }
   return at;
@@ -269,12 +270,12 @@ export function groundPosition(s: Game, id: string): number | undefined {
  * raw length changes rebuild it, and an existing positional index still detects stale requested positions.
  * Arbitrary same-length scenario edits must use groundList to invalidate every cache.
  */
-export function groundItem(s: Game, id: string): GroundItem | undefined {
+export function groundItem(s: Game, id: ItemId): GroundItem | undefined {
   const list = s.map.items, index = indexes.get(list), at = index?.get(id);
-  if (index && (index.size !== list.length || at !== undefined && String(list[at]?.id) !== id)) groundPosition(s, id);
+  if (index && (index.size !== list.length || at !== undefined && list[at]?.id !== id)) groundPosition(s, id);
   let byId = records.get(list);
   if (!byId || byId.size !== list.length) {
-    byId = new Map(list.map(item => [String(item.id), item])); records.set(list, byId);
+    byId = new Map(list.map(item => [item.id, item])); records.set(list, byId);
   }
   // A scenario may replace a record in place while retaining its id and an existing positional index.
   const position = indexes.get(list)?.get(id);
@@ -285,14 +286,14 @@ export function groundItem(s: Game, id: string): GroundItem | undefined {
 /** Put `next` where `item` is on the ground. The id stays: the position index is carried across. */
 export function replaceItem(s: Game, item: GroundItem, next: GroundItem): void {
   if (next.id !== item.id) throw new Error(`replacing ground item ${item.id} with ${next.id}`);
-  const list = writable(s), hinted = indexes.get(list)?.get(String(item.id));
+  const list = writable(s), hinted = indexes.get(list)?.get(item.id);
   const at = hinted !== undefined && list[hinted] === item ? hinted : list.indexOf(item);
   if (at < 0) throw new Error(`ground item ${item.id} is not on the ground`);
   list[at] = next;
-  records.get(list)?.set(String(next.id), next);
+  records.get(list)?.set(next.id, next);
   const pending = admissions.get(list);
   if (pending) {
-    const pos = admissionPosition(pending.items, item.id);
+    const pos = admissionPosition(s, pending.items, item.id);
     if (pending.items[pos]?.id === item.id) pending.items[pos] = next;
   }
   const order = leave(list, item);
@@ -323,23 +324,28 @@ export function publishItems(s: Game): readonly GroundItem[] {
   return list;
 }
 
-const listJson = new WeakMap<readonly GroundItem[], string>(), recordJson = new WeakMap<GroundItem, string>();
+const listJson = new WeakMap<readonly GroundItem<ItemKey>[], string>(), recordJson = new WeakMap<GroundItem<ItemKey>, string>();
 
 /**
  * `JSON.stringify(list)`, kept per published or posed list and per frozen record, since neither is edited once a
  * frame holds it. A recording serializes the ground every tick, and an unchanged ground is then free (#655 stage 3).
  * Any other list is serialized whole.
  */
-export function itemsJson(list: readonly GroundItem[]): string {
-  if (!published.has(list) && !posed.has(list)) return JSON.stringify(list);
+export function itemsJson(list: readonly GroundItem<ItemKey>[]): string {
+  if (!published.has(list) && !posed.has(list as readonly GroundItem[])) return JSON.stringify(list);
   let json = listJson.get(list);
   if (json === undefined) listJson.set(list, json = `[${list.map(recordText).join(',')}]`);
   return json;
 }
 
-function recordText(item: GroundItem): string {
+function recordText(item: GroundItem<ItemKey>): string {
   if (!Object.isFrozen(item)) return JSON.stringify(item);
   let json = recordJson.get(item);
   if (json === undefined) recordJson.set(item, json = JSON.stringify(item));
   return json;
+}
+
+/** Carry immutable-list serialization caching across the temporary legacy boundary. */
+export function shareItemPublication(source: readonly GroundItem[], adapted: readonly GroundItem<ItemKey>[]): void {
+  if (published.has(source) || posed.has(source)) published.add(adapted);
 }

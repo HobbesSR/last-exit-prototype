@@ -1,6 +1,6 @@
 import { defaultContent } from './simulation/content.ts';
 import { AMMO_FAMILIES as AMMO_ORDER, WEAPONS as WEAPON_ORDER } from './enum-tables.ts';
-import type { AmmoFamily, CellItem, Game, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
+import type { AmmoFamily, ItemId, CellItem, Game, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from './item-instances.ts';
 
 export const SLOT_COUNT = 6;
@@ -26,9 +26,9 @@ const stackKind = (kind: string): kind is StackKind => kind === 'med' || kind ==
 const validIdentityState = (s: Game, p: Player, ground?: GroundItem, listed = ground): boolean => {
   const capacity = s.content.itemInstances.groundCapacity;
   if (!Number.isSafeInteger(capacity) || capacity! < 0 || !Number.isSafeInteger(s.itemSerial) || s.itemSerial! < 0 || !p.inventory || p.inventory.length !== SLOT_COUNT) return false;
-  const ids = new Set<string>();
+  const ids = new Set<ItemId>();
   if (ground) {
-    if (!s.map.items.includes(listed!) || typeof ground.id !== 'string' || !ground.id || ground.instanceId !== undefined && ground.instanceId !== ground.id || !validateItemPayload(ground, s)) return false;
+    if (!s.map.items.includes(listed!) || !Number.isSafeInteger(ground.id) || ground.id <= 0 || ground.instanceId !== undefined && ground.instanceId !== ground.id || !validateItemPayload(ground, s)) return false;
     ids.add(ground.id);
   }
   for (const item of p.inventory) {

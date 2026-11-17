@@ -3,7 +3,7 @@ import { WORLD_WIDTH, WORLD_HEIGHT } from './world.ts';
 import { distance } from '../vector.ts';
 import { fieldsOf, rect as rectShape } from '../shape.ts';
 import type { Shape } from '../shape.ts';
-import type { BuildingId, GroundItem, ItemKind, MapDraft, NodeId, Obstacle, ObstacleId, ObstacleKind, ItemId, Vec2, World } from '../types.ts';
+import type { BuildingId, GroundItem, ItemKind, MapDraft, NodeId, Obstacle, ObstacleId, ObstacleKind, ItemLabel, Vec2, World } from '../types.ts';
 
 /** A candidate loot position, tagged with the block and building it belongs to. */
 export interface LootSpot extends Vec2 {
@@ -23,7 +23,7 @@ export interface BaseGenerationContext {
   spots: LootSpot[];
   /** Everything already placed, for separation tests. */
   occupied: Vec2[];
-  place(x: World, y: World, kind: ItemKind, extra?: Partial<GroundItem>, separation?: World): GroundItem | null;
+  place(x: World, y: World, kind: ItemKind, extra?: Partial<GroundItem<ItemLabel>>, separation?: World): GroundItem<ItemLabel> | null;
 }
 
 // One context owns all random draws, IDs, and placement bookkeeping for a generation.
@@ -38,9 +38,9 @@ export function createGenerationContext(seed: number): BaseGenerationContext {
   const rect = (x: World, y: World, w: World, h: World, kind: ObstacleKind, extra: Partial<Obstacle> = {}) => shape(rectShape(x, y, w, h), kind, extra);
   const spots: LootSpot[] = [];
   const occupied: Vec2[] = [];
-  function place(x: World, y: World, kind: ItemKind, extra: Partial<GroundItem> = {}, separation: World = 55) {
+  function place(x: World, y: World, kind: ItemKind, extra: Partial<GroundItem<ItemLabel>> = {}, separation: World = 55) {
     if (!canOccupy(map, x, y, 24) || occupied.some(p => distance(p, { x, y }) < separation)) return null;
-    const item: GroundItem = { id: nextId('item-') as ItemId, x, y, kind, ...extra }; map.items.push(item); occupied.push(item); return item;
+    const item: GroundItem<ItemLabel> = { id: nextId('item-') as ItemLabel, x, y, kind, ...extra }; map.items.push(item); occupied.push(item); return item;
   }
   return { map, random, nextId, shape, rect, spots, occupied, place };
 }

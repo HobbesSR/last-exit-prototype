@@ -1,18 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, playerView, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { collectInstanceEquipment, rearrangeInstanceEquipment } from '../shared/equipment.ts';
-import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
-import { eliminate } from '../shared/simulation/lifecycle.ts';
-import { interact } from '../shared/simulation/interactions.ts';
+import { collectInstanceEquipment as collectRaw, rearrangeInstanceEquipment as rearrangeRaw } from '../shared/equipment.ts';
+import { allocateItemId, commitItemAllocation, forkItemAllocation, itemIdForLabel, itemLabel, registerItemLabel } from '../shared/item-instances.ts';
+import { automaticPickups as pickupsRaw, dropInventorySlot as dropRaw } from '../shared/simulation/loot.ts';
+import { eliminate as eliminateRaw } from '../shared/simulation/lifecycle.ts';
+import { interact as interactRaw } from '../shared/simulation/interactions.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { SCHEMA, minimumReaderForMatch, recordingFit } from '../shared/recording.ts';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { openArea } from './helpers/arena.js';
 import { readArchive } from './helpers/recordings.js';
+import { identifyItems, registeredItemId as itemId } from './helpers/item-identity.js';
 
 // No generated map, bots or hazards: only the world/inventory transition is under test.
 const arena = () => ({ width: 600, height: 400,
@@ -30,6 +32,14 @@ async function fixture(t, capacity, map = arena()) {
   return { s, p: s.players[0], q: s.players[1] };
 }
 const ground = (id, kind, fields = {}) => ({ id, kind, x: 120, y: 200, ...fields });
+const step = s => { identifyItems(s); return stepRaw(s); };
+const snapshot = s => { identifyItems(s); return snapshotRaw(s); };
+const collectInstanceEquipment = (s, ...args) => { identifyItems(s); return collectRaw(s, ...args); };
+const rearrangeInstanceEquipment = (s, ...args) => { identifyItems(s); return rearrangeRaw(s, ...args); };
+const automaticPickups = (s, ...args) => { identifyItems(s); return pickupsRaw(s, ...args); };
+const dropInventorySlot = (s, ...args) => { identifyItems(s); return dropRaw(s, ...args); };
+const eliminate = (s, ...args) => { identifyItems(s); return eliminateRaw(s, ...args); };
+const interact = (s, ...args) => { identifyItems(s); return interactRaw(s, ...args); };
 const take = (s, p, item) => {
   const consumed = collectInstanceEquipment(s, p, item);
   if (consumed) s.map.items = s.map.items.filter(other => other !== item);
@@ -40,8 +50,35 @@ test('item instances are required on match content and initialize a counter with
   assert.throws(() => createGameRecord(17, arena(), { ...content(), itemInstances: undefined }), /item instances required/);
   const { s } = await fixture(t);
   assert.equal(s.version, PHYSICS_VERSION);
-  assert.equal(s.itemSerial, 0);
+  assert.equal(s.itemSerial, 1, 'the internal numeric allocator starts with the first positive identity');
+  assert.equal(s.scatterSerial, 0);
   assert.equal(snapshot(s).itemSerial, 0);
+});
+
+test('label registration is numeric, does not spend scatter phases, and staged labels roll back until committed', async t => {
+  const { s, p } = await fixture(t);
+  const root = registerItemLabel(s, 'test-root');
+  assert.equal(typeof root, 'number');
+  assert.ok(root > 0);
+  const scatter = s.scatterSerial;
+  const baseNext = s.itemSerial;
+  const abandoned = forkItemAllocation(s);
+  const rolledBack = registerItemLabel(abandoned, 'discarded-child');
+  assert.equal(itemIdForLabel(s, 'discarded-child'), undefined, 'uncommitted labels stay private to the staged game');
+  assert.throws(() => itemLabel(s, rolledBack), /Unregistered item identity/);
+  assert.equal(s.itemSerial, baseNext);
+  assert.equal(s.scatterSerial, scatter, 'metadata registration never advances legacy scatter scheduling');
+  const committed = forkItemAllocation(s);
+  const child = registerItemLabel(committed, 'committed-child');
+  commitItemAllocation(s, committed);
+  assert.equal(itemIdForLabel(s, 'committed-child'), child);
+  assert.equal(itemLabel(s, root), 'test-root');
+  assert.equal(s.scatterSerial, scatter);
+  p.inventory[0] = { kind: 'cell', charge: 1, instanceId: 'live-child', lineageId: 'test-root' };
+  identifyItems(s);
+  p.inventory[0] = null; // The root disappears from live items but stays reserved in the registry.
+  assert.equal(itemLabel(s, root), 'test-root');
+  assert.notEqual(allocateItemId(s), root);
 });
 
 test('ground identity survives pickup/drop; stack split keeps a common lineage and conserves units', async t => {
@@ -49,14 +86,15 @@ test('ground identity survives pickup/drop; stack split keeps a common lineage a
   const med = ground('map-med', 'med', { count: 3, quality: 2 });
   s.map.items.push(med);
   assert.equal(take(s, p, med), true);
-  assert.deepEqual([p.inventory[0].instanceId, p.inventory[0].lineageId, p.inventory[0].count, p.inventory[0].quality], ['map-med', 'map-med', 3, 2]);
+  assert.deepEqual([p.inventory[0].instanceId, p.inventory[0].lineageId, p.inventory[0].count, p.inventory[0].quality], [itemId(s, 'map-med'), itemId(s, 'map-med'), 3, 2]);
+  identifyItems(s);
   const before = s.itemSerial;
   assert.equal(dropInventorySlot(s, p, 0), true);
   assert.equal(p.inventory[0], null);
   assert.equal(s.map.items.length, 3);
   assert.equal(new Set(s.map.items.map(i => i.id)).size, 3);
-  assert.equal(s.map.items.filter(i => i.id === 'map-med').length, 1);
-  assert.ok(s.map.items.every(i => i.kind === 'med' && i.count === 1 && i.quality === 2 && i.lineageId === 'map-med'));
+  assert.equal(s.map.items.filter(i => i.id === itemId(s, 'map-med')).length, 1);
+  assert.ok(s.map.items.every(i => i.kind === 'med' && i.count === 1 && i.quality === 2 && i.lineageId === itemId(s, 'map-med')));
   assert.equal(s.itemSerial, before + 2);
 });
 
@@ -65,11 +103,12 @@ test('partial ground transfers preserve the remainder; same-quality merges retai
   p.inventory[0] = { kind: 'med', count: 2, quality: 3, instanceId: 'target', lineageId: 'target' };
   const source = ground('source', 'med', { count: 3, quality: 3 });
   s.map.items.push(source);
+  identifyItems(s);
   const before = s.itemSerial;
   assert.equal(take(s, p, source), false);
   assert.equal(p.inventory[0].count, 3);
-  assert.equal(p.inventory[0].instanceId, 'target');
-  assert.equal(source.id, 'source');
+  assert.equal(p.inventory[0].instanceId, itemId(s, 'target'));
+  assert.equal(source.id, itemId(s, 'source'));
   assert.equal(source.count, 2);
   assert.equal(s.itemSerial, before);
   assert.equal(p.inventory.filter(Boolean).reduce((n, item) => n + (item.count ?? 1), 0) + source.count, 5);
@@ -77,7 +116,7 @@ test('partial ground transfers preserve the remainder; same-quality merges retai
   p.inventory[1] = { kind: 'med', count: 1, quality: 3, instanceId: 'other', lineageId: 'other' };
   assert.equal(rearrangeInstanceEquipment(s, p, 1, 0), false, 'a full target cannot absorb more');
   assert.equal(rearrangeInstanceEquipment(s, p, 0, 1), true);
-  assert.equal(p.inventory[1].instanceId, 'other');
+  assert.equal(p.inventory[1].instanceId, itemId(s, 'other'));
   assert.equal(p.inventory[1].count, 3);
   assert.equal(p.inventory[0].count, 1);
   p.inventory[2] = { kind: 'med', count: 1, quality: 4, instanceId: 'different', lineageId: 'different' };
@@ -90,15 +129,15 @@ test('taking part of an oversized ground stack gives the carried part a child id
   const source = ground('five', 'shield', { count: 5, quality: 2 });
   s.map.items.push(source);
   assert.equal(take(s, p, source), false);
-  assert.equal(source.id, 'five');
+  assert.equal(source.id, itemId(s, 'five'));
   assert.equal(source.count, 2);
   assert.equal(p.inventory[0].count, 3);
-  assert.equal(p.inventory[0].lineageId, 'five');
-  assert.notEqual(p.inventory[0].instanceId, 'five');
+  assert.equal(p.inventory[0].lineageId, itemId(s, 'five'));
+  assert.notEqual(p.inventory[0].instanceId, itemId(s, 'five'));
   const child = p.inventory[0].instanceId;
   assert.equal(take(s, p, source), true);
   assert.equal(p.inventory[0].instanceId, child);
-  assert.equal(p.inventory[1].instanceId, 'five');
+  assert.equal(p.inventory[1].instanceId, itemId(s, 'five'));
   assert.equal(p.inventory[1].count, 2);
   assert.equal(s.map.items.length, 0);
   assert.equal(p.inventory.reduce((n, item) => n + (item?.count ?? 0), 0), 5);
@@ -110,12 +149,13 @@ test('ammo transfer conserves rounds and leaves the partly used weapon on the gr
   p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: max - 2, instanceId: 'carried', lineageId: 'carried' };
   const source = ground('spare', 'weapon', { weaponType: 'pistol', ammo: 7 });
   s.map.items.push(source);
+  identifyItems(s);
   const before = s.itemSerial;
   assert.equal(collectInstanceEquipment(s, p, source), false);
   assert.equal(p.inventory[0].ammo, max);
-  assert.equal(p.inventory[0].instanceId, 'carried');
+  assert.equal(p.inventory[0].instanceId, itemId(s, 'carried'));
   assert.equal(source.ammo, 5);
-  assert.equal(source.id, 'spare');
+  assert.equal(source.id, itemId(s, 'spare'));
   assert.equal(s.itemSerial, before);
   assert.equal(collectInstanceEquipment(s, p, source), false);
   assert.equal(source.ammo, 5);
@@ -124,6 +164,7 @@ test('ammo transfer conserves rounds and leaves the partly used weapon on the gr
 test('optional capacity failure and invalid slot/payload do not mutate inventory or counters', async t => {
   const { s, p } = await fixture(t, 1);
   p.inventory[0] = { kind: 'shield', count: 2, instanceId: 'shield', lineageId: 'shield' };
+  identifyItems(s);
   const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
   assert.equal(dropInventorySlot(s, p, 0), false);
   assert.equal(dropInventorySlot(s, p, 9), false);
@@ -132,6 +173,7 @@ test('optional capacity failure and invalid slot/payload do not mutate inventory
   assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
   for (const bad of [ground('bad-count', 'med', { count: -1 }), ground('bad-ammo', 'weapon', { weaponType: 'pistol', ammo: NaN }), ground('bad-quality', 'cell', { charge: 2, quality: 9 })]) {
     s.map.items.push(bad);
+    identifyItems(s);
     const invalidBefore = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
     assert.equal(collectInstanceEquipment(s, p, bad), false);
     assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, invalidBefore);
@@ -145,15 +187,15 @@ test('mandatory death drops exceed optional capacity, retain charge, and remain 
   p.inventory[1] = { kind: 'cell', charge: s.content.cellChargeTicks, instanceId: 'cell', lineageId: 'cell', quality: 4 };
   eliminate(s, p, null);
   assert.equal(s.map.items.length, 4);
-  assert.equal(s.map.items.find(i => i.id === 'cell').charge, s.content.cellChargeTicks);
-  assert.equal(s.map.items.find(i => i.id === 'cell').quality, 4);
+  assert.equal(s.map.items.find(i => i.id === itemId(s, 'cell')).charge, s.content.cellChargeTicks);
+  assert.equal(s.map.items.find(i => i.id === itemId(s, 'cell')).quality, 4);
   assert.ok(s.map.items.every(i => Number.isFinite(i.x) && Number.isFinite(i.y)));
   assert.ok(p.inventory.every(i => i === null));
   eliminate(s, p, null);
   assert.equal(s.map.items.length, 4);
-  const fallenCell = s.map.items.find(i => i.id === 'cell');
+  const fallenCell = s.map.items.find(i => i.id === itemId(s, 'cell'));
   assert.equal(take(s, q, fallenCell), true);
-  assert.equal(q.inventory.find(Boolean).instanceId, 'cell');
+  assert.equal(q.inventory.find(Boolean).instanceId, itemId(s, 'cell'));
   assert.equal(q.inventory.find(Boolean).charge, s.content.cellChargeTicks);
   assert.equal(s.map.items.length, 3);
 });
@@ -165,15 +207,17 @@ test('E swap is atomic at capacity and a successful swap cannot repick its own d
     for (let i = 1; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 10, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
     const incoming = ground('incoming', 'cell', { charge: 73 });
     s.map.items.push(incoming);
+    identifyItems(s);
+    synchronizePhysics(s); // Admit the staged pickup before a split-stack swap commits its outgoing copies.
     const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
     setInput(s, p.id, { seq: 1, interact: true }); step(s);
     if (capacity === 1) {
       assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
     } else {
-      assert.equal(p.inventory[0].instanceId, 'incoming');
+      assert.equal(p.inventory[0].instanceId, itemId(s, 'incoming'));
       assert.equal(p.inventory[0].charge, 73);
       assert.equal(s.map.items.length, 2);
-      assert.ok(s.map.items.some(i => i.id === 'owned-0'));
+      assert.ok(s.map.items.some(i => i.id === itemId(s, 'owned-0')));
       assert.ok(s.map.items.every(i => i.kind === 'med' && i.count === 1 && i.droppedBy === p.id && i.pickupAfter > s.tick));
     }
   }
@@ -186,6 +230,7 @@ test('failed E preview leaves a partially refillable pistol and the outgoing sta
   p.inventory[1] = { kind: 'weapon', weaponType: 'pistol', ammo: max - 2, instanceId: 'old-pistol', lineageId: 'old-pistol' };
   for (let i = 2; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i, instanceId: `old-${i}`, lineageId: `old-${i}` };
   s.map.items.push(ground('refill', 'weapon', { weaponType: 'pistol', ammo: 7 }));
+  identifyItems(s);
   const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
   interact(s, p);
   assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
@@ -200,10 +245,10 @@ test('a successful E swap stages only the pickup: the map and other ground entri
   s.map.items.push(bystander, ground('incoming', 'cell', { charge: 9 }));
   const map = s.map;
   interact(s, p);
-  assert.equal(p.inventory[0].instanceId, 'incoming');
+  assert.equal(p.inventory[0].instanceId, itemId(s, 'incoming'));
   assert.equal(s.map, map);
   assert.ok(s.map.items.includes(bystander), 'unrelated ground entries keep their object identity');
-  assert.deepEqual(s.map.items.map(i => i.id).sort(), ['bystander', 'owned-0']);
+  assert.deepEqual(s.map.items.map(i => i.id).sort((a, b) => a - b), [itemId(s, 'bystander'), itemId(s, 'owned-0')].sort((a, b) => a - b));
 });
 
 test('E cannot swap back a fresh self-drop even when all slots are filled again', async t => {
@@ -213,6 +258,7 @@ test('E cannot swap back a fresh self-drop even when all slots are filled again'
   assert.equal(s.map.items.length, 1);
   assert.ok(Math.hypot(s.map.items[0].x - p.x, s.map.items[0].y - p.y) < 70);
   p.inventory[0] = { kind: 'med', count: 1, instanceId: 'replacement', lineageId: 'replacement' };
+  identifyItems(s);
   const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
   interact(s, p);
   assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
@@ -223,7 +269,7 @@ test('a malformed carried entry cannot halt elimination; well-formed value still
   p.inventory[0] = { kind: 'cell', charge: 12, instanceId: 'good', lineageId: 'good' };
   p.inventory[1] = { kind: 'weapon', weaponType: 'pistol', ammo: Number.NaN, instanceId: 'bad', lineageId: 'bad' };
   assert.doesNotThrow(() => eliminate(s, p, null));
-  assert.deepEqual(s.map.items.map(i => i.id), ['good']);
+  assert.deepEqual(s.map.items.map(i => i.id), [itemId(s, 'good')]);
   assert.ok(p.inventory.every(i => i === null));
 });
 
@@ -238,17 +284,18 @@ test('failed optional scattering leaves all state intact; mandatory drop keeps a
   q.x = 140; q.y = 200;
   assert.equal(canOccupy(s.map, p.x, p.y, 12), true, 'the actor fits in the corridor');
   assert.equal(canOccupy(s.map, q.x, q.y, 12), true);
+  identifyItems(s);
   const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
   assert.equal(dropInventorySlot(s, p, 0), false);
   assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
   assert.equal(dropInventorySlot(s, p, 0, true), true);
   assert.equal(p.inventory[0], null);
   assert.deepEqual([s.map.items[0].x, s.map.items[0].y], [p.x, p.y]);
-  assert.equal(s.map.items[0].id, 'sealed-cell');
+  assert.equal(s.map.items[0].id, itemId(s, 'sealed-cell'));
   assert.equal(s.map.items[0].charge, s.content.cellChargeTicks);
   automaticPickups(s, q, {});
   assert.equal(s.map.items.length, 0);
-  assert.equal(q.inventory.find(Boolean).instanceId, 'sealed-cell');
+  assert.equal(q.inventory.find(Boolean).instanceId, itemId(s, 'sealed-cell'));
   assert.equal(q.inventory.find(Boolean).charge, s.content.cellChargeTicks);
 });
 
@@ -286,15 +333,22 @@ test('snapshot is detached; only the owner sees carried identity and counter sta
   p.inventory[0] = { kind: 'cell', charge: 63, instanceId: 'cell-1', lineageId: 'root-1', quality: 5 };
   q.x = 130; q.y = 200;
   const frame = snapshot(s), own = playerView(s, frame, p.id), other = playerView(s, frame, q.id);
-  assert.equal(frame.itemSerial, s.itemSerial);
+  assert.equal(frame.itemSerial, s.scatterSerial, 'the outward compatibility field stays on the legacy schedule');
   assert.equal(own.itemSerial, undefined);
   assert.equal(other.itemSerial, undefined);
   assert.deepEqual([own.players.find(v => v.id === p.id).inventory[0].instanceId,
     own.players.find(v => v.id === p.id).inventory[0].lineageId,
     own.players.find(v => v.id === p.id).inventory[0].quality], ['cell-1', 'root-1', 5]);
+  assert.equal(typeof p.inventory[0].instanceId, 'number');
+  assert.equal(typeof p.inventory[0].lineageId, 'number');
   assert.equal(Object.hasOwn(other.players.find(v => v.id === p.id), 'inventory'), false);
   frame.players[0].inventory[0].charge = 0;
   assert.equal(p.inventory[0].charge, 63);
+  const identity = p.inventory[0].instanceId;
+  assert.equal(dropInventorySlot(s, p, 0), true);
+  assert.equal(take(s, q, s.map.items[0]), true);
+  assert.equal(q.inventory.find(Boolean).instanceId, identity, 'the numeric instance survives a later owner transfer');
+  assert.equal(own.players.find(v => v.id === p.id).inventory[0].instanceId, 'cell-1', 'the retained owner view remains a detached legacy projection');
 });
 
 test('the tick resolves a contested pickup by player id despite reversed array order', async t => {
@@ -346,7 +400,7 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   retain();
   step(s); retain();
   assert.deepEqual(p.inventory.filter(Boolean).map(i => [i.instanceId, i.lineageId, i.quality]),
-    [['med-root', 'med-root', 3], ['rifle-root', 'rifle-root', 2], ['cell-root', 'cell-root', 4]]);
+    [['med-root', 'med-root', 3], ['rifle-root', 'rifle-root', 2], ['cell-root', 'cell-root', 4]].map(([id, lineage, quality]) => [itemId(s, id), itemId(s, lineage), quality]));
   for (let slot = 0; slot < 3; slot++) { setInput(s, p.id, { seq: slot + 1, slot, drop: true }); step(s); retain(); }
   const finalItems = frames.at(-1).items;
   assert.equal(finalItems.length, 5);
