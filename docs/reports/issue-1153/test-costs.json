@@ -213,5 +213,34 @@
       "seat updates follow the selected historical tick and precede its state": 5
     }
   },
-  "scope": "Tiny synthetic states or bounded arenas. Existing feature expectations migrated; no new generation seeds or match sweeps."
+  "scope": "Tiny synthetic states or bounded arenas. Existing feature expectations migrated; no new generation seeds or match sweeps.",
+  "reviewFollowup": {
+    "checkpoint": "15f4ed7568b9d8f7dcba410f1a2b914fdb9fb9f6",
+    "files": [
+      {
+        "file": "tests/replay-relations.test.js",
+        "seconds": 0.7,
+        "tier": "fast"
+      },
+      {
+        "file": "tests/waiting.test.js",
+        "seconds": 1.4,
+        "tier": "fast"
+      },
+      {
+        "file": "tests/characterization-physics.test.js",
+        "seconds": 1.1,
+        "tier": "fast"
+      },
+      {
+        "file": "tests/sets.test.js",
+        "seconds": 0.2,
+        "tier": "fast"
+      }
+    ],
+    "newCaseMilliseconds": {
+      "shared source records remain shared across converted frames, including body poses and gate geometry": 2
+    },
+    "scope": "One synthetic sharing case added; waiting cold/partial-body assertions reuse an existing world; characterization fallback executes only on mismatch; sets route one new shared module. Memory probe is opt-in outside CI."
+  }
 }
