@@ -8,6 +8,7 @@
 //   'num'   any finite number: integer varint, else exact float32, else float64 (-0 written as 0, as JSON)
 //   'str'   string; UTF-8 when well formed, else UTF-16 code units (lone surrogates survive)
 //   'id'    string or number, tagged (ID types survive)    '<Name>' a named record or union
+//   'sint'  signed zigzag varint   'f32' exact float32 (refuses others)   'f64' float64
 //   { list: T }  { nullable: T }  { map: T } (string keys)  { layer: T } (plain list or {k, all?, set?, drop?})
 //   { enum: [values] } one byte index; unknown values refuse    { const: v } no bytes (a union variant's tag)
 // A record is { fields: [{ name, type, optional? }] }. Optional fields share one presence bitmask; an
@@ -145,6 +146,10 @@ export function createDescriptorCodec(schema, options = {}) {
         return bad('bad number tag');
       },
     },
+    // Fixed field types (#1130 field-typed comparison): a signed zigzag varint, an exact float32 and a float64.
+    sint: { w: (w, v) => { if (!Number.isSafeInteger(v) || Math.abs(v) >= 2 ** 52) fail('expected signed integer'); w.sint(v === 0 ? 0 : v); }, r: r => r.sint() },
+    f32: { w: (w, v) => { if (typeof v !== 'number' || Math.fround(v) !== v || !Number.isFinite(v)) fail('expected exact float32'); w.f32(v); }, r: r => { const v = r.f32(); return v === 0 ? 0 : v; } },
+    f64: { w: (w, v) => { if (typeof v !== 'number' || !Number.isFinite(v)) fail('expected finite number'); w.f64(v); }, r: r => r.f64() },
     bool: { w: (w, v) => { if (typeof v !== 'boolean') fail('expected boolean'); w.byte(v ? 1 : 0); }, r: r => { const b = r.byte(); if (b > 1) bad('bad boolean'); return b === 1; } },
     str: { w: (w, v) => { if (typeof v !== 'string') fail('expected string'); w.str(v, MAX); }, r: r => r.str() },
     // Tag 0 string, 1 non-negative integer, 2 negative integer (magnitude). Sign-magnitude, not zigzag,
@@ -291,6 +296,14 @@ export function createDescriptorCodec(schema, options = {}) {
       const m = byType.get(message?.type); if (!m) fail(`unknown type ${message?.type}`);
       writer.at = 0; writer.byte(FORMAT); writer.uint(schema.version); writer.uint(m.id);
       m.codec.w(writer, message);
+      return writer.finish();
+    },
+    // A message's record without its `type` key (#1130 field-typed comparison: native objects). The type is a
+    // zero-byte const, so the bytes equal encode({ type, ...record }); decode still returns the type.
+    encodeAs(type, record) {
+      const m = byType.get(type); if (!m) fail(`unknown type ${type}`);
+      writer.at = 0; writer.byte(FORMAT); writer.uint(schema.version); writer.uint(m.id);
+      m.codec.w(writer, record);
       return writer.finish();
     },
     decode(bytes) {

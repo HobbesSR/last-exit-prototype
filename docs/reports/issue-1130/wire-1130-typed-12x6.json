@@ -1,0 +1,545 @@
+{
+ "issue": 1130,
+ "record": "42.54",
+ "generatedAt": "2026-11-17T22:26:32.477Z",
+ "revision": "e06a73dab29b53ce1b8c26915954f85dac0f9562",
+ "dirty": [
+  "M tools/perf/wire-cached-match.mjs",
+  " M tools/perf/wire-descriptor-codec.mjs",
+  "?? tools/perf/wire-typed-browser.mjs",
+  "?? tools/perf/wire-typed-bundles.mjs",
+  "?? tools/perf/wire-typed-comparison.mjs",
+  "?? tools/perf/wire-typed-fields.mjs",
+  "?? tools/perf/wire-typed-protobuf.mjs",
+  "?? tools/perf/wire-typed-schema.mjs"
+ ],
+ "sources": {
+  "wire-typed-comparison.mjs": "cdd624fc73ab4b6c24f41800b9b648aa1ce86ced5e5ee1e2769c99f024323db8",
+  "wire-typed-schema.mjs": "63d67389a0a0ad22d20951b69583a3d7b39a3d6074d65b05991a67bd89f8f7f5",
+  "wire-typed-fields.mjs": "2596d38ff2142b8b6f255ed3875249ebf5e138daf8fb033f884e132df2856fca",
+  "wire-typed-protobuf.mjs": "0954a074cbb2a407b1cc1985aa08397c01d10bbb9258b21395dc976508d597a2",
+  "wire-descriptor-codec.mjs": "349d1705c44078fb07e7fef8834a0cf4d81613d8bb7be65f9cc8ea5d9a6856b6",
+  "wire-cached-match.mjs": "abee172b1de1f96c7d07b0ed7cf3ec2f2253e4a4abe42581735a0e4238917ceb"
+ },
+ "cache": {
+  "path": "test-results/wire-1130-typed-12x6.v8",
+  "sha256": "876f723b4c48074880fe8bc50e37be54dfca5178d3986dfa7ee8f5d4a1022e48",
+  "size": "12x6",
+  "seed": 4217,
+  "content": "content-7",
+  "source": "e06a73dab29b53ce1b8c26915954f85dac0f9562",
+  "generatedAt": "2026-11-17T22:14:31.753Z",
+  "generator": "chain-live-2",
+  "reviewedChanges": {}
+ },
+ "node": "v24.15.0",
+ "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+ "wireKey": "fixed (tool constant)",
+ "samples": {
+  "contestant": 61,
+  "gladiator": 61,
+  "dev": 61,
+  "spectator": 61
+ },
+ "ticks": 1200,
+ "stride": 20,
+ "exactness": {
+  "descriptor": {
+   "checked": 244,
+   "failed": 0,
+   "examples": []
+  },
+  "protobuf-reflection": {
+   "checked": 244,
+   "failed": 0,
+   "examples": []
+  },
+  "descriptor-exact-f64": {
+   "checked": 244,
+   "failed": 0,
+   "examples": []
+  }
+ },
+ "freshShuffled": 244,
+ "bytes": {
+  "contestant": {
+   "json": {
+    "first": 5241,
+    "steadyMean": 2585.25,
+    "max": 5241
+   },
+   "descriptor": {
+    "first": 902,
+    "steadyMean": 480.05,
+    "max": 912
+   },
+   "protobuf-reflection": {
+    "first": 1463,
+    "steadyMean": 764.3,
+    "max": 1463
+   },
+   "descriptor-exact-f64": {
+    "first": 1134,
+    "steadyMean": 611.2333333333333,
+    "max": 1134
+   }
+  },
+  "gladiator": {
+   "json": {
+    "first": 4323,
+    "steadyMean": 1533.2666666666667,
+    "max": 4323
+   },
+   "descriptor": {
+    "first": 692,
+    "steadyMean": 251.63333333333333,
+    "max": 692
+   },
+   "protobuf-reflection": {
+    "first": 1140,
+    "steadyMean": 452.68333333333334,
+    "max": 1140
+   },
+   "descriptor-exact-f64": {
+    "first": 874,
+    "steadyMean": 354.55,
+    "max": 874
+   }
+  },
+  "dev": {
+   "json": {
+    "first": 20625,
+    "steadyMean": 3923.233333333333,
+    "max": 20625
+   },
+   "descriptor": {
+    "first": 3364,
+    "steadyMean": 646.1166666666667,
+    "max": 3364
+   },
+   "protobuf-reflection": {
+    "first": 5312,
+    "steadyMean": 1107.8333333333333,
+    "max": 5312
+   },
+   "descriptor-exact-f64": {
+    "first": 4057,
+    "steadyMean": 854.75,
+    "max": 4057
+   }
+  },
+  "spectator": {
+   "json": {
+    "first": 20625,
+    "steadyMean": 3802.1666666666665,
+    "max": 20625
+   },
+   "descriptor": {
+    "first": 3364,
+    "steadyMean": 626.9666666666667,
+    "max": 3364
+   },
+   "protobuf-reflection": {
+    "first": 5312,
+    "steadyMean": 1082.8333333333333,
+    "max": 5312
+   },
+   "descriptor-exact-f64": {
+    "first": 4057,
+    "steadyMean": 835.65,
+    "max": 4057
+   }
+  }
+ },
+ "safety": {
+  "descriptor": {
+   "truncations": 5478,
+   "truncationsAccepted": 0,
+   "trailingAccepted": 0,
+   "headerAccepted": 0,
+   "corruption": {
+    "refused": 710,
+    "different": 1290,
+    "same": 0,
+    "worstMs": 3.803999999999178
+   },
+   "crafted": {
+    "hugeListCount": {
+     "refused": true,
+     "ms": 0.026
+    }
+   }
+  },
+  "protobuf-reflection": {
+   "truncations": 9600,
+   "truncationsAccepted": 0,
+   "trailingAccepted": 0,
+   "headerAccepted": 0,
+   "corruption": {
+    "refused": 747,
+    "different": 1252,
+    "same": 1,
+    "worstMs": 1.0316000000002532
+   },
+   "crafted": {
+    "lengthDelimited2e31": {
+     "refused": true,
+     "ms": 0.035
+    }
+   }
+  }
+ },
+ "timing": {
+  "contestant": {
+   "first": {
+    "json.encode": {
+     "wallUs": 13.344,
+     "cpuUs": 13.369
+    },
+    "json.decode": {
+     "wallUs": 20.638,
+     "cpuUs": 22.256
+    },
+    "descriptor.encode": {
+     "wallUs": 15.799,
+     "cpuUs": 17.282
+    },
+    "descriptor.decode": {
+     "wallUs": 8.742,
+     "cpuUs": 8.872
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 12.012,
+     "cpuUs": 16.871
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 8.46,
+     "cpuUs": 9.059
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 16.14,
+     "cpuUs": 15.491
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 9.576,
+     "cpuUs": 15.139
+    },
+    "convert-to-native.encode": {
+     "wallUs": 19.798,
+     "cpuUs": 26.305
+    },
+    "convert-from-native.decode": {
+     "wallUs": 25.413,
+     "cpuUs": 26.085
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 8.993,
+     "cpuUs": 9.128
+    },
+    "json.decode": {
+     "wallUs": 10.074,
+     "cpuUs": 10.224
+    },
+    "descriptor.encode": {
+     "wallUs": 9.281,
+     "cpuUs": 9.419
+    },
+    "descriptor.decode": {
+     "wallUs": 5.906,
+     "cpuUs": 6.466
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 7.142,
+     "cpuUs": 9.459
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 4.151,
+     "cpuUs": 4.401
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 9.311,
+     "cpuUs": 9.447
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 5.576,
+     "cpuUs": 5.424
+    },
+    "convert-to-native.encode": {
+     "wallUs": 9.931,
+     "cpuUs": 13.155
+    },
+    "convert-from-native.decode": {
+     "wallUs": 10.422,
+     "cpuUs": 10.564
+    }
+   }
+  },
+  "gladiator": {
+   "first": {
+    "json.encode": {
+     "wallUs": 12.221,
+     "cpuUs": 12.106
+    },
+    "json.decode": {
+     "wallUs": 17.855,
+     "cpuUs": 19.526
+    },
+    "descriptor.encode": {
+     "wallUs": 12.583,
+     "cpuUs": 12.764
+    },
+    "descriptor.decode": {
+     "wallUs": 6.967,
+     "cpuUs": 7.068
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 12.38,
+     "cpuUs": 15.47
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 7.533,
+     "cpuUs": 8.208
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 12.623,
+     "cpuUs": 12.562
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 6.848,
+     "cpuUs": 6.948
+    },
+    "convert-to-native.encode": {
+     "wallUs": 14.896,
+     "cpuUs": 20.493
+    },
+    "convert-from-native.decode": {
+     "wallUs": 17.141,
+     "cpuUs": 18.532
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 4.421,
+     "cpuUs": 4.508
+    },
+    "json.decode": {
+     "wallUs": 5.903,
+     "cpuUs": 5.778
+    },
+    "descriptor.encode": {
+     "wallUs": 5.7,
+     "cpuUs": 6.106
+    },
+    "descriptor.decode": {
+     "wallUs": 3.146,
+     "cpuUs": 3.192
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 5.634,
+     "cpuUs": 6.821
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 2.535,
+     "cpuUs": 2.451
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 5.541,
+     "cpuUs": 5.624
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 2.916,
+     "cpuUs": 3.086
+    },
+    "convert-to-native.encode": {
+     "wallUs": 5.574,
+     "cpuUs": 6.058
+    },
+    "convert-from-native.decode": {
+     "wallUs": 5.399,
+     "cpuUs": 5.073
+    }
+   }
+  },
+  "dev": {
+   "first": {
+    "json.encode": {
+     "wallUs": 70.319,
+     "cpuUs": 71.278
+    },
+    "json.decode": {
+     "wallUs": 81.792,
+     "cpuUs": 82.925
+    },
+    "descriptor.encode": {
+     "wallUs": 52.838,
+     "cpuUs": 53.534
+    },
+    "descriptor.decode": {
+     "wallUs": 27.569,
+     "cpuUs": 26.584
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 47.947,
+     "cpuUs": 67.529
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 34.299,
+     "cpuUs": 34.074
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 58.023,
+     "cpuUs": 58.738
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 27.062,
+     "cpuUs": 27.462
+    },
+    "convert-to-native.encode": {
+     "wallUs": 68.377,
+     "cpuUs": 84.918
+    },
+    "convert-from-native.decode": {
+     "wallUs": 80.076,
+     "cpuUs": 84.583
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 16.33,
+     "cpuUs": 16.563
+    },
+    "json.decode": {
+     "wallUs": 14.022,
+     "cpuUs": 14.154
+    },
+    "descriptor.encode": {
+     "wallUs": 11.319,
+     "cpuUs": 11.482
+    },
+    "descriptor.decode": {
+     "wallUs": 6.303,
+     "cpuUs": 6.522
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 9.605,
+     "cpuUs": 12.721
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 5.354,
+     "cpuUs": 5.06
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 11.284,
+     "cpuUs": 11.451
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 5.775,
+     "cpuUs": 5.743
+    },
+    "convert-to-native.encode": {
+     "wallUs": 12.983,
+     "cpuUs": 17.445
+    },
+    "convert-from-native.decode": {
+     "wallUs": 13.1,
+     "cpuUs": 13.341
+    }
+   }
+  },
+  "spectator": {
+   "first": {
+    "json.encode": {
+     "wallUs": 64.815,
+     "cpuUs": 66.081
+    },
+    "json.decode": {
+     "wallUs": 81.179,
+     "cpuUs": 81.855
+    },
+    "descriptor.encode": {
+     "wallUs": 52.338,
+     "cpuUs": 53.086
+    },
+    "descriptor.decode": {
+     "wallUs": 27.44,
+     "cpuUs": 25.768
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 44.935,
+     "cpuUs": 59.588
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 33.345,
+     "cpuUs": 33.833
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 53.459,
+     "cpuUs": 51.786
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 27.007,
+     "cpuUs": 27.403
+    },
+    "convert-to-native.encode": {
+     "wallUs": 69.815,
+     "cpuUs": 86.806
+    },
+    "convert-from-native.decode": {
+     "wallUs": 80.514,
+     "cpuUs": 81.33
+    }
+   },
+   "steady": {
+    "json.encode": {
+     "wallUs": 14.171,
+     "cpuUs": 13.383
+    },
+    "json.decode": {
+     "wallUs": 13.442,
+     "cpuUs": 13.628
+    },
+    "descriptor.encode": {
+     "wallUs": 10.799,
+     "cpuUs": 10.956
+    },
+    "descriptor.decode": {
+     "wallUs": 5.72,
+     "cpuUs": 5.804
+    },
+    "protobuf-reflection.encode": {
+     "wallUs": 9.213,
+     "cpuUs": 15.832
+    },
+    "protobuf-reflection.decode": {
+     "wallUs": 5.21,
+     "cpuUs": 5.286
+    },
+    "descriptor-exact-f64.encode": {
+     "wallUs": 10.834,
+     "cpuUs": 10.128
+    },
+    "descriptor-exact-f64.decode": {
+     "wallUs": 5.606,
+     "cpuUs": 4.821
+    },
+    "convert-to-native.encode": {
+     "wallUs": 13.442,
+     "cpuUs": 20.994
+    },
+    "convert-from-native.decode": {
+     "wallUs": 12.652,
+     "cpuUs": 12.905
+    }
+   }
+  }
+ },
+ "contention": {
+  "wallMs": 53350.6469,
+  "selfCpuMs": 60157,
+  "otherBusyShare": 0.0476,
+  "contended": false,
+  "threshold": 0.25
+ }
+}

@@ -22,7 +22,7 @@ export function fileDiff(revision, path) {
   return { diff, sha256: sha(diff) };
 }
 
-export async function loadCachedMatch(path, { reviewedChanges = {} } = {}) {
+export async function loadCachedMatch(path, { reviewedChanges = {}, wireKey = null } = {}) {
   const bytes = await readFile(path), cache = deserialize(bytes);
   const [zoneWidth, zoneHeight] = cache.size.split('x').map(Number), size = liveZoneSize({ zoneWidth, zoneHeight });
   if (!size || !cache.maps?.length || cache.content !== CONTENT_ID || cache.generator !== 'chain-live-2' || !cache.source)
@@ -36,7 +36,8 @@ export async function loadCachedMatch(path, { reviewedChanges = {} } = {}) {
   const entry = structuredClone(cache.maps[0]);
   if (entry.navigation) attachPortalGraph(entry.map, entry.navigation);
   for (const packed of entry.tiles ?? []) adoptPackedTiles(entry.map, packed);
-  const match = await createMatch(cache.seed, size, entry.map, contentById(cache.content));
+  // `wireKey` keys outward IDs as a live room does (#1164); null keeps the identity.
+  const match = await createMatch(cache.seed, size, entry.map, contentById(cache.content), { wireKey });
   return {
     match,
     provenance: { path, sha256: sha(bytes), size: cache.size, seed: cache.seed, content: cache.content, source: cache.source,
