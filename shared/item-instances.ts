@@ -75,11 +75,12 @@ export function initializeItemInstances(s: Game): void {
     next = Math.max(next, serial + 1);
   }
   const missing = s.players.reduce((total, player) => total + (player.inventory ?? []).filter(item => item && !item.instanceId).length, 0);
-  if (missing > Number.MAX_SAFE_INTEGER - next) throw new Error('Item instance counter exhausted');
+  const scatter = s.scatterSerial ?? next;
+  if (missing > Number.MAX_SAFE_INTEGER - next || missing > Number.MAX_SAFE_INTEGER - scatter) throw new Error('Item instance counter exhausted');
   s.itemSerial = next;
   // Temporary compatibility debt (24.4): preserve the legacy reservation phase,
   // independently of the numeric item domain introduced in the subsequent migration.
-  s.scatterSerial = next;
+  s.scatterSerial = scatter;
   const players = [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   for (const player of players) for (const item of player.inventory ?? []) if (item) ensureItemIdentity(s, item);
 }

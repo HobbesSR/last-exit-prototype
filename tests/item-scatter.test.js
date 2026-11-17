@@ -26,6 +26,7 @@ test('scatter follows legacy carried reservations, seed ammo, partial pickup and
   s.map.items.push({ id: 'item-999', kind: 'med', count: 1, x: 500, y: 300 });
   p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 12, instanceId: 'instance-7' };
   p.inventory[1] = { kind: 'med', count: 3 };
+  delete s.scatterSerial; // Model a legacy record's first identity initialization.
   initializeItemInstances(s);
   assert.deepEqual(counters(s), [9, 9], 'map-placed item IDs do not reserve legacy phases');
   assert.equal(p.inventory[1].instanceId, 'instance-8');
@@ -94,6 +95,17 @@ test('occupied legacy allocations preserve their skipped phase and malformed cou
   s.scatterSerial = -1;
   assert.throws(() => allocateItemId(s), /scatter counter/);
   assert.throws(() => initializeItemInstances(s), /configuration/);
+});
+
+test('identity initialization preserves an explicit independent scatter phase', () => {
+  const { s, p } = fixture();
+  s.itemSerial = 100;
+  s.scatterSerial = 7;
+  p.inventory[0] = { kind: 'med', count: 1 };
+  initializeItemInstances(s);
+  assert.deepEqual(counters(s), [101, 8]);
+  initializeItemInstances(s);
+  assert.deepEqual(counters(s), [101, 8], 'reinitialization does not reset either counter');
 });
 
 test('a committed swap scatters after the pickup stage reservations and commits both counters', () => {

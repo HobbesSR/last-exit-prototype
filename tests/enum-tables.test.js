@@ -7,6 +7,8 @@ import {
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { syncWeapon } from '../shared/equipment.ts';
+import { createGameRecord } from '../shared/simulation/state.ts';
+import { arena } from './helpers/arena.js';
 
 test('closed enum tables preserve the established vocabulary order', () => {
   for (const table of [ROLES, KITS, WEAPONS, PHASES, AMMO_FAMILIES, ITEM_KINDS, BODY_KINDS, SHAPE_KINDS, EFFECT_KINDS, TRAP_KINDS, EVENT_KINDS]) {
@@ -33,4 +35,7 @@ test('content descriptors use explicit order and reject unknown content keys', (
   syncWeapon(player, { scattergun: content.weapons.scattergun, pistol: content.weapons.pistol, rifle: content.weapons.rifle });
   assert.equal(player.weapon, 3, 'weapon codes are independent of content object insertion order');
   assert.throws(() => describeContent({ ...content, weapons: { ...content.weapons, unknown: content.weapons.pistol } }), /Unknown weapon/);
+  const { map } = arena({ cols: 2, rows: 2 });
+  assert.throws(() => createGameRecord(1, map, { ...content, weapons: { ...content.weapons, unknown: content.weapons.pistol } }), /Unknown weapon/);
+  assert.throws(() => createGameRecord(1, map, { ...content, kits: { ...content.kits, unknown: content.kits.warden } }), /Unknown kit/);
 });

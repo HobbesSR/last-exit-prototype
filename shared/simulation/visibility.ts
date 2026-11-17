@@ -81,7 +81,9 @@ export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
 // A viewer id that matches no player is a non-player client: it receives the directed view, which is
 // unfogged by design. Callers decide who is allowed to ask for one.
 function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
-  const viewer = playerById(frame, id);
+  // Snapshot arrays are fresh each tick: a short scan avoids a per-frame lookup-map allocation.
+  // Direct numeric viewer indexing belongs to #1151.
+  const viewer = frame.players.find(p => p.id === id);
   // Discovery stays out of snapshots, so live state is its only source.
   const live = playerById(s, id), discovery = live?.discovery;
   // Heard gunfire likewise; read at the frame's tick, which a player's own view is never behind.

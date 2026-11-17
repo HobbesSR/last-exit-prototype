@@ -1,4 +1,5 @@
 import { indexRoster, playerById } from './relations.ts';
+import { assertEnumKeys, KITS, WEAPONS } from '../enum-tables.ts';
 import { WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
 import { DEFAULT_KIT, INITIAL_ESCAPE_SLOTS, MAX_PLAYER_NAME, ROLES, VERSION } from './rules.ts';
@@ -19,6 +20,8 @@ import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '..
  * and is what steps, so a game from here alone suits code that reads a match without running it.
  */
 export function createGameRecord(seed: number, map: GameMap, content = defaultContent()): Game {
+  assertEnumKeys(content.weapons, WEAPONS, 'weapon');
+  assertEnumKeys(content.kits, KITS, 'kit');
   const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
   // Identifier and iteration order are part of the recorded contract, so both are derived from the
   // roster's own order rather than from anything that could reorder independently of it.
@@ -105,8 +108,8 @@ export function changeSeat(s: Game, id: PlayerId, role: Role, kit?: Kit): Player
     resetInput(from); delete from.viewLagTicks; delete from.route;
     to.id = id; to.name = name; to.bot = false;
     resetInput(to); delete to.viewLagTicks; clearRoute(to);
+    indexRoster(s.players, true);
   }
-  indexRoster(s.players, true);
   if (kit !== undefined && Object.hasOwn(s.content.kits, kit)) to.kit = kit;
   return to;
 }

@@ -61,10 +61,10 @@ export function prepareHooks(s: Game): void {
   if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase === 'flying') {
+      const caster = playerById(s, hook.caster);
       if (s.tick - hook.startedTick >= tuning.durationTicks ||
         r.world.getGeneration(actor(hook.caster)) !== hook.generationA ||
-        playerById(s, hook.caster)?.status !== 'active' ||
-        playerById(s, hook.caster)?.kit !== 'hook') remove(s, hook);
+        caster?.status !== 'active' || caster.kit !== 'hook') remove(s, hook);
       continue;
     }
     const pair = endpoints(s, hook);
@@ -145,9 +145,9 @@ export function reconcileHooks(s: Game): void {
   if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase === 'flying') {
+      const caster = playerById(s, hook.caster);
       if (r.world.getGeneration(actor(hook.caster)) !== hook.generationA ||
-        playerById(s, hook.caster)?.status !== 'active' ||
-        playerById(s, hook.caster)?.kit !== 'hook') remove(s, hook);
+        caster?.status !== 'active' || caster.kit !== 'hook') remove(s, hook);
     } else if (!endpoints(s, hook) || hook.phase === 'pulling' && !r.world.hasConstraint(hook.id)) remove(s, hook);
   }
   r.world.commitMutations();
