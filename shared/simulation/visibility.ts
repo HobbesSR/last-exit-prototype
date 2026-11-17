@@ -42,9 +42,10 @@ export function visiblePoint(s: Game, viewer: Vec2, target: Vec2): boolean {
 // private (inventory, ability timers, whether a slot is a bot) or unread by the renderer, so it never
 // leaves the server for anyone but the player it describes. Recordings keep the full state.
 export const OBSERVED = ['heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
-export const observed = (p: Player<ItemKey>, playerIdx?: PlayerIdx) => ({
+// `posed` false leaves out the pose an actor's body already carries (24.4), rather than copying it out again.
+export const observed = (p: Player<ItemKey>, playerIdx?: PlayerIdx, posed = true) => ({
   ...(playerIdx !== undefined ? { playerIdx } : {}),
-  ...Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]])), x: p.x, y: p.y,
+  ...Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]])), ...(posed ? { x: p.x, y: p.y } : {}),
 });
 // Cached per source record and per mapping (#1164), so keyed IDs are mapped once per record, not per view.
 const itemCache = (wire: WireIds) => wireCache<GroundItem, Projected<GroundItem>>(wire, 'projectedItem');
@@ -99,8 +100,8 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   const items = viewer ? framedItems(s, ground, viewer, POTENTIAL, inRange) : ground;
   const projectedItems = itemCache(wire);
   const projectPlayer = (p: Player & { playerIdx: PlayerIdx }, own = false) => {
-    const record = own ? ownPlayerFields(p, discovery, heard, p.playerIdx, wire) : observed(p, p.playerIdx);
-    return relations.byActor(p.playerIdx) ? omitPose(record) : record;
+    const posed = !relations.byActor(p.playerIdx);
+    return own ? ownPlayerFields(p, discovery, heard, p.playerIdx, wire, posed) : observed(p, p.playerIdx, posed);
   };
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.playerIdx)), items, inRange, wire) : {}),

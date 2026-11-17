@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { waitingYard } from '../shared/waiting-yard.ts';
-import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView } from '../shared/simulation/waiting.ts';
+import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats } from '../shared/simulation/waiting.ts';
 import { canOccupy } from '../shared/movement.ts';
 
 const frames = peer => peer.messages.filter(m => m.type === 'state').map(m => m.state);
@@ -222,4 +222,29 @@ test('position continuity against obstacles uses actual physics radius (#975 rev
   } finally {
     w.dispose();
   }
+});
+
+test('waiting slots last for the yard: a leaver leaves a gap and the next arrival takes the lowest free slot', async () => {
+  const w = createWaiting(waitingYard());
+  await w.ready;
+  try {
+    for (const id of ['a', 'b', 'c']) enterWaiting(w, id, 'contestant', 'warden', id.toUpperCase());
+    leaveWaiting(w, 'b');
+    const slots = () => Object.fromEntries(waitingSeats(w).map(s => [s.id, s.playerIdx]));
+    assert.deepEqual(slots(), { a: 0, c: 2 }, 'c keeps its slot in the roster');
+    assert.equal(waitingSeats(w), waitingSeats(w), 'an unchanged yard hands out the same roster, so its seats message is reused');
+    const view = waitingView(w, 'a');
+    assert.deepEqual(view.players.map(p => p.playerIdx), [2]);
+    const body = id => waitingView(w, 'c').bodies.find(b => b.owner.playerIdx === id);
+    assert.ok(body(0) && body(2) && !body(1), 'bodies are owned by the stable slots');
+    assert.equal(waitingView(w, 'c').self.playerIdx, 2);
+    const before = waitingSeats(w);
+    changeWaiting(w, 'c', 'gladiator', 'striker'); enterWaiting(w, 'a', 'contestant', 'warden', 'A');
+    assert.notEqual(waitingSeats(w), before, 'a change builds a new roster');
+    assert.equal(waitingSeats(w).find(s => s.id === 'c').role, 'gladiator');
+    assert.deepEqual(slots(), { a: 0, c: 2 }, 'a role change or resume keeps the slot');
+    enterWaiting(w, 'd', 'contestant', 'warden', 'D');
+    assert.deepEqual(slots(), { a: 0, d: 1, c: 2 }, 'the newcomer takes the freed slot');
+    assert.deepEqual(waitingSeats(w).map(s => s.playerIdx), [0, 1, 2], 'the roster is ordered by slot');
+  } finally { w.dispose(); }
 });

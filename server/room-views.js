@@ -1,4 +1,4 @@
-import { seatMetadata } from '../shared/simulation/relations.ts';
+import { waitingSeats } from '../shared/simulation/waiting.ts';
 import { zoneSizeName } from '../map/live.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
@@ -34,7 +34,7 @@ function deliverSeats(session, json) {
   return true;
 }
 export function broadcastWaiting(room, view) {
-  const roster = seatsPayload(seatMetadata(room.waiting));
+  const roster = seatsPayload(waitingSeats(room.waiting));
   for (const session of room.clients) if (session.playerId) { if (!deliverSeats(session, roster)) continue; session.deliver(JSON.stringify(stateMessage(view(room.waiting, session.playerId))), true); }
 }
 export function spectatorFrame(room) {

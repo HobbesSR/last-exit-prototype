@@ -41,8 +41,12 @@ const projection = (fields: string, ids?: Readonly<Record<string, WireIdDomain>>
 // Exported so a wire schema reads its field lists from these declarations, not a second list (24.1).
 export const FRAME_FIELDS = 'version duration cellChargeTicks tick phase hazardX slots';
 export const frameFields = projection(FRAME_FIELDS);
-export const OWN_FIELDS = 'x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered';
+/** The viewer's own fields apart from the pose, which an actor with a body carries there only (24.4). */
+export const OWN_STATE_FIELDS = 'hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered';
+export const OWN_FIELDS = `x y ${OWN_STATE_FIELDS}`;
 const ownFields = projection(OWN_FIELDS);
+// An actor with a body carries its pose there only (24.4): built without it rather than copied again (#1163).
+const ownFieldsWithoutPose = projection(OWN_STATE_FIELDS);
 export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family';
 export const itemFields = projection(ITEM_FIELDS, WIRE_ID_FIELDS.item);
 export const GATE_FIELDS = 'gateIdx open locked';
@@ -92,8 +96,8 @@ export function physicsHookFlightFields({ id, a, casterIdx, x, y }: import('../p
   mapIds(result as unknown as Record<string, unknown>, FLIGHT_IDS, wire);
   return result;
 }
-export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[], playerIdx?: PlayerIdx, wire: WireIds = IDENTITY): Projected<Player<I>> {
-  const result = ownFields(player);
+export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[], playerIdx?: PlayerIdx, wire: WireIds = IDENTITY, posed = true): Projected<Player<I>> {
+  const result = (posed ? ownFields : ownFieldsWithoutPose)(player);
   if (playerIdx !== undefined) result.playerIdx = playerIdx;
   // Carried items are projected through the same item contract; both sides are wire records.
   if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item, wire) : item) as Inventory<I>;

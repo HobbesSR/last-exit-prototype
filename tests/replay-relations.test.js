@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createFrameNormalizer, bodyRelations, compactItems, hydrateFrame } from '../shared/relational-frame.ts';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { createPhysicsPrediction } from '../public/physics-prediction.js';
+import { createSnapshotBuffer } from '../public/snapshot-buffer.js';
 import { openArea } from './helpers/arena.js';
 
 const shape = { kind: 'circle', radius: 10 };
@@ -98,5 +99,52 @@ test('prediction resolves actor slot zero and keeps numeric body references acro
       predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4 } });
     assert.equal(prediction.stats().reason, null);
     assert.ok(prediction.input({ seq: 0, tick: 2, x: 1, y: 0 }).x > 20);
+  } finally { prediction.dispose(); }
+});
+
+test('the client normalizer joins players across a gap in the seat roster', () => {
+  const seat = (playerIdx, id) => ({ playerIdx, id, name: id.toUpperCase(), role: 'contestant', kit: 'warden' });
+  const frames = createFrameNormalizer(map, [seat(0, 'a'), seat(2, 'c')]);
+  const out = frames.normalize({ tick: 1, players: [{ playerIdx: 2, x: 5, y: 5 }, { playerIdx: 0, x: 1, y: 1 }] });
+  assert.deepEqual(out.players.map(p => [p.playerIdx, p.id, p.name]), [[0, 'a', 'A'], [2, 'c', 'C']]);
+  frames.seats([seat(0, 'a'), seat(1, 'd'), seat(2, 'c')]);
+  const next = frames.normalize({ tick: 2, players: [{ playerIdx: 1, x: 2, y: 2 }, { playerIdx: 2, x: 5, y: 5 }] });
+  assert.deepEqual(next.players.map(p => [p.playerIdx, p.id]), [[1, 'd'], [2, 'c']]);
+  // A middle slot leaving keeps the length: the same frame object must still see the new roster.
+  const held = { tick: 3, players: [{ playerIdx: 1, x: 2, y: 2 }, { playerIdx: 2, x: 5, y: 5 }] };
+  assert.equal(frames.normalize(held).players[0].id, 'd');
+  frames.seats([seat(0, 'a'), seat(2, 'c')]);
+  assert.equal(frames.normalize(held).players[0].id, undefined, 'the departed slot no longer carries metadata');
+});
+
+const deepFreeze = value => { if (value && typeof value === 'object' && !Object.isFrozen(value)) { Object.freeze(value); Object.values(value).forEach(deepFreeze); } return value; };
+
+test('decoded frames, wire and replay shaped, survive the client pipeline frozen (shared records are never written)', async () => {
+  const seat = { playerIdx: 0, id: 'c0', name: 'Ada', role: 'contestant', kit: 'warden' };
+  const wire = tick => ({ tick, physicsProfile: 'P2', self: { playerIdx: 0, status: 'active', x: 20, y: 50, lastSeq: -1 },
+    players: [{ playerIdx: 1, status: 'active', x: 40, y: 50 }], items: [{ id: 8, kind: 'ammo', x: 10, y: 20 }], gates: [{ gateIdx: 0, open: tick > 1, locked: false }],
+    bodies: [actor(3, 0, 20 + tick), actor(4, 1, 40)], tethers: [{ id: 5, a: 4, b: 3 }], hookFlights: [{ id: 6, a: 4, casterIdx: 1, x: 30, y: 50 }], predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4 } });
+  const replay = tick => ({ tick, physicsProfile: 'P2', players: [{ id: 'c0', name: 'Ada', role: 'contestant', status: 'active', x: 1, y: 2 }],
+    items: [{ id: 'loot', x: 2, y: 3 }], gates: [{ id: 'door', open: true }],
+    bodies: [{ ...actor('actor:c0', 0, 10 + tick), owner: undefined, actorId: 'c0' }, { id: 'item:loot', kind: 'prop', itemId: 'loot', shape, x: 20, y: 30, angle: 0 }],
+    tethers: [{ id: 'hook:c0', a: 'actor:c0', b: 'item:loot' }], hookFlights: [{ id: 'flight', a: 'actor:c0', x: 15, y: 20 }] });
+  const roster = deepFreeze([seat, { ...seat, playerIdx: 1, id: 'c1', name: 'Bo' }]);
+  const frames = deepFreeze([wire(1), wire(2), wire(3)]), recorded = deepFreeze([replay(1), replay(2)]);
+
+  const normalizer = createFrameNormalizer(deepFreeze(structuredClone(map)), roster);
+  let now = 0;
+  const buffer = createSnapshotBuffer({ hz: 20, delayTicks: 1, clock: () => now });
+  const prediction = await createPhysicsPrediction(map, 'c0', { clock: () => 0 });
+  try {
+    for (const frame of frames) {
+      // The client hands the normalized frame on (public/room-connection.js), so that is what is frozen and passed.
+      const joined = deepFreeze(normalizer.normalize(frame));
+      normalizer.normalize(frame);
+      buffer.push(joined); now += 50; buffer.frame();
+      prediction.correct(joined);
+    }
+    const timeline = createReplayTimeline({ map: deepFreeze(structuredClone(map)), frames: recorded.map(state => ({ state })) });
+    for (const tick of [1, 1.5, 2]) timeline.at(tick);
+    for (const state of recorded) normalizer.normalize(state);
   } finally { prediction.dispose(); }
 });

@@ -34,7 +34,8 @@ with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
 `GameMap.{modules,nodes,routes,streets}`, `physics.{profile,settings,world.pending}`) while remaining
 compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
-([Schema 19](#schema-19-tick-stamped-input-1096)). This build still reads every schema from 10. Optional appearance
+([Schema 19](#schema-19-tick-stamped-input-1096)); schema 20 records the relational presentation
+([Schema 20](#schema-20-relational-presentation-1153)). This build still reads every schema from 10. Optional appearance
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 
@@ -268,10 +269,14 @@ reader reads both.
 
 A delta is a patch over the previous stored frame's state: `{"v":value}` replaces a value whole;
 `{"o":{key:patch},"k"?:[keys]}` changes these keys of an object, with `k` the full key order whenever the
-key set or order changed; `{"a":{"s"?,"d"?,"r"?}}` changes a list whose entries have unique ids (`id`, or
-`spec.id` for physics world bodies), setting entries whole, dropping ids, and giving the full id order only
+key set or order changed; `{"a":{"s"?,"d"?,"r"?}}` changes a list whose entries have unique keys, setting entries whole, dropping keys, and giving the full key order only
 when it is not the keyed-list default (`shared/keyed-list.ts`, the same rebuild the live wire's layers use,
-24); `{}` is unchanged. Entities are replaced whole, never field by field, and commands are never deltas.
+24); `{}` is unchanged. The key rule is fixed by the recording's header schema, never inferred from the entries: up to
+schema 19 an entry's key is `id`, or `spec.id` for physics world bodies; from schema 20 (`RELATIONAL_SCHEMA`) it is
+`playerIdx`, else `gateIdx`, else the older rule. The encoder is given the schema it writes and the reader takes it
+from the header (`recordKeyFor`), so an old file decodes under its own rule even if an entry carries a field a newer
+rule would prefer. A header with no schema reads as the oldest rule; a schema that is not a whole number is refused.
+Changing the rule again needs a new schema, or a new frame encoding. Entities are replaced whole, never field by field, and commands are never deltas.
 
 - **Base.** A delta's base is the previous stored frame, so a frame omitted under backpressure is never
   referenced, and no keyframe is forced after an omission. Every prefix of the archive is self-consistent.

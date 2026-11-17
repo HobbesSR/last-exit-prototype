@@ -96,7 +96,7 @@ export function createReplayWriter({ header, output, outputPath, publish, onErro
     // Preserve header order and compact JSON. No mutable caller-owned data crosses the boundary.
     const text = headerLine(header, keyframeEvery);
     headerBytes = Buffer.byteLength(text);
-    worker = new Worker(new URL('./replay-worker.js', import.meta.url), { workerData: { outputPath, gzipOptions, keyframeEvery } });
+    worker = new Worker(new URL('./replay-worker.js', import.meta.url), { workerData: { outputPath, gzipOptions, keyframeEvery, schema: header.schema } });
     worker.on('error', fail);
     worker.on('exit', code => { if (!workerDone && !failed) fail(new Error(`Replay worker exited before completion (${code})`)); });
     worker.on('message', message => {

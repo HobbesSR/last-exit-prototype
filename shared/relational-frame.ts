@@ -152,7 +152,10 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
   function seats(value: readonly object[] = EMPTY) {
     const next: Row[] = [];
     rows(value).forEach((p, i) => { const idx = p.playerIdx ?? i; next[idx] = metadata(p, idx); if (p.id != null) labels.set(p.id, idx); });
-    if (next.length !== roster.length || next.some((p, i) => p !== roster[i])) revision++;
+    // A dense walk: a yard roster has holes where people left (24.4), and `some` would skip them.
+    let changed = next.length !== roster.length;
+    for (let i = 0; !changed && i < next.length; i++) changed = next[i] !== roster[i];
+    if (changed) revision++;
     roster = next;
   }
   seats(initialRoster);
