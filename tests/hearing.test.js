@@ -1,6 +1,7 @@
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
+import { disposePhysics, step, snapshot, } from '../shared/simulation.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { heardBy } from '../shared/simulation/hearing.ts';
 import { contentById } from '../shared/simulation/content.ts';

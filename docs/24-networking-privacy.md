@@ -6,7 +6,7 @@ Accepted encoding direction and candidate field precision (#1093) are in
 work; the live protocol below remains JSON. The proposed lossy-transport delta design (#1094)
 is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data model of the
 live state, and the engine-side choices that shape a typed wire, are in
-[24.3](24.3-wire-data-model.md) (proposed). The proposed relational data strategy,
+[24.3](24.3-wire-data-model.md) (historical inventory and remaining proposals). The implemented relational data strategy,
 static geometry split and structured localized event design (#1146) are in
 [24.4](24.4-relational-data-model.md).
 
@@ -106,7 +106,17 @@ The server is authoritative over what could become visible, not over what is vis
 
 Filtering is field-level as well: another player carries only what the renderer draws, while inventory counts, ability timers, bot status, and input bookkeeping stay with the player they belong to, and replay-only bookkeeping is never broadcast. Recordings keep the complete state; a live view is a projection of it and must never differ where the two overlap. Every consumer of the transmitted state applies the client side sight test, the minimap included, since a surface that skipped it would quietly become a wallhack. This is not a complete production anti-cheat system.
 
-`shared/simulation/projection-contract.ts` explicitly lists the live frame, own-player, equipment, gate, trap, projectile, effect and event fields. Source-key order and optional-field presence are retained for existing serialized output. Adding simulation bookkeeping now requires deliberate opt-in before it appears in those payloads. Other-player and own-player records carry the optional `seat` of a contestant (#792): the roster place the client draws identity hues from, which survives joining, takeover, reconnecting and callsign changes. It is a player field like any other, so it is in the frame, the snapshot and the recording, and a delayed view presents the seat the players held at that tick rather than whoever holds the place now. Gladiators and waiting-yard frames carry no seat; an older recording falls back to the roster bot id and then a callsign hash. Own-player projections carry authoritative map discovery (`discovered`) as a plain list (#275); room-views encodes it via keyframe-then-changes deltas for live delivery; other players and directed/spectator views never receive it, and recordings omit it since it is reconstructible by a pure fold. Own-player projections likewise carry heard gunfire (`heard`, #684, 15) as a plain list of `{ x, y, tick, until }` cues, present only while one lasts, so frames under other contents are unchanged; it is small and short-lived, so it is sent whole rather than as a layer, and it reaches no other view and no recording. Static welcome-map content still follows the prototype map contract, and permitted fields retain their current types: these lists are not a protocol migration framework or full schema validator.
+`shared/simulation/projection-contract.ts` explicitly lists the live frame, own-player, equipment, gate, trap, projectile, effect and event fields. Source-key order and optional-field presence are retained for existing serialized output. Adding simulation bookkeeping now requires deliberate opt-in before it appears in those payloads. Wire version 4 separates `self` from observed `players`, both keyed by numeric `playerIdx`.
+Seat metadata (`id`, `name`, `role`, `kit`, optional contestant `seat`) is delivered in the
+welcome/ready `roster` and reliable `seats` updates ahead of matching state. The selected
+captured frame supplies delayed-view metadata. Body poses are authoritative for active
+actors and physical items; bodyless players retain `x`/`y`. Static gate geometry stays in
+ordered `map.gates`; dynamic `state.gates` holds only `gateIdx`, `open`, `locked`.
+Numeric body owners and tether endpoints are filtered together, and shape omission is
+relative to the exact baseline generation. Structured events retain event-time names and
+use the shared formatter. See [24.4](24.4-relational-data-model.md) for these contracts.
+
+Own-player projections carry authoritative map discovery (`discovered`) as a plain list (#275); room-views encodes it via keyframe-then-changes deltas for live delivery; other players and directed/spectator views never receive it, and recordings omit it since it is reconstructible by a pure fold. Own-player projections likewise carry heard gunfire (`heard`, #684, 15) as a plain list of `{ x, y, tick, until }` cues, present only while one lasts, so frames under other contents are unchanged; it is small and short-lived, so it is sent whole rather than as a layer, and it reaches no other view and no recording. Static welcome-map content still follows the prototype map contract, and permitted fields retain their current types: these lists are not a protocol migration framework or full schema validator.
 
 ## Viewers and spectators
 

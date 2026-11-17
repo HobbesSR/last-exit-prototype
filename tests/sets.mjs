@@ -46,7 +46,7 @@ export const SETS = {
       'utility-use', 'hearing', 'hearing-bots', 'hunting', 'hunter-planning', 'discovery', 'visibility', 'view', 'view-items',
       'projection-contract', 'presentation', 'frame-gates', 'frame-layers', 'rewind', 'reloading', 'input-queue', 'input-clock',
       'movement-speed', 'movement-preparation', 'bot-discovery', 'bot-memory', 'navigation-knowledge', 'map-boundary', 'route', 'boundaries', 'arena', 'playability',
-      'shared-rules', 'content', 'enum-tables'],
+      'shared-rules', 'content', 'enum-tables', 'events', 'relational-projection'],
     slow: ['characterization-physics-bots', 'view-live-map', 'reloading'],
     browser: ['hearing', 'transit'],
     sources: ['shared/simulation*', 'shared/simulation/**', 'shared/movement.ts', 'shared/view.ts', 'shared/discovery.ts', 'shared/equipment.ts',

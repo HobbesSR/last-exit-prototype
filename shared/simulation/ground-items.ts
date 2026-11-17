@@ -11,7 +11,7 @@ const indexes = new WeakMap<readonly GroundItem[], Map<ItemId, number>>();
 /** Records by id, independent of positions: removing a pickup need not rebuild the ground for body ownership checks. */
 const records = new WeakMap<readonly GroundItem[], Map<ItemId, GroundItem>>();
 /** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
-const published = new WeakSet<readonly GroundItem<ItemKey>[]>();
+const published = new WeakSet<readonly object[]>();
 
 /** Only logical items awaiting a body, ordered by id; carried across the live list's copies. */
 interface Admission { admitted: ReadonlySet<string>; items: GroundItem[]; size: number }
@@ -345,7 +345,7 @@ function recordText(item: GroundItem<ItemKey>): string {
   return json;
 }
 
-/** Carry immutable-list serialization caching across the temporary legacy boundary. */
-export function shareItemPublication(source: readonly GroundItem[], adapted: readonly GroundItem<ItemKey>[]): void {
+/** Carry immutable-list serialization caching to body-pose-free frame publications. */
+export function shareItemPublication(source: readonly GroundItem[], adapted: readonly object[]): void {
   if (published.has(source) || posed.has(source)) published.add(adapted);
 }

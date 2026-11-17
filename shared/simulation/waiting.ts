@@ -7,10 +7,11 @@ import { ownPlayerFields, physicsBodyFields } from './projection-contract.ts';
 import { defaultContent } from './content.ts';
 import { characterMotor } from './actor-physics.ts';
 import { buildPhysicsGeometry } from './physics-geometry.ts';
+import { PhysicsIdentities } from './physics-identities.ts';
 import { PHYSICS_VERSION } from './physics-runtime.ts';
 import { initRapier, isRapierInitialized, PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsBodyView } from '../physics/types.ts';
-import type { GameMap, Kit, Player, PlayerId, PlayerInput, Role, Tick } from '../types.ts';
+import type { GameMap, Kit, Player, PlayerId, PlayerIdx, PlayerInput, Role, Tick } from '../types.ts';
 
 /**
  * Where people wait before a match starts (#236, 22.5): a small simulation of its own that the room runs
@@ -35,6 +36,7 @@ export interface Waiting {
   /** How many have arrived so far, which picks the next arrival point. */
   arrivals: number;
   world: PhysicsWorld | null;
+  identities: PhysicsIdentities;
   discontinuities: Set<string>;
   ready: Promise<void>;
   disposed: boolean;
@@ -48,6 +50,7 @@ export function createWaiting(map: WaitingMap): Waiting {
     players: [],
     arrivals: 0,
     world: null,
+    identities: new PhysicsIdentities(),
     discontinuities: new Set(),
     ready: null!,
     disposed: false,
@@ -201,19 +204,20 @@ export function stepWaiting(w: Waiting): void {
  */
 export function waitingView(w: Waiting, id: PlayerId) {
   const viewer = w.players.find(p => p.id === id);
-  const actors = new Map(w.players.map(p => [`actor:${p.id}`, p.id]));
+  const actors = new Map(w.players.map((p, i) => [`actor:${p.id}`, i as PlayerIdx]));
   const bodies: PhysicsBodyView[] = (w.world && !w.disposed ? w.world.snapshot({ includeStatic: false }).bodies : [])
     .filter(b => b.spec.kind === 'actor' && actors.has(b.spec.id))
     .map(b => physicsBodyFields({
-      id: b.spec.id,
+      id: w.identities.body(w.world!.bodyLifetime(b.spec.id)!),
       kind: 'actor',
       shape: b.spec.shape,
       ...b.transform,
       generation: b.generation,
-      actorId: actors.get(b.spec.id)!,
+      owner: { kind: 'actor', playerIdx: actors.get(b.spec.id)! },
       ...(w.discontinuities.has(b.spec.id) ? { discontinuity: 'placed' as const } : {})
     }, b.spec.id === `actor:${id}`));
 
+  const stripPose = <T extends object>(record: T) => { const { x, y, ...rest } = record as T & { x?: number; y?: number }; return rest; };
   return {
     tick: w.tick,
     phase: 'waiting' as const,
@@ -228,7 +232,8 @@ export function waitingView(w: Waiting, id: PlayerId) {
         surfaces: true,
       }
     } : {}),
-    players: w.players.map(p => p.id === id ? ownPlayerFields(p) : observed(p)),
+    ...(viewer ? { self: stripPose(ownPlayerFields(viewer, undefined, undefined, w.players.indexOf(viewer) as PlayerIdx)) } : {}),
+    players: w.players.flatMap((p, i) => p.id === id ? [] : [stripPose(observed(p, i as PlayerIdx))]),
     items: [],
     gates: [],
     traps: [],

@@ -1,6 +1,7 @@
+import { renderedPlayerView as playerView, renderedSnapshot } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, playerView } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectAmmo, collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
 import { registerItemLabel } from '../shared/item-instances.ts';
@@ -244,12 +245,12 @@ test('the owner sees reserves and reload progress; other players and older conte
   tick(s, p, { reload: true });
   const frame = snapshot(s), own = playerView(s, frame, p.id), other = playerView(s, frame, q.id);
   assert.deepEqual(own.players.find(r => r.id === p.id).reserves, { pistol: 9, rifle: 0, shell: 0 });
-  assert.equal(own.players.find(r => r.id === p.id).reload.instanceId, 'gun');
+  assert.equal(own.players.find(r => r.id === p.id).reload.instanceId, itemId(s, 'gun'));
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
   // Ground ammo keeps its family on the live wire, as in recorded frames.
   s.map.items = [...s.map.items, { id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y }];
-  const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === 'box');
+  const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === itemId(s, 'box'));
   assert.equal(box.family, 'shell');
   const plain = createGameRecord(17, arena(), content('content-7'));
   assert.equal(Object.hasOwn(snapshot(plain).players[0], 'reserves'), false);
@@ -281,12 +282,12 @@ test('current recordings keep reserves, reloads and ammo pickups exactly through
   for (let i = 0; i < 20; i++) step(s);
   retain();
   tick(s, p, { dropAmmo: { family: 'pistol', count: 8 } }); retain();
-  assert.deepEqual([frames[1].players[0].reload.instanceId, frames[2].players[0].inventory[0].ammo, frames[3].players[0].reserves.pistol], ['gun', 12, 12]);
+  assert.deepEqual([frames[1].players[0].reload.instanceId, frames[2].players[0].inventory[0].ammo, frames[3].players[0].reserves.pistol], [itemId(s, 'gun'), 12, 12]);
   assert.deepEqual(frames[3].items.map(item => [item.kind, item.family, item.count]), [['ammo', 'pistol', 8]]);
   await writer.finish({ ticks: s.tick, escaped: 0 });
   const archive = readArchive(chunks);
   assert.equal(recordingFit(archive), 'ok');
   assert.deepEqual(archive.frames.map(frame => frame.state), frames);
   const timeline = createReplayTimeline(archive);
-  for (const at of [3, 0, 2, 1, 3]) assert.deepEqual(timeline.at(frames[at].tick).state, frames[at]);
+  for (const at of [3, 0, 2, 1, 3]) assert.deepEqual(timeline.at(frames[at].tick).state, renderedSnapshot(s.map, frames[at]));
 });

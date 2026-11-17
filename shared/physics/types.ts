@@ -39,17 +39,19 @@ export type PhysicsSnapshot = {
 
 /** Engine-free display/correction values. Observed actor projections omit optional motion/sleep.
  * No motors, forces, pending commands or backend settings. */
-export type PhysicsBodyView = Pick<Transform, 'x' | 'y' | 'angle'> & Partial<Pick<Transform, 'vx' | 'vy' | 'omega' | 'sleeping'>> & {
+export type LegacyPhysicsBodyView = Pick<Transform, 'x' | 'y' | 'angle'> & Partial<Pick<Transform, 'vx' | 'vy' | 'omega' | 'sleeping'>> & {
   id: string; kind: 'actor' | 'prop'; shape: BodyShape; generation: number;
   actorId?: string; itemId?: string | number; discontinuity?: 'placed';
 };
-export type PhysicsTetherView = { id: string; a: string; b: string };
+export type LegacyPhysicsTetherView = { id: string; a: string; b: string };
 
-/** Internal CP1 presentation. The temporary adapter retains the legacy outward fields. */
+/** Match-scoped numeric presentation relations (wire v4 / recording schema 20). */
 export type PhysicsBodyOwner = { kind: 'actor'; playerIdx: PlayerIdx }
   | { kind: 'item'; itemId: ItemId } | { kind: 'prop'; propId: PropId };
-export type NumericPhysicsBody = Omit<PhysicsBodyView, 'id' | 'actorId' | 'itemId'> & Transform & { id: BodyId; owner: PhysicsBodyOwner };
-export type NumericPhysicsTether = { id: TetherId; a: BodyId; b: BodyId };
+export type PhysicsBodyView = Omit<LegacyPhysicsBodyView, 'id' | 'actorId' | 'itemId'> & { id: BodyId; owner: PhysicsBodyOwner };
+export type NumericPhysicsBody = PhysicsBodyView & Transform;
+export type PhysicsTetherView = { id: TetherId; a: BodyId; b: BodyId };
+export type NumericPhysicsTether = PhysicsTetherView;
 export type NumericHookFlight = { id: TetherId; a: BodyId; casterIdx: PlayerIdx; x: number; y: number };
 
 /** Private, engine-free authoritative state. This is not a backend continuation checkpoint. */

@@ -1,4 +1,4 @@
-import type { Game, Gate } from '../types.ts';
+import type { Game, Gate, GateState } from '../types.ts';
 
 // Gates follow the shared-frame model (#655 stage 2, 22.1 "Frames") from the frame's side. Rules and tests open,
 // close and unlock live gates in place, and physics pins the live list, so a frame cannot hold the live records.
@@ -10,7 +10,7 @@ const copies = new WeakMap<Gate, Gate>();
 /** The last frame list made from each live list. */
 const frames = new WeakMap<readonly Gate[], readonly Gate[]>();
 /** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
-const published = new WeakSet<readonly Gate[]>();
+const published = new WeakSet<readonly (Gate | GateState)[]>();
 
 /** Each copy's keys, read once: a copy is frozen. */
 const copyKeys = new WeakMap<Gate, string[]>();
@@ -46,18 +46,21 @@ export function publishGates(s: Game): readonly Gate[] {
 /** Whether `list` is one `publishGates` made, which never changes. */
 export const publishedGates = (list: readonly Gate[]): boolean => published.has(list);
 
-const listJson = new WeakMap<readonly Gate[], string>(), recordJson = new WeakMap<Gate, string>();
+const listJson = new WeakMap<readonly (Gate | GateState)[], string>(), recordJson = new WeakMap<Gate | GateState, string>();
 
 /** `JSON.stringify(list)`, kept per published list and per copy, since neither changes once made. Any other list is serialized whole. */
-export function gatesJson(list: readonly Gate[]): string {
+export function gatesJson(list: readonly (Gate | GateState)[]): string {
   if (!published.has(list)) return JSON.stringify(list);
   let json = listJson.get(list);
   if (json === undefined) listJson.set(list, json = `[${list.map(recordText).join(',')}]`);
   return json;
 }
 
-function recordText(gate: Gate): string {
+function recordText(gate: Gate | GateState): string {
   let json = recordJson.get(gate);
   if (json === undefined) recordJson.set(gate, json = JSON.stringify(gate));
   return json;
 }
+
+/** Dynamic-only frame lists share the immutable publication's serialization caching. */
+export function shareGatePublication(list: readonly GateState[]): void { published.add(list); }

@@ -1,6 +1,7 @@
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, step, snapshot, } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { createMatch } from '../server/match.js';
 import { generatedMap } from './helpers/room-harness.js';
@@ -160,12 +161,12 @@ test('discovery is stable under a pure fold over recorded frames', async () => {
     assert.ok(contestant && contestant.discovery);
 
     const frames = [];
-    frames.push({ tick: s.tick, gates: s.map.gates, players: snapshot(s).players });
+    frames.push(snapshot(s));
 
     // Advance simulation for 30 ticks to trigger multiple discovery cycles
     for (let i = 0; i < 30; i++) {
       step(s);
-      frames.push({ tick: s.tick, gates: s.map.gates, players: snapshot(s).players });
+      frames.push(snapshot(s));
     }
 
     const liveDiscovered = new Set(contestant.discovery.discovered);
@@ -271,7 +272,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
           shouldDrop = false;
           return false; // simulate websocket backpressure drop
         }
-        delivered.push(JSON.parse(payload));
+        const message = JSON.parse(payload); if (message.type !== 'seats') delivered.push(message);
         return true;
       }
     };
@@ -296,7 +297,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     broadcast(room, match.snapshot());
     assert.equal(delivered.length, 1, 'subsequent frame delivered');
     const firstFrame = delivered[0].state;
-    const me0 = firstFrame.players.find(p => p.id === c0.id);
+    const me0 = firstFrame.self;
     assert.ok(me0.discovered?.all, 'session that missed keyframe must be sent all');
     decoder.decode(me0.discovered);
     assert.deepEqual(decoder.known, c0.discovery.discovered);
@@ -318,7 +319,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     broadcast(room, match.snapshot());
     assert.equal(delivered.length, 2, 'subsequent frame delivered');
     const catchupFrame = delivered[1].state;
-    const meCatchup = catchupFrame.players.find(p => p.id === c0.id);
+    const meCatchup = catchupFrame.self;
     // Changes are measured cumulatively against keyframe baseline, so no cells are lost
     assert.ok(c0.discovery.discovered.size > discoveredAtStart, 'c0 discovered new cells across the advances');
     decoder.decode(meCatchup.discovered);
@@ -332,7 +333,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     broadcast(room, match.snapshot());
     assert.equal(delivered.length, 3);
     const batchFrame = delivered[2].state;
-    const meBatch = batchFrame.players.find(p => p.id === c0.id);
+    const meBatch = batchFrame.self;
     decoder.decode(meBatch.discovered);
     assert.deepEqual(decoder.known, c0.discovery.discovered, 'client decoder matches after catch-up batch');
   } finally { match.dispose(); }

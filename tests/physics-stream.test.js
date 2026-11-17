@@ -16,6 +16,7 @@ function watcher(room) {
   const session = { dev: true, layerKeys: {}, deliver(payload, droppable) {
     if (skip && droppable) return false;
     const message = JSON.parse(payload);
+    if (message.type === 'seats') return true;
     wire.push(structuredClone(message.state));
     received.push(decoder.decode(message.state));
     return true;
@@ -26,7 +27,7 @@ function watcher(room) {
 
 function roomAt(initial) {
   const room = { clients: new Set(), history: [], ...viewEncoders(),
-    match: { tick: initial.tick, snapshot: () => initial, project: state => state } };
+    match: { seatMetadata: () => [], tick: initial.tick, snapshot: () => initial, project: state => state } };
   return { room, send(state) { room.match.tick = state.tick; remember(room, state); broadcast(room, state); } };
 }
 

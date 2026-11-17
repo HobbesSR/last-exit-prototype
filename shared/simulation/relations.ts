@@ -51,3 +51,9 @@ export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Pla
   const idx = playerSlot(s, id);
   return idx === undefined ? undefined : s.players[idx];
 }
+
+/** Public seat labels are sent out of band; callers may supply a historical captured roster. */
+export function seatMetadata(s: { players: readonly Pick<Player, 'id' | 'name' | 'role' | 'kit' | 'seat'>[] }) {
+  return s.players.map((p, i) => ({ playerIdx: i as PlayerIdx, id: p.id, name: p.name, role: p.role, kit: p.kit,
+    ...(p.seat !== undefined ? { seat: p.seat } : {}) }));
+}

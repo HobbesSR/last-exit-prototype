@@ -50,7 +50,7 @@ test('reload identities validate before normalization mutates records and join t
     initializeItemInstances(s);
     assert.equal(typeof p.reload.instanceId, 'number');
     assert.equal(p.reload.instanceId, itemIdForLabel(s, label));
-    assert.equal(snapshot(s).players[0].reload.instanceId, label);
+    assert.equal(snapshot(s).players[0].reload.instanceId, p.reload.instanceId);
     assert.ok(allocateItemId(s) > p.reload.instanceId);
   }
 });

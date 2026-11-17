@@ -21,6 +21,6 @@ test('unlisted internal fields stay out of own, other-player and directed frame 
     assert.equal(view.events[0].text, 'Visible message'); assert.equal(view.items[0].charge, 100);
     assert.equal(view.projectiles[0].damage, 2);
   }
-  assert.equal(playerView(game, frame, me.id).players[0].inventory[0].ammo, 7);
+  assert.equal(playerView(game, frame, me.id).self.inventory[0].ammo, 7);
   assert.equal(frame.players[0].serverSecret, 'private', 'projection does not edit recorded state');
 });

@@ -8,7 +8,7 @@ Closed vocabularies are literal unions rather than `string`, and carried items a
 
 The relational migration ([24.4](24.4-relational-data-model.md), #1147) introduces
 zero-cost numeric brands `PlayerIdx` and `GateIdx` for dense match-local array slots.
-Legacy string IDs still serve the external boundary. The item portion (#1150) uses numeric `ItemId` for ground items, inventory identities/lineage, reloads, discovery and item launch associations. `GameMap<ItemLabel>` describes artifact input, `Game.map` holds `GameMap<ItemId>`, and `Snapshot` defaults to the legacy label type; generic item/player records keep these boundaries checked. The temporary adapter preserves labels and immutable frame sharing without allowing string IDs in live item lookups.
+Connection and map-artifact labels remain strings; projected relations are numeric. The item portion (#1150) uses numeric `ItemId` for ground items, inventory identities/lineage, reloads, discovery and item launch associations. `GameMap<ItemLabel>` describes artifact input, `Game.map` holds `GameMap<ItemId>`, and `Snapshot` defaults to numeric `ItemId`; generic item/player records keep these boundaries checked. Immutable publications preserve frame sharing without converting numeric records to legacy labels.
 `shared/enum-tables.ts` declares frozen vocabulary order explicitly; content display
 descriptors and equipped weapon codes use that order rather than object insertion order.
 
@@ -20,12 +20,12 @@ The player/gate slice (#1151) uses `PlayerIdx` for hooks, dense rewind history,
 tick intents and bot scheduling. Runtime `HookState` is distinct from captured
 `LegacyHookState`; the physics capture adapter preserves legacy labels/order.
 Gate physics state is indexed by canonical `GateIdx`, even when native body
-admission traverses those slots in legacy label order. No outward schema changes.
+admission traverses those slots in legacy label order. The outward switch is implemented by #1153.
 
 The body/prop/tether slice (#1152) adds numeric `BodyId`, `PropId` and `TetherId`.
 Internal presentation bodies use a discriminated `PhysicsBodyOwner` union, keeping
 player slots, item identities and prop identities in separate domains. Body IDs key
 opaque admission lifetimes rather than generations; hook tether IDs follow logical
-flight lifetimes across backend constraint replacement. The legacy presentation and
-private physics-state adapters keep these types off snapshots, live views and recordings
-until Checkpoint 2 ([24.4](24.4-relational-data-model.md)).
+flight lifetimes across backend constraint replacement. Snapshots, live views and recordings now use these numeric presentation types.
+Private PhysicsWorld state retains deterministic string keys; legacy archives are
+normalized only by the playback display boundary in Checkpoint 2 ([24.4](24.4-relational-data-model.md)).

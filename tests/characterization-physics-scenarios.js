@@ -37,13 +37,14 @@ function mapOf(arena) {
 }
 
 /** One whole bot match: a digest per 100 ticks over every snapshot and three projections. */
-export async function botTrace(seed, arena) {
+export async function botTrace(seed, arena, observe = () => {}) {
   const s = await createGame(seed, mapOf(arena), content()), chunks = [];
   try {
     let digest = createHash('sha256');
     while (s.phase === 'live') {
       step(s);
       const frame = snapshot(s);
+      observe(s, frame);
       // Every authoritative field, the private engine state included, on every tick.
       digest.update(JSON.stringify(frame));
       for (const id of VIEWERS) digest.update(JSON.stringify(playerView(s, frame, id)));
@@ -76,7 +77,7 @@ function place(s, p, target, fits = () => true) {
  * deaths, a respawn, the hook and a hunter's ability, transit, extraction and completion. Every other
  * player stands still, and the arena's loot and traps are cleared so only the script acts.
  */
-export async function scriptedTrace(arena) {
+export async function scriptedTrace(arena, observe = () => {}) {
   const s = await createGame(4217, mapOf(arena), content()), frames = [];
   try {
     const p = joinGame(s, 'human', 'contestant', 'warden', 'Characterization');
@@ -90,6 +91,7 @@ export async function scriptedTrace(arena) {
     const g = s.players.find(q => q.role === 'gladiator' && q !== hunter);
     const capture = label => {
       const frame = snapshot(s);
+      observe(s, frame);
       frames.push({ label, frame, views: ['human', rival.id, g.id, 'spectator'].map(id => playerView(s, frame, id)) });
     };
     const press = (who, values) => { setInput(s, who.id, { seq: who.lastSeq + 1, ...values }); step(s); };

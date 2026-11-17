@@ -47,17 +47,17 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
     assert.equal(view.predictionMotor.maxSpeed, 600);
     assert.equal(view.predictionMotor.surfaces, true);
     assert.equal(view.bodies.length, 2);
-    const ownBody = view.bodies.find(b => b.actorId === 'b');
+    const ownBody = view.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1);
     assert.ok(ownBody);
     assert.equal(typeof ownBody.vx, 'number');
     assert.equal(typeof ownBody.vy, 'number');
-    const otherBody = view.bodies.find(b => b.actorId === 'a');
+    const otherBody = view.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 0);
     assert.ok(otherBody);
     assert.equal(otherBody.vx, undefined);
 
-    assert.deepEqual(view.players.map(p => p.id), ['a', 'b']);
+    assert.deepEqual(view.players.map(p => p.playerIdx), [0]);
     assert.equal(view.players[0].inputQueue, undefined, 'others are described as a match describes them');
-    assert.equal(view.players[1].lastSeq, -1, 'the viewer gets their own fields');
+    assert.equal(view.self.lastSeq, -1, 'the viewer gets their own fields');
     leaveWaiting(w, 'a');
     assert.deepEqual(w.players.map(p => p.id), ['b']);
     const viewAfterLeave = waitingView(w, 'b');

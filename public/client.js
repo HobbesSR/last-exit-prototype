@@ -204,6 +204,7 @@ function acceptState(next) {
   state = next;
   if (!replayController.active()) snapshots.push(next);
   if (!arenaMap) return;
+  // The normalized frame joins dynamic slots to the retained map geometry.
   arenaMap.gates = state.gates;
   refreshDevRoster();
   const own = me();

@@ -2,12 +2,12 @@ import { canOccupy } from '../movement.ts';
 import { syncWeapon } from '../equipment.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { RESPAWN_CLEARANCE_RADIUS, RESPAWN_CONTESTANT_DISTANCE, RESPAWN_HAZARD_MARGIN } from './rules.ts';
-import { event, effect, dropInventorySlot } from './loot.ts';
+import { event, participant, effect, dropInventorySlot } from './loot.ts';
 import { dropReserves } from './ammo.ts';
 import type { Game, Player } from '../types.ts';
 
 export function eliminate(s: Game, target: Player, source: Player | null): void {
-  target.status = 'eliminated'; event(s, `${target.name} ${source ? 'eliminated by ' + source.name : 'lost to the arena'}`);
+  target.status = 'eliminated'; event(s, { kind: 'eliminated', target: participant(s, target), ...(source ? { source: participant(s, source) } : {}) });
   target.charging = null;
   if (target.role === 'gladiator') { target.status = 'respawning'; target.respawnAt = s.tick + s.content.gladiatorRespawnTicks; target.input = {}; }
   // A mandatory drop refuses only an entry no ground record can represent; that one is cleared
@@ -25,11 +25,11 @@ export function respawn(s: Game, p: Player): void {
     const candidates = s.map.stations.filter(st => st.x > s.hazardX + RESPAWN_HAZARD_MARGIN && canOccupy(s.map, st.x, st.y, RESPAWN_CLEARANCE_RADIUS)
       && s.players.every(other => other.role !== 'contestant' || other.status !== 'active' || distance(other, st) > RESPAWN_CONTESTANT_DISTANCE));
     const station = candidates.sort((a, b) => a.x - b.x)[0];
-    if (station) { p.x = station.x; p.y = station.y; p.hp = p.maxHp; p.shield = 0; p.status = 'active'; p.respawnAt = null; p.input = {}; p.inputTick = s.tick; clearRoute(p); p.cooldown = 0; p.attackCd = 0; p.stun = 0; p.boost = 0; p.railCd = 0; event(s, `${p.name} returned to the hunt`); }
+    if (station) { p.x = station.x; p.y = station.y; p.hp = p.maxHp; p.shield = 0; p.status = 'active'; p.respawnAt = null; p.input = {}; p.inputTick = s.tick; clearRoute(p); p.cooldown = 0; p.attackCd = 0; p.stun = 0; p.boost = 0; p.railCd = 0; event(s, { kind: 'respawned', actor: participant(s, p) }); }
   }
 }
 export function finishMatch(s: Game): void {
   if (s.slots === 0 || !s.players.some(p => p.role === 'contestant' && p.status === 'active') || s.tick >= s.content.durationTicks) {
-    s.phase = 'finished'; for (const p of s.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded'; event(s, 'Broadcast complete');
+    s.phase = 'finished'; for (const p of s.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded'; event(s, { kind: 'match_finished' });
   }
 }

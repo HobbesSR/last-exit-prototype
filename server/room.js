@@ -1,3 +1,4 @@
+import { seatMetadata } from '../shared/simulation/relations.ts';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { DEFAULT_KIT, HZ, ROLES } from '../shared/simulation/rules.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -242,12 +243,12 @@ export function createRoom({
    * which keeps the match map hidden (17.3 #15); anyone else sees nothing until the map exists.
    */
   function view(client) {
-    if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId) };
-    if (!state.match) return { map: null, state: null };
-    if (client.playerId) return { map: state.match.payloadMap('live'), state: state.match.project(state.match.snapshot(), client.playerId) };
+    if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: seatMetadata(state.waiting) };
+    if (!state.match) return { map: null, state: null, roster: state.seats.seatMetadata() };
+    if (client.playerId) { const frame = state.match.snapshot(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame) }; }
     // A spectator is shown the delayed frame; the dev view the present one.
     const frame = client.dev ? state.match.snapshot() : spectatorFrame(state);
-    return { map: state.match.payloadMap('spectator', frame), state: state.match.project(frame, null) };
+    return { map: state.match.payloadMap('spectator', frame), state: state.match.project(frame, null), roster: state.match.seatMetadata(frame) };
   }
 
   function replayStatus(status) {

@@ -54,6 +54,7 @@ test('every wire message and HTTP payload sent or handled in server/ or public/ 
     WELCOME: ['playerWelcomeMessage', 'spectatorWelcomeMessage', 'devWelcomeMessage'],
     READY: ['readyMessage'],
     STATE: ['stateMessage'],
+    SEATS: ['seatsMessage'],
     LOBBY: ['lobbyMessage'],
     CHOOSE: ['chooseReplyMessage'],
     TELEPORT: ['teleportReplyMessage'],

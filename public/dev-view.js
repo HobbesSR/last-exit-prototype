@@ -1,3 +1,4 @@
+import { createFrameNormalizer } from './relational-frame.js';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { CLIENT_MESSAGE, SERVER_MESSAGE } from '/shared/protocol.ts';
 import { envelopePresentation } from '/room-connection.js';
@@ -34,7 +35,7 @@ export function createDevView({
     if (savedCamera && savedCamera.roomId === getRoomId()) {
       director.restore(savedCamera.camera);
     }
-    show(); const layers = createLayerDecoder();
+    show(); const layers = createLayerDecoder(), frames = createFrameNormalizer();
     socket.addEventListener('open', () => socket.send(JSON.stringify({ type: CLIENT_MESSAGE.JOIN, room: getRoomId(), ownerKey: getOwnerKey(), mode: 'dev' })));
     socket.addEventListener('message', event => {
       if (feed !== socket) return;
@@ -43,10 +44,12 @@ export function createDevView({
         const described = envelopePresentation(data);
         if (!described) { toast('The dev view sent a match this browser cannot read.'); leave(); return; }
         presentation = described; roster = '';
+        frames.seats(data.roster); frames.setMap(data.map); data.state = frames.normalize(data.state);
         if (data.map) showMap(data.map, data.state);
         else presentationChanged();
       }
-      else if (data.type === SERVER_MESSAGE.STATE) { layers.decode(data.state); showState(data.state); }
+      else if (data.type === SERVER_MESSAGE.STATE) { layers.decode(data.state); showState(frames.normalize(data.state)); }
+      else if (data.type === SERVER_MESSAGE.SEATS) { frames.seats(data.roster); roster = ''; }
       else if (data.type === SERVER_MESSAGE.ERROR) { toast(data.message); leave(); }
     });
     socket.addEventListener('close', () => { if (feed === socket) leave(); });

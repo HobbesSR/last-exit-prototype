@@ -14,7 +14,7 @@ test('replay seeks return the exact retained physics lists and hold sparse gaps'
   const timeline = createReplayTimeline({ frames: [{ state: a }, { state: b }], recording: { complete: false, endTick: 8 } });
   for (const tick of [5, 3, 2, 7, 5]) {
     const sample = timeline.at(tick);
-    assert.strictEqual(sample.state, tick < 5 ? a : b);
+    assert.strictEqual(sample.state, timeline.frames[tick < 5 ? 0 : 1].state);
     assert.equal(sample.alpha, 0, 'exact ticks and omitted intervals do not invent motion');
   }
   assert.equal(timeline.at(3.5).missing, true);

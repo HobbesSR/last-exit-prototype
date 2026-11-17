@@ -2,7 +2,7 @@ import { finite, safeInteger } from './numbers.ts';
 import { ROLES } from './simulation/rules.ts';
 import { sanitizeInput } from './simulation/input.ts';
 import type { WaitingMap } from './simulation/waiting.ts';
-import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projected, Role, Snapshot, Tick } from './types.ts';
+import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projected, Role, SeatMetadata, Snapshot, Tick } from './types.ts';
 
 /**
  * Single source of truth for the live wire formats between server and browser (docs/24-networking-privacy.md).
@@ -17,7 +17,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 3;
+export const WIRE_VERSION = 4;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -71,6 +71,7 @@ export const SERVER_MESSAGE = Object.freeze({
   WELCOME: 'welcome',
   READY: 'ready',
   STATE: 'state',
+  SEATS: 'seats',
   LOBBY: 'lobby',
   CHOOSE: 'choose',
   TELEPORT: 'teleport',
@@ -195,6 +196,7 @@ export interface WelcomeBase {
   presentation: ContentPresentation;
   map: GameMap | WaitingMap | null;
   state: Projected<Snapshot> | Record<string, unknown> | null;
+  roster: SeatMetadata[];
 }
 
 export interface PlayerWelcomeMessage extends WelcomeBase {
@@ -226,7 +228,10 @@ export interface ReadyMessage {
   presentation: ContentPresentation;
   map: GameMap | null;
   state: Projected<Snapshot> | null;
+  roster: SeatMetadata[];
 }
+
+export interface SeatsMessage { type: typeof SERVER_MESSAGE.SEATS; roster: SeatMetadata[]; }
 
 export interface StateMessage {
   type: typeof SERVER_MESSAGE.STATE;
@@ -308,6 +313,7 @@ export type ServerMessage =
   | WelcomeMessage
   | ReadyMessage
   | StateMessage
+  | SeatsMessage
   | LobbyMessage
   | ChooseReplyMessage
   | TeleportReplyMessage
@@ -415,20 +421,20 @@ const hasExactKeys = (obj: Record<string, unknown>, expected: readonly string[])
 
 const WELCOME_PLAYER_KEYS = [
   'type', 'id', 'resumeKey', 'room', 'owner', 'devTools', 'paused',
-  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state',
+  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state', 'roster',
 ] as const;
 
 const WELCOME_SPECTATOR_KEYS = [
   'type', 'id', 'spectator', 'spectatorDelayTicks', 'room', 'owner', 'devTools',
-  'ready', 'paused', 'contentId', 'presentation', 'map', 'state',
+  'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster',
 ] as const;
 
 const WELCOME_DEV_KEYS = [
   'type', 'id', 'spectator', 'dev', 'devTools', 'room', 'owner',
-  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state',
+  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster',
 ] as const;
 
-const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state'] as const;
+const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state', 'roster'] as const;
 const STATE_KEYS = ['type', 'state'] as const;
 const LOBBY_KEYS = [
   'type', 'room', 'name', 'started', 'matchmade', 'size',
@@ -442,7 +448,14 @@ const REPLAY_STATUS_KEYS = ['type', 'status', 'message'] as const;
 const ERROR_KEYS = ['type', 'message'] as const;
 const PING_KEYS = ['type', 'token', 'rtt'] as const;
 
+const validRoster = (value: unknown): value is SeatMetadata[] => Array.isArray(value) && value.every((entry, i) =>
+  isRecord(entry) && hasExactKeys(entry, ['playerIdx', 'id', 'name', 'role', 'kit', ...(entry.seat === undefined ? [] : ['seat'])]) &&
+  entry.playerIdx === i && nonEmptyString(entry.id) && typeof entry.name === 'string' &&
+  (ROLES as readonly unknown[]).includes(entry.role) && nonEmptyString(entry.kit) &&
+  (entry.seat === undefined || nonNegativeInt(entry.seat)));
+
 const validWelcomeCommon = (data: Record<string, unknown>): boolean =>
+  validRoster(data.roster) &&
   nonEmptyString(data.room) &&
   typeof data.owner === 'boolean' &&
   typeof data.devTools === 'boolean' &&
@@ -523,7 +536,7 @@ export function validateServerMessage(raw: unknown): ServerMessageValidation {
     }
     case SERVER_MESSAGE.READY: {
       if (
-        !hasExactKeys(raw, READY_KEYS) ||
+        !hasExactKeys(raw, READY_KEYS) || !validRoster(raw.roster) ||
         !nonEmptyString(raw.contentId) ||
         !isRecord(raw.presentation) ||
         (raw.map !== null && !isRecord(raw.map)) ||
@@ -532,6 +545,10 @@ export function validateServerMessage(raw: unknown): ServerMessageValidation {
         return { ok: false, type, reason: 'Ready message does not match ReadyMessage contract.' };
       }
       return { ok: true, message: raw as unknown as ReadyMessage };
+    }
+    case SERVER_MESSAGE.SEATS: {
+      if (!hasExactKeys(raw, ['type', 'roster']) || !validRoster(raw.roster)) return { ok: false, type, reason: 'Invalid seat metadata.' };
+      return { ok: true, message: raw as unknown as SeatsMessage };
     }
     case SERVER_MESSAGE.STATE: {
       if (!hasExactKeys(raw, STATE_KEYS) || !isRecord(raw.state)) {
@@ -634,6 +651,8 @@ export const devWelcomeMessage = (fields: Omit<DevWelcomeMessage, 'type' | 'id' 
 
 export const readyMessage = (fields: Omit<ReadyMessage, 'type'>): ReadyMessage =>
   assertServerMessage({ type: SERVER_MESSAGE.READY, ...fields });
+
+export const seatsMessage = (roster: SeatMetadata[]): SeatsMessage => assertServerMessage({ type: SERVER_MESSAGE.SEATS, roster });
 
 export const stateMessage = (state: StateMessage['state']): StateMessage => {
   if (!isRecord(state)) throw new TypeError('Invalid server message (state): StateMessage requires a state object.');

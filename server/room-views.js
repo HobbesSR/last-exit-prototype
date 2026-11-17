@@ -1,9 +1,10 @@
+import { seatMetadata } from '../shared/simulation/relations.ts';
 import { zoneSizeName } from '../map/live.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { createDiscoveryEncoder } from '../shared/discovery.ts';
 import { stringifyWithMap } from './map-payload.js';
-import { assertServerMessage, lobbyMessage, stateMessage } from './protocol.js';
+import { assertServerMessage, lobbyMessage, stateMessage, seatsMessage } from './protocol.js';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(stringifyWithMap(assertServerMessage(value)));
 const lobbyPayload = room => lobbyMessage({
@@ -20,8 +21,15 @@ export function broadcastLobby(room) {
   for (const session of room.clients) session.deliver(payload);
 }
 /** Each player's frame of the waiting area (#236); those watching see the match map, not this. */
+function deliverSeats(session, json) {
+  if (session.seatsJson === json) return true;
+  if (session.deliver(json) === false) return false;
+  session.seatsJson = json;
+  return true;
+}
 export function broadcastWaiting(room, view) {
-  for (const session of room.clients) if (session.playerId) session.deliver(JSON.stringify(stateMessage(view(room.waiting, session.playerId))), true);
+  const roster = JSON.stringify(seatsMessage(seatMetadata(room.waiting)));
+  for (const session of room.clients) if (session.playerId) { if (!deliverSeats(session, roster)) continue; session.deliver(JSON.stringify(stateMessage(view(room.waiting, session.playerId))), true); }
 }
 export function spectatorFrame(room) {
   const cutoff = Math.max(0, room.match.tick - SPECTATOR_DELAY_TICKS);
@@ -41,17 +49,19 @@ export function broadcast(room, state) {
     const key = session.playerId || (session.dev ? 'dev' : 'spectator');
     let view = views.get(key);
     if (view === undefined) {
-      const projected = room.match.project(session.playerId || session.dev ? state : delayed, session.playerId);
+      const captured = session.playerId || session.dev ? state : delayed;
+      const projected = room.match.project(captured, session.playerId);
       profiler.start('loop.encode');
       const layers = encoderFor(room.layerEncoders, key, createLayerEncoder).encode(projected);
-      const me = session.playerId && projected.players?.find(p => p.id === session.playerId);
+      const me = session.playerId && projected.self;
       if (me?.discovered) layers.discovered = encoderFor(room.discoveryEncoders, key, createDiscoveryEncoder).encode(me.discovered);
       profiler.stop('loop.encode');
-      views.set(key, view = { state: projected, layers });
+      views.set(key, view = { state: projected, layers, roster: JSON.stringify(seatsMessage(room.match.seatMetadata(captured))) });
     }
     // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
     // not yet delivered that keyframe (shared/frame-layers.ts, shared/discovery.ts). Sessions in the
     // same place share one payload.
+    if (!deliverSeats(session, view.roster)) continue;
     const held = session.layerKeys ||= {};
     const whole = Object.entries(view.layers).filter(([layer, encoded]) => 'k' in encoded && held[layer] !== encoded.k).map(([layer]) => layer);
     const variant = `${key}|${whole}`;
@@ -64,7 +74,7 @@ export function broadcast(room, state) {
       }
       if (view.layers.discovered) {
         const disc = whole.includes('discovered') ? view.layers.discovered.all() : view.layers.discovered.changes;
-        frame.players = frame.players.map(p => p.id === session.playerId ? { ...p, discovered: disc } : p);
+        frame.self = { ...frame.self, discovered: disc };
       }
       profiler.start('loop.serialize');
       payloads.set(variant, payload = JSON.stringify(stateMessage(frame)));

@@ -28,8 +28,8 @@ Recording failure must never reach gameplay. Default content is `content-7` unde
 #920 retired that engine and contents 1 to 5, and #953 raised `MIN_SCHEMA` to **10** so
 archives recorded before schema 10 (pre-chain-map diamond arenas, `last-exit-0.7`, and
 experimental P1/P2 schemas 8–9 without required physics presentation) are refused with the
-existing `"no longer reads"` message while remaining downloadable. Recordings write schema **19**
-and `minSchema` 17 (`minimumReaderForMatch`, `LINES_SCHEMA`): since #901 they are stored as lines
+existing `"no longer reads"` message while remaining downloadable. Recordings write schema **20**
+and `minSchema` 20 (`minimumReaderForMatch`, `RELATIONAL_SCHEMA`): since #901 they are stored as lines
 with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no older reader can
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
 `GameMap.{modules,nodes,routes,streets}`, `physics.{profile,settings,world.pending}`) while remaining
@@ -37,6 +37,23 @@ compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
 ([Schema 19](#schema-19-tick-stamped-input-1096)). This build still reads every schema from 10. Optional appearance
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
+
+## Schema 20: relational presentation (#1153)
+
+`RELATIONAL_SCHEMA = 20` raises both writer schema and minimum reader to 20.
+Pre-20 readers must refuse these recordings as too-new; the reader floor stays
+`MIN_SCHEMA = 10`. New frames retain complete private gameplay state and captured
+player metadata, with numeric presentation bodies/owners and item identities,
+body-only physical poses, dynamic gate state and event-time participant payloads.
+The header map retains ordered gate geometry. Playback merges dynamics into that
+geometry and normalizes legacy schema-10..19 bodies, items and gates without a
+solver. The shared event formatter accepts legacy `{ text }` records. Arbitrary
+backward seeks hydrate detached display values without editing archive frames,
+their order, checkpoint bytes or digest verification.
+
+Rules remain `last-exit-0.8-physics`: #1153 deliberately changes projections, not
+simulation. The frozen fixture's arenas are retained; its reviewed projection
+update carries independent unchanged-gameplay/private-PhysicsWorld evidence.
 
 ## Physics rules version (#921)
 
@@ -89,7 +106,7 @@ backward seeks, partial tails and held omitted ticks. It never reconstructs spri
 motion. The private `physics` field remains diagnostic gameplay state, unused by
 the renderer, and no exact engine checkpoint is required or sent live.
 
-`minimumReaderForMatch` always returns 10 (`MIN_SCHEMA`), independently of the rules-version string
+At schema 10, `minimumReaderForMatch` returned 10 (`MIN_SCHEMA`), independently of the rules-version string
 (before #920/#954, a match boundary `hasPhysics` capability distinguished physics matches from legacy
 matches). An older reader would omit props/tethers and misrepresent physical poses. Since #953 raised
 `MIN_SCHEMA` to 10, archives below schema 10 are refused with `"no longer reads"` while
@@ -132,6 +149,7 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 20 | Relational IDs and body owners, one physical pose, dynamic-only gates and structured localized events (#1153, 24.4) | 20 |
 | 19 | Optional input `tick` stamp on recorded commands and buffered input, and player `inputMargin`, `inputMarginNext` and `inputLeadTicks` (#1096) | unchanged |
 | 18 | Retired `Player.path`, `GameMap.{modules,nodes,routes,streets}`, and private `physics.{profile,settings,world.pending}` (#948, #949) | unchanged |
 | 17 | Lines (NDJSON) with keyframes and delta frames, interval checkpoints and a stored-line digest (#901) | 17 |

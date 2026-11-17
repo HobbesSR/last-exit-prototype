@@ -1,5 +1,4 @@
-import { legacyItems } from '../shared/simulation/item-boundary.ts';
-import { playerSlot } from '../shared/simulation/relations.ts';
+import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
@@ -22,6 +21,16 @@ const connectionPlayer = (game, id) => {
 };
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
+// Preserve prepared-map caching across full geometry delivery and historical dynamic merges.
+const gatePayloads = new WeakMap();
+function payloadGates(gates, states = gates) {
+  let cached = gatePayloads.get(gates);
+  if (!cached) gatePayloads.set(gates, cached = new WeakMap());
+  let list = cached.get(states);
+  if (!list) { list = gates.map((gate, gateIdx) => Object.freeze({ ...gate, gateIdx, ...states[gateIdx] })); cached.set(states, list); }
+  return list;
+}
+
 // Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists.
 function seatsOf(game, reconcile = () => {}) {
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
@@ -33,6 +42,7 @@ function seatsOf(game, reconcile = () => {}) {
     /** How many of a role a match holds, counted from the roster rather than repeated as a number. */
     capacity,
     roster: () => game.players.filter(p => !p.bot).map(identity),
+    seatMetadata: frame => seatMetadata(frame ?? game),
     player: id => identity(connectionPlayer(game, id)),
     openPlaces,
     preferredRole(preference) {
@@ -152,12 +162,12 @@ function matchOf(game, payloads) {
     snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
     project: (frame, id) => playerView(game, frame, id),
-    map: () => structuredClone({ ...game.map, items: legacyItems(game, publishItems(game)) }),
+    map: () => structuredClone({ ...game.map, gates: payloadGates(publishGates(game)), items: publishItems(game) }),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
       if (!payloads) throw new Error('match disposed');
-      const source = { ...game.map, gates: kind === 'spectator' ? frame.gates : publishGates(game),
-        items: kind === 'spectator' ? frame.items : legacyItems(game, publishItems(game)), ...(kind !== 'recording' ? { traps: [] } : {}) };
+      const source = { ...game.map, gates: payloadGates(publishGates(game), kind === 'spectator' ? frame.gates : undefined),
+        items: kind === 'spectator' ? frame.items : publishItems(game), ...(kind !== 'recording' ? { traps: [] } : {}) };
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
     },
     end({ strand = false } = {}) {

@@ -1,7 +1,9 @@
+import { renderedSnapshot } from './helpers/relational.js';
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, playerView, synchronizePhysics } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectInstanceEquipment as collectRaw, rearrangeInstanceEquipment as rearrangeRaw } from '../shared/equipment.ts';
 import { allocateItemId, commitItemAllocation, forkItemAllocation, itemIdForLabel, itemLabel, registerItemLabel } from '../shared/item-instances.ts';
@@ -52,7 +54,7 @@ test('item instances are required on match content and initialize a counter with
   assert.equal(s.version, PHYSICS_VERSION);
   assert.equal(s.itemSerial, 1, 'the internal numeric allocator starts with the first positive identity');
   assert.equal(s.scatterSerial, 0);
-  assert.equal(snapshot(s).itemSerial, 0);
+  assert.equal(snapshot(s).itemSerial, s.itemSerial);
 });
 
 test('label registration is numeric, does not spend scatter phases, and staged labels roll back until committed', async t => {
@@ -333,12 +335,12 @@ test('snapshot is detached; only the owner sees carried identity and counter sta
   p.inventory[0] = { kind: 'cell', charge: 63, instanceId: 'cell-1', lineageId: 'root-1', quality: 5 };
   q.x = 130; q.y = 200;
   const frame = snapshot(s), own = playerView(s, frame, p.id), other = playerView(s, frame, q.id);
-  assert.equal(frame.itemSerial, s.scatterSerial, 'the outward compatibility field stays on the legacy schedule');
+  assert.equal(frame.itemSerial, s.itemSerial, 'the outward compatibility field stays on the legacy schedule');
   assert.equal(own.itemSerial, undefined);
   assert.equal(other.itemSerial, undefined);
   assert.deepEqual([own.players.find(v => v.id === p.id).inventory[0].instanceId,
     own.players.find(v => v.id === p.id).inventory[0].lineageId,
-    own.players.find(v => v.id === p.id).inventory[0].quality], ['cell-1', 'root-1', 5]);
+    own.players.find(v => v.id === p.id).inventory[0].quality], [p.inventory[0].instanceId, p.inventory[0].lineageId, 5]);
   assert.equal(typeof p.inventory[0].instanceId, 'number');
   assert.equal(typeof p.inventory[0].lineageId, 'number');
   assert.equal(Object.hasOwn(other.players.find(v => v.id === p.id), 'inventory'), false);
@@ -348,7 +350,7 @@ test('snapshot is detached; only the owner sees carried identity and counter sta
   assert.equal(dropInventorySlot(s, p, 0), true);
   assert.equal(take(s, q, s.map.items[0]), true);
   assert.equal(q.inventory.find(Boolean).instanceId, identity, 'the numeric instance survives a later owner transfer');
-  assert.equal(own.players.find(v => v.id === p.id).inventory[0].instanceId, 'cell-1', 'the retained owner view remains a detached legacy projection');
+  assert.equal(own.players.find(v => v.id === p.id).inventory[0].instanceId, identity, 'the retained owner view keeps numeric identity after transfer');
 });
 
 test('the tick resolves a contested pickup by player id despite reversed array order', async t => {
@@ -386,7 +388,7 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   const header = { id: 'item-roundtrip', version: s.version, contentId: s.content.id,
     schema: SCHEMA, minSchema: minimumReaderForMatch(), seed: s.seed,
     hz: 20, createdAt: 1, map: structuredClone(map) };
-  assert.equal(header.minSchema, 17, 'recordings are stored as lines with delta frames (#901)');
+  assert.equal(header.minSchema, 20, 'relational records need a schema-20 reader');
   assert.equal(recordingFit(header), 'ok');
   assert.equal(recordingFit({ ...header, schema: 10, minSchema: 10 }), 'ok');
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
@@ -405,8 +407,8 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   const finalItems = frames.at(-1).items;
   assert.equal(finalItems.length, 5);
   assert.equal(finalItems.filter(i => i.kind === 'med').length, 3);
-  assert.equal(finalItems.find(i => i.id === 'rifle-root').ammo, 7);
-  assert.equal(finalItems.find(i => i.id === 'cell-root').charge, 100);
+  assert.equal(finalItems.find(i => i.id === itemId(s, 'rifle-root')).ammo, 7);
+  assert.equal(finalItems.find(i => i.id === itemId(s, 'cell-root')).charge, 100);
   assert.ok(finalItems.every(i => i.lineageId && i.quality));
   assert.ok(frames.every(frame => Number.isSafeInteger(frame.itemSerial)));
 
@@ -417,6 +419,6 @@ test('recording roundtrip and backward seeks retain exact item-instance frames',
   const timeline = createReplayTimeline(archive);
   for (const tick of [4, 1, 3, 0, 2, 4]) {
     assert.equal(timeline.at(tick).frameTick, tick);
-    assert.deepEqual(timeline.at(tick).state, frames[tick]);
+    assert.deepEqual(timeline.at(tick).state, renderedSnapshot(map, frames[tick]));
   }
 });

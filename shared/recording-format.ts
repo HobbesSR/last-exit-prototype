@@ -48,7 +48,7 @@ const isPlain = (value: unknown): value is Record<string, unknown> =>
 /** The id a recorded list entry is addressed by: `id`, else `spec.id` (physics world bodies). */
 export function recordKey(entry: unknown): Id | undefined {
   if (!isPlain(entry)) return undefined;
-  const id = entry.id ?? (isPlain(entry.spec) ? entry.spec.id : undefined);
+  const id = entry.playerIdx ?? entry.gateIdx ?? entry.id ?? (isPlain(entry.spec) ? entry.spec.id : undefined);
   return typeof id === 'string' || typeof id === 'number' ? id : undefined;
 }
 function keyable(list: unknown): list is unknown[] {

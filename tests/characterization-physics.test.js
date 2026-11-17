@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -18,5 +19,6 @@ test('the physics-1 checkpoint names the rules version and content it characteri
 // The two whole bot matches take about thirty seconds and run in the slow tier
 // (slow/characterization-physics-bots.test.js).
 test('scripted authoritative snapshots and private projections match the physics-1 checkpoint', async () => {
-  assert.deepEqual(JSON.parse(JSON.stringify(await scriptedTrace(expected.arenas[4217]))), expected.scripted);
+  const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  assert.equal(hash(await scriptedTrace(expected.arenas[4217])), hash(expected.scripted));
 });

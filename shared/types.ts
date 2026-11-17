@@ -822,11 +822,14 @@ export interface Effect extends Vec2 {
   life: Tick;
 }
 
-export interface GameEvent {
-  id: Serial;
-  tick: Tick;
-  text: string;
-}
+export interface EventParticipant { playerIdx: PlayerIdx; name: string; }
+export type GameEventPayload =
+  | { kind: 'pod_powered'; actor: EventParticipant; slotsRemaining: number }
+  | { kind: 'cell_charged'; actor: EventParticipant }
+  | { kind: 'eliminated'; target: EventParticipant; source?: EventParticipant }
+  | { kind: 'respawned'; actor: EventParticipant }
+  | { kind: 'match_finished' };
+export type GameEvent = { id: Serial; tick: Tick } & GameEventPayload;
 
 export interface Game {
   /** Private match identity registry; staged plans fork it explicitly. */
@@ -861,13 +864,17 @@ export interface Game {
   rewind?: { tick: Tick; at: Vec2[] }[] | undefined;
 }
 
-/** A complete authoritative state clone, as recorded and as sent to spectators. */
-export interface Snapshot<I extends ItemKey = ItemLabel> {
+export type SnapshotItem<I extends ItemKey = ItemId> = Omit<GroundItem<I>, 'x' | 'y'> & Partial<Vec2>;
+export type GateState = { gateIdx: GateIdx; open: boolean; locked: boolean };
+export type SeatMetadata = { playerIdx: PlayerIdx; id: PlayerId; name: string; role: Role; kit: Kit; seat?: number };
+
+/** A complete authoritative capture. Physical entity poses belong to bodies alone. */
+export interface Snapshot<I extends ItemKey = ItemId> {
   itemSerial?: number | undefined;
   physicsProfile?: string;
   bodies?: import('./physics/types.ts').PhysicsBodyView[];
   tethers?: import('./physics/types.ts').PhysicsTetherView[];
-  hookFlights?: Array<{ id: string; a: string; x: number; y: number }>;
+  hookFlights?: import('./physics/types.ts').NumericHookFlight[];
   /** Private authoritative gameplay physics state, never an exact backend checkpoint or live projection. */
   physics?: import('./physics/types.ts').PhysicsGameplayState;
   version: string;
@@ -879,9 +886,9 @@ export interface Snapshot<I extends ItemKey = ItemLabel> {
   hazardX: World;
   slots: number;
   serial: Serial;
-  players: Player<I>[];
-  items: GroundItem<I>[];
-  gates: Gate[];
+  players: Array<Omit<Player<I>, 'x' | 'y'> & { playerIdx: PlayerIdx; x?: number; y?: number }>;
+  items: SnapshotItem<I>[];
+  gates: GateState[];
   traps: Trap[];
   projectiles: Projectile[];
   effects: Effect[];

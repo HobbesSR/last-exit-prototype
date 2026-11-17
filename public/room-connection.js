@@ -1,3 +1,4 @@
+import { createFrameNormalizer } from './relational-frame.js';
 import { notePacket } from '/diagnostics.js';
 import * as profiler from '/shared/profiler.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
@@ -68,7 +69,7 @@ export function createRoomConnection({
     showStatus('CONNECTING');
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
     // Items and gates arrive as changes against a keyframe this socket was sent (shared/frame-layers.ts).
-    ws = socket; const layers = createLayerDecoder();
+    ws = socket; const layers = createLayerDecoder(), frames = createFrameNormalizer();
     socket.addEventListener('open', () => {
       disconnecting = false;
       let resumeKey;
@@ -84,6 +85,8 @@ export function createRoomConnection({
         const described = envelopePresentation(data);
         if (!described) { toast('The arena sent a match this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); return; }
         presentation = described;
+        frames.seats(data.roster); frames.setMap(data.map);
+        data.state = frames.normalize(data.state);
       }
       if (data.type === SERVER_MESSAGE.WELCOME) {
         room = data.room; roomId = room;
@@ -101,6 +104,7 @@ export function createRoomConnection({
         onReady(data);
       } else if (data.type === SERVER_MESSAGE.STATE) {
         notePacket(event.data.length); layers.decode(data.state);
+        data.state = frames.normalize(data.state);
         learn(data.state);
         // Gap between authoritative frames: separates server pacing from client render cost.
         const receivedAt = performance.now();
@@ -109,6 +113,8 @@ export function createRoomConnection({
         profiler.observe('net.stateBytes', event.data.length, 'n');
         liveState = data.state;
         onState(data.state);
+      } else if (data.type === SERVER_MESSAGE.SEATS) {
+        frames.seats(data.roster);
       } else if (data.type === SERVER_MESSAGE.PING) {
         // Echoed immediately and unmodified. The server times its own round trip; this end
         // states nothing about latency, it only returns a token it could not have held earlier.

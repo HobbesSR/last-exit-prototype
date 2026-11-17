@@ -7,7 +7,7 @@ import { observeGate } from '../discovery.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH } from './rules.ts';
 import { transit } from './transit.ts';
-import { event, effect, planDrop } from './loot.ts';
+import { event, participant, effect, planDrop } from './loot.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { addItems, itemsNear, removeItem } from './ground-items.ts';
 import { actorRadius } from './actor-physics.ts';
@@ -41,7 +41,7 @@ export function interact(s: Game, p: Player): void {
   const charged = p.inventory?.find((item): item is CellItem => item?.kind === 'cell' && item.charge >= s.content.cellChargeTicks);
   if (p.role === 'contestant' && distance(p, s.map.exit) < EXTRACTION_REACH && s.slots > 0 && charged && lineClear(s.map, p, s.map.exit)) {
     s.slots--; p.inventory![p.inventory!.indexOf(charged)] = null; syncWeapon(p, s.content.weapons); p.charging = null; p.status = 'escaped';
-    event(s, p.name + ' powered an escape pod. ' + s.slots + ' slots remain'); return;
+    event(s, { kind: 'pod_powered', actor: participant(s, p), slotsRemaining: s.slots }); return;
   }
   if (cell && cell.charge < s.content.cellChargeTicks) {
     const station = s.map.chargers.find(st => distance(p, st) < CHARGE_REACH && lineClear(s.map, p, st));
@@ -80,6 +80,6 @@ export function advanceCharging(s: Game, p: Player, input: PlayerInput): void {
     const cell = carriedCell(p);
     const station = s.map.chargers.find(st => st.id === p.charging);
     if (!cell || cell.charge >= s.content.cellChargeTicks || input.x || input.y || !station || distance(p, station) >= CHARGE_REACH || !lineClear(s.map, p, station)) p.charging = null;
-    else if (++cell.charge >= s.content.cellChargeTicks) { p.charging = null; event(s, `${p.name} charged a power cell`); effect(s, p, 'charge', 70); }
+    else if (++cell.charge >= s.content.cellChargeTicks) { p.charging = null; event(s, { kind: 'cell_charged', actor: participant(s, p) }); effect(s, p, 'charge', 70); }
   }
 }

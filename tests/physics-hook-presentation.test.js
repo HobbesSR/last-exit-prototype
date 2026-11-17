@@ -30,14 +30,14 @@ test('flight capture and projection disclose only an authorized caster and tip',
       travelled: 90, startedTick: s.tick, phase: 'flying', generationA: r.world.getGeneration('actor:g0'),
       targetIdx: playerIndex(s, viewer), hitTick: 7, tetherId: r.identities.newTether(), privateMarker: 'secret' });
     const frame = snapshot(s);
-    assert.deepEqual(frame.hookFlights, [{ id, a: 'actor:g0', x: 240, y: 400 }]);
+    assert.deepEqual(frame.hookFlights, [{ id: r.hooks[0].tetherId, a: frame.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).id, casterIdx: 1, x: 240, y: 400 }]);
     assert.deepEqual(playerView(s, frame, viewer.id).hookFlights, frame.hookFlights);
     assert.equal(JSON.stringify(playerView(s, frame, viewer.id)).includes('secret'), false);
     const farTip = structuredClone(frame);
     farTip.hookFlights[0].x = viewer.x + POTENTIAL + 1;
     assert.deepEqual(playerView(s, farTip, viewer.id).hookFlights, []);
     const hiddenCaster = structuredClone(frame);
-    hiddenCaster.players.find(p => p.id === caster.id).x = viewer.x + POTENTIAL + 1;
+    hiddenCaster.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).x = viewer.x + POTENTIAL + 1;
     assert.deepEqual(playerView(s, hiddenCaster, viewer.id).hookFlights, []);
     const poisoned = structuredClone(frame);
     poisoned.hookFlights[0].target = 'private-target';

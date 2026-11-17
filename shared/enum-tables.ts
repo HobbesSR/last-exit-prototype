@@ -1,5 +1,5 @@
 /** Closed, explicitly ordered vocabularies for relational tables and outward descriptors. */
-import type { AmmoFamily, EffectKind, ItemKind, Kit, Phase, Role, TrapKind, WeaponType } from './types.ts';
+import type { AmmoFamily, EffectKind, GameEventPayload, ItemKind, Kit, Phase, Role, TrapKind, WeaponType } from './types.ts';
 import type { BodyKind, BodyShape } from './physics/types.ts';
 export const ROLES = Object.freeze(['contestant', 'gladiator'] as const);
 export const KITS = Object.freeze(['warden', 'specter', 'striker', 'hook'] as const);
@@ -21,9 +21,8 @@ export type EnumTableCoverage = Complete<
   | Missing<Phase, typeof PHASES> | Missing<AmmoFamily, typeof AMMO_FAMILIES>
   | Missing<ItemKind, typeof ITEM_KINDS> | Missing<BodyKind, typeof BODY_KINDS>
   | Missing<BodyShape['kind'], typeof SHAPE_KINDS> | Missing<EffectKind, typeof EFFECT_KINDS>
-  | Missing<TrapKind, typeof TRAP_KINDS>
+  | Missing<TrapKind, typeof TRAP_KINDS> | Missing<GameEventPayload['kind'], typeof EVENT_KINDS>
 >;
-// EVENT_KINDS will be checked against the structured GameEvent union when #1153 introduces it.
 
 /** Check a content key against the build's closed vocabulary at the boundary. */
 export function assertEnumKeys(table: object, ordered: readonly string[], label: string): void {

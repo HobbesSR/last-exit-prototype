@@ -81,7 +81,7 @@ try {
   // named for that.
   const frame = room.match.snapshot();
   const recording = extra => ({ id: `held-${extra}`, schema: SCHEMA, minSchema: MIN_SCHEMA, hz: 20, map: room.match.payloadMap('spectator', frame),
-    frames: [{ state: room.match.project(frame, null), commands: [] }], recording: { complete: true, droppedFrames: 0, endTick: frame.tick + extra } });
+    roster: room.match.seatMetadata(frame), frames: [{ state: room.match.project(frame, null), commands: [] }], recording: { complete: true, droppedFrames: 0, endTick: frame.tick + extra } });
   await page.evaluate(({ recordings, rows }) => {
     const held = window.heldReplays = {}, realFetch = window.realFetch = window.fetch;
     window.fetch = (url, options) => {

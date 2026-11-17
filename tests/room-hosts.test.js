@@ -1,3 +1,4 @@
+import { createFrameNormalizer } from '../public/relational-frame.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises';
@@ -33,10 +34,15 @@ async function host(threads) {
   const service = createRoomService({ replays, threads, devTools: 'all', reportError: error => errors.push(error) });
   const stop = startScheduler(service.advance);
   const peer = () => {
-    const messages = [], closes = [], layers = createLayerDecoder(), frames = [];
+    const messages = [], closes = [], layers = createLayerDecoder(), frames = [], normalizer = createFrameNormalizer();
     const deliver = payload => {
-      const data = JSON.parse(payload); messages.push(data);
-      if (data.type === 'state') frames.push(layers.decode(data.state));
+      const data = JSON.parse(payload);
+      if (data.type === 'seats') { normalizer.seats(data.roster); return; }
+      if (data.type === 'welcome' || data.type === 'ready') { normalizer.seats(data.roster); normalizer.setMap(data.map); }
+      if (data.type === 'state') layers.decode(data.state);
+      if (data.state) data.state = normalizer.normalize(data.state);
+      messages.push(data);
+      if (data.type === 'state') frames.push(data.state);
     };
     const session = service.connect({ deliver, close: (...args) => { closes.push(args); service.disconnect(session); } });
     const p = {

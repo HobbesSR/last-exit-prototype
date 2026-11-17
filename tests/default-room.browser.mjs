@@ -1,3 +1,4 @@
+import { itemLabel } from '../shared/item-instances.ts';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
@@ -35,7 +36,7 @@ try {
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0] === null, null, { timeout: 8000 });
   const dropped = game.map.items.find(item => item.droppedBy === me);
   assert.ok(dropped, 'the dropped weapon is on the ground');
-  assert.equal(physicsRuntime(game).items.has(`item:${dropped.id}`), true, 'and has a physics body');
+  assert.equal(physicsRuntime(game).items.has(`item:${itemLabel(game, dropped.id)}`), true, 'and has a physics body');
   assert.deepEqual(errors, []);
   console.log('Default physics browser checks passed');
   await page.close();

@@ -1,3 +1,5 @@
+import { bodyRelations } from './relational-frame.js';
+
 // A bounded buffer of authoritative frames, and the interpolated read presentation takes from it.
 //
 // Remote motion is drawn at a fixed delay behind the newest frame and interpolated between the two
@@ -147,11 +149,10 @@ export function createSnapshotBuffer({ hz, delayTicks, clock = () => performance
       const shownBodies = new Set(bodies.map(body => body.id));
       tethers = (a.tethers || []).filter(tether => shownBodies.has(tether.a) && shownBodies.has(tether.b));
     }
-    const bodyActors = new Map((bodies || []).filter(body => body.kind === 'actor' && body.actorId != null).map(body => [body.actorId, body]));
-    const bodyItems = new Map((bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
-    const alignedPlayers = players.map(p => { const body = bodyActors.get(p.id); return body ? { ...p, x: body.x, y: body.y } : p; });
-    const items = bodyItems.size ? (a.items || []).map(item => {
-      const body = bodyItems.get(item.id); return body ? { ...item, x: body.x, y: body.y } : item;
+    const relations = bodyRelations(bodies);
+    const alignedPlayers = players.map(p => { const body = relations.byActor(p.playerIdx ?? p.id); return body ? { ...p, x: body.x, y: body.y } : p; });
+    const items = bodies?.length ? (a.items || []).map(item => {
+      const body = relations.byItem(item.id); return body ? { ...item, x: body.x, y: body.y } : item;
     }) : a.items;
     return { ...a, players: alignedPlayers, items, traps,
       ...(Array.isArray(a.bodies) ? { bodies, tethers } : {}),
