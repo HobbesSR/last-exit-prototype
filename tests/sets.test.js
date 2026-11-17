@@ -33,6 +33,7 @@ test('changed paths map to the sets they should prompt', () => {
   assert.deepEqual(setsFor(['map/micro/strategies/depot.ts']), ['micro']);
   // The engine also prompts simulation, which owns the frozen physics characterization (#920).
   assert.deepEqual(setsFor(['shared/physics/world.ts']), ['simulation', 'physics']);
+  assert.deepEqual(setsFor(['shared/relational-frame.ts']), ['client', 'simulation', 'physics', 'rooms']);
   assert.deepEqual(setsFor(['map/kernel/scale.ts']).sort(), ['macro', 'micro']);
   assert.deepEqual(setsFor(['server/room-service.js', 'public/palette.js']).sort(), ['client', 'rooms']);
   // The tracked notices file's real name (#1042): a notices-only change selects tooling.

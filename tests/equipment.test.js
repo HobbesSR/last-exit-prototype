@@ -1,7 +1,8 @@
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { disposePhysics, setInput, step, snapshot, } from '../shared/simulation.ts';
 import { collectInstanceEquipment, WEAPONS, rearrangeInstanceEquipment, SLOT_COUNT } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';

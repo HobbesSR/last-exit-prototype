@@ -1,3 +1,4 @@
+import { bodyRelations, mergeGateGeometry } from '../shared/relational-frame.ts';
 import { createPhysicsWorldFactory } from '../shared/physics/world.ts';
 import { buildPhysicsGeometry, physicsGate } from '../shared/simulation/physics-geometry.ts';
 import { characterMotor } from '../shared/simulation/actor-physics.ts';
@@ -27,7 +28,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     const radius = bodyRadius(body.shape);
     return Math.abs(body.x - own.x) <= reach + radius && Math.abs(body.y - own.y) <= reach + radius;
   };
-  const proxiesFor = frame => frame.bodies.filter(b => b.id !== own.id && b.itemId === undefined && near(b));
+  const proxiesFor = frame => frame.bodies.filter(b => b.id !== own.id && b.owner?.kind !== 'item' && b.itemId === undefined && near(b));
   // Inputs are reconciled by their stamps (#1096): the frame for tick T has spent, or discarded,
   // everything stamped T or earlier, and will spend each later stamp on its own tick.
   const corrected = () => frames.at(-1)?.tick ?? -1;
@@ -59,11 +60,11 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     // Timers precede motors on authority too. Ability activation waits for authority.
     value.boost = Math.max(0, (value.boost ?? 0) - 1);
     value.stun = Math.max(0, (value.stun ?? 0) - 1);
-    world.setMotor(own.id, characterMotor(motor, motor.surfaces ? map.motorSurfaces : undefined, value,
+    world.setMotor(String(own.id), characterMotor(motor, motor.surfaces ? map.motorSurfaces : undefined, value,
       input.x ?? 0, input.y ?? 0, movementSpeed(value, input, HZ)));
     world.step();
     const contacts = world.drainContacts();
-    Object.assign(value, world.getTransform(own.id)); tick++;
+    Object.assign(value, world.getTransform(String(own.id))); tick++;
     poses.set(tick, { x: value.x, y: value.y });
     while (poses.size > PREDICTION_LIMITS.frames) poses.delete(poses.keys().next().value);
     // Notify after publishing the completed pose/tick. Ordinary prediction does no debug contact query.
@@ -73,13 +74,13 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     close();
     // Include each footprint intersecting the entire replay horizon; large walls
     // and void rectangles must be considered even when their centres are distant.
-    const statics = [...geometry, ...(frame.gates ?? []).filter(g => !g.open).map(physicsGate)].filter(near);
+    const statics = [...geometry, ...mergeGateGeometry(map, frame.gates).filter(g => !g.open).map(physicsGate)].filter(near);
     const proxies = proxiesFor(frame);
     if (statics.length > PREDICTION_LIMITS.statics || proxies.length > PREDICTION_LIMITS.proxies) return cut('capacity');
     world = factory(); rebuilds++;
     try {
       const bodies = [...statics, ...proxies.map(b => ({ id: `proxy:${b.id}`, kind: 'static', shape: b.shape, x: b.x, y: b.y, angle: b.angle, friction: 0 })),
-        { id: own.id, kind: 'actor', shape: own.shape, x: own.x, y: own.y, angle: own.angle, vx: own.vx, vy: own.vy,
+        { id: String(own.id), kind: 'actor', shape: own.shape, x: own.x, y: own.y, angle: own.angle, vx: own.vx, vy: own.vy,
           friction: 0, restitution: 0, mass: 1, maxSpeed: motor.maxSpeed }];
       bodies.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
       for (const body of bodies) world.queueAddBody(body);
@@ -94,7 +95,7 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     frame = structuredClone(frame);
     const previousTick = frames.at(-1)?.tick, previousPose = poses.get(frame.tick);
     authority = frame.players.find(p => p.id === playerId);
-    own = frame.bodies?.find(b => b.actorId === playerId);
+    own = bodyRelations(frame.bodies).byActor(authority?.playerIdx ?? playerId);
     motor = frame.predictionMotor;
     receivedAt = clock(); replayed = 0;
     // Retain detached, tick-indexed projected history only. Never read render frames.

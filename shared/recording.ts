@@ -21,7 +21,7 @@
  */
 
 /** The schema this build writes. Bump on any change to recorded structure. */
-export const SCHEMA = 19;
+export const SCHEMA = 20;
 /**
  * The oldest schema this build can read: the first with both cell-masked chain maps and the
  * engine-free physics presentation every match now records.
@@ -33,9 +33,12 @@ export const MIN_SCHEMA = 10;
  */
 export const LINES_SCHEMA = 17;
 
-/** The `minSchema` a match recording declares: the first reader of the lines-and-deltas form. */
+/** The first reader of relational bodies, dynamic gates and structured events. */
+export const RELATIONAL_SCHEMA = 20;
+
+/** The `minSchema` a match recording declares. */
 export function minimumReaderForMatch(): number {
-  return LINES_SCHEMA;
+  return RELATIONAL_SCHEMA;
 }
 
 /**

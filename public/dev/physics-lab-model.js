@@ -1,3 +1,4 @@
+import { createFrameNormalizer, bodyRelations } from '../../shared/relational-frame.ts';
 import { openPlayableArea } from '/shared/playable-area.ts';
 import { createGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
 import { contentById } from '/shared/simulation/content.ts';
@@ -95,7 +96,8 @@ export class PhysicsLab {
     this.trace = [];
     this.lastImpulse = null;
     this.lastCast = null;
-    this.frames = [structuredClone(snapshot(next))];
+    this.normalizer = createFrameNormalizer(copy.map);
+    this.frames = [this.normalizer.normalize(structuredClone(snapshot(next)))];
     this.contacts = [[]];
     this.forces = [[]];
     this.squishState = new Map(); this.squishEvents = [];
@@ -107,8 +109,8 @@ export class PhysicsLab {
   updateShells(advance) {
     const blockers = solidBlockers(this.game), geometry = this.game.content.actorPhysics.geometry;
     const actors = this.frame().bodies.filter(body => body.kind === 'actor').flatMap(body => {
-      const player = this.game.players.find(p => p.id === body.actorId);
-      return player?.status === 'active' ? [{ id: body.actorId, x: body.x, y: body.y, radius: geometry[player.role].bodyRadius }] : [];
+      const player = this.frame().players.find(p => p.playerIdx === body.owner.playerIdx);
+      return player?.status === 'active' ? [{ id: player.id, x: body.x, y: body.y, radius: geometry[player.role].bodyRadius }] : [];
     });
     this.shells = new Map();
     for (const actor of actors) {
@@ -139,7 +141,7 @@ export class PhysicsLab {
     setInput(this.game, player.id, command);
     step(this.game);
     this.trace.push({ tick: this.game.tick, actorId: player.id, input: command });
-    this.frames.push(structuredClone(snapshot(this.game)));
+    this.frames.push(this.normalizer.normalize(structuredClone(snapshot(this.game))));
     const world = physicsRuntime(this.game).world;
     this.contacts.push(structuredClone(world.debugContacts()));
     this.forces.push(structuredClone(world.debugForces()));
@@ -162,7 +164,8 @@ export class PhysicsLab {
     if (this.trace.length >= MAX_ACTIONS) throw new RangeError('recording action limit reached');
     if (!Number.isFinite(aim)) throw new RangeError('finite cast aim required');
     const actorId = this.selected, player = this.game.players.find(p => p.id === actorId);
-    const body = this.frame().bodies.find(entry => entry.id === `actor:${actorId}`);
+    const playerIdx = this.frame().players.find(player => player.id === actorId)?.playerIdx;
+    const body = bodyRelations(this.frame().bodies).byActor(playerIdx);
     if (!player || !body) throw new RangeError('selected actor is unavailable');
     const from = { x: body.x, y: body.y };
     const to = { x: from.x + 200 * Math.cos(aim), y: from.y + 200 * Math.sin(aim) };

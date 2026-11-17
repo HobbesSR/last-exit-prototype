@@ -1,0 +1,14 @@
+{
+  "bots-9": {
+    "samples": 3557,
+    "sha256": "3bfb92323449d6d0d6c2c2367d611428eac86daa283f9d30423357e8ea999f0c"
+  },
+  "bots-4217": {
+    "samples": 3103,
+    "sha256": "abf30875c2d19be86628b28c4fece6abea868114286c09c81249ad7e053920a6"
+  },
+  "scripted": {
+    "samples": 20,
+    "sha256": "38e237e24022a139d1e6781a4a24e3c433e65307dcd89255c567436d5ac066b8"
+  }
+}

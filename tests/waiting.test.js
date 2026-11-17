@@ -47,17 +47,36 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
     assert.equal(view.predictionMotor.maxSpeed, 600);
     assert.equal(view.predictionMotor.surfaces, true);
     assert.equal(view.bodies.length, 2);
-    const ownBody = view.bodies.find(b => b.actorId === 'b');
+    const ownBody = view.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1);
     assert.ok(ownBody);
     assert.equal(typeof ownBody.vx, 'number');
     assert.equal(typeof ownBody.vy, 'number');
-    const otherBody = view.bodies.find(b => b.actorId === 'a');
+    const otherBody = view.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 0);
     assert.ok(otherBody);
     assert.equal(otherBody.vx, undefined);
 
-    assert.deepEqual(view.players.map(p => p.id), ['a', 'b']);
+    assert.deepEqual(view.players.map(p => p.playerIdx), [0]);
     assert.equal(view.players[0].inputQueue, undefined, 'others are described as a match describes them');
-    assert.equal(view.players[1].lastSeq, -1, 'the viewer gets their own fields');
+    assert.equal(view.self.lastSeq, -1, 'the viewer gets their own fields');
+    assert.equal(view.self.x, undefined, 'a player with a body has no duplicate pose');
+    assert.equal(view.players[0].x, undefined);
+
+    // Simulate initialization and a partial capture without creating another physics world.
+    const world = w.world;
+    try {
+      w.world = null;
+      const bodyless = waitingView(w, 'b');
+      assert.deepEqual({ x: bodyless.self.x, y: bodyless.self.y }, { x: w.players[1].x, y: w.players[1].y });
+      assert.deepEqual({ x: bodyless.players[0].x, y: bodyless.players[0].y }, { x: w.players[0].x, y: w.players[0].y });
+      const snapshot = world.snapshot({ includeStatic: false });
+      w.world = {
+        snapshot: () => ({ ...snapshot, bodies: snapshot.bodies.filter(b => b.spec.id === 'actor:b') }),
+        bodyLifetime: id => world.bodyLifetime(id)
+      };
+      const partial = waitingView(w, 'b');
+      assert.equal(partial.self.x, undefined);
+      assert.deepEqual({ x: partial.players[0].x, y: partial.players[0].y }, { x: w.players[0].x, y: w.players[0].y });
+    } finally { w.world = world; }
     leaveWaiting(w, 'a');
     assert.deepEqual(w.players.map(p => p.id), ['b']);
     const viewAfterLeave = waitingView(w, 'b');

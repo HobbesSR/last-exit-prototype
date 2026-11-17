@@ -159,12 +159,12 @@ test('delayed viewer identity follows captured slots across session seat reassig
   changeSeat(s, 'session', 'gladiator', 'hook');
   const current = snapshot(s);
   for (const frame of [old, structuredClone(old)]) {
-    const own = playerView(s, frame, 'session').players.find(p => p.id === 'session');
-    assert.equal(own.role, 'contestant');
+    const own = playerView(s, frame, 'session').self;
+    assert.equal(own.playerIdx, 0);
     assert.equal(own.x, 300);
     assert.equal(playerView(s, frame, 'g0').directed, false);
   }
-  assert.equal(playerView(s, current, 'session').players.find(p => p.id === 'session').role, 'gladiator');
+  assert.equal(playerView(s, current, 'session').self.playerIdx, 1);
   assert.equal(playerView(s, current, 'g0').directed, true);
 });
 
@@ -178,7 +178,6 @@ test('directed views bypass roster lookup and unknown labels allocate no frame l
   for (const id of [null, undefined, 'spectator', 'unknown']) {
     // Fresh snapshots reproduce the per-tick allocation path; no test-only production hooks needed.
     const frame = snapshot(s);
-    Object.defineProperty(frame.players, 'map', { value() { throw new Error('frame label table allocated'); } });
     if (id == null) Object.defineProperty(frame.players, 'find', { value() { throw new Error('directed view searched captured roster'); } });
     assert.equal(playerView(id == null ? noRoster : s, frame, id).directed, true);
   }

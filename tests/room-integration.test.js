@@ -54,7 +54,7 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     assert.equal(header.contentId, 'content-6');
     assert.equal(owner.messages.at(-1).state.physicsProfile, VERSION);
     const directed = owner.messages.filter(message => message.type === 'state').at(-1).decoded;
-    assert.equal(directed.bodies.some(body => body.id === 'hidden-prop'), false,
+    assert.equal(directed.bodies.some(body => body.owner.kind === 'prop'), false,
       'out-of-range dynamics are not a local prediction dependency');
     assert.equal(JSON.stringify(directed).includes('hidden-prop'), false);
 
@@ -69,8 +69,8 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     eye.send({ type: 'join', room: room.id, ownerKey: room.ownerKey, mode: 'spectator' });
     const delayed = eye.messages.find(message => message.type === 'welcome').state;
     assert.equal(room.match.tick - delayed.tick, SPECTATOR_DELAY_TICKS, 'spectator joins on the retained delayed frame');
-    assert.equal(delayed.bodies.find(body => body.id === 'hidden-prop').x, 4205);
-    assert.equal(room.match.snapshot().bodies.find(body => body.id === 'hidden-prop').x, x);
+    assert.equal(delayed.bodies.find(body => body.owner.kind === 'prop').x, 4205);
+    assert.equal(room.match.snapshot().bodies.find(body => body.owner.kind === 'prop').x, x);
 
     const resumeKey = welcome.resumeKey;
     service.disconnect(owner.session);
@@ -82,7 +82,7 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     assert.ok(keyframe.bodies && typeof keyframe.bodies === 'object' && 'all' in keyframe.bodies,
       'reconnected player receives a complete physics body keyframe');
     assert.equal(keyframe.physicsProfile, VERSION);
-    assert.equal(keyframe.bodies.all.some(body => body.id === 'hidden-prop'), false);
+    assert.equal(keyframe.bodies.all.some(body => body.owner.kind === 'prop'), false);
 
     const world = runtime.world;
     resumed.send({ type: 'finish' });

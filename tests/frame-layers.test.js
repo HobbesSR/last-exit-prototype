@@ -103,3 +103,72 @@ test('a session is sent the keyframe after a skipped frame, while others keep sh
     assert.deepEqual(b.frames.at(-1).items, truth.items);
   } finally { await h.service.close(); }
 });
+
+test('gate layers address canonical map slots, including zero, and retain legacy id support (#1153)', () => {
+  const encoder = createLayerEncoder(), decoder = createLayerDecoder(), held = {};
+  const gates = [{ gateIdx: 0, open: false }, { gateIdx: 3, open: false }];
+  const first = encoder.encode({ gates });
+  assert.deepEqual(decoder.decode(wire(first, { gates }, held)).gates, gates);
+  const changed = [{ gateIdx: 0, open: true }], next = encoder.encode({ gates: changed });
+  assert.equal(next.gates.k, first.gates.k);
+  assert.deepEqual(next.gates.changes.set, [changed[0]]);
+  assert.deepEqual(next.gates.changes.drop, [3]);
+  assert.deepEqual(decoder.decode(wire(next, { gates: changed }, held)).gates, changed);
+});
+
+test('body shape deltas use the target keyframe across joins, skips, visibility and generations (#1153)', () => {
+  const encoder = createLayerEncoder();
+  const body = { id: 1, generation: 1, shape: { kind: 'circle', radius: 1 }, x: 0 };
+  const spawned = { id: 2, generation: 1, shape: { kind: 'box', width: 2, height: 3 }, x: 0 };
+  const regenerated = { ...body, generation: 2, shape: { kind: 'circle', radius: 2 }, x: 3 };
+  const frames = [
+    [body],
+    [{ ...body, x: 1 }, spawned],
+    [{ ...body, x: 2 }, { ...spawned, x: 1 }],
+    [regenerated, { ...spawned, x: 2 }],
+    [{ ...spawned, x: 3 }],
+    [{ ...body, x: 4 }, { ...spawned, x: 4 }],
+    [body],
+  ];
+  const sessions = { early: { from: 0 }, late: { from: 2 }, skipped: { from: 0, skip: new Set([1, 3, 4]) } };
+  for (const session of Object.values(sessions)) Object.assign(session, { decoder: createLayerDecoder(), held: {} });
+  let k;
+  frames.forEach((bodies, i) => {
+    const encoded = encoder.encode({ bodies }), layer = encoded.bodies;
+    k ??= layer.k;
+    assert.equal(layer.k, k, 'the original keyframe remains the target');
+    const all = layer.all();
+    assert.deepEqual(all.all, [body], 'keyframe always retains its complete shapes');
+    for (const entry of layer.changes.set ?? []) {
+      assert.equal(Object.hasOwn(entry, 'shape'), entry.id !== body.id || entry.generation !== body.generation,
+        `frame ${i}, body ${entry.id}: only the exact baseline admission can omit its shape`);
+    }
+    for (const [name, session] of Object.entries(sessions)) {
+      if (i < session.from || session.skip?.has(i)) continue;
+      const payload = wire(encoded, { bodies }, session.held);
+      if (name === 'late' && i === session.from) {
+        assert.ok(payload.bodies.all && payload.bodies.set, 'late join carries baseline plus current changes');
+      }
+      assert.deepEqual(session.decoder.decode(payload).bodies, bodies, `${name}, frame ${i}`);
+    }
+  });
+  // Absorption into a new keyframe is the point when a spawned shape may stop repeating.
+  const crowded = [body, spawned, ...Array.from({ length: 17 }, (_, n) => ({ ...body, id: n + 3 }))];
+  const rekeyed = encoder.encode({ bodies: crowded }).bodies;
+  assert.notEqual(rekeyed.k, k);
+  assert.ok(rekeyed.all().all.every(entry => Object.hasOwn(entry, 'shape')));
+  const moved = encoder.encode({ bodies: crowded.map(entry => entry.id === spawned.id ? { ...entry, x: 8 } : entry) }).bodies;
+  assert.equal(moved.k, rekeyed.k);
+  assert.equal(Object.hasOwn(moved.changes.set[0], 'shape'), false);
+});
+
+test('body shape reconstruction reads the immutable baseline rather than the previous generation (#1153)', () => {
+  const decoder = createLayerDecoder();
+  const firstShape = { kind: 'circle', radius: 1 }, secondShape = { kind: 'circle', radius: 2 };
+  decoder.decode({ bodies: { k: 1, all: [{ id: 1, generation: 1, shape: firstShape, x: 0 }] } });
+  decoder.decode({ bodies: { k: 1, set: [{ id: 1, generation: 2, shape: secondShape, x: 1 }] } });
+  const restored = decoder.decode({ bodies: { k: 1, set: [{ id: 1, generation: 1, x: 2 }] } });
+  assert.deepEqual(restored.bodies, [{ id: 1, generation: 1, x: 2, shape: firstShape }]);
+  const unknown = decoder.decode({ bodies: { k: 1, set: [{ id: 1, generation: 2, x: 3 }] } });
+  assert.equal(Object.hasOwn(unknown.bodies[0], 'shape'), false, 'a missing new-generation shape cannot be borrowed');
+});

@@ -1,3 +1,4 @@
+import { createFrameNormalizer } from '../../shared/relational-frame.ts';
 import { createRoomService } from '../../server/room-service.js';
 import { createRoomDirectory } from '../../server/room-directory.js';
 import { createLayerDecoder } from '../../shared/frame-layers.ts';
@@ -71,12 +72,16 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
   const service = createRoomService({ replays, wallNow: () => wall, reportError, reportReject, ...serviceOptions });
   const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
   const peer = () => {
-    const messages = [], closes = [], layers = createLayerDecoder();
+    const messages = [], rawMessages = [], closes = [], layers = createLayerDecoder(), frames = createFrameNormalizer();
     let seen = 0, stamped = -1;
     // Frames are kept decoded, as the client reads them, and `sizes` keeps what each payload weighed.
     const deliver = payload => {
       const data = JSON.parse(payload);
+      rawMessages.push(structuredClone(data));
+      if (data.type === 'seats') { frames.seats(data.roster); return; }
+      if (data.type === 'welcome' || data.type === 'ready') { frames.seats(data.roster); frames.setMap(data.map); }
       if (data.type === 'state') layers.decode(data.state);
+      if (data.state) data.state = frames.normalize(data.state);
       // Welcome and ready carry a whole frame too; each tells where the server's ticks are.
       const tick = ['state', 'welcome', 'ready'].includes(data.type) ? data.state?.tick : undefined;
       if (tick !== undefined) {
@@ -96,7 +101,7 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
       stamped = Math.max(stamped + 1, seen + 1);
       return { ...message, tick: stamped };
     };
-    return { session, messages, sizes, closes, send: message => directory.receive(session, stamp(message)) };
+    return { session, messages, rawMessages, sizes, closes, send: message => directory.receive(session, stamp(message)) };
   };
   const joined = (room, extra = {}) => {
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;

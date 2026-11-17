@@ -106,7 +106,7 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
     owner.send({ type: 'dev', action: 'pause' }); const tick = room.match.tick;
     const moved = land(id);
     const shown = owner.messages.filter(m => m.type === 'state').at(-1).state;
-    assert.equal(shown.tick, tick); assert.equal(shown.players.find(p => p.id === id).y, moved.y, 'a paused room shows the move at once');
+    assert.equal(shown.tick, tick); assert.ok(Math.abs(shown.players.find(p => p.id === id).y - moved.y) < 0.001, 'a paused room shows the stored body pose at once');
     assert.equal(shown.players.find(p => p.id === id).x, Math.round(moved.x + 0.4));
   } finally { await h.service.close(); }
 });

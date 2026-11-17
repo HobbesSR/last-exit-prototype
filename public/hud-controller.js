@@ -1,3 +1,4 @@
+import { formatEvent } from '/shared/events.ts';
 import { playableAreaRects } from '/shared/playable-area.ts';
 import { nearbyGate } from '/shared/gate-query.ts';
 import { INITIAL_ESCAPE_SLOTS } from '/shared/simulation/rules.ts';
@@ -148,7 +149,7 @@ export function createHUDController(actions) {
     setText($('seed-label'), arenaMap.seed);
     setText($('remaining'), `${state.contestantsActive ?? state.players.filter(p => p.role === 'contestant' && p.status === 'active').length} CONTESTANTS`);
     
-    const feedTexts = state.events.slice(-3).map(e => e.text);
+    const feedTexts = state.events.slice(-3).map(e => formatEvent(e));
     const feedStr = feedTexts.join('|');
     if ($('event-feed').dataset.feed !== feedStr) {
       $('event-feed').replaceChildren(...feedTexts.map(text => { const line = document.createElement('div'); line.textContent = text; return line; }));

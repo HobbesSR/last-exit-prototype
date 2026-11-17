@@ -1,7 +1,8 @@
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, disposePhysics, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
+import { createGameRecord, disposePhysics, step, snapshot, joinGame, setInput } from '../shared/simulation.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { actorBaseTint, CONTESTANT_IDENTITY_COLORS } from '../public/appearance.js';

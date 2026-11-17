@@ -38,7 +38,7 @@ export const SETS = {
     about: 'what the browser draws and how it presents and buffers frames',
     fast: ['appearance', 'event-light', 'palette', 'snapshot-buffer', 'lab-walk', 'diagnostics-episodes', 'tile-recorder'],
     browser: ['art-witness', 'overhead', 'dev-view'],
-    sources: ['public/**'],
+    sources: ['public/**', 'shared/relational-frame.ts'],
   },
   simulation: {
     about: 'game rules, items, bots, navigation, sight and projections, and the legacy generator',
@@ -46,12 +46,12 @@ export const SETS = {
       'utility-use', 'hearing', 'hearing-bots', 'hunting', 'hunter-planning', 'discovery', 'visibility', 'view', 'view-items',
       'projection-contract', 'presentation', 'frame-gates', 'frame-layers', 'rewind', 'reloading', 'input-queue', 'input-clock',
       'movement-speed', 'movement-preparation', 'bot-discovery', 'bot-memory', 'navigation-knowledge', 'map-boundary', 'route', 'boundaries', 'arena', 'playability',
-      'shared-rules', 'content', 'enum-tables'],
+      'shared-rules', 'content', 'enum-tables', 'events', 'relational-projection'],
     slow: ['characterization-physics-bots', 'view-live-map', 'reloading'],
     browser: ['hearing', 'transit'],
     sources: ['shared/simulation*', 'shared/simulation/**', 'shared/movement.ts', 'shared/view.ts', 'shared/discovery.ts', 'shared/equipment.ts',
       'shared/item-instances.ts', 'shared/enum-tables.ts', 'shared/loot-tiers.ts', 'shared/traps.ts', 'shared/gate-query.ts', 'shared/presentation.ts',
-      'shared/frame-layers.ts', 'shared/input-clock.ts', 'shared/navigation/**', 'shared/map.ts', 'shared/map/**', 'shared/playable-area.ts', 'shared/types.ts', 'shared/waiting-yard.ts',
+      'shared/frame-layers.ts', 'shared/relational-frame.ts', 'shared/input-clock.ts', 'shared/navigation/**', 'shared/map.ts', 'shared/map/**', 'shared/playable-area.ts', 'shared/types.ts', 'shared/waiting-yard.ts',
       // The engine too: the physics characterization baselines are this set's (#920).
       'shared/physics/**'],
   },
@@ -60,7 +60,7 @@ export const SETS = {
     fast: ['physics-*', 'bot-intents'],
     slow: ['physics-navigation'],
     browser: ['physics-*'],
-    sources: ['shared/physics/**', 'public/physics-*', 'public/dev/physics-lab*', 'public/dev/squish-shell.js'],
+    sources: ['shared/relational-frame.ts', 'shared/physics/**', 'public/physics-*', 'public/dev/physics-lab*', 'public/dev/squish-shell.js'],
   },
   rooms: {
     about: 'the server: rooms, matchmaking, recording and replay, the map pool and live-map wiring',
@@ -68,7 +68,7 @@ export const SETS = {
       'client-config', 'latency', 'map-pool', 'map-generator', 'live-map', 'live-map-adapter'],
     slow: ['live-map', 'live-map-adapter', 'live-recipe', 'map-generator', 'room-arena', 'room-sizes'],
     browser: ['browser', 'default-room'],
-    sources: ['server/**', 'shared/recording.ts', 'map/live*.ts'],
+    sources: ['server/**', 'shared/recording.ts', 'shared/relational-frame.ts', 'map/live*.ts'],
   },
   macro: {
     about: 'macro generation, the chain and its library, map tools and the Map Lab (also npm run test:mapgen)',

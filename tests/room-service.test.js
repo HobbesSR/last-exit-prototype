@@ -33,7 +33,7 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     assert.equal(writer.header.contentId, defaultContent().id);
     assert.equal(writer.header.version, PHYSICS_VERSION);
     assert.equal(writer.header.schema, SCHEMA);
-    assert.equal(writer.header.minSchema, 17);
+    assert.equal(writer.header.minSchema, 20);
     assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
     assert.equal(writer.frames[0].state.slots, 3);
   } finally { await h.service.close(); }
@@ -44,7 +44,7 @@ test('a player changes role and kit in the lobby, freeing their place to its ros
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), id = runner.session.playerId;
-    const fresh = createGameRecord(9, room.match.map(), room.content).players;
+    const fresh = createGameRecord(9, generatedMap(9), room.content).players;
     const before = room.match.player(id);
     assert.equal(before.role, 'contestant');
 
@@ -179,15 +179,12 @@ test('inventory gesture commands preserve source items in authoritative frames a
     const dropped = game.map.items.find(item => item.droppedBy === player.id);
     assert.equal(dropped.weaponType, 'rifle'); assert.equal(dropped.ammo, 7);
     const recorded = writer.frames.at(-1);
-    const legacyDropped = { ...dropped, id: itemLabel(game, dropped.id), lineageId: itemLabel(game, dropped.lineageId) };
-    assert.deepEqual(recorded.state.items.find(item => item.id === legacyDropped.id), legacyDropped);
+        assert.deepEqual(recorded.state.items.find(item => item.id === dropped.id), (({ x, y, ...rest }) => rest)(dropped));
     const command = recorded.commands.find(c => c.seq === 3);
     assert.equal(command.input.slot, 0); assert.equal(command.input.drop, true);
     assert.equal(command.input.moveSlot, undefined);
     const delivered = owner.messages.filter(m => m.type === 'state').at(-1).state;
-    assert.deepEqual(delivered.players.find(p => p.id === player.id).inventory, player.inventory.map(item => item && ({
-      ...item, instanceId: itemLabel(game, item.instanceId), lineageId: itemLabel(game, item.lineageId),
-    })));
+    assert.deepEqual(delivered.players.find(p => p.id === player.id).inventory, player.inventory);
 
     h.wake(50);
     assert.equal(game.map.items.filter(item => item.droppedBy === player.id).length, 1, 'drop is consumed once');

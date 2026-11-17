@@ -1,6 +1,7 @@
+import { renderedSnapshot } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recordingFit, SCHEMA, MIN_SCHEMA, LINES_SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
+import { recordingFit, SCHEMA, MIN_SCHEMA, RELATIONAL_SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { createGameRecord, snapshot, PHYSICS_VERSION } from '../shared/simulation.ts';
@@ -22,7 +23,7 @@ test('pre-physics and pre-chain-map schemas are refused, and supported schemas r
   assert.equal(recordingFit(archive), 'ok');
   const timeline = createReplayTimeline(archive);
   assert.equal(timeline.roster.filter(p => p.role === 'gladiator').length, 2);
-  assert.deepEqual(timeline.at(0).state, state, 'playback retains the recorded roster without substituting defaults');
+  assert.deepEqual(timeline.at(0).state, renderedSnapshot(game.map, state), 'playback retains the recorded roster without substituting defaults');
 
   // Archives written at schemas 10..17 still carry retired fields removed at schema 18 (#948, #949).
   const legacyState = structuredClone(state);
@@ -33,7 +34,7 @@ test('pre-physics and pre-chain-map schemas are refused, and supported schemas r
   const legacyArchive = { version: 'last-exit-0.8-physics', schema: 17, minSchema: 17, contentId: content.id,
     map: { ...game.map, modules: [], nodes: [], routes: [], streets: [] }, frames: [{ state: legacyState, commands: [] }] };
   assert.equal(recordingFit(legacyArchive), 'ok');
-  assert.deepEqual(createReplayTimeline(legacyArchive).at(0).state, legacyState);
+  assert.deepEqual(createReplayTimeline(legacyArchive).at(0).state, renderedSnapshot(game.map, legacyState));
 });
 
 test('a recording states what it is and the reader decides, refusing formats below the schema floor', () => {
@@ -71,7 +72,7 @@ test('the server stamps every recording with the schema pair its readers check',
   assert.equal(writer.header.schema, SCHEMA);
   // Recordings are stored as lines with delta frames (#901), which no reader before LINES_SCHEMA can read.
   assert.equal(writer.header.minSchema, minimumReaderForMatch());
-  assert.equal(writer.header.minSchema, LINES_SCHEMA);
+  assert.equal(writer.header.minSchema, RELATIONAL_SCHEMA);
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
 });
 

@@ -11,7 +11,7 @@ const indexes = new WeakMap<readonly GroundItem[], Map<ItemId, number>>();
 /** Records by id, independent of positions: removing a pickup need not rebuild the ground for body ownership checks. */
 const records = new WeakMap<readonly GroundItem[], Map<ItemId, GroundItem>>();
 /** Lists a frame holds. Marked, not frozen: V8 walks a frozen array more slowly in `filter` and `JSON.stringify`. */
-const published = new WeakSet<readonly GroundItem<ItemKey>[]>();
+const published = new WeakSet<readonly object[]>();
 
 /** Only logical items awaiting a body, ordered by id; carried across the live list's copies. */
 interface Admission { admitted: ReadonlySet<string>; items: GroundItem[]; size: number }
@@ -345,7 +345,15 @@ function recordText(item: GroundItem<ItemKey>): string {
   return json;
 }
 
-/** Carry immutable-list serialization caching across the temporary legacy boundary. */
-export function shareItemPublication(source: readonly GroundItem[], adapted: readonly GroundItem<ItemKey>[]): void {
-  if (published.has(source) || posed.has(source)) published.add(adapted);
+/** Carry immutable-list serialization caching to body-pose-free frame publications. */
+export function shareItemPublication(source: readonly object[], adapted: readonly object[]): void {
+  if (published.has(source) || posed.has(source as readonly GroundItem[])) published.add(adapted);
+  if (source === adapted || posed.has(adapted as readonly GroundItem[])) return;
+  // Carry the ground grid across the shared converter's compact and hydrated lists.
+  // This only associates records; the converter alone owns joining body poses.
+  const origin = posed.get(source as readonly GroundItem[])?.ground ?? source as readonly GroundItem[];
+  if (origin === adapted) return;
+  const swaps = new Map<GroundItem, GroundItem>();
+  for (let i = 0; i < origin.length; i++) if (origin[i] !== adapted[i]) swaps.set(origin[i]!, adapted[i] as GroundItem);
+  posed.set(adapted as readonly GroundItem[], { ground: origin, swaps });
 }

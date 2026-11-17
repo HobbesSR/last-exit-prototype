@@ -1,6 +1,7 @@
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, playerView, setInput, snapshot, step, synchronizePhysics,
+import { createGame, disposePhysics, setInput, snapshot, step, synchronizePhysics,
   enqueuePhysicsImpulse } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -104,9 +105,9 @@ test('pickup and drop retain instance identity, quantity, charge, and physical p
     step(s);
     const after = s.map.items[0];
     assert.ok(Math.hypot(after.x - before.x, after.y - before.y) > 0);
-    const frame = snapshot(s), body = frame.bodies.find(b => b.itemId === 'cell-1');
-    assert.equal(body.id, 'item:cell-1');
-    assert.deepEqual({ x: frame.items[0].x, y: frame.items[0].y }, { x: body.x, y: body.y });
+    const frame = snapshot(s), body = frame.bodies.find(b => b.owner.kind === 'item' && b.owner.itemId === itemId(s, 'cell-1'));
+    assert.equal(typeof body.id, 'number');
+    assert.equal('x' in frame.items[0], false, 'only the body carries physical pose');
     assert.deepEqual({ x: after.x, y: after.y }, { x: body.x, y: body.y });
     p.inventory[0] = carried('med-3', 'med', { count: 3, quality: 2 });
     identifyItems(s);
@@ -124,14 +125,14 @@ test('a delayed view retains its captured item and body after the live item is c
     synchronizePhysics(s);
     const captured = snapshot(s);
     assert.equal(s.map.items[0].id, itemId(s, 'delayed'), 'runtime ground carries the numeric item identity');
-    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.itemId === 'delayed'));
+    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === itemId(s, 'delayed')));
     automaticPickups(s, p, {});
     const current = snapshot(s);
     assert.equal(s.map.items.length, 0, 'the live item was consumed');
-    assert.ok(playerView(s, captured, p.id).items.some(record => record.id === 'delayed'), 'the captured item remains available to a delayed view');
-    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.itemId === 'delayed'), 'the captured body remains associated');
-    assert.equal(playerView(s, current, p.id).items.some(record => record.id === 'delayed'), false);
-    assert.equal(playerView(s, current, p.id).bodies.some(body => body.itemId === 'delayed'), false);
+    assert.ok(playerView(s, captured, p.id).items.some(record => record.id === itemId(s, 'delayed')), 'the captured item remains available to a delayed view');
+    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === itemId(s, 'delayed')), 'the captured body remains associated');
+    assert.equal(playerView(s, current, p.id).items.some(record => record.id === itemId(s, 'delayed')), false);
+    assert.equal(playerView(s, current, p.id).bodies.some(body => body.owner.kind === 'item' && body.owner.itemId === itemId(s, 'delayed')), false);
   } finally { disposePhysics(s); }
 });
 
@@ -243,7 +244,7 @@ test('repeated synchronization keeps stable body counts and identical physical t
         step(s);
         assert.equal(runtime.world.counts().dynamic, initial);
         const frame = snapshot(s);
-        trace.push({ item: frame.items.find(record => record.id === 'loose'),
+        trace.push({ item: frame.bodies.find(b => b.owner.kind === 'item' && b.owner.itemId === itemId(s, 'loose')),
           bodies: frame.bodies.map(body => ({ id: body.id, x: body.x, y: body.y, angle: body.angle })) });
       }
       assert.ok(trace.at(-1).item.x > trace[0].item.x);

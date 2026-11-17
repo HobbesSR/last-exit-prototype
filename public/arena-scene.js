@@ -1,3 +1,4 @@
+import { bodyRelations } from '../shared/relational-frame.ts';
 import { visibilityPolygon, sweptClear } from '/shared/movement.ts';
 import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesActor, observeGates, roofAt, buildingOpenings, INSIDE_ZOOM, LOD_LABEL_ZOOM } from '/shared/view.ts';
 import { bodyRadius } from '/shared/physics/presentation-geometry.ts';
@@ -189,7 +190,7 @@ export function makeArenaScene(api) {
       // position would otherwise cull a whole-arena view down to the area around them.
       if (api.directed()) api.director.step(rawDelta ?? delta);
       const rawFollow = api.directed() ? api.follow() : null;
-      const followBody = rawFollow && actorBodies.get(rawFollow.id);
+      const followBody = rawFollow && actorBodies.byActor(rawFollow.playerIdx ?? rawFollow.id);
       const follow = followBody ? { ...rawFollow, x: followBody.x, y: followBody.y } : rawFollow;
       const focus = api.directed() ? follow : self;
       const focusBody = api.directed() ? followBody : selfBody;
@@ -238,7 +239,7 @@ export function makeArenaScene(api) {
       const actorGeometry = api.geometryOverlay?.();
       const ids = new Set();
       for (const rawPlayer of state.players) {
-        const body = actorBodies.get(rawPlayer.id);
+        const body = actorBodies.byActor(rawPlayer.playerIdx ?? rawPlayer.id);
         const p = body ? { ...rawPlayer, x: body.x, y: body.y } : rawPlayer;
         ids.add(p.id); const actor = this.actors.get(p.id) || this.makeActor(p); const own = p.id === api.playerId();
         // Own marks the viewer's player in any view; only a live one is steered by local aim and eye.
@@ -304,16 +305,16 @@ export function makeArenaScene(api) {
       api.onFrame(delta);
       const state = api.state(), map = api.map(), rawSelf = api.self();
       if (!state || !map) { stop('render.frame'); endProfileFrame(); return; }
-      const actorBodies = new Map((state.bodies || []).filter(body => body.kind === 'actor' && body.actorId != null).map(body => [body.actorId, body]));
-      const itemBodies = new Map((state.bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
-      const selfBody = rawSelf && actorBodies.get(rawSelf.id);
+      const actorBodies = bodyRelations(state.bodies);
+      const itemBodies = { get: actorBodies.byItem };
+      const selfBody = rawSelf && actorBodies.byActor(rawSelf.playerIdx ?? rawSelf.id);
       const self = selfBody && !api.localPhysics?.() ? { ...rawSelf, x: selfBody.x, y: selfBody.y } : rawSelf;
       const eye = this.stepEye(state, map, actorBodies, self, selfBody, rawDelta, delta);
       // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed
       // view, or nobody's, which is the unfogged directed view.
       const fogged = !api.directed() || api.director.fog() && !!api.director.followId();
       const rawViewer = api.directed() ? api.director.viewer() : self;
-      const viewerBody = rawViewer && actorBodies.get(rawViewer.id);
+      const viewerBody = rawViewer && actorBodies.byActor(rawViewer.playerIdx ?? rawViewer.id);
       const viewer = viewerBody ? { ...rawViewer, x: viewerBody.x, y: viewerBody.y } : rawViewer;
       // Raw frame time, not Phaser's smoothed and clamped delta, so a slow client pans as far as a fast one.
       // Stepping indoors eases the camera a little closer; a directed camera is the director's alone.
@@ -346,7 +347,7 @@ export function makeArenaScene(api) {
       // An empty additive layer still costs Phaser a blend switch and batch flush each frame.
       this.eventLight.setVisible(eventLights.length > 0);
       count('work.eventLights', eventLights.length);
-      const playersById = new Map(state.players.map(player => [player.id, player]));
+      const playersById = new Map(state.players.map(player => [player.playerIdx ?? player.id, player]));
       const bodies = visibleBodies(state, playersById, viewer, view);
       drawTethers(g, state.tethers || [], bodies, view);
       drawHookFlights(g, state.hookFlights || [], bodies, view);
@@ -360,7 +361,7 @@ export function makeArenaScene(api) {
       drawEffects(g, state.effects, view);
       drawHazard(fixed, state.hazardX, map);
       // Read from the frame's own record: a predicted copy of the player may not carry the latest cues.
-      drawHeardCues(g, api.directed() ? [] : playersById.get(api.playerId())?.heard ?? [], state.tick, view);
+      drawHeardCues(g, api.directed() ? [] : state.players.find(player => player.id === api.playerId())?.heard ?? [], state.tick, view);
       stop('render.world');
       start('render.actors'); this.drawActors(state, map, actorBodies, eye, viewer, fogged, canonicalFields, artOpts); stop('render.actors');
       stop('render.frame');

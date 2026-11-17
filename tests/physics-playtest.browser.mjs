@@ -85,7 +85,7 @@ try {
   await page.locator('#scene').selectOption('B');
   await page.getByRole('button', { name: 'Start / Reset' }).click();
   await page.getByRole('button', { name: 'Export JSON' }).click();
-  assert.ok(JSON.parse(await page.locator('#recording').inputValue()).frames[0].bodies.some(body => body.id === 'prop:crate'));
+  assert.ok(JSON.parse(await page.locator('#recording').inputValue()).frames[0].bodies.some(body => body.owner?.kind === 'prop'));
   await page.getByRole('button', { name: 'Cast ahead' }).click();
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const castRecord = JSON.parse(await page.locator('#recording').inputValue());
@@ -98,7 +98,8 @@ try {
   await page.waitForFunction(() => document.querySelector('#status').textContent.includes('retained frames match'));
   await page.getByRole('button', { name: 'Export JSON' }).click();
   assert.deepEqual(JSON.parse(await page.locator('#recording').inputValue()).trace, castRecord.trace);
-  const actor = castRecord.frames[0].players.find(player => player.id === castRecord.selected);
+  const actorRecord = castRecord.frames[0].players.find(player => player.id === castRecord.selected);
+  const actor = castRecord.frames[0].bodies.find(body => body.owner?.kind === 'actor' && body.owner.playerIdx === actorRecord.playerIdx);
   assert.ok(actor, 'selected actor is present in the exported frame');
   const target = { x: actor.x + 80, y: actor.y + 120 };
   const expectedAim = Math.atan2(target.y - actor.y, target.x - actor.x);
@@ -272,7 +273,7 @@ try {
       const pushed = { open: shell(240, 400), oneSide: shell(200, 342), slit: shell(600, 400),
         between: shell(240, 400, [{ x: 240 - 2 * core, y: 400, radius: core }, { x: 240 + 2 * core, y: 400, radius: core }]) };
       let state; const crushed = [0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.7, 0.62, 0.3].map(value => (state = stepSquish(state, value)).crushed);
-      const body = id => lab.frame().bodies.find(entry => entry.id === `actor:${id}`);
+      const body = id => lab.frame().physics.world.bodies.find(entry => entry.spec.id === `actor:${id}`).transform;
       const drive = (id, input, until, limit = 120) => { lab.selected = id; for (let i = 0; i < limit && !until(); i++) lab.tick(input); };
       drive('c0', { x: -1 }, () => body('c0').x < 14);
       const alone = lab.shells.get('c0').squeeze;
@@ -319,7 +320,7 @@ try {
     const lab = new PhysicsLab(), again = new PhysicsLab();
     try {
       await lab.start(sceneConfig('E'));
-      const body = id => lab.frame().bodies.find(entry => entry.id === id);
+      const body = id => lab.frame().physics.world.bodies.find(entry => entry.spec.id === id).transform;
       const nodes = () => Array.from({ length: JELLY.nodes }, (_, i) => body(`jelly:n${i}`));
       const spokes = () => nodes().map(node => Math.hypot(node.x - body('jelly:core').x, node.y - body('jelly:core').y));
       const out = { bodies: lab.frame().bodies.length, tethers: lab.frame().tethers.length, ring: JELLY.ring, node: JELLY.nodeRadius };

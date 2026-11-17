@@ -1,0 +1,10 @@
+{
+  "checkpoint": "c151109588d26f4d106d933f4c5600c779868f75",
+  "beforeGzip": "c271f7f530f3c483e7fffce29b477cb315e22d0b12b38b840776a8db73b7b894",
+  "afterGzip": "06b7b0ae20d63683e95a4cd69eee1bb18bff1b5f3adc0789942316af9f319714",
+  "beforeScripted": "cdc30dc635496fa93b8ff151e6f87f7a04fdd5d85dcba765f5f23ba2633c12a2",
+  "afterScripted": "5b0a8f1099a97393821fa66ddacddb4c4592c2575a2247bba5220278b3fdca0a",
+  "arenas": "be9ea312c4da5f9b390e49da96e9f724fc09f9fd9e5ebe8c99c764d9303a9ee5",
+  "newArenas": "be9ea312c4da5f9b390e49da96e9f724fc09f9fd9e5ebe8c99c764d9303a9ee5",
+  "version": "last-exit-0.8-physics"
+}

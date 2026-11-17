@@ -107,14 +107,14 @@ test('an unchanged ground is shared between frames, frozen, and never cloned', (
   const firstItemsJson = itemsJson(first.items);
   assert.equal(second.items, first.items);
   assert.equal(second.items[0], first.items[0], 'unchanged snapshots retain each converted legacy record');
-  assert.notEqual(first.items, s.map.items, 'the legacy frame list is an outward projection of numeric runtime ground');
+  assert.equal(first.items, s.map.items, 'numeric bodyless ground records share the runtime publication');
   assert.equal(s.map.items, runtimeItems, 'unchanged snapshots retain the runtime ground list');
   assert.equal(itemsJson(second.items), firstItemsJson, 'the outward list keeps its published serialization cache');
   assert.ok(first.items.every(Object.isFrozen));
   assert.throws(() => { first.items[0].count = 1; }, TypeError);
   // The list itself is marked, not frozen (V8 filters and serializes frozen arrays slowly): a rule's change copies it.
   groundList(s).push(identifiedPile(s, 'c', 100));
-  assert.deepEqual(first.items.map(item => item.id), ['a', 'b']);
+  assert.deepEqual(labels(s, first.items), ['a', 'b']);
 });
 
 test('a partial pickup replaces only its own record; published frames keep what they showed', () => {
@@ -133,8 +133,8 @@ test('a partial pickup replaces only its own record; published frames keep what 
   assert.notEqual(after.items, before.items);
   assert.equal(after.items[1], far, 'an untouched record is the same object');
   assert.deepEqual([after.items[0].count, near.count, p.reserves.pistol], [8, 20, 72]);
-  assert.notEqual(groundItem(s, itemId(s, 'near')), after.items[0], 'runtime and outward records have distinct identity domains');
-  assert.equal(itemLabel(s, groundItem(s, itemId(s, 'near')).id), after.items[0].id);
+  assert.equal(groundItem(s, itemId(s, 'near')), after.items[0], 'numeric bodyless records share their immutable value');
+  assert.equal(groundItem(s, itemId(s, 'near')).id, after.items[0].id);
 });
 
 test('adding to a published ground copies the list once and leaves the frame alone', () => {
@@ -143,7 +143,7 @@ test('adding to a published ground copies the list once and leaves the frame alo
   const runtimeRecord = s.map.items[0];
   groundList(s).push(identifiedPile(s, 'b', 400));
   groundList(s).push(identifiedPile(s, 'c', 450));
-  assert.deepEqual(frame.items.map(item => item.id), ['a']);
+  assert.deepEqual(labels(s, frame.items), ['a']);
   assert.deepEqual(labels(s, s.map.items), ['a', 'b', 'c']);
   assert.equal(s.map.items[0], runtimeRecord, 'appending reuses the untouched numeric runtime record');
   assert.equal(itemLabel(s, groundItem(s, itemId(s, 'c')).id), 'c');
@@ -214,7 +214,7 @@ test('an unchanged record projects to one shared object in every view and frame;
   for (const p of s.players) p.bot = false;
   const viewers = [null, ...s.players.map(p => p.id)];
   const first = snapshot(s), directed = playerView(s, first, null).items;
-  assert.deepEqual(directed.map(item => item.id), ['a', 'b']);
+  assert.deepEqual(labels(s, directed), ['a', 'b']);
   assert.ok(directed.every(Object.isFrozen));
   // Player views carry the directed view's objects, so frame-layers same() matches them by identity.
   for (const viewer of viewers) for (const item of playerView(s, first, viewer).items) assert.equal(item, directed.find(d => d.id === item.id));

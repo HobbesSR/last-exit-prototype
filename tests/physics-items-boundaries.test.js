@@ -1,3 +1,4 @@
+import { renderedSnapshot } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, enqueuePhysicsImpulse, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
@@ -62,7 +63,7 @@ test('client maps omit crate authoring while recordings retain engine-free physi
     const timeline = createReplayTimeline({ schema: 12, minSchema: 10, map: match.map(), frames: [{ state: a }, { state: b }] });
     // State-only timeline preserves recorded body and item identity across backward seeks.
     assert.deepEqual(timeline.at(b.tick).state.bodies, b.bodies);
-    assert.deepEqual(timeline.at(a.tick).state.items, a.items);
+    assert.deepEqual(timeline.at(a.tick).state.items, renderedSnapshot(map, a).items);
   } finally { match.dispose(); }
 });
 

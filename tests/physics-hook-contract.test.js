@@ -1,7 +1,9 @@
+import { renderedSnapshot } from './helpers/relational.js';
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
-import { createGame, disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, disposePhysics, setInput, step, snapshot, } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { createReplayWriter } from '../server/replay-writer.js';
 import { createReplayTimeline } from '../public/replay-timeline.js';
@@ -70,7 +72,7 @@ test('the recording retains flight/pending/pull/cancel states through compressed
     assert.equal(archive.schema, SCHEMA);
     assert.equal(recordingFit(archive), 'ok');
     const timeline = createReplayTimeline(archive);
-    for (const tick of [4, 1, 3, 0, 2, 4]) assert.deepEqual(timeline.at(tick).state, frames[tick]);
+    for (const tick of [4, 1, 3, 0, 2, 4]) assert.deepEqual(timeline.at(tick).state, renderedSnapshot(map, frames[tick]));
     assert.equal(recordingFit({ ...header, schema: 12 }), 'ok', 'older physics archives remain readable');
   } finally { disposePhysics(s); }
 });

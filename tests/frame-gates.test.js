@@ -26,7 +26,7 @@ test('a frame shares its gate list until a gate changes, then shares every uncha
 
   // A field added or removed is a change too.
   s.map.gates[0].note = 'x';
-  assert.equal(snapshot(s).gates[0].note, 'x');
+  assert.equal('note' in snapshot(s).gates[0], false, 'unlisted static/private fields stay off dynamic state');
   delete s.map.gates[0].note;
   assert.equal('note' in snapshot(s).gates[0], false);
 });
@@ -37,7 +37,7 @@ test('frame gates serialize, project and encode as cloned gates did (#655)', asy
     for (let tick = 0; tick < 12; tick++) {
       if (tick % 4 === 2) s.map.gates[tick % s.map.gates.length].open = !s.map.gates[tick % s.map.gates.length].open;
       step(s);
-      const frame = snapshot(s), expected = structuredClone(s.map.gates);
+      const frame = snapshot(s), expected = s.map.gates.map((g, gateIdx) => ({ gateIdx, open: g.open, locked: g.locked }));
       assert.equal(JSON.stringify(frame.gates), JSON.stringify(expected));
       assert.equal(gatesJson(frame.gates), JSON.stringify(expected));
       const views = [...s.players.map(p => p.id), null].map(id => playerView(s, frame, id));
@@ -81,6 +81,6 @@ test('canonical gate state slots retain authored order while physics admits in l
     assert.deepEqual([...r.gates], [2, 1]);
     assert.equal(r.world.hasBody('gate:door-10'), false);
     assert.equal(r.world.hasBody('gate:door-2'), true);
-    assert.deepEqual(snapshot(s).gates.map(g => g.id), ['door-2', 'door-10']);
+    assert.deepEqual(snapshot(s).gates.map(g => g.gateIdx), [0, 1]);
   } finally { disposePhysics(s); }
 });

@@ -239,7 +239,7 @@ try {
   const savedRecording = readArchive(await (await fetch(`${base}/api/replays/${ownerRoom}`)).text());
   const fixtureState = tick => {
     const state = structuredClone(savedRecording.frames[0].state);
-    const origin = state.players[0];
+    const origin = state.bodies.find(b => b.owner?.kind === 'actor' && b.owner.playerIdx === state.players[0].playerIdx) ?? state.players[0];
     state.tick = tick;
     state.projectiles = [{ id: 'fixture-shot', x: origin.x + tick * 10, y: origin.y, dx: 10, dy: 0 }];
     state.effects = [];
@@ -388,11 +388,12 @@ try {
     // A physics frame draws actors from their bodies, so a subject leaves or moves with its body too.
     const kept = id => (id !== absentA || a) && (id !== absentB || b);
     state.players = state.players.filter(p => kept(p.id));
-    if (state.bodies) state.bodies = state.bodies.filter(body => body.actorId === undefined || kept(body.actorId));
+    const playersByIdx = new Map(denseReplay.frames[0].state.players.map(p => [p.playerIdx, p.id]));
+    if (state.bodies) state.bodies = state.bodies.filter(body => body.owner?.kind !== 'actor' || kept(playersByIdx.get(body.owner.playerIdx)));
     for (const [id, place] of [[absentA, a], [absentB, b]]) {
       if (!place) continue;
       Object.assign(state.players.find(p => p.id === id), place);
-      const body = state.bodies?.find(body => body.actorId === id);
+      const body = state.bodies?.find(body => body.owner?.kind === 'actor' && playersByIdx.get(body.owner.playerIdx) === id);
       if (body) Object.assign(body, place);
     }
     return { state, commands: [] };

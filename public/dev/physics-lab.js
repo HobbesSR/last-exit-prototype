@@ -1,3 +1,4 @@
+import { bodyRelations } from '../../shared/relational-frame.ts';
 import { JELLY, PhysicsLab, sceneConfig, TICK_HZ, TICK_MS } from './physics-lab-model.js';
 import { SQUISH } from './squish-shell.js';
 
@@ -17,9 +18,10 @@ const button = (id, action) => byId(id).addEventListener('click', () => Promise.
 const TRAIL_TICKS = 40;
 /** The selected actor's body at each of the last TRAIL_TICKS + 1 retained frames, oldest first. */
 function trail() {
-  const id = `actor:${lab.selected}`, points = [];
+  const points = [];
   for (const past of lab.frames.slice(-(TRAIL_TICKS + 1))) {
-    const body = past.bodies?.find(entry => entry.id === id);
+    const idx = past.players.find(player => player.id === lab.selected)?.playerIdx;
+    const body = bodyRelations(past.bodies).byActor(idx);
     if (body) points.push(body);
   }
   return points;
@@ -47,11 +49,11 @@ function draw() {
   ctx.fillStyle = '#667773';
   for (const obstacle of lab.config.map.obstacles) ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
   const bodies = new Map((frame.bodies ?? []).map(body => [body.id, body]));
-  const anchors = new Map((frame.physics?.world?.constraints ?? []).map(constraint => [constraint.id, constraint]));
-  for (const tether of frame.tethers ?? []) {
-    const a = bodies.get(tether.a), b = bodies.get(tether.b);
+  // The lab exposes solver anchors, which are private diagnostics rather than presentation data.
+  const diagnosticBodies = new Map((frame.physics?.world?.bodies ?? []).map(body => [body.spec.id, body.transform]));
+  for (const descriptor of frame.physics?.world?.constraints ?? []) {
+    const a = diagnosticBodies.get(descriptor.a), b = diagnosticBodies.get(descriptor.b);
     if (!a || !b) continue;
-    const descriptor = anchors.get(tether.id);
     const point = (body, local) => ({ x: body.x + (local?.x ?? 0) * Math.cos(body.angle) - (local?.y ?? 0) * Math.sin(body.angle),
       y: body.y + (local?.x ?? 0) * Math.sin(body.angle) + (local?.y ?? 0) * Math.cos(body.angle) });
     const start = point(a, descriptor?.anchorA), end = point(b, descriptor?.anchorB);
@@ -76,7 +78,7 @@ function draw() {
     if (shell.crushed) { ctx.fillStyle = '#ff6b60'; ctx.fillText('CRUSHED', shell.x - 20, shell.y + shell.reach + 12); }
   }
   // The jelly is one object: a filled ring through its nodes, over the individual bodies drawn below.
-  const ring = Array.from({ length: JELLY.nodes }, (_, i) => bodies.get(`jelly:n${i}`));
+  const ring = Array.from({ length: JELLY.nodes }, (_, i) => frame.physics?.world?.bodies?.find(body => body.spec.id === `jelly:n${i}`)?.transform);
   if (ring.every(Boolean)) {
     ctx.beginPath(); ring.forEach((node, i) => { if (i) ctx.lineTo(node.x, node.y); else ctx.moveTo(node.x, node.y); }); ctx.closePath();
     ctx.fillStyle = 'rgba(123, 240, 192, .22)'; ctx.strokeStyle = '#7bf0c0'; ctx.lineWidth = 2; ctx.fill(); ctx.stroke();
@@ -88,14 +90,14 @@ function draw() {
   });
   for (const body of frame.bodies ?? []) {
     if (body.kind === 'actor') {
-      const player = frame.players.find(p => p.id === body.actorId);
+      const player = frame.players.find(p => p.playerIdx === body.owner.playerIdx);
       const geometry = lab.config.content.actorPhysics.geometry[player?.role ?? 'contestant'];
       shape({ ...body, shape: { kind: 'circle', radius: geometry.hurtRadius } }, '#ff80bb', body.sleeping);
       shape({ ...body, shape: { kind: 'circle', radius: geometry.headRadius } }, '#5be1d8', body.sleeping);
       shape(body, '#ffbc54', body.sleeping);
-      ctx.fillStyle = body.actorId === lab.selected ? '#fff' : '#d1e3d8';
+      ctx.fillStyle = player?.id === lab.selected ? '#fff' : '#d1e3d8';
       const cooling = player?.kit && player.cooldown > 0 ? ` · skill ${(player.cooldown / TICK_HZ).toFixed(1)} s` : '';
-      ctx.fillText(`${body.actorId}${cooling}`, body.x + 24, body.y - 20);
+      ctx.fillText(`${player?.id}${cooling}`, body.x + 24, body.y - 20);
     } else shape(body, '#a6b5ff', body.sleeping);
   }
   // The jelly's springs and node contacts would bury it in labels; its ring is the readout, so skip its own bodies.
@@ -121,7 +123,8 @@ function draw() {
     ctx.lineTo(p.x + m.x * 0.08, p.y + m.y * 0.08); ctx.stroke();
   }
   if (lab.lastImpulse) {
-    const body = bodies.get(`actor:${lab.lastImpulse.actorId}`);
+    const idx = frame.players.find(player => player.id === lab.lastImpulse.actorId)?.playerIdx;
+    const body = bodyRelations(frame.bodies).byActor(idx);
     if (body) {
       ctx.strokeStyle = '#9bf09a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(body.x, body.y);
       ctx.lineTo(body.x + lab.lastImpulse.value.x * 0.12, body.y + lab.lastImpulse.value.y * 0.12); ctx.stroke();

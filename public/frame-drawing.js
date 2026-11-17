@@ -82,7 +82,7 @@ export function visibleBodies(state, playersById, viewer, view) {
   const propVisible = createShapeVisibility(view.sight, view.map);
   return new Map((state.bodies || []).filter(body => {
     if (body.kind !== 'actor') return !view.fogged || propVisible(bodyShape(body));
-    const player = playersById.get(body.actorId);
+    const player = playersById.get(body.owner?.kind === 'actor' ? body.owner.playerIdx : body.actorId);
     if (!player || player.status !== 'active') return false;
     const atBody = { ...player, x: body.x, y: body.y };
     return !view.fogged || player.id === viewer?.id || seesActor(view.sight, view.map, viewer, atBody);
@@ -119,7 +119,7 @@ export function drawHookFlights(g, flights, bodies, { fogged, lit, nearView }) {
 export function drawProps(g, bodies, items, fields, artOpts, eventLights, { nearView }) {
   const drawnItems = new Set(items.map(item => item.id));
   for (const body of bodies.values()) {
-    if (body.kind !== 'prop' || body.itemId != null && drawnItems.has(body.itemId)) continue;
+    if (body.kind !== 'prop' || (body.owner?.kind === 'item' && drawnItems.has(body.owner.itemId)) || (body.itemId != null && drawnItems.has(body.itemId))) continue;
     const shape = body.shape;
     if (!nearView(body.x, body.y, bodyRadius(shape))) continue;
     const propLight = sampleSpatialLight(fields, body.x, body.y, artOpts);

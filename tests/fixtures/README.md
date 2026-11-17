@@ -23,7 +23,20 @@ portal graph bots plan with, and the graph holds typed arrays that JSON drops.
 trace (1.3 s); `tests/slow/characterization-physics-bots.test.js` replays the bot matches
 (31 s). Both run from `tests/characterization-physics-scenarios.js`.
 
-Captured at `c7fce14` (schema 18 batch #948/#949 retiring `Player.path`,
+Current projection checkpoint: `c151109588d26f4d106d933f4c5600c779868f75` (#1153, wire 4 / schema 20).
+Gzip SHA-256 `06b7b0ae20d63683e95a4cd69eee1bb18bff1b5f3adc0789942316af9f319714`; scripted JSON SHA-256
+`5b0a8f1099a97393821fa66ddacddb4c4592c2575a2247bba5220278b3fdca0a`. This is the intentional, reviewable Checkpoint 2
+representation update accepted in [24.4](../../docs/24.4-relational-data-model.md),
+after Checkpoint 1 (#1150 through #1152) passed the old fixture unchanged. Numeric public
+identities, body-owned poses, self/observed records, dynamic-only gates, structured
+events and the true private numeric item/scatter counters change stored values.
+Gameplay, private PhysicsWorld state and `last-exit-0.8-physics` remain unchanged.
+The before/after independent continuity proof and reproduction are in
+[42.53](../../docs/42.53-relational-projections.md). Both original arenas and portal
+graphs were carried forward; their serialized SHA-256 remains
+`be9ea312c4da5f9b390e49da96e9f724fc09f9fd9e5ebe8c99c764d9303a9ee5`. No map was regenerated.
+
+Previously captured at `c7fce14` (schema 18 batch #948/#949 retiring `Player.path`,
 `navigation`/`replanning` selectors, `GameMap.{modules,nodes,routes,streets}`, and private
 `physics.{profile,settings,world.pending}`), whose simulation, physics and map code the
 capturing commit left unchanged. Gzip SHA-256

@@ -1,0 +1,1997 @@
+{
+  "method": {
+    "baseline": "bab39739",
+    "archivedPrHead": "376834ff",
+    "fixedRuntime": "15f4ed7568b9d8f7dcba410f1a2b914fdb9fb9f6",
+    "runs": "single sequential diagnostic measurements; not repeated alternated ratios",
+    "benchArgs": "--ticks=1000 --clients=12 --json",
+    "stagesArgs": "--ticks=1000 --clients=12 --spectators=1 --no-record",
+    "probe": "node --expose-gc tools/perf/relational-replay.mjs --root=<checkout> --mode=<legacy|relational>",
+    "sourceLiveness": "decoded source and resulting timeline both explicitly rooted across final GC"
+  },
+  "replay": {
+    "baseline": {
+      "mode": "legacy",
+      "frames": 3500,
+      "items": 920,
+      "gates": 90,
+      "players": 12,
+      "wallMs": 4.176300000000005,
+      "cpuMs": 0,
+      "heapBefore": 13487440,
+      "heapAfter": 16184480,
+      "retainedHeapDelta": 2697040,
+      "contention": {
+        "wallMs": 18.7271,
+        "selfCpuMs": 15,
+        "otherBusyShare": 0.0293,
+        "contended": false,
+        "threshold": 0.25
+      }
+    },
+    "prHead": {
+      "mode": "relational",
+      "frames": 3500,
+      "items": 920,
+      "gates": 90,
+      "players": 12,
+      "wallMs": 273.30600000000004,
+      "cpuMs": 594,
+      "heapBefore": 15131824,
+      "heapAfter": 314908048,
+      "retainedHeapDelta": 299776224,
+      "contention": {
+        "wallMs": 322.2004,
+        "selfCpuMs": 735,
+        "otherBusyShare": 0.0238,
+        "contended": false,
+        "threshold": 0.25
+      }
+    },
+    "fixed": {
+      "mode": "relational",
+      "frames": 3500,
+      "items": 920,
+      "gates": 90,
+      "players": 12,
+      "wallMs": 53.001000000000005,
+      "cpuMs": 155,
+      "heapBefore": 18839992,
+      "heapAfter": 39579272,
+      "retainedHeapDelta": 20739280,
+      "contention": {
+        "wallMs": 72.412,
+        "selfCpuMs": 155,
+        "otherBusyShare": 0.0022,
+        "contended": false,
+        "threshold": 0.25
+      }
+    }
+  },
+  "bench": {
+    "baseline": {
+      "stats": {
+        "seed": 4217,
+        "content": "content-7",
+        "cold": false,
+        "size": "12x6",
+        "rooms": 1,
+        "clients": 12,
+        "ticks": 1000,
+        "wallMs": 2919.6605,
+        "cpuMs": 4579,
+        "userCpuMs": 4438,
+        "systemCpuMs": 141,
+        "contention": {
+          "wallMs": 12302.2013,
+          "selfCpuMs": 18032,
+          "otherBusyShare": 0.0195,
+          "contended": false,
+          "threshold": 0.25
+        },
+        "meanMs": 2.9032626000000183,
+        "p50Ms": 2.5778000000009342,
+        "p95Ms": 5.1784999999999854,
+        "p99Ms": 10.897800000000643,
+        "maxMs": 34.84600000000137,
+        "budgetMs": 50,
+        "budgetUsedPct": 5.806525200000037,
+        "overBudgetTicks": 0,
+        "sustainableHz": 193.10611180843927,
+        "roomHeadroom": 9
+      },
+      "series": [
+        {
+          "name": "work.visibilityRays",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 27607.386666666665,
+          "p50": 30556,
+          "p95": 56497,
+          "max": 79672
+        },
+        {
+          "name": "work.rayEdgeTests",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 127.52666666666667,
+          "p50": 114,
+          "p95": 256,
+          "max": 368
+        },
+        {
+          "name": "work.route.expansions",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 59.96666666666667,
+          "p50": 0,
+          "p95": 261,
+          "max": 1912
+        },
+        {
+          "name": "prepare.staticsStep",
+          "unit": "ms",
+          "scope": "event",
+          "samples": 1,
+          "calls": 1,
+          "mean": 38.19870000000083,
+          "p50": 38.19870000000083,
+          "p95": 38.19870000000083,
+          "max": 38.19870000000083
+        },
+        {
+          "name": "work.bots.frontier",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 19.22,
+          "p50": 0,
+          "p95": 90,
+          "max": 183
+        },
+        {
+          "name": "calls.lineClear",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 10.755,
+          "p50": 12,
+          "p95": 15,
+          "max": 18
+        },
+        {
+          "name": "calls.sweptClear",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 5.026666666666666,
+          "p50": 3,
+          "p95": 15,
+          "max": 21
+        },
+        {
+          "name": "sim.step",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 2.0215744999999727,
+          "p50": 1.9048000000002503,
+          "p95": 4.033999999999651,
+          "max": 12.169799999999668
+        },
+        {
+          "name": "sim.discovery",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 1.026029000000023,
+          "p50": 1.1120000000009895,
+          "p95": 2.279100000001563,
+          "max": 4.233200000000579
+        },
+        {
+          "name": "calls.visibilityPolygon",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.7183333333333334,
+          "p50": 1,
+          "p95": 1,
+          "max": 1
+        },
+        {
+          "name": "sim.bots",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.41685833333336025,
+          "p50": 0.19500000000152795,
+          "p95": 1.6415000000015425,
+          "max": 10.28859999999986
+        },
+        {
+          "name": "sim.solve",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.3928263333333022,
+          "p50": 0.3396999999986292,
+          "p95": 0.6047999999991589,
+          "max": 1.762300000000323
+        },
+        {
+          "name": "sim.playerView",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 12,
+          "mean": 0.3341470000001785,
+          "p50": 0.2999999999992724,
+          "p95": 0.5293000000019674,
+          "max": 1.278200000000652
+        },
+        {
+          "name": "sim.snapshot",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.29553149999997913,
+          "p50": 0.2672999999995227,
+          "p95": 0.5028999999994994,
+          "max": 1.4552999999996246
+        },
+        {
+          "name": "work.bots.items",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.295,
+          "p50": 0,
+          "p95": 1,
+          "max": 2
+        },
+        {
+          "name": "work.repath",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.27666666666666667,
+          "p50": 0,
+          "p95": 1,
+          "max": 2
+        },
+        {
+          "name": "work.route.slices",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.27666666666666667,
+          "p50": 0,
+          "p95": 1,
+          "max": 2
+        },
+        {
+          "name": "sim.bots.plan",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.2413776666666945,
+          "p50": 0.018299999999726424,
+          "p95": 1.4631999999983236,
+          "max": 10.025100000000748
+        },
+        {
+          "name": "work.route.waiting",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 50,
+          "calls": 0,
+          "mean": 0.2,
+          "p50": 0,
+          "p95": 1,
+          "max": 1
+        },
+        {
+          "name": "sim.snapshot.clone",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.13992116666663,
+          "p50": 0.12910000000010768,
+          "p95": 0.22809999999844877,
+          "max": 1.2173000000002503
+        },
+        {
+          "name": "sim.snapshot.presentation",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 2,
+          "mean": 0.1293693333333249,
+          "p50": 0.10480000000097789,
+          "p95": 0.23979999999937718,
+          "max": 1.084899999999834
+        },
+        {
+          "name": "sim.repath",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0.27666666666666667,
+          "mean": 0.08828599999998005,
+          "p50": 0,
+          "p95": 0.3978000000006432,
+          "max": 7.2555000000011205
+        },
+        {
+          "name": "sim.bots.dynamic",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.07807483333328795,
+          "p50": 0.06849999999758438,
+          "p95": 0.15729999999894062,
+          "max": 0.8324000000011438
+        },
+        {
+          "name": "sim.sync",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 3,
+          "mean": 0.07580666666670671,
+          "p50": 0.0665999999982887,
+          "p95": 0.11370000000169966,
+          "max": 0.8722999999990861
+        },
+        {
+          "name": "sim.itemSync",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 3.013333333333333,
+          "mean": 0.04648650000006152,
+          "p50": 0.04079999999885331,
+          "p95": 0.06810000000041327,
+          "max": 0.8449000000018714
+        },
+        {
+          "name": "sim.poses",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.039109666666663545,
+          "p50": 0.03319999999985157,
+          "p95": 0.059900000000197906,
+          "max": 0.8623999999999796
+        },
+        {
+          "name": "work.route.backtracked",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.028333333333333332,
+          "p50": 0,
+          "p95": 0,
+          "max": 1
+        },
+        {
+          "name": "sim.bots.observe",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.0281538333333386,
+          "p50": 0.024899999996705446,
+          "p95": 0.04399999999986903,
+          "max": 0.8062999999983731
+        },
+        {
+          "name": "sim.bots.sight",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 20.37,
+          "mean": 0.026824500000208598,
+          "p50": 0.02389999999650172,
+          "p95": 0.049299999998766,
+          "max": 0.18280000000049768
+        },
+        {
+          "name": "sim.snapshot.world",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.024648166666650772,
+          "p50": 0.021899999999732245,
+          "p95": 0.036700000000564614,
+          "max": 0.13460000000122818
+        },
+        {
+          "name": "sim.projectiles",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.02229299999999057,
+          "p50": 0.005199999999604188,
+          "p95": 0.03570000000036089,
+          "max": 5.419099999999162
+        },
+        {
+          "name": "sim.pickups",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.019905000000029153,
+          "p50": 0.016200000000026193,
+          "p95": 0.03299999999944703,
+          "max": 0.34469999999964784
+        },
+        {
+          "name": "sim.actions",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.016075500000003254,
+          "p50": 0.014600000000427826,
+          "p95": 0.02840000000105647,
+          "max": 0.16829999999936263
+        },
+        {
+          "name": "sim.bots.items",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 14.32,
+          "mean": 0.015962833333414892,
+          "p50": 0.01389999999628344,
+          "p95": 0.02840000000105647,
+          "max": 0.12740000000121654
+        },
+        {
+          "name": "work.route.portalPlans",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.015,
+          "p50": 0,
+          "p95": 0,
+          "max": 1
+        },
+        {
+          "name": "sim.bots.explore",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 7.135,
+          "mean": 0.01280999999990551,
+          "p50": 0.009500000001935405,
+          "p95": 0.031000000000858563,
+          "max": 0.07339999999749125
+        },
+        {
+          "name": "calls.canOccupy",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.008333333333333333,
+          "p50": 0,
+          "p95": 0,
+          "max": 3
+        },
+        {
+          "name": "sim.bots.steer",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.007156333333465833,
+          "p50": 0.006399999996574479,
+          "p95": 0.012000000002444722,
+          "max": 0.050299999998969724
+        },
+        {
+          "name": "sim.bots.collect",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.004902833333323239,
+          "p50": 0.004199999999400461,
+          "p95": 0.006600000000617001,
+          "max": 0.039999999999054126
+        },
+        {
+          "name": "sim.environment",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.00218316666669125,
+          "p50": 0.0019000000011146767,
+          "p95": 0.003800000000410364,
+          "max": 0.019499999998515705
+        },
+        {
+          "name": "sim.rewind",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.0013278333333164483,
+          "p50": 0.0011999999987892807,
+          "p95": 0.002300000000104774,
+          "max": 0.016100000000733417
+        },
+        {
+          "name": "work.bots.props",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      ]
+    },
+    "fixed": {
+      "stats": {
+        "seed": 4217,
+        "content": "content-7",
+        "cold": false,
+        "size": "12x6",
+        "rooms": 1,
+        "clients": 12,
+        "ticks": 1000,
+        "wallMs": 2969.898000000001,
+        "cpuMs": 4671,
+        "userCpuMs": 4531,
+        "systemCpuMs": 140,
+        "contention": {
+          "wallMs": 12250.343299999999,
+          "selfCpuMs": 17749,
+          "otherBusyShare": 0.0681,
+          "contended": false,
+          "threshold": 0.25
+        },
+        "meanMs": 2.9531659999999866,
+        "p50Ms": 2.597700000000259,
+        "p95Ms": 5.538199999999051,
+        "p99Ms": 8.430600000001505,
+        "maxMs": 39.509000000000015,
+        "budgetMs": 50,
+        "budgetUsedPct": 5.906331999999973,
+        "overBudgetTicks": 0,
+        "sustainableHz": 180.56408219280115,
+        "roomHeadroom": 9
+      },
+      "series": [
+        {
+          "name": "work.visibilityRays",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 27607.386666666665,
+          "p50": 30556,
+          "p95": 56497,
+          "max": 79672
+        },
+        {
+          "name": "work.rayEdgeTests",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 127.52666666666667,
+          "p50": 114,
+          "p95": 256,
+          "max": 368
+        },
+        {
+          "name": "work.route.expansions",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 59.96666666666667,
+          "p50": 0,
+          "p95": 261,
+          "max": 1912
+        },
+        {
+          "name": "prepare.staticsStep",
+          "unit": "ms",
+          "scope": "event",
+          "samples": 1,
+          "calls": 1,
+          "mean": 38.99699999999939,
+          "p50": 38.99699999999939,
+          "p95": 38.99699999999939,
+          "max": 38.99699999999939
+        },
+        {
+          "name": "work.bots.frontier",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 19.22,
+          "p50": 0,
+          "p95": 90,
+          "max": 183
+        },
+        {
+          "name": "calls.lineClear",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 10.755,
+          "p50": 12,
+          "p95": 15,
+          "max": 18
+        },
+        {
+          "name": "calls.sweptClear",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 5.026666666666666,
+          "p50": 3,
+          "p95": 15,
+          "max": 21
+        },
+        {
+          "name": "sim.step",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 2.0247931666666803,
+          "p50": 1.8814999999995052,
+          "p95": 4.139699999999721,
+          "max": 12.21429999999964
+        },
+        {
+          "name": "sim.discovery",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 1.0478358333333835,
+          "p50": 1.140400000000227,
+          "p95": 2.3003000000007887,
+          "max": 6.056300000000192
+        },
+        {
+          "name": "calls.visibilityPolygon",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.7183333333333334,
+          "p50": 1,
+          "p95": 1,
+          "max": 1
+        },
+        {
+          "name": "sim.bots",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.4166760000000128,
+          "p50": 0.19350000000122236,
+          "p95": 1.7083000000002357,
+          "max": 10.625600000001214
+        },
+        {
+          "name": "sim.playerView",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 12,
+          "mean": 0.4063696666666419,
+          "p50": 0.35750000000189175,
+          "p95": 0.6290000000008149,
+          "max": 2.408399999998437
+        },
+        {
+          "name": "sim.solve",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.39266683333338126,
+          "p50": 0.3287000000000262,
+          "p95": 0.5967000000000553,
+          "max": 2.45339999999851
+        },
+        {
+          "name": "work.bots.items",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.295,
+          "p50": 0,
+          "p95": 1,
+          "max": 2
+        },
+        {
+          "name": "work.repath",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.27666666666666667,
+          "p50": 0,
+          "p95": 1,
+          "max": 2
+        },
+        {
+          "name": "work.route.slices",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.27666666666666667,
+          "p50": 0,
+          "p95": 1,
+          "max": 2
+        },
+        {
+          "name": "sim.snapshot",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.26344499999998033,
+          "p50": 0.23980000000119617,
+          "p95": 0.4416000000001077,
+          "max": 1.749100000000908
+        },
+        {
+          "name": "sim.bots.plan",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.2442741666665552,
+          "p50": 0.01629999999749998,
+          "p95": 1.5595999999968626,
+          "max": 10.388599999998405
+        },
+        {
+          "name": "work.route.waiting",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 50,
+          "calls": 0,
+          "mean": 0.2,
+          "p50": 0,
+          "p95": 1,
+          "max": 1
+        },
+        {
+          "name": "sim.snapshot.clone",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.15930399999997766,
+          "p50": 0.1478000000006432,
+          "p95": 0.26600000000144064,
+          "max": 0.3765000000003056
+        },
+        {
+          "name": "sim.repath",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0.27666666666666667,
+          "mean": 0.09165099999998651,
+          "p50": 0,
+          "p95": 0.3806000000004133,
+          "max": 6.7523999999993976
+        },
+        {
+          "name": "sim.snapshot.presentation",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 2,
+          "mean": 0.0786228333333141,
+          "p50": 0.060499999999592546,
+          "p95": 0.1455999999998312,
+          "max": 1.5218999999997322
+        },
+        {
+          "name": "sim.bots.dynamic",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.07733866666663138,
+          "p50": 0.07060000000092259,
+          "p95": 0.15069999999650463,
+          "max": 0.26789999999891734
+        },
+        {
+          "name": "sim.sync",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 3,
+          "mean": 0.06430349999994785,
+          "p50": 0.05709999999999127,
+          "p95": 0.09720000000197615,
+          "max": 0.18759999999929278
+        },
+        {
+          "name": "sim.itemSync",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 3.013333333333333,
+          "mean": 0.03513733333339284,
+          "p50": 0.03109999999833235,
+          "p95": 0.05229999999937718,
+          "max": 0.3809000000019296
+        },
+        {
+          "name": "sim.poses",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.034355500000016644,
+          "p50": 0.028000000000247383,
+          "p95": 0.050300000000788714,
+          "max": 1.3955999999998312
+        },
+        {
+          "name": "work.route.backtracked",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.028333333333333332,
+          "p50": 0,
+          "p95": 0,
+          "max": 1
+        },
+        {
+          "name": "sim.bots.sight",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 20.37,
+          "mean": 0.027506833333136457,
+          "p50": 0.02560000000266882,
+          "p95": 0.04640000000290456,
+          "max": 0.10720000000401342
+        },
+        {
+          "name": "sim.bots.observe",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.0268924999998823,
+          "p50": 0.024999999999636202,
+          "p95": 0.04560000000128639,
+          "max": 0.09479999999712163
+        },
+        {
+          "name": "sim.snapshot.world",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.023955499999992753,
+          "p50": 0.02140000000144937,
+          "p95": 0.035500000001775334,
+          "max": 0.14469999999892025
+        },
+        {
+          "name": "sim.pickups",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.020245333333350574,
+          "p50": 0.016399999998611747,
+          "p95": 0.03440000000045984,
+          "max": 0.32440000000133296
+        },
+        {
+          "name": "sim.projectiles",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.020209833333353043,
+          "p50": 0.005000000001018634,
+          "p95": 0.03390000000035798,
+          "max": 4.4715999999989435
+        },
+        {
+          "name": "sim.actions",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.016080000000010843,
+          "p50": 0.014299999998911517,
+          "p95": 0.02659999999923457,
+          "max": 0.23370000000068103
+        },
+        {
+          "name": "sim.bots.items",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 14.32,
+          "mean": 0.015044166666806025,
+          "p50": 0.013000000002648449,
+          "p95": 0.026499999999941792,
+          "max": 0.10499999999956344
+        },
+        {
+          "name": "work.route.portalPlans",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.015,
+          "p50": 0,
+          "p95": 0,
+          "max": 1
+        },
+        {
+          "name": "sim.bots.explore",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 7.135,
+          "mean": 0.012204499999925247,
+          "p50": 0.007600000000820728,
+          "p95": 0.02930000000014843,
+          "max": 0.1790000000000873
+        },
+        {
+          "name": "calls.canOccupy",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.008333333333333333,
+          "p50": 0,
+          "p95": 0,
+          "max": 3
+        },
+        {
+          "name": "sim.bots.steer",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 10.185,
+          "mean": 0.006948666666876307,
+          "p50": 0.006100000000515138,
+          "p95": 0.011700000002747402,
+          "max": 0.0643000000018219
+        },
+        {
+          "name": "sim.bots.collect",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.004004666666681563,
+          "p50": 0.0034999999988940544,
+          "p95": 0.005899999998291605,
+          "max": 0.038200000000870205
+        },
+        {
+          "name": "sim.environment",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.002139333333382941,
+          "p50": 0.0018999999992956873,
+          "p95": 0.0036999999992985977,
+          "max": 0.02930000000014843
+        },
+        {
+          "name": "sim.rewind",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.0013615000000027067,
+          "p50": 0.0011999999987892807,
+          "p95": 0.0020999999997002305,
+          "max": 0.020700000000942964
+        },
+        {
+          "name": "work.bots.props",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      ]
+    }
+  },
+  "stages": {
+    "baseline": {
+      "meta": {
+        "seed": 4217,
+        "content": "content-7",
+        "size": "12x6",
+        "rooms": 1,
+        "clients": 12,
+        "spectators": 1,
+        "recording": false,
+        "ticks": 1000,
+        "node": "v24.15.0",
+        "items": [
+          232
+        ],
+        "obstacles": [
+          3355
+        ],
+        "tilesMs": [
+          834.4302000000007
+        ]
+      },
+      "tick": {
+        "mean": 3.5210220000000025,
+        "p50": 3.130699999999706,
+        "p99": 10.124900000000707,
+        "max": 32.0692999999992,
+        "over": 0
+      },
+      "stages": {
+        "calls.canOccupy": {
+          "mean": 0.023,
+          "p50": 0,
+          "p99": 0,
+          "max": 18,
+          "share": null
+        },
+        "calls.lineClear": {
+          "mean": 10.172,
+          "p50": 10,
+          "p99": 16,
+          "max": 24,
+          "share": null
+        },
+        "calls.sweptClear": {
+          "mean": 5.51,
+          "p50": 3,
+          "p99": 20,
+          "max": 22,
+          "share": null
+        },
+        "calls.visibilityPolygon": {
+          "mean": 0.751,
+          "p50": 1,
+          "p99": 1,
+          "max": 1,
+          "share": null
+        },
+        "loop.broadcast": {
+          "mean": 0.88734260000004,
+          "p50": 0.7716999999993277,
+          "p99": 1.940599999999904,
+          "max": 5.3016999999999825,
+          "share": 0.2520127962847262
+        },
+        "loop.encode": {
+          "mean": 0.1852004999999608,
+          "p50": 0.16450000000077125,
+          "p99": 0.4555999999975029,
+          "max": 0.8289999999997235,
+          "share": 0.05259850691076644
+        },
+        "loop.remember": {
+          "mean": 0.0021113000000041213,
+          "p50": 0.0019000000011146767,
+          "p99": 0.005600000000413274,
+          "max": 0.021500000000742148,
+          "share": 0.0005996270401048672
+        },
+        "loop.serialize": {
+          "mean": 0.21293130000008387,
+          "p50": 0.18809999999939464,
+          "p99": 0.4041999999972177,
+          "max": 1.727600000000166,
+          "share": 0.06047428843105317
+        },
+        "loop.viewsBuilt": {
+          "mean": 12,
+          "p50": 12,
+          "p99": 12,
+          "max": 12,
+          "share": null
+        },
+        "loop.viewsSent": {
+          "mean": 13,
+          "p50": 13,
+          "p99": 13,
+          "max": 13,
+          "share": null
+        },
+        "sim.actions": {
+          "mean": 0.01846569999996245,
+          "p50": 0.01449999999931606,
+          "p99": 0.06890000000021246,
+          "max": 0.8768000000000029,
+          "share": 0.005244414831819409
+        },
+        "sim.bots": {
+          "mean": 0.5173831000000028,
+          "p50": 0.23619999999937136,
+          "p99": 5.887700000001132,
+          "max": 12.802300000001196,
+          "share": 0.1469411721937558
+        },
+        "sim.bots.collect": {
+          "mean": 0.007287399999993795,
+          "p50": 0.0059999999994033715,
+          "p99": 0.02779999999984284,
+          "max": 0.15680000000065775,
+          "share": 0.002069683177212125
+        },
+        "sim.bots.dynamic": {
+          "mean": 0.11303019999999742,
+          "p50": 0.09109999999964202,
+          "p99": 0.3743000000013126,
+          "max": 3.8888999999981024,
+          "share": 0.03210153188477588
+        },
+        "sim.bots.explore": {
+          "mean": 0.015496700000066994,
+          "p50": 0.010600000001431908,
+          "p99": 0.07099999999991269,
+          "max": 0.5410000000047148,
+          "share": 0.004401193744335305
+        },
+        "sim.bots.items": {
+          "mean": 0.01861800000000767,
+          "p50": 0.014799999989918433,
+          "p99": 0.06929999999920256,
+          "max": 0.6323000000047614,
+          "share": 0.005287669318739746
+        },
+        "sim.bots.observe": {
+          "mean": 0.039195300000004867,
+          "p50": 0.029399999997622217,
+          "p99": 0.09529999999904248,
+          "max": 3.7600000000020373,
+          "share": 0.011131796393207665
+        },
+        "sim.bots.plan": {
+          "mean": 0.29274139999996807,
+          "p50": 0.020599999999831198,
+          "p99": 5.2652000000034604,
+          "max": 12.525999999996202,
+          "share": 0.08314103121195149
+        },
+        "sim.bots.sight": {
+          "mean": 0.030719799999864336,
+          "p50": 0.02569999999468564,
+          "p99": 0.09299999999348074,
+          "max": 1.4366999999983818,
+          "share": 0.008724682776723438
+        },
+        "sim.bots.steer": {
+          "mean": 0.008171800000065559,
+          "p50": 0.006599999993341044,
+          "p99": 0.040900000003603054,
+          "max": 0.4441999999999098,
+          "share": 0.0023208602502527826
+        },
+        "sim.discovery": {
+          "mean": 1.1508219000000135,
+          "p50": 1.178299999999581,
+          "p99": 3.4231999999992695,
+          "max": 18.965799999999945,
+          "share": 0.326843143837219
+        },
+        "sim.environment": {
+          "mean": 0.002575700000019424,
+          "p50": 0.0019999999985884642,
+          "p99": 0.008600000001024455,
+          "max": 0.22439999999915017,
+          "share": 0.0007315205642053421
+        },
+        "sim.itemSync": {
+          "mean": 0.05092920000007871,
+          "p50": 0.04289999999855354,
+          "p99": 0.09919999999874562,
+          "max": 2.4953999999943335,
+          "share": 0.01446432314256448
+        },
+        "sim.pickups": {
+          "mean": 0.02686829999998372,
+          "p50": 0.016400000000430737,
+          "p99": 0.11599999999998545,
+          "max": 4.528800000000047,
+          "share": 0.007630824232277929
+        },
+        "sim.playerView": {
+          "mean": 0.4449755000000587,
+          "p50": 0.3779999999987922,
+          "p99": 0.941000000000713,
+          "max": 3.404899999997724,
+          "share": 0.12637680196262857
+        },
+        "sim.poses": {
+          "mean": 0.04076489999997466,
+          "p50": 0.03360000000066066,
+          "p99": 0.09490000000005239,
+          "max": 0.7461000000002969,
+          "share": 0.011577576056035615
+        },
+        "sim.projectiles": {
+          "mean": 0.011527200000005905,
+          "p50": 0.005300000000715954,
+          "p99": 0.06639999999970314,
+          "max": 1.700300000000425,
+          "share": 0.003273822202759851
+        },
+        "sim.repath": {
+          "mean": 0.12474370000001728,
+          "p50": 0,
+          "p99": 2.6975000000002183,
+          "max": 9.132899999998699,
+          "share": 0.03542826486174105
+        },
+        "sim.rewind": {
+          "mean": 0.0034404000000067755,
+          "p50": 0.0015000000003055902,
+          "p99": 0.010200000000622822,
+          "max": 1.4699999999993452,
+          "share": 0.000977102670760584
+        },
+        "sim.snapshot": {
+          "mean": 0.3167875999999742,
+          "p50": 0.2703000000001339,
+          "p99": 0.6527999999998428,
+          "max": 2.1304000000000087,
+          "share": 0.08997035519800045
+        },
+        "sim.snapshot.clone": {
+          "mean": 0.15013089999993826,
+          "p50": 0.13500000000021828,
+          "p99": 0.27880000000004657,
+          "max": 2.0002999999996973,
+          "share": 0.042638444178973646
+        },
+        "sim.snapshot.presentation": {
+          "mean": 0.1377286000000022,
+          "p50": 0.10710000000108266,
+          "p99": 0.32620000000315486,
+          "max": 1.7687999999998283,
+          "share": 0.039116086181796676
+        },
+        "sim.snapshot.world": {
+          "mean": 0.02723019999999633,
+          "p50": 0.023000000001047738,
+          "p99": 0.05969999999979336,
+          "max": 0.13889999999992142,
+          "share": 0.007733606890271152
+        },
+        "sim.solve": {
+          "mean": 0.4462449000000106,
+          "p50": 0.35210000000006403,
+          "p99": 1.702499999999418,
+          "max": 7.725900000001275,
+          "share": 0.12673732228881565
+        },
+        "sim.step": {
+          "mean": 2.311716200000008,
+          "p50": 1.9948999999996886,
+          "p99": 8.808499999999185,
+          "max": 25.700699999999415,
+          "share": 0.6565469343843937
+        },
+        "sim.sync": {
+          "mean": 0.08231979999997929,
+          "p50": 0.07180000000153086,
+          "p99": 0.169899999998961,
+          "max": 1.3395999999993364,
+          "share": 0.023379518787437065
+        },
+        "work.bots.frontier": {
+          "mean": 14.806,
+          "p50": 0,
+          "p99": 124,
+          "max": 183,
+          "share": null
+        },
+        "work.bots.items": {
+          "mean": 0.3,
+          "p50": 0,
+          "p99": 2,
+          "max": 21,
+          "share": null
+        },
+        "work.bots.props": {
+          "mean": 0,
+          "p50": 0,
+          "p99": 0,
+          "max": 0,
+          "share": null
+        },
+        "work.rayEdgeTests": {
+          "mean": 108.097,
+          "p50": 98,
+          "p99": 276,
+          "max": 368,
+          "share": null
+        },
+        "work.rekey.bodies": {
+          "mean": 0.047,
+          "p50": 0,
+          "p99": 1,
+          "max": 12,
+          "share": null
+        },
+        "work.rekey.discovered": {
+          "mean": 0.074,
+          "p50": 0,
+          "p99": 1,
+          "max": 1,
+          "share": null
+        },
+        "work.rekey.gates": {
+          "mean": 0.012,
+          "p50": 0,
+          "p99": 0,
+          "max": 12,
+          "share": null
+        },
+        "work.rekey.items": {
+          "mean": 0.106,
+          "p50": 0,
+          "p99": 1,
+          "max": 12,
+          "share": null
+        },
+        "work.rekey.tethers": {
+          "mean": 0.012,
+          "p50": 0,
+          "p99": 0,
+          "max": 12,
+          "share": null
+        },
+        "work.repath": {
+          "mean": 0.256,
+          "p50": 0,
+          "p99": 2,
+          "max": 3,
+          "share": null
+        },
+        "work.route.backtracked": {
+          "mean": 0.033,
+          "p50": 0,
+          "p99": 1,
+          "max": 2,
+          "share": null
+        },
+        "work.route.expansions": {
+          "mean": 64.457,
+          "p50": 0,
+          "p99": 1571,
+          "max": 2180,
+          "share": null
+        },
+        "work.route.portalPlans": {
+          "mean": 0.012,
+          "p50": 0,
+          "p99": 1,
+          "max": 3,
+          "share": null
+        },
+        "work.route.slices": {
+          "mean": 0.258,
+          "p50": 0,
+          "p99": 2,
+          "max": 3,
+          "share": null
+        },
+        "work.route.waiting": {
+          "mean": 0.01,
+          "p50": 0,
+          "p99": 1,
+          "max": 1,
+          "share": null
+        },
+        "work.visibilityRays": {
+          "mean": 27682.493,
+          "p50": 33180,
+          "p99": 62445,
+          "max": 79672,
+          "share": null
+        },
+        "untimed": {
+          "mean": 0.003064299999976356,
+          "p50": 0.0024999999968713382,
+          "p99": 0.017299999999522697,
+          "max": 0.10519999999996799,
+          "share": 0.0008702870927748687
+        }
+      },
+      "over": [],
+      "run": {
+        "wallMs": 3543.3558999999987,
+        "cpuMs": 5140,
+        "userCpuMs": 5031,
+        "systemCpuMs": 109,
+        "contention": {
+          "wallMs": 12720.3351,
+          "selfCpuMs": 17891,
+          "otherBusyShare": 0.0258,
+          "contended": false,
+          "threshold": 0.25
+        }
+      },
+      "recorder": {
+        "droppedFrames": [
+          0
+        ],
+        "drainMs": {
+          "mean": 0.0005093999999953667,
+          "p50": 0.0004000000008090865,
+          "p99": 0.0015999999995983671,
+          "max": 0.008200000000215368
+        }
+      },
+      "gc": {
+        "count": 52,
+        "ms": 93.22909998893738,
+        "max": 11.53030002117157
+      },
+      "memory": {
+        "samples": [
+          {
+            "tick": 0,
+            "heapMB": 109.90644836425781,
+            "rssMB": 497.22265625
+          },
+          {
+            "tick": 250,
+            "heapMB": 209.137939453125,
+            "rssMB": 442.1015625
+          },
+          {
+            "tick": 500,
+            "heapMB": 167.55704498291016,
+            "rssMB": 474.140625
+          },
+          {
+            "tick": 750,
+            "heapMB": 244.94635772705078,
+            "rssMB": 476.9375
+          }
+        ],
+        "historyFrames": [
+          62
+        ],
+        "historyBytes": [
+          2025724
+        ],
+        "stateBytes": [
+          81882
+        ]
+      }
+    },
+    "fixed": {
+      "meta": {
+        "seed": 4217,
+        "content": "content-7",
+        "size": "12x6",
+        "rooms": 1,
+        "clients": 12,
+        "spectators": 1,
+        "recording": false,
+        "ticks": 1000,
+        "node": "v24.15.0",
+        "items": [
+          232
+        ],
+        "obstacles": [
+          3355
+        ],
+        "tilesMs": [
+          892.9112000000005
+        ]
+      },
+      "tick": {
+        "mean": 3.463446100000001,
+        "p50": 3.089700000000448,
+        "p99": 10.160399999998845,
+        "max": 35.4453999999987,
+        "over": 0
+      },
+      "stages": {
+        "calls.canOccupy": {
+          "mean": 0.023,
+          "p50": 0,
+          "p99": 0,
+          "max": 18,
+          "share": null
+        },
+        "calls.lineClear": {
+          "mean": 10.172,
+          "p50": 10,
+          "p99": 16,
+          "max": 24,
+          "share": null
+        },
+        "calls.sweptClear": {
+          "mean": 5.51,
+          "p50": 3,
+          "p99": 20,
+          "max": 22,
+          "share": null
+        },
+        "calls.visibilityPolygon": {
+          "mean": 0.751,
+          "p50": 1,
+          "p99": 1,
+          "max": 1,
+          "share": null
+        },
+        "loop.broadcast": {
+          "mean": 0.9588617999999532,
+          "p50": 0.824800000000323,
+          "p99": 2.1898999999993976,
+          "max": 7.3210999999992055,
+          "share": 0.27685194812182956
+        },
+        "loop.encode": {
+          "mean": 0.20920530000001963,
+          "p50": 0.18409999999676074,
+          "p99": 0.5205000000023574,
+          "max": 1.053699999998571,
+          "share": 0.060403798401834394
+        },
+        "loop.remember": {
+          "mean": 0.00206560000000718,
+          "p50": 0.0018000000000029104,
+          "p99": 0.004899999999906868,
+          "max": 0.1190999999998894,
+          "share": 0.000596400215382933
+        },
+        "loop.serialize": {
+          "mean": 0.15829109999993307,
+          "p50": 0.14180000000123982,
+          "p99": 0.28210000000035507,
+          "max": 1.4929000000011001,
+          "share": 0.0457033530852214
+        },
+        "loop.viewsBuilt": {
+          "mean": 12,
+          "p50": 12,
+          "p99": 12,
+          "max": 12,
+          "share": null
+        },
+        "loop.viewsSent": {
+          "mean": 13,
+          "p50": 13,
+          "p99": 13,
+          "max": 13,
+          "share": null
+        },
+        "sim.actions": {
+          "mean": 0.018109300000020083,
+          "p50": 0.014600000000427826,
+          "p99": 0.06220000000030268,
+          "max": 0.816899999999805,
+          "share": 0.005228694045511515
+        },
+        "sim.bots": {
+          "mean": 0.5069007000000237,
+          "p50": 0.22589999999945576,
+          "p99": 4.841399999999339,
+          "max": 11.973599999999351,
+          "share": 0.14635732312970703
+        },
+        "sim.bots.collect": {
+          "mean": 0.005083599999996295,
+          "p50": 0.003999999998995918,
+          "p99": 0.02839999999923748,
+          "max": 0.1077000000004773,
+          "share": 0.001467786664846984
+        },
+        "sim.bots.dynamic": {
+          "mean": 0.10536469999997644,
+          "p50": 0.08739999999488646,
+          "p99": 0.36859999999614956,
+          "max": 2.1622000000006665,
+          "share": 0.030421925723046885
+        },
+        "sim.bots.explore": {
+          "mean": 0.0151512999999577,
+          "p50": 0.010399999999208376,
+          "p99": 0.0786999999982072,
+          "max": 0.40099999999620195,
+          "share": 0.004374631382298023
+        },
+        "sim.bots.items": {
+          "mean": 0.01964350000004015,
+          "p50": 0.014599999996789848,
+          "p99": 0.07120000000031723,
+          "max": 1.8982000000014523,
+          "share": 0.0056716632604850254
+        },
+        "sim.bots.observe": {
+          "mean": 0.03375380000003497,
+          "p50": 0.029499999998733983,
+          "p99": 0.08710000000428408,
+          "max": 0.16679999999905704,
+          "share": 0.009745726950979536
+        },
+        "sim.bots.plan": {
+          "mean": 0.2913332000000246,
+          "p50": 0.019999999998617568,
+          "p99": 4.375199999994948,
+          "max": 11.682700000003024,
+          "share": 0.08411656817758027
+        },
+        "sim.bots.sight": {
+          "mean": 0.028726000000100612,
+          "p50": 0.02539999999680731,
+          "p99": 0.08690000000206055,
+          "max": 0.22189999999864085,
+          "share": 0.008294051407383127
+        },
+        "sim.bots.steer": {
+          "mean": 0.00809069999996791,
+          "p50": 0.006500000001324224,
+          "p99": 0.03510000000278524,
+          "max": 0.32339999999749125,
+          "share": 0.002336025959799954
+        },
+        "sim.discovery": {
+          "mean": 1.097288800000013,
+          "p50": 1.1412000000000262,
+          "p99": 3.4092000000000553,
+          "max": 13.068699999999808,
+          "share": 0.31681994415908843
+        },
+        "sim.environment": {
+          "mean": 0.0026376000000163913,
+          "p50": 0.0020000000004074536,
+          "p99": 0.008899999998902786,
+          "max": 0.21199999999953434,
+          "share": 0.0007615536445092622
+        },
+        "sim.itemSync": {
+          "mean": 0.04112239999998565,
+          "p50": 0.0323999999982334,
+          "p99": 0.0893000000014581,
+          "max": 2.767199999998411,
+          "share": 0.01187326114299444
+        },
+        "sim.pickups": {
+          "mean": 0.026142799999981436,
+          "p50": 0.016399999998611747,
+          "p99": 0.11120000000119035,
+          "max": 5.122000000001208,
+          "share": 0.0075482046623972085
+        },
+        "sim.playerView": {
+          "mean": 0.5331014999998898,
+          "p50": 0.4492999999984022,
+          "p99": 1.5111999999971886,
+          "max": 4.194799999995666,
+          "share": 0.15392227411880025
+        },
+        "sim.poses": {
+          "mean": 0.03604780000000028,
+          "p50": 0.028500000000349246,
+          "p99": 0.08550000000104774,
+          "max": 1.1972999999998137,
+          "share": 0.010408073046091369
+        },
+        "sim.projectiles": {
+          "mean": 0.011267099999970014,
+          "p50": 0.005200000001423177,
+          "p99": 0.05860000000029686,
+          "max": 1.7523999999993976,
+          "share": 0.003253147205025079
+        },
+        "sim.repath": {
+          "mean": 0.1261496999999763,
+          "p50": 0,
+          "p99": 2.2924000000002707,
+          "max": 8.245699999999488,
+          "share": 0.036423174017339625
+        },
+        "sim.rewind": {
+          "mean": 0.0019433000000099127,
+          "p50": 0.0015000000003055902,
+          "p99": 0.008499999999912689,
+          "max": 0.0635999999994965,
+          "share": 0.0005610885643665459
+        },
+        "sim.snapshot": {
+          "mean": 0.27603120000001036,
+          "p50": 0.24129999999968277,
+          "p99": 0.5259999999998399,
+          "max": 2.098599999999351,
+          "share": 0.0796984252187468
+        },
+        "sim.snapshot.clone": {
+          "mean": 0.16602919999999904,
+          "p50": 0.1514999999999418,
+          "p99": 0.30650000000059663,
+          "max": 0.4305000000003929,
+          "share": 0.047937572927726234
+        },
+        "sim.snapshot.presentation": {
+          "mean": 0.08214940000004207,
+          "p50": 0.0632999999979802,
+          "p99": 0.18399999999928696,
+          "max": 1.9027999999998428,
+          "share": 0.02371897746583729
+        },
+        "sim.snapshot.world": {
+          "mean": 0.02601930000001812,
+          "p50": 0.022100000000136788,
+          "p99": 0.07070000000021537,
+          "max": 0.14140000000043074,
+          "share": 0.0075125465356651894
+        },
+        "sim.solve": {
+          "mean": 0.43781870000000345,
+          "p50": 0.34610000000066066,
+          "p99": 1.4470000000001164,
+          "max": 12.841199999998935,
+          "share": 0.12641129307599253
+        },
+        "sim.step": {
+          "mean": 2.2237279999999973,
+          "p50": 1.9296999999987747,
+          "p99": 7.768299999999726,
+          "max": 27.206599999999526,
+          "share": 0.642056476640418
+        },
+        "sim.sync": {
+          "mean": 0.07426959999995415,
+          "p50": 0.060800000001108856,
+          "p99": 0.17329999999856227,
+          "max": 1.6188999999994849,
+          "share": 0.02144384461474776
+        },
+        "work.bots.frontier": {
+          "mean": 14.806,
+          "p50": 0,
+          "p99": 124,
+          "max": 183,
+          "share": null
+        },
+        "work.bots.items": {
+          "mean": 0.3,
+          "p50": 0,
+          "p99": 2,
+          "max": 21,
+          "share": null
+        },
+        "work.bots.props": {
+          "mean": 0,
+          "p50": 0,
+          "p99": 0,
+          "max": 0,
+          "share": null
+        },
+        "work.rayEdgeTests": {
+          "mean": 108.097,
+          "p50": 98,
+          "p99": 276,
+          "max": 368,
+          "share": null
+        },
+        "work.rekey.bodies": {
+          "mean": 0.047,
+          "p50": 0,
+          "p99": 1,
+          "max": 12,
+          "share": null
+        },
+        "work.rekey.discovered": {
+          "mean": 0.074,
+          "p50": 0,
+          "p99": 1,
+          "max": 1,
+          "share": null
+        },
+        "work.rekey.gates": {
+          "mean": 0.012,
+          "p50": 0,
+          "p99": 0,
+          "max": 12,
+          "share": null
+        },
+        "work.rekey.items": {
+          "mean": 0.106,
+          "p50": 0,
+          "p99": 1,
+          "max": 12,
+          "share": null
+        },
+        "work.rekey.tethers": {
+          "mean": 0.012,
+          "p50": 0,
+          "p99": 0,
+          "max": 12,
+          "share": null
+        },
+        "work.repath": {
+          "mean": 0.256,
+          "p50": 0,
+          "p99": 2,
+          "max": 3,
+          "share": null
+        },
+        "work.route.backtracked": {
+          "mean": 0.033,
+          "p50": 0,
+          "p99": 1,
+          "max": 2,
+          "share": null
+        },
+        "work.route.expansions": {
+          "mean": 64.457,
+          "p50": 0,
+          "p99": 1571,
+          "max": 2180,
+          "share": null
+        },
+        "work.route.portalPlans": {
+          "mean": 0.012,
+          "p50": 0,
+          "p99": 1,
+          "max": 3,
+          "share": null
+        },
+        "work.route.slices": {
+          "mean": 0.258,
+          "p50": 0,
+          "p99": 2,
+          "max": 3,
+          "share": null
+        },
+        "work.route.waiting": {
+          "mean": 0.01,
+          "p50": 0,
+          "p99": 1,
+          "max": 1,
+          "share": null
+        },
+        "work.visibilityRays": {
+          "mean": 27682.493,
+          "p50": 33180,
+          "p99": 62445,
+          "max": 79672,
+          "share": null
+        },
+        "untimed": {
+          "mean": 0.002759500000032858,
+          "p50": 0.0022999999982857844,
+          "p99": 0.014300000002549496,
+          "max": 0.06129999999939173,
+          "share": 0.0007967498036227147
+        }
+      },
+      "over": [],
+      "run": {
+        "wallMs": 3485.3418,
+        "cpuMs": 5172,
+        "userCpuMs": 5000,
+        "systemCpuMs": 172,
+        "contention": {
+          "wallMs": 12609.2665,
+          "selfCpuMs": 18296,
+          "otherBusyShare": 0.0432,
+          "contended": false,
+          "threshold": 0.25
+        }
+      },
+      "recorder": {
+        "droppedFrames": [
+          0
+        ],
+        "drainMs": {
+          "mean": 0.0005005999999830237,
+          "p50": 0.0004000000008090865,
+          "p99": 0.001399999999193824,
+          "max": 0.012200000001030276
+        }
+      },
+      "gc": {
+        "count": 55,
+        "ms": 93.65230002999306,
+        "max": 10.420800000429153
+      },
+      "memory": {
+        "samples": [
+          {
+            "tick": 0,
+            "heapMB": 157.19817352294922,
+            "rssMB": 500.3671875
+          },
+          {
+            "tick": 250,
+            "heapMB": 173.38533782958984,
+            "rssMB": 453.1015625
+          },
+          {
+            "tick": 500,
+            "heapMB": 231.7786636352539,
+            "rssMB": 454.359375
+          },
+          {
+            "tick": 750,
+            "heapMB": 113.76731872558594,
+            "rssMB": 454.984375
+          }
+        ],
+        "historyFrames": [
+          62
+        ],
+        "historyBytes": [
+          1871363
+        ],
+        "stateBytes": [
+          68736
+        ]
+      }
+    }
+  }
+}

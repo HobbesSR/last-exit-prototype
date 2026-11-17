@@ -1,5 +1,5 @@
-import { legacyItems } from '../shared/simulation/item-boundary.ts';
-import { playerSlot } from '../shared/simulation/relations.ts';
+import { mergeGateGeometry } from '../shared/relational-frame.ts';
+import { playerSlot, seatMetadata } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
@@ -33,6 +33,7 @@ function seatsOf(game, reconcile = () => {}) {
     /** How many of a role a match holds, counted from the roster rather than repeated as a number. */
     capacity,
     roster: () => game.players.filter(p => !p.bot).map(identity),
+    seatMetadata: frame => seatMetadata(frame ?? game),
     player: id => identity(connectionPlayer(game, id)),
     openPlaces,
     preferredRole(preference) {
@@ -152,12 +153,12 @@ function matchOf(game, payloads) {
     snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
     project: (frame, id) => playerView(game, frame, id),
-    map: () => structuredClone({ ...game.map, items: legacyItems(game, publishItems(game)) }),
+    map: () => structuredClone({ ...game.map, gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) }),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
       if (!payloads) throw new Error('match disposed');
-      const source = { ...game.map, gates: kind === 'spectator' ? frame.gates : publishGates(game),
-        items: kind === 'spectator' ? frame.items : legacyItems(game, publishItems(game)), ...(kind !== 'recording' ? { traps: [] } : {}) };
+      const source = { ...game.map, gates: mergeGateGeometry({ gates: publishGates(game) }, kind === 'spectator' ? frame.gates : undefined),
+        items: kind === 'spectator' ? frame.items : publishItems(game), ...(kind !== 'recording' ? { traps: [] } : {}) };
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
     },
     end({ strand = false } = {}) {

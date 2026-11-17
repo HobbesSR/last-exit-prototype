@@ -1,7 +1,8 @@
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, joinGame, setInput, step, snapshot, visibleTo, couldSee, synchronizePhysics, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { lineClear, visibilityPolygon, moveBody } from '../shared/movement.ts';
 import { collectInstanceEquipment, carriedCell } from '../shared/equipment.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -246,6 +247,7 @@ test('the server transmits what could become visible while gameplay still turns 
   try {
     assert.equal(visibleTo(s, p, c), false, 'true sight is blocked by cover');
     assert.equal(couldSee(s, p, c), true, 'but it is close enough to matter next tick');
+    synchronizePhysics(s);
     assert.equal(playerView(s, snapshot(s), p.id).players.some(t => t.id === c.id), true, 'so it is transmitted');
     // A cloak can drop the instant its owner fires, so cloaked actors are carried too and hidden client side.
     c.cloak = 40;
@@ -254,6 +256,7 @@ test('the server transmits what could become visible while gameplay still turns 
     // Beyond the transmit radius nothing is sent at all, cover or no cover.
     c.cloak = 0; c.x = p.x + POTENTIAL + 10;
     assert.equal(couldSee(s, p, c), false);
+    synchronizePhysics(s);
     assert.equal(playerView(s, snapshot(s), p.id).players.some(t => t.id === c.id), false);
     // A reveal outranks distance entirely, because it makes the target visible to gladiators anywhere.
     c.revealed = 30;
@@ -299,6 +302,7 @@ test('live visibility hides distant and cloaked enemies, sensor reveals restore 
     // Out of sight 2000 units off, then in sight at 40.
     p.x = c.x + 2000;
     assert.equal(visibleTo(s, p, c), false);
+    synchronizePhysics(s);
     assert.equal(playerView(s, snapshot(s), p.id).players.some(t => t.id === c.id), false);
     p.x = c.x - 40; assert.equal(visibleTo(s, p, c), true);
     c.cloak = 10; assert.equal(visibleTo(s, p, c), false);

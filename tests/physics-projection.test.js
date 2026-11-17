@@ -7,7 +7,7 @@ import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { minimumReaderForMatch, MIN_SCHEMA, SCHEMA } from '../shared/recording.ts';
 import { createMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
-import { capturePhysicsPresentation, legacyPhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
+import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { openArea } from './helpers/arena.js';
@@ -16,7 +16,7 @@ import { identifyItems } from './helpers/item-identity.js';
 const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = () => ({ width: 600, height: 400, playableArea: openArea(600, 400, 100),
   obstacles: [], gates: [], hazards: [], spawns: [{ x: 100, y: 200 }], stations: [], chargers: [], sensors: [], items: [], traps: [], buildings: [], exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
-const body = (id, x, y, shape = { kind: 'circle', radius: 5 }, extra = {}) => ({ id, kind: 'prop', shape, x, y, angle: 0.4, vx: 2, vy: -3, omega: 0.2, sleeping: false, generation: 4, ...extra });
+const body = (id, x, y, shape = { kind: 'circle', radius: 5 }, extra = {}) => ({ id, owner: { kind: 'prop', propId: id }, kind: 'prop', shape, x, y, angle: 0.4, vx: 2, vy: -3, omega: 0.2, sleeping: false, generation: 4, ...extra });
 
 test('a moving loot body changes recorded and projected item layers without mutating gameplay during capture', async () => {
   const game = await createGame(1, arena(), content());
@@ -29,12 +29,14 @@ test('a moving loot body changes recorded and projected item layers without muta
     const encoder = createLayerEncoder(), initial = encoder.encode(playerView(game, snapshot(game), game.players[0].id));
     world.setTransform('item:loot', { x: 350, y: 220, angle: 1 });
     const captured = snapshot(game), projected = playerView(game, captured, game.players[0].id);
-    assert.deepEqual([captured.items[0].x, captured.items[0].y], [350, 220]);
-    assert.deepEqual([projected.items[0].x, projected.items[0].y], [350, 220]);
+    assert.equal('x' in captured.items[0], false);
+    assert.deepEqual([captured.bodies.find(b => b.owner.kind === 'item').x, captured.bodies.find(b => b.owner.kind === 'item').y], [350, 220]);
+    assert.equal('x' in projected.items[0], false);
     assert.equal(game.map.items[0].x, 300, 'snapshot is read-only');
     const moved = encoder.encode(projected);
     assert.equal(moved.items.k, initial.items.k);
-    assert.equal(moved.items.changes.set[0].x, 350, 'actual body movement invalidates the item layer');
+    assert.equal(moved.items.changes.set, undefined, 'physical movement changes only the body layer');
+    assert.equal(moved.bodies.changes.set.find(b => b.owner.kind === 'item').x, 350);
   } finally { disposePhysics(game); }
 });
 
@@ -50,7 +52,7 @@ test('real physics snapshot is detached and its public body is a closed display 
     assert.equal(frame.physics.world.bodies.some(b => b.spec.kind === 'static'), false);
     assert.equal(frame.bodies.some(b => b.kind === 'static'), false);
     assert.equal(frame.bodies.length, 1);
-    assert.equal(frame.bodies[0].actorId, own.id);
+    assert.deepEqual(frame.bodies[0].owner, { kind: 'actor', playerIdx: own.playerIdx });
     assert.equal(frame.bodies[0].generation, frame.physics.world.bodies[0].generation);
     assert.equal(view.physics, undefined);
     assert.equal(view.physicsProfile, frame.physicsProfile);
@@ -62,7 +64,7 @@ test('real physics snapshot is detached and its public body is a closed display 
     world.queueAddBody({ ...spec, id: 'actor:missing' });
     world.queueAddBody({ ...spec, id: 'item:missing', kind: 'prop' });
     world.commitMutations();
-    assert.deepEqual(legacyPhysicsPresentation(capturePhysicsPresentation(game)).bodies.map(b => b.id), [frame.bodies[0].id],
+    assert.deepEqual(capturePhysicsPresentation(game).bodies.map(b => b.id), [frame.bodies[0].id],
       'stale actor/item bodies cannot become unassociated public props');
   } finally { disposePhysics(game); }
 });
@@ -72,19 +74,19 @@ test('projection gates actors, prop bounds, item associations and both tether en
   try {
     const frame = snapshot(game), own = frame.players[0];
     own.x = 100; own.y = 200;
-    const near = { ...own, id: 'near', x: 110, y: 200, status: 'active' };
-    const far = { ...own, id: 'far', x: POTENTIAL + 500, y: 200, status: 'active' };
+    const near = { ...own, id: 'near', playerIdx: 1, x: 110, y: 200, status: 'active' };
+    const far = { ...own, id: 'far', playerIdx: 2, x: POTENTIAL + 500, y: 200, status: 'active' };
     frame.players.push(near, far);
     // A frame's ground list is shared and frozen (22.1 "Frames"), so the scenario gets its own.
     frame.items = [...frame.items, { id: 'loot', x: 120, y: 200 }, { id: 'hidden-loot', x: POTENTIAL + 500, y: 200 }];
     const ownBody = { ...frame.bodies[0], x: 100, y: 200, vx: 7, generation: 8, secret: 'own-secret', shape: { ...frame.bodies[0].shape, backend: 'shape-secret' } };
-    const nearBody = body('actor:near', 110, 200, undefined, { kind: 'actor', actorId: 'near', pendingForce: 'private' });
-    const farBody = body('actor:far', far.x, far.y, undefined, { kind: 'actor', actorId: 'far' });
+    const nearBody = body('actor:near', 110, 200, undefined, { kind: 'actor', owner: { kind: 'actor', playerIdx: 1 }, pendingForce: 'private' });
+    const farBody = body('actor:far', far.x, far.y, undefined, { kind: 'actor', owner: { kind: 'actor', playerIdx: 2 } });
     const edge = body('edge', POTENTIAL + 103, 200, { kind: 'circle', radius: 110 });
     const hidden = body('hidden', POTENTIAL + 130, 200, { kind: 'box', hx: 2, hy: 3 });
-    const loot = body('item:loot', 120, 200, undefined, { itemId: 'loot' });
-    const hiddenLoot = body('item:hidden-loot', 120, 200, undefined, { itemId: 'hidden-loot' });
-    const orphan = body('item:orphan', 120, 200, undefined, { itemId: 'orphan' });
+    const loot = body('item:loot', 120, 200, undefined, { owner: { kind: 'item', itemId: 'loot' } });
+    const hiddenLoot = body('item:hidden-loot', POTENTIAL + 500, 200, undefined, { owner: { kind: 'item', itemId: 'hidden-loot' } });
+    const orphan = body('item:orphan', 120, 200, undefined, { owner: { kind: 'item', itemId: 'orphan' } });
     frame.physics = { ...frame.physics, secret: 'settings-secret' };
     frame.bodies = [ownBody, nearBody, farBody, edge, hidden, loot, hiddenLoot, orphan];
     frame.tethers = [{ id: 'shown', a: ownBody.id, b: nearBody.id, anchor: 'private' }, { id: 'hidden', a: ownBody.id, b: farBody.id }, { id: 'orphan', a: ownBody.id, b: orphan.id }];
@@ -150,21 +152,21 @@ test('retained numeric captures and their clones keep body and tether identities
     setInput(game, 'g0', { seq: 1, skill: true, aim: 0 });
     step(game); step(game); step(game);
     const old = capturePhysicsPresentation(game), cloned = structuredClone(old);
-    const expected = legacyPhysicsPresentation(old), r = physicsRuntime(game), caster = game.players[1];
+    const expected = structuredClone(old), r = physicsRuntime(game), caster = game.players[1];
     assert.equal(old.tethers.length, 1);
     const bodyId = old.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).id;
     const spec = old.physics.world.bodies.find(b => b.spec.id === 'actor:g0').spec;
     hookSkill(game, caster);
     r.world.queueRemoveBody(spec.id); r.world.commitMutations();
-    assert.deepEqual(legacyPhysicsPresentation(old), expected, 'removed live bodies remain in historical presentation');
+    assert.deepEqual(structuredClone(old), expected, 'removed live bodies remain in historical presentation');
     r.world.queueAddBody(spec); r.world.commitMutations();
     caster.cooldown = 0;
     hookSkill(game, caster);
     const fresh = capturePhysicsPresentation(game);
     assert.notEqual(fresh.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1).id, bodyId);
     assert.ok(fresh.hookFlights[0].id > old.tethers[0].id, 'same backend hook key has a new logical identity');
-    assert.deepEqual(legacyPhysicsPresentation(old), expected);
-    assert.deepEqual(legacyPhysicsPresentation(cloned), expected);
+    assert.deepEqual(structuredClone(old), expected);
+    assert.deepEqual(structuredClone(cloned), expected);
     assert.deepEqual(cloned.tethers, old.tethers, 'cloning numeric captures never allocates another identity');
     assert.throws(() => capturePhysicsPresentation(game, old.physics), /accepts only a live game/);
     assert.throws(() => capturePhysicsPresentation(game, structuredClone(old.physics)), /accepts only a live game/);
@@ -172,9 +174,9 @@ test('retained numeric captures and their clones keep body and tether identities
 });
 
 test('physics recording floor is explicit and stamped by the room writer', async () => {
-  assert.equal(SCHEMA, 19);
+  assert.equal(SCHEMA, 20);
   // Lines with delta frames (#901) need a reader of at least schema 17; this build still reads from MIN_SCHEMA.
-  assert.equal(minimumReaderForMatch(), 17);
+  assert.equal(minimumReaderForMatch(), 20);
   assert.equal(MIN_SCHEMA, 10);
   let header;
   const service = createRoomService({ content, matchFactory: async (...args) => {
@@ -191,7 +193,7 @@ test('physics recording floor is explicit and stamped by the room writer', async
     service.receive(peer, { type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'contestant', name: 'Test' });
     service.receive(peer, { type: 'start' });
     assert.equal(header.schema, SCHEMA);
-    assert.equal(header.minSchema, 17);
+    assert.equal(header.minSchema, 20);
     assert.equal(header.version, 'future-physics-rules');
   } finally { await service.close(); }
 });

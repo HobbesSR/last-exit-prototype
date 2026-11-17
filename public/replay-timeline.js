@@ -1,3 +1,5 @@
+import { createFrameNormalizer } from '../shared/relational-frame.ts';
+
 const validTick = value => Number.isSafeInteger(value) && value >= 0;
 
 // Diagnostic markers are untrusted file content: keep known kinds with a valid tick, sorted.
@@ -50,6 +52,8 @@ export function createReplayTimeline(recording) {
     if (retained.at(-1)?.tick === entry.tick) retained[retained.length - 1] = entry;
     else retained.push(entry);
   }
+  const normalizer = createFrameNormalizer(recording?.map, recording?.roster);
+  for (const entry of retained) entry.frame = { ...entry.frame, state: normalizer.normalize(entry.frame.state) };
   // Every player the recording ever held, in the order the frames first named them, so a viewer can
   // pick a subject that has not entered yet or has already been eliminated out of the current frame.
   const roster = [], named = new Set();

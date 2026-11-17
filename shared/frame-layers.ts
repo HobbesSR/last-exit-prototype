@@ -32,7 +32,9 @@ import { rebuildKeyed, type Id } from './keyed-list.ts';
 
 export const LAYERS = ['items', 'gates', 'bodies', 'tethers'] as const;
 export type Layer = typeof LAYERS[number];
-type Entry = { id: Id };
+type Entry = { id?: Id; gateIdx?: number; generation?: number; shape?: unknown };
+// Static gates use their canonical map slot; older plain/recorded gate lists retain ids.
+const keyOf = (layer: Layer, entry: Entry): Id => (layer === 'gates' ? entry.gateIdx ?? entry.id : entry.id) as Id;
 export type LayerWire = Entry[] | { k: number; all?: Entry[]; set?: Entry[]; drop?: Id[] };
 
 // A keyframe is cut once the change set reaches this share of the layer (or a floor, for small layers):
@@ -56,13 +58,13 @@ export function createLayerEncoder() {
     let table = tables.get(layer);
     // The same settled list again: its change set against this keyframe is the one already worked out.
     if (table?.last?.list === list) return table.last.encoded;
-    const changes = table && changesSince(table, list);
+    const changes = table && changesSince(layer, table, list);
     if (!changes) {
       count(`work.rekey.${layer}`);
-      const byId = new Map(list.map(entry => [entry.id, entry]));
+      const byId = new Map(list.map(entry => [keyOf(layer, entry), entry]));
       // Entries without distinct ids cannot be addressed by a change, so that layer goes whole.
       if (byId.size !== list.length || byId.has(undefined as never)) { tables.delete(layer); return { plain: list }; }
-      tables.set(layer, table = { k: nextVersion(), all: list, ids: list.map(entry => entry.id), byId });
+      tables.set(layer, table = { k: nextVersion(), all: list, ids: list.map(entry => keyOf(layer, entry)), byId });
     }
     const { k, all } = table!, current = changes ?? { k }, encoded = { k, all: () => ({ ...current, all }), changes: current };
     if (settled.has(list)) table!.last = { list, encoded }; else delete table!.last;
@@ -80,16 +82,27 @@ export function createLayerEncoder() {
 
 // The change set from a keyframe to this list, or null when a new keyframe is due: too many changes, or
 // an order the decoder would not rebuild (it keeps the keyframe's order and appends new entries).
-function changesSince(table: Table, list: Entry[]) {
+function changesSince(layer: Layer, table: Table, list: Entry[]) {
   const set: Entry[] = [], drop: Id[] = [], present = new Set<Id>();
   const budget = Math.max(REKEY_FLOOR, table.ids.length * REKEY_SHARE);
-  for (const entry of list) { present.add(entry.id); if (!same(table.byId.get(entry.id), entry)) set.push(entry); }
+  for (const entry of list) {
+    const id = keyOf(layer, entry), baseline = table.byId.get(id);
+    present.add(id);
+    if (!same(baseline, entry)) {
+      // Shape belongs to this admission lifetime. New bodies/generations keep carrying it in
+      // every delta until a keyframe includes them, even if an earlier delta sent the shape.
+      if (layer === 'bodies' && baseline && baseline.generation === entry.generation) {
+        const { shape: _shape, ...dynamic } = entry;
+        set.push(dynamic);
+      } else set.push(entry);
+    }
+  }
   if (present.size !== list.length) return null;
   for (const id of table.ids) if (!present.has(id)) drop.push(id);
   if (set.length + drop.length > budget) return null;
   let at = 0;
-  for (const id of table.ids) if (present.has(id) && list[at++]!.id !== id) return null;
-  for (; at < list.length; at++) if (table.byId.has(list[at]!.id)) return null;
+  for (const id of table.ids) if (present.has(id) && keyOf(layer, list[at++]!) !== id) return null;
+  for (; at < list.length; at++) if (table.byId.has(keyOf(layer, list[at]!))) return null;
   return { k: table.k, ...set.length ? { set } : {}, ...drop.length ? { drop } : {} };
 }
 
@@ -114,7 +127,7 @@ function same(was: Entry | undefined, now: Entry) {
  * tracking should never send) leaves the last list it had, and names the layer in `stale`.
  */
 export function createLayerDecoder() {
-  const tables = new Map<Layer, { k: number; all: Entry[]; last: Entry[] }>();
+  const tables = new Map<Layer, { k: number; all: Entry[]; byId: Map<Id, Entry>; last: Entry[] }>();
   return {
     decode<T extends Record<string, unknown>>(state: T): T & { stale?: Layer[] } {
       const stale: Layer[] = [];
@@ -122,10 +135,10 @@ export function createLayerDecoder() {
         const wire = state[layer] as LayerWire | undefined;
         if (!wire || Array.isArray(wire)) continue;
         let list: Entry[];
-        if (wire.all) tables.set(layer, { k: wire.k, all: wire.all, last: wire.all });
+        if (wire.all) tables.set(layer, { k: wire.k, all: wire.all, byId: new Map(wire.all.map(entry => [keyOf(layer, entry), entry])), last: wire.all });
         const table = tables.get(layer);
         if (!table || table.k !== wire.k) { stale.push(layer); list = table?.last ?? []; }
-        else table.last = list = rebuild(table.all, wire.set, wire.drop);
+        else table.last = list = rebuild(layer, table.all, table.byId, wire.set, wire.drop);
         (state as Record<string, unknown>)[layer] = list;
       }
       return stale.length ? Object.assign(state, { stale }) : state;
@@ -133,4 +146,15 @@ export function createLayerDecoder() {
   };
 }
 
-const rebuild = (all: Entry[], set?: Entry[], drop?: Id[]) => rebuildKeyed(all, entry => entry.id, set, drop);
+function rebuild(layer: Layer, all: Entry[], baseline: Map<Id, Entry>, set?: Entry[], drop?: Id[]) {
+  if (layer === 'bodies' && set?.some(entry => !Object.hasOwn(entry, 'shape'))) {
+    set = set.map(entry => {
+      const was = baseline.get(keyOf(layer, entry));
+      // Never borrow from the last decoded frame: it may be skipped, reordered by a
+      // consumer, or hold a different generation that was introduced after this baseline.
+      return !Object.hasOwn(entry, 'shape') && was && was.generation === entry.generation
+        ? { ...entry, shape: was.shape } : entry;
+    });
+  }
+  return rebuildKeyed(all, entry => keyOf(layer, entry), set, drop);
+}

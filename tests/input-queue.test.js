@@ -1,6 +1,7 @@
+import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { disposePhysics, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { disposePhysics, joinGame, setInput, step, snapshot, } from '../shared/simulation.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { openField } from './helpers/arena.js';
 import { roomHarness } from './helpers/room-harness.js';

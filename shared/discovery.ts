@@ -1,3 +1,4 @@
+import { createFrameNormalizer } from './relational-frame.ts';
 import { gateShape, gatesNear, insideMap, litPoint, visibilityPolygon } from './movement.ts';
 import { itemsNear } from './simulation/ground-items.ts';
 import { ItemMemory, SeenCells } from './simulation/bot-memory.ts';
@@ -195,16 +196,19 @@ export function foldDiscovery(
   map: DiscoveryMap,
   frames: Iterable<{
     tick?: number;
-    gates?: Gate[];
-    players: Array<{ id: PlayerId; x: World; y: World; role?: Role; status?: string }>;
+    gates?: Array<Partial<Gate> & { gateIdx?: number }>;
+    bodies?: Array<{ owner?: { kind: string; playerIdx?: number }; x: number; y: number }>;
+    players: Array<{ id: PlayerId; playerIdx?: number; x?: World; y?: World; role?: Role; status?: string }>;
   }>,
   playerId: PlayerId,
   options?: { interval?: number; playerIndex?: number }
 ): DiscoveryMemory {
   const memory = createDiscovery();
+  const converter = createFrameNormalizer(map);
   const interval = options?.interval ?? DISCOVERY_INTERVAL;
 
-  for (const frame of frames) {
+  for (const captured of frames) {
+    const frame = converter.normalize(captured);
     const idx = frame.players.findIndex(player => player.id === playerId);
     if (idx === -1) continue;
     const p = frame.players[idx]!;
@@ -215,8 +219,8 @@ export function foldDiscovery(
     const shouldSample = frame.tick === undefined || frame.tick === 0 || (frame.tick + playerIndex) % interval === 0;
     if (!shouldSample) continue;
 
-    const currentMap = frame.gates ? { ...map, gates: frame.gates } : map;
-    discover(memory, currentMap, p);
+    const currentMap = { ...map, gates: frame.gates as Gate[] };
+    if (p.x !== undefined && p.y !== undefined) discover(memory, currentMap, { x: p.x, y: p.y });
   }
 
   return memory;

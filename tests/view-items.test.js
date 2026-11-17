@@ -1,3 +1,5 @@
+import { renderedSnapshot } from './helpers/relational.js';
+import { itemLabel } from '../shared/item-instances.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMatch } from '../server/match.js';
@@ -24,13 +26,14 @@ test('a player view holds exactly the items within potential visibility, in list
     }
     let frame = match.snapshot(), compared = 0, edgeIn = 0, edgeOut = 0;
     for (let tick = 0; tick < 240 && match.phase === 'live'; tick++, frame = match.advance()) {
-      for (const p of frame.players) {
-        const expected = frame.items.filter(i => distance(p, i) < POTENTIAL).map(i => i.id);
+      const hydrated = renderedSnapshot(s.map, frame);
+      for (const p of hydrated.players) {
+        const expected = hydrated.items.filter(i => distance(p, i) < POTENTIAL).map(i => i.id);
         const view = match.project(frame, p.id), shown = view.items.map(i => i.id);
         assert.deepEqual(shown, expected, `tick ${frame.tick} player ${p.id}`);
         const carried = new Set(shown);
-        for (const body of view.bodies ?? []) if (body.itemId !== undefined) assert.ok(carried.has(body.itemId), `body of ${body.itemId} without its item`);
-        for (const i of frame.items) if (String(i.id).startsWith('edge')) carried.has(i.id) ? edgeIn++ : edgeOut++;
+        for (const body of view.bodies ?? []) if (body.owner.kind === 'item') assert.ok(carried.has(body.owner.itemId), `body without its item`);
+        for (const i of frame.items) if (itemLabel(s, i.id).startsWith('edge')) carried.has(i.id) ? edgeIn++ : edgeOut++;
         compared++;
       }
     }

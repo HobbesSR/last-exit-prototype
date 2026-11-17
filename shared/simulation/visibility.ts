@@ -1,16 +1,16 @@
-import { legacyItems, legacyItemsInRange, legacyPlayers } from './item-boundary.ts';
+import { bodyRelations, hydrateFrame, compactItems, omitBodyPose as omitPose } from '../relational-frame.ts';
 import { playerSlot } from './relations.ts';
 import { lineClear, VISION } from '../movement.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
-import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
-import type { Game, Gate, GroundItem, ItemKey, ItemLabel, Player, PlayerId, Projected, Snapshot, Vec2, World } from '../types.ts';
-import { groundPosition, poseItems, publishItems } from './ground-items.ts';
-import { publishGates, publishedGates } from './frame-gates.ts';
+import { frameFields, ownPlayerFields, itemFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
+import type { Game, Gate, GateState, GateIdx, GroundItem, ItemKey, Player, PlayerId, PlayerIdx, Projected, Snapshot, Vec2, World } from '../types.ts';
+import { publishItems, framedItems, shareItemPublication } from './ground-items.ts';
+import { publishGates, publishedGates, shareGatePublication } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
 import { heardBy } from './hearing.ts';
-import { capturePhysicsPresentation, legacyPhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
+import { capturePhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
 // movement — so the client never has to wait on the server to show something that just became
@@ -40,37 +40,27 @@ export function visiblePoint(s: Game, viewer: Vec2, target: Vec2): boolean {
 // What one client may learn about another player it can currently see. Everything omitted is either
 // private (inventory, ability timers, whether a slot is a bot) or unread by the renderer, so it never
 // leaves the server for anyone but the player it describes. Recordings keep the full state.
-export const OBSERVED = ['id', 'role', 'kit', 'name', 'x', 'y', 'heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
-// A gladiator has no roster place, so `seat` is appended only where the player has one. Every field
-// above is always present, so one mapping builds the record without a filtered copy (#792).
-export const observed = (p: Player<ItemKey>) => {
-  const record = Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]])) as Record<string, Player[keyof Player]>;
-  if (p.seat !== undefined) record.seat = p.seat;
-  return record;
-};
-// Each published ground record's projection, made once and shared by every view and frame that carries the record.
-// Published records are frozen and replaced when they change, so an unchanged item projects to the same object and
-// its view layer matches its keyframe by identity (frame-layers.ts same()) instead of by value (#655).
-const projectedItems = new WeakMap<GroundItem<ItemLabel>, Projected<GroundItem<ItemLabel>>>();
-function projectedItem(item: GroundItem<ItemLabel>): Projected<GroundItem<ItemLabel>> {
-  if (!Object.isFrozen(item)) return itemFields(item);
+export const OBSERVED = ['heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
+export const observed = (p: Player<ItemKey>, playerIdx?: PlayerIdx) => ({
+  ...(playerIdx !== undefined ? { playerIdx } : {}),
+  ...Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]])), x: p.x, y: p.y,
+});
+const projectedItems = new WeakMap<GroundItem, Projected<GroundItem>>();
+function projectedItem(item: GroundItem): Projected<GroundItem> {
   let projected = projectedItems.get(item);
-  if (!projected) projectedItems.set(item, projected = Object.freeze(itemFields(item)));
+  if (!projected) { projected = itemFields(item); if (Object.isFrozen(item)) projectedItems.set(item, projected = Object.freeze(projected)); }
   return projected;
 }
-// Every view carries every gate, so a frame's gate list projects once for all of them. A published list never
-// changes, and one projected list per published list lets each view's layer encoder match it by identity.
-const projectedLists = new WeakMap<readonly Gate[], Projected<Gate>[]>(), projectedGateRecords = new WeakMap<Gate, Projected<Gate>>();
-function projectedGates(gates: readonly Gate[]): Projected<Gate>[] {
-  if (!publishedGates(gates)) return gates.map(gateFields);
-  let list = projectedLists.get(gates);
+const gateLists = new WeakMap<readonly Gate[], GateState[]>(), gateRecords = new WeakMap<Gate, GateState>();
+export function dynamicGates(gates: readonly Gate[]): GateState[] {
+  let list = gateLists.get(gates);
   if (!list) {
-    list = gates.map(gate => {
-      let projected = projectedGateRecords.get(gate);
-      if (!projected) projectedGateRecords.set(gate, projected = Object.freeze(gateFields(gate)));
-      return projected;
+    list = gates.map((gate, i) => {
+      let record = gateRecords.get(gate);
+      if (!record || record.gateIdx !== i) { record = Object.freeze({ gateIdx: i as GateIdx, open: gate.open, locked: gate.locked }); if (Object.isFrozen(gate)) gateRecords.set(gate, record); }
+      return record;
     });
-    projectedLists.set(gates, list); settledLayer(list);
+    if (publishedGates(gates)) { gateLists.set(gates, list); settledLayer(list); shareGatePublication(list); }
   }
   return list;
 }
@@ -85,8 +75,11 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   const liveIdx = id == null ? undefined : playerSlot(s, id);
   // A historical seat move or an unknown label needs only a short scan of this captured roster.
   // Fresh spectator frames must never allocate a label table just to establish a miss.
-  const viewer = id == null ? undefined : liveIdx !== undefined && frame.players[liveIdx]?.id === id
-    ? frame.players[liveIdx] : frame.players.find(p => p.id === id);
+  const hydrated = hydrateFrame(frame);
+  const players = hydrated.players as Array<Player & { playerIdx: PlayerIdx }>;
+  const relations = bodyRelations(frame.bodies);
+  const viewer = id == null ? undefined : liveIdx !== undefined && players[liveIdx]?.id === id
+    ? players[liveIdx] : players.find(p => p.id === id);
   // Discovery stays out of snapshots, so live state is its only source.
   const live = liveIdx === undefined ? undefined : s.players[liveIdx], discovery = live?.discovery;
   // Heard gunfire likewise; read at the frame's tick, which a player's own view is never behind.
@@ -94,11 +87,18 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
-  const authorized = frame.players.filter(p => couldSee(s, viewer, p));
+  const authorized = players.filter(p => couldSee(s, viewer, p));
   // Items have no radius; the grid only spares testing those out of reach, and inRange still decides.
-  const items = viewer ? legacyItemsInRange(s, frame.items, viewer, POTENTIAL, inRange) : frame.items;
+  const itemBodies = relations.items;
+  const ground = hydrated.items as GroundItem[];
+  shareItemPublication(frame.items, ground);
+  const items = viewer ? framedItems(s, ground, viewer, POTENTIAL, inRange) : ground;
+  const projectPlayer = (p: Player & { playerIdx: PlayerIdx }, own = false) => {
+    const record = own ? ownPlayerFields(p, discovery, heard, p.playerIdx) : observed(p, p.playerIdx);
+    return relations.byActor(p.playerIdx) ? omitPose(record) : record;
+  };
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
-    ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), items, inRange) : {}),
+    ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.playerIdx)), items, inRange) : {}),
     ...(frame.bodies && viewer ? { predictionMotor: {
       acceleration: s.content.actorPhysics.acceleration,
       braking: s.content.actorPhysics.braking,
@@ -107,37 +107,30 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
     }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
-    players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery, heard) : observed(p)),
-    items: items.map(projectedItem), gates: frame.gates && projectedGates(frame.gates),
+    ...(viewer ? { self: projectPlayer(viewer, true) } : {}),
+    players: authorized.filter(p => p !== viewer).map(p => projectPlayer(p)),
+    items: items.map(item => { const projected = projectedItem(item); return itemBodies.has(item.id) ? omitPose(projected) : projected; }), gates: frame.gates,
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }
 export function snapshot(s: Game): Snapshot {
-  // Inclusive; presentation timing accumulates numeric capture and legacy adaptation/item poses.
+  // Inclusive; presentation timing accumulates numeric capture and physical item pose publication.
   start('sim.snapshot');
   try {
     const captured = capturePhysicsPresentation(s), physics = captured?.physics;
     start('sim.snapshot.presentation');
     const ground = publishItems(s);
-    const presentation = captured ? legacyPhysicsPresentation(captured) : undefined;
-    // A physical item's stored/projection pose changes the item layer too, even before its gameplay
-    // owner synchronizes the map record. Never change that gameplay record while taking a snapshot:
-    // a differing pose gives the frame its own list.
-    const poses = new Map<number, GroundItem>();
-    for (const body of captured?.bodies ?? []) {
-      const at = body.owner.kind !== 'item' ? undefined : groundPosition(s, body.owner.itemId), item = at === undefined ? undefined : ground[at];
-      if (!item || Object.is(item.x, body.x) && Object.is(item.y, body.y)) continue;
-      poses.set(at!, Object.freeze({ ...item, x: body.x, y: body.y }));
-    }
-    const items = poses.size ? poseItems(ground, poses) : ground;
+    const presentation = captured ? { physicsProfile: captured.physicsProfile, bodies: captured.bodies, tethers: captured.tethers, ...(captured.hookFlights ? { hookFlights: captured.hookFlights } : {}) } : undefined;
     stop('sim.snapshot.presentation');
     start('sim.snapshot.clone');
     // The ground and gate lists are shared, not cloned: their records are frozen and replaced when they change.
     // The physics state and its presentation are already the frame's own, apart from frozen shared records.
-    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.scatterSerial !== undefined ? { itemSerial: s.scatterSerial } : {}) }) as unknown as Snapshot;
-    frame.items = legacyItems(s, items);
-    frame.players = legacyPlayers(s, frame.players as unknown as Player[]);
-    frame.gates = s.map.gates && publishGates(s) as Gate[];
+    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial, scatterSerial: s.scatterSerial } : {}) }) as unknown as Snapshot;
+    frame.items = compactItems(ground, captured?.bodies);
+    shareItemPublication(ground, frame.items);
+    const actors = bodyRelations(captured?.bodies);
+    frame.players = frame.players.map((p, i) => { const player = { ...p, playerIdx: i as PlayerIdx }; return actors.byActor(i as PlayerIdx) ? omitPose(player) : player; });
+    frame.gates = dynamicGates(publishGates(s));
     return physics ? Object.assign(frame, { physics }, presentation) : frame;
   }
   finally { stop('sim.snapshot.clone'); stop('sim.snapshot'); }

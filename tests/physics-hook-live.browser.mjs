@@ -70,13 +70,13 @@ try {
         !frame.tethers?.some(t => t.id === flight.hookFlights[0].id)), 'cancelled tether');
       caster.ws.send(JSON.stringify({ type: 'finish' }));
       await until(() => caster.messages.find(message => message.type === 'saved'), 'saved replay');
-      return { ids: { caster: caster.welcome.id, near: near.welcome.id, far: far.welcome.id },
+      return { indices: { caster: caster.messages.find(m => m.type === 'ready').roster.find(p => p.id === caster.welcome.id).playerIdx, near: near.messages.find(m => m.type === 'ready').roster.find(p => p.id === near.welcome.id).playerIdx }, ids: { caster: caster.welcome.id, near: near.welcome.id, far: far.welcome.id },
         contentIds: [caster.welcome.contentId, near.welcome.contentId, far.welcome.contentId],
         versions: [flight.version, attach.version],
         flight: { tick: flight.tick, hook: flight.hookFlights[0], body: flight.bodies.find(b => b.id === flight.hookFlights[0].a) },
         nearFlight: nearAtFlight.hookFlights,
         farFlight: farAtFlight?.hookFlights, farBodies: farAtFlight?.bodies.map(b => b.id),
-        attach: { tick: attach.tick, tether: attach.tethers.find(t => t.id === flight.hookFlights[0].id), flights: attach.hookFlights },
+        attach: { bodies: attach.bodies, tick: attach.tick, tether: attach.tethers.find(t => t.id === flight.hookFlights[0].id), flights: attach.hookFlights },
         farAttach: { tethers: farAtAttach.tethers, flights: farAtAttach.hookFlights },
         cancelled: { tick: cancelled.tick, tethers: cancelled.tethers, flights: cancelled.hookFlights },
         stale: [...caster.frames, ...near.frames, ...far.frames].flatMap(frame => frame.stale || []) };
@@ -85,14 +85,14 @@ try {
   assert.deepEqual(result.contentIds, ['content-6', 'content-6', 'content-6']);
   assert.deepEqual(result.versions, [PHYSICS_VERSION, PHYSICS_VERSION]);
   assert.equal(result.flight.hook.a, result.flight.body.id);
-  assert.equal(result.flight.body.actorId, result.ids.caster);
+  assert.equal(result.flight.body.owner.playerIdx, result.indices.caster);
   assert.ok(result.flight.hook.x > result.flight.body.x);
   assert.deepEqual(result.nearFlight, [result.flight.hook]);
   assert.deepEqual(result.farFlight, []);
   assert.equal(result.farBodies.includes(result.flight.hook.a), false);
   assert.deepEqual(result.attach.flights, []);
-  assert.deepEqual([result.attach.tether.a, result.attach.tether.b],
-    [`actor:${result.ids.caster}`, `actor:${result.ids.near}`]);
+  assert.deepEqual([result.attach.tether.a, result.attach.tether.b].map(id => result.attach.bodies.find(b => b.id === id).owner.playerIdx),
+    [result.indices.caster, result.indices.near]);
   assert.deepEqual(result.farAttach.tethers, []);
   assert.deepEqual(result.farAttach.flights, []);
   assert.deepEqual(result.cancelled.tethers, []);
@@ -103,7 +103,7 @@ try {
   assert.equal(replay.version, PHYSICS_VERSION);
   assert.equal(replay.contentId, 'content-6');
   assert.equal(replay.schema, SCHEMA);
-  assert.equal(replay.minSchema, 17);
+  assert.equal(replay.minSchema, 20);
   assert.ok(replay.frames.some(frame => frame.state.hookFlights?.length), 'recording retains the flight display frame');
   console.log(JSON.stringify({ passed: true, browser: browser.version(), checks: [
     'real WebSocket flight', 'near/far projection privacy', 'next-tick tether', 'cancelled tether' ] }));
