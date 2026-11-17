@@ -47,6 +47,11 @@ export const OWN_FIELDS = `x y ${OWN_STATE_FIELDS}`;
 const ownFields = projection(OWN_FIELDS);
 // An actor with a body carries its pose there only (24.4): built without it rather than copied again (#1163).
 const ownFieldsWithoutPose = projection(OWN_STATE_FIELDS);
+// What one client may learn about another player it can currently see (visibility.ts `observed`, which adds
+// `playerIdx` and, for a player without a body, `x` and `y`). Everything omitted is either private (inventory,
+// ability timers, whether a slot is a bot) or unread by the renderer, so it never leaves the server for anyone
+// but the player it describes. Recordings keep the full state.
+export const OBSERVED = ['heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'] as const;
 export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family';
 export const itemFields = projection(ITEM_FIELDS, WIRE_ID_FIELDS.item);
 export const GATE_FIELDS = 'gateIdx open locked';

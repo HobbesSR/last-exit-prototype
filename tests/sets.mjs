@@ -65,10 +65,10 @@ export const SETS = {
   rooms: {
     about: 'the server: rooms, matchmaking, recording and replay, the map pool and live-map wiring',
     fast: ['server', 'server-*', 'match', 'room-*', 'recording', 'recording-failure', 'recording-format', 'replay-*', 'waiting', 'shutdown', 'http-json',
-      'client-config', 'latency', 'map-pool', 'map-generator', 'live-map', 'live-map-adapter'],
+      'client-config', 'latency', 'map-pool', 'map-generator', 'live-map', 'live-map-adapter', 'wire-codec'],
     slow: ['live-map', 'live-map-adapter', 'live-recipe', 'map-generator', 'room-arena', 'room-sizes'],
-    browser: ['browser', 'default-room'],
-    sources: ['server/**', 'shared/recording.ts', 'shared/relational-frame.ts', 'map/live*.ts'],
+    browser: ['browser', 'default-room', 'wire-codec'],
+    sources: ['server/**', 'shared/recording.ts', 'shared/relational-frame.ts', 'shared/wire-*.ts', 'shared/protocol.ts', 'map/live*.ts'],
   },
   macro: {
     about: 'macro generation, the chain and its library, map tools and the Map Lab (also npm run test:mapgen)',
