@@ -95,13 +95,16 @@ export function wireCache<K extends object, V>(wire: WireIds, name: string): Wea
 const checkedFrames = new WeakSet<object>();
 /**
  * Fail loudly when a frame's counters have outgrown the outward domain, keyed or not, so a run that never
- * maps (tests use the identity) still notices. Once per frame, not per view.
+ * maps (tests use the identity) still notices. Once per frame, not per view. `serial` and `itemSerial`
+ * are the next IDs to allocate, so this fires one ID early, which the margin (24.4) makes harmless.
  */
-export function assertWireDomain(frame: { serial?: number; itemSerial?: number | undefined; bodies?: readonly { id: number }[] | undefined; tethers?: readonly { id: number }[] | undefined }): void {
+export function assertWireDomain(frame: { serial?: number; itemSerial?: number | undefined; bodies?: readonly { id: number }[] | undefined; tethers?: readonly { id: number }[] | undefined; hookFlights?: readonly { id: number }[] | undefined }): void {
   if (checkedFrames.has(frame)) return;
   let max = Math.max(frame.serial ?? 0, frame.itemSerial ?? 0);
   for (const body of frame.bodies ?? []) if (body.id > max) max = body.id;
   for (const tether of frame.tethers ?? []) if (tether.id > max) max = tether.id;
+  // A hook in flight holds a tether ID before any tether exists.
+  for (const flight of frame.hookFlights ?? []) if (flight.id > max) max = flight.id;
   if (max >= WIRE_ID_LIMIT) throw new RangeError(`a match counter reached ${max}, outside the outward ID domain [0, ${WIRE_ID_LIMIT})`);
   checkedFrames.add(frame);
 }

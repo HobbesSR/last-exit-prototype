@@ -48,6 +48,7 @@ test('a counter outgrowing the outward domain fails loudly, keyed or not', () =>
   assert.throws(() => assertWireDomain({ serial: WIRE_ID_LIMIT, bodies: [] }), RangeError);
   assert.throws(() => assertWireDomain({ serial: 3, itemSerial: WIRE_ID_LIMIT }), RangeError);
   assert.throws(() => assertWireDomain({ serial: 3, bodies: [{ id: WIRE_ID_LIMIT }] }), RangeError);
+  assert.throws(() => assertWireDomain({ serial: 3, hookFlights: [{ id: WIRE_ID_LIMIT }] }), RangeError);
   assert.doesNotThrow(() => assertWireDomain({ serial: WIRE_ID_LIMIT - 1, itemSerial: 4, bodies: [{ id: 9 }], tethers: [{ id: 2 }] }));
 });
 
