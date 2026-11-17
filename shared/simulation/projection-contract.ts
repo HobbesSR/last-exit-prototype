@@ -1,6 +1,6 @@
 // Closed field contracts for live frame projection. New simulation fields require deliberate opt-in.
 // Iterate source keys so existing serialized field order and optional-field presence are preserved.
-import type { DiscoveryMemory, HeardCue, Inventory, Player, Projected } from '../types.ts';
+import type { DiscoveryMemory, HeardCue, Inventory, ItemKey, Player, Projected } from '../types.ts';
 import type { BodyShape, PhysicsBodyView, PhysicsTetherView } from '../physics/types.ts';
 
 const projection = (fields: string) => {
@@ -46,10 +46,10 @@ export function physicsTetherFields({ id, a, b }: PhysicsTetherView): PhysicsTet
 export function physicsHookFlightFields({ id, a, x, y }: { id: string; a: string; x: number; y: number }) {
   return { id, a, x, y };
 }
-export function ownPlayerFields(player: Player, discovery?: DiscoveryMemory | null, heard?: HeardCue[]): Projected<Player> {
+export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?: DiscoveryMemory | null, heard?: HeardCue[]): Projected<Player<I>> {
   const result = ownFields(player);
   // Carried items are projected through the same item contract; both sides are wire records.
-  if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item) : item) as Inventory;
+  if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item) : item) as Inventory<I>;
   if (result.cell) result.cell = itemFields(result.cell);
   if (discovery) result.discovered = Array.from(discovery.discovered);
   // Heard gunfire is the hearer's own (15): present only while a cue lasts, so other contents' frames are unchanged.

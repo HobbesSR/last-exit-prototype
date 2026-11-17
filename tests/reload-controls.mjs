@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createGameRecord, snapshot } from '../shared/simulation.ts';
@@ -12,7 +13,7 @@ export async function checkReloadControls(browser, base) {
   await page.route('**/reload-fixture', route => route.fulfill({ contentType: 'text/html', body: html }));
   // The controls need a state to draw, not an engine: the shared constructor on the room arena.
   const game = createGameRecord(4217, generatedMap(9), contentById('content-ammo-1')), me = game.players[0];
-  Object.assign(me, { inventory: [{ kind: 'weapon', weaponType: 'pistol', ammo: 3, instanceId: 'gun' }, { kind: 'med', count: 1 }, null, null, null, null], selectedSlot: 0,
+  Object.assign(me, { inventory: [{ kind: 'weapon', weaponType: 'pistol', ammo: 3, instanceId: itemId(game, 'gun') }, { kind: 'med', count: 1 }, null, null, null, null], selectedSlot: 0,
     reserves: { pistol: 36, rifle: 0, shell: 4 } });
   game.players = [me];
   try {

@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
-import { automaticPickups } from '../shared/simulation/loot.ts';
-import { eliminate } from '../shared/simulation/lifecycle.ts';
-import { interact } from '../shared/simulation/interactions.ts';
+import { collectAmmo, collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
+import { registerItemLabel } from '../shared/item-instances.ts';
+import { automaticPickups as pickupsRaw } from '../shared/simulation/loot.ts';
+import { eliminate as eliminateRaw } from '../shared/simulation/lifecycle.ts';
+import { interact as interactRaw } from '../shared/simulation/interactions.ts';
 import { queueInput } from '../shared/simulation/input.ts';
 import { Writable } from 'node:stream';
 import { SCHEMA, minimumReaderForMatch, recordingFit } from '../shared/recording.ts';
@@ -14,6 +15,7 @@ import { createReplayTimeline } from '../public/replay-timeline.js';
 import { rounds } from './helpers/rounds.js';
 import { openArea } from './helpers/arena.js';
 import { readArchive } from './helpers/recordings.js';
+import { identifyItems, registeredItemId as itemId, itemLabel } from './helpers/item-identity.js';
 
 const AMMO = contentById('content-ammo-1');
 const arena = () => ({ width: 600, height: 400,
@@ -31,6 +33,12 @@ async function fixture(t, id) {
 }
 const pistol = (ammo, id = 'gun') => ({ kind: 'weapon', weaponType: 'pistol', ammo, instanceId: id, lineageId: id });
 let seq = 0;
+const step = s => { identifyItems(s); return stepRaw(s); };
+const snapshot = s => { identifyItems(s); return snapshotRaw(s); };
+const collectInstanceEquipment = (s, ...args) => { identifyItems(s); return collectRaw(s, ...args); };
+const automaticPickups = (s, ...args) => { identifyItems(s); return pickupsRaw(s, ...args); };
+const eliminate = (s, ...args) => { identifyItems(s); return eliminateRaw(s, ...args); };
+const interact = (s, ...args) => { identifyItems(s); return interactRaw(s, ...args); };
 const tick = (s, p, input = {}) => { setInput(s, p.id, { seq: ++seq, ...input }); step(s); };
 
 test('reloading is opt-in on the one physics rules version, requires item instances and leaves loot-1 without reserves', async t => {
@@ -55,11 +63,11 @@ test('spawn migration splits each map weapon into a full magazine and an ammo pi
     { id: 'rifle', kind: 'weapon', weaponType: 'rifle', ammo: 90, x: 300, y: 120 },
     { id: 'shotty', kind: 'weapon', weaponType: 'scattergun', ammo: 4, x: 300, y: 300 });
   const s = createGameRecord(17, map, content());
-  const byId = Object.fromEntries(s.map.items.map(item => [item.id, item]));
+  const byId = Object.fromEntries(s.map.items.map(item => [itemLabel(s, item.id), item]));
   assert.deepEqual([byId.kit.ammo, byId.rifle.ammo, byId.shotty.ammo], [12, 30, 4]);
   const piles = s.map.items.filter(item => item.kind === 'ammo');
   assert.deepEqual(piles.map(item => [item.family, item.count]), [['pistol', 36], ['rifle', 60]]);
-  assert.ok(piles.every(item => item.id.startsWith('instance-') && item.lineageId === item.id));
+  assert.ok(piles.every(item => typeof item.id === 'number' && item.id > 0 && itemLabel(s, item.id).startsWith('instance-') && item.lineageId === item.id));
   // Totals are exactly today's pickup rounds: 48 pistol, 90 rifle, 4 shells.
   assert.deepEqual(['pistol', 'rifle', 'shell'].map(family => rounds(s, family)), [48, 90, 4]);
 });
@@ -120,7 +128,7 @@ test('switch, move, drop and stun cancel before transfer; every round is conserv
   const { s, p } = await fixture(t);
   p.inventory[0] = pistol(4); p.reserves.pistol = 30;
   tick(s, p, { reload: true }); tick(s, p, { drop: true });
-  const dropped = s.map.items.find(item => item.id === 'gun');
+  const dropped = s.map.items.find(item => item.id === itemId(s, 'gun'));
   assert.equal(dropped.ammo, 4, 'a dropped weapon keeps its magazine');
   assert.equal(p.reserves.pistol, 30, 'and not the player\'s reserve');
 });
@@ -132,7 +140,7 @@ test('selecting the reloading slot again does not cancel; a switch and reload in
   tick(s, p, { slot: 0 });
   assert.ok(p.reload);
   tick(s, p, { slot: 1, reload: true });
-  assert.deepEqual([p.reload.slot, p.reload.instanceId], [1, 'other']);
+  assert.deepEqual([p.reload.slot, p.reload.instanceId], [1, itemId(s, 'other')]);
   for (let i = 0; i < 20; i++) tick(s, p);
   assert.deepEqual([p.inventory[0].ammo, p.inventory[1].ammo, p.reserves.pistol], [4, 12, 20]);
 });
@@ -141,7 +149,7 @@ test('R and M in one input: the move applies first, then the reload fills the mo
   const { s, p } = await fixture(t);
   p.inventory[0] = pistol(4); p.reserves.pistol = 30;
   tick(s, p, { moveSlot: { from: 0, to: 2 }, reload: true });
-  assert.deepEqual([p.selectedSlot, p.reload?.slot, p.reload?.instanceId], [2, 2, 'gun']);
+  assert.deepEqual([p.selectedSlot, p.reload?.slot, p.reload?.instanceId], [2, 2, itemId(s, 'gun')]);
   tick(s, p, { reload: true });
   assert.equal(p.reload.until, s.tick + 19, 'pressing again does not restart it');
   for (let i = 0; i < 19; i++) tick(s, p);
@@ -173,7 +181,7 @@ test('ammo pickups fill reserves with six full slots, leave the remainder, and a
   const pile = { id: 'pile', kind: 'ammo', family: 'pistol', count: 20, x: p.x, y: p.y };
   s.map.items.push(pile);
   // A partial take replaces the ground record (22.1 "Frames"), so look it up again.
-  const ground = () => s.map.items.find(item => item.id === 'pile');
+  const ground = () => s.map.items.find(item => item.id === itemId(s, 'pile'));
   automaticPickups(s, p, {});
   assert.deepEqual([p.reserves.pistol, ground()?.count, pile.count], [72, 8, 20]);
   const left = ground();
@@ -183,7 +191,7 @@ test('ammo pickups fill reserves with six full slots, leave the remainder, and a
   p.reserves.pistol = 0;
   automaticPickups(s, p, {});
   assert.deepEqual([p.reserves.pistol, ground()], [8, undefined]);
-  assert.equal(collectAmmo(s, p, { id: 'bad', kind: 'ammo', family: 'laser', count: 3, x: 0, y: 0 }), false);
+  assert.equal(collectAmmo(s, p, { id: registerItemLabel(s, 'bad'), kind: 'ammo', family: 'laser', count: 3, x: 0, y: 0 }), false);
 });
 
 test('a matching weapon feeds its family reserve; its magazine never merges into the carried one', async t => {

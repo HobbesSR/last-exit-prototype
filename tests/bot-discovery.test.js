@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, step, snapshot, playerView } from '../shared/simulation.ts';
@@ -63,7 +64,7 @@ test('a bot routes to a cell it has seen and not to one it has not', async t => 
       if (x > 300 && canOccupy(s.map, x, y, 25)) spot = { x, y };
     }
   assert.ok(spot, 'an open spot far from the bot');
-  const cell = { id: 'far-cell', kind: 'cell', ...spot };
+  const cell = { id: itemId(s, 'far-cell'), kind: 'cell', ...spot };
   s.map.items = [cell];
 
   p.route = [];
@@ -133,7 +134,7 @@ test("information test: over tiles, a bot's targets, routes and inputs depend on
     for (const p of s.players) if (p.id !== 'c0') { p.bot = false; p.input = {}; }
     s.map.traps = []; s.map.items = [];
     const p = s.players[0], trace = [], eyes = [];
-    p.discovery.items.clear(); p.discovery.items.set(far.id, { ...far });
+    p.discovery.items.clear(); p.discovery.items.set(itemId(s, far.id), { ...far, id: itemId(s, far.id) });
     for (let i = 0; i < 500; i++) {
       step(s);
       trace.push(JSON.stringify([p.x, p.y, p.heading, p.route, p.inventory]));

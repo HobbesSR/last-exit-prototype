@@ -6,6 +6,7 @@ import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { dropInventorySlot, planDrop, scatterPoint } from '../shared/simulation/loot.ts';
 import { interact } from '../shared/simulation/interactions.ts';
 import { openArea } from './helpers/arena.js';
+import { identifyItems, itemId, itemLabel } from './helpers/item-identity.js';
 
 const map = (props = []) => ({ seed: 448, width: 800, height: 800,
   playableArea: openArea(800, 800, 100),
@@ -44,6 +45,7 @@ test('crowded optional physical drop refuses atomically without consuming invent
   try {
     const p = s.players[0], r = physicsRuntime(s);
     p.inventory[0] = carried('held');
+    identifyItems(s);
     let count = 0;
     while (r.world.canAddBodies(1)) r.world.queueAddBody({ id: `crowd:${count++}`, kind: 'prop',
       shape: { kind: 'circle', radius: 2 }, x: 700, y: 700 });
@@ -54,7 +56,7 @@ test('crowded optional physical drop refuses atomically without consuming invent
     r.synchronize = () => { throw new Error('planning must not synchronize the runtime'); };
     try { assert.equal(dropInventorySlot(s, p, 0), false); }
     finally { r.synchronize = synchronize; }
-    assert.deepEqual(p.inventory[0], carried('held'));
+    assert.deepEqual(p.inventory[0], { ...carried('held'), instanceId: itemId(s, 'held'), lineageId: itemId(s, 'held') });
     assert.equal(s.itemSerial, before.serial);
     assert.equal(s.map.items.length, before.items);
     assert.equal(r.world.counts().dynamic, before.bodyCount);
@@ -70,6 +72,7 @@ test('a full-inventory swap stages its serial but still checks rotated prop occu
     for (let i = 0; i < p.inventory.length; i++) p.inventory[i] = carried(`held-${i}`);
     p.selectedSlot = 0;
     s.map.items.push({ id: 'incoming', lineageId: 'incoming', kind: 'cell', charge: 91, x: 300, y: 420 });
+    identifyItems(s);
     synchronizePhysics(s);
     const phase = s.itemSerial ?? 0, first = { x: p.x + Math.cos(phase * 2.39996) * 36,
       y: p.y + Math.sin(phase * 2.39996) * 36 };
@@ -77,9 +80,9 @@ test('a full-inventory swap stages its serial but still checks rotated prop occu
     assert.equal(r.world.overlapsProp(first.x, first.y, s.content.worldPhysics.loot.radius), true);
     const serial = s.itemSerial;
     interact(s, p);
-    assert.equal(p.inventory[0].instanceId, 'incoming');
+    assert.equal(itemLabel(s, p.inventory[0].instanceId), 'incoming');
     assert.equal(s.itemSerial, serial, 'a whole-instance swap allocates no ID');
-    const outgoing = s.map.items.find(item => item.id === 'held-0');
+    const outgoing = s.map.items.find(item => item.id === itemId(s, 'held-0'));
     assert.ok(outgoing);
     assert.notDeepEqual({ x: outgoing.x, y: outgoing.y }, first);
     assert.equal(r.world.overlapsProp(outgoing.x, outgoing.y, s.content.worldPhysics.loot.radius), false);
@@ -91,7 +94,8 @@ test('mandatory fallback remains logical and pickable, then admits a body after 
   const s = await createGame(448, map(), content());
   try {
     const p = s.players[0], r = physicsRuntime(s);
-    const carriedItem = { ...carried('mandatory'), charge: 71 };
+    const carriedItem = { ...carried('mandatory'), charge: 71,
+      instanceId: itemId(s, 'mandatory'), lineageId: itemId(s, 'mandatory') };
     const blockers = Array.from({ length: 180 }, (_, j) => {
       const angle = ((s.itemSerial ?? 0) + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
       return { x: p.x + Math.cos(angle) * radius, y: p.y + Math.sin(angle) * radius };

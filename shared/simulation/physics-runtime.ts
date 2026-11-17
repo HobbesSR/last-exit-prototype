@@ -1,6 +1,6 @@
 import type { PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsGameplayState, HookState } from '../physics/types.ts';
-import type { Game, GateIdx, Player, Projectile, Vec2 } from '../types.ts';
+import type { Game, GateIdx, ItemId, Player, Projectile, Vec2 } from '../types.ts';
 import { hypot } from '../math.ts';
 
 /** The one physics rules version. Which features a match has is stated by its content, never by this string (26). */
@@ -14,7 +14,7 @@ export interface PhysicsRuntime {
   world: PhysicsWorld;
   actors: Set<string>;
   items: Set<string>;
-  itemLaunches: Map<string, Vec2>;
+  itemLaunches: Map<ItemId, Vec2>;
   /** Dense gate indices in legacy world admission order, retained only for CP1 physics equivalence. */
   gateOrder: readonly GateIdx[];
   /** What the world last saw of each gate, by its place in `gateOrder`: 0 nothing yet, 1 open, 2 closed. */

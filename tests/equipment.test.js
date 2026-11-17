@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { disposePhysics, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
@@ -16,7 +17,7 @@ const scene = body => async () => {
   try { await body({ s, p }); } finally { disposePhysics(s); }
 };
 const ground = (s, fields) => {
-  const item = { id: `ground-${++s.itemSerial}`, x: 0, y: 0, ...fields };
+  const item = { id: itemId(s, `ground-${s.itemSerial}`), x: 0, y: 0, ...fields };
   s.map.items.push(item);
   return item;
 };

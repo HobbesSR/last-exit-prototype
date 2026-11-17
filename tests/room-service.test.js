@@ -1,3 +1,4 @@
+import { itemLabel } from '../shared/item-instances.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
@@ -178,12 +179,15 @@ test('inventory gesture commands preserve source items in authoritative frames a
     const dropped = game.map.items.find(item => item.droppedBy === player.id);
     assert.equal(dropped.weaponType, 'rifle'); assert.equal(dropped.ammo, 7);
     const recorded = writer.frames.at(-1);
-    assert.deepEqual(recorded.state.items.find(item => item.id === dropped.id), dropped);
+    const legacyDropped = { ...dropped, id: itemLabel(game, dropped.id), lineageId: itemLabel(game, dropped.lineageId) };
+    assert.deepEqual(recorded.state.items.find(item => item.id === legacyDropped.id), legacyDropped);
     const command = recorded.commands.find(c => c.seq === 3);
     assert.equal(command.input.slot, 0); assert.equal(command.input.drop, true);
     assert.equal(command.input.moveSlot, undefined);
     const delivered = owner.messages.filter(m => m.type === 'state').at(-1).state;
-    assert.deepEqual(delivered.players.find(p => p.id === player.id).inventory, player.inventory);
+    assert.deepEqual(delivered.players.find(p => p.id === player.id).inventory, player.inventory.map(item => item && ({
+      ...item, instanceId: itemLabel(game, item.instanceId), lineageId: itemLabel(game, item.lineageId),
+    })));
 
     h.wake(50);
     assert.equal(game.map.items.filter(item => item.droppedBy === player.id).length, 1, 'drop is consumed once');

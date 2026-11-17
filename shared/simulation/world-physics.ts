@@ -1,3 +1,4 @@
+import { itemLabel, itemIdForLabel } from '../item-instances.ts';
 import { canOccupy } from '../movement.ts';
 import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime, markPhysicsDiscontinuity } from './physics-runtime.ts';
@@ -9,7 +10,7 @@ import { admitItem, groundItem, replaceItem, unadmittedItems } from './ground-it
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.length - r.actors.size);
 const ITEM_PREFIX = 'item:';
-const bodyId = (item: GroundItem) => `${ITEM_PREFIX}${item.id}`;
+const bodyId = (s: Game, item: GroundItem) => `${ITEM_PREFIX}${itemLabel(s, item.id)}`;
 
 /** Drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. */
 export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number, y: number): boolean {
@@ -19,7 +20,7 @@ export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number
 }
 
 /** Reject authoring before allocating a solver. All numbers are match-pinned tuning. */
-export function validateWorldPhysics(content: MatchContent, map: GameMap): void {
+export function validateWorldPhysics(content: MatchContent, map: Omit<GameMap, 'items'>): void {
   const profile = content.worldPhysics;
   if (!profile) throw new RangeError('world physics profile required');
   if (!content.itemInstances || !content.actorPhysics) throw new RangeError('world physics requires item instances and actor physics');
@@ -60,7 +61,7 @@ export function addAuthoredProps(s: Game, r: PhysicsRuntime): void {
 export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: number, admit = true): void {
   const profile = s.content.worldPhysics;
   // A held body is `item:<id>`: look its item up by id rather than walking the ground list on every call.
-  for (const id of [...r.items].sort(order)) if (!groundItem(s, id.slice(ITEM_PREFIX.length))) {
+  for (const id of [...r.items].sort(order)) if (!groundItem(s, itemIdForLabel(s, id.slice(ITEM_PREFIX.length))!)) {
     markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
     r.world.queueRemoveBody(id); r.items.delete(id);
   }
@@ -70,7 +71,7 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
   // every ground item (thousands on a large map) on every call.
   if (r.itemLaunches.size === 0 && !r.world.canAddBodies(1 + reserveActors(s, r) + (profile.dropReserve ?? 0))) return;
   const place = (item: GroundItem, reserve: number): void => {
-    const id = bodyId(item);
+    const id = bodyId(s, item);
     if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r) + reserve) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
       || !physicalDropPlacementClear(s, r, item.x, item.y)) return;
     const motion = r.itemLaunches.get(item.id);
@@ -84,7 +85,7 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
     markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
   };
   // A preflighted transfer owns its released slots first, in the same id order as the old combined sort.
-  for (const id of [...r.itemLaunches.keys()].sort(order)) {
+  for (const id of [...r.itemLaunches.keys()].sort((a, b) => order(itemLabel(s, a), itemLabel(s, b)))) {
     const item = groundItem(s, id);
     if (item) place(item, 0);
   }
@@ -102,7 +103,7 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
 export function canRepresentPhysicalDrop(s: Game, count: number, removed: GroundItem[] = []): boolean {
   const r = physicsRuntime(s);
   if (!r) return true;
-  const released = removed.filter(item => r.items.has(bodyId(item))).length;
+  const released = removed.filter(item => r.items.has(bodyId(s, item))).length;
   return r.world.canAddBodies(Math.max(0, count - released) + reserveActors(s, r));
 }
 
@@ -119,7 +120,7 @@ export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): v
 /** Walks the item bodies, not the ground; a record is replaced only when its body moved. */
 export function writePhysicalItemPoses(s: Game, r: PhysicsRuntime): void {
   for (const id of r.items) {
-    const item = groundItem(s, id.slice(ITEM_PREFIX.length)), pose = item && r.world.getTransform(id);
+    const item = groundItem(s, itemIdForLabel(s, id.slice(ITEM_PREFIX.length))!), pose = item && r.world.getTransform(id);
     if (pose && !(Object.is(pose.x, item.x) && Object.is(pose.y, item.y))) replaceItem(s, item, { ...item, x: pose.x, y: pose.y });
   }
 }

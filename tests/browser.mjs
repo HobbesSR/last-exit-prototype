@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
@@ -127,7 +128,7 @@ try {
   const inventoryOthers = inventoryGame.players.filter(p => p.id !== inventoryPlayer.id)
     .map(player => ({ player, bot: player.bot, x: player.x, y: player.y }));
   for (const { player } of inventoryOthers) { player.bot = false; player.input = {}; Object.assign(player, awayFrom(inventoryGame, inventoryPlayer)); }
-  inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: 'browser-rifle' };
+  inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: itemId(inventoryGame, 'browser-rifle') };
   inventoryPlayer.selectedSlot = 0;
   await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7);
   const slotCenter = async index => {
@@ -146,7 +147,7 @@ try {
   const arenaBox = await page.locator('#game canvas').boundingBox();
   await dragInventory(4, { x: arenaBox.x + arenaBox.width / 2, y: arenaBox.y + arenaBox.height / 2 });
   await page.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  const droppedRifle = () => server.rooms.get(ownerRoom).game.map.items.find(item => item.id === 'browser-rifle' && item.droppedBy === ownerPlayer);
+  const droppedRifle = () => server.rooms.get(ownerRoom).game.map.items.find(item => item.id === itemId(inventoryGame, 'browser-rifle') && item.droppedBy === ownerPlayer);
   for (let waited = 0; !droppedRifle() && waited < 2000; waited += 50) await page.waitForTimeout(50);
   assert.equal(droppedRifle()?.ammo, 7, 'world drag drops the unselected source with its ammunition');
   // Live guest admission below needs its replaceable bot slots back.
@@ -602,7 +603,7 @@ try {
   for (const other of mobileGame.players) if (other.id !== mobilePlayer.id) {
     other.bot = false; other.input = {}; Object.assign(other, awayFrom(mobileGame, mobilePlayer));
   }
-  mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: 'browser-mobile-rifle' };
+  mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7, instanceId: itemId(mobileGame, 'browser-mobile-rifle') };
   mobilePlayer.inventory[4] = null;
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7 && !window.arenaDebug().me.inventory[4]);
   const touchSlotCenter = async index => {
@@ -624,7 +625,7 @@ try {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [worldTouch] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
-  assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.id === 'browser-mobile-rifle' && item.droppedBy === mobilePlayer.id)?.ammo, 7, 'touch world drag preserves source ammo');
+  assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.id === itemId(mobileGame, 'browser-mobile-rifle') && item.droppedBy === mobilePlayer.id)?.ammo, 7, 'touch world drag preserves source ammo');
   // Fixed-coordinate sight and projectile probes stand on the geometry scene; the normal rooms above and the
   // spectator below exercise the live chain map.
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: SCENE.geometry }) })).json();
@@ -632,7 +633,7 @@ try {
   const geometryGame = server.rooms.get(vr.id).game;
   for (const p of geometryGame.players) p.bot = false;
   Object.assign(geometryGame.players[0], { bot: true, x: 11980, y: 6000, weapon: 1, selectedSlot: 0,
-    inventory: [{ kind: 'weapon', weaponType: 'pistol', instanceId: 'browser-pistol' }, null, null, null, null, null] });
+    inventory: [{ kind: 'weapon', weaponType: 'pistol', instanceId: itemId(geometryGame, 'browser-pistol') }, null, null, null, null, null] });
   const visionPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await ready(visionPage, `${base}/?room=${vr.id}&ownerKey=${encodeURIComponent(vr.ownerKey)}`);
   await visionPage.mouse.move(1100, 420);
@@ -712,7 +713,7 @@ try {
   await visionPage.waitForFunction(id => window.arenaDebug().me.x > 14900 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
   assert.ok(Math.hypot(lurker.x - runner.x, lurker.y - runner.y) > 620, 'visible actor is beyond the former circular cutoff');
   await visionPage.screenshot({ path: 'test-results/viewport-visibility.png' });
-  runner.inventory[1] = { kind: 'cell', charge: 99, instanceId: 'browser-cell' }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
+  runner.inventory[1] = { kind: 'cell', charge: 99, instanceId: itemId(geometryGame, 'browser-cell') }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
   await visionPage.waitForFunction(() => window.arenaDebug().me.inventory?.[1]?.charge === 99);
   await visionPage.keyboard.press('KeyE');
   await visionPage.waitForFunction(() => document.getElementById('objective').textContent.includes('CELL CHARGED'));

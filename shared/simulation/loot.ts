@@ -1,6 +1,6 @@
 import { canOccupy, reachClear } from '../movement.ts';
 import { carriedCell, collectAmmo, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
-import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
+import { allocateItemId, ensureItemIdentity, validateItemPayload, forkItemAllocation, commitItemAllocation } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
@@ -27,14 +27,14 @@ export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readon
 }
 
 /** An L0 drop, fully represented but not yet committed. */
-export interface DropPlan { records: GroundItem[]; itemSerial: number; scatterSerial: number }
+export interface DropPlan { records: GroundItem[]; itemSerial: number; scatterSerial: number; allocation: Game }
 
 /**
  * Validate, place and identify every ground record of one carried L0 item without changing the
  * match. `items` stands in for the ground list, so a swap can plan around the pickup it removes.
  */
 export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = false, items: readonly GroundItem[] = s.map.items,
-  stagedSerial = s.itemSerial ?? 0, stagedScatterSerial = s.scatterSerial ?? stagedSerial): DropPlan | null {
+  source: Game = s): DropPlan | null {
   if (!['weapon', 'med', 'shield', 'cell'].includes(item.kind) || ![p.x, p.y].every(Number.isFinite) || !validateItemPayload(item, s)) return null;
   const copies = item.kind === 'med' || item.kind === 'shield' ? item.count : 1;
   if (!Number.isInteger(copies) || copies < 1 || copies > 3
@@ -43,7 +43,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
   if (!mandatory && items.length + copies > s.content.itemInstances.groundCapacity) return null;
   const points: Vec2[] = [];
   for (let i = 0; i < copies; i++) {
-    const point = scatterPoint(s, p, stagedScatterSerial + i, items, points);
+    const point = scatterPoint(s, p, (source.scatterSerial ?? 0) + i, items, points);
     if (!point && !mandatory) return null;
     // Mandatory overflow is logical loot, not a promise that the physics world can allocate a body here.
     points.push(point ?? { x: p.x, y: p.y });
@@ -51,7 +51,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
   if (item.instanceId && (items.some(other => other.id === item.instanceId)
     || s.players.some(player => player.inventory?.some(other => other && other !== item && other.instanceId === item.instanceId)))) return null;
   // Allocation is staged too: an exhausted counter cannot partly split a carried stack.
-  const allocation = { ...s, itemSerial: stagedSerial, scatterSerial: stagedScatterSerial }, identity = { ...item };
+  const allocation = forkItemAllocation(source), identity = { ...item };
   try {
     ensureItemIdentity(allocation, identity);
     const records = points.map((point, i): GroundItem => ({
@@ -61,7 +61,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
         : item.kind === 'cell' ? { charge: item.charge } : { count: 1 }),
       ...point, droppedBy: p.id, pickupAfter: s.tick + HZ,
     }));
-    return { records, itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial! };
+    return { records, itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation };
   } catch { return null; }
 }
 
@@ -74,11 +74,11 @@ export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: numb
   if (!mandatory && s.map.items.length + 1 > s.content.itemInstances.groundCapacity) return null;
   const point = scatterPoint(s, p, s.scatterSerial ?? s.itemSerial ?? 0, s.map.items);
   if (!point && !mandatory) return null;
-  const allocation = { ...s };
+  const allocation = forkItemAllocation(s);
   try {
     const id = allocateItemId(allocation);
     const at = point ?? { x: p.x, y: p.y };
-    return { records: [{ kind: 'ammo', id, lineageId: id, family, count, x: at.x, y: at.y, droppedBy: p.id, pickupAfter: s.tick + HZ }], itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial! };
+    return { records: [{ kind: 'ammo', id, lineageId: id, family, count, x: at.x, y: at.y, droppedBy: p.id, pickupAfter: s.tick + HZ }], itemSerial: allocation.itemSerial!, scatterSerial: allocation.scatterSerial!, allocation };
   } catch { return null; }
 }
 
@@ -89,8 +89,7 @@ export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = 
   if (!item) return false;
   const plan = planDrop(s, p, item, mandatory);
   if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
-  s.itemSerial = plan.itemSerial;
-  s.scatterSerial = plan.scatterSerial;
+  commitItemAllocation(s, plan.allocation);
   addItems(s, ...plan.records);
   p.inventory![slot] = null; p.charging = null; syncWeapon(p, s.content.weapons);
   if (plan.records.length) launchPhysicalDrops(s, plan.records, p);

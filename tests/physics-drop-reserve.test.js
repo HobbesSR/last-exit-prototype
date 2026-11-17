@@ -5,6 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { dropInventorySlot } from '../shared/simulation/loot.ts';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
+import { identifyItems, itemLabel } from './helpers/item-identity.js';
 
 // A real 12x6 map has hundreds of ground items and the world has 128 dynamic bodies for actors, props and loot.
 // Without a reserve the items take every slot at tick 0 and a player's voluntary drop has nowhere to go (#523).
@@ -15,6 +16,7 @@ async function room(content = contentById('content-6')) {
   const s = await createGame(4217, structuredClone(map), content);
   const p = s.players.find(q => q.role === 'contestant');
   p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48, instanceId: 'held-1', lineageId: 'held-1' };
+  identifyItems(s);
   p.selectedSlot = 0;
   return { s, r: physicsRuntime(s), p };
 }
@@ -42,7 +44,7 @@ test('the shipped content leaves a reserve, so a player can drop and the item ge
     assert.equal(p.inventory[0], null, 'the drop empties the slot');
     assert.ok(s.map.items.some(item => item.id === held.instanceId), 'and the item is on the ground');
     step(s);
-    assert.equal(r.items.has(`item:${held.instanceId}`), true, 'with a body, admitted from the reserve');
+    assert.equal(r.items.has(`item:${itemLabel(s, held.instanceId)}`), true, 'with a body, admitted from the reserve');
     assert.ok(free() >= reserve - 1, 'one slot used, the rest still free');
     assert.doesNotThrow(() => snapshot(s));
   } finally { disposePhysics(s); }

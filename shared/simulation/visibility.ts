@@ -1,11 +1,13 @@
+import { itemIdForLabel } from '../item-instances.ts';
+import { legacyItems, legacyItemsInRange, legacyPlayers } from './item-boundary.ts';
 import { playerById } from './relations.ts';
 import { lineClear, VISION } from '../movement.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
-import type { Game, Gate, GroundItem, Player, PlayerId, Projected, Snapshot, Vec2, World } from '../types.ts';
-import { framedItems, groundItem, groundPosition, poseItems, publishItems } from './ground-items.ts';
+import type { Game, Gate, GroundItem, ItemKey, ItemLabel, Player, PlayerId, Projected, Snapshot, Vec2, World } from '../types.ts';
+import { groundItem, groundPosition, poseItems, publishItems } from './ground-items.ts';
 import { publishGates, publishedGates } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
 import { heardBy } from './hearing.ts';
@@ -20,7 +22,7 @@ export const POTENTIAL = POTENTIAL_RADIUS;
 // What the server will send, as opposed to what the viewer can actually see.
 // `s` is unread: this deliberately mirrors `visibleTo` below so the two are interchangeable at a
 // call site, and a distance cull must not start depending on wider state. Kept, not an oversight.
-export function couldSee(s: Game, viewer: Player | null | undefined, target: Player): boolean {
+export function couldSee(s: Game, viewer: Player<ItemKey> | null | undefined, target: Player<ItemKey>): boolean {
   if (!viewer || viewer.id === target.id || target.status !== 'active') return true;
   // A reveal makes a contestant visible to gladiators at any range, so it is never distance culled.
   if (viewer.role === 'gladiator' && target.revealed > 0) return true;
@@ -28,7 +30,7 @@ export function couldSee(s: Game, viewer: Player | null | undefined, target: Pla
 }
 // True line of sight. This stays authoritative and drives gameplay — bot targeting, ability reach,
 // hit resolution — none of which may depend on anything a client says.
-export function visibleTo(s: Game, viewer: Player | null | undefined, target: Player): boolean {
+export function visibleTo(s: Game, viewer: Player<ItemKey> | null | undefined, target: Player<ItemKey>): boolean {
   if (!viewer || viewer.id === target.id || target.status !== 'active') return true;
   if (viewer.role === 'gladiator' && target.revealed > 0) return true;
   return !target.cloak && visiblePoint(s, viewer, target);
@@ -43,7 +45,7 @@ export function visiblePoint(s: Game, viewer: Vec2, target: Vec2): boolean {
 export const OBSERVED = ['id', 'role', 'kit', 'name', 'x', 'y', 'heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
 // A gladiator has no roster place, so `seat` is appended only where the player has one. Every field
 // above is always present, so one mapping builds the record without a filtered copy (#792).
-export const observed = (p: Player) => {
+export const observed = (p: Player<ItemKey>) => {
   const record = Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]])) as Record<string, Player[keyof Player]>;
   if (p.seat !== undefined) record.seat = p.seat;
   return record;
@@ -51,8 +53,8 @@ export const observed = (p: Player) => {
 // Each published ground record's projection, made once and shared by every view and frame that carries the record.
 // Published records are frozen and replaced when they change, so an unchanged item projects to the same object and
 // its view layer matches its keyframe by identity (frame-layers.ts same()) instead of by value (#655).
-const projectedItems = new WeakMap<GroundItem, Projected<GroundItem>>();
-function projectedItem(item: GroundItem): Projected<GroundItem> {
+const projectedItems = new WeakMap<GroundItem<ItemLabel>, Projected<GroundItem<ItemLabel>>>();
+function projectedItem(item: GroundItem<ItemLabel>): Projected<GroundItem<ItemLabel>> {
   if (!Object.isFrozen(item)) return itemFields(item);
   let projected = projectedItems.get(item);
   if (!projected) projectedItems.set(item, projected = Object.freeze(itemFields(item)));
@@ -93,7 +95,7 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
   const authorized = frame.players.filter(p => couldSee(s, viewer, p));
   // Items have no radius; the grid only spares testing those out of reach, and inRange still decides.
-  const items = viewer ? framedItems(s, frame.items, viewer, POTENTIAL, inRange) : frame.items;
+  const items = viewer ? legacyItemsInRange(s, frame.items, viewer, POTENTIAL, inRange) : frame.items;
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), items, inRange) : {}),
     ...(frame.bodies && viewer ? { predictionMotor: {
@@ -118,13 +120,13 @@ export function snapshot(s: Game): Snapshot {
     stop('sim.snapshot.world');
     start('sim.snapshot.presentation');
     const ground = publishItems(s);
-    const presentation = physics ? capturePhysicsPresentation(physics, s.players, id => groundItem(s, id)?.id, s.version) : undefined;
+    const presentation = physics ? capturePhysicsPresentation(physics, s.players, id => { const numeric = itemIdForLabel(s, id); return numeric !== undefined && groundItem(s, numeric) ? id as ItemLabel : undefined; }, s.version) : undefined;
     // A physical item's stored/projection pose changes the item layer too, even before its gameplay
     // owner synchronizes the map record. Never change that gameplay record while taking a snapshot:
     // a differing pose gives the frame its own list.
     const poses = new Map<number, GroundItem>();
     for (const body of presentation?.bodies ?? []) {
-      const at = body.itemId === undefined ? undefined : groundPosition(s, String(body.itemId)), item = at === undefined ? undefined : ground[at];
+      const at = body.itemId === undefined ? undefined : groundPosition(s, itemIdForLabel(s, body.itemId as string)!), item = at === undefined ? undefined : ground[at];
       if (!item || Object.is(item.x, body.x) && Object.is(item.y, body.y)) continue;
       poses.set(at!, Object.freeze({ ...item, x: body.x, y: body.y }));
     }
@@ -133,8 +135,9 @@ export function snapshot(s: Game): Snapshot {
     start('sim.snapshot.clone');
     // The ground and gate lists are shared, not cloned: their records are frozen and replaced when they change.
     // The physics state and its presentation are already the frame's own, apart from frozen shared records.
-    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial } : {}) }) as unknown as Snapshot;
-    frame.items = items as GroundItem[];
+    const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.scatterSerial } : {}) }) as unknown as Snapshot;
+    frame.items = legacyItems(s, items);
+    frame.players = legacyPlayers(s, frame.players as unknown as Player[]);
     frame.gates = s.map.gates && publishGates(s) as Gate[];
     return physics ? Object.assign(frame, { physics }, presentation) : frame;
   }

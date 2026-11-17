@@ -10,6 +10,7 @@ import { capturePhysicsPresentation } from '../shared/simulation/physics-present
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { openArea } from './helpers/arena.js';
+import { identifyItems } from './helpers/item-identity.js';
 
 const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = () => ({ width: 600, height: 400, playableArea: openArea(600, 400, 100),
@@ -20,6 +21,7 @@ test('a moving loot body changes recorded and projected item layers without muta
   const game = await createGame(1, arena(), content());
   try {
     game.map.items.push({ id: 'loot', kind: 'cell', charge: 100, x: 300, y: 200 });
+    identifyItems(game);
     const world = physicsRuntime(game).world;
     world.queueAddBody({ id: 'item:loot', kind: 'prop', shape: { kind: 'circle', radius: 5 }, x: 300, y: 200 });
     world.commitMutations();

@@ -23,7 +23,7 @@ export const DISCOVERY_INTERVAL = 10;
 export const BEACON_RADIUS: World = 4000;
 
 /** The map fields discovery reads. Items and landmarks are optional, so a bare collision map works. */
-type DiscoveryMap = CollisionMap & Pick<GameMap, 'buildings'> & Partial<Pick<GameMap, 'items' | 'chargers' | 'stations' | 'exit'>>;
+type DiscoveryMap = CollisionMap & Pick<GameMap, 'buildings'> & Partial<Pick<GameMap<ItemId>, 'items' | 'chargers' | 'stations' | 'exit'>>;
 
 /** The features that carry a beacon. */
 function landmarks(map: DiscoveryMap): Vec2[] {

@@ -1,5 +1,5 @@
 import { AMMO_FAMILIES, equipped, isAmmoFamily } from '../equipment.ts';
-import { allocateItemId } from '../item-instances.ts';
+import { commitItemAllocation, allocateItemId } from '../item-instances.ts';
 import { planAmmoDrop, scatterPoint } from './loot.ts';
 import { addItems } from './ground-items.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
@@ -84,7 +84,7 @@ export function dropReserve(s: Game, p: Player, family: AmmoFamily, count: numbe
   const plan = planAmmoDrop(s, p, family, rounds, mandatory);
   // An optional drop also needs a body for its pickup where items are physical, as a slot drop does.
   if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
-  s.itemSerial = plan.itemSerial; s.scatterSerial = plan.scatterSerial; addItems(s, ...plan.records);
+  commitItemAllocation(s, plan.allocation); addItems(s, ...plan.records);
   p.reserves[family] -= rounds;
   launchPhysicalDrops(s, plan.records, p);
   return true;

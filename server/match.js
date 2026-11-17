@@ -1,3 +1,4 @@
+import { legacyItems } from '../shared/simulation/item-boundary.ts';
 import { playerById } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
@@ -146,12 +147,12 @@ function matchOf(game, payloads) {
     snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
     project: (frame, id) => playerView(game, frame, id),
-    map: () => structuredClone(game.map),
+    map: () => structuredClone({ ...game.map, items: legacyItems(game, publishItems(game)) }),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {
       if (!payloads) throw new Error('match disposed');
       const source = { ...game.map, gates: kind === 'spectator' ? frame.gates : publishGates(game),
-        items: kind === 'spectator' ? frame.items : publishItems(game), ...(kind !== 'recording' ? { traps: [] } : {}) };
+        items: kind === 'spectator' ? frame.items : legacyItems(game, publishItems(game)), ...(kind !== 'recording' ? { traps: [] } : {}) };
       return payloads.read(source, { publicMap: kind !== 'recording', itemsJson, gatesJson });
     },
     end({ strand = false } = {}) {

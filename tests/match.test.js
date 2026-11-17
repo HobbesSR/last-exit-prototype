@@ -75,6 +75,9 @@ test('prepared map payloads match detached map queries at live and historical bo
       return copy;
     };
     const initial = check('recording', match.map());
+    assert.equal(typeof match.diagnosticState.map.items[0].id, 'number');
+    assert.equal(initial.items[0].id, 'cell', 'delivered and recorded maps retain the artifact label');
+    assert.equal(old.items[0].id, 'cell', 'frames use the same legacy boundary as map delivery');
     check('live', stripped(match.map()));
     check('spectator', stripped(match.map(), { gates: old.gates, items: old.items }), old);
     map.gates[0].open = true;

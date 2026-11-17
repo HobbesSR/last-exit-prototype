@@ -1,3 +1,4 @@
+import { itemId } from './helpers/item-identity.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameRecord } from '../shared/simulation.ts';
@@ -45,7 +46,7 @@ function pursuing() {
   ];
   p.shield = 75;
   p.hp = 100;
-  const cell = { id: 'wanted-cell', kind: 'cell', x: p.x + 200, y: p.y, charge: 0 };
+  const cell = { id: itemId(s, 'wanted-cell'), kind: 'cell', x: p.x + 200, y: p.y, charge: 0 };
   s.map.items.push(cell);
   // A shipped bot plans from what it remembers seeing (15, #230), so it is given the cell's sighting.
   p.discovery.items = new Map([[cell.id, { ...cell }]]);

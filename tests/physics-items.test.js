@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createGame, disposePhysics, setInput, snapshot, step, synchronizePhysics,
+import { createGame, disposePhysics, playerView, setInput, snapshot, step, synchronizePhysics,
   enqueuePhysicsImpulse } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -10,6 +10,7 @@ import { eliminate } from '../shared/simulation/lifecycle.ts';
 import { addItems, removeItem, unadmittedItems } from '../shared/simulation/ground-items.ts';
 import { synchronizePhysicalItems } from '../shared/simulation/world-physics.ts';
 import { openArea } from './helpers/arena.js';
+import { identifyItems, itemId, itemLabel } from './helpers/item-identity.js';
 
 const arena = () => ({ seed: 17, width: 800, height: 400,
   playableArea: openArea(800, 400, 100),
@@ -44,16 +45,20 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     let blockedChecks = 0;
     const blocked = item('0-blocked', 'cell', { charge: 1 });
     Object.defineProperty(blocked, 'x', { enumerable: true, get() { blockedChecks++; return -100; } });
-    addItems(s, blocked,
-      ...['z-launch', 'c', 'a', 'b-launch', ...Array.from({ length: 300 }, (_, i) => `tail-${i}`)]
-        .map(id => item(id, 'cell', { charge: 1 })));
+    blocked.id = itemId(s, blocked.id);
+    const ordinary = ['z-launch', 'c', 'a', 'b-launch', ...Array.from({ length: 300 }, (_, i) => `tail-${i}`)]
+      .map(id => item(id, 'cell', { charge: 1 }));
+    for (const record of ordinary) record.id = itemId(s, record.id);
+    addItems(s, blocked, ...ordinary);
+    identifyItems(s);
+    assert.equal(itemLabel(s, s.map.items[0].id), '0-blocked', 'setup normalization registers injected item labels');
     // Build the pending order once. Subsequent synchronizations must not retest every logical item for ownership.
     assert.equal([...unadmittedItems(s, r.items)].length, 305);
     for (let i = count - 4; i < count; i++) r.world.queueRemoveBody(`filler:${i}`);
     r.world.commitMutations();
-    r.itemLaunches.set('z-launch', { x: 12, y: 0 });
-    r.itemLaunches.set('b-launch', { x: 7, y: 0 });
-    r.itemLaunches.set('0-blocked', { x: 5, y: 0 });
+    r.itemLaunches.set(itemId(s, 'z-launch'), { x: 12, y: 0 });
+    r.itemLaunches.set(itemId(s, 'b-launch'), { x: 7, y: 0 });
+    r.itemLaunches.set(itemId(s, '0-blocked'), { x: 5, y: 0 });
     const originalHas = r.items.has.bind(r.items);
     let ownershipChecks = 0;
     r.items.has = id => { ownershipChecks++; return originalHas(id); };
@@ -67,7 +72,7 @@ test('admission prioritizes launched ids, preserves reserve, and retries ordinar
     assert.equal(blockedChecks, 1, 'a failed launch is not retried in the ordinary pass');
     assert.ok(ownershipChecks < 20, `only visited candidates check ownership (${ownershipChecks})`);
     const generation = r.world.getGeneration('item:a');
-    removeItem(s, s.map.items.find(i => i.id === 'a'));
+    removeItem(s, s.map.items.find(i => i.id === itemId(s, 'a')));
     synchronizePhysicalItems(s, r, 20);
     assert.equal(r.world.hasBody('item:a'), false);
     assert.equal(r.world.hasBody('item:c'), true, 'the next ordinary id fills the released slot');
@@ -81,17 +86,18 @@ test('pickup and drop retain instance identity, quantity, charge, and physical p
   const { s, p, runtime } = await game();
   try {
     s.map.items.push(item('cell-1', 'cell', { charge: 73, quality: 4 }));
+    identifyItems(s);
     synchronizePhysics(s);
     assert.equal(runtime.world.hasBody('item:cell-1'), true);
     p.x = 300; p.y = 200;
     automaticPickups(s, p, {});
     assert.equal(runtime.world.hasBody('item:cell-1'), false);
-    assert.equal(p.inventory[0].instanceId, 'cell-1');
+    assert.equal(itemLabel(s, p.inventory[0].instanceId), 'cell-1');
     assert.equal(p.inventory[0].charge, 73);
     assert.equal(p.inventory[0].quality, 4);
     assert.equal(dropInventorySlot(s, p, 0), true);
     assert.equal(p.inventory[0], null);
-    assert.equal(s.map.items[0].id, 'cell-1');
+    assert.equal(itemLabel(s, s.map.items[0].id), 'cell-1');
     assert.equal(s.map.items[0].charge, 73);
     assert.equal(runtime.world.hasBody('item:cell-1'), true);
     const before = { ...s.map.items[0] };
@@ -103,9 +109,29 @@ test('pickup and drop retain instance identity, quantity, charge, and physical p
     assert.deepEqual({ x: frame.items[0].x, y: frame.items[0].y }, { x: body.x, y: body.y });
     assert.deepEqual({ x: after.x, y: after.y }, { x: body.x, y: body.y });
     p.inventory[0] = carried('med-3', 'med', { count: 3, quality: 2 });
+    identifyItems(s);
     assert.equal(dropInventorySlot(s, p, 0), true);
-    assert.equal(s.map.items.filter(i => i.lineageId === 'med-3').length, 3);
-    assert.equal(s.map.items.filter(i => i.lineageId === 'med-3').reduce((n, i) => n + i.count, 0), 3);
+    assert.equal(s.map.items.filter(i => itemLabel(s, i.lineageId) === 'med-3').length, 3);
+    assert.equal(s.map.items.filter(i => itemLabel(s, i.lineageId) === 'med-3').reduce((n, i) => n + i.count, 0), 3);
+  } finally { disposePhysics(s); }
+});
+
+test('a delayed view retains its captured item and body after the live item is consumed', async () => {
+  const map = arena(); map.items.push(item('delayed', 'cell', { charge: 41, x: 300, y: 200 }));
+  const { s, p } = await game(map);
+  try {
+    p.x = 300; p.y = 200;
+    synchronizePhysics(s);
+    const captured = snapshot(s);
+    assert.equal(s.map.items[0].id, itemId(s, 'delayed'), 'runtime ground carries the numeric item identity');
+    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.itemId === 'delayed'));
+    automaticPickups(s, p, {});
+    const current = snapshot(s);
+    assert.equal(s.map.items.length, 0, 'the live item was consumed');
+    assert.ok(playerView(s, captured, p.id).items.some(record => record.id === 'delayed'), 'the captured item remains available to a delayed view');
+    assert.ok(playerView(s, captured, p.id).bodies.some(body => body.itemId === 'delayed'), 'the captured body remains associated');
+    assert.equal(playerView(s, current, p.id).items.some(record => record.id === 'delayed'), false);
+    assert.equal(playerView(s, current, p.id).bodies.some(body => body.itemId === 'delayed'), false);
   } finally { disposePhysics(s); }
 });
 
@@ -116,11 +142,12 @@ test('exhausted physical slots reject optional drops atomically but retain manda
     assert.equal(runtime.world.canAddBodies(1), false);
     p.inventory[0] = carried('charged', 'cell', { charge: s.content.cellChargeTicks, quality: 3 });
     p.inventory[1] = carried('second', 'cell', { charge: 19, quality: 2 });
+    identifyItems(s);
     const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
     assert.equal(dropInventorySlot(s, p, 0), false);
     assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
     eliminate(s, p, null);
-    const fallen = s.map.items.find(i => i.id === 'charged');
+    const fallen = s.map.items.find(i => i.id === itemId(s, 'charged'));
     assert.equal(fallen.charge, s.content.cellChargeTicks);
     assert.equal(fallen.quality, 3);
     assert.equal(s.map.items.length, 2);
@@ -136,6 +163,7 @@ test('full-inventory E swap uses the incoming body slot and removes a sleeping p
   try {
     for (let i = 0; i < 6; i++) p.inventory[i] = carried(`held-${i}`, 'cell', { charge: i + 1 });
     s.map.items.push(item('incoming', 'cell', { x: p.x + 35, charge: 79 }));
+    identifyItems(s);
     synchronizePhysics(s);
     runtime.world.queueAddConstraint({ id: 'item-rope', a: 'item:incoming', b: 'actor:c0', maxDistance: 40 });
     runtime.world.commitMutations();
@@ -144,12 +172,12 @@ test('full-inventory E swap uses the incoming body slot and removes a sleeping p
     fillDynamic(runtime);
     assert.equal(runtime.world.canAddBodies(1), false);
     interact(s, p);
-    assert.equal(p.inventory[0].instanceId, 'incoming');
+    assert.equal(itemLabel(s, p.inventory[0].instanceId), 'incoming');
     assert.equal(p.inventory[0].charge, 79);
     assert.equal(runtime.world.hasBody('item:incoming'), false);
     assert.equal(runtime.world.counts().constraints, 0);
     assert.equal(runtime.world.hasBody('item:held-0'), true);
-    assert.equal(s.map.items.find(i => i.id === 'held-0').charge, 1);
+    assert.equal(s.map.items.find(i => i.id === itemId(s, 'held-0')).charge, 1);
   } finally { disposePhysics(s); }
 });
 
@@ -165,6 +193,7 @@ test('authored crate moves and rotates without contact damage; floor drag uses p
   const { s, p, runtime } = await game(map);
   try {
     s.map.items.push(item('floor-item', 'cell', { x: 410, charge: 10 }));
+    identifyItems(s);
     synchronizePhysics(s);
     const start = runtime.world.getTransform('prop:crate');
     const hp = p.hp, shield = p.shield;

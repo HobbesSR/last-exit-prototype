@@ -33,7 +33,7 @@ interface Pursuit {
   /** Items set aside, until the tick they may be chased again. */
   ignored: Map<ItemId, Tick>;
   /** The goal being watched for progress, the closest the bot has come to it, and when it last got closer. */
-  goal: string;
+  goal: ItemId | `cell:${number}` | '';
   closest: World;
   progressed: Tick;
 }
@@ -52,7 +52,7 @@ function pursuitOf(p: Player): Pursuit {
 }
 
 /** Track approach to `goal` at `at`; true once the bot has stopped getting closer to it. */
-function stalled(s: Game, p: Player, state: Pursuit, goal: string, at: Vec2): boolean {
+function stalled(s: Game, p: Player, state: Pursuit, goal: ItemId | `cell:${number}`, at: Vec2): boolean {
   const d = distance(p, at);
   if (state.goal !== goal) state.goal = goal;
   else if (d >= state.closest - PROGRESS) return s.tick - state.progressed > STALL;
