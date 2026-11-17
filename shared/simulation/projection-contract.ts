@@ -2,32 +2,34 @@
 // Iterate source keys so existing serialized field order and optional-field presence are preserved.
 import type { DiscoveryMemory, HeardCue, Inventory, ItemKey, Player, Projected, PlayerIdx } from '../types.ts';
 import type { BodyShape, PhysicsBodyView, PhysicsTetherView } from '../physics/types.ts';
-import { mapIdField, wireCache, wireIds, type WireIds } from './wire-ids.ts';
+import { mapIdField, wireCache, wireIds, type WireIdDomain, type WireIds } from './wire-ids.ts';
 
 /**
- * Outward fields holding an ID from a match-wide counter (#1164, 24.4): bodies, tethers, items and
- * `s.serial`. The one list: each projection below maps exactly these through the match's keyed
- * one-to-one function (wire-ids.ts), and the property test walks them. `playerIdx`, `gateIdx` and
- * `propId` are dense or authored slots, not counters, and are never mapped.
+ * Outward fields holding an ID from a match-wide counter (#1164, 24.4), each with the counter (domain) it
+ * comes from: bodies, tethers, items and `s.serial`. The one list: each projection below maps exactly
+ * these through the match's keyed one-to-one function for that domain (wire-ids.ts), and the property
+ * test walks them. `playerIdx`, `gateIdx` and `propId` are dense or authored slots, not counters, and are
+ * never mapped.
  */
 export const WIRE_ID_FIELDS = {
-  item: 'id instanceId lineageId',
-  body: 'id',
-  bodyOwner: 'itemId',
-  tether: 'id a b',
-  hookFlight: 'id a',
-  reload: 'instanceId',
-  projectile: 'id',
-  effect: 'id',
-  event: 'id',
-} as const;
-const idList = (fields: string) => fields.split(' ');
+  item: { id: 'item', instanceId: 'item', lineageId: 'item' },
+  body: { id: 'body' },
+  bodyOwner: { itemId: 'item' },
+  tether: { id: 'tether', a: 'body', b: 'body' },
+  hookFlight: { id: 'tether', a: 'body' },
+  reload: { instanceId: 'item' },
+  projectile: { id: 'serial' },
+  effect: { id: 'serial' },
+  event: { id: 'serial' },
+} as const satisfies Record<string, Record<string, WireIdDomain>>;
+type IdFields = readonly (readonly [string, WireIdDomain])[];
+const idList = (fields: Readonly<Record<string, WireIdDomain>>): IdFields => Object.entries(fields);
 const IDENTITY = wireIds();
-const mapIds = (record: Record<string, unknown>, fields: readonly string[], wire: WireIds) => {
-  if (!wire.identity) for (const field of fields) mapIdField(record, field, wire);
+const mapIds = (record: Record<string, unknown>, fields: IdFields, wire: WireIds) => {
+  if (!wire.identity) for (const [field, domain] of fields) mapIdField(record, field, domain, wire);
 };
 
-const projection = (fields: string, ids = '') => {
+const projection = (fields: string, ids?: Readonly<Record<string, WireIdDomain>>) => {
   const allowed = new Set(fields.split(' ')), idFields = ids ? idList(ids) : [];
   return <T extends object>(value: T, wire: WireIds = IDENTITY): Projected<T> => {
     const result = {} as Projected<T>;

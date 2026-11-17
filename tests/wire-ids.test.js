@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { deserialize } from 'node:v8';
 import { gunzipSync } from 'node:zlib';
 import { scriptedTrace } from './characterization-physics-scenarios.js';
-import { assertWireDomain, wireIds, WIRE_ID_BITS, WIRE_ID_LIMIT } from '../shared/simulation/wire-ids.ts';
+import { assertWireDomain, wireIds, WIRE_ID_BITS, WIRE_ID_DOMAINS, WIRE_ID_LIMIT } from '../shared/simulation/wire-ids.ts';
 import { WIRE_ID_FIELDS } from '../shared/simulation/projection-contract.ts';
 import { createGame, disposePhysics, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { teleport } from '../shared/simulation/dev.ts';
@@ -26,17 +26,26 @@ test('the keyed mapping takes [0, 2^20 - 1) one-to-one onto [1, 2^20), inverts e
   const seen = new Uint8Array(2 ** WIRE_ID_BITS);
   let fixed = 0, bad = 0;
   for (let id = 0; id < WIRE_ID_LIMIT; id++) {
-    const out = wire.id(id);
-    if (out < 1 || out >= 2 ** WIRE_ID_BITS || seen[out] || wire.internal(out) !== id) bad++;
+    const out = wire.id(id, 'item');
+    if (out < 1 || out >= 2 ** WIRE_ID_BITS || seen[out] || wire.internal(out, 'item') !== id) bad++;
     seen[out] = 1;
     if (out === id) fixed++;
   }
   assert.equal(bad, 0, 'every ID maps to a distinct non-zero ID in the domain and back');
   assert.ok(fixed < 16, `a keyed mapping is not the identity (${fixed} fixed points)`);
   assert.equal(WIRE_ID_LIMIT, 2 ** WIRE_ID_BITS - 1);
-  for (const value of [-1, 1.5, WIRE_ID_LIMIT, NaN]) assert.throws(() => wire.id(value), RangeError, `${value} is refused, never wrapped`);
-  for (const value of [0, 1.5, 2 ** WIRE_ID_BITS, NaN]) assert.throws(() => wire.internal(value), RangeError);
-  assert.notDeepEqual([1, 2, 3].map(wireIds([1, 2, 3, 4]).id), [1, 2, 3].map(wire.id), 'the key decides the mapping');
+  for (const value of [-1, 1.5, WIRE_ID_LIMIT, NaN]) assert.throws(() => wire.id(value, 'item'), RangeError, `${value} is refused, never wrapped`);
+  for (const value of [0, 1.5, 2 ** WIRE_ID_BITS, NaN]) assert.throws(() => wire.internal(value, 'item'), RangeError);
+  assert.throws(() => wire.id(1, 'player'), TypeError, 'an undeclared domain is refused');
+  const other = wireIds([1, 2, 3, 4]);
+  assert.notDeepEqual([1, 2, 3].map(id => other.id(id, 'item')), [1, 2, 3].map(id => wire.id(id, 'item')), 'the key decides the mapping');
+  // Each domain has its own permutation (one-to-one by the same construction): equal internal values in two
+  // counters do not show as equal outward IDs, and each inverts within its own domain.
+  for (let id = 0; id < 4096; id++) {
+    const outs = WIRE_ID_DOMAINS.map(domain => wire.id(id, domain));
+    if (new Set(outs).size !== outs.length || WIRE_ID_DOMAINS.some((domain, i) => wire.internal(outs[i], domain) !== id)) bad++;
+  }
+  assert.equal(bad, 0, 'domains are separate permutations');
   assert.throws(() => wireIds([1, 2, 3]), TypeError);
   assert.throws(() => wireIds([1, 2, 3, 2 ** 32]), TypeError);
   const identity = wireIds();
@@ -72,7 +81,7 @@ const ID_LIKE = /^(id|a|b)$|Id$/;
 function declared(view) {
   const fields = new Map();
   for (const [kind, locate] of Object.entries(LOCATIONS))
-    for (const record of locate(view)) fields.set(record, new Set([...fields.get(record) ?? [], ...WIRE_ID_FIELDS[kind].split(' ')]));
+    for (const record of locate(view)) fields.set(record, new Set([...fields.get(record) ?? [], ...Object.keys(WIRE_ID_FIELDS[kind])]));
   return fields;
 }
 function undeclaredIds(view) {
@@ -94,11 +103,11 @@ function compare(identity, keyed, coverage, label) {
   for (const [kind, locate] of Object.entries(LOCATIONS)) {
     const plain = locate(identity), mapped = locate(keyed), back = locate(restored);
     assert.equal(mapped.length, plain.length, `${label}: ${kind} records`);
-    for (let i = 0; i < plain.length; i++) for (const field of WIRE_ID_FIELDS[kind].split(' ')) {
+    for (let i = 0; i < plain.length; i++) for (const [field, domain] of Object.entries(WIRE_ID_FIELDS[kind])) {
       const value = plain[i][field];
       if (typeof value !== 'number') { assert.equal(mapped[i][field], value, `${label}: ${kind}.${field}`); continue; }
-      assert.equal(mapped[i][field], wire.id(value), `${label}: ${kind}.${field} is the keyed ID`);
-      back[i][field] = wire.internal(mapped[i][field]);
+      assert.equal(mapped[i][field], wire.id(value, domain), `${label}: ${kind}.${field} is the keyed ${domain} ID`);
+      back[i][field] = wire.internal(mapped[i][field], domain);
       coverage.add(`${kind}.${field}`);
     }
   }
@@ -155,7 +164,7 @@ test('every view is its identity view with exactly the declared IDs keyed, and r
   await stagedScene(observe);
   assert.ok(views > 100);
   // The scene reaches every kind that carries an ID; a field never seen is not proven mapped.
-  const expected = Object.entries(WIRE_ID_FIELDS).flatMap(([kind, fields]) => fields.split(' ').map(f => `${kind}.${f}`));
+  const expected = Object.entries(WIRE_ID_FIELDS).flatMap(([kind, fields]) => Object.keys(fields).map(f => `${kind}.${f}`));
   assert.deepEqual(expected.filter(field => !coverage.has(field)), [], 'every declared field is exercised');
 });
 
@@ -183,8 +192,8 @@ test('live and delayed map payloads carry keyed item IDs, recordings internal on
     assert.deepEqual(recorded.map(i => i.id), internal, 'recordings keep internal IDs');
     for (const kind of ['live', 'spectator']) {
       const items = match.payloadMap(kind, frame).items;
-      assert.deepEqual(items.map(i => i.id), internal.map(wire.id), `${kind} map items are keyed`);
-      assert.ok(items.every((item, i) => item.instanceId === undefined || item.instanceId === wire.id(recorded[i].instanceId)));
+      assert.deepEqual(items.map(i => i.id), internal.map(id => wire.id(id, 'item')), `${kind} map items are keyed`);
+      assert.ok(items.every((item, i) => item.instanceId === undefined || item.instanceId === wire.id(recorded[i].instanceId, 'item')));
     }
     assert.equal(match.payloadMap('live').items, match.payloadMap('live').items, 'an unchanged ground maps once');
     compare(playerView(match.diagnosticState, frame, null), match.project(frame, null), new Set(), 'directed');

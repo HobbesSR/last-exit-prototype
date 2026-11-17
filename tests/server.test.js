@@ -20,7 +20,7 @@ const WIRE_KEY = [0x9e3779b9, 0x7f4a7c15, 0xf39cc060, 0x5ced8f5b], wire = wireId
 /** A recorded record as a live view carries it: the declared counter IDs keyed (24, 26). */
 const outward = (kind, record) => {
   const copy = { ...record };
-  for (const field of WIRE_ID_FIELDS[kind].split(' ')) if (typeof copy[field] === 'number') copy[field] = wire.id(copy[field]);
+  for (const [field, domain] of Object.entries(WIRE_ID_FIELDS[kind])) if (typeof copy[field] === 'number') copy[field] = wire.id(copy[field], domain);
   return copy;
 };
 
@@ -221,7 +221,7 @@ test('two clients share authority; replay preserves each recorded frame and surv
       for (const field of ['gates', 'hazardX', 'slots']) assert.deepEqual(frame[field], archived[field]);
       assert.deepEqual(frame.events, archived.events.map(event => outward('event', event)));
       for (const [field, kind] of [['items', 'item'], ['projectiles', 'projectile'], ['effects', 'effect']])
-        for (const visible of frame[field]) assert.deepEqual(visible, outward(kind, archived[field].find(record => wire.id(record.id) === visible.id)));
+        for (const visible of frame[field]) assert.deepEqual(visible, outward(kind, archived[field].find(record => wire.id(record.id, WIRE_ID_FIELDS[kind].id) === visible.id)));
     }
     assert.equal(storedDigest(served), metadata.sha256);
     assert.equal(archiveText(await readFile(path.join(dir, `${room.id}.json.gz`))), served);

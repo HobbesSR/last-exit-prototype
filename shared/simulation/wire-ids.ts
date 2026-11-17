@@ -22,13 +22,20 @@ export const WIRE_ID_ROUNDS = 4;
 /** Four 32-bit round keys. Never derived from the match seed or the gameplay RNG; never recorded or sent. */
 export type WireIdKey = readonly number[];
 
+/**
+ * The counters whose IDs are mapped. Each has its own permutation, derived from the match key, so equal
+ * internal values in two domains (body 7 and item 7) do not show as equal outward IDs.
+ */
+export const WIRE_ID_DOMAINS = ['item', 'body', 'tether', 'serial'] as const;
+export type WireIdDomain = typeof WIRE_ID_DOMAINS[number];
+
 export interface WireIds {
   /** True for the identity: callers skip mapping entirely, so unkeyed projection costs nothing. */
   readonly identity: boolean;
-  /** The outward ID for an internal one. */
-  readonly id: (value: number) => number;
+  /** The outward ID for an internal one of a domain. */
+  readonly id: (value: number, domain: WireIdDomain) => number;
   /** The internal ID for an outward one (tests; and the input boundary should a client ever name one). */
-  readonly internal: (value: number) => number;
+  readonly internal: (value: number, domain: WireIdDomain) => number;
 }
 
 function round(r: number, k: number): number {
@@ -53,21 +60,37 @@ function inDomain(value: number, low: number): void {
 
 const IDENTITY: WireIds = Object.freeze({ identity: true, id: (value: number) => value, internal: (value: number) => value });
 
+// One domain's round keys: each match key word mixed with the domain's tag (an integer finalizer).
+function domainKeys(keys: WireIdKey, domain: number): readonly number[] {
+  return Object.freeze(keys.map((k, i) => {
+    let h = Math.imul(k ^ Math.imul(domain + 1, 0x9e3779b9) ^ i, 0x85ebca6b);
+    h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+    return h >>> 0;
+  }));
+}
+
 /** The mapping for one match (or waiting yard): the identity without a key. */
 export function wireIds(key?: WireIdKey | null): WireIds {
   if (!key) return IDENTITY;
   if (key.length !== WIRE_ID_ROUNDS || !key.every(k => Number.isInteger(k) && k >= 0 && k <= 0xffffffff))
     throw new TypeError(`a wire ID key is ${WIRE_ID_ROUNDS} unsigned 32-bit integers`);
-  const keys = Object.freeze([...key]);
+  const byDomain = Object.fromEntries(WIRE_ID_DOMAINS.map((domain, i) => [domain, domainKeys(key, i)])) as Record<WireIdDomain, readonly number[]>;
+  const keysOf = (domain: WireIdDomain) => {
+    const keys = byDomain[domain];
+    if (!keys) throw new TypeError(`unknown wire ID domain ${String(domain)}`);
+    return keys;
+  };
   return Object.freeze({
     identity: false,
-    id(value: number) {
+    id(value: number, domain: WireIdDomain) {
+      const keys = keysOf(domain);
       inDomain(value, 0);
       let out = forward(value + 1, keys);
       while (out === 0) out = forward(out, keys);
       return out;
     },
-    internal(value: number) {
+    internal(value: number, domain: WireIdDomain) {
+      const keys = keysOf(domain);
       inDomain(value, 1);
       let out = backward(value, keys);
       while (out === 0) out = backward(out, keys);
@@ -77,9 +100,9 @@ export function wireIds(key?: WireIdKey | null): WireIds {
 }
 
 /** Map one declared field of a record when it holds a number; absent or non-numeric values pass. */
-export function mapIdField(record: Record<string, unknown>, field: string, wire: WireIds): void {
+export function mapIdField(record: Record<string, unknown>, field: string, domain: WireIdDomain, wire: WireIds): void {
   const value = record[field];
-  if (typeof value === 'number') record[field] = wire.id(value);
+  if (typeof value === 'number') record[field] = wire.id(value, domain);
 }
 
 /** Per-mapping caches, so a mapped record is built once per source record rather than once per view. */
