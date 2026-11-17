@@ -1,10 +1,11 @@
 import { defaultContent } from './simulation/content.ts';
+import { AMMO_FAMILIES as AMMO_ORDER, WEAPONS as WEAPON_ORDER } from './enum-tables.ts';
 import type { AmmoFamily, CellItem, Game, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from './item-instances.ts';
 
 export const SLOT_COUNT = 6;
 /** L2 reserve families, in their fixed drop and display order. */
-export const AMMO_FAMILIES: readonly AmmoFamily[] = ['pistol', 'rifle', 'shell'];
+export const AMMO_FAMILIES: readonly AmmoFamily[] = AMMO_ORDER;
 export const isAmmoFamily = (value: unknown): value is AmmoFamily => AMMO_FAMILIES.includes(value as AmmoFamily);
 /** The weapon table a match is pinned to. Defaults below; a match passes its own copy. */
 type WeaponTable = Record<WeaponType, WeaponSpec>;
@@ -15,7 +16,7 @@ export function equipped(p: Player): InventoryItem | null { return p.inventory?.
 export function carriedCell(p: Player): CellItem | null { return equipped(p)?.kind === 'cell' ? equipped(p) as CellItem : p.inventory?.find((item): item is CellItem => item?.kind === 'cell') || null; }
 export function syncWeapon(p: Player, weapons: WeaponTable = WEAPONS): void {
   const item = equipped(p);
-  p.weapon = item?.kind === 'weapon' ? Object.keys(weapons).indexOf(item.weaponType) + 1 : 0;
+  p.weapon = item?.kind === 'weapon' && Object.hasOwn(weapons, item.weaponType) ? WEAPON_ORDER.indexOf(item.weaponType) + 1 : 0;
 }
 
 const qualityOf = (item: { quality?: number | undefined }): number => item.quality ?? 1;

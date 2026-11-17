@@ -64,6 +64,9 @@ export type Tick = number;
 // ---------------------------------------------------------------------------
 
 export type PlayerId = Brand<string, 'PlayerId'>;
+/** Dense match-local roster and map indices; legacy IDs remain boundary keys during #1147. */
+export type PlayerIdx = Brand<number, 'PlayerIdx'>;
+export type GateIdx = Brand<number, 'GateIdx'>;
 export type ObstacleId = Brand<string, 'ObstacleId'>;
 export type GateId = Brand<string, 'GateId'>;
 export type BuildingId = Brand<string, 'BuildingId'>;
@@ -820,6 +823,8 @@ export interface GameEvent {
 }
 
 export interface Game {
+  /** Temporary compatibility phase: preserves allocation-driven drop geometry (24.4). */
+  scatterSerial?: number | undefined;
   /** L0 deterministic allocation counter; independent of legacy RNG/event IDs. */
   itemSerial?: number | undefined;
   version: string;

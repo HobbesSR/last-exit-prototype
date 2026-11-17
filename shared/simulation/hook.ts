@@ -1,3 +1,4 @@
+import { playerById } from './relations.ts';
 import { actorHitRadius, impact, solidContact } from './swept.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { HZ } from './rules.ts';
@@ -23,8 +24,8 @@ function remove(s: Game, hook: HookState): void {
 function endpoints(s: Game, hook: HookState): { caster: Player; target: Player; distance: number } | null {
   const r = physicsRuntime(s), tuning = s.content.hook;
   if (!r || !hook.target || hook.generationB === undefined) return null;
-  const caster = s.players.find(p => p.id === hook.caster);
-  const target = s.players.find(p => p.id === hook.target);
+  const caster = playerById(s, hook.caster);
+  const target = playerById(s, hook.target);
   if (!caster || !target || caster.status !== 'active' || target.status !== 'active' ||
     caster.kit !== 'hook' || caster.role === target.role ||
     r.world.getGeneration(actor(caster.id)) !== hook.generationA ||
@@ -62,8 +63,8 @@ export function prepareHooks(s: Game): void {
     if (hook.phase === 'flying') {
       if (s.tick - hook.startedTick >= tuning.durationTicks ||
         r.world.getGeneration(actor(hook.caster)) !== hook.generationA ||
-        s.players.find(p => p.id === hook.caster)?.status !== 'active' ||
-        s.players.find(p => p.id === hook.caster)?.kit !== 'hook') remove(s, hook);
+        playerById(s, hook.caster)?.status !== 'active' ||
+        playerById(s, hook.caster)?.kit !== 'hook') remove(s, hook);
       continue;
     }
     const pair = endpoints(s, hook);
@@ -97,7 +98,7 @@ export function finishHooks(s: Game, paths: Record<string, Vec2[]>): void {
   if (!r) return;
   for (const hook of [...r.hooks]) {
     if (hook.phase !== 'flying') continue;
-    const caster = s.players.find(p => p.id === hook.caster);
+    const caster = playerById(s, hook.caster);
     if (!caster || caster.status !== 'active' || caster.kit !== 'hook' ||
       r.world.getGeneration(actor(caster.id)) !== hook.generationA ||
       s.tick - hook.startedTick >= tuning.durationTicks) { remove(s, hook); continue; }
@@ -145,8 +146,8 @@ export function reconcileHooks(s: Game): void {
   for (const hook of [...r.hooks]) {
     if (hook.phase === 'flying') {
       if (r.world.getGeneration(actor(hook.caster)) !== hook.generationA ||
-        s.players.find(p => p.id === hook.caster)?.status !== 'active' ||
-        s.players.find(p => p.id === hook.caster)?.kit !== 'hook') remove(s, hook);
+        playerById(s, hook.caster)?.status !== 'active' ||
+        playerById(s, hook.caster)?.kit !== 'hook') remove(s, hook);
     } else if (!endpoints(s, hook) || hook.phase === 'pulling' && !r.world.hasConstraint(hook.id)) remove(s, hook);
   }
   r.world.commitMutations();

@@ -1,3 +1,4 @@
+import { indexRoster, playerById } from './relations.ts';
 import { WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
 import { DEFAULT_KIT, INITIAL_ESCAPE_SLOTS, MAX_PLAYER_NAME, ROLES, VERSION } from './rules.ts';
@@ -28,6 +29,7 @@ export function createGameRecord(seed: number, map: GameMap, content = defaultCo
       s.players.push(p);
     }
   }
+  indexRoster(s.players);
   for (const p of s.players) if (p.role === 'contestant') { p.inventory = Array(SLOT_COUNT).fill(null); p.selectedSlot = 0; }
   s.players.filter(p => p.role === 'contestant').forEach((p, i) => Object.assign(p, map.spawns[i]));
   s.players.filter(p => p.role === 'gladiator').forEach((p, i) => {
@@ -82,6 +84,7 @@ export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: 
   if (!p) return null;
   p.id = id; p.name = name.slice(0, MAX_PLAYER_NAME); p.bot = false;
   if (Object.hasOwn(s.content.kits, kit)) p.kit = kit;
+  indexRoster(s.players, true);
   resetInput(p); delete p.viewLagTicks; clearRoute(p);
   return p;
 }
@@ -92,8 +95,8 @@ export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: 
  */
 export function changeSeat(s: Game, id: PlayerId, role: Role, kit?: Kit): Player | null {
   if (s.phase !== 'live') return null;
-  const from = s.players.find(p => p.id === id && !p.bot);
-  if (!from) return null;
+  const from = playerById(s, id);
+  if (!from || from.bot) return null;
   const to = role === from.role ? from : s.players.find(p => p.bot && p.role === role && p.status === 'active');
   if (!to) return null;
   if (to !== from) {
@@ -103,6 +106,7 @@ export function changeSeat(s: Game, id: PlayerId, role: Role, kit?: Kit): Player
     to.id = id; to.name = name; to.bot = false;
     resetInput(to); delete to.viewLagTicks; clearRoute(to);
   }
+  indexRoster(s.players, true);
   if (kit !== undefined && Object.hasOwn(s.content.kits, kit)) to.kit = kit;
   return to;
 }
@@ -113,7 +117,7 @@ export function changeSeat(s: Game, id: PlayerId, role: Role, kit?: Kit): Player
  * on rejection. A tick spends one of these; see `input.ts` for why that replaced coalescing.
  */
 export function setInput(s: Game, id: PlayerId, input: PlayerInput | null | undefined): PlayerInput | false {
-  const p = s.players.find(p => p.id === id);
+  const p = playerById(s, id);
   if (!p) return false;
   return queueInput(p, input, s.tick) ?? false;
 }

@@ -1,3 +1,4 @@
+import { playerById } from './relations.ts';
 import { lineClear, VISION } from '../movement.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
@@ -80,9 +81,9 @@ export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
 // A viewer id that matches no player is a non-player client: it receives the directed view, which is
 // unfogged by design. Callers decide who is allowed to ask for one.
 function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
-  const viewer = frame.players.find(p => p.id === id);
+  const viewer = playerById(frame, id);
   // Discovery stays out of snapshots, so live state is its only source.
-  const live = s.players.find(p => p.id === id), discovery = live?.discovery;
+  const live = playerById(s, id), discovery = live?.discovery;
   // Heard gunfire likewise; read at the frame's tick, which a player's own view is never behind.
   const heard = live ? heardBy(live, frame.tick) : [];
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.

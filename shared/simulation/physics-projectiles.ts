@@ -1,3 +1,4 @@
+import { playerById } from './relations.ts';
 import { actorHitRadius, geometryContact, impact } from './swept.ts';
 import { damage } from './combat.ts';
 import type { Game, Player, Projectile, Vec2 } from '../types.ts';
@@ -35,7 +36,7 @@ export function solvePhysicsProjectiles(s: Game, paths: Record<string, Vec2[]>):
   for (const { bullet, target } of hits) {
     if (consumed.has(bullet) || target.status !== 'active') continue;
     consumed.add(bullet);
-    damage(s, target, bullet.damage, s.players.find(p => p.id === bullet.owner) ?? null);
+    damage(s, target, bullet.damage, playerById(s, bullet.owner) ?? null);
   }
   s.projectiles = s.projectiles.filter(b => !consumed.has(b) && !expired.has(b));
 }

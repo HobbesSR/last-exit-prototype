@@ -1,3 +1,4 @@
+import { playerById } from '../shared/simulation/relations.ts';
 import { createGameRecord, createGame, disposePhysics, joinGame, playerView, setInput, snapshot, step, synchronizePhysics } from '../shared/simulation.ts';
 import { inputLeadFrom, resetInput } from '../shared/simulation/input.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
@@ -26,7 +27,7 @@ function seatsOf(game, reconcile = () => {}) {
     /** How many of a role a match holds, counted from the roster rather than repeated as a number. */
     capacity,
     roster: () => game.players.filter(p => !p.bot).map(identity),
-    player: id => identity(game.players.find(p => p.id === id)),
+    player: id => identity(playerById(game, id)),
     openPlaces,
     preferredRole(preference) {
       const open = role => openPlaces(role) > 0;
@@ -39,13 +40,13 @@ function seatsOf(game, reconcile = () => {}) {
     /** A joined player's change of role or kit before the start (#235), or null when that role is full. */
     choose(id, role, kit) { const player = changeSeat(game, id, role, kit); reconcile(); return identity(player); },
     resume(id) {
-      const p = game.players.find(p => p.id === id);
+      const p = playerById(game, id);
       if (!p) return null;
       p.bot = false; resetInput(p); delete p.viewLagTicks; clearRoute(p);
       return identity(p);
     },
     leave(id) {
-      const p = game.players.find(p => p.id === id);
+      const p = playerById(game, id);
       if (!p) return false;
       // The queue goes with the player. A bot never spends it, so leaving it in place would ride
       // along in every snapshot and recorded frame until the slot was resumed.
@@ -125,7 +126,7 @@ function matchOf(game, payloads) {
      * what it observed.
      */
     setViewLag(id, roundTripMs) {
-      const p = game.players.find(p => p.id === id);
+      const p = playerById(game, id);
       if (!p) return false;
       const ticks = viewLagFrom(roundTripMs);
       // Absent rather than zero when there is nothing to compensate, so a player with no measured

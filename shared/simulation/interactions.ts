@@ -26,10 +26,10 @@ function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
   const pickupStage: Game = { ...s, players: s.players.map(other => other === p ? draft : other), map: { ...s.map, items: s.map.items.map(item => item === pickup ? incoming : item) } };
   if (!collectInstanceEquipment(pickupStage, draft, incoming)) return;
   const remaining = s.map.items.filter(item => item !== pickup);
-  const drop = planDrop(s, p, outgoing, false, remaining, pickupStage.itemSerial);
+  const drop = planDrop(s, p, outgoing, false, remaining, pickupStage.itemSerial, pickupStage.scatterSerial);
   if (!drop || !canRepresentPhysicalDrop(s, drop.records.length, [pickup])) return;
   p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.reserves = draft.reserves; p.charging = null;
-  removeItem(s, pickup); addItems(s, ...drop.records); s.itemSerial = drop.itemSerial;
+  removeItem(s, pickup); addItems(s, ...drop.records); s.itemSerial = drop.itemSerial; s.scatterSerial = drop.scatterSerial;
   launchPhysicalDrops(s, drop.records, p);
   syncWeapon(p, s.content.weapons);
 }

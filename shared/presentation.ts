@@ -1,4 +1,5 @@
 import { contentById } from './simulation/content.ts';
+import { assertEnumKeys, KITS, WEAPONS } from './enum-tables.ts';
 import type { ContentPresentation, MatchContent, RecordingPresentation } from './types.ts';
 
 /**
@@ -24,13 +25,15 @@ const copyGeometry = (geometry: NonNullable<ContentPresentation['actorGeometry']
   gladiator: { headRadius: geometry.gladiator.headRadius, bodyRadius: geometry.gladiator.bodyRadius, hurtRadius: geometry.gladiator.hurtRadius },
 });
 
-/** Describe content for display, keeping its tables' entry order. */
+/** Describe content for display in the declared vocabulary order. */
 export function describeContent(content: MatchContent): ContentPresentation {
+  assertEnumKeys(content.weapons, WEAPONS, 'weapon');
+  assertEnumKeys(content.kits, KITS, 'kit');
   return freeze({
     contentId: content.id,
-    weapons: Object.entries(content.weapons).map(([id, w]) => ({ id, name: w.name, ammo: w.ammo })),
+    weapons: WEAPONS.filter(id => Object.hasOwn(content.weapons, id)).map(id => ({ id, name: content.weapons[id].name, ammo: content.weapons[id].ammo })),
     // The kits on offer, not only those the roster starts with, which may seat fewer kits than it offers.
-    kits: Object.entries(content.kits).map(([id, k]) => ({ id, name: k.name, skill: k.skill, color: k.color })),
+    kits: KITS.filter(id => Object.hasOwn(content.kits, id)).map(id => ({ id, name: content.kits[id].name, skill: content.kits[id].skill, color: content.kits[id].color })),
     capacity: { contestant: content.roster.contestants.length, gladiator: content.roster.gladiators.length },
     durationTicks: content.durationTicks,
     cellChargeTicks: content.cellChargeTicks,
