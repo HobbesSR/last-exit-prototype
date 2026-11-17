@@ -6,7 +6,9 @@ Accepted encoding direction and candidate field precision (#1093) are in
 work; the live protocol below remains JSON. The proposed lossy-transport delta design (#1094)
 is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data model of the
 live state, and the engine-side choices that shape a typed wire, are in
-[24.3](24.3-wire-data-model.md) (proposed).
+[24.3](24.3-wire-data-model.md) (proposed). The proposed relational data strategy,
+static geometry split and structured localized event design (#1146) are in
+[24.4](24.4-relational-data-model.md).
 
 The rules this mechanism enforces are in [15](15-information-rules.md).
 
