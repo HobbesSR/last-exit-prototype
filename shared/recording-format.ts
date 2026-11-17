@@ -229,7 +229,8 @@ export function applyPatch(prev: unknown, patch: unknown, schema?: unknown): unk
     const change = patch.a as { s?: unknown; d?: unknown; r?: unknown };
     if (!Array.isArray(prev) || !isPlain(change)) throw damaged('a list change has no list');
     if ((change.s !== undefined && !Array.isArray(change.s)) || (change.d !== undefined && !Array.isArray(change.d)) || (change.r !== undefined && !Array.isArray(change.r))) throw damaged('a list change is malformed');
-    try { return rebuildKeyed(prev, entry => recordKeyFor(schema)(entry) as Id, change.s as unknown[], change.d as Id[], change.r as Id[]); }
+    const recordKey = recordKeyFor(schema);
+    try { return rebuildKeyed(prev, entry => recordKey(entry) as Id, change.s as unknown[], change.d as Id[], change.r as Id[]); }
     catch (error) { throw damaged((error as Error).message); }
   }
   if (own(patch, 'o') || own(patch, 'k')) {
