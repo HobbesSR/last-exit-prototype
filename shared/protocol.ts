@@ -448,9 +448,10 @@ const REPLAY_STATUS_KEYS = ['type', 'status', 'message'] as const;
 const ERROR_KEYS = ['type', 'message'] as const;
 const PING_KEYS = ['type', 'token', 'rtt'] as const;
 
+/** Slots strictly increase: a match roster is dense, a waiting yard's has gaps where people left (24.4). */
 const validRoster = (value: unknown): value is SeatMetadata[] => Array.isArray(value) && value.every((entry, i) =>
   isRecord(entry) && hasExactKeys(entry, ['playerIdx', 'id', 'name', 'role', 'kit', ...(entry.seat === undefined ? [] : ['seat'])]) &&
-  entry.playerIdx === i && nonEmptyString(entry.id) && typeof entry.name === 'string' &&
+  nonNegativeInt(entry.playerIdx) && (i === 0 || entry.playerIdx > (value[i - 1] as SeatMetadata).playerIdx) && nonEmptyString(entry.id) && typeof entry.name === 'string' &&
   (ROLES as readonly unknown[]).includes(entry.role) && nonEmptyString(entry.kit) &&
   (entry.seat === undefined || nonNegativeInt(entry.seat)));
 

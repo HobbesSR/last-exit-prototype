@@ -100,3 +100,13 @@ test('prediction resolves actor slot zero and keeps numeric body references acro
     assert.ok(prediction.input({ seq: 0, tick: 2, x: 1, y: 0 }).x > 20);
   } finally { prediction.dispose(); }
 });
+
+test('the client normalizer joins players across a gap in the seat roster', () => {
+  const seat = (playerIdx, id) => ({ playerIdx, id, name: id.toUpperCase(), role: 'contestant', kit: 'warden' });
+  const frames = createFrameNormalizer(map, [seat(0, 'a'), seat(2, 'c')]);
+  const out = frames.normalize({ tick: 1, players: [{ playerIdx: 2, x: 5, y: 5 }, { playerIdx: 0, x: 1, y: 1 }] });
+  assert.deepEqual(out.players.map(p => [p.playerIdx, p.id, p.name]), [[0, 'a', 'A'], [2, 'c', 'C']]);
+  frames.seats([seat(0, 'a'), seat(1, 'd'), seat(2, 'c')]);
+  const next = frames.normalize({ tick: 2, players: [{ playerIdx: 1, x: 2, y: 2 }, { playerIdx: 2, x: 5, y: 5 }] });
+  assert.deepEqual(next.players.map(p => [p.playerIdx, p.id]), [[1, 'd'], [2, 'c']]);
+});

@@ -33,6 +33,8 @@ export interface Waiting {
   map: WaitingMap;
   /** People only, in arrival order. */
   players: Player[];
+  /** Each waiting player's slot (`playerIdx`): fixed for as long as they stay, with gaps where people left. */
+  slots: Map<PlayerId, PlayerIdx>;
   /** How many have arrived so far, which picks the next arrival point. */
   arrivals: number;
   world: PhysicsWorld | null;
@@ -48,6 +50,7 @@ export function createWaiting(map: WaitingMap): Waiting {
     tick: 0,
     map,
     players: [],
+    slots: new Map(),
     arrivals: 0,
     world: null,
     identities: new PhysicsIdentities(),
@@ -60,6 +63,7 @@ export function createWaiting(map: WaitingMap): Waiting {
       this.world?.dispose();
       this.world = null;
       this.players = [];
+      this.slots.clear();
       this.discontinuities.clear();
     }
   };
@@ -145,19 +149,34 @@ function place(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string, con
     // Timing metadata only when present, so an unstamped waiting player carries no trace of it.
     if (continuing) for (const key of ['inputMargin', 'inputMarginNext', 'inputLeadTicks'] as const) if (old[key] !== undefined) p[key] = old[key];
     w.players[w.players.indexOf(old)] = p;
-  } else w.players.push(p);
+  } else {
+    w.players.push(p);
+    let slot = 0;
+    const taken = new Set(w.slots.values());
+    while (taken.has(slot as PlayerIdx)) slot++;
+    w.slots.set(id, slot as PlayerIdx);
+  }
   syncActorBody(w, p, oldRole);
   return p;
 }
 
 export function leaveWaiting(w: Waiting, id: PlayerId): void {
   w.players = w.players.filter(p => p.id !== id);
+  w.slots.delete(id);
   const bodyId = `actor:${id}`;
   w.discontinuities.delete(bodyId);
   if (w.world && !w.disposed && w.world.getTransform(bodyId)) {
     w.world.queueRemoveBody(bodyId);
     w.world.commitMutations();
   }
+}
+
+const slotOf = (w: Waiting, id: PlayerId): PlayerIdx => w.slots.get(id)!;
+
+/** The yard's roster for the wire: one entry per person at their own slot, ascending, gaps where people left. */
+export function waitingSeats(w: Waiting) {
+  return w.players.map(p => ({ playerIdx: slotOf(w, p.id), id: p.id, name: p.name, role: p.role, kit: p.kit,
+    ...(p.seat !== undefined ? { seat: p.seat } : {}) })).sort((a, b) => a.playerIdx - b.playerIdx);
 }
 
 /** Queue one input from someone waiting; false when it is refused. Only movement and aim are read. */
@@ -204,7 +223,7 @@ export function stepWaiting(w: Waiting): void {
  */
 export function waitingView(w: Waiting, id: PlayerId) {
   const viewer = w.players.find(p => p.id === id);
-  const actors = new Map(w.players.map((p, i) => [`actor:${p.id}`, i as PlayerIdx]));
+  const actors = new Map(w.players.map(p => [`actor:${p.id}`, slotOf(w, p.id)]));
   const bodies: PhysicsBodyView[] = (w.world && !w.disposed ? w.world.snapshot({ includeStatic: false }).bodies : [])
     .filter(b => b.spec.kind === 'actor' && actors.has(b.spec.id))
     .map(b => physicsBodyFields({
@@ -237,8 +256,8 @@ export function waitingView(w: Waiting, id: PlayerId) {
         surfaces: true,
       }
     } : {}),
-    ...(viewer ? { self: poseFor(ownPlayerFields(viewer, undefined, undefined, w.players.indexOf(viewer) as PlayerIdx), w.players.indexOf(viewer) as PlayerIdx) } : {}),
-    players: w.players.flatMap((p, i) => p.id === id ? [] : [poseFor(observed(p, i as PlayerIdx), i as PlayerIdx)]),
+    ...(viewer ? { self: poseFor(ownPlayerFields(viewer, undefined, undefined, slotOf(w, id)), slotOf(w, id)) } : {}),
+    players: w.players.flatMap(p => p.id === id ? [] : [poseFor(observed(p, slotOf(w, p.id)), slotOf(w, p.id))]),
     items: [],
     gates: [],
     traps: [],
