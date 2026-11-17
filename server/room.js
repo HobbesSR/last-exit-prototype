@@ -6,6 +6,7 @@ import { describeContent } from '../shared/presentation.ts';
 import { SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createMatch, createLobby } from './match.js';
+import { randomWireIdKey } from './wire-key.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, viewEncoders, SPECTATOR_DELAY_TICKS } from './room-views.js';
@@ -62,12 +63,17 @@ export function createRoom({
   setTimer = setTimeout,
   clearTimer = clearTimeout,
   matchFactory = createMatch,
+  // How this room keys its match's and waiting yard's outward IDs (#1164): 'random' draws a fresh key for
+  // each (createArenaServer's default), a literal key is used as given (tests), and null keeps internal IDs.
+  wireKey = null,
   deliver = () => true,
   closeClient = () => {},
   onFinalization = () => {},
   onDispose: notifyDispose = () => {},
 } = {}) {
   let state = null;
+  // Drawn here, per match and per yard, so a room on its own thread draws its own.
+  const drawWireKey = () => wireKey === 'random' ? randomWireIdKey() : wireKey;
   const clientMap = new Map();
   let resolveDeferredMap, rejectDeferredMap;
 
@@ -137,7 +143,7 @@ export function createRoom({
       resumes: new Map(),
       ...viewEncoders(),
       // Where players walk until the start (#236): its own simulation, never recorded, gone once the match starts.
-      waiting: createWaiting(waitingYard()),
+      waiting: createWaiting(waitingYard(), { wireKey: drawWireKey() }),
       waitingDebt: 0,
       startRequested: false,
       startsAt: undefined,
@@ -191,7 +197,7 @@ export function createRoom({
 
   function openMatch(map) {
     if (!state || state.match || !isCurrent()) return;
-    const match = matchFactory(state.seed, state.size, map, state.content);
+    const match = matchFactory(state.seed, state.size, map, state.content, { wireKey: drawWireKey() });
     if (typeof match?.then === 'function') {
       return state.initializing = match.then(ready => recordingOpened(ready)).then(ready => adoptMatch(ready), error => abandonGeneration(error));
     }

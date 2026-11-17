@@ -6,6 +6,7 @@ import { start, stop } from '../profiler.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
 import { itemIdForLabel } from '../item-instances.ts';
 import { groundItem } from './ground-items.ts';
+import { wireIds, type WireIds } from './wire-ids.ts';
 
 export interface PhysicsPresentation {
   physics: PhysicsGameplayState;
@@ -71,19 +72,22 @@ export function capturePhysicsPresentation(s: Game): PhysicsPresentation | undef
 }
 
 /** Apply existing potential-visibility authorization to the captured tick, including delayed views. `items` are the frame's items the view holds. */
-export function projectPhysicsPresentation(frame: Snapshot, viewer: (Player<ItemKey> & { playerIdx: PlayerIdx }) | undefined, authorizedPlayers: Set<PlayerIdx>, items: readonly GroundItem<ItemKey>[], inRange: (p: Vec2 & { radius?: number }) => boolean) {
+export function projectPhysicsPresentation(frame: Snapshot, viewer: (Player<ItemKey> & { playerIdx: PlayerIdx }) | undefined, authorizedPlayers: Set<PlayerIdx>, items: readonly GroundItem<ItemKey>[], inRange: (p: Vec2 & { radius?: number }) => boolean, wire: WireIds = wireIds()) {
   if (!frame.bodies) return {};
   const authorizedItems = new Set<string | number>(items.map(i => i.id));
   const bodies = frame.bodies.filter(body => {
     if (body.owner.kind === 'actor') return authorizedPlayers.has(body.owner.playerIdx);
     if (body.owner.kind === 'item' && !authorizedItems.has(body.owner.itemId)) return false;
     return !viewer || inRange({ x: body.x, y: body.y, radius: bodyRadius(body.shape) });
-  }).map(body => physicsBodyFields(body, !viewer || body.owner.kind !== 'actor' || body.owner.playerIdx === viewer.playerIdx));
+  });
+  // Authorization reads internal IDs; only the projected records carry outward ones (#1164).
   const ids = new Set(bodies.map(body => body.id));
   const actorIds = new Set(bodies.filter(body => body.owner.kind === 'actor' && authorizedPlayers.has(body.owner.playerIdx)).map(body => body.id));
   // Omit the whole tether when either endpoint is unauthorized. Never send hidden IDs/anchors.
-  const tethers: PhysicsTetherView[] = (frame.tethers ?? []).filter(t => ids.has(t.a) && ids.has(t.b)).map(physicsTetherFields);
+  const tethers: PhysicsTetherView[] = (frame.tethers ?? []).filter(t => ids.has(t.a) && ids.has(t.b)).map(t => physicsTetherFields(t, wire));
   const hookFlights = frame.hookFlights?.filter(hook => actorIds.has(hook.a) && inRange({ x: hook.x, y: hook.y }))
-    .map(physicsHookFlightFields);
-  return { physicsProfile: frame.physicsProfile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}) };
+    .map(hook => physicsHookFlightFields(hook, wire));
+  return { physicsProfile: frame.physicsProfile,
+    bodies: bodies.map(body => physicsBodyFields(body, !viewer || body.owner.kind !== 'actor' || body.owner.playerIdx === viewer.playerIdx, wire)),
+    tethers, ...(hookFlights ? { hookFlights } : {}) };
 }

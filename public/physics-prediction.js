@@ -28,6 +28,10 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     const radius = bodyRadius(body.shape);
     return Math.abs(body.x - own.x) <= reach + radius && Math.abs(body.y - own.y) <= reach + radius;
   };
+  // Prediction-world names come from owners, never from wire body IDs: those are keyed per match (#1164),
+  // and the world orders bodies by name, so naming by ID would make insertion order and contact order,
+  // and possibly results, differ from match to match. Unowned (legacy) bodies keep their own ID.
+  const worldId = b => b.owner?.kind === 'actor' ? `actor:${b.owner.playerIdx}` : b.owner?.kind === 'prop' ? `prop:${b.owner.propId}` : String(b.id);
   const proxiesFor = frame => frame.bodies.filter(b => b.id !== own.id && b.owner?.kind !== 'item' && b.itemId === undefined && near(b));
   // Inputs are reconciled by their stamps (#1096): the frame for tick T has spent, or discarded,
   // everything stamped T or earlier, and will spend each later stamp on its own tick.
@@ -60,11 +64,11 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     // Timers precede motors on authority too. Ability activation waits for authority.
     value.boost = Math.max(0, (value.boost ?? 0) - 1);
     value.stun = Math.max(0, (value.stun ?? 0) - 1);
-    world.setMotor(String(own.id), characterMotor(motor, motor.surfaces ? map.motorSurfaces : undefined, value,
+    world.setMotor(worldId(own), characterMotor(motor, motor.surfaces ? map.motorSurfaces : undefined, value,
       input.x ?? 0, input.y ?? 0, movementSpeed(value, input, HZ)));
     world.step();
     const contacts = world.drainContacts();
-    Object.assign(value, world.getTransform(String(own.id))); tick++;
+    Object.assign(value, world.getTransform(worldId(own))); tick++;
     poses.set(tick, { x: value.x, y: value.y });
     while (poses.size > PREDICTION_LIMITS.frames) poses.delete(poses.keys().next().value);
     // Notify after publishing the completed pose/tick. Ordinary prediction does no debug contact query.
@@ -79,8 +83,8 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     if (statics.length > PREDICTION_LIMITS.statics || proxies.length > PREDICTION_LIMITS.proxies) return cut('capacity');
     world = factory(); rebuilds++;
     try {
-      const bodies = [...statics, ...proxies.map(b => ({ id: `proxy:${b.id}`, kind: 'static', shape: b.shape, x: b.x, y: b.y, angle: b.angle, friction: 0 })),
-        { id: String(own.id), kind: 'actor', shape: own.shape, x: own.x, y: own.y, angle: own.angle, vx: own.vx, vy: own.vy,
+      const bodies = [...statics, ...proxies.map(b => ({ id: `proxy:${worldId(b)}`, kind: 'static', shape: b.shape, x: b.x, y: b.y, angle: b.angle, friction: 0 })),
+        { id: worldId(own), kind: 'actor', shape: own.shape, x: own.x, y: own.y, angle: own.angle, vx: own.vx, vy: own.vy,
           friction: 0, restitution: 0, mass: 1, maxSpeed: motor.maxSpeed }];
       bodies.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
       for (const body of bodies) world.queueAddBody(body);
