@@ -1,0 +1,217 @@
+{
+  "method": "npm run brief -- test:times -- <37 modified fast files>; isolated slow/live-map-adapter separately",
+  "files": [
+    {
+      "file": "tests/characterization-physics.test.js",
+      "seconds": 1.1,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/content.test.js",
+      "seconds": 1.3,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/discovery.test.js",
+      "seconds": 1.2,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/equipment.test.js",
+      "seconds": 0.8,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/events.test.js",
+      "seconds": 0.2,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/frame-gates.test.js",
+      "seconds": 1.1,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/frame-layers.test.js",
+      "seconds": 2.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/ground-items.test.js",
+      "seconds": 1.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/hearing.test.js",
+      "seconds": 0.8,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/input-queue.test.js",
+      "seconds": 1.1,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/item-id-allocation.test.js",
+      "seconds": 0.6,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/item-instances.test.js",
+      "seconds": 0.8,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/match.test.js",
+      "seconds": 1.2,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-hook-contract.test.js",
+      "seconds": 1.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-hook-presentation.test.js",
+      "seconds": 0.4,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-identities.test.js",
+      "seconds": 0.8,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-items-boundaries.test.js",
+      "seconds": 1.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-items.test.js",
+      "seconds": 0.8,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-playback.test.js",
+      "seconds": 0.1,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-projection.test.js",
+      "seconds": 1.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/physics-stream.test.js",
+      "seconds": 0.5,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/projection-contract.test.js",
+      "seconds": 0.6,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/recording.test.js",
+      "seconds": 1.1,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/relational-projection.test.js",
+      "seconds": 0.6,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/reloading.test.js",
+      "seconds": 0.8,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/replay-relations.test.js",
+      "seconds": 0.7,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/room-dev-tools.test.js",
+      "seconds": 2.6,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/room-hosts.test.js",
+      "seconds": 12.9,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/room-integration.test.js",
+      "seconds": 1.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/room-service-transport.test.js",
+      "seconds": 2.1,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/room-service.test.js",
+      "seconds": 2.3,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/server-boundaries.test.js",
+      "seconds": 0.2,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/server.test.js",
+      "seconds": 3.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/simulation.test.js",
+      "seconds": 2.2,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/view-items.test.js",
+      "seconds": 2.2,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/visibility.test.js",
+      "seconds": 4.0,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/waiting.test.js",
+      "seconds": 1.3,
+      "tier": "fast"
+    },
+    {
+      "file": "tests/slow/live-map-adapter.test.js",
+      "seconds": 31.4,
+      "tier": "slow"
+    }
+  ],
+  "newCaseMilliseconds": {
+    "tests/events.test.js": {
+      "formats every event kind and legacy recordings": 1,
+      "events retain participant names and serial order after a seat changes": 1
+    },
+    "tests/frame-layers.test.js": {
+      "gate layers address canonical map slots, including zero, and retain legacy id support (#1153)": 0,
+      "body shape deltas use the target keyframe across joins, skips, visibility and generations (#1153)": 1,
+      "body shape reconstruction reads the immutable baseline rather than the previous generation (#1153)": 0
+    },
+    "tests/replay-relations.test.js": {
+      "live numeric relations hydrate self, item poses and static gates without retaining private state in roster": 3,
+      "numeric replay seeks hydrate detached poses and restore gate geometry and historical metadata": 1,
+      "legacy replay bodies, item owners and tether endpoints normalize to numeric relations": 1,
+      "prediction resolves actor slot zero and keeps numeric body references across correction": 61
+    },
+    "tests/relational-projection.test.js": {
+      "wire self/observed records use numeric relations, one pose and dynamic-only gates": 128,
+      "seat updates follow the selected historical tick and precede its state": 5
+    }
+  },
+  "scope": "Tiny synthetic states or bounded arenas. Existing feature expectations migrated; no new generation seeds or match sweeps."
+}

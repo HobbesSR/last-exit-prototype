@@ -1,3 +1,4 @@
+import { itemLabel } from '../../shared/item-instances.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateLiveMap, liveChainParams, liveMapFromBuilt } from '../../map/live.ts';
@@ -20,7 +21,11 @@ test('the adapter is deterministic, content-sized, and is the default match map'
     // The physics world states its props list, empty on a map that authors none.
     const { physicsProps, ...map } = match.map();
     assert.deepEqual(physicsProps, []);
-    assert.deepEqual(map, live());
+    assert.deepEqual(map.gates.map(g => g.gateIdx), map.gates.map((_, i) => i));
+    const artifactItems = map.items.map(item => ({ ...item, id: itemLabel(match.diagnosticState, item.id),
+      ...(item.instanceId !== undefined ? { instanceId: itemLabel(match.diagnosticState, item.instanceId) } : {}),
+      ...(item.lineageId !== undefined ? { lineageId: itemLabel(match.diagnosticState, item.lineageId) } : {}) }));
+    assert.deepEqual({ ...map, items: artifactItems, gates: map.gates.map(({ gateIdx, ...gate }) => gate) }, live());
   } finally { match.dispose(); }
   const shipped = contentById('content-7');
   const twoHunters = { ...shipped, roster: { ...shipped.roster, gladiators: shipped.roster.gladiators.slice(0, 2) } };
