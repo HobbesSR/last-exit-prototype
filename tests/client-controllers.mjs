@@ -188,10 +188,20 @@ export async function checkClientControllers(browser, base) {
       document.elementFromPoint = elementFromPoint;
       $('arrange-item').click(); $('equipment-slots').children[5].click(); $('drop-item').click(); $('interact').click(); $('fullscreen-toggle').click(); key('KeyF');
       const clicked = collect(false);
+      // A new connection with the lobby still open drops the last room's countdown (#994).
+      const { createLobbyController } = await import('/lobby-controller.js');
+      const lobby = createLobbyController({ getRoomId: () => 'a', getPlayerId: () => null, isOwner: () => false, getPresentation: () => null,
+        choose() {}, start() {}, copyLink() {}, onOwnChoice() {}, icons() {} });
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+      lobby.show({ players: [], startsAt: Date.now() + 60000, matchmade: true }); await wait(300);
+      const countingDown = $('lobby-waiting').textContent;
+      lobby.reset('pistol'); await wait(300);
+      const afterReset = $('lobby-waiting').textContent;
+      lobby.hide();
       const beforeDestroy = { selectionChanges, fullscreenActions, replayActions };
       input.destroy(); hud.destroy(); key('KeyD'); key('KeyF'); $('fullscreen-toggle').click(); $('drop-item').click();
       const destroyed = collect(false);
-      return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
+      return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, countingDown, afterReset, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
         dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots, minimapDiscovery, replayTimers,
         deathOutcomeVisible, deathOutcomeHiddenInDev, deathOutcomeHiddenInReplay, deathOutcomeRestored,
         beforeDestroy, afterDestroy: { selectionChanges, fullscreenActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
@@ -210,6 +220,8 @@ export async function checkClientControllers(browser, base) {
       assert.equal(result[name].moveSlot, undefined, name); assert.equal(result[name].slot, undefined, name);
     }
     assert.deepEqual(result.arranged.moveSlot, { from: 0, to: 5 });
+    assert.match(result.countingDown, /^Match starts in \d+s/, 'the lobby counts down to a matchmade start');
+    assert.doesNotMatch(result.afterReset, /Match starts in/, 'a new connection drops the last room\'s countdown (#994)');
     assert.deepEqual(result.clicked.moveSlot, { from: 0, to: 5 }); assert.equal(result.clicked.drop, true); assert.equal(result.clicked.interact, true);
     assert.deepEqual(result.draggedMove.moveSlot, { from: 5, to: 1 }); assert.equal(result.draggedMove.slot, 5); assert.equal(result.draggedMove.attack, false);
     assert.equal(result.draggedDrop.slot, 5); assert.equal(result.draggedDrop.drop, true); assert.equal(result.draggedDrop.moveSlot, undefined); assert.equal(result.draggedDrop.attack, false);
