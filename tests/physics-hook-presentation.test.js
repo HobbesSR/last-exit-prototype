@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
+import { playerIndex } from '../shared/simulation/relations.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
@@ -26,9 +27,9 @@ test('flight capture and projection disclose only an authorized caster and tip',
     const caster = s.players.find(p => p.id === 'g0');
     const viewer = s.players.find(p => p.id === 'c0');
     const id = 'hook:g0';
-    r.hooks.push({ id, caster: caster.id, x: 240, y: 400, dx: 1, dy: 0,
+    r.hooks.push({ id, casterIdx: playerIndex(s, caster), x: 240, y: 400, dx: 1, dy: 0,
       travelled: 90, startedTick: s.tick, phase: 'flying', generationA: r.world.getGeneration('actor:g0'),
-      target: 'c0', hitTick: 7, privateMarker: 'secret' });
+      targetIdx: playerIndex(s, viewer), hitTick: 7, privateMarker: 'secret' });
     const frame = snapshot(s);
     assert.deepEqual(frame.hookFlights, [{ id, a: 'actor:g0', x: 240, y: 400 }]);
     assert.deepEqual(playerView(s, frame, viewer.id).hookFlights, frame.hookFlights);
@@ -61,7 +62,7 @@ test('only the caster learns its hook is active, through flight, pending and pul
   try {
     const r = physicsRuntime(s);
     assert.equal(playerView(s, snapshot(s), 'g0').hookActive, false);
-    r.hooks.push({ id: 'hook:g0', caster: 'g0', x: 240, y: 400, dx: 1, dy: 0, travelled: 90,
+    r.hooks.push({ id: 'hook:g0', casterIdx: playerIndex(s, s.players[1]), x: 240, y: 400, dx: 1, dy: 0, travelled: 90,
       startedTick: s.tick, phase: 'flying', generationA: r.world.getGeneration('actor:g0') });
     for (const phase of ['flying', 'pending', 'pulling']) {
       r.hooks[0].phase = phase;

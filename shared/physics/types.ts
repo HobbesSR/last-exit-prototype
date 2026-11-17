@@ -1,3 +1,5 @@
+import type { PlayerIdx } from '../types.ts';
+
 /** Public physics values use game world units and never expose Rapier objects. */
 export type Point = { x: number; y: number };
 export type BodyShape =
@@ -22,9 +24,12 @@ export type PhysicsContact = { a: string; b: string; substep: number; type: 'sta
 export type ConstraintSpec = { id: string; a: string; b: string; maxDistance: number;
   kind?: 'spring' | 'rope'; anchorA?: Point; anchorB?: Point; restLength?: number;
   stiffness?: number; damping?: number; maxForce?: number; breakDistance?: number };
-export type HookState = { id: string; caster: string; x: number; y: number; dx: number; dy: number;
+export type HookState = { id: string; casterIdx: PlayerIdx; x: number; y: number; dx: number; dy: number;
   travelled: number; startedTick: number; phase: 'flying' | 'pending' | 'pulling'; generationA: number;
-  target?: string; generationB?: number; hitTick?: number; desiredLength?: number };
+  targetIdx?: PlayerIdx;
+  /** Captured backend key invalidates a tether if diagnostic setup renames its target. */
+  targetActorKey?: string; generationB?: number; hitTick?: number; desiredLength?: number };
+export type LegacyHookState = Omit<HookState, 'casterIdx' | 'targetIdx' | 'targetActorKey'> & { caster: string; target?: string };
 export type PhysicsSnapshot = {
   bodies: Array<{ spec: BodySpec; transform: Transform; generation: number; motor?: MotorIntent }>;
   constraints: ConstraintSpec[];
@@ -42,7 +47,7 @@ export type PhysicsTetherView = { id: string; a: string; b: string };
 
 /** Private, engine-free authoritative state. This is not a backend continuation checkpoint. */
 export interface PhysicsGameplayState {
-  hooks?: HookState[];
+  hooks?: LegacyHookState[];
   discontinuities?: Array<{ id: string; generation: number; kind: 'placed' | 'removed' }> | undefined;
   world: Omit<PhysicsSnapshot, 'pending'>;
   pendingSpawns: Array<Point & { id: number; owner: string; dx: number; dy: number;

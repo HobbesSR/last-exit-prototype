@@ -162,18 +162,18 @@ export function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferI
     admitted.push(p);
   }
   for (let i = 0; i < r.gateOrder.length; i++) {
-    const gate = gateAt(s, r.gateOrder[i]!), pushed = r.gates[i]!;
+    const idx = r.gateOrder[i]!, gate = gateAt(s, idx), pushed = r.gates[idx]!;
     if (pushed === (gate.open ? 1 : 2)) continue;
     if (!gate.open && r.world.overlapsDynamicBox(gateShape(gate))) {
       // Closing is refused while any active actor or solid prop occupies the footprint; nothing
       // retries it, so the gate stays open until someone closes it again.
       gate.open = true;
-      r.gates[i] = 1;
+      r.gates[idx] = 1;
       continue;
     }
     if (pushed === 2) r.world.queueRemoveBody(`gate:${gate.id}`);
     if (!gate.open) r.world.queueAddBody(physicsGate(gate));
-    r.gates[i] = gate.open ? 1 : 2;
+    r.gates[idx] = gate.open ? 1 : 2;
     r.world.commitMutations();
   }
   start('sim.itemSync'); synchronizePhysicalItems(s, r, markTick, !deferItemAdmission); stop('sim.itemSync');

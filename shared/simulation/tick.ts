@@ -17,11 +17,12 @@ import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
 import { advanceReload, dropReserve } from './ammo.ts';
 import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
+import { playerIndex } from './relations.ts';
 import { recordRewind } from './rewind.ts';
 import { actorId, compare, ordered, synchronize } from './game.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
-import type { Game, Player } from '../types.ts';
+import type { Game } from '../types.ts';
 import { hypot } from '../math.ts';
 import { start, stop } from '../profiler.ts';
 
@@ -57,16 +58,19 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   }
   r.world.commitMutations();
   // 2: roster-order collection from the same pre-movement world.
-  const intents = new Map<Player, BotIntent>();
+  const intents = new Array<BotIntent | undefined>(s.players.length);
   start('sim.bots');
   start('sim.bots.collect'); beginDynamicNavigationCollection(s); stop('sim.bots.collect');
   try {
-    for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
+    for (let idx = 0; idx < s.players.length; idx++) {
+      const p = s.players[idx];
+      if (p.status === 'active') intents[idx] = p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) };
+    }
   } finally { endDynamicNavigationCollection(s); stop('sim.bots'); }
   // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
   start('sim.actions');
   for (const p of ordered(s)) {
-    const intent = intents.get(p); if (!intent) continue;
+    const intent = intents[playerIndex(s, p)]; if (!intent) continue;
     const input = intent.input;
     p.heading = input.aim || 0;
     if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p, s.content.weapons); }
@@ -102,7 +106,7 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   solvePhysicsProjectiles(s, result.paths);
   finishHooks(s, result.paths);
   for (const p of ordered(s)) {
-    const input = intents.get(p)?.input;
+    const input = intents[playerIndex(s, p)]?.input;
     if (p.status !== 'active' || !input) continue;
     if (input.skill && p.kit === 'warden') skill(s, p);
     if (input.attack && p.role === 'gladiator') attack(s, p);
@@ -111,7 +115,7 @@ function advanceGame(s: Game, r: PhysicsRuntime): void {
   // 6: interactions/pickups, environment, traps; trap spawns wait for next tick.
   start('sim.pickups');
   for (const p of ordered(s)) {
-    const input = intents.get(p)?.input;
+    const input = intents[playerIndex(s, p)]?.input;
     if (p.status !== 'active' || !input) continue;
     if (input.interact) interact(s, p);
     if (input.transit && s.content.transit === 'selectable') transit(s, p, input.transit);

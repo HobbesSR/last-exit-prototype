@@ -2,6 +2,7 @@ import type { Game, GateIdx, Player, PlayerId, PlayerIdx } from '../types.ts';
 
 interface RosterIndex {
   byId: Map<PlayerId, PlayerIdx>;
+  byPlayer: WeakMap<Player, PlayerIdx>;
 }
 const rosters = new WeakMap<readonly Player[], RosterIndex>();
 
@@ -9,15 +10,16 @@ const rosters = new WeakMap<readonly Player[], RosterIndex>();
 export function indexRoster(players: readonly Player[], rebuild = false): RosterIndex {
   let index = rosters.get(players);
   if (index && !rebuild && index.byId.size === players.length) return index;
-  index = { byId: new Map() };
+  index = { byId: new Map(), byPlayer: new WeakMap() };
   players.forEach((p, i) => {
     const idx = i as PlayerIdx;
+    index!.byPlayer.set(p, idx);
     if (!index!.byId.has(p.id)) index!.byId.set(p.id, idx);
   });
   rosters.set(players, index);
   return index;
 }
-export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Player | undefined {
+export function playerSlot(s: Pick<Game, 'players'>, id: PlayerId | string): PlayerIdx | undefined {
   const index = indexRoster(s.players);
   let idx = index.byId.get(id as PlayerId);
   // Seat commands refresh explicitly. This guard also supports diagnostic ID assignments and
@@ -31,7 +33,21 @@ export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Pla
     if (!found) return undefined;
     idx = indexRoster(s.players, true).byId.get(id as PlayerId);
   }
-  return idx === undefined ? undefined : s.players[idx];
+  return idx;
 }
 /** Canonical gate identity is its map slot, even while CP1 preserves legacy world admission order. */
 export const gateAt = (s: Pick<Game, 'map'>, idx: GateIdx) => s.map.gates[idx];
+
+/** Object-to-slot association: metadata/session labels never participate in internal relations. */
+export function playerIndex(s: Pick<Game, 'players'>, player: Player): PlayerIdx {
+  let idx = indexRoster(s.players).byPlayer.get(player);
+  if (idx === undefined || s.players[idx] !== player)
+    idx = indexRoster(s.players, true).byPlayer.get(player);
+  if (idx === undefined) throw new RangeError('player is not in this roster');
+  return idx;
+}
+/** Resolve a legacy label at the boundary; internal relations retain the slot itself. */
+export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Player | undefined {
+  const idx = playerSlot(s, id);
+  return idx === undefined ? undefined : s.players[idx];
+}

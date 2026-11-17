@@ -56,3 +56,31 @@ test('frame gates serialize, project and encode as cloned gates did (#655)', asy
     }
   } finally { disposePhysics(s); }
 });
+
+
+test('canonical gate state slots retain authored order while physics admits in legacy lexical order', async () => {
+  const { openField } = await import('./helpers/arena.js');
+  const { physicsRuntime } = await import('../shared/simulation/physics-runtime.ts');
+  const { synchronizePhysics } = await import('../shared/simulation/game.ts');
+  const gates = [
+    { id: 'door-2', kind: 'door', x: 900, y: 100, w: 20, h: 80, open: true, locked: false },
+    { id: 'door-10', kind: 'door', x: 1200, y: 100, w: 20, h: 80, open: false, locked: false },
+  ];
+  const { map } = openField(2000, { gates });
+  map.spawns = [{ x: 300, y: 500 }]; map.hunterSpawns = [{ x: 600, y: 500 }];
+  const content = { ...defaultContent(), roster: { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] } };
+  const s = await createGame(7, map, content);
+  try {
+    const r = physicsRuntime(s);
+    assert.deepEqual(r.gateOrder, [1, 0]);
+    assert.deepEqual([...r.gates], [1, 2]);
+    assert.deepEqual(s.map.gates.map(g => g.id), ['door-2', 'door-10']);
+    assert.equal(r.world.hasBody('gate:door-10'), true);
+    s.map.gates[0].open = false; s.map.gates[1].open = true;
+    synchronizePhysics(s);
+    assert.deepEqual([...r.gates], [2, 1]);
+    assert.equal(r.world.hasBody('gate:door-10'), false);
+    assert.equal(r.world.hasBody('gate:door-2'), true);
+    assert.deepEqual(snapshot(s).gates.map(g => g.id), ['door-2', 'door-10']);
+  } finally { disposePhysics(s); }
+});
