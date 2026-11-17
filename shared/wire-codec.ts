@@ -76,7 +76,7 @@ class Writer {
   // Header: twice the byte length for UTF-8, twice the code-unit count plus one for UTF-16 (lone surrogates).
   str(s: string, max: number) {
     const n = s.length;
-    if (n < 64) { // short ASCII, the common case
+    if (n < 64 && n <= max) { // short ASCII, the common case; a longer one meets the cap below
       this.reserve(n + 1);
       const b = this.bytes, start = this.at;
       let i = 0;
@@ -119,7 +119,8 @@ class Reader {
     }
     return bad('varint too long');
   }
-  f64() { if (this.at + 8 > this.end) bad('truncated message'); const v = this.view.getFloat64(this.at, true); this.at += 8; if (!Number.isFinite(v)) bad('non-finite number'); return v; }
+  // -0 reads as 0, as the writer writes it and JSON carries it.
+  f64() { if (this.at + 8 > this.end) bad('truncated message'); const v = this.view.getFloat64(this.at, true); this.at += 8; if (!Number.isFinite(v)) bad('non-finite number'); return v === 0 ? 0 : v; }
   f32() { if (this.at + 4 > this.end) bad('truncated message'); const v = this.view.getFloat32(this.at, true); this.at += 4; if (!Number.isFinite(v)) bad('non-finite number'); return v === 0 ? 0 : v; }
   // Every element takes at least one byte, so a count beyond the bytes left is refused before allocating.
   count() {
@@ -153,7 +154,8 @@ const SCALARS: Record<string, (limits: Limits) => Codec> = {
   uint: () => ({ w: (w, v) => { if (!Number.isSafeInteger(v) || v < 0) fail(`expected unsigned integer, got ${v}`); w.uint(v); }, r: r => r.uint() }),
   sint: () => ({
     w: (w, v) => { if (!Number.isSafeInteger(v) || Math.abs(v) >= 2 ** 52) fail(`expected signed integer, got ${v}`); w.uint(signedUint(v === 0 ? 0 : v)); },
-    r: r => unsigned(r.uint()),
+    // The writer's range is |v| < 2^52: a larger magnitude is no message's, refused rather than read.
+    r: r => { const v = unsigned(r.uint()); if (Math.abs(v) >= 2 ** 52) bad('signed integer out of range'); return v; },
   }),
   f32: () => ({ w: (w, v) => { if (typeof v !== 'number' || !Number.isFinite(v) || Math.fround(v) !== v) fail(`expected float32, got ${v}`); w.f32(v); }, r: r => r.f32() }),
   f64: () => ({ w: (w, v) => { if (typeof v !== 'number' || !Number.isFinite(v)) fail(`expected finite number, got ${v}`); w.f64(v); }, r: r => r.f64() }),
@@ -179,7 +181,7 @@ const SCALARS: Record<string, (limits: Limits) => Codec> = {
     },
     r: r => {
       const h = r.uint();
-      if (h % 2 === 0) return unsigned(h / 2);
+      if (h % 2 === 0) { const v = unsigned(h / 2); if (Math.abs(v) > 2 ** 50) bad('non-canonical number'); return v; }
       const early = (v: number) => Number.isInteger(v) && Math.abs(v) <= 2 ** 50;
       if (h === 3) { const v = r.f32(); if (early(v)) bad('non-canonical number'); return v; }
       if (h === 5) { const v = r.f32() * METRE; if (early(v) || Math.fround(v) === v) bad('non-canonical number'); return v; }

@@ -58,7 +58,7 @@ const owners = [{ kind: 'actor', playerIdx: 2 }, { kind: 'item', itemId: 41 }, {
 const body = (shape, owner, extra = {}) => ({ id: 7, kind: owner.kind === 'actor' ? 'actor' : 'prop', shape, x: 40 * Math.fround(1.3), y: -80, angle: Math.fround(0.5),
   vx: 40 * Math.fround(-2.7), vy: 0, omega: Math.fround(0.25), sleeping: false, generation: 33, owner, ...extra });
 
-test('records the projection constructs have exactly the schema fields', () => {
+test('records the projection constructs have exactly the schema fields', async () => {
   const full = physicsBodyFields(body(shapes[0], owners[0], { discontinuity: 'placed' }), true);
   assert.deepEqual(Object.keys(full).sort(), fieldNames('Body').sort());
   const variant = { circle: 'ShapeCircle', box: 'ShapeBox', convex: 'ShapeConvex', actor: 'OwnerActor', item: 'OwnerItem', prop: 'OwnerProp' };
@@ -75,6 +75,7 @@ test('records the projection constructs have exactly the schema fields', () => {
   assert.deepEqual(Object.keys(seen).sort(), fieldNames('Observed').sort());
   const participant = eventFields({ id: 1, tick: 2, kind: 'eliminated', target: { playerIdx: 0, name: 'A', extra: 1 } }).target;
   assert.deepEqual(Object.keys(participant), fieldNames('Participant'));
+  for (const message of await liveTraffic()) if (message.state.predictionMotor) assert.deepEqual(Object.keys(message.state.predictionMotor), fieldNames('Motor'));
   // `phase` is the state union's discriminant, carried as its tag rather than a field.
   assert.deepEqual(Object.keys(waitingView({ players: [], tick: 0, discontinuities: new Map() }, 'nobody')).filter(k => k !== 'phase').sort(),
     fieldNames('WaitingState').filter(f => !['tethers', 'hookFlights', 'predictionMotor', 'self'].includes(f)).sort());
@@ -89,7 +90,13 @@ test('families a short bot match never sends round-trip exactly', async () => {
   state.tethers = [physicsTetherFields({ id: 5, a: 7, b: 8 })];
   state.hookFlights = [physicsHookFlightFields({ id: 5, a: 7, casterIdx: 2, x: 10.123456789, y: -4 })];
   state.predictionTethered = true; state.hookActive = true;
-  state.traps = [trapFields({ id: 'trap-1', kind: 'turret', x: 3, y: 4.5, homeX: 3, homeY: 4, heading: Math.PI / 3, offset: 2, cooldown: 7.5, spent: false, aiming: true, firing: false, warning: true, targetId: 'c0' })];
+  // Traps as authored carry only their kind's fields; `spent` appears only once a mine has fired (shared/traps.ts).
+  state.traps = [
+    { id: 'trap-1', kind: 'turret', x: 3, y: 4.5, homeX: 3, homeY: 4, heading: Math.PI / 3, offset: 2, cooldown: 7.5, aiming: true, firing: false, warning: true, targetId: 'c0' },
+    { id: 'trap-mine', kind: 'mine', x: 580, y: 525, heading: 0 }, { id: 'trap-spent', kind: 'mine', x: 1, y: 2, heading: 0, cooldown: 0, offset: 0, spent: true },
+    { id: 'trap-spider', kind: 'spider', x: 640, y: 525, homeX: 640, homeY: 525, heading: 0.4 },
+    { id: 'trap-flame', kind: 'flame', x: 770, y: 525, heading: -Math.PI / 2, warning: true, firing: false },
+  ].map(trap => trapFields(trap));
   state.projectiles = [projectileFields({ id: 3, owner: 'trap-1', trap: true, x: 1 / 3, y: 2, dx: Math.cos(1) * 35, dy: Math.sin(1) * 35, life: 4, damage: 10.8 })];
   state.events = [
     { kind: 'pod_powered', actor: { playerIdx: 0, name: 'Mica' }, slotsRemaining: 2 }, { kind: 'cell_charged', actor: { playerIdx: 1, name: 'Ω' } },
@@ -172,6 +179,33 @@ test('malformed bytes are refused, never read as another message', async () => {
     try { const message = codec.decode(bytes); assert.deepEqual(roundTrip(message), message); }
     catch (error) { assert.ok(error instanceof RangeError, `${error}`); }
   }
+});
+
+// A varint as the writer forms it, for crafting bytes no writer would.
+const varint = v => { const out = []; while (v >= 0x80) { out.push((v % 0x80) | 0x80); v = Math.floor(v / 0x80); } out.push(v); return out; };
+const scalar = (type, limits) => createDescriptorCodec({ version: 1, messages: { m: { id: 1, record: 'A' } }, records: { A: { fields: [{ name: 'v', type }] } } }, limits);
+const craft = rest => Uint8Array.from([FORMAT, 1, 1, ...rest]);
+
+test('readers refuse values their writers never produce', () => {
+  const sint = scalar('sint');
+  for (const v of [2 ** 52 - 1, -(2 ** 52 - 1), -1, 0]) assert.equal(sint.decode(sint.encode({ type: 'm', v })).v, v);
+  assert.throws(() => sint.encode({ type: 'm', v: 2 ** 52 }), TypeError);
+  for (const z of [2 ** 53 - 1, 2 ** 52 * 2]) assert.throws(() => sint.decode(craft(varint(z))), /out of range/, `zigzag ${z}`);
+  // An exact integer beyond 2^50 is written as a float; the integer form of it is not this format's.
+  const exact = scalar('exact');
+  for (const v of [2 ** 50, -(2 ** 50), 2 ** 50 + 2, 2 ** 52]) {
+    const bytes = exact.encode({ type: 'm', v });
+    assert.equal(exact.decode(bytes).v, v);
+  }
+  assert.throws(() => exact.decode(craft(varint((2 ** 50 + 2) * 2 * 2))), /non-canonical number/);
+  assert.throws(() => exact.decode(craft(varint((2 ** 51 - 1) * 2 * 2 + 0))), /non-canonical number/);
+  // -0 reads as 0, as JSON carries it, whatever the float field.
+  const f64 = scalar('f64'), negativeZero = new Uint8Array(8); new DataView(negativeZero.buffer).setFloat64(0, -0, true);
+  assert.ok(Object.is(f64.decode(craft([...negativeZero])).v, 0));
+  // A string cap below the short-string fast path is still the cap, on both sides.
+  const capped = scalar('str', { maxString: 4 });
+  assert.equal(capped.decode(capped.encode({ type: 'm', v: 'four' })).v, 'four');
+  assert.throws(() => capped.encode({ type: 'm', v: 'fives' }), /string too long/);
 });
 
 test('the schema refuses recursion, duplicate fields and unknown types when built', () => {

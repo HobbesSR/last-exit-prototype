@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ROLES, KITS, WEAPONS, PHASES, AMMO_FAMILIES, ITEM_KINDS, BODY_KINDS,
-  SHAPE_KINDS, EFFECT_KINDS, TRAP_KINDS, EVENT_KINDS,
+  SHAPE_KINDS, EFFECT_KINDS, TRAP_KINDS, EVENT_KINDS, PLAYER_STATUSES,
 } from '../shared/enum-tables.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
@@ -11,7 +11,7 @@ import { createGameRecord } from '../shared/simulation/state.ts';
 import { arena } from './helpers/arena.js';
 
 test('closed enum tables preserve the established vocabulary order', () => {
-  for (const table of [ROLES, KITS, WEAPONS, PHASES, AMMO_FAMILIES, ITEM_KINDS, BODY_KINDS, SHAPE_KINDS, EFFECT_KINDS, TRAP_KINDS, EVENT_KINDS]) {
+  for (const table of [ROLES, KITS, WEAPONS, PHASES, AMMO_FAMILIES, ITEM_KINDS, BODY_KINDS, SHAPE_KINDS, EFFECT_KINDS, TRAP_KINDS, EVENT_KINDS, PLAYER_STATUSES]) {
     assert.equal(Object.isFrozen(table), true);
   }
   assert.deepEqual(ROLES, ['contestant', 'gladiator']);
@@ -25,6 +25,8 @@ test('closed enum tables preserve the established vocabulary order', () => {
   assert.deepEqual(EFFECT_KINDS, ['shock', 'scan', 'slash', 'loot', 'upgrade', 'rail', 'charge', 'grapple']);
   assert.deepEqual(TRAP_KINDS, ['mine', 'turret', 'flame', 'spider']);
   assert.deepEqual(EVENT_KINDS, ['pod_powered', 'cell_charged', 'eliminated', 'respawned', 'match_finished']);
+  // Sent as indices by the descriptor codec (#1131): reordering it changes the wire's meaning.
+  assert.deepEqual(PLAYER_STATUSES, ['active', 'eliminated', 'respawning', 'escaped', 'stranded', 'transit']);
 });
 
 test('content descriptors use explicit order and reject unknown content keys', () => {
