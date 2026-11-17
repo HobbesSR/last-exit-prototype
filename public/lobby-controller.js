@@ -97,10 +97,13 @@ export function createLobbyController({
     // Not modal: people walk about the waiting area while it is open (#236).
     show(data) { update(data); if (!open()) $('lobby-dialog').show(); },
     hide() { if (open()) $('lobby-dialog').close(); },
-    /** A new connection: nothing of the last room's roster, and the kit this one joins with. */
+    /** A new connection: nothing of the last room's roster or countdown, and the kit this one joins with. */
     reset(joinKit) {
       $('lobby-title').textContent = 'Arena lobby.';
-      players = []; shown = {}; capacity = null; ready = true; starting = false; kit = joinKit;
+      players = []; shown = {}; capacity = null; startsAt = null; ready = true; starting = false; kit = joinKit;
+      // The countdown timer is now idle, so the last room's "Match starts in" line would otherwise stay on screen
+      // until this room's first lobby message (#994).
+      $('lobby-waiting').textContent = waiting(false);
     },
   };
 }
