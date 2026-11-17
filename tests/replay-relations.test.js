@@ -123,7 +123,7 @@ test('decoded frames, wire and replay shaped, survive the client pipeline frozen
   const seat = { playerIdx: 0, id: 'c0', name: 'Ada', role: 'contestant', kit: 'warden' };
   const wire = tick => ({ tick, physicsProfile: 'P2', self: { playerIdx: 0, status: 'active', x: 20, y: 50, lastSeq: -1 },
     players: [{ playerIdx: 1, status: 'active', x: 40, y: 50 }], items: [{ id: 8, kind: 'ammo', x: 10, y: 20 }], gates: [{ gateIdx: 0, open: tick > 1, locked: false }],
-    bodies: [actor(3, 0, 20 + tick), actor(4, 1, 40)], tethers: [], predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4 } });
+    bodies: [actor(3, 0, 20 + tick), actor(4, 1, 40)], tethers: [{ id: 5, a: 4, b: 3 }], hookFlights: [{ id: 6, a: 4, casterIdx: 1, x: 30, y: 50 }], predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 614.4 } });
   const replay = tick => ({ tick, physicsProfile: 'P2', players: [{ id: 'c0', name: 'Ada', role: 'contestant', status: 'active', x: 1, y: 2 }],
     items: [{ id: 'loot', x: 2, y: 3 }], gates: [{ id: 'door', open: true }],
     bodies: [{ ...actor('actor:c0', 0, 10 + tick), owner: undefined, actorId: 'c0' }, { id: 'item:loot', kind: 'prop', itemId: 'loot', shape, x: 20, y: 30, angle: 0 }],

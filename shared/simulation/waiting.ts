@@ -35,6 +35,9 @@ export interface Waiting {
   players: Player[];
   /** Each waiting player's slot (`playerIdx`): fixed for as long as they stay, with gaps where people left. */
   slots: Map<PlayerId, PlayerIdx>;
+  /** The roster `waitingSeats` last built, kept until someone arrives, changes or leaves, so an unchanged yard
+   * hands out the same array and its serialized seats message is reused (server/room-views.js). */
+  roster: WaitingSeat[] | null;
   /** How many have arrived so far, which picks the next arrival point. */
   arrivals: number;
   world: PhysicsWorld | null;
@@ -51,6 +54,7 @@ export function createWaiting(map: WaitingMap): Waiting {
     map,
     players: [],
     slots: new Map(),
+    roster: null,
     arrivals: 0,
     world: null,
     identities: new PhysicsIdentities(),
@@ -64,6 +68,7 @@ export function createWaiting(map: WaitingMap): Waiting {
       this.world = null;
       this.players = [];
       this.slots.clear();
+      this.roster = null;
       this.discontinuities.clear();
     }
   };
@@ -156,6 +161,7 @@ function place(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string, con
     while (taken.has(slot as PlayerIdx)) slot++;
     w.slots.set(id, slot as PlayerIdx);
   }
+  w.roster = null;
   syncActorBody(w, p, oldRole);
   return p;
 }
@@ -163,6 +169,7 @@ function place(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string, con
 export function leaveWaiting(w: Waiting, id: PlayerId): void {
   w.players = w.players.filter(p => p.id !== id);
   w.slots.delete(id);
+  w.roster = null;
   const bodyId = `actor:${id}`;
   w.discontinuities.delete(bodyId);
   if (w.world && !w.disposed && w.world.getTransform(bodyId)) {
@@ -173,9 +180,10 @@ export function leaveWaiting(w: Waiting, id: PlayerId): void {
 
 const slotOf = (w: Waiting, id: PlayerId): PlayerIdx => w.slots.get(id)!;
 
+type WaitingSeat = { playerIdx: PlayerIdx; id: PlayerId; name: string; role: Role; kit: Kit; seat?: number };
 /** The yard's roster for the wire: one entry per person at their own slot, ascending, gaps where people left. */
-export function waitingSeats(w: Waiting) {
-  return w.players.map(p => ({ playerIdx: slotOf(w, p.id), id: p.id, name: p.name, role: p.role, kit: p.kit,
+export function waitingSeats(w: Waiting): WaitingSeat[] {
+  return w.roster ??= w.players.map(p => ({ playerIdx: slotOf(w, p.id), id: p.id, name: p.name, role: p.role, kit: p.kit,
     ...(p.seat !== undefined ? { seat: p.seat } : {}) })).sort((a, b) => a.playerIdx - b.playerIdx);
 }
 
@@ -236,12 +244,9 @@ export function waitingView(w: Waiting, id: PlayerId) {
       ...(w.discontinuities.has(b.spec.id) ? { discontinuity: 'placed' as const } : {})
     }, b.spec.id === `actor:${id}`));
 
+  // A player with a body carries its pose there only (24.4): records are built without it, as in a match.
   const bodyPlayers = new Set(bodies.map(body => body.owner.kind === 'actor' ? body.owner.playerIdx : undefined));
-  const poseFor = <T extends object>(record: T, playerIdx: PlayerIdx) => {
-    if (!bodyPlayers.has(playerIdx)) return record;
-    const { x, y, ...rest } = record as T & { x?: number; y?: number };
-    return rest;
-  };
+  const posed = (playerIdx: PlayerIdx) => !bodyPlayers.has(playerIdx);
   return {
     tick: w.tick,
     phase: 'waiting' as const,
@@ -256,8 +261,8 @@ export function waitingView(w: Waiting, id: PlayerId) {
         surfaces: true,
       }
     } : {}),
-    ...(viewer ? { self: poseFor(ownPlayerFields(viewer, undefined, undefined, slotOf(w, id)), slotOf(w, id)) } : {}),
-    players: w.players.flatMap(p => p.id === id ? [] : [poseFor(observed(p, slotOf(w, p.id)), slotOf(w, p.id))]),
+    ...(viewer ? { self: ownPlayerFields(viewer, undefined, undefined, slotOf(w, id), posed(slotOf(w, id))) } : {}),
+    players: w.players.flatMap(p => p.id === id ? [] : [observed(p, slotOf(w, p.id), posed(slotOf(w, p.id)))]),
     items: [],
     gates: [],
     traps: [],
