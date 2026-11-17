@@ -1,4 +1,4 @@
-import { createFrameNormalizer } from '../public/relational-frame.js';
+import { createFrameNormalizer } from '../shared/relational-frame.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises';

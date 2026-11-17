@@ -1,4 +1,4 @@
-import { createFrameNormalizer } from './relational-frame.js';
+import { createFrameNormalizer } from '../shared/relational-frame.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { CLIENT_MESSAGE, SERVER_MESSAGE } from '/shared/protocol.ts';
 import { envelopePresentation } from '/room-connection.js';

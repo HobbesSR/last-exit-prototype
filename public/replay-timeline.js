@@ -1,4 +1,4 @@
-import { createFrameNormalizer } from './relational-frame.js';
+import { createFrameNormalizer } from '../shared/relational-frame.ts';
 
 const validTick = value => Number.isSafeInteger(value) && value >= 0;
 

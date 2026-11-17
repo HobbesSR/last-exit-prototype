@@ -1,4 +1,4 @@
-import { createFrameNormalizer } from '../../public/relational-frame.js';
+import { createFrameNormalizer } from '../../shared/relational-frame.ts';
 import { WebSocket } from 'ws';
 import { createLayerDecoder } from '../../shared/frame-layers.ts';
 

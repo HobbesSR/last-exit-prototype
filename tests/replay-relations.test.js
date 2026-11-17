@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFrameNormalizer, bodyRelations } from '../public/relational-frame.js';
+import { createFrameNormalizer, bodyRelations, compactItems, hydrateFrame } from '../shared/relational-frame.ts';
 import { createReplayTimeline } from '../public/replay-timeline.js';
 import { createPhysicsPrediction } from '../public/physics-prediction.js';
 import { openArea } from './helpers/arena.js';
@@ -9,6 +9,31 @@ const shape = { kind: 'circle', radius: 10 };
 const actor = (id, playerIdx, x) => ({ id, kind: 'actor', owner: { kind: 'actor', playerIdx }, shape, generation: 1, x, y: 50, angle: 0, vx: 0, vy: 0 });
 const map = { width: 400, height: 200, obstacles: [], playableArea: openArea(400, 200, 100),
   gates: [{ gateIdx: 0, id: 'door', kind: 'door', x: 200, y: 50, w: 10, h: 20, open: false }] };
+
+test('shared source records remain shared across converted frames, including body poses and gate geometry', () => {
+  const normalizer = createFrameNormalizer(map);
+  const bodyless = { playerIdx: 1, id: 'c1', name: 'Bo', role: 'contestant', x: 40, y: 50 };
+  const player = { playerIdx: 0, id: 'c0', name: 'Ada', role: 'contestant', status: 'active' };
+  const item = { id: 8, kind: 'ammo', x: 10, y: 20 }, physical = { id: 9, kind: 'cell' };
+  const gate = { gateIdx: 0, open: true, locked: false };
+  const body = actor(3, 0, 20), loot = { id: 4, owner: { kind: 'item', itemId: 9 }, x: 30, y: 50 };
+  const frame = tick => ({ tick, players: [player, bodyless], items: [item, physical], gates: [gate], bodies: [body, loot] });
+  const a = normalizer.normalize(frame(1)), b = normalizer.normalize(frame(2));
+  assert.equal(a.items[0], item, 'numeric bodyless records need no conversion');
+  assert.equal(a.players[1], bodyless, 'complete bodyless player records pass through');
+  for (const key of ['items', 'players', 'gates']) {
+    a[key].forEach((row, i) => assert.equal(row, b[key][i], `${key}[${i}] keeps its converted identity`));
+  }
+  assert.notEqual(a.items[1], physical); assert.equal(a.items[1].x, 30);
+  assert.equal(a.players[0].x, 20); assert.equal(a.gates[0].w, 10);
+  const moved = normalizer.normalize({ ...frame(3), bodies: [body, { ...loot, x: 60 }] });
+  assert.notEqual(moved.items[1], a.items[1]);
+  assert.equal(moved.items[1].x, 60); assert.equal(a.items[1].x, 30);
+  const published = [Object.freeze({ id: 9, kind: 'cell', x: 30, y: 50 })];
+  const compact = compactItems(published, [loot]);
+  assert.equal(hydrateFrame({ items: compact, bodies: [loot] }).items, published,
+    'a matching published pose preserves the native ground list and its spatial index');
+});
 
 test('live numeric relations hydrate self, item poses and static gates without retaining private state in roster', () => {
   const frames = createFrameNormalizer(map, [{ playerIdx: 0, id: 'c0', name: 'Ada', role: 'contestant' }]);

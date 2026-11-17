@@ -58,6 +58,25 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
     assert.deepEqual(view.players.map(p => p.playerIdx), [0]);
     assert.equal(view.players[0].inputQueue, undefined, 'others are described as a match describes them');
     assert.equal(view.self.lastSeq, -1, 'the viewer gets their own fields');
+    assert.equal(view.self.x, undefined, 'a player with a body has no duplicate pose');
+    assert.equal(view.players[0].x, undefined);
+
+    // Simulate initialization and a partial capture without creating another physics world.
+    const world = w.world;
+    try {
+      w.world = null;
+      const bodyless = waitingView(w, 'b');
+      assert.deepEqual({ x: bodyless.self.x, y: bodyless.self.y }, { x: w.players[1].x, y: w.players[1].y });
+      assert.deepEqual({ x: bodyless.players[0].x, y: bodyless.players[0].y }, { x: w.players[0].x, y: w.players[0].y });
+      const snapshot = world.snapshot({ includeStatic: false });
+      w.world = {
+        snapshot: () => ({ ...snapshot, bodies: snapshot.bodies.filter(b => b.spec.id === 'actor:b') }),
+        bodyLifetime: id => world.bodyLifetime(id)
+      };
+      const partial = waitingView(w, 'b');
+      assert.equal(partial.self.x, undefined);
+      assert.deepEqual({ x: partial.players[0].x, y: partial.players[0].y }, { x: w.players[0].x, y: w.players[0].y });
+    } finally { w.world = world; }
     leaveWaiting(w, 'a');
     assert.deepEqual(w.players.map(p => p.id), ['b']);
     const viewAfterLeave = waitingView(w, 'b');

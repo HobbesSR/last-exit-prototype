@@ -1,4 +1,4 @@
-import { createFrameNormalizer } from '../../public/relational-frame.js';
+import { createFrameNormalizer } from '../../shared/relational-frame.ts';
 import { createRoomService } from '../../server/room-service.js';
 import { createRoomDirectory } from '../../server/room-directory.js';
 import { createLayerDecoder } from '../../shared/frame-layers.ts';

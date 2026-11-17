@@ -15,7 +15,7 @@ export const EVENT_TEMPLATES: Record<string, Templates> = {
   },
 };
 
-/** Format current events and schema 10–19 recording events without consulting the roster. */
+/** Format current events and schema 10-19 recording events without consulting the roster. */
 export function formatEvent(event: GameEventPayload | { text: string; kind?: undefined }, locale: string = DEFAULT_LOCALE): string {
   if (!event.kind) return event.text;
   const templates = EVENT_TEMPLATES[locale] ?? EVENT_TEMPLATES[DEFAULT_LOCALE]!;

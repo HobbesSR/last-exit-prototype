@@ -346,6 +346,14 @@ function recordText(item: GroundItem<ItemKey>): string {
 }
 
 /** Carry immutable-list serialization caching to body-pose-free frame publications. */
-export function shareItemPublication(source: readonly GroundItem[], adapted: readonly object[]): void {
-  if (published.has(source) || posed.has(source)) published.add(adapted);
+export function shareItemPublication(source: readonly object[], adapted: readonly object[]): void {
+  if (published.has(source) || posed.has(source as readonly GroundItem[])) published.add(adapted);
+  if (source === adapted || posed.has(adapted as readonly GroundItem[])) return;
+  // Carry the ground grid across the shared converter's compact and hydrated lists.
+  // This only associates records; the converter alone owns joining body poses.
+  const origin = posed.get(source as readonly GroundItem[])?.ground ?? source as readonly GroundItem[];
+  if (origin === adapted) return;
+  const swaps = new Map<GroundItem, GroundItem>();
+  for (let i = 0; i < origin.length; i++) if (origin[i] !== adapted[i]) swaps.set(origin[i]!, adapted[i] as GroundItem);
+  posed.set(adapted as readonly GroundItem[], { ground: origin, swaps });
 }

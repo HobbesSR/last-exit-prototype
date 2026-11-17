@@ -1,4 +1,4 @@
-import { bodyRelations, mergeGateGeometry } from './relational-frame.js';
+import { bodyRelations, mergeGateGeometry } from '../shared/relational-frame.ts';
 import { createPhysicsWorldFactory } from '../shared/physics/world.ts';
 import { buildPhysicsGeometry, physicsGate } from '../shared/simulation/physics-geometry.ts';
 import { characterMotor } from '../shared/simulation/actor-physics.ts';

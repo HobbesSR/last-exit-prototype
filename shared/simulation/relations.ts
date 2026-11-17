@@ -52,8 +52,17 @@ export function playerById(s: Pick<Game, 'players'>, id: PlayerId | string): Pla
   return idx === undefined ? undefined : s.players[idx];
 }
 
-/** Public seat labels are sent out of band; callers may supply a historical captured roster. */
-export function seatMetadata(s: { players: readonly Pick<Player, 'id' | 'name' | 'role' | 'kit' | 'seat'>[] }) {
+const capturedSeats = new WeakMap<object, ReturnType<typeof copySeats>>();
+function copySeats(s: { players: readonly Pick<Player, 'id' | 'name' | 'role' | 'kit' | 'seat'>[] }) {
   return s.players.map((p, i) => ({ playerIdx: i as PlayerIdx, id: p.id, name: p.name, role: p.role, kit: p.kit,
     ...(p.seat !== undefined ? { seat: p.seat } : {}) }));
+}
+
+/** Public seat labels are sent out of band; callers may supply a historical captured roster. */
+export function seatMetadata(s: { players: readonly Pick<Player, 'id' | 'name' | 'role' | 'kit' | 'seat'>[] }) {
+  // Games and waiting yards are mutable; only detached captured frames may be cached.
+  if ('map' in s) return copySeats(s);
+  let result = capturedSeats.get(s);
+  if (!result) capturedSeats.set(s, result = copySeats(s));
+  return result;
 }

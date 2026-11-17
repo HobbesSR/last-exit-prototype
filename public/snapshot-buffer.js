@@ -1,4 +1,4 @@
-import { bodyRelations } from './relational-frame.js';
+import { bodyRelations } from '../shared/relational-frame.ts';
 
 // A bounded buffer of authoritative frames, and the interpolated read presentation takes from it.
 //

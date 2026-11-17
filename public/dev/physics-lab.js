@@ -1,4 +1,4 @@
-import { bodyRelations } from '../relational-frame.js';
+import { bodyRelations } from '../../shared/relational-frame.ts';
 import { JELLY, PhysicsLab, sceneConfig, TICK_HZ, TICK_MS } from './physics-lab-model.js';
 import { SQUISH } from './squish-shell.js';
 

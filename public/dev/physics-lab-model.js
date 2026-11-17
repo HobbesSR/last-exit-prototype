@@ -1,4 +1,4 @@
-import { createFrameNormalizer, bodyRelations } from '../relational-frame.js';
+import { createFrameNormalizer, bodyRelations } from '../../shared/relational-frame.ts';
 import { openPlayableArea } from '/shared/playable-area.ts';
 import { createGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
 import { contentById } from '/shared/simulation/content.ts';

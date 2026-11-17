@@ -1,11 +1,12 @@
+import { bodyRelations, hydrateFrame, compactItems, omitBodyPose as omitPose } from '../relational-frame.ts';
 import { playerSlot } from './relations.ts';
 import { lineClear, VISION } from '../movement.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
-import type { Game, Gate, GateState, GateIdx, GroundItem, ItemKey, Player, PlayerId, PlayerIdx, Projected, Snapshot, SnapshotItem, Vec2, World } from '../types.ts';
-import { groundPosition, poseItems, publishItems, framedItems, shareItemPublication } from './ground-items.ts';
+import type { Game, Gate, GateState, GateIdx, GroundItem, ItemKey, Player, PlayerId, PlayerIdx, Projected, Snapshot, Vec2, World } from '../types.ts';
+import { publishItems, framedItems, shareItemPublication } from './ground-items.ts';
 import { publishGates, publishedGates, shareGatePublication } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
 import { heardBy } from './hearing.ts';
@@ -63,19 +64,6 @@ export function dynamicGates(gates: readonly Gate[]): GateState[] {
   }
   return list;
 }
-// Retain immutable spatial records privately; only bodyless records carry poses outward.
-const frameGround = new WeakMap<Snapshot, readonly GroundItem[]>();
-const outwardGround = new WeakMap<readonly GroundItem[], { ids: Set<number>; list: SnapshotItem[] }>();
-const withoutPose = new WeakMap<object, object>();
-function omitPose<T extends object>(record: T): Omit<T, 'x' | 'y'> {
-  let copy = withoutPose.get(record);
-  if (!copy) { const { x, y, ...rest } = record as T & Vec2; copy = Object.isFrozen(record) ? Object.freeze(rest) : rest; if (Object.isFrozen(record)) withoutPose.set(record, copy); }
-  return copy as Omit<T, 'x' | 'y'>;
-}
-function actorPoses(frame: Snapshot): Array<Player & { playerIdx: PlayerIdx }> {
-  const bodies = new Map(frame.bodies?.flatMap(body => body.owner.kind === 'actor' ? [[body.owner.playerIdx, body] as const] : []));
-  return frame.players.map(p => { const body = bodies.get(p.playerIdx); return { ...p, ...(body ? { x: body.x, y: body.y } : {}) } as Player & { playerIdx: PlayerIdx }; });
-}
 export function playerView(s: Game, frame: Snapshot, id: PlayerId | null | undefined) {
   start('sim.playerView');
   try { return buildPlayerView(s, frame, id); } finally { stop('sim.playerView'); }
@@ -87,7 +75,9 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   const liveIdx = id == null ? undefined : playerSlot(s, id);
   // A historical seat move or an unknown label needs only a short scan of this captured roster.
   // Fresh spectator frames must never allocate a label table just to establish a miss.
-  const players = actorPoses(frame);
+  const hydrated = hydrateFrame(frame);
+  const players = hydrated.players as Array<Player & { playerIdx: PlayerIdx }>;
+  const relations = bodyRelations(frame.bodies);
   const viewer = id == null ? undefined : liveIdx !== undefined && players[liveIdx]?.id === id
     ? players[liveIdx] : players.find(p => p.id === id);
   // Discovery stays out of snapshots, so live state is its only source.
@@ -99,13 +89,13 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
   const authorized = players.filter(p => couldSee(s, viewer, p));
   // Items have no radius; the grid only spares testing those out of reach, and inRange still decides.
-  const itemBodies = new Map(frame.bodies?.flatMap(body => body.owner.kind === 'item' ? [[body.owner.itemId, body] as const] : []));
-  const capturedGround = frameGround.get(frame);
-  const ground = capturedGround && frame.items === outwardGround.get(capturedGround)?.list ? capturedGround : frame.items.map(item => { const body = itemBodies.get(item.id); return { ...item, x: body?.x ?? item.x!, y: body?.y ?? item.y! }; });
+  const itemBodies = relations.items;
+  const ground = hydrated.items as GroundItem[];
+  shareItemPublication(frame.items, ground);
   const items = viewer ? framedItems(s, ground, viewer, POTENTIAL, inRange) : ground;
   const projectPlayer = (p: Player & { playerIdx: PlayerIdx }, own = false) => {
     const record = own ? ownPlayerFields(p, discovery, heard, p.playerIdx) : observed(p, p.playerIdx);
-    return frame.bodies?.some(b => b.owner.kind === 'actor' && b.owner.playerIdx === p.playerIdx) ? omitPose(record) : record;
+    return relations.byActor(p.playerIdx) ? omitPose(record) : record;
   };
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.playerIdx)), items, inRange) : {}),
@@ -131,33 +121,16 @@ export function snapshot(s: Game): Snapshot {
     start('sim.snapshot.presentation');
     const ground = publishItems(s);
     const presentation = captured ? { physicsProfile: captured.physicsProfile, bodies: captured.bodies, tethers: captured.tethers, ...(captured.hookFlights ? { hookFlights: captured.hookFlights } : {}) } : undefined;
-    // Retain physical item poses privately for spatial filtering, even before the gameplay
-    // owner synchronizes the map record. Never change that gameplay record while taking a snapshot:
-    // a differing pose gives the frame its own list.
-    const poses = new Map<number, GroundItem>();
-    for (const body of captured?.bodies ?? []) {
-      const at = body.owner.kind !== 'item' ? undefined : groundPosition(s, body.owner.itemId), item = at === undefined ? undefined : ground[at];
-      if (!item || Object.is(item.x, body.x) && Object.is(item.y, body.y)) continue;
-      poses.set(at!, Object.freeze({ ...item, x: body.x, y: body.y }));
-    }
-    const items = poses.size ? poseItems(ground, poses) : ground;
     stop('sim.snapshot.presentation');
     start('sim.snapshot.clone');
     // The ground and gate lists are shared, not cloned: their records are frozen and replaced when they change.
     // The physics state and its presentation are already the frame's own, apart from frozen shared records.
     const frame: Snapshot = structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: null, gates: null, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial, scatterSerial: s.scatterSerial } : {}) }) as unknown as Snapshot;
-    const physicalItems = new Set(captured?.bodies.flatMap(b => b.owner.kind === 'item' ? [b.owner.itemId] : []));
-    let published = outwardGround.get(items);
-    if (!published || published.ids.size !== physicalItems.size || [...physicalItems].some(id => !published!.ids.has(id))) {
-      const list = physicalItems.size ? items.map(item => physicalItems.has(item.id) ? omitPose(item) : item) : items as GroundItem[];
-      shareItemPublication(items, list);
-      outwardGround.set(items, published = { ids: physicalItems, list });
-    }
-    frame.items = published.list;
-    const actorSlots = new Set(captured?.bodies.flatMap(b => b.owner.kind === 'actor' ? [b.owner.playerIdx] : []));
-    frame.players = frame.players.map((p, i) => { const player = { ...p, playerIdx: i as PlayerIdx }; return actorSlots.has(i as PlayerIdx) ? omitPose(player) : player; });
+    frame.items = compactItems(ground, captured?.bodies);
+    shareItemPublication(ground, frame.items);
+    const actors = bodyRelations(captured?.bodies);
+    frame.players = frame.players.map((p, i) => { const player = { ...p, playerIdx: i as PlayerIdx }; return actors.byActor(i as PlayerIdx) ? omitPose(player) : player; });
     frame.gates = dynamicGates(publishGates(s));
-    frameGround.set(frame, items);
     return physics ? Object.assign(frame, { physics }, presentation) : frame;
   }
   finally { stop('sim.snapshot.clone'); stop('sim.snapshot'); }

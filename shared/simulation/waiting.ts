@@ -217,7 +217,12 @@ export function waitingView(w: Waiting, id: PlayerId) {
       ...(w.discontinuities.has(b.spec.id) ? { discontinuity: 'placed' as const } : {})
     }, b.spec.id === `actor:${id}`));
 
-  const stripPose = <T extends object>(record: T) => { const { x, y, ...rest } = record as T & { x?: number; y?: number }; return rest; };
+  const bodyPlayers = new Set(bodies.map(body => body.owner.kind === 'actor' ? body.owner.playerIdx : undefined));
+  const poseFor = <T extends object>(record: T, playerIdx: PlayerIdx) => {
+    if (!bodyPlayers.has(playerIdx)) return record;
+    const { x, y, ...rest } = record as T & { x?: number; y?: number };
+    return rest;
+  };
   return {
     tick: w.tick,
     phase: 'waiting' as const,
@@ -232,8 +237,8 @@ export function waitingView(w: Waiting, id: PlayerId) {
         surfaces: true,
       }
     } : {}),
-    ...(viewer ? { self: stripPose(ownPlayerFields(viewer, undefined, undefined, w.players.indexOf(viewer) as PlayerIdx)) } : {}),
-    players: w.players.flatMap((p, i) => p.id === id ? [] : [stripPose(observed(p, i as PlayerIdx))]),
+    ...(viewer ? { self: poseFor(ownPlayerFields(viewer, undefined, undefined, w.players.indexOf(viewer) as PlayerIdx), w.players.indexOf(viewer) as PlayerIdx) } : {}),
+    players: w.players.flatMap((p, i) => p.id === id ? [] : [poseFor(observed(p, i as PlayerIdx), i as PlayerIdx)]),
     items: [],
     gates: [],
     traps: [],

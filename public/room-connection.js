@@ -1,4 +1,4 @@
-import { createFrameNormalizer } from './relational-frame.js';
+import { createFrameNormalizer } from '../shared/relational-frame.ts';
 import { notePacket } from '/diagnostics.js';
 import * as profiler from '/shared/profiler.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';

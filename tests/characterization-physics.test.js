@@ -20,5 +20,23 @@ test('the physics-1 checkpoint names the rules version and content it characteri
 // (slow/characterization-physics-bots.test.js).
 test('scripted authoritative snapshots and private projections match the physics-1 checkpoint', async () => {
   const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-  assert.equal(hash(await scriptedTrace(expected.arenas[4217])), hash(expected.scripted));
+  const actual = await scriptedTrace(expected.arenas[4217]);
+  if (hash(actual) === hash(expected.scripted)) return;
+  // Narrow failures to the first checkpoint and view, avoiding an enormous whole-trace diff.
+  for (let i = 0; i < Math.max(actual.length, expected.scripted.length); i++) {
+    const a = actual[i], e = expected.scripted[i];
+    const label = e?.label ?? a?.label ?? i;
+    if (!a || !e || a.label !== e.label) assert.deepEqual(a?.label, e?.label, `checkpoint ${i} label`);
+    if (hash(a.frame) !== hash(e.frame)) {
+      assert.deepEqual(a.frame, e.frame, `${label}: frame`);
+      assert.fail(`${label}: frame serialized field order changed`);
+    }
+    for (let j = 0; j < Math.max(a.views.length, e.views.length); j++) {
+      if (hash(a.views[j] ?? null) !== hash(e.views[j] ?? null)) {
+        assert.deepEqual(a.views[j], e.views[j], `${label}: view ${j}`);
+        assert.fail(`${label}: view ${j} serialized field order changed`);
+      }
+    }
+  }
+  assert.fail('trace hashes differ outside checkpoint frames and views');
 });
