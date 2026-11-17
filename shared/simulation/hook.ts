@@ -52,8 +52,9 @@ export function hookSkill(s: Game, p: Player): void {
   if (generationA === undefined) return;
   p.cooldown = tuning.cooldownTicks;
   const dx = cos(p.heading), dy = sin(p.heading);
-  r.hooks.push({ id: `hook:${p.id}`, casterIdx, x: p.x, y: p.y, dx, dy,
-    travelled: 0, startedTick: s.tick, phase: 'flying', generationA });
+  const hook: HookState = { id: `hook:${p.id}`, tetherId: r.identities.newTether(), casterIdx, x: p.x, y: p.y, dx, dy,
+    travelled: 0, startedTick: s.tick, phase: 'flying', generationA };
+  r.hooks.push(hook);
   r.hooks.sort((a, b) => compare(a.id, b.id));
 }
 

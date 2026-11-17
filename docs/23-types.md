@@ -21,3 +21,11 @@ tick intents and bot scheduling. Runtime `HookState` is distinct from captured
 `LegacyHookState`; the physics capture adapter preserves legacy labels/order.
 Gate physics state is indexed by canonical `GateIdx`, even when native body
 admission traverses those slots in legacy label order. No outward schema changes.
+
+The body/prop/tether slice (#1152) adds numeric `BodyId`, `PropId` and `TetherId`.
+Internal presentation bodies use a discriminated `PhysicsBodyOwner` union, keeping
+player slots, item identities and prop identities in separate domains. Body IDs key
+opaque admission lifetimes rather than generations; hook tether IDs follow logical
+flight lifetimes across backend constraint replacement. The legacy presentation and
+private physics-state adapters keep these types off snapshots, live views and recordings
+until Checkpoint 2 ([24.4](24.4-relational-data-model.md)).

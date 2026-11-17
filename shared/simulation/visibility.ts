@@ -1,4 +1,3 @@
-import { itemIdForLabel } from '../item-instances.ts';
 import { legacyItems, legacyItemsInRange, legacyPlayers } from './item-boundary.ts';
 import { playerSlot } from './relations.ts';
 import { lineClear, VISION } from '../movement.ts';
@@ -7,12 +6,11 @@ import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, Gate, GroundItem, ItemKey, ItemLabel, Player, PlayerId, Projected, Snapshot, Vec2, World } from '../types.ts';
-import { groundItem, groundPosition, poseItems, publishItems } from './ground-items.ts';
+import { groundPosition, poseItems, publishItems } from './ground-items.ts';
 import { publishGates, publishedGates } from './frame-gates.ts';
 import { settledLayer } from '../frame-layers.ts';
 import { heardBy } from './hearing.ts';
-import { physicsState } from './physics-runtime.ts';
-import { capturePhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
+import { capturePhysicsPresentation, legacyPhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
 // movement — so the client never has to wait on the server to show something that just became
@@ -115,21 +113,19 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }
 export function snapshot(s: Game): Snapshot {
-  // Inclusive; its parts are timed separately: the physics world copy, the presentation capture and the clone.
+  // Inclusive; presentation timing accumulates numeric capture and legacy adaptation/item poses.
   start('sim.snapshot');
   try {
-    start('sim.snapshot.world');
-    const physics = physicsState(s);
-    stop('sim.snapshot.world');
+    const captured = capturePhysicsPresentation(s), physics = captured?.physics;
     start('sim.snapshot.presentation');
     const ground = publishItems(s);
-    const presentation = physics ? capturePhysicsPresentation(physics, s.players, id => { const numeric = itemIdForLabel(s, id); return numeric !== undefined && groundItem(s, numeric) ? id as ItemLabel : undefined; }, s.version) : undefined;
+    const presentation = captured ? legacyPhysicsPresentation(captured) : undefined;
     // A physical item's stored/projection pose changes the item layer too, even before its gameplay
     // owner synchronizes the map record. Never change that gameplay record while taking a snapshot:
     // a differing pose gives the frame its own list.
     const poses = new Map<number, GroundItem>();
-    for (const body of presentation?.bodies ?? []) {
-      const at = body.itemId === undefined ? undefined : groundPosition(s, itemIdForLabel(s, body.itemId as string)!), item = at === undefined ? undefined : ground[at];
+    for (const body of captured?.bodies ?? []) {
+      const at = body.owner.kind !== 'item' ? undefined : groundPosition(s, body.owner.itemId), item = at === undefined ? undefined : ground[at];
       if (!item || Object.is(item.x, body.x) && Object.is(item.y, body.y)) continue;
       poses.set(at!, Object.freeze({ ...item, x: body.x, y: body.y }));
     }

@@ -2,11 +2,13 @@ import type { PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsGameplayState, HookState } from '../physics/types.ts';
 import type { Game, GateIdx, ItemId, Player, Projectile, Vec2 } from '../types.ts';
 import { hypot } from '../math.ts';
+import type { PhysicsIdentities } from './physics-identities.ts';
 
 /** The one physics rules version. Which features a match has is stated by its content, never by this string (26). */
 export const PHYSICS_VERSION = 'last-exit-0.8-physics';
 export interface PendingAttachment { id: string; a: string; b: string; maxDistance: number }
 export interface PhysicsRuntime {
+  identities: PhysicsIdentities;
   stepping: boolean;
   hooks: HookState[];
   discontinuityCapacity: number;
@@ -55,7 +57,7 @@ export function physicsState(s: Game): PhysicsGameplayState | undefined {
       const target = hook.targetIdx === undefined ? undefined : s.players[hook.targetIdx];
       if (!caster || hook.targetIdx !== undefined && !target) return [];
       return [Object.fromEntries(Object.entries(hook).flatMap(([key, value]) =>
-        key === 'targetActorKey' || key === 'targetIdx' && hook.targetIdx === undefined ? [] :
+        key === 'tetherId' || key === 'targetActorKey' || key === 'targetIdx' && hook.targetIdx === undefined ? [] :
         key === 'casterIdx' ? [['caster', caster.id]] :
         key === 'targetIdx' ? [['target', target!.id]] : [[key, structuredClone(value)]])) as
         unknown as NonNullable<PhysicsGameplayState['hooks']>[number]];

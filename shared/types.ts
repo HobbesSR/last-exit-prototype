@@ -2,8 +2,8 @@
 // named here once, so a field's meaning travels with it instead of decaying into `number`.
 //
 // Branding policy, chosen for cost rather than purity:
-//   * Identifiers are branded. They are strings that are never arithmetic, so a brand costs one
-//     cast at the single place each id is minted and catches every gate-id-for-item-id mix-up.
+//   * Identifiers are branded. Runtime relation IDs/indices are numeric; legacy boundary labels
+//     are strings. One cast where an ID is minted keeps separate identity domains from mixing.
 //   * World coordinates and tick counts are plain `number` aliases. They are combined
 //     arithmetically on nearly every line; branding them would demand a cast per expression and
 //     buy less than the named parameter and field types already give.
@@ -71,6 +71,9 @@ export type ObstacleId = Brand<string, 'ObstacleId'>;
 export type GateId = Brand<string, 'GateId'>;
 export type BuildingId = Brand<string, 'BuildingId'>;
 export type ItemId = Brand<number, 'ItemId'>;
+export type PropId = Brand<number, 'PropId'>;
+export type BodyId = Brand<number, 'BodyId'>;
+export type TetherId = Brand<number, 'TetherId'>;
 /** Temporary artifact/recording boundary, removed by coordinated outward adoption (24.4). */
 export type ItemLabel = Brand<string, 'ItemLabel'>;
 export type ItemKey = ItemId | ItemLabel;
