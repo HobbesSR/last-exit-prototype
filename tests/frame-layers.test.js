@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createLayerEncoder, createLayerDecoder } from '../shared/frame-layers.ts';
 import { createMatch } from '../server/match.js';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 // What one session is sent of an encoded frame: the keyframe when it lacks it, else the changes.
 function wire(encoded, frame, held) {
@@ -83,7 +84,7 @@ test('a session is sent the keyframe after a skipped frame, while others keep sh
       const sizes = [], frames = [], keyed = [], decoder = createLayerDecoder(); let skip = false;
       const session = h.service.connect({ close() {}, deliver(payload, droppable) {
         if (skip && droppable) return false;
-        const data = JSON.parse(payload);
+        const data = readServerMessage(payload);
         if (data.type === 'state') { sizes.push(payload.length); keyed.push('all' in data.state.items); frames.push(decoder.decode(data.state)); }
         return true;
       } });

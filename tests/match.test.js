@@ -10,6 +10,7 @@ import { insideMap } from '../shared/movement.ts';
 import { stringifyWithMap } from '../server/map-payload.js';
 import { replaceItem } from '../shared/simulation/ground-items.ts';
 import { openArea } from './helpers/arena.js';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 const content = () => ({ ...structuredClone(contentById('content-7')), roster: { contestants: ['A'], gladiators: [] } });
 const arena = (x = 0, y = 0) => ({ width: x + 600, height: y + 400, playableArea: openArea(x + 600, y + 400, 100),
@@ -120,7 +121,7 @@ test('room welcomes and recording start use prepared maps without changing start
     }; } }
   });
   const created = service.makeRoom(1, false, undefined, arena()), room = service.rooms.get(created.id);
-  const player = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
+  const player = service.connect({ deliver(message) { messages.push(readServerMessage(message)); return true; }, close() {} });
   service.receive(player, { type: 'join', room: created.id, ownerKey: created.ownerKey, name: 'Player' });
   service.receive(player, { type: 'start' });
   try {
@@ -132,7 +133,7 @@ test('room welcomes and recording start use prepared maps without changing start
     assert.deepEqual(header.map, match.map());
     assert.deepEqual(frames[0].commands.map(command => command.type), ['join', 'start']);
     assert.equal(frames[0].state.tick, 0);
-    const watcher = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
+    const watcher = service.connect({ deliver(message) { messages.push(readServerMessage(message)); return true; }, close() {} });
     service.receive(watcher, { type: 'join', room: room.id, mode: 'dev' });
     assert.deepEqual(messages.at(-1).map, match.payloadMap('spectator', match.snapshot()));
   } finally { await service.close(); }
@@ -193,7 +194,7 @@ test('room shutdown during cooperative construction awaits and disposes the unad
     replays: { start() { return { append() { return true; }, finish() { return {}; } }; } } });
   const created = service.makeRoom(1, false, undefined, arena()), room = service.rooms.get(created.id);
   const messages = [];
-  const peer = service.connect({ deliver(message) { messages.push(JSON.parse(message)); return true; }, close() {} });
+  const peer = service.connect({ deliver(message) { messages.push(readServerMessage(message)); return true; }, close() {} });
   service.receive(peer, { type: 'join', room: created.id, ownerKey: created.ownerKey, role: 'contestant', name: 'Test' });
   service.receive(peer, { type: 'start' });
 

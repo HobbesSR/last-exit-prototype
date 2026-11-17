@@ -6,6 +6,7 @@ import { TICK_MS } from '../server/scheduler.js';
 import { CLOSE_CODE, CLOSE_REASON } from '../server/protocol.js';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 function memoryReplays() {
   const started = [], finished = [], discarded = [];
@@ -38,11 +39,12 @@ function makeRoomHarness(options = {}) {
     devTools: options.devTools ?? 'all',
     wallNow: () => now,
     deliver(clientId, payload, droppable) {
-      if (typeof payload !== 'string') throw new Error(`Expected serialized payload, got ${typeof payload}`);
+      // Text, or a binary state message (24.1): never an object the room forgot to serialize.
+      if (typeof payload !== 'string' && !(payload instanceof Uint8Array)) throw new Error(`Expected serialized payload, got ${typeof payload}`);
       if (droppable && droppedFor.has(clientId)) return false;
       let list = delivered.get(clientId);
       if (!list) delivered.set(clientId, list = []);
-      list.push({ payload, message: JSON.parse(payload), droppable: !!droppable });
+      list.push({ payload, message: readServerMessage(payload), droppable: !!droppable });
       return true;
     },
     closeClient(clientId, code, reason) {

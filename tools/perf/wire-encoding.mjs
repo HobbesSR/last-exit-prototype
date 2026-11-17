@@ -86,7 +86,7 @@ try {
   const streamDigest = createHash('sha256'), population = {};
   const add = (view, playerId, dev = false) => {
     const layers = createLayerDecoder(), discovery = createDiscoveryDecoder();
-    room.clients.add({ playerId, dev, deliver(payload) {
+    room.clients.add({ playerId, dev, stateEncoding: 'json', deliver(payload) {
       const message = JSON.parse(payload), rebuilt = layers.decode(JSON.parse(payload).state);
       const expected = match.project(view === 'spectator' ? spectatorFrame(room) : current, playerId);
       const me = rebuilt.players?.find(p => p.id === playerId);

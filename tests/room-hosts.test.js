@@ -13,6 +13,7 @@ import { generatedMap } from './helpers/room-harness.js';
 import { readArchive } from './helpers/recordings.js';
 import { profileFields } from '../server/http-api.js';
 import { profileResponse } from '../shared/protocol.ts';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 // The room lifecycle (room.js) run on both hosts of it: every room in this thread, and each on its own
 // worker thread (#1089), through the same scenarios. Maps are the pregenerated arena, never generated here.
@@ -34,9 +35,10 @@ async function host(threads) {
   const service = createRoomService({ replays, threads, devTools: 'all', reportError: error => errors.push(error) });
   const stop = startScheduler(service.advance);
   const peer = () => {
-    const messages = [], closes = [], layers = createLayerDecoder(), frames = [], normalizer = createFrameNormalizer();
+    const messages = [], closes = [], layers = createLayerDecoder(), frames = [], normalizer = createFrameNormalizer(), binary = [];
     const deliver = payload => {
-      const data = JSON.parse(payload);
+      const data = readServerMessage(payload);
+      if (typeof payload !== 'string') binary.push(data.type);
       if (data.type === 'seats') { normalizer.seats(data.roster); return; }
       if (data.type === 'welcome' || data.type === 'ready') { normalizer.seats(data.roster); normalizer.setMap(data.map); }
       if (data.type === 'state') layers.decode(data.state);
@@ -46,7 +48,7 @@ async function host(threads) {
     };
     const session = service.connect({ deliver, close: (...args) => { closes.push(args); service.disconnect(session); } });
     const p = {
-      session, messages, closes, frames,
+      session, messages, closes, frames, binary,
       send: message => service.receive(session, message),
       welcome: () => messages.find(m => m.type === 'welcome'),
       has: type => messages.some(m => m.type === type),
@@ -111,6 +113,8 @@ for (const threads of [false, true]) {
         await until(() => p.frames.some(f => f.phase === 'live'), 'live state frames');
         const own = p.session.playerId ?? p.welcome().id;
         assert.ok(p.frames.findLast(f => f.phase === 'live').players.some(x => x.id === own), 'a player is in its own live view');
+        // State crosses the room's thread as the codec's bytes, and nothing else does (24.1).
+        assert.deepEqual([...new Set(p.binary)], ['state'], 'state arrives binary');
       }
 
       owner.send({ type: 'finish' });
@@ -242,7 +246,7 @@ test('a socket that drains after blocking state frames gets them again with no o
     let backlog = MAX_BUFFERED_BYTES;
     const states = [];
     const session = h.service.connect({ buffered: () => backlog, close() {},
-      deliver: payload => { const data = JSON.parse(payload); if (data.type === 'state') states.push(data.state.tick); } });
+      deliver: payload => { const data = readServerMessage(payload); if (data.type === 'state') states.push(data.state.tick); } });
     h.service.receive(session, { type: 'join', room: room.id, mode: 'dev', ownerKey: room.ownerKey });
     // The welcome is not droppable; once the full backlog it leaves is reported, state frames stop.
     await until(() => owner.frames.length > 20, 'the match running');

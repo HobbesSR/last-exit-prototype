@@ -124,3 +124,28 @@ test('teleports in a paused room never shorten the spectator delay', async () =>
     assert.equal(eye.messages.at(-1).state.tick, room.match.tick - 60, 'the spectator still sees the delayed frame');
   } finally { await h.service.close(); }
 });
+
+test('each connection reads state in the encoding it negotiated, and JSON only with dev tools', async () => {
+  const closed = roomHarness({ reuseMaps: true }), shut = await closed.live();
+  try {
+    // Binary by default: the welcome confirms it and every state message is the codec's bytes (24.1).
+    assert.equal(shut.owner.messages.find(m => m.type === 'welcome').stateEncoding, 'binary');
+    closed.wake(50);
+    assert.deepEqual([...new Set(shut.owner.binary)], ['state'], 'only state is binary');
+    const refused = closed.joined(shut.room, { stateEncoding: 'json', ownerKey: shut.room.ownerKey });
+    assert.match(refused.messages[0].message, /debug encoding/, 'JSON state without dev tools is refused, not downgraded');
+    assert.equal(refused.messages.length, 1);
+  } finally { await closed.service.close(); }
+
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room } = await h.live();
+  try {
+    const text = h.joined(room, { mode: 'dev', stateEncoding: 'json' }), bytes = h.joined(room, { mode: 'dev' });
+    assert.equal(text.messages[0].stateEncoding, 'json'); assert.equal(bytes.messages[0].stateEncoding, 'binary');
+    for (let i = 0; i < 3; i++) h.wake(50);
+    assert.deepEqual(text.binary, [], 'a JSON connection is sent text only');
+    // The same view in either encoding reads as the same frames.
+    const states = p => p.messages.filter(m => m.type === 'state').map(m => m.state);
+    assert.ok(states(text).length >= 3);
+    assert.deepEqual(states(text), states(bytes));
+  } finally { await h.service.close(); }
+});

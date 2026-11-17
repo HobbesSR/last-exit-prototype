@@ -1,6 +1,7 @@
 import { createFrameNormalizer } from '../../shared/relational-frame.ts';
 import { WebSocket } from 'ws';
 import { createLayerDecoder } from '../../shared/frame-layers.ts';
+import { readServerMessage } from '../../shared/wire-schema.ts';
 
 /**
  * What the end-to-end server suites share for talking to a live arena over its socket and HTTP API.
@@ -10,6 +11,8 @@ import { createLayerDecoder } from '../../shared/frame-layers.ts';
 // A socket's layer decoder; a state frame read here is decoded as the client would (#250). Frames that
 // arrive while nothing waits are not decoded, so read layers only from a session's first frame or keyframes.
 const decoders = new WeakMap(), hydrated = new WeakMap();
+/** A server message as a `ws` socket hands it over: text, or a binary `state` message (24.1). */
+export const readSocketMessage = (raw, binary) => readServerMessage(binary ? new Uint8Array(raw) : raw.toString());
 /**
  * The next message of `type` that `accept` takes. It stops listening once it settles, whether it is
  * answered or times out, so a failed wait leaves nothing behind on the socket.
@@ -18,8 +21,8 @@ export function next(ws, type, timeoutMs = 5000, accept = () => true) {
   if (!decoders.has(ws)) decoders.set(ws, createLayerDecoder());
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { ws.off('message', receive); reject(new Error(`Timed out waiting for ${type}`)); }, timeoutMs);
-    function receive(raw) {
-      const data = hydrated.get(ws)?.raw === raw ? hydrated.get(ws).data : JSON.parse(raw);
+    function receive(raw, binary) {
+      const data = hydrated.get(ws)?.raw === raw ? hydrated.get(ws).data : readSocketMessage(raw, binary);
       if (data.type === type && accept(data)) { clearTimeout(timer); ws.off('message', receive); resolve(data); }
     }
     ws.on('message', receive);
@@ -30,8 +33,8 @@ export async function open(base) {
   const ws = new WebSocket(base.replace('http:', 'ws:'));
   const layers = createLayerDecoder(), frames = createFrameNormalizer();
   decoders.set(ws, layers);
-  ws.on('message', raw => {
-    const data = JSON.parse(raw);
+  ws.on('message', (raw, binary) => {
+    const data = readSocketMessage(raw, binary);
     if (data.type === 'seats') frames.seats(data.roster);
     if (data.type === 'welcome' || data.type === 'ready') { frames.seats(data.roster); frames.setMap(data.map); }
     if (data.type === 'state') layers.decode(data.state);

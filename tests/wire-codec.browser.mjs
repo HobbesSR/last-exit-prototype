@@ -3,9 +3,11 @@ import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 import { reusedMap, roomHarness } from './helpers/room-harness.js';
 import { wireCodec } from '../shared/wire-schema.ts';
 
-// The descriptor codec in Chrome (#1131 stage 1): the browser's reader, as public/room-connection.js loads it,
-// decodes Node's bytes for a room's live state messages to exactly what JSON gives, and its encoder writes
-// the same bytes as Node's. Then the client plays a match on binary state, and refuses bytes it cannot read. The Node side's round trip and refusals are tests/wire-codec.test.js.
+// The descriptor codec in Chrome (#1131): the browser's reader, as public/room-connection.js loads it, decodes
+// Node's bytes for a room's live state messages to exactly what JSON gives, and its encoder writes the same
+// bytes as Node's. Then the client plays a match on the binary state the server sends it, and refuses a state
+// message in an encoding its welcome did not confirm. The Node side's round trip and refusals are
+// tests/wire-codec.test.js.
 const h = roomHarness({ reuseMaps: true }), made = await h.room();
 const owner = h.joined(made, { ownerKey: made.ownerKey }), other = h.joined(made, { role: 'gladiator' });
 let messages;
@@ -37,19 +39,20 @@ try {
   }
   await page.close();
 
-  // The real client on binary state (public/room-connection.js): the server still sends JSON in stage 1, so a
-  // routed socket re-encodes each of its state messages as D. The client plays a match on them, and a
-  // message it cannot read then ends the connection with a notice rather than being guessed at.
+  // The real client on the server's binary state (public/room-connection.js, 24.1). A routed socket only counts
+  // what passes: the client asks for binary, plays a match on it, and a JSON state message on that socket then
+  // ends the connection with a notice rather than being read as a fallback.
   const live = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   collectBrowserErrors(live, errors, { consoleErrors: true });
-  const routed = []; let binary = 0;
+  const routed = [], asked = []; let binary = 0;
   await live.routeWebSocket(/./, ws => {
     const server = ws.connectToServer();
-    server.onMessage(message => {
-      const data = typeof message === 'string' ? JSON.parse(message) : null;
-      if (data?.type === 'state') { binary++; ws.send(Buffer.from(codec.encode(data))); } else ws.send(message);
+    server.onMessage(message => { if (typeof message !== 'string') binary++; ws.send(message); });
+    ws.onMessage(message => {
+      const data = JSON.parse(String(message));
+      if (data.type === 'join' || data.type === 'match') asked.push(data.stateEncoding);
+      server.send(message);
     });
-    ws.onMessage(message => server.send(message));
     routed.push(ws);
   });
   await live.goto(`${base}/?seed=9`);
@@ -60,9 +63,10 @@ try {
   const before = await live.evaluate(() => window.arenaDebug().me.x);
   await live.keyboard.down('KeyD'); await live.waitForTimeout(650); await live.keyboard.up('KeyD');
   await live.waitForFunction(x => window.arenaDebug().me.x > x + 40, before, { timeout: 5000 });
-  // Every state message reached the client as D (the route converts each one), and it walked on them.
+  // The client asked for binary, the server sent its state as D, and the client walked on it.
+  assert.deepEqual([...new Set(asked)], ['binary'], 'the client asks for binary state');
   assert.ok(binary > 0, `the client played on ${binary} binary state messages`);
-  routed.at(-1).send(Buffer.from('{"type":"state"}'));
+  routed.at(-1).send(JSON.stringify({ type: 'state', state: { tick: 0 } }));
   await live.getByText('The arena sent a message this browser cannot read.').waitFor({ timeout: 5000 });
   assert.deepEqual(errors, []);
   console.log(`Descriptor codec browser checks passed: ${messages.length} messages; the client played on ${binary} binary frames`);

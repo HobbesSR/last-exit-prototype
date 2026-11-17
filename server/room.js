@@ -89,6 +89,8 @@ export function createRoom({
       owner: false,
       dev: false,
       devTools: false,
+      // How this connection's state messages are written (24.1): its join's negotiated encoding.
+      stateEncoding: 'binary',
       diagnosticCount: 0,
       diagnosticAt: -Infinity,
       layerKeys: {},
@@ -396,23 +398,23 @@ export function createRoom({
     return { ok: true, clientId, playerId: null, owner: client.owner, dev: !!client.dev, devTools: client.devTools, replacedClientId: null };
   }
 
-  function joinDev(clientId, owner) {
+  function joinDev(clientId, owner, stateEncoding) {
     if (!devAllowed(owner)) {
       return refuseJoin(clientId, devTools === 'owner' ? 'The dev view of this arena requires its owner key.' : 'The dev view is not enabled on this server.');
     }
     // A spectator without the delay: no slot, no input authority, no recording of its own.
-    return admitWatcher(clientId, { owner, dev: true, devTools: true }, client => devWelcomeMessage({
-      room: state.id, owner, started: state.started, ready: !!state.match, paused: state.pausedAt != null, ...described(), ...view(client),
+    return admitWatcher(clientId, { owner, dev: true, devTools: true, stateEncoding }, client => devWelcomeMessage({
+      room: state.id, owner, started: state.started, ready: !!state.match, paused: state.pausedAt != null, stateEncoding, ...described(), ...view(client),
     }));
   }
 
-  function joinSpectator(clientId, owner) {
+  function joinSpectator(clientId, owner, stateEncoding) {
     // The directed view is unfogged, so it is a wallhack for anyone also holding a player slot.
     // Keep owner authorization even with a delayed stream; there is no public spectator UX yet.
     if (!owner) return refuseJoin(clientId, 'Spectating this arena requires its owner key.');
     // A spectator holds no slot, drives no simulation, and never starts a recording.
-    return admitWatcher(clientId, { owner, devTools: devAllowed(owner) }, client => spectatorWelcomeMessage({
-      spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: state.id, owner, devTools: client.devTools,
+    return admitWatcher(clientId, { owner, devTools: devAllowed(owner), stateEncoding }, client => spectatorWelcomeMessage({
+      spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: state.id, owner, devTools: client.devTools, stateEncoding,
       ready: !!state.match, paused: state.pausedAt != null, ...described(), ...view(client),
     }));
   }
@@ -440,7 +442,8 @@ export function createRoom({
       p = role && state.seats.join(clientId, role, kit, options.name ?? DEFAULT_PLAYER_NAME);
     }
     if (!p) return refuseJoin(clientId, `No ${role} places remain in this match.`);
-    const client = makeClientRecord(clientId, { playerId: p.id, owner, dev: false, devTools: devAllowed(owner) });
+    const stateEncoding = options.stateEncoding;
+    const client = makeClientRecord(clientId, { playerId: p.id, owner, dev: false, devTools: devAllowed(owner), stateEncoding });
     state.clients.add(client);
     clientMap.set(clientId, client);
     for (const [key, id] of state.resumes) if (id === p.id) state.resumes.delete(key);
@@ -450,7 +453,7 @@ export function createRoom({
     state.inputs.push({ type: resumedId ? 'resume' : 'join', id: p.id, role: p.role, kit: p.kit, name: p.name });
     if (state.waiting) enterWaiting(state.waiting, p.id, p.role, p.kit, p.name);
     sendWelcome(client, playerWelcomeMessage({
-      id: p.id, resumeKey, room: state.id, owner: client.owner, devTools: client.devTools,
+      id: p.id, resumeKey, room: state.id, owner: client.owner, devTools: client.devTools, stateEncoding,
       paused: state.pausedAt != null, started: state.started, ready: !!state.match,
       matchmade: !!state.matchmade, startsAt: state.startsAt || null, ...described(), ...view(client),
     }));
@@ -464,9 +467,15 @@ export function createRoom({
       return refuseJoin(clientId, 'This arena has ended or no longer exists. Start a new match.');
     }
     const owner = options.ownerKey === state.ownerKey;
-    if (options.mode === 'dev') return joinDev(clientId, owner);
-    if (options.mode === 'spectator') return joinSpectator(clientId, owner);
-    return joinPlayer(clientId, owner, options);
+    // JSON state is a debug encoding (24.1): granted with dev tools, and refused outright otherwise, so a
+    // page never reads an encoding it did not ask for.
+    const stateEncoding = options.stateEncoding ?? 'binary';
+    if (stateEncoding === 'json' && !devAllowed(owner)) {
+      return refuseJoin(clientId, 'JSON state is a debug encoding this arena grants only with its dev tools.');
+    }
+    if (options.mode === 'dev') return joinDev(clientId, owner, stateEncoding);
+    if (options.mode === 'spectator') return joinSpectator(clientId, owner, stateEncoding);
+    return joinPlayer(clientId, owner, { ...options, stateEncoding });
   }
 
   /** Remove a client from this room, freeing its spectator slot or returning its seat to a bot. */

@@ -6,6 +6,7 @@ import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../../map
 import { defaultContent } from '../../shared/simulation/content.ts';
 import { attachPortalGraph, portalGraphOf } from '../../shared/navigation/portal-graph.ts';
 import { ARENA_SEED, readArena } from '../../tools/room-arena.mjs';
+import { readServerMessage } from '../../shared/wire-schema.ts';
 
 // These tests are about room policy with a fake clock, on the shipped content and the engine it runs (#920).
 // A physics match is built asynchronously, so a room is usable once `room.ready` settles: `room()`, `live()`
@@ -73,10 +74,13 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
   const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
   const peer = () => {
     const messages = [], rawMessages = [], closes = [], layers = createLayerDecoder(), frames = createFrameNormalizer();
+    // The type of each message that arrived as bytes rather than text: only `state`, under binary (24.1).
+    const binary = [];
     let seen = 0, stamped = -1;
     // Frames are kept decoded, as the client reads them, and `sizes` keeps what each payload weighed.
     const deliver = payload => {
-      const data = JSON.parse(payload);
+      const data = readServerMessage(payload);
+      if (typeof payload !== 'string') binary.push(data.type);
       rawMessages.push(structuredClone(data));
       if (data.type === 'seats') { frames.seats(data.roster); return; }
       if (data.type === 'welcome' || data.type === 'ready') { frames.seats(data.roster); frames.setMap(data.map); }
@@ -101,7 +105,7 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
       stamped = Math.max(stamped + 1, seen + 1);
       return { ...message, tick: stamped };
     };
-    return { session, messages, rawMessages, sizes, closes, send: message => directory.receive(session, stamp(message)) };
+    return { session, messages, rawMessages, binary, sizes, closes, send: message => directory.receive(session, stamp(message)) };
   };
   const joined = (room, extra = {}) => {
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;

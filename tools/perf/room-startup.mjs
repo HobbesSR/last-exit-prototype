@@ -118,7 +118,8 @@ async function closeSockets() {
 const watch = async (room, record = false) => {
   if (sockets) return rpc('join', { url: socketUrl, room: room.id, ownerKey: room.ownerKey, record });
   const peer = service.connect({ close() {}, deliver(payload) {
-    if (record && payload.includes('"type":"state"')) deliveries.push(performance.now());
+    // A binary payload is always a state message (24.1); text is any other.
+    if (record && (payload instanceof Uint8Array || payload.includes('"type":"state"'))) deliveries.push(performance.now());
     return true;
   } });
   service.receive(peer, { type: 'join', room: room.id, mode: 'dev', ownerKey: room.ownerKey });

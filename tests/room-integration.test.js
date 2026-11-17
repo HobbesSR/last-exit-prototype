@@ -6,6 +6,7 @@ import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { PHYSICS_VERSION, physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { SPECTATOR_DELAY_TICKS } from '../server/room-views.js';
 import { openArea } from './helpers/arena.js';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 const VERSION = PHYSICS_VERSION;
 const content = () => ({ ...structuredClone(contentById('content-6')),
@@ -20,7 +21,7 @@ function peer(service) {
   const messages = [], decoder = createLayerDecoder();
   let session;
   session = service.connect({ deliver(payload) {
-    const message = JSON.parse(payload);
+    const message = readServerMessage(payload);
     if (message.type === 'state') message.decoded = decoder.decode(structuredClone(message.state));
     messages.push(message);
     return true;

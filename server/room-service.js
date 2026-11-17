@@ -36,9 +36,10 @@ const asText = bytes => {
  * publications through `replays.published`; an injected writer cannot cross a thread, nor `matchFactory`,
  * `wallNow` or timers, so those apply only to rooms run here.
  *
- * Sessions provide deliver(serializedPayload, droppable) and close(code, reason); no socket dependency. A
- * payload is a string, or UTF-8 bytes for a session that says `bytes: true` (a threaded room's payloads arrive
- * as bytes; other sessions are given them decoded). Only state frames are droppable (protocol.js
+ * Sessions provide deliver(serializedPayload, droppable, binary) and close(code, reason); no socket dependency.
+ * A text payload is a string, or UTF-8 bytes for a session that says `bytes: true` (a threaded room's payloads
+ * arrive as bytes; other sessions are given them decoded). A binary payload (a descriptor-codec `state`
+ * message, 24.1) is a Uint8Array with `binary` set, and every session is given it as bytes. Only state frames are droppable (protocol.js
  * `deliverable`); deliver returns false for one it skipped. A threaded room decides that itself against
  * `buffered()`, the session's socket backlog, and its payloads are delivered as not droppable.
  * `content` supplies each new room's content: the shipped default, or a differing set a test injects.
@@ -56,7 +57,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   let closing;
 
   const connect = peer => {
-    const deliver = peer.bytes ? peer.deliver : (payload, droppable) => peer.deliver(typeof payload === 'string' ? payload : asText(payload), droppable);
+    const deliver = peer.bytes ? peer.deliver
+      : (payload, droppable, binary) => peer.deliver(binary || typeof payload === 'string' ? payload : asText(payload), droppable);
     const session = trackLatency({ ...peer, deliver, connectionId: randomUUID(), playerId: null, rejectedMessages: 0 });
     sessions.set(session.connectionId, session);
     return session;
@@ -139,7 +141,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       seed, matchmade, size, map, name, content: content(), createdAt: wallNow(), devTools,
       replays: replays.threadOptions, replayFinishTimeoutMs, profile: profiler.profiling(), wireKey,
       hooks: {
-        deliver: (clientId, payload) => sessions.get(clientId)?.deliver(payload, false),
+        deliver: (clientId, payload, binary) => sessions.get(clientId)?.deliver(payload, false, binary),
         backlog: clientId => sessions.get(clientId)?.buffered?.() ?? 0,
         closeClient,
         joined: (clientId, joined) => {
@@ -180,7 +182,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       clearTimer,
       matchFactory,
       wireKey,
-      deliver: (clientId, payload, droppable) => sessions.get(clientId)?.deliver(payload, droppable),
+      // A room here writes text as strings, so its bytes are always a binary state message.
+      deliver: (clientId, payload, droppable) => sessions.get(clientId)?.deliver(payload, droppable, payload instanceof Uint8Array),
       closeClient,
       onFinalization: trackFinalization,
       onDispose: retireRoom,

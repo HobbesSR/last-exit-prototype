@@ -4,7 +4,7 @@ import * as profiler from '/shared/profiler.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
-import { CLIENT_MESSAGE, SERVER_MESSAGE } from '/shared/protocol.ts';
+import { CLIENT_MESSAGE, SERVER_MESSAGE, WIRE_VERSION } from '/shared/protocol.ts';
 import { readServerMessage } from '/shared/wire-schema.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { DEFAULT_CALLSIGN } from '/ui.js';
@@ -16,6 +16,18 @@ import { DEFAULT_CALLSIGN } from '/ui.js';
 export function envelopePresentation(data) {
   return typeof data.contentId === 'string' && data.contentId ? readPresentation(data.presentation, data.contentId) : null;
 }
+
+/**
+ * What a page asks of the server when it joins (24.1): the wire version it was built for, so a stale page is
+ * refused rather than sent bytes it cannot read, and the `state` encoding it reads. JSON is a debug encoding
+ * (`?wire=json`), which the server grants only with dev tools.
+ */
+export function joinNegotiation(search = globalThis.location?.search ?? '') {
+  return { wireVersion: WIRE_VERSION, stateEncoding: new URLSearchParams(search).get('wire') === 'json' ? 'json' : 'binary' };
+}
+
+/** Whether a `state` message arrived in the encoding its welcome confirmed: never read one that did not. */
+export const deliveredAs = (data, encoding) => (typeof data === 'string' ? 'json' : 'binary') === encoding;
 
 // The room this page is joined to: its socket, who this page is in it, and the room facts only that
 // socket delivers (the live map, frame and descriptor, this player's discovery, pause, the saved replay).
@@ -30,6 +42,8 @@ export function createRoomConnection({
   // This connection is the dev view (24): undelayed and unfogged, with the director's free camera.
   let dev = false;
   let liveMap, liveState, presentation = null;
+  // The `state` encoding this socket's welcome confirmed; until then no state message is read.
+  let stateEncoding = null;
   const discovery = createDiscoveryDecoder();
   // When this socket last delivered a frame. It is the network's own measure, kept by the socket that
   // receives the frames rather than by whatever is being drawn: a replay or the dev feed showing in its
@@ -61,7 +75,7 @@ export function createRoomConnection({
     // Nothing of the previous room carries over: a room still generating sends no state until `ready`,
     // and an error before then must find this room stateless, not the last one's frame.
     savedReplay = null; recordingFailed = false; playerId = null;
-    liveMap = null; liveState = null; presentation = null; roundTripMs = null; lastStateAt = 0;
+    liveMap = null; liveState = null; presentation = null; roundTripMs = null; lastStateAt = 0; stateEncoding = null;
     owner = false; dev = false;
     onJoining({ kit });
     setPaused(false);
@@ -77,16 +91,20 @@ export function createRoomConnection({
       disconnecting = false;
       let resumeKey;
       try { if (room) resumeKey = sessionStorage.getItem(`last-exit:resume:${room}`); } catch { /* Optional recovery. */ }
+      const negotiation = joinNegotiation();
       socket.send(JSON.stringify(matchmake
-        ? { type: CLIENT_MESSAGE.MATCH, role, kit, name }
-        : { type: CLIENT_MESSAGE.JOIN, room, ownerKey: key, resumeKey, mode, ...(mode === 'player' ? { role, kit, name } : {}) }));
+        ? { type: CLIENT_MESSAGE.MATCH, role, kit, name, ...negotiation }
+        : { type: CLIENT_MESSAGE.JOIN, room, ownerKey: key, resumeKey, mode, ...(mode === 'player' ? { role, kit, name } : {}), ...negotiation }));
     });
     socket.addEventListener('message', event => {
       if (ws !== socket) return;
       let data;
       // A message this build cannot read ends the connection: never a guess, and never a silent fallback.
+      // That includes a state message in another encoding than the welcome confirmed.
+      const unreadable = () => { toast('The arena sent a message this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); };
       try { data = readServerMessage(event.data); }
-      catch { toast('The arena sent a message this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); return; }
+      catch { unreadable(); return; }
+      if (data.type === SERVER_MESSAGE.STATE && !deliveredAs(event.data, stateEncoding)) { unreadable(); return; }
       const bytes = typeof event.data === 'string' ? event.data.length : event.data.byteLength;
       if (data.type === SERVER_MESSAGE.WELCOME || data.type === SERVER_MESSAGE.READY) {
         const described = envelopePresentation(data);
@@ -99,6 +117,7 @@ export function createRoomConnection({
         room = data.room; roomId = room;
         try { if (data.resumeKey) sessionStorage.setItem(`last-exit:resume:${room}`, data.resumeKey); } catch { /* Optional recovery. */ }
         playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state; dev = !!data.dev;
+        stateEncoding = data.stateEncoding;
         learn(data.state);
         if (owner && !dev) {
           try { sessionStorage.setItem(`last-exit:owner:${room}`, JSON.stringify({ key, role, kit, name })); }

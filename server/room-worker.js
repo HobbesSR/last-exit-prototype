@@ -5,9 +5,11 @@
 //
 // In: plain messages, in the order the host received them ({ op, ... }; see `handle`).
 // Out: batches of events in the order the room produced them, flushed once per turn of this thread's loop,
-// with each distinct payload encoded once as UTF-8 bytes and transferred, never copied or re-encoded by the
-// host. Whether a droppable state frame is skipped is decided here, against the socket backlog the host last
-// reported, so the room knows exactly which keyframes each client was delivered (room-views.js).
+// with each distinct payload encoded once as UTF-8 bytes (a binary `state` message is bytes already, 24.1) and
+// transferred, never copied or re-encoded by the host. A payload is delivered within the flush that sends it,
+// so transferring its buffer leaves the room nothing it still reads. Whether a droppable state frame is
+// skipped is decided here, against the socket backlog the host last reported, so the room knows exactly
+// which keyframes each client was delivered (room-views.js).
 import { parentPort, workerData } from 'node:worker_threads';
 import * as profiler from '../shared/profiler.ts';
 import { deliverable } from './protocol.js';
@@ -49,13 +51,14 @@ function deliver(clientId, payload, droppable) {
   const held = backlog.get(clientId) ?? 0;
   if (!deliverable(held, droppable)) return false;
   let index = payloadIndex.get(payload);
+  const binary = payload instanceof Uint8Array;
   if (index === undefined) {
     index = payloads.length;
     payloadIndex.set(payload, index);
-    payloads.push(encoder.encode(payload));
+    payloads.push(binary ? payload : encoder.encode(payload));
   }
   backlog.set(clientId, held + payloads[index].byteLength);
-  emit(['deliver', clientId, index]);
+  emit(['deliver', clientId, index, binary]);
   return true;
 }
 

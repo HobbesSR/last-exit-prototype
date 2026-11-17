@@ -1,6 +1,7 @@
 // Socket clients live off the host loop: parsing a welcome must not stall its ticks.
 import { parentPort } from 'node:worker_threads';
 import { WebSocket } from 'ws';
+import { readServerMessage } from '../../shared/wire-schema.ts';
 
 const clients = new Map();
 let nextClient = 0, closing = false;
@@ -25,9 +26,9 @@ async function run({ method, url, room, ownerKey, record, clientId }) {
     const id = ++nextClient, ws = new WebSocket(url);
     const client = { ws, waiters: new Map(), record };
     clients.set(id, client);
-    ws.on('message', raw => {
+    ws.on('message', (raw, binary) => {
       try {
-        const data = JSON.parse(raw.toString());
+        const data = readServerMessage(binary ? new Uint8Array(raw) : raw.toString());
         if (data.type === 'state' && client.record)
           parentPort.postMessage({ event: 'receipt', atMs: stamp() });
         if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong', token: data.token }));

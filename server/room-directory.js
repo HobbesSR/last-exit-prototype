@@ -49,12 +49,16 @@ export function createRoomDirectory({ host, generateMap = null, pool = null, dev
   function receive(session, data) {
     if (data?.type !== CLIENT_MESSAGE.MATCH || session.room) return host.receive(session, data);
     const validated = host.validate ? host.validate(session, data) : acceptClientMessage(session, data);
-    if (!validated.ok) return;
+    // Refused as a join is, with its reason: a stale page is told to reload rather than left waiting.
+    if (!validated.ok) return send(session, errorMessage(validated.reason));
     if (!host.accepting()) return;
     const answer = match();
     if (!answer) return send(session, FULL);
-    const { role, kit, name } = validated.message;
-    host.receive(session, { type: CLIENT_MESSAGE.JOIN, room: answer, mode: 'player', role, ...(kit !== undefined ? { kit } : {}), name, ownerKey: null, resumeKey: null });
+    const { role, kit, name, stateEncoding } = validated.message;
+    host.receive(session, {
+      type: CLIENT_MESSAGE.JOIN, room: answer, mode: 'player', role, ...(kit !== undefined ? { kit } : {}), name,
+      ownerKey: null, resumeKey: null, stateEncoding,
+    });
   }
   return { hasCapacity, nameTaken, createRoom, list, match, receive };
 }
