@@ -17,7 +17,7 @@ export const frameFields = projection(FRAME_FIELDS);
 export const OWN_FIELDS = 'x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered';
 const ownFields = projection(OWN_FIELDS);
 // An actor with a body carries its pose there only (24.4): built without it rather than copied again (#1163).
-const ownFieldsWithoutPose = projection(OWN_FIELDS.replace(/^x y /, ''));
+const ownFieldsWithoutPose = projection(OWN_FIELDS.split(' ').filter(field => field !== 'x' && field !== 'y').join(' '));
 export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family';
 export const itemFields = projection(ITEM_FIELDS);
 export const GATE_FIELDS = 'gateIdx open locked';

@@ -34,7 +34,8 @@ with delta frames ([Schema 17](#schema-17-lines-and-delta-frames-901)), which no
 read, and schema 18 (#948, #949) drops dead recorded fields (`Player.path`,
 `GameMap.{modules,nodes,routes,streets}`, `physics.{profile,settings,world.pending}`) while remaining
 compatible with schema 17 readers; schema 19 adds tick stamps to recorded input
-([Schema 19](#schema-19-tick-stamped-input-1096)). This build still reads every schema from 10. Optional appearance
+([Schema 19](#schema-19-tick-stamped-input-1096)); schema 20 records the relational presentation
+([Schema 20](#schema-20-relational-presentation-1153)). This build still reads every schema from 10. Optional appearance
 descriptors on map buildings and obstacles (#584) are presentation-only and require no recording schema bump.
 Storage-only changes must preserve frozen gameplay fixtures.
 

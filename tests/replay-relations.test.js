@@ -110,6 +110,11 @@ test('the client normalizer joins players across a gap in the seat roster', () =
   frames.seats([seat(0, 'a'), seat(1, 'd'), seat(2, 'c')]);
   const next = frames.normalize({ tick: 2, players: [{ playerIdx: 1, x: 2, y: 2 }, { playerIdx: 2, x: 5, y: 5 }] });
   assert.deepEqual(next.players.map(p => [p.playerIdx, p.id]), [[1, 'd'], [2, 'c']]);
+  // A middle slot leaving keeps the length: the same frame object must still see the new roster.
+  const held = { tick: 3, players: [{ playerIdx: 1, x: 2, y: 2 }, { playerIdx: 2, x: 5, y: 5 }] };
+  assert.equal(frames.normalize(held).players[0].id, 'd');
+  frames.seats([seat(0, 'a'), seat(2, 'c')]);
+  assert.equal(frames.normalize(held).players[0].id, undefined, 'the departed slot no longer carries metadata');
 });
 
 const deepFreeze = value => { if (value && typeof value === 'object' && !Object.isFrozen(value)) { Object.freeze(value); Object.values(value).forEach(deepFreeze); } return value; };
@@ -132,10 +137,11 @@ test('decoded frames, wire and replay shaped, survive the client pipeline frozen
   const prediction = await createPhysicsPrediction(map, 'c0', { clock: () => 0 });
   try {
     for (const frame of frames) {
-      const joined = normalizer.normalize(frame);
+      // The client hands the normalized frame on (public/room-connection.js), so that is what is frozen and passed.
+      const joined = deepFreeze(normalizer.normalize(frame));
       normalizer.normalize(frame);
       buffer.push(joined); now += 50; buffer.frame();
-      prediction.correct(frame);
+      prediction.correct(joined);
     }
     const timeline = createReplayTimeline({ map: deepFreeze(structuredClone(map)), frames: recorded.map(state => ({ state })) });
     for (const tick of [1, 1.5, 2]) timeline.at(tick);
