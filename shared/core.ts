@@ -1,11 +1,10 @@
 /**
  * The one loader for the Rust core (`rust/core`, docs/27), shared by Node and the browser. The
- * host supplies the module's bytes: Node reads `shared/core.wasm`, the browser fetches it. Both
- * instantiate once at startup, before anything that uses the core, because a browser cannot
- * import an asynchronously instantiated module synchronously.
+ * host supplies the module's bytes: Node reads the file `tools/build-core.mjs` builds, and the
+ * browser fetches it. Both instantiate once at startup, before anything that uses the core,
+ * because a browser cannot import an asynchronously instantiated module synchronously.
  *
- * `shared/core.wasm` is committed, built by `npm run core:build`; CI rebuilds it and fails if
- * the bytes differ (docs/27, "The workspace").
+ * The module is a build output, never committed: each host builds its own (docs/27).
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */

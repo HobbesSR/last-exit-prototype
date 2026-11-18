@@ -1,2 +1,0 @@
-# The committed core module (docs/27); never let line-ending conversion touch it.
-*.wasm binary

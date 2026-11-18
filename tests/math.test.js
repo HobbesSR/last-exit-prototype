@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as math from '../shared/math.ts';
 import { loadCore } from '../shared/core.ts';
+import { buildCore } from '../tools/build-core.mjs';
 
 const { atan, atan2, cos, hypot, sin } = math;
 
@@ -91,7 +92,7 @@ test('the math module returns the same bits on every platform', () => {
 });
 
 test('the Rust core computes the same bits as the math module (docs/27)', async () => {
-  const core = await loadCore(readFileSync('shared/core.wasm'));
+  const core = await loadCore(readFileSync(buildCore()));
   const ported = { sin: core.math_sin, cos: core.math_cos, atan: core.math_atan, atan2: core.math_atan2, hypot: core.math_hypot };
   assert.equal(digestOf(ported), '5a8ef1eb');
   assert.equal(edgeDigestOf(ported), '774d7a76');
