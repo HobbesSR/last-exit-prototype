@@ -75,9 +75,10 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [24.2-lossy-transport-deltas.md](24.2-lossy-transport-deltas.md) | Proposed lossy-transport delta design (#1094): reliable slow layers plus acknowledged-baseline datagrams for fast state, sharing, overflow and quantization activation; awaiting Corey's decisions, not implemented |
 | [24.3-wire-data-model.md](24.3-wire-data-model.md) | Engine data model for the wire (#1139): per-field types, sources, observed value classes and prediction exactness of the live state message, historical pre-relational inventory, with #1153 adoption in 24.4 and remaining codec proposals |
 | [24.4-relational-data-model.md](24.4-relational-data-model.md) | Implemented relational data strategy, static geometry split and structured localized events (#1146, #1147, #1153): dense implicit indices versus monotonic numeric IDs, compatibility boundaries and execution sequence before #1130/#1131 |
+| [24.5-transport.md](24.5-transport.md) | Transport (#1095): WebTransport from a Rust edge (decided, 27) with a WebSocket fallback behind the session seam; server stacks, whether WebTransport is right and its WebRTC fallback, certificates, channels and four stages; not implemented |
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
 | [26-recording-contract.md](26-recording-contract.md) | Replay format, integrity, bounded recording, failure and recovery, playback |
-| [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, the one math library both sides need, and the order of an incremental, fixture-checked port |
+| [27-rust-path.md](27-rust-path.md) | The decided move of the backend's foundations to Rust (#1173): boundaries (edge, core, host; map generation stays in Node), the edge, the core as one WASM binary behind an adapter, the one math library both sides need, tests and the fixture, physics |
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |
 | [28.1-deployment-topology.md](28.1-deployment-topology.md) | Proposed direction, not decided: which server pieces could become separate processes or hosts, where client sockets terminate, rules for any topology, and an order (#1121, #907) |
 | [29-geometry-and-drawing.md](29-geometry-and-drawing.md) | Guide: shape descriptions, collision, sight edges, physics prerequisites |
@@ -103,7 +104,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | File | Holds |
 | --- | --- |
 | [41-roadmap.md](41-roadmap.md) | The order between efforts and the reason for each, with each one's tracker; the retired plans 41.1–41.3 are archived |
-| [42-performance-history.md](42-performance-history.md) | Guide to measured baselines and their limits, from completed verification passes; children 42.1–42.55 by topic (runtime, navigation, physics stages, generation, content and wire encoding) |
+| [42-performance-history.md](42-performance-history.md) | Guide to measured baselines and their limits, from completed verification passes; children 42.1–42.56 by topic (runtime, navigation, physics stages, generation, content and wire encoding) |
 
 ### 5x — Map generation
 

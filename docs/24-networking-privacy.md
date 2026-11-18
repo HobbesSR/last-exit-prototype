@@ -8,7 +8,8 @@ is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data m
 live state, and the engine-side choices that shape a typed wire, are in
 [24.3](24.3-wire-data-model.md) (historical inventory and remaining proposals). The implemented relational data strategy,
 static geometry split and structured localized event design (#1146) are in
-[24.4](24.4-relational-data-model.md).
+[24.4](24.4-relational-data-model.md). The transport, WebTransport from a Rust edge with this WebSocket as its fallback
+(#1095, [27](27-rust-path.md)), is [24.5](24.5-transport.md), not implemented.
 
 The rules this mechanism enforces are in [15](15-information-rules.md).
 
@@ -79,7 +80,7 @@ rest of 8 ([17.4](17.4-live-service.md) #17). Snapshots and recordings are uncha
     one, closing with the unreadable notice. On one ordered socket that cannot happen; what a client does without the roster on a
     lossy transport is #1094's to decide ([24.2](24.2-lossy-transport-deltas.md)).
 
-Validation is transport-free and session concerns sit behind a minimal session interface (`id`, `deliver`, `close`, `rejectedMessages`) so room lifecycle, matchmaking, session admission/reconnection (`join`, `match`, `welcome`, `lobby`, `error`, `ping`/`pong`) and connection state can be absorbed by room middleware (Colyseus is the leading candidate) while game update, visibility projection, layered frame encoding, lag compensation and recording stay ours. When evaluating Colyseus against this seam, note three specifics: Colyseus 0.16 replaced `@filter` with `StateView` for per-client visibility; Colyseus 0.18 added built-in client prediction and input handling, so `input` is not automatically application-owned; and our 60-tick spectator delay projects a historical frame rather than current room state, which does not fit live schema state sync and keeps state/projection delivery on our own message path unless delayed spectators move to a downstream consumer ([Two-tier spectators](#two-tier-spectators)).
+Validation is transport-free and session concerns sit behind a minimal session interface (`id`, `deliver`, `close`, `rejectedMessages`) so room lifecycle, matchmaking, session admission/reconnection (`join`, `match`, `welcome`, `lobby`, `error`, `ping`/`pong`) and connection state can be absorbed by room middleware (Colyseus was the leading candidate; it is retired as one since 2026-11-17, kept only as lobby-pattern guidance, [27](27-rust-path.md)) while game update, visibility projection, layered frame encoding, lag compensation and recording stay ours. When evaluating Colyseus against this seam, note three specifics: Colyseus 0.16 replaced `@filter` with `StateView` for per-client visibility; Colyseus 0.18 added built-in client prediction and input handling, so `input` is not automatically application-owned; and our 60-tick spectator delay projects a historical frame rather than current room state, which does not fit live schema state sync and keeps state/projection delivery on our own message path unless delayed spectators move to a downstream consumer ([Two-tier spectators](#two-tier-spectators)).
 
 ## Client authority
 
