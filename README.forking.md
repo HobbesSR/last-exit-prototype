@@ -12,7 +12,8 @@ Subsystem ownership and enforced import boundaries are documented in [docs/22-ow
 │   ├── physics/             # Required Rapier 2D adapter, bodies, props, hook tether, local prediction
 │   ├── navigation/          # Portal graph, discovery knowledge tiles, optimistic planner, local repair
 │   ├── map/                 # World dimensions, generation context, and element-stamping layer
-│   ├── shape.ts             # Dependency-free rect/circle/polygon primitives and SAT queries
+│   ├── shape.ts             # Rect/circle/polygon description: bounds, outlines, clipping, transforms
+│   ├── shape-queries.ts     # Containment, overlap, shared area and segment distance (SAT-backed)
 │   ├── shape-construction.ts# Clipper polygon union/subtraction/erosion and constrained triangulation
 │   ├── free-space.ts        # Clearance-eroded free-space navmesh and funnel corridors
 │   ├── movement.ts          # Occupancy, swept movement, sight queries, and visibility polygons

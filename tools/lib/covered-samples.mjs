@@ -1,4 +1,5 @@
-import { bounds, body, contains } from '../../shared/shape.ts';
+import { bounds } from '../../shared/shape.ts';
+import { contains, prepare } from '../../shared/shape-queries.ts';
 
 /** Points per fill cell side when measuring covered area. */
 export const SAMPLES = 4;
@@ -7,7 +8,7 @@ export const SAMPLES = 4;
 export function coveredSamples(cells, size, shapes) {
   const near = new Map();
   for (const shape of shapes) {
-    const box = bounds(shape), cached = shape.kind === 'polygon' ? body(shape) : undefined;
+    const box = bounds(shape), cached = shape.kind === 'polygon' ? prepare(shape) : undefined;
     for (let y = Math.floor(box.y / size); y < Math.ceil((box.y + box.h) / size); y++)
       for (let x = Math.floor(box.x / size); x < Math.ceil((box.x + box.w) / size); x++) {
         const key = `${x},${y}`;

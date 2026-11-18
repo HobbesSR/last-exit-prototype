@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createClearance } from '../tools/navigation/clearance.mjs';
-import { segmentShapeDistance, rect, circle, polygon } from '../shared/shape.ts';
+import { rect, circle, polygon } from '../shared/shape.ts';
+import { segmentShapeDistance } from '../shared/shape-queries.ts';
 import { bakeGraph, queryGraph } from '../tools/navigation/graph.mjs';
 import { reachClear } from '../shared/movement.ts';
 import { openArea } from './helpers/arena.js';

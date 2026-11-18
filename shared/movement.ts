@@ -1,8 +1,7 @@
-import SAT from 'sat';
-import type { Circle, Polygon } from 'sat';
 import { count } from './profiler.ts';
 import { finite } from './numbers.ts';
-import { shapeOf, bounds, nearBounds, edgesOf, body, separate, segmentShapeDistance, rect } from './shape.ts';
+import { shapeOf, bounds, nearBounds, edgesOf, rect } from './shape.ts';
+import { diskPenetration, prepare, segmentShapeDistance, type Prepared } from './shape-queries.ts';
 import type { Bounded, Edge, Shape } from './shape.ts';
 import type { Box, CollisionMap, Gate, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
 import { atan2, cos, hypot, sin } from './math.ts';
@@ -15,12 +14,12 @@ import { BUCKET, bucketBox, eachCellIn, Visited } from './buckets.ts';
  * window, a low pipe run or a hedge, which the game, being 2D, treats the same way (17.2.8 M34).
  */
 export const seeThrough = (kind: string | undefined): boolean => kind === 'window' || kind === 'pipe' || kind === 'hedge';
-/** One record resolved to its shape, bounds and SAT body, all kept for as long as the map lives. */
+/** One record resolved to its shape, bounds and prepared query form, all kept for as long as the map lives. */
 interface Collider {
   source?: Obstacle;
   shape: Shape;
   box: Box;
-  body: Circle | Polygon;
+  prepared: Prepared;
   kind?: string | undefined;
 }
 interface Geometry {
@@ -44,11 +43,10 @@ export const VISION = 620;
 // (simulation/dynamic-navigation.ts), share one geometry instead of rebuilding every collider (#727).
 const shapeCache = new WeakMap<readonly Obstacle[], Geometry>();
 const playableRows = new WeakMap<PlayableArea, Map<number, Array<[number, number]>>>();
-const vec = (x: World, y: World) => new SAT.Vector(x, y);
 /** Resolve a stored record -- an obstacle, or a closed gate's box -- into a reusable collider. */
 function collider(source: Bounded & { kind?: string | undefined }): Collider {
   const shape = shapeOf(source);
-  return { shape, box: bounds(shape), body: body(shape), kind: source.kind };
+  return { shape, box: bounds(shape), prepared: prepare(shape), kind: source.kind };
 }
 // Count work rather than reading a clock: this path also runs in the portable simulation.
 const GEOMETRY_CHUNK = 128;
@@ -230,18 +228,17 @@ export function insideMap(map: Pick<CollisionMap, 'width' | 'height' | 'playable
 export function canOccupy(map: CollisionMap, x: World, y: World, radius: World = 12, ignoreGates = false, projectile = false): boolean {
   count('calls.canOccupy');
   if (!insideMap(map, x, y, radius)) return false;
-  const circle = new SAT.Circle(vec(x, y), radius), response = new SAT.Response();
   for (const o of nearbyShapes(map, x, y, radius)) {
     if (projectile && seeThrough(o.kind)) continue;
     if (!nearBounds(o.box, x, y, radius)) continue;
-    response.clear();
-    if (separate(circle, o.shape, o.body, response) && response.overlap > 0.01) return false;
+    const hit = diskPenetration(x, y, radius, o.shape, o.prepared);
+    if (hit && hit.depth > 0.01) return false;
   }
   if (!ignoreGates) for (const g of gatesNear(map, x - radius, y - radius, x + radius, y + radius)) if (!g.open) {
     const box = gateShape(g);
     if (!nearBounds(box, x, y, radius)) continue;
     const o = collider(box);
-    if (separate(circle, o.shape, o.body)) return false;
+    if (diskPenetration(x, y, radius, o.shape, o.prepared)) return false;
   }
   return true;
 }
@@ -306,7 +303,7 @@ export function movementSpeed(p: Pick<Player, 'role' | 'boost' | 'stun'>, input:
   return speed;
 }
 
-/** Shared SAT sliding for tools and actors with explicit body dimensions. Input is normalized here. */
+/** Shared disk sliding for tools and actors with explicit body dimensions. Input is normalized here. */
 export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: number | undefined; y?: number | undefined }, radius: number, speed: number): T {
   if (!Number.isFinite(radius) || radius <= 0 || !Number.isFinite(speed) || speed < 0) throw new Error('Invalid movement dimensions.');
   // Small steps prevent a fast body from crossing a void cell and landing on the far side.
@@ -318,25 +315,24 @@ export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: n
   }
   const x = finite(input.x) ? input.x : 0, y = finite(input.y) ? input.y : 0;
   const norm = Math.max(1, hypot(x, y));
-  const circle = new SAT.Circle(vec(p.x + x / norm * speed, p.y + y / norm * speed), radius);
-  const response = new SAT.Response();
-  const colliders: Collider[] = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearBounds(o.box, circle.pos.x, circle.pos.y, radius + speed));
+  let cx = p.x + x / norm * speed, cy = p.y + y / norm * speed;
+  const colliders: Collider[] = [...nearbyShapes(map, cx, cy, radius + speed)].filter(o => nearBounds(o.box, cx, cy, radius + speed));
   const reach = radius + speed;
-  for (const g of gatesNear(map, circle.pos.x - reach, circle.pos.y - reach, circle.pos.x + reach, circle.pos.y + reach)) if (!g.open) {
+  for (const g of gatesNear(map, cx - reach, cy - reach, cx + reach, cy + reach)) if (!g.open) {
     const box = gateShape(g);
-    if (nearBounds(box, circle.pos.x, circle.pos.y, reach)) colliders.push(collider(box));
+    if (nearBounds(box, cx, cy, reach)) colliders.push(collider(box));
   }
-  for (const box of voidCellsNear(map, circle.pos.x, circle.pos.y, radius + speed)) colliders.push(collider(box));
-  // SAT separation provides continuous sliding along walls and around obstacle corners.
+  for (const box of voidCellsNear(map, cx, cy, radius + speed)) colliders.push(collider(box));
+  // Separating the disk from each collider in turn slides it along walls and around obstacle corners.
   for (let pass = 0; pass < 3; pass++) for (const o of colliders) {
-    response.clear();
-    if (separate(circle, o.shape, o.body, response)) circle.pos.sub(response.overlapV);
+    const hit = diskPenetration(cx, cy, radius, o.shape, o.prepared);
+    if (hit) { cx += hit.x; cy += hit.y; }
   }
-  circle.pos.x = Math.max(radius, Math.min(map.width - radius, circle.pos.x));
-  circle.pos.y = Math.max(radius, Math.min(map.height - radius, circle.pos.y));
-  // A deep-void start has no well-defined SAT escape direction. Keep the last valid placement.
-  if (!insideMap(map, circle.pos.x, circle.pos.y, radius)) { circle.pos.x = p.x; circle.pos.y = p.y; }
-  p.x = Math.round(circle.pos.x * 1000) / 1000; p.y = Math.round(circle.pos.y * 1000) / 1000;
+  cx = Math.max(radius, Math.min(map.width - radius, cx));
+  cy = Math.max(radius, Math.min(map.height - radius, cy));
+  // A deep-void start has no well-defined escape direction. Keep the last valid placement.
+  if (!insideMap(map, cx, cy, radius)) { cx = p.x; cy = p.y; }
+  p.x = Math.round(cx * 1000) / 1000; p.y = Math.round(cy * 1000) / 1000;
   return p;
 }
 const TAU = Math.PI * 2;

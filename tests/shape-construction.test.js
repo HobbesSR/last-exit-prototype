@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import ClipperLib from 'clipper-lib';
 import { construct, convexPieces, disjoint, strictlySimpleClipper } from '../shared/shape-construction.ts';
-import { circle, convex, outline, polygon, rect, sharesArea, transform } from '../shared/shape.ts';
+import { circle, convex, outline, polygon, rect, transform } from '../shared/shape.ts';
+import { sharesArea } from '../shared/shape-queries.ts';
 
 const area = shape => {
   if (shape.kind === 'rect') return shape.w * shape.h;

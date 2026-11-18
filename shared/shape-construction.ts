@@ -1,7 +1,8 @@
 import ClipperLib from 'clipper-lib';
 import Delaunator from 'delaunator';
 import Constrainautor from '@kninnug/constrainautor';
-import { CIRCLE_SEGMENTS, bounds, outline, polygon, rect, sharesArea, type Shape } from './shape.ts';
+import { CIRCLE_SEGMENTS, bounds, outline, polygon, rect, type Shape } from './shape.ts';
+import { sharesArea } from './shape-queries.ts';
 import type { Vec2 } from './types.ts';
 import { cos, hypot } from './math.ts';
 

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parcelArea, parcelCells, areaContains } from '../map/micro/parcel-area.ts';
-import { rect, polygon, circle, sharesArea } from '../shared/shape.ts';
+import { rect, polygon, circle } from '../shared/shape.ts';
+import { sharesArea } from '../shared/shape-queries.ts';
 
 test('union is disjoint, deterministic, and preserves holes and concavity', () => {
   const inputs = [rect(0,0,4,1), rect(0,1,1,3), rect(3,1,1,3), rect(1,3,2,1), rect(0,0,2,1)];

@@ -21,7 +21,8 @@ import { builtMapCollision, builtMapFrame } from '../micro/adapter.ts';
 import { hintStrength } from '../micro/hints.ts';
 import { navigationClearance, navigationMap } from '../../shared/map/navigation.ts';
 import { sweptClear } from '../../shared/movement.ts';
-import { bounds, segmentShapeDistance, transform, type Shape } from '../../shared/shape.ts';
+import { bounds, transform, type Shape } from '../../shared/shape.ts';
+import { segmentShapeDistance } from '../../shared/shape-queries.ts';
 import type { Vec2 } from '../../shared/types.ts';
 
 const arg = (name: string, fallback: string) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]!; };

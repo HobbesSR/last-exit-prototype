@@ -74,7 +74,7 @@ if(process.argv[2]==='--case') {
   const lock=await acquireMachineLock('bench');
   try {
     const report={revision:spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),created:new Date().toISOString(),node:process.version,platform:process.platform,arch:process.arch,cpu:os.cpus()[0].model,cpuCount:os.cpus().length,totalMemory:os.totalmem(),seed:1,sourceHashes:{},cases:[]};
-    for(const path of ['shared/shape.ts','tools/navigation/clearance.mjs','tools/navigation/graph.mjs','tools/navigation/hierarchy.mjs','tools/navigation/optimistic.mjs','tools/navigation/witnesses.mjs','tools/navigation/report.mjs'])report.sourceHashes[path]=createHash('sha256').update(readFileSync(path)).digest('hex');
+    for(const path of ['shared/shape.ts','shared/shape-queries.ts','tools/navigation/clearance.mjs','tools/navigation/graph.mjs','tools/navigation/hierarchy.mjs','tools/navigation/optimistic.mjs','tools/navigation/witnesses.mjs','tools/navigation/report.mjs'])report.sourceHashes[path]=createHash('sha256').update(readFileSync(path)).digest('hex');
     report.witnesses=measureWitnesses();
     for(const size of [12,24,36])for(const radius of [14,25])for(const spacing of [24,40]) {
       console.error(`Measuring ${size}x${size/2} r=${radius} spacing=${spacing}`);

@@ -1,5 +1,6 @@
 // Research adapter only. No simulation or RNG/ID state is consumed.
-import { bounds, shapeOf, rect, segmentShapeDistance } from '../../shared/shape.ts';
+import { bounds, shapeOf, rect } from '../../shared/shape.ts';
+import { segmentShapeDistance } from '../../shared/shape-queries.ts';
 import { gateShape, insideMap } from '../../shared/movement.ts';
 
 /** Snapshot geometry and closed gates. Recreate after any geometry/door change.

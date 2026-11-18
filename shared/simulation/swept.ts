@@ -1,5 +1,6 @@
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
-import { bounds, circle, polygon, rect, segmentShapeDistance } from '../shape.ts';
+import { bounds, circle, polygon, rect } from '../shape.ts';
+import { segmentShapeDistance } from '../shape-queries.ts';
 import type { Shape } from '../shape.ts';
 import { seeThrough } from '../movement.ts';
 import { bucketBox, eachCellIn, Visited } from '../buckets.ts';
