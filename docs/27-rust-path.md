@@ -121,6 +121,42 @@ exact operations only ([22.1](22.1-shared-simulation.md)). The crate ports `shar
 the TypeScript to match a library, because that moves the frozen fixture. Every crate is third-party code under
 [21.1](21.1-third-party-licenses.md), checked by #1174's licence audit.
 
+## The workspace
+
+`rust/` is one Cargo workspace, set up by #1174. Cargo runs from that directory.
+- **Toolchain.** `rust/rust-toolchain.toml` pins Rust 1.100.0 with `clippy`, `rustfmt` and the `wasm32-unknown-unknown`
+  target. CI's image and `rust/Dockerfile` name the same version, so the three are bumped together.
+- **Crates.** `rust/edge/` is the package `last-exit-edge`, a binary. `rust/core/` is the package `last-exit-core`.
+  It is not named `core` because that would shadow Rust's own `core` crate. Both are placeholders until #1095 and
+  #1175.
+- **Lockfile.** `rust/Cargo.lock` is committed, because the workspace builds a binary and a module that ship.
+- **Checks.** `rust/deny.toml` holds the licence policy ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
+  [31](31-verification.md#continuous-integration) lists the checks and what they cost.
+- **The math guard.** `rust/core/clippy.toml` forbids `mul_add` and the platform's transcendentals (`sin`, `cos`,
+  `tan`, `atan2`, `hypot`, `powf`, `exp`, `ln`) in the core. CI's clippy treats a use as an error. This is the
+  Rust form of "never call `Math.sin` in `shared/`" ([22.1](22.1-shared-simulation.md)).
+
+**How the WASM is built and loaded.** These are agent recommendations made under #1174:
+- **Plain exports, not `wasm-bindgen`.** The core compiles as a `cdylib` with `extern "C"` exports.
+  - **Why.** Rule 1 keeps inputs and outputs in flat buffers in WASM memory, so `wasm-bindgen`'s generated glue would
+    have nothing to do. Its command-line tool must also match the crate's version exactly, and it adds crates to the
+    tree.
+  - **When to revisit.** Only if an export ever needs JavaScript strings or objects, which rule 1 rules out.
+- **One loader.** One JavaScript loader instantiates the module from bytes that its host supplies.
+  - **Where the bytes come from.** Node reads the file. The browser fetches it from a served path.
+  - **When.** Both call `WebAssembly.instantiate` once at startup, before anything that uses the core.
+  - **The first call.** The loader reads `adapter_version` before anything else. That is the version of the contract
+    between the module and its adapter.
+  - **Evidence.** The placeholder loads in Node 24 on Windows and in CI's Linux image.
+- **Open for #1175.** Where the built `.wasm` comes from for `npm test` and the server is not settled. Either
+  `verify` builds it, or it is committed and CI checks that a rebuild reproduces it byte for byte. #1175 decides it
+  with its first JavaScript caller.
+
+**The edge on a Linux host.** `rust/Dockerfile` builds the edge in the official Rust image and runs it on
+`debian:bookworm-slim` as `nobody`. CI builds the same binary in its own Linux image. No image is published: a host
+builds its own. Distributing an image would redistribute what it contains
+([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
+
 ## Tests and the frozen fixture
 
 The acceptance tests exist already:

@@ -1,0 +1,38 @@
+# The Rust workspace's licence and source check (#1174), run by CI as
+# `cargo deny check licenses sources`. The policy is docs/21.1's: permissive licences only.
+# Copyleft (GPL, LGPL, AGPL, MPL, EPL), non-commercial and unlicensed crates are the repository
+# owner's decision, recorded in docs/17.4, never an entry added here quietly.
+
+[graph]
+# Every platform a crate is built for: the development machine, the Linux host and the WASM core.
+targets = [
+  "x86_64-pc-windows-msvc",
+  "x86_64-unknown-linux-gnu",
+  "wasm32-unknown-unknown",
+]
+
+[licenses]
+# Each entry is one docs/21.1 lists as compatible with the project's MIT licence.
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "ISC",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "Unlicense",
+  # The Unicode data licence: the ICU and unicode-ident crates under URL and certificate parsing (#1174).
+  "Unicode-3.0",
+]
+confidence-threshold = 0.93
+# The list is the policy, not an inventory: an entry no crate uses yet is not a warning.
+unused-allowed-license = "allow"
+
+# The workspace's own crates are checked too: each declares the project licence.
+[licenses.private]
+ignore = false
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

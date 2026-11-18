@@ -1,0 +1,14 @@
+# docs/27 "One math library on both sides": the core's results must be bit-equal with
+# shared/math.ts. A platform transcendental or a fused multiply-add is not.
+disallowed-methods = [
+  { path = "f64::mul_add", reason = "fused multiply-add rounds once; write `a * b + c` (docs/27)" },
+  { path = "f32::mul_add", reason = "fused multiply-add rounds once; write `a * b + c` (docs/27)" },
+  { path = "f64::sin", reason = "use the crate's port of shared/math.ts (docs/27)" },
+  { path = "f64::cos", reason = "use the crate's port of shared/math.ts (docs/27)" },
+  { path = "f64::tan", reason = "use the crate's port of shared/math.ts (docs/27)" },
+  { path = "f64::atan2", reason = "use the crate's port of shared/math.ts (docs/27)" },
+  { path = "f64::hypot", reason = "use the crate's port of shared/math.ts (docs/27)" },
+  { path = "f64::powf", reason = "platform math; not bit-stable across hosts (docs/27)" },
+  { path = "f64::exp", reason = "platform math; not bit-stable across hosts (docs/27)" },
+  { path = "f64::ln", reason = "platform math; not bit-stable across hosts (docs/27)" },
+]
