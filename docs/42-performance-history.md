@@ -21,6 +21,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.54](42.54-field-typed-codec.md) | Field-typed descriptor codec against stock protobuf on the relational v4 slice (#1130): one per-field type model, bytes, Node and Chrome CPU with process CPU, deployable minified bundles, exactness and malformed input |
 | [42.55](42.55-wire-adoption.md) | The descriptor codec live (#1131 stage 2): the production runtime against JSON on a live room's own state messages, bytes and Node encode/decode CPU per view, steady and keyframes |
 | [42.56](42.56-transport-probe.md) | A real WebTransport session, Node to Chrome through a lossy UDP relay (#1095): datagrams against a reliable stream and a WebSocket, delivery, latency and staleness per network profile, the datagram cap and connection setup |
+| [42.57](42.57-edge-cpu.md) | The Rust edge's CPU carrying 1, 4 and 8 Chrome players on WebTransport through a live match (#1095, stage 1) |
 
 ### Navigation
 

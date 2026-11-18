@@ -18,7 +18,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 6;
+export const WIRE_VERSION = 7;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -373,6 +373,8 @@ export interface ClientConfigResponse {
   sizes: string[];
   defaultSize: string;
   matchmakingCountdownMs: number;
+  /** Where the WebTransport edge is, or null while none is linked (24.5). */
+  webTransport: { port: number; certificateHash: string | null } | null;
 }
 
 export interface RoomSummary {
@@ -726,7 +728,7 @@ const PROFILE_KEYS = ['enabled', 'tickRate', 'budgetMs', 'effectiveHz', 'frames'
 const ROOM_PROFILE_KEYS = ['id', 'frames', 'effectiveHz', 'series'] as const;
 const CLIENT_CONFIG_KEYS = [
   'wireVersion', 'devTools', 'presentation', 'seed', 'roomNameMaxLength',
-  'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs',
+  'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs', 'webTransport',
 ] as const;
 const ROOM_SUMMARY_KEYS = ['id', 'name', 'kind', 'phase', 'ready', 'size', 'createdAt', 'players', 'open'] as const;
 const CREATE_ROOM_KEYS = ['id', 'name', 'ownerKey', 'seed', 'size'] as const;
@@ -779,6 +781,17 @@ export function profileToggleResponse(enabled: boolean): ProfileToggleResponse {
   return { enabled };
 }
 
+/**
+ * The edge's offer as the browser is given it (24.5): its UDP port, and the hex SHA-256 of a self-signed
+ * certificate or null for a CA-issued one. The edge link checks what the edge reports against this too.
+ */
+export function isWebTransportOffer(value: unknown): value is { port: number; certificateHash: string | null } {
+  if (!isRecord(value) || !hasExactKeys(value, ['port', 'certificateHash'])) return false;
+  const { port, certificateHash } = value;
+  return Number.isInteger(port) && (port as number) >= 1 && (port as number) <= 65535 &&
+    (certificateHash === null || (typeof certificateHash === 'string' && /^[0-9a-f]{64}$/i.test(certificateHash)));
+}
+
 export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVersion'>): ClientConfigResponse {
   const payload: ClientConfigResponse = { wireVersion: WIRE_VERSION, ...fields };
   const raw = payload as unknown as Record<string, unknown>;
@@ -798,7 +811,8 @@ export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVer
     raw.sizes.length === 0 ||
     !raw.sizes.every(nonEmptyString) ||
     !nonEmptyString(raw.defaultSize) ||
-    !nonNegativeInt(raw.matchmakingCountdownMs)
+    !nonNegativeInt(raw.matchmakingCountdownMs) ||
+    (raw.webTransport !== null && !isWebTransportOffer(raw.webTransport))
   ) {
     throw new TypeError('Invalid /api/client-config response payload.');
   }

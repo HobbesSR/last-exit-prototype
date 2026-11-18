@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
 import { MATCHMAKING_COUNTDOWN_MS } from '../server/room-service.js';
-import { WIRE_VERSION, MAX_ROOM_NAME, ROOM_SIZE_NAMES } from '../server/protocol.js';
+import { WIRE_VERSION, MAX_ROOM_NAME, ROOM_SIZE_NAMES, isWebTransportOffer } from '../server/protocol.js';
 import { listen } from './helpers/listen.js';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
 import { createGameRecord, joinGame } from '../shared/simulation.ts';
@@ -28,7 +28,7 @@ test('client configuration states each owner\'s values, the server\'s default co
       wireVersion: WIRE_VERSION, devTools: 'none',
       presentation: describeContent(injected()),
       seed: { min: 1, max: MAX_ARENA_SEED }, roomNameMaxLength: MAX_ROOM_NAME, playerNameMaxLength: MAX_PLAYER_NAME,
-      sizes: ROOM_SIZE_NAMES, defaultSize: '12x6', matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS,
+      sizes: ROOM_SIZE_NAMES, defaultSize: '12x6', matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS, webTransport: null,
     });
     const text = JSON.stringify(config);
     assert.ok(!text.includes(room.id) && !text.includes(room.ownerKey), 'no room or credential');
@@ -54,4 +54,14 @@ test('player names keep the 16-unit cut and each layer keeps its own default nam
   } finally { await h.service.close(); }
   const s = createGameRecord(4217, generatedMap(), defaultContent());
   assert.equal(joinGame(s, 'direct')?.name, 'You', 'the simulation\'s own default');
+});
+
+test('the WebTransport offer is a port and a SHA-256 hex hash or null, and nothing else', () => {
+  const hash = 'ab'.repeat(32);
+  for (const good of [{ port: 4433, certificateHash: hash }, { port: 1, certificateHash: null }, { port: 65535, certificateHash: hash.toUpperCase() }])
+    assert.equal(isWebTransportOffer(good), true, JSON.stringify(good));
+  for (const bad of [null, {}, { port: 0, certificateHash: null }, { port: 65536, certificateHash: null }, { port: 4433.5, certificateHash: null },
+    { port: '4433', certificateHash: null }, { port: 4433, certificateHash: 'ab' }, { port: 4433, certificateHash: 'zz'.repeat(32) },
+    { port: 4433, certificateHash: null, url: 'x' }, { port: 4433 }])
+    assert.equal(isWebTransportOffer(bad), false, JSON.stringify(bad));
 });

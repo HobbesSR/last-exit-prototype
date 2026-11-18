@@ -1,3 +1,4 @@
+import { openArenaSocket } from '/arena-socket.js';
 import { createFrameNormalizer } from '../shared/relational-frame.ts';
 import { notePacket } from '/diagnostics.js';
 import * as profiler from '/shared/profiler.ts';
@@ -88,7 +89,7 @@ export function createRoomConnection({
     discovery.reset();
     roomId = room; ownerKey = key;
     showStatus('CONNECTING');
-    const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+    const socket = openArenaSocket();
     // Items and gates arrive as changes against a keyframe this socket was sent (shared/frame-layers.ts).
     ws = socket; const layers = createLayerDecoder(), frames = createFrameNormalizer();
     // State may arrive in the descriptor codec's binary form as well as JSON (#1131, 24.1).
