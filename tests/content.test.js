@@ -158,9 +158,11 @@ test('content stays out of every frame, and is named once instead', async t => {
   // Nor does it leak through a player view, which is a projection of the frame.
   const view = playerView(s, frame, s.players[0].id);
   assert.equal(Object.hasOwn(view, 'content'), false);
-  // What a view does carry is the values it needs, read from the match's own content.
-  assert.equal(view.duration, s.content.durationTicks);
+  // The frame records the values it was played with, read from the match's own content. A view does not repeat
+  // them: a client has them from the content descriptor its welcome names (24.3 proposal 3).
+  assert.equal(frame.duration, s.content.durationTicks);
   assert.equal(frame.cellChargeTicks, s.content.cellChargeTicks);
+  for (const field of ['version', 'duration', 'cellChargeTicks']) assert.equal(Object.hasOwn(view, field), false, field);
 });
 
 test('a kit is validated against the match content rather than the shipped table', () => {

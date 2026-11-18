@@ -100,14 +100,10 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId | null | undefin
     const posed = !relations.byActor(p.playerIdx);
     return own ? ownPlayerFields(p, discovery, heard, p.playerIdx, wire, posed) : observed(p, p.playerIdx, posed);
   };
-  return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
+  // `directed` is the client's own (it knows how it joined); the match constants come with the map (24.3).
+  return { ...rest, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.playerIdx)), items, inRange, wire) : {}),
-    ...(frame.bodies && viewer ? { predictionMotor: {
-      acceleration: s.content.actorPhysics.acceleration,
-      braking: s.content.actorPhysics.braking,
-      maxSpeed: s.content.actorPhysics.maxSpeed,
-      surfaces: true,
-    }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
+    ...(frame.bodies && viewer ? { predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`),
     // The viewer's own flight, pending hit or pull, which hidden endpoints may omit from tethers and flights.
     ...(frame.physics?.hooks ? { hookActive: frame.physics.hooks.some(hook => hook.caster === viewer.id) } : {}) } : {}),
     ...(viewer ? { self: projectPlayer(viewer, true) } : {}),

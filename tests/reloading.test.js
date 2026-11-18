@@ -245,7 +245,8 @@ test('the owner sees reserves and reload progress; other players and older conte
   tick(s, p, { reload: true });
   const frame = snapshot(s), own = playerView(s, frame, p.id), other = playerView(s, frame, q.id);
   assert.deepEqual(own.players.find(r => r.id === p.id).reserves, { pistol: 9, rifle: 0, shell: 0 });
-  assert.equal(own.players.find(r => r.id === p.id).reload.instanceId, itemId(s, 'gun'));
+  // Progress names the reloading slot; the item's identity is not sent (#1131 stage 3).
+  assert.deepEqual(own.players.find(r => r.id === p.id).reload, { slot: 0, until: p.reload.until });
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
   // Ground ammo keeps its family on the live wire, as in recorded frames.

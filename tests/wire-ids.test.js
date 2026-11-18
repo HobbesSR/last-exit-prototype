@@ -64,12 +64,11 @@ test('a counter outgrowing the outward domain fails loudly, keyed or not', () =>
 // Where each declared record kind sits in a view. The fields themselves come from WIRE_ID_FIELDS, so a
 // field declared there is mapped and checked here, and an undeclared ID-like field fails the walk below.
 const LOCATIONS = {
-  item: v => [...v.items ?? [], ...(v.self?.inventory ?? []).filter(Boolean), ...v.self?.cell ? [v.self.cell] : []],
+  item: v => [...v.items ?? [], ...(v.self?.inventory ?? []).filter(Boolean)],
   body: v => v.bodies ?? [],
   bodyOwner: v => (v.bodies ?? []).map(b => b.owner),
   tether: v => v.tethers ?? [],
   hookFlight: v => v.hookFlights ?? [],
-  reload: v => v.self?.reload ? [v.self.reload] : [],
   projectile: v => v.projectiles ?? [],
   effect: v => v.effects ?? [],
   event: v => v.events ?? [],
@@ -118,7 +117,8 @@ function compare(identity, keyed, coverage, label) {
   for (const body of keyed.bodies ?? []) if (body.owner.kind === 'item') assert.ok(items.has(body.owner.itemId), `${label}: body ${body.id} owner item`);
   for (const tether of keyed.tethers ?? []) assert.ok(bodies.has(tether.a) && bodies.has(tether.b), `${label}: tether ${tether.id} endpoints`);
   for (const flight of keyed.hookFlights ?? []) assert.ok(bodies.has(flight.a), `${label}: flight ${flight.id} caster body`);
-  if (keyed.self?.reload) assert.ok(keyed.self.inventory.some(item => item?.instanceId === keyed.self.reload.instanceId), `${label}: reload instance is carried`);
+  // A reload names its slot; it carries no item identity to resolve (#1131 stage 3).
+  if (keyed.self?.reload) assert.deepEqual(Object.keys(keyed.self.reload), ['slot', 'until'], `${label}: reload names its slot`);
 }
 
 /**
@@ -193,7 +193,8 @@ test('live and delayed map payloads carry keyed item IDs, recordings internal on
     for (const kind of ['live', 'spectator']) {
       const items = match.payloadMap(kind, frame).items;
       assert.deepEqual(items.map(i => i.id), internal.map(id => wire.id(id, 'item')), `${kind} map items are keyed`);
-      assert.ok(items.every((item, i) => item.instanceId === undefined || item.instanceId === wire.id(recorded[i].instanceId, 'item')));
+      // A client is sent each item as frames carry it (#1131 stage 3): no instance identity.
+      assert.ok(items.every(item => !Object.hasOwn(item, 'instanceId') && !Object.hasOwn(item, 'lineageId')), `${kind} items carry no instance identity`);
     }
     assert.equal(match.payloadMap('live').items, match.payloadMap('live').items, 'an unchanged ground maps once');
     compare(playerView(match.diagnosticState, frame, null), match.project(frame, null), new Set(), 'directed');

@@ -35,7 +35,8 @@ test('a backed-up socket skips state frames but never a one-off message', async 
   const h = roomHarness({ reuseMaps: true }), { room } = await h.live(), flags = [];
   const session = h.service.connect({ deliver: (payload, droppable) => flags.push([readServerMessage(payload).type, droppable]), close() {} });
   h.service.receive(session, { type: 'join', room: room.id }); h.wake(50);
-  assert.deepEqual(flags.filter(([type]) => type !== 'ping'), [['welcome', undefined], ['lobby', undefined], ['seats', undefined], ['state', true]]);
+  // The welcome names its roster's revision, so no `seats` repeats it before the first state (#1131).
+  assert.deepEqual(flags.filter(([type]) => type !== 'ping'), [['welcome', undefined], ['lobby', undefined], ['state', true]]);
   return h.service.close();
 });
 
@@ -230,7 +231,7 @@ test('outbound server message and HTTP builders enforce declared wire shapes at 
 
   const baseWelcome = {
     room: 'r1', owner: true, devTools: true, ready: false, paused: false,
-    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [], stateEncoding: 'binary',
+    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [], rosterRevision: 1, constants: null, stateEncoding: 'binary',
   };
   assert.throws(() => playerWelcomeMessage({
     ...baseWelcome, id: 'p1', resumeKey: 'k1', started: false, matchmade: false, startsAt: null, stateEncoding: 'text',
@@ -249,7 +250,7 @@ test('outbound server message and HTTP builders enforce declared wire shapes at 
   }), /SpectatorWelcomeMessage/);
   assert.equal(validateServerMessage(devWelcomeMessage({
     room: 'r1', owner: true, started: true, ready: false, paused: false,
-    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [], stateEncoding: 'json',
+    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [], rosterRevision: 1, constants: null, stateEncoding: 'json',
   })).ok, true);
 
   assert.equal(healthResponse({
@@ -271,11 +272,13 @@ test('outbound server message and HTTP builders enforce declared wire shapes at 
 
 test('a seat roster accepts strictly increasing slots with gaps and rejects repeats or reversals', () => {
   const seat = playerIdx => ({ playerIdx, id: `p${playerIdx}`, name: 'N', role: 'contestant', kit: 'warden' });
-  const ok = roster => validateServerMessage({ type: 'seats', roster }).ok;
+  const ok = roster => validateServerMessage({ type: 'seats', roster, revision: 3 }).ok;
   assert.equal(ok([seat(0), seat(2), seat(5)]), true, 'a yard roster may have gaps');
   assert.equal(ok([seat(0), seat(1)]), true);
   assert.equal(ok([]), true);
   assert.equal(ok([seat(1), seat(1)]), false, 'a repeated slot');
   assert.equal(ok([seat(2), seat(1)]), false, 'a decreasing slot');
   assert.equal(ok([seat(-1)]), false);
+  // Every roster names its revision (#1131), which each state then names.
+  for (const revision of [undefined, -1, 1.5]) assert.equal(validateServerMessage({ type: 'seats', roster: [], revision }).ok, false, `revision ${revision}`);
 });

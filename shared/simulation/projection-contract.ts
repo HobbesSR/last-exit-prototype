@@ -12,12 +12,11 @@ import { mapIdField, wireCache, wireIds, type WireIdDomain, type WireIds } from 
  * never mapped.
  */
 export const WIRE_ID_FIELDS = {
-  item: { id: 'item', instanceId: 'item', lineageId: 'item' },
+  item: { id: 'item' },
   body: { id: 'body' },
   bodyOwner: { itemId: 'item' },
   tether: { id: 'tether', a: 'body', b: 'body' },
   hookFlight: { id: 'tether', a: 'body' },
-  reload: { instanceId: 'item' },
   projectile: { id: 'serial' },
   effect: { id: 'serial' },
   event: { id: 'serial' },
@@ -39,10 +38,14 @@ const projection = (fields: string, ids?: Readonly<Record<string, WireIdDomain>>
   };
 };
 // Exported so a wire schema reads its field lists from these declarations, not a second list (24.1).
-export const FRAME_FIELDS = 'version duration cellChargeTicks tick phase hazardX slots';
+// Match constants (`version`, `duration`, `cellChargeTicks`) stay in snapshots and recordings, but not in frames:
+// a client has them from its welcome or ready, and the content descriptor (24.3 proposal 3, #1131).
+export const FRAME_FIELDS = 'tick phase hazardX slots';
 export const frameFields = projection(FRAME_FIELDS);
 /** The viewer's own fields apart from the pose, which an actor with a body carries there only (24.4). */
-export const OWN_STATE_FIELDS = 'hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered';
+export const OWN_STATE_FIELDS = 'hp maxHp shield keys weapon kills level status cooldown railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt discovered';
+/** Optional own fields the engine holds as `null` for none; a projection omits them instead (24.3 proposal 6). */
+const ABSENT_WHEN_NONE = ['reload', 'charging', 'respawnAt'] as const;
 export const OWN_FIELDS = `x y ${OWN_STATE_FIELDS}`;
 const ownFields = projection(OWN_FIELDS);
 // An actor with a body carries its pose there only (24.4): built without it rather than copied again (#1163).
@@ -52,7 +55,9 @@ const ownFieldsWithoutPose = projection(OWN_STATE_FIELDS);
 // ability timers, whether a slot is a bot) or unread by the renderer, so it never leaves the server for anyone
 // but the player it describes. Recordings keep the full state.
 export const OBSERVED = ['heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'] as const;
-export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family';
+// Fields without a reader are added when something uses them (Corey, 17.4 #17): `droppedBy`, `pickupAfter`,
+// `nodeId`, `instanceId` and `lineageId` left in #1131 stage 3.
+export const ITEM_FIELDS = 'id x y kind weaponType ammo charge count buildingId tier quality family';
 export const itemFields = projection(ITEM_FIELDS, WIRE_ID_FIELDS.item);
 export const GATE_FIELDS = 'gateIdx open locked';
 export const gateFields = projection(GATE_FIELDS);
@@ -79,13 +84,14 @@ function physicsShapeFields(shape: BodyShape): BodyShape {
   return { kind: 'convex', vertices: shape.vertices.map(({ x, y }) => ({ x, y })) };
 }
 const BODY_IDS = idList(WIRE_ID_FIELDS.body), BODY_OWNER_IDS = idList(WIRE_ID_FIELDS.bodyOwner);
-const TETHER_IDS = idList(WIRE_ID_FIELDS.tether), FLIGHT_IDS = idList(WIRE_ID_FIELDS.hookFlight), RELOAD_IDS = idList(WIRE_ID_FIELDS.reload);
+const TETHER_IDS = idList(WIRE_ID_FIELDS.tether), FLIGHT_IDS = idList(WIRE_ID_FIELDS.hookFlight);
 export function physicsBodyFields(body: PhysicsBodyView, full = true, wire: WireIds = IDENTITY): PhysicsBodyView {
-  const { id, kind, x, y, angle, vx, vy, omega, sleeping, generation } = body;
+  const { id, kind, x, y, angle, vx, vy, generation } = body;
   const owner = body.owner.kind === 'actor' ? { kind: 'actor' as const, playerIdx: body.owner.playerIdx }
     : body.owner.kind === 'item' ? { kind: 'item' as const, itemId: body.owner.itemId } : { kind: 'prop' as const, propId: body.owner.propId };
   const result: PhysicsBodyView = { id, kind, shape: physicsShapeFields(body.shape), x, y, angle,
-    ...(full ? { vx, vy, omega, sleeping } : {}), generation, owner,
+    // Velocity for bodies the viewer predicts; angular velocity and sleep had no reader (#1131 stage 3, 17.4 #17).
+    ...(full ? { vx, vy } : {}), generation, owner,
     ...(body.discontinuity === 'placed' ? { discontinuity: 'placed' as const } : {}) };
   mapIds(result as unknown as Record<string, unknown>, BODY_IDS, wire);
   mapIds(owner as Record<string, unknown>, BODY_OWNER_IDS, wire);
@@ -106,26 +112,22 @@ export function ownPlayerFields<I extends ItemKey>(player: Player<I>, discovery?
   if (playerIdx !== undefined) result.playerIdx = playerIdx;
   // Carried items are projected through the same item contract; both sides are wire records.
   if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item, wire) : item) as Inventory<I>;
-  if (result.cell) result.cell = itemFields(result.cell, wire);
-  if (result.reload && !wire.identity) {
-    const reload = { ...result.reload };
-    mapIds(reload as Record<string, unknown>, RELOAD_IDS, wire);
-    result.reload = reload;
-  }
+  // The reloading slot names the item; its instance identity left with the item's (#1131 stage 3).
+  if (result.reload) result.reload = { slot: result.reload.slot, until: result.reload.until } as typeof result.reload;
+  for (const key of ABSENT_WHEN_NONE) if (result[key] === null) delete result[key];
   if (discovery) result.discovered = Array.from(discovery.discovered);
   // Heard gunfire is the hearer's own (15): present only while a cue lasts, so other contents' frames are unchanged.
   if (heard?.length) result.heard = heard.map(({ x, y, tick, until }) => ({ x, y, tick, until }));
   return result;
 }
 
-const ITEM_IDS = idList(WIRE_ID_FIELDS.item);
 /**
- * A list of whole item records (map payloads) with its outward IDs (#1164): the same list for the identity.
- * Records and lists are cached per source and per mapping, so an unchanged ground maps nothing again and
- * frozen sources yield frozen, reusable records whose JSON the published-list cache keeps.
+ * A map payload's item list as a client is sent it: each record through the item contract, as frames carry
+ * it, with its outward IDs (#1164). The engine's other item fields stay with the server and its recordings
+ * (#1131 stage 3). Records and lists are cached per source and per mapping, so an unchanged ground projects
+ * nothing again and frozen sources yield frozen, reusable records whose JSON the published-list cache keeps.
  */
 export function wireItemRecords<T extends object>(list: readonly T[], wire: WireIds): readonly T[] {
-  if (wire.identity) return list;
   const lists = wireCache<readonly T[], readonly T[]>(wire, 'itemLists');
   let mapped = lists.get(list);
   if (!mapped) {
@@ -133,8 +135,7 @@ export function wireItemRecords<T extends object>(list: readonly T[], wire: Wire
     mapped = list.map(item => {
       let record = records.get(item);
       if (!record) {
-        record = { ...item };
-        mapIds(record as Record<string, unknown>, ITEM_IDS, wire);
+        record = itemFields(item, wire) as T;
         if (Object.isFrozen(item)) { Object.freeze(record); records.set(item, record); }
       }
       return record;

@@ -12,6 +12,10 @@ import { resetInput } from '../../shared/simulation/input.ts';
 import { createInputClock } from '../../shared/input-clock.ts';
 import { createPhysicsPrediction, PREDICTION_LIMITS } from '../../public/physics-prediction.js';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
+import { withMatchConstants } from '../../shared/relational-frame.ts';
+import { predictionConstants } from '../../shared/simulation/physics-presentation.ts';
+// c0's view as its client predicts on it: the match constants come with the welcome (24.3 proposal 3).
+const liveView = game => withMatchConstants(playerView(game, snapshot(game), 'c0'), predictionConstants(game.version, game.content.actorPhysics));
 
 await acquireMachineLock('bench');
 const TICK_MS = 50;
@@ -162,7 +166,7 @@ async function run(profile, variant = null) {
     lastCorrectionTick = wire.tick;
   };
   try {
-    const initial = playerView(game, snapshot(game), 'c0');
+    const initial = liveView(game);
     for (const body of initial.bodies) if (body.actorId) radii[body.actorId] = body.shape.radius;
     radii.maxSpeed = initial.predictionMotor.maxSpeed;
     deliver(initial, false);
@@ -172,7 +176,7 @@ async function run(profile, variant = null) {
         predictor = await createPhysicsPrediction(game.map, 'c0', { clock: () => now });
         predictorResets++;
         lastCorrectionTick = -Infinity;
-        deliver(playerView(game, snapshot(game), 'c0'), false);
+        deliver(liveView(game), false);
       });
     }
     if (profile.reconnect) {
@@ -187,7 +191,7 @@ async function run(profile, variant = null) {
         predictor = await createPhysicsPrediction(game.map, 'c0', { clock: () => now });
         predictorResets++;
         lastCorrectionTick = -Infinity;
-        deliver(playerView(game, snapshot(game), 'c0'), false);
+        deliver(liveView(game), false);
       });
     }
     for (let tick = 1; tick <= LAST_TICK; tick++) {
@@ -217,7 +221,7 @@ async function run(profile, variant = null) {
         }
         if ((profile.frameGaps && tick >= 24 && tick <= 29) ||
           (profile.reconnect && tick >= 28 && tick <= 35)) return;
-        const frame = playerView(game, snapshot(game), 'c0');
+        const frame = liveView(game);
         // Emulate a deliberately withheld dynamic proxy. This is a privacy
         // stress case, not a claim playerView would omit a nearby contestant.
         if (profile.hidden) frame.bodies = frame.bodies.filter(body => body.actorId !== 'c1');

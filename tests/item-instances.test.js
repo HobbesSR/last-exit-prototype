@@ -330,7 +330,7 @@ test('forty transfers between players conserve all units, ammo and charge with u
   }
 });
 
-test('snapshot is detached; only the owner sees carried identity and counter stays private', async t => {
+test('snapshot is detached; carried identity and the counter stay private', async t => {
   const { s, p, q } = await fixture(t);
   p.inventory[0] = { kind: 'cell', charge: 63, instanceId: 'cell-1', lineageId: 'root-1', quality: 5 };
   q.x = 130; q.y = 200;
@@ -338,9 +338,10 @@ test('snapshot is detached; only the owner sees carried identity and counter sta
   assert.equal(frame.itemSerial, s.itemSerial, 'the outward compatibility field stays on the legacy schedule');
   assert.equal(own.itemSerial, undefined);
   assert.equal(other.itemSerial, undefined);
-  assert.deepEqual([own.players.find(v => v.id === p.id).inventory[0].instanceId,
-    own.players.find(v => v.id === p.id).inventory[0].lineageId,
-    own.players.find(v => v.id === p.id).inventory[0].quality], [p.inventory[0].instanceId, p.inventory[0].lineageId, 5]);
+  // The owner sees what it carries, but not its instance identity, which no client reads (#1131 stage 3).
+  const carried = own.players.find(v => v.id === p.id).inventory[0];
+  assert.equal(carried.quality, 5);
+  for (const field of ['instanceId', 'lineageId']) assert.equal(Object.hasOwn(carried, field), false, `${field} is not projected`);
   assert.equal(typeof p.inventory[0].instanceId, 'number');
   assert.equal(typeof p.inventory[0].lineageId, 'number');
   assert.equal(Object.hasOwn(other.players.find(v => v.id === p.id), 'inventory'), false);
@@ -350,7 +351,6 @@ test('snapshot is detached; only the owner sees carried identity and counter sta
   assert.equal(dropInventorySlot(s, p, 0), true);
   assert.equal(take(s, q, s.map.items[0]), true);
   assert.equal(q.inventory.find(Boolean).instanceId, identity, 'the numeric instance survives a later owner transfer');
-  assert.equal(own.players.find(v => v.id === p.id).inventory[0].instanceId, identity, 'the retained owner view keeps numeric identity after transfer');
 });
 
 test('the tick resolves a contested pickup by player id despite reversed array order', async t => {

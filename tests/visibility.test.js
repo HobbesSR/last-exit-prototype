@@ -162,10 +162,10 @@ test('delayed viewer identity follows captured slots across session seat reassig
     const own = playerView(s, frame, 'session').self;
     assert.equal(own.playerIdx, 0);
     assert.equal(own.x, 300);
-    assert.equal(playerView(s, frame, 'g0').directed, false);
+    assert.ok(playerView(s, frame, 'g0').self, 'a player view');
   }
   assert.equal(playerView(s, current, 'session').self.playerIdx, 1);
-  assert.equal(playerView(s, current, 'g0').directed, true);
+  assert.equal(Object.hasOwn(playerView(s, current, 'g0'), 'self'), false, 'a directed view');
 });
 
 
@@ -179,6 +179,6 @@ test('directed views bypass roster lookup and unknown labels allocate no frame l
     // Fresh snapshots reproduce the per-tick allocation path; no test-only production hooks needed.
     const frame = snapshot(s);
     if (id == null) Object.defineProperty(frame.players, 'find', { value() { throw new Error('directed view searched captured roster'); } });
-    assert.equal(playerView(id == null ? noRoster : s, frame, id).directed, true);
+    assert.equal(Object.hasOwn(playerView(id == null ? noRoster : s, frame, id), 'self'), false);
   }
 });

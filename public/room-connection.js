@@ -116,7 +116,7 @@ export function createRoomConnection({
         const described = envelopePresentation(data);
         if (!described) { toast('The arena sent a match this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); return; }
         presentation = described;
-        frames.seats(data.roster); frames.setMap(data.map);
+        frames.envelope(data);
         data.state = frames.normalize(data.state);
       }
       if (data.type === SERVER_MESSAGE.WELCOME) {
@@ -136,7 +136,8 @@ export function createRoomConnection({
         onReady(data);
       } else if (data.type === SERVER_MESSAGE.STATE) {
         notePacket(bytes); layers.decode(data.state);
-        data.state = frames.normalize(data.state);
+        // A frame naming a roster this socket was not sent is unreadable too (#1131), never drawn with another.
+        try { data.state = frames.normalize(data.state); } catch { unreadable(); return; }
         learn(data.state);
         // Gap between authoritative frames: separates server pacing from client render cost.
         const receivedAt = performance.now();
@@ -146,7 +147,7 @@ export function createRoomConnection({
         liveState = data.state;
         onState(data.state);
       } else if (data.type === SERVER_MESSAGE.SEATS) {
-        frames.seats(data.roster);
+        frames.seats(data.roster, data.revision);
       } else if (data.type === SERVER_MESSAGE.PING) {
         // Echoed immediately and unmodified. The server times its own round trip; this end
         // states nothing about latency, it only returns a token it could not have held earlier.

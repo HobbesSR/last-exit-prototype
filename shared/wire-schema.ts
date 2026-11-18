@@ -37,18 +37,18 @@ const words = (declared: string) => declared.split(' ');
 
 const ITEM = typed('Item', words(ITEM_FIELDS), {
   id: 'uint', x: 'exact', y: 'exact', kind: oneOf(ITEM_KINDS), weaponType: oneOf(WEAPONS), ammo: 'uint', charge: 'uint', count: 'uint',
-  buildingId: 'str', droppedBy: 'str', pickupAfter: 'uint', nodeId: 'str', tier: 'uint', instanceId: 'uint', lineageId: 'uint',
-  quality: 'exact', family: oneOf(AMMO_FAMILIES),
+  buildingId: 'str', tier: 'uint', quality: 'exact', family: oneOf(AMMO_FAMILIES),
 }, 'all'); // copied when present; a physical item's pose is its body's (24.4)
 
 const OWN_DECLARED = words(OWN_FIELDS);
 // The viewer's own record: the declared fields, copied when present, and those ownPlayerFields constructs.
 const OWN = typed('Own', [...OWN_DECLARED, 'playerIdx', 'heard'], {
   x: 'exact', y: 'exact', hp: 'exact', maxHp: 'exact', shield: 'exact', keys: 'uint', weapon: 'uint', kills: 'uint', level: 'uint',
-  status: oneOf(PLAYER_STATUSES), cooldown: 'exact', attackCd: 'exact', railCd: 'uint', cloak: 'uint', revealed: 'uint', boost: 'uint',
+  status: oneOf(PLAYER_STATUSES), cooldown: 'exact', railCd: 'uint', cloak: 'uint', revealed: 'uint', boost: 'uint',
   stun: 'uint', heading: 'f64', lastSeq: 'sint', inputStalled: 'uint', inputMargin: 'sint', inventory: list(nullable('Item')),
-  selectedSlot: 'uint', reserves: { enumMap: [AMMO_FAMILIES, 'uint'] }, reload: nullable('Reload'), charging: nullable('str'),
-  respawnAt: nullable('uint'), cell: 'Item', nodeId: 'str', discovered: layer('uint'), playerIdx: 'uint', heard: list('Heard'),
+  // `reload`, `charging` and `respawnAt` are absent for none, never null (24.3 proposal 6).
+  selectedSlot: 'uint', reserves: { enumMap: [AMMO_FAMILIES, 'uint'] }, reload: 'Reload', charging: 'str',
+  respawnAt: 'uint', discovered: layer('uint'), playerIdx: 'uint', heard: list('Heard'),
 }, 'all');
 
 const OBSERVED_RECORD = typed('Observed', ['playerIdx', ...OBSERVED, 'x', 'y'], {
@@ -81,35 +81,34 @@ const BODY: RecordDef = { fields: [
   { name: 'x', type: 'f32m' }, { name: 'y', type: 'f32m' }, { name: 'angle', type: 'f32' },
   // Only for bodies the viewer predicts: its own actor and every non-actor (physicsBodyFields `full`).
   { name: 'vx', type: 'f32m', optional: true }, { name: 'vy', type: 'f32m', optional: true },
-  { name: 'omega', type: 'f32', optional: true }, { name: 'sleeping', type: 'bool', optional: true },
   { name: 'generation', type: 'uint' },
   { name: 'owner', type: { union: 'kind', variants: { actor: 'OwnerActor', item: 'OwnerItem', prop: 'OwnerProp' } } },
   { name: 'discontinuity', type: oneOf(['placed']), optional: true },
 ] };
 
+// The roster revision the frame was projected against (#1131): added by the transport, not the projection.
+const ROSTER_REVISION: FieldDef = { name: 'rosterRevision', type: 'uint' };
 const STATE_TAIL: FieldDef[] = [
   { name: 'players', type: list('Observed') }, { name: 'items', type: layer('Item') }, { name: 'gates', type: layer('Gate') },
   { name: 'traps', type: list('Trap') }, { name: 'projectiles', type: list('Projectile') }, { name: 'effects', type: list('Effect') },
 ];
+// The physics profile and prediction motor are match constants, sent with the map (24.3 proposal 3).
 const PHYSICS: FieldDef[] = [
-  { name: 'physicsProfile', type: 'str', optional: true }, { name: 'bodies', type: layer('Body'), optional: true },
+  { name: 'bodies', type: layer('Body'), optional: true },
   { name: 'tethers', type: layer('Tether'), optional: true }, { name: 'hookFlights', type: list('HookFlight'), optional: true },
-  { name: 'predictionMotor', type: 'Motor', optional: true },
 ];
-const FRAME_TYPES: Readonly<Record<string, FieldType>> = {
-  version: 'str', duration: 'uint', cellChargeTicks: 'uint', tick: 'uint', phase: oneOf(PHASES), hazardX: 'exact', slots: 'uint',
-};
+const FRAME_TYPES: Readonly<Record<string, FieldType>> = { tick: 'uint', phase: oneOf(PHASES), hazardX: 'exact', slots: 'uint' };
 // The match frame: the declared frame fields, then playerView's (shared/simulation/visibility.ts).
 const frame = typed('Frame', words(FRAME_FIELDS), FRAME_TYPES).fields.filter(f => f.name !== 'phase');
 const MATCH_STATE: RecordDef = { fields: [
-  ...frame, { name: 'directed', type: 'bool' }, { name: 'contestantsActive', type: 'uint' }, ...PHYSICS,
+  ...frame, { name: 'contestantsActive', type: 'uint' }, ...PHYSICS,
   { name: 'predictionTethered', type: 'bool', optional: true }, { name: 'hookActive', type: 'bool', optional: true },
-  { name: 'self', type: 'Own', optional: true }, ...STATE_TAIL, { name: 'events', type: list('Event'), optional: true },
+  { name: 'self', type: 'Own', optional: true }, ...STATE_TAIL, { name: 'events', type: list('Event'), optional: true }, ROSTER_REVISION,
 ] };
 // The waiting yard's frame (shared/simulation/waiting.ts waitingView), in the match frame's shape.
 const WAITING_STATE: RecordDef = { fields: [
-  { name: 'tick', type: 'uint' }, { name: 'directed', type: 'bool' }, ...PHYSICS, { name: 'self', type: 'Own', optional: true },
-  ...STATE_TAIL, { name: 'events', type: list('Event') },
+  { name: 'tick', type: 'uint' }, ...PHYSICS, { name: 'self', type: 'Own', optional: true },
+  ...STATE_TAIL, { name: 'events', type: list('Event') }, ROSTER_REVISION,
 ] };
 
 /** The schema; its version is the wire version, so any contract bump refuses the other side's bytes. */
@@ -119,9 +118,8 @@ export const STATE_SCHEMA: Schema = Object.freeze({
   records: {
     StateMessage: { fields: [{ name: 'state', type: { union: 'phase', variants: { live: 'MatchState', finished: 'MatchState', waiting: 'WaitingState' } } }] },
     MatchState: MATCH_STATE, WaitingState: WAITING_STATE,
-    Motor: { fields: [{ name: 'acceleration', type: 'exact' }, { name: 'braking', type: 'exact' }, { name: 'maxSpeed', type: 'exact' }, { name: 'surfaces', type: 'bool' }] },
     Own: OWN, Observed: OBSERVED_RECORD, Item: ITEM,
-    Reload: { fields: [{ name: 'slot', type: 'uint' }, { name: 'instanceId', type: 'uint' }, { name: 'until', type: 'exact' }] },
+    Reload: { fields: [{ name: 'slot', type: 'uint' }, { name: 'until', type: 'exact' }] },
     Heard: { fields: [{ name: 'x', type: 'exact' }, { name: 'y', type: 'exact' }, { name: 'tick', type: 'uint' }, { name: 'until', type: 'uint' }] },
     Gate: GATE, Trap: TRAP, Projectile: PROJECTILE, Effect: EFFECT, Event: EVENT,
     Participant: { fields: [{ name: 'playerIdx', type: 'uint' }, { name: 'name', type: 'str' }] },

@@ -53,12 +53,17 @@ export function createDevView({
         const described = envelopePresentation(data);
         if (!described) { toast('The dev view sent a match this browser cannot read.'); leave(); return; }
         presentation = described; roster = '';
-        frames.seats(data.roster); frames.setMap(data.map); data.state = frames.normalize(data.state);
+        frames.envelope(data); data.state = frames.normalize(data.state);
         if (data.map) showMap(data.map, data.state);
         else presentationChanged();
       }
-      else if (data.type === SERVER_MESSAGE.STATE) { layers.decode(data.state); showState(frames.normalize(data.state)); }
-      else if (data.type === SERVER_MESSAGE.SEATS) { frames.seats(data.roster); roster = ''; }
+      else if (data.type === SERVER_MESSAGE.STATE) {
+        layers.decode(data.state);
+        let frame;
+        try { frame = frames.normalize(data.state); } catch { toast('The dev view sent a message this browser cannot read.'); leave(); return; }
+        showState(frame);
+      }
+      else if (data.type === SERVER_MESSAGE.SEATS) { frames.seats(data.roster, data.revision); roster = ''; }
       else if (data.type === SERVER_MESSAGE.ERROR) { toast(data.message); leave(); }
     });
     socket.addEventListener('close', () => { if (feed === socket) leave(); });

@@ -75,10 +75,11 @@ test('records the projection constructs have exactly the schema fields', async (
   assert.deepEqual(Object.keys(seen).sort(), fieldNames('Observed').sort());
   const participant = eventFields({ id: 1, tick: 2, kind: 'eliminated', target: { playerIdx: 0, name: 'A', extra: 1 } }).target;
   assert.deepEqual(Object.keys(participant), fieldNames('Participant'));
-  for (const message of await liveTraffic()) if (message.state.predictionMotor) assert.deepEqual(Object.keys(message.state.predictionMotor), fieldNames('Motor'));
-  // `phase` is the state union's discriminant, carried as its tag rather than a field.
+  // `phase` is the state union's discriminant, carried as its tag rather than a field, and the transport adds
+  // `rosterRevision` (#1131).
+  for (const message of await liveTraffic()) assert.ok(Number.isInteger(message.state.rosterRevision), 'every state names its roster revision');
   assert.deepEqual(Object.keys(waitingView({ players: [], tick: 0, discontinuities: new Map() }, 'nobody')).filter(k => k !== 'phase').sort(),
-    fieldNames('WaitingState').filter(f => !['tethers', 'hookFlights', 'predictionMotor', 'self'].includes(f)).sort());
+    fieldNames('WaitingState').filter(f => !['tethers', 'hookFlights', 'self', 'rosterRevision'].includes(f)).sort());
 });
 
 test('families a short bot match never sends round-trip exactly', async () => {
@@ -106,11 +107,13 @@ test('families a short bot match never sends round-trip exactly', async () => {
   state.effects = [{ id: 9, x: 41.62, y: 3134, kind: 'slash', radius: 30, life: 12 }];
   state.self = { ...state.self, hp: 87.04, shield: 12.5, heading: -2.5, lastSeq: -1, inputMargin: -3, inputStalled: 2,
     inventory: [null, { id: 4, kind: 'weapon', weaponType: 'rifle', ammo: 30, quality: 2 }, null], selectedSlot: 1,
-    reserves: { pistol: 12, shell: 0 }, reload: { slot: 1, instanceId: 4, until: 1234.5 }, charging: 'station-3', respawnAt: null,
-    cell: { id: 6, kind: 'cell', charge: 40 }, nodeId: 'cell@1,2', heard: [{ x: 120, y: 360, tick: 50, until: 70 }] };
+    reserves: { pistol: 12, shell: 0 }, reload: { slot: 1, until: 1234.5 }, charging: 'station-3',
+    heard: [{ x: 120, y: 360, tick: 50, until: 70 }] };
   const message = { type: 'state', state };
   assert.deepEqual(roundTrip(message), message);
-  state.self = { ...state.self, charging: null, respawnAt: 900, reload: null };
+  // None is absent (24.3 proposal 6): a respawn instead of a reload and a charge.
+  const { reload, charging, ...rest } = state.self;
+  state.self = { ...rest, respawnAt: 900 };
   assert.deepEqual(roundTrip(message), message);
 });
 
@@ -126,10 +129,13 @@ test('numbers, strings and absence keep their exact JSON meaning', async () => {
     const message = withSelf({ charging: name });
     assert.equal(roundTrip(message).state.self.charging, name);
   }
-  // Absent and null are different, and neither is invented.
+  // Absent and null are different, and neither is invented. "None" has one spelling where the projection
+  // chose it (24.3 proposal 6): a null reload is refused, while an empty inventory slot stays null.
   const absent = structuredClone(base); delete absent.state.self.reload;
   assert.equal('reload' in roundTrip(absent).state.self, false);
-  assert.equal(roundTrip(withSelf({ reload: null })).state.self.reload, null);
+  assert.throws(() => roundTrip(withSelf({ reload: null })), /Reload/);
+  const slots = [null, { id: 4, kind: 'weapon', weaponType: 'rifle', ammo: 30 }, null];
+  assert.deepEqual(roundTrip(withSelf({ inventory: slots })).state.self.inventory, slots);
 });
 
 test('values outside the schema are refused on encode', async () => {

@@ -4,6 +4,7 @@ import { createGame, disposePhysics, playerView, snapshot } from '../shared/simu
 import { contentById } from '../shared/simulation/content.ts';
 import { actorMotor, characterMotor } from '../shared/simulation/actor-physics.ts';
 import { openArea } from './helpers/arena.js';
+import { predictionConstants } from '../shared/simulation/physics-presentation.ts';
 
 const arena = () => ({ width: 600, height: 400,
   playableArea: openArea(600, 400, 100),
@@ -26,7 +27,7 @@ test('shared motor keeps the authoritative surface priority, tie break and fallb
     characterMotor(profile, surfaces, p, 3, 4, 200));
 });
 
-test('own physics view publishes only pinned motor tuning; directed views omit it', async () => {
+test('the match publishes only pinned motor tuning, once; no view repeats it', async () => {
   const tuned = content('content-6');
   Object.assign(tuned.actorPhysics, { acceleration: 4200, braking: 2200, maxSpeed: 540 });
   tuned.actorPhysics.maxImpulse = 777;
@@ -35,12 +36,13 @@ test('own physics view publishes only pinned motor tuning; directed views omit i
     const frame = snapshot(game), id = frame.players[0].id;
     frame.physics = { ...frame.physics, secret: 'private-setting' };
     const own = playerView(game, frame, id);
-    assert.deepEqual(own.predictionMotor, { acceleration: 4200, braking: 2200, maxSpeed: 540, surfaces: true });
-    assert.deepEqual(Object.keys(own.predictionMotor), ['acceleration', 'braking', 'maxSpeed', 'surfaces']);
-    assert.equal(JSON.stringify(own.predictionMotor).includes('777'), false);
+    // Sent with the map in welcome and ready (server/match.js `constants`), built from the match's content.
+    const { predictionMotor } = predictionConstants(game.version, game.content.actorPhysics);
+    assert.deepEqual(predictionMotor, { acceleration: 4200, braking: 2200, maxSpeed: 540, surfaces: true });
+    assert.deepEqual(Object.keys(predictionMotor), ['acceleration', 'braking', 'maxSpeed', 'surfaces']);
+    assert.equal(JSON.stringify(predictionMotor).includes('777'), false);
     assert.equal(JSON.stringify(own).includes('private-setting'), false);
-    assert.equal(Object.hasOwn(playerView(game, frame, 'missing'), 'predictionMotor'), false);
-    assert.equal(Object.hasOwn(playerView(game, { ...frame, bodies: undefined }, id), 'predictionMotor'), false);
+    for (const view of [own, playerView(game, frame, 'missing')]) assert.equal(Object.hasOwn(view, 'predictionMotor'), false);
     frame.physics.world.constraints.push({ id: 'private-tether', a: `actor:${id}`, b: 'hidden-endpoint', maxDistance: 100 });
     const tethered = playerView(game, frame, id);
     assert.equal(tethered.predictionTethered, true, 'own fallback survives omission of a hidden tether endpoint');

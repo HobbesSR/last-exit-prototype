@@ -8,6 +8,20 @@ import { itemIdForLabel } from '../item-instances.ts';
 import { groundItem } from './ground-items.ts';
 import { wireIds, type WireIds } from './wire-ids.ts';
 
+/**
+ * What a client predicts with that never changes during a match (24.3 proposal 3, #1131): sent once, with the
+ * map each `welcome` or `ready` delivers, instead of in every frame. The client puts them back on the frames
+ * that need them (shared/relational-frame.ts), so readers see the same frames.
+ */
+export interface PredictionConstants {
+  physicsProfile: string;
+  predictionMotor: { acceleration: number; braking: number; maxSpeed: number; surfaces: true };
+}
+export const predictionConstants = (physicsProfile: string, motor: { acceleration: number; braking: number; maxSpeed: number }): PredictionConstants => ({
+  physicsProfile,
+  predictionMotor: { acceleration: motor.acceleration, braking: motor.braking, maxSpeed: motor.maxSpeed, surfaces: true },
+});
+
 export interface PhysicsPresentation {
   physics: PhysicsGameplayState;
   physicsProfile: string;
@@ -87,7 +101,8 @@ export function projectPhysicsPresentation(frame: Snapshot, viewer: (Player<Item
   const tethers: PhysicsTetherView[] = (frame.tethers ?? []).filter(t => ids.has(t.a) && ids.has(t.b)).map(t => physicsTetherFields(t, wire));
   const hookFlights = frame.hookFlights?.filter(hook => actorIds.has(hook.a) && inRange({ x: hook.x, y: hook.y }))
     .map(hook => physicsHookFlightFields(hook, wire));
-  return { physicsProfile: frame.physicsProfile,
+  // The profile is a match constant (PredictionConstants), not part of each frame.
+  return {
     bodies: bodies.map(body => physicsBodyFields(body, !viewer || body.owner.kind !== 'actor' || body.owner.playerIdx === viewer.playerIdx, wire)),
     tethers, ...(hookFlights ? { hookFlights } : {}) };
 }

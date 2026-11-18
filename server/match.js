@@ -14,6 +14,7 @@ import { prepareMapPayload } from './map-payload.js';
 import { publishItems, itemsJson, prepareGroundItems, shareItemPublication } from '../shared/simulation/ground-items.ts';
 import { wireItemRecords } from '../shared/simulation/projection-contract.ts';
 import { wireIds } from '../shared/simulation/wire-ids.ts';
+import { predictionConstants } from '../shared/simulation/physics-presentation.ts';
 import { publishGates, gatesJson } from '../shared/simulation/frame-gates.ts';
 import { profiling, observe } from '../shared/profiler.ts';
 
@@ -160,6 +161,8 @@ function matchOf(game, payloads, wire) {
     snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); payloads = undefined; } },
     project: (frame, id) => playerView(game, frame, id, wire),
+    /** What a client predicts with that never changes in this match (24.3 proposal 3): sent with the map. */
+    constants: () => predictionConstants(game.version, game.content.actorPhysics),
     map: () => structuredClone({ ...game.map, gates: mergeGateGeometry({ gates: publishGates(game) }), items: publishItems(game) }),
     /** Detached immutable payload data; ordinary map queries above remain writable copies. */
     payloadMap(kind, frame) {

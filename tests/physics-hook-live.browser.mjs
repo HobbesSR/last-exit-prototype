@@ -74,7 +74,9 @@ try {
       await until(() => caster.messages.find(message => message.type === 'saved'), 'saved replay');
       return { indices: { caster: caster.messages.find(m => m.type === 'ready').roster.find(p => p.id === caster.welcome.id).playerIdx, near: near.messages.find(m => m.type === 'ready').roster.find(p => p.id === near.welcome.id).playerIdx }, ids: { caster: caster.welcome.id, near: near.welcome.id, far: far.welcome.id },
         contentIds: [caster.welcome.contentId, near.welcome.contentId, far.welcome.contentId],
-        versions: [flight.version, attach.version],
+        // The physics profile comes once, with the match map in `ready` (24.3 proposal 3), not in each frame.
+        versions: [caster, near].map(client => client.messages.find(m => m.type === 'ready').constants.physicsProfile),
+        framesCarryVersion: [flight, attach].some(frame => 'version' in frame || 'physicsProfile' in frame),
         flight: { tick: flight.tick, hook: flight.hookFlights[0], body: flight.bodies.find(b => b.id === flight.hookFlights[0].a) },
         nearFlight: nearAtFlight.hookFlights,
         farFlight: farAtFlight?.hookFlights, farBodies: farAtFlight?.bodies.map(b => b.id),
@@ -86,6 +88,7 @@ try {
   }, { base, room: created.id, ownerKey: created.ownerKey });
   assert.deepEqual(result.contentIds, ['content-6', 'content-6', 'content-6']);
   assert.deepEqual(result.versions, [PHYSICS_VERSION, PHYSICS_VERSION]);
+  assert.equal(result.framesCarryVersion, false);
   assert.equal(result.flight.hook.a, result.flight.body.id);
   assert.equal(result.flight.body.owner.playerIdx, result.indices.caster);
   assert.ok(result.flight.hook.x > result.flight.body.x);

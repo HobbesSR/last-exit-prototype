@@ -13,11 +13,14 @@ import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap, reusedMap } from './helpers/room-harness.js';
 import { archiveText, readArchive, storedDigest } from './helpers/recordings.js';
 import { wireIds } from '../shared/simulation/wire-ids.ts';
-import { WIRE_ID_FIELDS } from '../shared/simulation/projection-contract.ts';
+import { ITEM_FIELDS, WIRE_ID_FIELDS } from '../shared/simulation/projection-contract.ts';
 
 // A literal key, passed through the server's option rather than mocking its random source (#1164).
 const WIRE_KEY = [0x9e3779b9, 0x7f4a7c15, 0xf39cc060, 0x5ced8f5b], wire = wireIds(WIRE_KEY);
 /** A recorded record as a live view carries it: the declared counter IDs keyed (24, 26). */
+// An item as frames carry it: its declared fields only, since the recording keeps the engine's whole record.
+const ITEM_KEYS = new Set(ITEM_FIELDS.split(' '));
+const declaredItem = record => record && Object.fromEntries(Object.entries(record).filter(([key]) => ITEM_KEYS.has(key)));
 const outward = (kind, record) => {
   const copy = { ...record };
   for (const [field, domain] of Object.entries(WIRE_ID_FIELDS[kind])) if (typeof copy[field] === 'number') copy[field] = wire.id(copy[field], domain);
@@ -115,7 +118,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     const eye = await open(base);
     const welcomeEye = next(eye, 'welcome'); eye.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, mode: 'spectator' }));
     const we = await welcomeEye;
-    assert.equal(we.id, null); assert.equal(we.spectator, true); assert.equal(we.state.directed, true);
+    assert.equal(we.id, null); assert.equal(we.spectator, true); assert.equal(Object.hasOwn(we.state, 'self'), false, 'directed');
     assert.equal(we.state.players.length, server.rooms.get(room.id).game.players.length);
     // The composition root keys outward IDs by default (#1164): the map's item IDs are not the match's own.
     const internal = server.rooms.get(room.id).game.map.items.map(item => item.id), sent = we.map.items.map(item => item.id);
@@ -129,10 +132,10 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     const player = await open(base);
     const welcomePlayer = next(player, 'welcome'); player.send(JSON.stringify({ type: 'join', room: room.id, role: 'contestant', name: 'P' }));
     const wp = await welcomePlayer;
-    assert.equal(wp.state.directed, false);
+    assert.ok(wp.state.self, 'a player view');
     eye.send(JSON.stringify({ type: 'start' }));
     const [spectated, played] = await Promise.all([next(eye, 'state'), next(player, 'state')]);
-    assert.equal(spectated.state.directed, true);
+    assert.equal(Object.hasOwn(spectated.state, 'self'), false, 'directed');
     assert.ok(spectated.state.items.length > played.state.items.length, 'directed view is unfogged');
     assert.ok(spectated.state.players.length >= played.state.players.length);
     assert.equal(spectated.state.tick, 0, 'spectators remain at the initial frame during delay warmup');
@@ -216,7 +219,10 @@ test('two clients share authority; replay preserves each recorded frame and surv
             assert.equal(recorded[field], undefined, `${field} is left out of recorded frames`);
             continue;
           }
-          assert.deepEqual(value, recorded[field], `player ${p.id} field ${field}`);
+          // Carried items and the reload show only what a client reads (#1131 stage 3).
+          const expected = field === 'inventory' ? recorded.inventory.map(declaredItem)
+            : field === 'reload' ? { slot: recorded.reload.slot, until: recorded.reload.until } : recorded[field];
+          assert.deepEqual(value, expected, `player ${p.id} field ${field}`);
         }
         for (const field of ['path', 'input', 'inputTick', 'bot']) assert.equal(Object.hasOwn(p, field), false, `${field} withheld`);
       }
@@ -224,7 +230,10 @@ test('two clients share authority; replay preserves each recorded frame and surv
       for (const field of ['gates', 'hazardX', 'slots']) assert.deepEqual(frame[field], archived[field]);
       assert.deepEqual(frame.events, archived.events.map(event => outward('event', event)));
       for (const [field, kind] of [['items', 'item'], ['projectiles', 'projectile'], ['effects', 'effect']])
-        for (const visible of frame[field]) assert.deepEqual(visible, outward(kind, archived[field].find(record => wire.id(record.id, WIRE_ID_FIELDS[kind].id) === visible.id)));
+        for (const visible of frame[field]) {
+          const record = archived[field].find(record => wire.id(record.id, WIRE_ID_FIELDS[kind].id) === visible.id);
+          assert.deepEqual(visible, outward(kind, kind === 'item' ? declaredItem(record) : record));
+        }
     }
     assert.equal(storedDigest(served), metadata.sha256);
     assert.equal(archiveText(await readFile(path.join(dir, `${room.id}.json.gz`))), served);
