@@ -43,7 +43,7 @@ const projection = (fields: string, ids?: Readonly<Record<string, WireIdDomain>>
 export const FRAME_FIELDS = 'tick phase hazardX slots';
 export const frameFields = projection(FRAME_FIELDS);
 /** The viewer's own fields apart from the pose, which an actor with a body carries there only (24.4). */
-export const OWN_STATE_FIELDS = 'hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt discovered';
+export const OWN_STATE_FIELDS = 'hp maxHp shield keys weapon kills level status cooldown railCd cloak revealed boost stun heading lastSeq inputStalled inputMargin inventory selectedSlot reserves reload charging respawnAt discovered';
 /** Optional own fields the engine holds as `null` for none; a projection omits them instead (24.3 proposal 6). */
 const ABSENT_WHEN_NONE = ['reload', 'charging', 'respawnAt'] as const;
 export const OWN_FIELDS = `x y ${OWN_STATE_FIELDS}`;
@@ -86,11 +86,12 @@ function physicsShapeFields(shape: BodyShape): BodyShape {
 const BODY_IDS = idList(WIRE_ID_FIELDS.body), BODY_OWNER_IDS = idList(WIRE_ID_FIELDS.bodyOwner);
 const TETHER_IDS = idList(WIRE_ID_FIELDS.tether), FLIGHT_IDS = idList(WIRE_ID_FIELDS.hookFlight);
 export function physicsBodyFields(body: PhysicsBodyView, full = true, wire: WireIds = IDENTITY): PhysicsBodyView {
-  const { id, kind, x, y, angle, vx, vy, omega, sleeping, generation } = body;
+  const { id, kind, x, y, angle, vx, vy, generation } = body;
   const owner = body.owner.kind === 'actor' ? { kind: 'actor' as const, playerIdx: body.owner.playerIdx }
     : body.owner.kind === 'item' ? { kind: 'item' as const, itemId: body.owner.itemId } : { kind: 'prop' as const, propId: body.owner.propId };
   const result: PhysicsBodyView = { id, kind, shape: physicsShapeFields(body.shape), x, y, angle,
-    ...(full ? { vx, vy, omega, sleeping } : {}), generation, owner,
+    // Velocity for bodies the viewer predicts; angular velocity and sleep had no reader (#1131 stage 3, 17.4 #17).
+    ...(full ? { vx, vy } : {}), generation, owner,
     ...(body.discontinuity === 'placed' ? { discontinuity: 'placed' as const } : {}) };
   mapIds(result as unknown as Record<string, unknown>, BODY_IDS, wire);
   mapIds(owner as Record<string, unknown>, BODY_OWNER_IDS, wire);

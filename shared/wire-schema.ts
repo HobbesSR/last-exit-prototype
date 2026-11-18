@@ -44,7 +44,7 @@ const OWN_DECLARED = words(OWN_FIELDS);
 // The viewer's own record: the declared fields, copied when present, and those ownPlayerFields constructs.
 const OWN = typed('Own', [...OWN_DECLARED, 'playerIdx', 'heard'], {
   x: 'exact', y: 'exact', hp: 'exact', maxHp: 'exact', shield: 'exact', keys: 'uint', weapon: 'uint', kills: 'uint', level: 'uint',
-  status: oneOf(PLAYER_STATUSES), cooldown: 'exact', attackCd: 'exact', railCd: 'uint', cloak: 'uint', revealed: 'uint', boost: 'uint',
+  status: oneOf(PLAYER_STATUSES), cooldown: 'exact', railCd: 'uint', cloak: 'uint', revealed: 'uint', boost: 'uint',
   stun: 'uint', heading: 'f64', lastSeq: 'sint', inputStalled: 'uint', inputMargin: 'sint', inventory: list(nullable('Item')),
   // `reload`, `charging` and `respawnAt` are absent for none, never null (24.3 proposal 6).
   selectedSlot: 'uint', reserves: { enumMap: [AMMO_FAMILIES, 'uint'] }, reload: 'Reload', charging: 'str',
@@ -81,7 +81,6 @@ const BODY: RecordDef = { fields: [
   { name: 'x', type: 'f32m' }, { name: 'y', type: 'f32m' }, { name: 'angle', type: 'f32' },
   // Only for bodies the viewer predicts: its own actor and every non-actor (physicsBodyFields `full`).
   { name: 'vx', type: 'f32m', optional: true }, { name: 'vy', type: 'f32m', optional: true },
-  { name: 'omega', type: 'f32', optional: true }, { name: 'sleeping', type: 'bool', optional: true },
   { name: 'generation', type: 'uint' },
   { name: 'owner', type: { union: 'kind', variants: { actor: 'OwnerActor', item: 'OwnerItem', prop: 'OwnerProp' } } },
   { name: 'discontinuity', type: oneOf(['placed']), optional: true },

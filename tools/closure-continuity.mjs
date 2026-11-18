@@ -16,7 +16,8 @@ if (!args.includes('--out') && !args.includes('--compare')) throw new Error('Use
 const fixture = deserialize(gunzipSync(readFileSync('tests/fixtures/behavior-physics-1.v8.gz')));
 
 // The closure, as declared in 24.3 and 17.4 #17: match constants and `directed` leave the frame (proposals 3
-// and 8); none is absent rather than null (6); unread item and reload identity fields leave (8, Corey).
+// and 8); none is absent rather than null (6); unread item and reload identity fields, own `attackCd` and body
+// `omega` and `sleeping` leave (8, Corey).
 const HEADER = ['version', 'duration', 'cellChargeTicks', 'directed', 'physicsProfile', 'predictionMotor'];
 const ITEM = ['droppedBy', 'pickupAfter', 'nodeId', 'instanceId', 'lineageId'];
 const NONE = ['reload', 'charging', 'respawnAt'];
@@ -28,7 +29,7 @@ const without = (record, fields) => {
 };
 const closeItems = layer => Array.isArray(layer) ? layer.map(item => without(item, ITEM)) : layer;
 function closeOwn(own) {
-  const copy = without(own, ['cell', 'nodeId']);
+  const copy = without(own, ['cell', 'nodeId', 'attackCd']);
   for (const field of NONE) if (copy[field] === null) delete copy[field];
   if (Array.isArray(copy.inventory)) copy.inventory = copy.inventory.map(item => item && without(item, ITEM));
   if (copy.reload) copy.reload = without(copy.reload, ['instanceId']);
@@ -37,6 +38,7 @@ function closeOwn(own) {
 export function close(view) {
   const copy = without(view, HEADER);
   copy.items = closeItems(copy.items);
+  if (Array.isArray(copy.bodies)) copy.bodies = copy.bodies.map(body => without(body, ['omega', 'sleeping']));
   if (copy.self) copy.self = closeOwn(copy.self);
   return copy;
 }

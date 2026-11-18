@@ -56,7 +56,8 @@ test('real physics snapshot is detached and its public body is a closed display 
     assert.equal(frame.bodies[0].generation, frame.physics.world.bodies[0].generation);
     assert.equal(view.physics, undefined);
     assert.equal(Object.hasOwn(view, 'physicsProfile'), false, 'a match constant, sent with the map');
-    assert.deepEqual(view.bodies, frame.bodies);
+    // The view is the recorded body less the angular velocity and sleep no client reads (#1131 stage 3).
+    assert.deepEqual(view.bodies, frame.bodies.map(({ omega, sleeping, ...shown }) => shown));
     assert.deepEqual(view.tethers, []);
     frame.bodies[0].vx = 999;
     assert.notEqual(snapshot(game).bodies[0].vx, 999);
@@ -96,7 +97,11 @@ test('projection gates actors, prop bounds, item associations and both tether en
     assert.equal(view.bodies[0].vx, 7);
     assert.equal(view.bodies[0].generation, 8);
     const seenOpponent = view.bodies.find(b => b.id === nearBody.id);
-    for (const key of ['vx', 'vy', 'omega', 'sleeping']) {
+    for (const key of ['omega', 'sleeping']) {
+      for (const id of [near.id, null]) assert.equal(Object.hasOwn(playerView(game, frame, id).bodies.find(b => b.id === nearBody.id), key), false, `no view carries ${key}`);
+      assert.equal(frame.bodies.find(b => b.id === nearBody.id)[key], nearBody[key], `recorded body retains ${key}`);
+    }
+    for (const key of ['vx', 'vy']) {
       assert.equal(Object.hasOwn(seenOpponent, key), false, `observed actor omits ${key}`);
       assert.equal(playerView(game, frame, near.id).bodies.find(b => b.id === nearBody.id)[key], nearBody[key], `own body retains ${key}`);
       assert.equal(playerView(game, frame, null).bodies.find(b => b.id === nearBody.id)[key], nearBody[key], `directed body retains ${key}`);
