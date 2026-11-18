@@ -45,12 +45,18 @@ jobs:
           fi
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - run: rustup toolchain install
-      # cargo-deny's own release, checked against its published digest (docs/21.1).
+      # cargo-deny's own release for the runner's architecture (it is arm64 today), checked
+      # against its published digest (docs/21.1).
       - run: |
           if ! cargo deny --version 2>/dev/null | grep -q '^cargo-deny 0.21.0$'; then
-            name=cargo-deny-0.21.0-x86_64-unknown-linux-musl
+            case "$(uname -m)" in
+              aarch64) arch=aarch64; digest=47cc5d88d43cd568028080fece02d729f56f0ff8e6c168563ce6589e3c0f4738 ;;
+              x86_64) arch=x86_64; digest=a2170b854ff697e79e39c4c538981c9c1bdd803addbae6719a4cb66b4585a903 ;;
+              *) echo "no cargo-deny digest for $(uname -m)"; exit 1 ;;
+            esac
+            name=cargo-deny-0.21.0-$arch-unknown-linux-musl
             curl -sSfLO "https://github.com/EmbarkStudios/cargo-deny/releases/download/0.21.0/$name.tar.gz"
-            echo "a2170b854ff697e79e39c4c538981c9c1bdd803addbae6719a4cb66b4585a903  $name.tar.gz" | sha256sum -c -
+            echo "$digest  $name.tar.gz" | sha256sum -c -
             tar xzf "$name.tar.gz" -C "$HOME/.cargo/bin" --strip-components=1 "$name/cargo-deny"
             rm "$name.tar.gz"
           fi
@@ -59,5 +65,6 @@ jobs:
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
       - run: cargo build --locked --release -p last-exit-core --target wasm32-unknown-unknown
-      # The Linux x64 edge binary, built as rust/Dockerfile builds it.
+      # The edge's Linux release build, as rust/Dockerfile builds it, for the runner's own
+      # architecture. The Dockerfile builds for whichever host runs it.
       - run: cargo build --locked --release -p last-exit-edge

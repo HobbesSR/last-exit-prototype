@@ -462,7 +462,8 @@ Rust workspace:
   `main` changes `rust/` or the workflow itself, so a change outside `rust/` never waits for it. In the Node image, it
   installs `rustup`, and `rust/rust-toolchain.toml` then names the toolchain. It runs the licence and source check
   ([21.1](21.1-third-party-licenses.md#the-rust-workspace)), `cargo fmt --check`, `clippy` with warnings denied,
-  `cargo test`, the core's WASM build and the edge's Linux x64 release build. The toolchain, the registry and
+  `cargo test`, the core's WASM build and the edge's Linux release build. The runner is arm64, so that build is
+  aarch64; the x64 build is the Dockerfile's on an x64 host. The toolchain, the registry and
   `rust/target` are cached, keyed on the toolchain file and `Cargo.lock`.
   - **Its cost (2026-11-17, placeholder crates).** Simulated cold in the same image under Docker on the development
     machine, it took about a minute. Nearly all of that was the toolchain download (48 s); the checks and builds

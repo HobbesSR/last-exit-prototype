@@ -153,7 +153,8 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   with its first JavaScript caller.
 
 **The edge on a Linux host.** `rust/Dockerfile` builds the edge in the official Rust image and runs it on
-`debian:bookworm-slim` as `nobody`. CI builds the same binary in its own Linux image. No image is published: a host
+`debian:bookworm-slim` as `nobody`, for whichever architecture builds it: x64 was checked under Docker on the
+development machine. CI builds the same binary on its arm64 runner. No image is published: a host
 builds its own. Distributing an image would redistribute what it contains
 ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
 
