@@ -216,6 +216,8 @@ export interface DescriptorCodec {
 /** Compiles a schema. Throws at once for an unknown type, a recursive record or a duplicate field or id. */
 export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Limits> = {}): DescriptorCodec {
   const limits: Limits = { ...DEFAULT_LIMITS, ...limitOverrides };
+  const metre = schema.unitsPerMetre;
+  if (metre !== undefined && !(Number.isFinite(metre) && metre > 0)) throw new Error(`unitsPerMetre must be a positive finite number, got ${metre}`);
   const named = new Map<string, Codec>(), compiling = new Set<string>();
 
   function compile(type: FieldType): Codec {

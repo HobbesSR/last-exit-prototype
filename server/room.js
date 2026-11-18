@@ -119,7 +119,7 @@ export function createRoom({
     createdAt = wallNow(),
   } = {}) {
     // The host mints a room's identity (room-service.js, #1187); a room never invents its own.
-    if (typeof id !== 'string' || typeof ownerKey !== 'string') throw new Error('a room is created with its id and owner key');
+    if (typeof id !== 'string' || !id || typeof ownerKey !== 'string' || !ownerKey) throw new Error('a room is created with its id and owner key');
     if (state) throw new Error('Room already created');
     const lobby = createLobby(content);
     state = {

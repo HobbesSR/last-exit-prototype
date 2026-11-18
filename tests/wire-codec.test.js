@@ -224,6 +224,7 @@ test('the schema refuses recursion, duplicate fields and unknown types when buil
 // The codec is generic: a schema names its scale before it can carry float32 metres (24.1, #1187).
 test('float32 metres need the schema to name its scale', () => {
   assert.throws(() => scalar('f32m'), /needs the schema's unitsPerMetre/);
+  for (const bad of [0, -40, Infinity, NaN]) assert.throws(() => createDescriptorCodec({ version: 1, unitsPerMetre: bad, messages: {}, records: {} }), /positive finite/);
   const v = 40 * Math.fround(0.1);
   const plain = scalar('exact');
   const metred = createDescriptorCodec({ version: 1, unitsPerMetre: 40, messages: { m: { id: 1, record: 'A' } }, records: { A: { fields: [{ name: 'v', type: 'exact' }] } } });
