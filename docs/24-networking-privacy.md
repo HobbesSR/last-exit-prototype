@@ -3,7 +3,7 @@
 Accepted encoding direction and candidate field precision (#1093) are in
 [24.1](24.1-wire-encoding-design.md), with measurements in
 [42.47](42.47-wire-encoding.md). The backend is selected: the descriptor codec D (24.1,
-[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) is staged: its codec, typed `state` schema and client reader have landed (24.1 "Adoption status"), but the server still sends JSON, so the live protocol below remains JSON. The proposed lossy-transport delta design (#1094)
+[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) is staged (24.1 "Adoption status"). Since stage 2 (`WIRE_VERSION = 5`) the server writes each connection's `state` messages as D's bytes unless the connection negotiated the JSON debug encoding ([State encoding](#state-encoding)); every other message, inputs included, stays JSON. Stage 3 closes the schema (24.3's proposals 3, 6 and 8, and the roster revision). The proposed lossy-transport delta design (#1094)
 is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data model of the
 live state, and the engine-side choices that shape a typed wire, are in
 [24.3](24.3-wire-data-model.md) (historical inventory and remaining proposals). The implemented relational data strategy,
@@ -24,11 +24,31 @@ are implemented; exact reconciliation is not promised for hidden contacts.
 
 Every inbound WebSocket message passes through `acceptClientMessage` in `server/protocol.js` before room dispatch. Malformed messages (non-object JSON, unknown `type`, or invalid fields) are dropped—or answered with the existing refusal message for `join` (`error`), `choose` (`choose { ok: false }`) and `teleport` (`teleport { ok: false }`)—while incrementing `session.rejectedMessages` and logging a rate-limited warning (`REJECT_LOG_INTERVAL_MS`). When the server runs with `strictProtocol: true` (enabled in `tests/helpers/browser.js`), any rejected message throws immediately so browser integration tests fail on client/server protocol drift. Wrong-moment messages caused by normal client/server races (such as `start` or `choose` arriving just after match start, or `input` arriving as a match finishes) pass schema validation and are ignored by room state; they are never counted or logged as protocol rejects. Escalating malformed messages or repeated rejects to a socket close with client-side recovery is wanted, but requires its own recovery design and is left out of scope for #957.
 
-`join` separates connection `mode` (`'player' | 'spectator' | 'dev'`) from player `role` (`'contestant' | 'gladiator' | 'any'`). `welcome` preserves its three mode-specific variants, all sharing `room`, `owner`, `devTools`, `ready`, `paused`, `contentId`, `presentation`, `map` and `state`:
+`join` separates connection `mode` (`'player' | 'spectator' | 'dev'`) from player `role` (`'contestant' | 'gladiator' | 'any'`). `welcome` preserves its three mode-specific variants, all sharing `room`, `owner`, `devTools`, `ready`, `paused`, `contentId`, `presentation`, `map`, `state` and `stateEncoding`:
 - `player` (`PlayerWelcomeMessage`) carries `id` (the assigned `PlayerId`), `resumeKey`, `started`, `matchmade`, and `startsAt`, with the waiting-yard or live `map` and `state` (the player's `role`, `kit` and `seat` arrive in `state` and `lobby`, not on `welcome`).
 - `spectator` (`SpectatorWelcomeMessage`) carries `id: null`, `spectator: true`, and `spectatorDelayTicks`, omits `started`, and carries `map` and `state` once `ready` is `true` (`null` while the map is still generating).
 - `dev` (`DevWelcomeMessage`) carries `id: null`, `spectator: true`, `dev: true`, and `started` (with `devTools: true`), and carries `map` and `state` once `ready` is `true` (`null` while the map is still generating).
 These three variants are preserved as-is until `join`/`welcome` are revisited for middleware.
+
+### State encoding
+
+`state` messages are negotiated per connection (#1131, [24.1](24.1-wire-encoding-design.md)); the server never
+infers an encoding from a failed decode.
+- **Asking.** `join` and `match` carry `wireVersion`, the `WIRE_VERSION` the page was built for, and
+  `stateEncoding`, `'binary'` (the default) or `'json'` (`STATE_ENCODINGS`). A request naming another wire
+  version is refused before anything else is sent, with `STALE_CLIENT_REASON` telling the page to reload; a
+  matchmaking request is answered with that `error` too. Older tools that omit `wireVersion` are not checked.
+- **Granting.** `binary` is the descriptor codec (`shared/wire-schema.ts`), whose schema version is
+  `WIRE_VERSION`. `json` is a debug encoding of the same projection, granted only to a session the `DEV_TOOLS`
+  policy admits ([Dev view](#dev-view)); otherwise the join is refused with an `error`, never given binary
+  instead. The welcome's `stateEncoding` confirms what the connection will be sent.
+- **Reading.** The client (`public/room-connection.js`, `public/dev-view.js`) reads `state` only in the encoding
+  its welcome confirmed, and closes with a notice on anything else, including bytes the codec refuses. A page
+  opened with `?wire=json` asks for the debug encoding.
+- **Delivery.** Everything other than `state` is JSON text, including the frames inside `welcome` and `ready`.
+  `broadcast` encodes each distinct (view, keyframe set, encoding) payload once and shares it between sessions,
+  as before. In a room a binary payload is a `Uint8Array` and text is a string. A room on its own thread
+  (#1089) transfers both as bytes with a `binary` flag, and the socket sends a binary frame only for those.
 
 Validation is transport-free and session concerns sit behind a minimal session interface (`id`, `deliver`, `close`, `rejectedMessages`) so room lifecycle, matchmaking, session admission/reconnection (`join`, `match`, `welcome`, `lobby`, `error`, `ping`/`pong`) and connection state can be absorbed by room middleware (Colyseus is the leading candidate) while game update, visibility projection, layered frame encoding, lag compensation and recording stay ours. When evaluating Colyseus against this seam, note three specifics: Colyseus 0.16 replaced `@filter` with `StateView` for per-client visibility; Colyseus 0.18 added built-in client prediction and input handling, so `input` is not automatically application-owned; and our 60-tick spectator delay projects a historical frame rather than current room state, which does not fit live schema state sync and keeps state/projection delivery on our own message path unless delayed spectators move to a downstream consumer ([Two-tier spectators](#two-tier-spectators)).
 

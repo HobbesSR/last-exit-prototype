@@ -19,6 +19,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.51](42.51-protobuf-head-to-head.md) | Stock protobuf (protobufjs, schema generated from the descriptor schema) head-to-head with the descriptor codec on 42.49's slice (#1130): bytes, Node and Chrome CPU, allocation, adapter cost against library-only cost, semantics and malformed input |
 | [42.52](42.52-predictor-contacts.md) | Predictor-side contact qualification under candidate quantization (#1142): exact controls, rotated props, moving actors and stored generated geometry; poses, contact events and fallback cuts |
 | [42.54](42.54-field-typed-codec.md) | Field-typed descriptor codec against stock protobuf on the relational v4 slice (#1130): one per-field type model, bytes, Node and Chrome CPU with process CPU, deployable minified bundles, exactness and malformed input |
+| [42.55](42.55-wire-adoption.md) | The descriptor codec live (#1131 stage 2): the production runtime against JSON on a live room's own state messages, bytes and Node encode/decode CPU per view, steady and keyframes |
 
 ### Navigation
 
