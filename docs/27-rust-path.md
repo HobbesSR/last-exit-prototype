@@ -1,47 +1,124 @@
 # 27. Rust path
 
-If the prototype validates the game, move geometry and simulation into an engine-independent Rust crate with serializable state, fixed-tick input, and explicit randomness. Compile it to WebAssembly for the browser and the server, and keep the renderer and transport outside the crate. This avoids maintaining separate Rust and JavaScript gameplay implementations.
+**Decided 2026-11-17; started under tracker #1173.** The backend's foundations move to Rust:
+- **Network edge first,** as a full conversion.
+- **Then a core** that absorbs the simulation from Node, module by module, behind an adapter.
 
-This is a plan, not scheduled work. The core is TypeScript in `shared/` and `map/` ([21](21-stack.md), [22.1](22.1-shared-simulation.md)), and its rules still change weekly, so a port started now would chase a moving target. This document records what we have learned for when it is picked up.
+Corey's words are in [17.4](17.4-live-service.md) #18. This document owns the design. The tracker owns the
+sequence and each issue's state.
 
-## When to start
+Before this, 27 was a plan with start conditions: the rules stop changing, a CPU ceiling, or a native server
+requirement (checked for #568, 2026-10-27, none held). Corey's reason for starting anyway: the target will not be
+more stable than it is under the feature freeze, and changes are better made in their real home than ported
+again later. **The freeze continues while the core is reworked.**
 
-Any one of these justifies starting:
+## Boundaries
 
-- Playtests show the game works, and the core rules stop changing week to week.
-- The server hits a CPU ceiling in JavaScript: tick time, bots or navigation, or map generation for many rooms.
-- A native or self-contained server becomes a requirement.
+The backend has three natural cuts. They move in this order:
 
-None holds yet (checked for #568, 2026-10-27).
+| Cut | What it holds | Determinism | Order |
+| --- | --- | --- | --- |
+| Network edge | Transport termination: QUIC, TLS, WebTransport sessions, datagram framing and size limits; later the WebSocket too | None. It touches no simulation, fixture or replay | First, a full conversion (#1095, [24.5](24.5-transport.md)) |
+| Core | The tick, geometry, navigation, physics ownership, projection | The hard part (below) | Module by module through an adapter (#1175), then the state flip (#1066) |
+| Room host | Threads, scheduler, room lifecycle, delivery, recording, lobbies | Follows the core | Last; native or hosting WASM is decided then |
+
+**Map generation stays in Node.** Its edge already exists: a generated map crosses into a room as one
+transferable buffer holding the map, its portal graph and its free-space tiles (`server/map-pack.js`, #1089). The
+core consumes that packed map. `map/` moves only if a later reason appears.
+
+**Colyseus is retired as a candidate.** Its value was architectural guidance for rooms and lobby management,
+never the running game. Lobbies keep an edge where an external lobby service could still attach if nothing better
+fits (17.4 #18).
+
+## The edge
+
+A Rust process built on `wtransport` (over `quinn`, `rustls` and `tokio`; MIT or Apache-2.0) terminates
+WebTransport. It forwards sessions to Node over one local framed connection. Rooms stay behind the session seam
+(`deliver`, `close`), so they cannot tell which transport carries a session.
+- **WebSocket.** It stays in Node at first, as the fallback, and moves to the edge afterwards. Node then has one
+  peer type.
+- **The local framing** between the edge and Node is a contract with its own version. A future Rust host absorbs it,
+  or keeps it as the edge in 28.1's topology.
+- **What the edge holds.** Datagram size enforcement and 24.2's fragmentation belong to the edge. Acknowledgements,
+  history and deltas are application-owned and stay with whatever owns the projection.
+
+## The core and its adapter
+
+One Rust crate, compiled to **one WASM binary that both the Node server and the browser load** (option 1 below).
+The server and the predicting client then run identical bits without a second math library to verify. Node keeps
+hosting rooms and calls into the WASM.
+
+The adapter is what decides the cost. The rapier.js wrapper walks every collider on each step, and a map's object
+graph cost a thread 150–200 ms to decode until #1089 packed it into buffers. Three rules follow:
+1. **Flat typed buffers, never object graphs.** Inputs and outputs live in WASM memory, and JavaScript reads
+   views of them.
+2. **Leaves first, then the flip.**
+   - **Early:** pure functions with small inputs and outputs, so each adapter stays thin.
+   - **The flip:** once enough is ported, the world state moves into Rust memory and the tick crosses over.
+     JavaScript then reads projections rather than feeding functions. #1066's functional tick and ECS-style state
+     are the design for the flip, decided before it.
+3. **Measure early.** Port one per-tick module, measure its crossing cost against the TypeScript under the bench
+   lock, and set a budget before porting more. Crossings too costly are evidence to flip sooner.
+
+Port order is stability order:
+- **Math first;** everything depends on it.
+- **Then** shape geometry (`shared/shape.ts`, [29.3](29.3-shape-construction-and-assembly.md)) and navigation
+  ([22.6](22.6-hierarchical-navigation.md)).
+
+Each module must match the current tests bit for bit before its TypeScript version is deleted. Both versions exist
+only while they are compared. A half-ported module is not left in place.
 
 ## One math library on both sides
 
-"Native on the server, WebAssembly in the browser" is not bit-identical by itself. Native Rust's `sin`, `cos` and `atan2` come from the platform's math library, which differs between systems. That is the failure #566 found in V8 across ARM and x86, and it would put the authoritative server and the predicting client on different bits. Choose one of:
+"Native on the server, WebAssembly in the browser" is not bit-identical by itself. Native Rust's `sin`, `cos` and
+`atan2` come from the platform's math library, which differs between systems. That is the failure #566 found in
+V8 across ARM and x86. It would put the authoritative server and the predicting client on different bits. The two
+options:
 
-1. **Run the same WASM on the server.** Node instantiates the binary the browser runs, so there is no native server. This is how Rapier already works.
-2. **Use one pure-Rust math library everywhere**, native and WASM alike (the `libm` crate is the candidate), and never the platform's or whatever the toolchain links.
+1. **Run the same WASM on the server.** Node instantiates the binary the browser runs, so there is no native
+   server. Rapier already works this way. **This is the chosen form for the core.**
+2. **Use one pure-Rust math library everywhere**, native and WASM alike (the `libm` crate is the candidate), never
+   the platform's or whatever the toolchain links. Needed only if the core ever runs natively.
 
-Either way, never let the compiler fuse operations: no `mul_add`, no fast-math intrinsics, and no relaxed SIMD, whose fused multiply-add is implementation-defined. `+ - * /` and `sqrt` are IEEE-exact in WASM, and in Rust on ordinary 64-bit targets. Everything else is a library's choice.
+Either way, never let the compiler fuse operations: no `mul_add`, no fast-math intrinsics, and no relaxed SIMD,
+whose fused multiply-add is implementation-defined. `+ - * /` and `sqrt` are IEEE-exact in WASM, and in Rust on
+ordinary 64-bit targets. Everything else is a library's choice.
 
-The reference is what TypeScript computes today: `shared/math.ts`, ports of fdlibm 5.3 and V8's `hypot` using exact operations only ([22.1](22.1-shared-simulation.md)). `libm` descends from the same fdlibm lineage, but nobody has checked that it returns the same bits, and descent does not guarantee it. If it differs, port `shared/math.ts` into the crate instead. Do not change the TypeScript to match, because that moves the frozen fixture. A crate added for this is third-party code under [21.1](21.1-third-party-licenses.md).
+The reference is what TypeScript computes today: `shared/math.ts`, ports of fdlibm 5.3 and V8's `hypot` using
+exact operations only ([22.1](22.1-shared-simulation.md)). The crate ports `shared/math.ts` itself. Do not change
+the TypeScript to match a library, because that moves the frozen fixture. Every crate is third-party code under
+[21.1](21.1-third-party-licenses.md), checked by #1174's licence audit.
 
-## Prerequisite and acceptance
+## Tests and the frozen fixture
 
-#566 is the prerequisite, and it is met: the TypeScript simulation computes exact bits on every platform, and kept the frozen fixture unchanged. A Rust port of the same algorithms must now reproduce those bits, so the port has a fixed target.
+The acceptance tests exist already:
+- `tests/math.test.js` pins a digest of the math module's output bits. The crate must produce the same digest
+  before anything is built on it.
+- `behavior-physics-1.v8.gz` pins every tick's snapshot, the private engine state included, and the projections of
+  its bot matches ([31](31-verification.md#the-frozen-fixture)).
+- Generation's target is the chain's seed sweep (`map/tools/fixtures/chain-baseline.json`), which stays in Node.
 
-The acceptance tests already exist:
+Corey's rule for this effort (17.4 #18):
+- **First,** get as close as possible to passing every test unchanged.
+- **Then,** case by case, rework tests for the new architecture: change them for intent, add new ones, remove old
+  ones.
+- **Not matching every test perfectly is not a failure** (the agent's reading of his words, which 17.4 quotes).
 
-- `tests/math.test.js` pins a digest of the math module's output bits. The crate's math must produce the same digest before anything is built on it.
-- `behavior-physics-1.v8.gz` is the port's acceptance test for the simulation: every tick's snapshot, the private engine state included, and projections of its bot matches must equal the stored digests ([31](31-verification.md#the-frozen-fixture)). Its arenas are stored, so it does not exercise generation. Generation's target is the chain's seed sweep, `map/tools/fixtures/chain-baseline.json` ([31](31-verification.md), [53](53-map-artifacts-and-tools.md)).
-
-A port never regenerates either to pass. A mismatch is a bug in the port or a decision about the TypeScript, taken separately from the extraction ([31](31-verification.md#the-frozen-fixture)).
-
-## Port incrementally
-
-Move stable, self-contained parts first, not the simulation in one step. The candidates are shape geometry (`shared/shape.ts`, [29.3](29.3-shape-construction-and-assembly.md)), navigation ([22.6](22.6-hierarchical-navigation.md)) and the map kernel (`map/kernel/`, which imports nothing outside itself), in the order their rules stop changing.
-
-Each becomes a WASM module that both the Node server and the browser call, which is option 1 above and so closes the determinism gap for that module. Each must match the current tests bit for bit before its TypeScript version is deleted. Both exist while they are compared, and no module is deleted on a partial match. Whether to move the server to a native build afterwards is a separate decision, and it needs option 2 first.
+The project invariant still holds. The fixture is never regenerated to make a port pass. A mismatch is first
+treated as a port bug. Only an architectural change that cannot preserve it is a decided recapture: a separate
+commit, with a continuity proof like `tools/closure-continuity.mjs`.
 
 ## Physics
 
-Rapier is already WASM and already the selected engine ([21](21-stack.md), [29.1](29.1-physics-design.md)), so physics is not part of the port. Its JavaScript/WASM build is documented as cross-platform deterministic for the same version, the same initial conditions and insertion order, and inputs that are themselves deterministic. The page names `Math.sin` and `Math.cos` as the usual way to break that, which is the gap above. [Rapier determinism](https://rapier.rs/docs/user_guides/javascript/determinism/). That statement covers the WASM build. The repository's own evidence is repeatability on supported Node ([42.21](42.21-jelly-squish.md)). If the Rust core ever runs physics natively instead of through the same WASM, that determinism needs its own evidence.
+Rapier is already WASM and the selected engine ([21](21-stack.md), [29.1](29.1-physics-design.md)). Its
+JavaScript/WASM build is documented as cross-platform deterministic for the same version, the same initial
+conditions and insertion order, and inputs that are themselves deterministic. The page names `Math.sin` and
+`Math.cos` as the usual way to break that, which is the gap above
+([Rapier determinism](https://rapier.rs/docs/user_guides/javascript/determinism/)). The repository's own evidence
+is repeatability on supported Node ([42.21](42.21-jelly-squish.md)).
+
+When the core owns the tick, Rapier compiles into the crate as a Rust dependency rather than through rapier.js.
+That removes the wrapper's per-collider costs, but it is a different binary, possibly with different features
+(`enhanced-determinism`). If the fixture's digests move then, it is the decided recapture above: Corey accepted it
+in advance (17.4 #18). If physics ever runs natively instead of as the shared WASM, that determinism needs its own
+evidence.
