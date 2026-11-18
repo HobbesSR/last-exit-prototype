@@ -25,13 +25,15 @@ import {
   REJECT_LOG_INTERVAL_MS,
 } from '../server/protocol.js';
 import { send } from '../server/room-views.js';
+import { readServerMessage } from '../shared/wire-schema.ts';
+import { STALE_CLIENT_REASON, WIRE_VERSION } from '../shared/protocol.ts';
 
 test('a backed-up socket skips state frames but never a one-off message', async () => {
   assert.equal(deliverable(MAX_BUFFERED_BYTES, true), false);
   assert.equal(deliverable(MAX_BUFFERED_BYTES - 1, true), true);
   assert.equal(deliverable(MAX_BUFFERED_BYTES * 4, false), true);
   const h = roomHarness({ reuseMaps: true }), { room } = await h.live(), flags = [];
-  const session = h.service.connect({ deliver: (payload, droppable) => flags.push([JSON.parse(payload).type, droppable]), close() {} });
+  const session = h.service.connect({ deliver: (payload, droppable) => flags.push([readServerMessage(payload).type, droppable]), close() {} });
   h.service.receive(session, { type: 'join', room: room.id }); h.wake(50);
   assert.deepEqual(flags.filter(([type]) => type !== 'ping'), [['welcome', undefined], ['lobby', undefined], ['seats', undefined], ['state', true]]);
   return h.service.close();
@@ -182,8 +184,19 @@ test('protocol validation counts and rate-limits rejected messages, throws in st
   assert.equal(validateClientMessage({ type: 'join', room: 'a', role: 'spectator' }).ok, false, 'legacy overloaded role is rejected');
   assert.deepEqual(validateClientMessage({ type: 'join', room: 'a', mode: 'spectator' }), {
     ok: true,
-    message: { type: 'join', room: 'a', mode: 'spectator', role: 'contestant', name: 'Player', ownerKey: null, resumeKey: null },
+    message: { type: 'join', room: 'a', mode: 'spectator', role: 'contestant', name: 'Player', ownerKey: null, resumeKey: null, stateEncoding: 'binary' },
   });
+  // A join or match request negotiates its state encoding (24.1): binary unless it asks for the JSON debug
+  // encoding, and a page built for another wire version is refused with a reload notice.
+  for (const type of ['join', 'match']) {
+    const asked = encoding => validateClientMessage({ type, room: 'a', wireVersion: WIRE_VERSION, stateEncoding: encoding });
+    assert.equal(asked('json').message.stateEncoding, 'json');
+    assert.equal(asked(undefined).message.stateEncoding, 'binary');
+    assert.equal(asked('msgpack').ok, false, `${type}: an unknown encoding is refused`);
+    assert.deepEqual(validateClientMessage({ type, room: 'a', wireVersion: WIRE_VERSION - 1 }), { ok: false, type, reason: STALE_CLIENT_REASON });
+    // Checked before the version's other fields, so a stale page is told to reload whatever else it sends.
+    assert.equal(validateClientMessage({ type, room: 'a', wireVersion: WIRE_VERSION - 1, role: 'spectator' }).reason, STALE_CLIENT_REASON);
+  }
   const logs = [], session = { id: 7 };
   assert.equal(acceptClientMessage(session, { type: 'unknown' }, { log: msg => logs.push(msg), now: 1000 }).ok, false);
   assert.equal(acceptClientMessage(session, { type: 'pong' }, { log: msg => logs.push(msg), now: 1000 + REJECT_LOG_INTERVAL_MS - 1 }).ok, false);
@@ -217,8 +230,11 @@ test('outbound server message and HTTP builders enforce declared wire shapes at 
 
   const baseWelcome = {
     room: 'r1', owner: true, devTools: true, ready: false, paused: false,
-    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [],
+    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [], stateEncoding: 'binary',
   };
+  assert.throws(() => playerWelcomeMessage({
+    ...baseWelcome, id: 'p1', resumeKey: 'k1', started: false, matchmade: false, startsAt: null, stateEncoding: 'text',
+  }), /missing required common fields/, 'a welcome names an encoding the client can read');
   assert.equal(validateServerMessage(playerWelcomeMessage({
     ...baseWelcome, id: 'p1', resumeKey: 'k1', started: false, matchmade: false, startsAt: null,
   })).ok, true);
@@ -233,7 +249,7 @@ test('outbound server message and HTTP builders enforce declared wire shapes at 
   }), /SpectatorWelcomeMessage/);
   assert.equal(validateServerMessage(devWelcomeMessage({
     room: 'r1', owner: true, started: true, ready: false, paused: false,
-    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [],
+    contentId: 'content-7', presentation: { contentId: 'content-7' }, map: null, state: null, roster: [], stateEncoding: 'json',
   })).ok, true);
 
   assert.equal(healthResponse({

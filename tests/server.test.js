@@ -8,7 +8,7 @@ import { WIRE_VERSION } from '../server/protocol.js';
 import { VERSION } from '../shared/simulation/rules.ts';
 import { PHYSICS_VERSION } from '../shared/simulation/physics-runtime.ts';
 import { listen } from './helpers/listen.js';
-import { next, open, createRoom } from './helpers/arena-socket.js';
+import { next, open, createRoom, readSocketMessage } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generatedMap, reusedMap } from './helpers/room-harness.js';
 import { archiveText, readArchive, storedDigest } from './helpers/recordings.js';
@@ -173,10 +173,11 @@ test('two clients share authority; replay preserves each recorded frame and surv
     const wa = await welcomeA; assert.equal(wa.owner, true);
     assert.equal(wa.started, false);
     // Decoded as the client does, so the check below covers what layered items and gates rebuild to (#250).
-    const received = [], layers = createLayerDecoder();
+    const received = [], layers = createLayerDecoder(), frameKinds = new Set();
     // The lobby's waiting-yard frames (#236) run on a real timer and are never recorded, so only the match's are compared.
-    a.on('message', raw => {
-      const data = JSON.parse(raw); if (data.type !== 'state') return;
+    a.on('message', (raw, binary) => {
+      const data = readSocketMessage(raw, binary); if (data.type !== 'state') return;
+      frameKinds.add(binary ? 'binary' : 'text');
       const frame = layers.decode(data.state); if (frame.phase !== 'waiting') received.push(frame);
     });
     const b = await open(base);
@@ -202,6 +203,8 @@ test('two clients share authority; replay preserves each recorded frame and surv
     assert.equal(accepted.input.interact, true, 'spent one-shot input remains intact in the recording');
     assert.deepEqual(accepted.input.moveSlot, { from: 0, to: 5 });
     assert.equal(Object.hasOwn(accepted.input, 'hp'), false, 'record sanitized input, not injected state');
+    // Over a real socket the state goes as binary frames (24.1), and reads back as the recording's projection.
+    assert.deepEqual([...frameKinds], ['binary']);
     for (const frame of received) {
       const archived = replay.frames.find(r => r.state.tick === frame.tick && r.state.phase === frame.phase)?.state;
       assert.ok(archived, `live tick ${frame.tick} retained`);

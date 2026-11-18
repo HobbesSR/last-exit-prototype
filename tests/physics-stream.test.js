@@ -6,6 +6,7 @@ import { createReplayWriter } from '../server/replay-writer.js';
 import { Writable } from 'node:stream';
 import { createHash } from 'node:crypto';
 import { readArchive, storedDigest } from './helpers/recordings.js';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 const body = (id, x = 0, extra = {}) => ({ id, kind: 'prop', shape: { kind: 'circle', radius: 6 }, x, y: 0, angle: 0, vx: 0, vy: 0, omega: 0, sleeping: false, generation: 1, ...extra });
 const frame = (tick, bodies, tethers = []) => ({ tick, physicsProfile: 'test-profile', players: [], items: [], gates: [], bodies, tethers });
@@ -13,9 +14,10 @@ const frame = (tick, bodies, tethers = []) => ({ tick, physicsProfile: 'test-pro
 function watcher(room) {
   const decoder = createLayerDecoder(), received = [], wire = [];
   let skip = false;
-  const session = { dev: true, layerKeys: {}, deliver(payload, droppable) {
+  // Synthetic partial frames, which the typed binary schema refuses: this is about layers, so it reads JSON.
+  const session = { dev: true, layerKeys: {}, stateEncoding: 'json', deliver(payload, droppable) {
     if (skip && droppable) return false;
-    const message = JSON.parse(payload);
+    const message = readServerMessage(payload);
     if (message.type === 'seats') return true;
     wire.push(structuredClone(message.state));
     received.push(decoder.decode(message.state));

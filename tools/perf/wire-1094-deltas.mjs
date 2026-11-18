@@ -97,7 +97,7 @@ try {
   const role = Object.fromEntries([...roster.map(p => [p.id, p.role]), ['dev', 'dev']]);
   const frames = Object.fromEntries(views.map(v => [v, []])), today = Object.fromEntries(views.map(v => [v, []]));
   const room = { match, clients: new Set(), history: [], ...viewEncoders() };
-  for (const view of views) room.clients.add({ playerId: view === 'dev' ? undefined : view, dev: view === 'dev', deliver(payload) { today[view].push(payload); return true; } });
+  for (const view of views) room.clients.add({ playerId: view === 'dev' ? undefined : view, dev: view === 'dev', stateEncoding: 'json', deliver(payload) { today[view].push(payload); return true; } });
   // S's reliable stream: today's layer and discovery encoders for one always-delivered session per player view.
   const slow = Object.fromEntries(views.filter(v => v !== 'dev').map(v => [v, { layers: createLayerEncoder(), discovery: createDiscoveryEncoder(), held: {}, messages: [] }]));
   let current;

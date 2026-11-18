@@ -12,10 +12,11 @@ export function attachWebSockets(http, service) {
     }
     const session = service.connect({
       // Says whether the payload went, so a skipped state frame is known not to have delivered a keyframe.
-      // A payload may come as UTF-8 bytes (from a room on its own thread, #1089); it is still a text frame.
-      deliver: (payload, droppable = false) => {
+      // A payload may come as UTF-8 bytes (from a room on its own thread, #1089); it is still a text frame
+      // unless `binary` says it is a codec `state` message (24.1).
+      deliver: (payload, droppable = false, binary = false) => {
         if (ws.readyState !== WebSocket.OPEN || !deliverable(ws.bufferedAmount, droppable)) return false;
-        ws.send(payload, { binary: false }); return true;
+        ws.send(payload, { binary }); return true;
       },
       bytes: true,
       buffered: () => ws.bufferedAmount,

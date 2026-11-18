@@ -1,0 +1,168 @@
+{
+  "issue": 1131,
+  "doc": "42.55",
+  "wireVersion": 5,
+  "ticks": 1200,
+  "rounds": 5,
+  "minBatchMs": 200,
+  "size": "12x6",
+  "seed": 9,
+  "source": "ed5fdd94753877e7c414bd31031916fa5fe9b7f0",
+  "dirty": false,
+  "node": "v24.15.0",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "views": {
+    "contestant": {
+      "steady": {
+        "messages": 1199,
+        "jsonBytes": 2173421,
+        "binaryBytes": 344239,
+        "ratio": 0.1584,
+        "meanJsonBytes": 1813,
+        "meanBinaryBytes": 287,
+        "encodeUs": {
+          "json": 5.478500312760653,
+          "binary": 6.227530754795684
+        },
+        "decodeUs": {
+          "json": 7.120438907422808,
+          "binary": 5.490325271059212
+        },
+        "encodeRatio": 1.137,
+        "decodeRatio": 0.771
+      },
+      "keyframes": {
+        "messages": 2,
+        "jsonBytes": 14247,
+        "binaryBytes": 2009,
+        "ratio": 0.141,
+        "meanJsonBytes": 7124,
+        "meanBinaryBytes": 1005,
+        "encodeUs": {
+          "json": 17.138922119140698,
+          "binary": 20.24582519531237
+        },
+        "decodeUs": {
+          "json": 27.77622070312491,
+          "binary": 17.79882202148442
+        },
+        "encodeRatio": 1.181,
+        "decodeRatio": 0.641
+      }
+    },
+    "gladiator": {
+      "steady": {
+        "messages": 1200,
+        "jsonBytes": 2561028,
+        "binaryBytes": 424720,
+        "ratio": 0.1658,
+        "meanJsonBytes": 2134,
+        "meanBinaryBytes": 354,
+        "encodeUs": {
+          "json": 6.871953124999949,
+          "binary": 6.832317708333354
+        },
+        "decodeUs": {
+          "json": 8.592236979166804,
+          "binary": 5.891044270833277
+        },
+        "encodeRatio": 0.994,
+        "decodeRatio": 0.686
+      },
+      "keyframes": {
+        "messages": 1,
+        "jsonBytes": 7075,
+        "binaryBytes": 820,
+        "ratio": 0.1159,
+        "meanJsonBytes": 7075,
+        "meanBinaryBytes": 820,
+        "encodeUs": {
+          "json": 16.867681884765506,
+          "binary": 18.109820556640344
+        },
+        "decodeUs": {
+          "json": 32.3731323242189,
+          "binary": 17.568243408203177
+        },
+        "encodeRatio": 1.074,
+        "decodeRatio": 0.543
+      }
+    },
+    "dev": {
+      "steady": {
+        "messages": 1194,
+        "jsonBytes": 4912332,
+        "binaryBytes": 812421,
+        "ratio": 0.1654,
+        "meanJsonBytes": 4114,
+        "meanBinaryBytes": 680,
+        "encodeUs": {
+          "json": 15.17245603015069,
+          "binary": 11.88930067001657
+        },
+        "decodeUs": {
+          "json": 15.200512981574477,
+          "binary": 10.648848408710254
+        },
+        "encodeRatio": 0.784,
+        "decodeRatio": 0.701
+      },
+      "keyframes": {
+        "messages": 6,
+        "jsonBytes": 136889,
+        "binaryBytes": 23752,
+        "ratio": 0.1735,
+        "meanJsonBytes": 22815,
+        "meanBinaryBytes": 3959,
+        "encodeUs": {
+          "json": 76.78964843749962,
+          "binary": 67.52809244791773
+        },
+        "decodeUs": {
+          "json": 92.77220052083142,
+          "binary": 62.08457031249992
+        },
+        "encodeRatio": 0.879,
+        "decodeRatio": 0.669
+      }
+    },
+    "spectator": {
+      "steady": {
+        "messages": 1192,
+        "jsonBytes": 4854383,
+        "binaryBytes": 810354,
+        "ratio": 0.1669,
+        "meanJsonBytes": 4072,
+        "meanBinaryBytes": 680,
+        "encodeUs": {
+          "json": 15.008305369126859,
+          "binary": 12.0694106543624
+        },
+        "decodeUs": {
+          "json": 15.393272860738065,
+          "binary": 10.563270763422631
+        },
+        "encodeRatio": 0.804,
+        "decodeRatio": 0.686
+      },
+      "keyframes": {
+        "messages": 8,
+        "jsonBytes": 179209,
+        "binaryBytes": 32337,
+        "ratio": 0.1804,
+        "meanJsonBytes": 22401,
+        "meanBinaryBytes": 4042,
+        "encodeUs": {
+          "json": 73.98295898437368,
+          "binary": 70.70944824218728
+        },
+        "decodeUs": {
+          "json": 91.22536621093502,
+          "binary": 64.63977050781011
+        },
+        "encodeRatio": 0.956,
+        "decodeRatio": 0.709
+      }
+    }
+  }
+}

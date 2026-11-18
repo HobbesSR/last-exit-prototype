@@ -1,7 +1,8 @@
 import { createFrameNormalizer } from '../shared/relational-frame.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { CLIENT_MESSAGE, SERVER_MESSAGE } from '/shared/protocol.ts';
-import { envelopePresentation } from '/room-connection.js';
+import { deliveredAs, envelopePresentation, pageNegotiation } from '/room-connection.js';
+import { readServerMessage } from '/shared/wire-schema.ts';
 import { $, fillFollowOptions } from '/ui.js';
 
 // The dev view (24) and its `#dev-*` controls. A player who steps out to it (#246) keeps their own socket,
@@ -36,10 +37,18 @@ export function createDevView({
       director.restore(savedCamera.camera);
     }
     show(); const layers = createLayerDecoder(), frames = createFrameNormalizer();
-    socket.addEventListener('open', () => socket.send(JSON.stringify({ type: CLIENT_MESSAGE.JOIN, room: getRoomId(), ownerKey: getOwnerKey(), mode: 'dev' })));
+    // State arrives in the encoding the welcome confirms (24.1); anything unreadable ends the feed.
+    socket.binaryType = 'arraybuffer';
+    let stateEncoding = null;
+    socket.addEventListener('open', () => socket.send(JSON.stringify({ type: CLIENT_MESSAGE.JOIN, room: getRoomId(), ownerKey: getOwnerKey(), mode: 'dev', ...pageNegotiation() })));
     socket.addEventListener('message', event => {
       if (feed !== socket) return;
-      const data = JSON.parse(event.data);
+      let data;
+      try { data = readServerMessage(event.data); } catch { data = null; }
+      if (!data || data.type === SERVER_MESSAGE.STATE && !deliveredAs(event.data, stateEncoding)) {
+        toast('The dev view sent a message this browser cannot read.'); leave(); return;
+      }
+      if (data.type === SERVER_MESSAGE.WELCOME) stateEncoding = data.stateEncoding;
       if (data.type === SERVER_MESSAGE.WELCOME || data.type === SERVER_MESSAGE.READY) {
         const described = envelopePresentation(data);
         if (!described) { toast('The dev view sent a match this browser cannot read.'); leave(); return; }

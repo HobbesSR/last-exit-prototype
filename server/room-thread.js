@@ -18,8 +18,8 @@ const asError = plain => Object.assign(new Error(plain.message), plain.stack ? {
  *
  * `map` is a map, a promise of one, a packed map (map-pack.js) or a promise of one, or absent to generate in
  * the room's thread. A map the generator packed reaches the room without the host decoding it; a plain map
- * (a test's) is packed here first. Hooks are the host's: `deliver(clientId, bytes)` with the room's own drop
- * decision already made, `backlog(clientId)` the socket's buffered bytes, `closeClient`, `joined`,
+ * (a test's) is packed here first. Hooks are the host's: `deliver(clientId, bytes, binary)` with the room's own
+ * drop decision already made (`binary` for a codec `state` message, else UTF-8 text), `backlog(clientId)` the socket's buffered bytes, `closeClient`, `joined`,
  * `onFinalization`, `onDispose(roomId, clientIds)`, `published(meta)`, `reportError`, and `failed(roomId)`
  * when the thread dies unasked.
  */
@@ -79,7 +79,7 @@ export function createRoomThread({ seed, matchmade, size, map, name, content, cr
   function onEvents({ events, payloads }) {
     for (const event of events) {
       switch (event[0]) {
-        case 'deliver': hooks.deliver(event[1], payloads[event[2]]); break;
+        case 'deliver': hooks.deliver(event[1], payloads[event[2]], event[3]); break;
         case 'close': hooks.closeClient(event[1], event[2], event[3]); break;
         case 'joined': {
           const at = inFlight.indexOf(event[1]);

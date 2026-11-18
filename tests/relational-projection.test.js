@@ -5,6 +5,7 @@ import { createMatch } from '../server/match.js';
 import { broadcast, remember, viewEncoders } from '../server/room-views.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 const scene = () => arena({ seed: 1153, cols: 10, rows: 8, cellSize: 100,
   spawns: [{ x: 200, y: 300 }], hunterSpawns: [{ x: 400, y: 300 }],
@@ -43,7 +44,7 @@ test('wire self/observed records use numeric relations, one pose and dynamic-onl
 test('seat updates follow the selected historical tick and precede its state', async () => {
   const match = await createMatch(1153, undefined, scene(), content());
   try {
-    const history = match.snapshot(), received = [], session = { deliver(text) { received.push(JSON.parse(text)); return true; } };
+    const history = match.snapshot(), received = [], session = { deliver(text) { received.push(readServerMessage(text)); return true; } };
     const room = { match, clients: new Set([session]), history: [history], ...viewEncoders() };
     match.join('late', 'contestant', 'runner', 'Replacement');
     const current = match.snapshot();

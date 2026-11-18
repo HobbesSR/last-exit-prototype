@@ -17,7 +17,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 4;
+export const WIRE_VERSION = 5;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -90,6 +90,16 @@ export type JoinMode = typeof JOIN_MODES[number];
 export const JOIN_ROLES = Object.freeze(['contestant', 'gladiator', 'any'] as const);
 export type JoinRole = typeof JOIN_ROLES[number];
 
+/**
+ * How the server writes `state` messages to one connection (24.1, #1131). A client names the one it reads
+ * when it joins, and the welcome confirms it. `binary` is the descriptor codec (`shared/wire-schema.ts`) and
+ * the default. `json` is a debug encoding of the same projection, granted only to a connection the server's
+ * dev-tools policy authorizes; a join that asks for it otherwise is refused, never quietly given binary.
+ * Every other message, including the welcome's and ready's frames, stays JSON.
+ */
+export const STATE_ENCODINGS = Object.freeze(['binary', 'json'] as const);
+export type StateEncoding = typeof STATE_ENCODINGS[number];
+
 export const DEV_ACTIONS = Object.freeze(['pause', 'resume', 'teleport'] as const);
 export type DevAction = typeof DEV_ACTIONS[number];
 
@@ -113,6 +123,7 @@ export interface JoinMessage {
   name: string;
   ownerKey: string | null;
   resumeKey: string | null;
+  stateEncoding: StateEncoding;
 }
 
 export interface MatchMessage {
@@ -120,6 +131,7 @@ export interface MatchMessage {
   role: JoinRole;
   kit?: Kit;
   name: string;
+  stateEncoding: StateEncoding;
 }
 
 export interface StartMessage {
@@ -197,6 +209,8 @@ export interface WelcomeBase {
   map: GameMap | WaitingMap | null;
   state: Projected<Snapshot> | Record<string, unknown> | null;
   roster: SeatMetadata[];
+  /** How this connection's `state` messages are written, as its join asked. */
+  stateEncoding: StateEncoding;
 }
 
 export interface PlayerWelcomeMessage extends WelcomeBase {
@@ -421,17 +435,17 @@ const hasExactKeys = (obj: Record<string, unknown>, expected: readonly string[])
 
 const WELCOME_PLAYER_KEYS = [
   'type', 'id', 'resumeKey', 'room', 'owner', 'devTools', 'paused',
-  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state', 'roster',
+  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state', 'roster', 'stateEncoding',
 ] as const;
 
 const WELCOME_SPECTATOR_KEYS = [
   'type', 'id', 'spectator', 'spectatorDelayTicks', 'room', 'owner', 'devTools',
-  'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster',
+  'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'stateEncoding',
 ] as const;
 
 const WELCOME_DEV_KEYS = [
   'type', 'id', 'spectator', 'dev', 'devTools', 'room', 'owner',
-  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster',
+  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'stateEncoding',
 ] as const;
 
 const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state', 'roster'] as const;
@@ -463,6 +477,7 @@ const validWelcomeCommon = (data: Record<string, unknown>): boolean =>
   typeof data.ready === 'boolean' &&
   typeof data.paused === 'boolean' &&
   nonEmptyString(data.contentId) &&
+  (STATE_ENCODINGS as readonly unknown[]).includes(data.stateEncoding) &&
   isRecord(data.presentation) &&
   (data.map === null || isRecord(data.map)) &&
   (data.state === null || isRecord(data.state));
@@ -855,6 +870,22 @@ export type ClientMessageValidation =
 const cleanPlayerName = (name: unknown): string =>
   typeof name === 'string' ? name.trim() || DEFAULT_PLAYER_NAME : DEFAULT_PLAYER_NAME;
 
+/** Read when a page joins this server's build: the server reads what it may send, never guesses it later. */
+export const STALE_CLIENT_REASON = 'This page is out of date with the arena. Reload to play.';
+/** Why a join or match request asking for JSON state was refused: the debug encoding needs dev tools. */
+export const JSON_STATE_REFUSED = 'JSON state is a debug encoding this arena grants only with its dev tools.';
+/**
+ * A join's or match request's negotiation (24.1): the wire version the page was built for, when it says, and
+ * the state encoding it reads. A page built for another wire version is refused before anything is sent to it.
+ */
+function negotiation(data: Record<string, unknown>): { ok: true; stateEncoding: StateEncoding } | { ok: false; reason: string } {
+  if (data.wireVersion !== undefined && data.wireVersion !== WIRE_VERSION) return { ok: false, reason: STALE_CLIENT_REASON };
+  if (data.stateEncoding !== undefined && !(STATE_ENCODINGS as readonly unknown[]).includes(data.stateEncoding)) {
+    return { ok: false, reason: 'State encoding must be binary or json.' };
+  }
+  return { ok: true, stateEncoding: (data.stateEncoding as StateEncoding | undefined) ?? 'binary' };
+}
+
 /**
  * Validate and normalize one decoded client->server message. Transport-free: takes any parsed value
  * and returns either a normalized message with only permitted fields or a structured rejection reason.
@@ -870,6 +901,9 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
   const type = data.type as ClientMessageType;
   switch (type) {
     case CLIENT_MESSAGE.JOIN: {
+      // Negotiation first: a stale page is told to reload, whatever else its join gets wrong for this version.
+      const negotiated = negotiation(data);
+      if (!negotiated.ok) return { ok: false, type, reason: negotiated.reason };
       if (typeof data.room !== 'string' || !data.room.trim()) {
         return { ok: false, type, reason: 'A room id is required to join.' };
       }
@@ -902,10 +936,13 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
           name: cleanPlayerName(data.name),
           ownerKey: typeof data.ownerKey === 'string' ? data.ownerKey : null,
           resumeKey: typeof data.resumeKey === 'string' ? data.resumeKey : null,
+          stateEncoding: negotiated.stateEncoding,
         },
       };
     }
     case CLIENT_MESSAGE.MATCH: {
+      const negotiated = negotiation(data);
+      if (!negotiated.ok) return { ok: false, type, reason: negotiated.reason };
       if (data.role !== undefined && !(JOIN_ROLES as readonly unknown[]).includes(data.role)) {
         return { ok: false, type, reason: 'Match role must be contestant, gladiator, or any.' };
       }
@@ -922,6 +959,7 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
           role: (data.role as JoinRole | undefined) ?? 'any',
           ...(data.kit !== undefined ? { kit: data.kit as Kit } : {}),
           name: cleanPlayerName(data.name),
+          stateEncoding: negotiated.stateEncoding,
         },
       };
     }

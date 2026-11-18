@@ -5,8 +5,18 @@ import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { createDiscoveryEncoder } from '../shared/discovery.ts';
 import { stringifyWithMap } from './map-payload.js';
 import { assertServerMessage, lobbyMessage, stateMessage, seatsMessage } from './protocol.js';
+import { wireCodec } from '../shared/wire-schema.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(stringifyWithMap(assertServerMessage(value)));
+/**
+ * A `state` message written as a session's join negotiated (24.1): the descriptor codec's bytes, or JSON text
+ * for a dev-tools session that asked for it. Every other message is JSON. A payload is a Uint8Array exactly
+ * when it is binary, which is how the transport below tells a binary frame from text.
+ */
+const writeState = (frame, encoding) => {
+  const message = stateMessage(frame);
+  return encoding === 'json' ? JSON.stringify(message) : wireCodec().encode(message);
+};
 const lobbyPayload = room => lobbyMessage({
   room: room.id, name: room.name, started: room.started, matchmade: !!room.matchmade, size: zoneSizeName(room.size),
   startsAt: room.startsAt || null,
@@ -35,7 +45,7 @@ function deliverSeats(session, json) {
 }
 export function broadcastWaiting(room, view) {
   const roster = seatsPayload(waitingSeats(room.waiting));
-  for (const session of room.clients) if (session.playerId) { if (!deliverSeats(session, roster)) continue; session.deliver(JSON.stringify(stateMessage(view(room.waiting, session.playerId))), true); }
+  for (const session of room.clients) if (session.playerId) { if (!deliverSeats(session, roster)) continue; session.deliver(writeState(view(room.waiting, session.playerId), session.stateEncoding), true); }
 }
 export function spectatorFrame(room) {
   const cutoff = Math.max(0, room.match.tick - SPECTATOR_DELAY_TICKS);
@@ -66,11 +76,11 @@ export function broadcast(room, state) {
     }
     // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
     // not yet delivered that keyframe (shared/frame-layers.ts, shared/discovery.ts). Sessions in the
-    // same place share one payload.
+    // same place and encoding share one payload.
     if (!deliverSeats(session, view.roster)) continue;
     const held = session.layerKeys ||= {};
     const whole = Object.entries(view.layers).filter(([layer, encoded]) => 'k' in encoded && held[layer] !== encoded.k).map(([layer]) => layer);
-    const variant = `${key}|${whole}`;
+    const variant = `${key}|${whole}|${session.stateEncoding}`;
     let payload = payloads.get(variant);
     if (payload === undefined) {
       const frame = { ...view.state };
@@ -83,7 +93,7 @@ export function broadcast(room, state) {
         frame.self = { ...frame.self, discovered: disc };
       }
       profiler.start('loop.serialize');
-      payloads.set(variant, payload = JSON.stringify(stateMessage(frame)));
+      payloads.set(variant, payload = writeState(frame, session.stateEncoding));
       profiler.stop('loop.serialize');
     }
     if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;

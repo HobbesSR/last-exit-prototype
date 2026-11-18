@@ -23,6 +23,7 @@ import {
   isDiscovered,
   isFeatureDiscovered,
 } from '../shared/discovery.ts';
+import { readServerMessage } from '../shared/wire-schema.ts';
 
 // Cases that never step build the game without its physics world; cases that step build the shipped engine (#920).
 const game = (seed = 4217) => createGameRecord(seed, generatedMap(), defaultContent());
@@ -272,7 +273,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
           shouldDrop = false;
           return false; // simulate websocket backpressure drop
         }
-        const message = JSON.parse(payload); if (message.type !== 'seats') delivered.push(message);
+        const message = readServerMessage(payload); if (message.type !== 'seats') delivered.push(message);
         return true;
       }
     };

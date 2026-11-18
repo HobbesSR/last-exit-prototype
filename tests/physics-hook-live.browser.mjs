@@ -30,6 +30,7 @@ try {
   await page.goto(base);
   const result = await page.evaluate(async ({ base, room, ownerKey }) => {
     const { createLayerDecoder } = await import('/shared/frame-layers.ts');
+    const { readServerMessage } = await import('/shared/wire-schema.ts');
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
     async function until(check, label, ms = 6000) {
       const deadline = performance.now() + ms;
@@ -38,9 +39,10 @@ try {
     }
     async function connect(role, name, extra = {}) {
       const ws = new WebSocket(base.replace('http:', 'ws:'));
+      ws.binaryType = 'arraybuffer';
       const decoder = createLayerDecoder(), messages = [], frames = [];
       ws.onmessage = event => {
-        const message = JSON.parse(event.data);
+        const message = readServerMessage(event.data);
         // Waiting-area frames count their own ticks; matching match ticks against them is a lottery.
         if (message.type === 'state') { const frame = decoder.decode(message.state); if (frame.phase !== 'waiting') frames.push(frame); }
         messages.push(message);

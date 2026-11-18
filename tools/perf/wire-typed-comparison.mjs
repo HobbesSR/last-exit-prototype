@@ -39,7 +39,7 @@ try {
   const room = { match, clients: new Set(), history: [], ...viewEncoders() };
   const corpus = Object.fromEntries(VIEWS.map(v => [v, []]));
   const roster = match.snapshot().players, payloadView = new Map();
-  const add = (view, playerId, dev = false) => room.clients.add({ playerId, dev, deliver(payload) { const v = payloadView.get(payload); if (v) corpus[view].push(v); return true; } });
+  const add = (view, playerId, dev = false) => room.clients.add({ playerId, dev, stateEncoding: 'json', deliver(payload) { const v = payloadView.get(payload); if (v) corpus[view].push(v); return true; } });
   add('contestant', roster.find(p => p.role === 'contestant').id); add('gladiator', roster.find(p => p.role === 'gladiator').id);
   add('dev', undefined, true); add('spectator', undefined);
   const stringify = JSON.stringify;
