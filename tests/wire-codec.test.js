@@ -220,3 +220,17 @@ test('the schema refuses recursion, duplicate fields and unknown types when buil
   assert.throws(build({ A: { fields: [{ name: 'x', type: 'uint' }, { name: 'x', type: 'str' }] } }), /duplicate field/);
   assert.throws(build({ A: { fields: [{ name: 'x', type: 'Nope' }] } }), /unknown record/);
 });
+
+// The codec is generic: a schema names its scale before it can carry float32 metres (24.1, #1187).
+test('float32 metres need the schema to name its scale', () => {
+  assert.throws(() => scalar('f32m'), /needs the schema's unitsPerMetre/);
+  for (const bad of [0, -40, Infinity, NaN]) assert.throws(() => createDescriptorCodec({ version: 1, unitsPerMetre: bad, messages: {}, records: {} }), /positive finite/);
+  const v = 40 * Math.fround(0.1);
+  const plain = scalar('exact');
+  const metred = createDescriptorCodec({ version: 1, unitsPerMetre: 40, messages: { m: { id: 1, record: 'A' } }, records: { A: { fields: [{ name: 'v', type: 'exact' }] } } });
+  const wide = plain.encode({ type: 'm', v }), narrow = metred.encode({ type: 'm', v });
+  assert.equal(wide.length - narrow.length, 4, 'with a scale it travels as float32 metres, not float64');
+  assert.equal(plain.decode(wide).v, v);
+  assert.equal(metred.decode(narrow).v, v);
+  assert.throws(() => plain.decode(narrow), /bad number tag/);
+});

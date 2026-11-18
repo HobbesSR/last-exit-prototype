@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import * as profiler from '../shared/profiler.ts';
@@ -136,9 +136,9 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   // The threaded room each pending join was sent to, so its answer settles the right session.
   const pendingJoins = new Map();
 
-  function makeThreadedRoom(seed, matchmade, size, map, name) {
+  function makeThreadedRoom(id, ownerKey, seed, matchmade, size, map, name) {
     return createRoomThread({
-      seed, matchmade, size, map, name, content: content(), createdAt: wallNow(), devTools,
+      id, ownerKey, seed, matchmade, size, map, name, content: content(), createdAt: wallNow(), devTools,
       replays: replays.threadOptions, replayFinishTimeoutMs, profile: profiler.profiling(), wireKey,
       hooks: {
         deliver: (clientId, payload, binary) => sessions.get(clientId)?.deliver(payload, false, binary),
@@ -166,8 +166,11 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
    */
   function makeRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, map, name = null) {
     if (closing) return null;
+    // A room's identity is minted here, the one entry for inline and threaded rooms alike (#1187): an
+    // eight-hex public id, and the secret that proves ownership of a private room.
+    const id = randomBytes(4).toString('hex'), ownerKey = randomUUID();
     if (threads) {
-      const room = makeThreadedRoom(seed, matchmade, size, map, name);
+      const room = makeThreadedRoom(id, ownerKey, seed, matchmade, size, map, name);
       rooms.set(room.id, room);
       roomSessions.set(room.id, new Set());
       return room.descriptor;
@@ -189,7 +192,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       onDispose: retireRoom,
     });
     const here = typeof map?.then === 'function' ? map.then(mapHere) : mapHere(map);
-    const descriptor = room.onCreate({ seed, matchmade, size, map: here, name, content: content() });
+    const descriptor = room.onCreate({ id, ownerKey, seed, matchmade, size, map: here, name, content: content() });
     rooms.set(descriptor.id, room);
     roomSessions.set(descriptor.id, new Set());
     return descriptor;

@@ -1,4 +1,4 @@
-import { randomUUID, randomBytes } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { DEFAULT_KIT, HZ, ROLES } from '../shared/simulation/rules.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
@@ -107,8 +107,8 @@ export function createRoom({
    * Returns only a plain room descriptor, never the mutable room instance.
    */
   function onCreate({
-    id = randomBytes(4).toString('hex'),
-    ownerKey = randomUUID(),
+    id,
+    ownerKey,
     seed = 0,
     matchmade = false,
     size = DEFAULT_LIVE_ZONE_SIZE,
@@ -118,6 +118,8 @@ export function createRoom({
     content = defaultContent(),
     createdAt = wallNow(),
   } = {}) {
+    // The host mints a room's identity (room-service.js, #1187); a room never invents its own.
+    if (typeof id !== 'string' || !id || typeof ownerKey !== 'string' || !ownerKey) throw new Error('a room is created with its id and owner key');
     if (state) throw new Error('Room already created');
     const lobby = createLobby(content);
     state = {
