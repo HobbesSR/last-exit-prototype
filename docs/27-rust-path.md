@@ -78,6 +78,9 @@ graph cost a thread 150–200 ms to decode until #1089 packed it into buffers. T
    - **The flip:** once enough is ported, the world state moves into Rust memory and the tick crosses over.
      JavaScript then reads projections rather than feeding functions. #1066's functional tick and ECS-style state
      are the design for the flip, decided before it.
+   - **When (Corey, 2026-11-18).** Not yet: the sight port's crossings were cheap ([42.58](42.58-sight-core-adapter.md)),
+     so #1092's deltas are built in Node behind the projection seam. The flip comes after #1092 closes, or earlier if
+     a better point appears.
 3. **Measure early.** Port one per-tick module, measure its crossing cost against the TypeScript under the bench
    lock, and set a budget before porting more. Crossings too costly are evidence to flip sooner.
 

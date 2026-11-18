@@ -32,6 +32,12 @@ export function coreSight(core: CoreExports): CoreSight {
   const indexes = new WeakMap<readonly Obstacle[], { count: number; handle: Handle }>();
   const gateSets = new WeakMap<Gate[], { count: number; handle: Handle; open: number }>();
   const release = new FinalizationRegistry<() => void>(free => free());
+  /** Free a handle a grown list superseded now, rather than when the list is collected. */
+  const supersede = (entry: { handle: Handle } | undefined, free: (handle: Handle) => void) => {
+    if (!entry) return;
+    release.unregister(entry);
+    free(entry.handle);
+  };
 
   /** Copy the arrays into fresh WASM buffers, call `use` with their pointers, then free them. */
   function withBuffers<T>(arrays: (Float64Array | Int32Array | Uint32Array)[], use: (pointers: number[]) => T): T {
@@ -48,22 +54,25 @@ export function coreSight(core: CoreExports): CoreSight {
   function indexFor(map: CollisionMap): Handle {
     const cached = indexes.get(map.obstacles);
     if (cached && cached.count === map.obstacles.length) return cached.handle;
+    supersede(cached, handle => core.sight_index_free(handle));
     const { segments, grid } = sightTables(map);
     const handle = withBuffers([segments, grid], ([s, g]) => core.sight_index_new(s, segments.length / 4, g, grid.length) >>> 0);
-    indexes.set(map.obstacles, { count: map.obstacles.length, handle });
-    release.register(map.obstacles, () => core.sight_index_free(handle));
+    const entry = { count: map.obstacles.length, handle };
+    indexes.set(map.obstacles, entry);
+    release.register(map.obstacles, () => core.sight_index_free(handle), entry);
     return handle;
   }
 
   function gateSetFor(map: CollisionMap): { handle: Handle; open: number } {
     const cached = gateSets.get(map.gates);
     if (cached && cached.count === map.gates.length) return cached;
+    supersede(cached, handle => core.gate_set_free(handle));
     const { edges, offsets, grid } = gateTables(map);
     const handle = withBuffers([edges, offsets, grid],
       ([e, o, g]) => core.gate_set_new(e, edges.length / 4, o, offsets.length - 1, g, grid.length) >>> 0);
     const entry = { count: map.gates.length, handle, open: core.gate_set_open(handle) >>> 0 };
     gateSets.set(map.gates, entry);
-    release.register(map.gates, () => core.gate_set_free(handle));
+    release.register(map.gates, () => core.gate_set_free(handle), entry);
     return entry;
   }
 

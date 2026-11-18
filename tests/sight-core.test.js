@@ -67,6 +67,13 @@ test('the open-gate mask follows the map each call, and a grown gate list is upl
   assertSame({ ...map, gates: map.gates.map(g => ({ ...g, open: !g.open })) }, origin, VISION, 'a copied gate list');
 });
 
+test('an empty map and an empty gate list cross as empty buffers', () => {
+  const map = { width: 800, height: 800, playableArea: openArea(800, 800, 200), obstacles: [], gates: [] };
+  assertSame(map, { x: 400, y: 400 }, VISION, 'nothing to see past');
+  map.obstacles.push({ id: 'late', x: 450, y: 380, w: 40, h: 40, kind: 'building' });
+  assertSame(map, { x: 400, y: 400 }, VISION, 'an obstacle added to an emptied list');
+});
+
 test('the core polygon equals the TypeScript on the room arena', () => {
   const { map } = readArena(), next = sequence(11);
   const origins = [];
