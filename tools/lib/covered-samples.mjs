@@ -1,4 +1,5 @@
-import { bounds, body, contains } from '../../shared/shape.ts';
+import { bounds } from '../../shared/shape.ts';
+import { body, contains } from '../../shared/shape-queries.ts';
 
 /** Points per fill cell side when measuring covered area. */
 export const SAMPLES = 4;

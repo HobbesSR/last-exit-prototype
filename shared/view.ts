@@ -1,5 +1,6 @@
 import { lineClear, litPoint } from './movement.ts';
-import { body as shapeBody, bounds as shapeBounds, contains, nearBounds, overlaps, polygon, clipPolygonToRect } from './shape.ts';
+import { bounds as shapeBounds, nearBounds, polygon, clipPolygonToRect } from './shape.ts';
+import { body as shapeBody, contains, overlaps } from './shape-queries.ts';
 import type { Shape } from './shape.ts';
 import type { VisibilityPoint } from './movement.ts';
 import type { Building, Cell, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';

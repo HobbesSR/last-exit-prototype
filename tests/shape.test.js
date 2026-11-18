@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, body, contains, overlaps, sharesArea, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
+import { readFileSync } from 'node:fs';
+import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
+import { body, contains, overlaps, sharesArea } from '../shared/shape-queries.ts';
 import { canOccupy, lineClear, moveBody } from '../shared/movement.ts';
 import { openArea } from './helpers/arena.js';
 
@@ -128,4 +130,12 @@ test('a polygon record is re-anchored to its own bounding box, so x/y mean what 
   assert.deepEqual({ x: record.x, y: record.y, w: record.w, h: record.h }, bounds(shape));
   assert.deepEqual(record.points, [{ x: 0, y: 0 }, { x: 60, y: 0 }, { x: 60, y: 60 }, { x: 0, y: 60 }]);
   assert.deepEqual(outline(shapeOf(record)), outline(shape), 'the body is unmoved, only described from elsewhere');
+});
+
+// The description is the contract every consumer reads, the Rust core's flat encoding included (#1181):
+// it depends on the project's types and math only, never on a geometry library.
+test('the shape description imports only types and math; queries own the SAT library', () => {
+  const imports = source => [...source.matchAll(/^import[^;]*?from\s+['"]([^'"]+)['"]/gm)].map(m => m[1]);
+  assert.deepEqual(imports(readFileSync('shared/shape.ts', 'utf8')).sort(), ['./math.ts', './types.ts']);
+  assert.ok(imports(readFileSync('shared/shape-queries.ts', 'utf8')).includes('sat'));
 });

@@ -1,6 +1,7 @@
 import { playerIndex } from './relations.ts';
 import { sweptClear } from '../movement.ts';
-import { bounds, segmentShapeDistance, type Shape } from '../shape.ts';
+import { bounds, type Shape } from '../shape.ts';
+import { segmentShapeDistance } from '../shape-queries.ts';
 import { discoveryGrid } from '../discovery.ts';
 import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';

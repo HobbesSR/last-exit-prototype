@@ -7,7 +7,8 @@ import { navigationClearance, navigationMap } from '../../shared/map/navigation.
 import { bodyRadius, sweptClear } from '../../shared/movement.ts';
 import { regionAt, type PortalGraph } from '../../shared/navigation/portal-graph.ts';
 import { regionDomain } from '../../shared/navigation/mesh-level.ts';
-import { bounds, clipPolygonToRect, rect, segmentShapeDistance, transform, type Shape } from '../../shared/shape.ts';
+import { bounds, clipPolygonToRect, rect, transform, type Shape } from '../../shared/shape.ts';
+import { segmentShapeDistance } from '../../shared/shape-queries.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import type { ToolMap } from './core.ts';
 

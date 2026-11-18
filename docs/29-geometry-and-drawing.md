@@ -7,7 +7,10 @@ Shape construction and element assembly are in [29.3](29.3-shape-construction-an
 
 ## One description, three consumers
 
-`shared/shape.ts` owns what a shape *is*. Everything else asks it. A shape is one of three forms:
+`shared/shape.ts` owns what a shape *is*. Everything else asks it. What a shape says about a point, a segment
+or another shape (containment, overlap, shared area, segment distance) is `shared/shape-queries.ts`'s. That
+module alone holds the SAT library, so code that only describes, moves or draws shapes does not depend on it
+(#1181). A shape is one of three forms:
 
 | Form | Anchor | Stored as |
 | --- | --- | --- |
@@ -26,7 +29,7 @@ P3 shape visibility follows the same boundary: the physics display adapter
 converts body records with `circle`, `polygon` and `transform`; rendering reads
 their `outline`. `view.ts` owns whether a shape is visible, just as it owns
 point/actor visibility. Its per-frame query clips sight-fan triangles to the
-camera with `clipPolygonToRect`, then asks shared `bounds`, `contains` and
+camera with `clipPolygonToRect`, then asks `bounds`, and `shape-queries.ts`'s `contains` and
 `overlaps`. Clipping is a geometry primitive in `shape.ts`: it preserves convex
 winding/world coordinates and input arrays, and returns no polygon when the
 intersection has zero area. No second point-in-polygon or segment-intersection
@@ -60,7 +63,7 @@ and walls, doors and void keep their full containment. Dead, inactive and extrac
 
 World geometry is static convex shapes built from the map's obstacles and playable-area mask
 (`buildPhysicsGeometry`), with closed gates as blockers. Props are dynamic, rotating boxes, and loot
-is a sensor. `segmentShapeDistance` supplies continuous distance from a closed segment to a filled
+is a sensor. `segmentShapeDistance` (`shape-queries.ts`) supplies continuous distance from a closed segment to a filled
 shape, with analytic circles and polygon/rectangle containment and edge tests; the swept queries
 (`shared/simulation/swept.ts`: the hook tip and tether, shots and the lab's Cast ahead) use it through
 `firstContact`, and so does the navigation adapter in [42.1](42.1-navigation-experiment.md). The
@@ -134,8 +137,8 @@ eight constraints in total) and continuous collision. Still absent: rotational f
 only in the dev lab), and height, roofs and floors for ballistics, which are the P7 lab prototype
 ([42.18](42.18-physics-p7.md)) and not default behavior.
 
-The shape module remains the primitive layer under the geometry and the swept queries, and
-deliberately stops short of being a physics system:
+The shape modules (`shape.ts` and `shape-queries.ts`) remain the primitive layer under the geometry and the
+swept queries, and deliberately stop short of being a physics system:
 
 - `transform(shape, dx, dy, angle)` moves and rotates about a shape's own anchor, which is what a
   jointed assembly needs — a part keeps its local points and only its placement changes. Rotating

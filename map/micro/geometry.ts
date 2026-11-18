@@ -1,5 +1,6 @@
 import { compareCells } from '../kernel/cell.ts';
-import { bounds, circle, convex, overlaps, polygon, rect, sharesArea, transform } from '../../shared/shape.ts';
+import { bounds, circle, convex, polygon, rect, transform } from '../../shared/shape.ts';
+import { overlaps, sharesArea } from '../../shared/shape-queries.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Box, Vec2 } from '../../shared/types.ts';
 import type { RegionElement, RegionMask } from './types.ts';

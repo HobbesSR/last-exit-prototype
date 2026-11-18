@@ -128,14 +128,14 @@ test("the developer tools serve the map lab, strip types, and nothing else", asy
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-type'), /html/);
   assert.match(await page.text(), /Map Lab/);
-  for (const served of ['/map/tools/lab/app.ts', '/map/tools/core.ts', '/map/chain.ts', '/map/engines.ts', '/map/macro/src/chain/map.ts', '/map/micro/compose.ts', '/map/kernel/contract.ts', '/shared/shape.ts']) {
+  for (const served of ['/map/tools/lab/app.ts', '/map/tools/core.ts', '/map/chain.ts', '/map/engines.ts', '/map/macro/src/chain/map.ts', '/map/micro/compose.ts', '/map/kernel/contract.ts', '/shared/shape.ts', '/shared/shape-queries.ts']) {
     const response = await fetch(`${base}${served}`);
     assert.equal(response.status, 200, served);
     assert.match(response.headers.get('content-type'), /javascript/, served);
   }
   // Types are erased, and the bare `sat` and `pathfinding` resolve to their wrapped modules, for
   // workers too. Each wrapped package works as an ES module.
-  const shape = await (await fetch(`${base}/shared/shape.ts`)).text();
+  const shape = await (await fetch(`${base}/shared/shape-queries.ts`)).text();
   assert.match(shape, /from ["']\/vendor\/sat\.mjs["']/);
   assert.doesNotMatch(shape, /from ["']sat["']/);
   assert.match(await (await fetch(`${base}/map/tools/route.ts`)).text(), /from ["']\/vendor\/pathfinding\.mjs["']/);
@@ -148,7 +148,7 @@ test("the developer tools serve the map lab, strip types, and nothing else", asy
   const plain = await createArenaServer({ replayDir, profileSummary: false });
   const plainBase = await listen(plain);
   t.after(() => plain.close());
-  assert.match(await (await fetch(`${plainBase}/shared/shape.ts`)).text(), /from ['"]sat['"]/);
+  assert.match(await (await fetch(`${plainBase}/shared/shape-queries.ts`)).text(), /from ['"]sat['"]/);
   const library = await fetch(`${base}/map/macro/content/diamond-12x6.json`);
   assert.match(library.headers.get('content-type'), /json/);
   for (const refused of ['/map/tools/server.mts', '/map/tools/cli.mts', '/map/tools/sweep.mts', '/map/macro/package.json', '/map/macro/node_modules/typescript/package.json',
