@@ -463,13 +463,16 @@ Rust workspace:
   installs `rustup`, and `rust/rust-toolchain.toml` then names the toolchain. It runs the licence and source check
   ([21.1](21.1-third-party-licenses.md#the-rust-workspace)), `cargo fmt --check`, `clippy` with warnings denied,
   `cargo test`, the core's WASM build and the edge's Linux release build. The runner is arm64, so that build is
-  aarch64; the x64 build is the Dockerfile's on an x64 host. The toolchain, the registry and
-  `rust/target` are cached, keyed on the toolchain file and `Cargo.lock`.
-  - **Its cost (2026-11-17, placeholder crates).** Simulated cold in the same image under Docker on the development
-    machine, it took about a minute. Nearly all of that was the toolchain download (48 s); the checks and builds
-    took about 2 s. A cache hit skips the download.
-  - **Watch for growth.** The edge's crates will make a cold build the cost to watch. The cache is what bounds it, so
-    a run that misses the cache on an unchanged lockfile is a finding.
+  aarch64; the x64 build is the Dockerfile's on an x64 host. The workflow
+  caches the toolchain, the registry and `rust/target`, keyed on the toolchain file and `Cargo.lock`, once the runner
+  offers a cache (below).
+  - **Its cost (2026-11-17, placeholder crates).** On the runner, the job took 40 s from start to finish. Of that,
+    25 s was the checkout and 10 s was the toolchain install. Fetching `cargo-deny` and running every check and build
+    took about 3 s.
+  - **No cache yet.** The runner has no cache service today: `actions/cache` warns and carries on, so every run is
+    cold. The step stays so that enabling the service in the runner's configuration needs no workflow change.
+  - **Watch for growth.** The edge's crates will make the cold build the cost to watch. Once a run takes minutes,
+    the remedy is a runner cache or an image with the toolchain baked in.
 - **`slow`** (label `slow`) runs `npm run test:slow` on every push to `main`, after
   merge, so pull requests never wait for it. When it fails,
   `tools/ci/slow-failures.mjs` files one issue per failing test, titled
