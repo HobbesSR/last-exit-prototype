@@ -1,3 +1,4 @@
+import { openArenaSocket } from '/arena-socket.js';
 import { createFrameNormalizer } from '../shared/relational-frame.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { CLIENT_MESSAGE, SERVER_MESSAGE } from '/shared/protocol.ts';
@@ -31,7 +32,7 @@ export function createDevView({
   function enter() {
     if (feed || !canEnter()) return;
     onEnter();
-    const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+    const socket = openArenaSocket();
     feed = socket;
     if (savedCamera && savedCamera.roomId === getRoomId()) {
       director.restore(savedCamera.camera);

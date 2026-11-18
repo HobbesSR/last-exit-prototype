@@ -28,7 +28,7 @@ test('client configuration states each owner\'s values, the server\'s default co
       wireVersion: WIRE_VERSION, devTools: 'none',
       presentation: describeContent(injected()),
       seed: { min: 1, max: MAX_ARENA_SEED }, roomNameMaxLength: MAX_ROOM_NAME, playerNameMaxLength: MAX_PLAYER_NAME,
-      sizes: ROOM_SIZE_NAMES, defaultSize: '12x6', matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS,
+      sizes: ROOM_SIZE_NAMES, defaultSize: '12x6', matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS, webTransport: null,
     });
     const text = JSON.stringify(config);
     assert.ok(!text.includes(room.id) && !text.includes(room.ownerKey), 'no room or credential');

@@ -128,8 +128,11 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   target. CI installs the toolchain from that file. `rust/Dockerfile`'s builder tag names the same version, and
   `rust/Cargo.toml`'s `rust-version` names its minor, so the three are bumped together.
 - **Crates.** `rust/edge/` is the package `last-exit-edge`, a binary. `rust/core/` is the package `last-exit-core`.
-  It is not named `core` because that would shadow Rust's own `core` crate. Both are placeholders until #1095 and
-  #1175.
+  It is not named `core` because that would shadow Rust's own `core` crate.
+  - **The edge** is #1095's stage 1 ([24.5](24.5-transport.md#stage-1s-contracts)): `src/lib.rs` runs it,
+    `src/frame.rs` frames both of its connections, and `src/origin.rs` checks origins. `tests/edge.rs` drives it
+    with a real `wtransport` client against a fake Node.
+  - **The core** is a placeholder until #1175.
 - **Lockfile.** `rust/Cargo.lock` is committed, because the workspace builds a binary and a module that ship.
 - **Checks.** `rust/deny.toml` holds the licence policy ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
   [31](31-verification.md#continuous-integration) lists the checks and what they cost.

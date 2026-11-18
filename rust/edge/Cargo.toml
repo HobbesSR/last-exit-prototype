@@ -9,4 +9,4 @@ publish.workspace = true
 
 [dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
-wtransport = "=0.7.2"
+wtransport = { version = "=0.7.2", features = ["quinn"] }

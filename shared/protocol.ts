@@ -18,7 +18,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 6;
+export const WIRE_VERSION = 7;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -373,6 +373,8 @@ export interface ClientConfigResponse {
   sizes: string[];
   defaultSize: string;
   matchmakingCountdownMs: number;
+  /** Where the WebTransport edge is, or null while none is linked (24.5). */
+  webTransport: { port: number; certificateHash: string | null } | null;
 }
 
 export interface RoomSummary {
@@ -726,7 +728,7 @@ const PROFILE_KEYS = ['enabled', 'tickRate', 'budgetMs', 'effectiveHz', 'frames'
 const ROOM_PROFILE_KEYS = ['id', 'frames', 'effectiveHz', 'series'] as const;
 const CLIENT_CONFIG_KEYS = [
   'wireVersion', 'devTools', 'presentation', 'seed', 'roomNameMaxLength',
-  'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs',
+  'playerNameMaxLength', 'sizes', 'defaultSize', 'matchmakingCountdownMs', 'webTransport',
 ] as const;
 const ROOM_SUMMARY_KEYS = ['id', 'name', 'kind', 'phase', 'ready', 'size', 'createdAt', 'players', 'open'] as const;
 const CREATE_ROOM_KEYS = ['id', 'name', 'ownerKey', 'seed', 'size'] as const;
@@ -798,7 +800,10 @@ export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVer
     raw.sizes.length === 0 ||
     !raw.sizes.every(nonEmptyString) ||
     !nonEmptyString(raw.defaultSize) ||
-    !nonNegativeInt(raw.matchmakingCountdownMs)
+    !nonNegativeInt(raw.matchmakingCountdownMs) ||
+    (raw.webTransport !== null && (!isRecord(raw.webTransport) || !hasExactKeys(raw.webTransport, ['port', 'certificateHash']) ||
+      !nonNegativeInt(raw.webTransport.port) || raw.webTransport.port < 1 || raw.webTransport.port > 65535 ||
+      (raw.webTransport.certificateHash !== null && !(typeof raw.webTransport.certificateHash === 'string' && /^[0-9a-f]{64}$/i.test(raw.webTransport.certificateHash)))))
   ) {
     throw new TypeError('Invalid /api/client-config response payload.');
   }

@@ -13,6 +13,7 @@ import { createMapGenerator } from './map-generator.js';
 import { createMapPool, MAP_POOL_SIZE } from './map-pool.js';
 import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
+import { attachEdgeLink } from './edge-link.js';
 import { startScheduler } from './scheduler.js';
 import { NOTICES_URL, serveSharedModules, VENDOR_DIRECTORIES, VENDOR_MODULES } from './shared-assets.js';
 import { devToolsPolicy } from './protocol.js';
@@ -51,9 +52,10 @@ function printListeningUrls(host, port, policy) {
  * thread: for tests and tools that reach into a live room through `rooms` (its `game`), which a threaded room
  * does not offer. `generateMap` replaces the worker, for tests that need to control generation. `mapPool` is how many maps
  * to keep ready per size (#266); none unless asked, so tests and benchmarks run without background generation.
+ * `edgeLink` is a loopback TCP port (0 for any) where the WebTransport edge connects (24.5); none unless given.
  * `content` supplies new rooms' content, for tests that need a set this build does not ship; never a request input.
  */
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0, content, matchFactory, strictProtocol = false, roomThreads = true, wireKey = 'random' } = {}) {
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0, content, matchFactory, strictProtocol = false, roomThreads = true, wireKey = 'random', edgeLink } = {}) {
   profiler.enable(profile);
   const policy = devToolsPolicy(devTools);
   const replays = await createFileReplayStore(replayDir);
@@ -101,10 +103,15 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     app.get('/dev/micro/generation', (req, res) => res.sendFile(path.join(ROOT, 'public/generation-demo.html')));
   }
   app.use(express.static(path.join(ROOT, 'public')));
-  installHttpApi(app, service, directory, replays, pool);
+  let edge = null;
+  installHttpApi(app, service, directory, replays, pool, () => edge?.info() ?? null);
   // Matchmaking messages go to the directory, which answers with a room for the host to admit into.
   const http = createHttpServer(app), wss = attachWebSockets(http, { connect: service.connect, receive: directory.receive, disconnect: service.disconnect });
   const stopScheduler = startScheduler(service.advance);
+  const linkReady = edgeLink === undefined ? Promise.resolve() : (edge = attachEdgeLink({
+    service: { connect: service.connect, receive: directory.receive, disconnect: service.disconnect },
+    port: edgeLink, httpPort: () => http.address()?.port,
+  })).listening;
   // The host thread's series, then each threaded room's own (#1115).
   const summary = setInterval(() => {
     if (!profileSummary || !profiler.profiling()) return;
@@ -123,18 +130,22 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
       const socketsClosed = new Promise(resolve => wss.close(resolve));
       const httpClosed = http.listening ? new Promise(resolve => http.close(resolve)) : Promise.resolve();
       pool?.close();
-      closing = Promise.all([service.close(), socketsClosed, httpClosed, maps?.close(), poolMaps?.close()]).then(() => undefined);
+      const linkClosed = edge?.close();
+      closing = Promise.all([service.close(), socketsClosed, httpClosed, linkClosed, maps?.close(), poolMaps?.close()]).then(() => undefined);
     }
     return closing;
   }
-  return { http, close, rooms: service.rooms, profiler, policy };
+  try { await linkReady; } catch (error) { await close(); throw error; }
+  return { http, close, rooms: service.rooms, profiler, policy, edgeLink: edge };
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   // `--dev-tools=all` (what `npm run dev` passes) outranks DEV_TOOLS from the environment or .env.local.
   const devTools = process.argv.find(arg => arg.startsWith('--dev-tools='))?.slice('--dev-tools='.length);
   // MAP_POOL sets how many maps are kept ready per size (#266); 0 turns the pool off.
   const mapPool = process.env.MAP_POOL ? Number(process.env.MAP_POOL) : MAP_POOL_SIZE;
-  const arena = await createArenaServer(devTools === undefined ? { mapPool } : { devTools, mapPool });
+  // EDGE_LINK_PORT is where the WebTransport edge connects, on loopback (24.5); unset runs without one.
+  const edgeLink = process.env.EDGE_LINK_PORT ? Number(process.env.EDGE_LINK_PORT) : undefined;
+  const arena = await createArenaServer(devTools === undefined ? { mapPool, edgeLink } : { devTools, mapPool, edgeLink });
   const lan = process.argv.includes('--lan') || process.env.LAN === '1';
   const host = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
   // The default starts at 3100, clear of the commonly taken 3000. An explicit PORT (e.g. a worktree's .env.local) is

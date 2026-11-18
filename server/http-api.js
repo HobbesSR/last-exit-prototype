@@ -40,7 +40,7 @@ export async function profileFields(service) {
   };
 }
 
-export function installHttpApi(app, service, directory, replays, pool = null) {
+export function installHttpApi(app, service, directory, replays, pool = null, edge = null) {
   app.get(HTTP_ENDPOINT.HEALTH, (_req, res) => res.json(healthResponse({
     rulesVersion: VERSION, physicsVersion: PHYSICS_VERSION, tickRate: HZ, profiling: profiler.profiling(), devTools: service.devTools,
     ...service.metrics(),
@@ -62,6 +62,7 @@ export function installHttpApi(app, service, directory, replays, pool = null) {
     playerNameMaxLength: MAX_PLAYER_NAME,
     sizes: ROOM_SIZE_NAMES, defaultSize: zoneSizeName(DEFAULT_LIVE_ZONE_SIZE),
     matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS,
+    webTransport: edge?.() ?? null,
   })));
   // Open rooms' public summaries, for the lobby browser (22.5); the directory decides which are listed.
   app.get(HTTP_ENDPOINT.ROOMS, (_req, res) => res.set('Cache-Control', 'no-store').json(roomsResponse(directory.list())));
