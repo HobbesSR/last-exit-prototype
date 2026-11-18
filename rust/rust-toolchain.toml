@@ -1,5 +1,5 @@
-# The Rust workspace's toolchain (docs/27, #1174). CI's image tag in .forgejo/workflows/ci.yml
-# names the same version; bump both together.
+# The Rust workspace's toolchain (docs/27, #1174). CI installs it from this file. rust/Dockerfile's
+# builder tag names the same version and Cargo.toml's rust-version its minor; bump them together.
 [toolchain]
 channel = "1.100.0"
 profile = "minimal"

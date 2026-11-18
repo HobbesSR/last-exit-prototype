@@ -1,4 +1,5 @@
-# The edge's Linux build for a deployment host (#1174, #907), for the architecture that builds it. Build from rust/:
+# The edge's Linux build for a deployment host (#1174, #907), for the architecture that builds it. rust/ is the
+# build context; from the repository root:
 #   podman build -t last-exit-edge rust    (or docker build)
 # The builder tag names the same version as rust-toolchain.toml; bump both together.
 FROM docker.io/library/rust:1.100.0-slim-bookworm AS build

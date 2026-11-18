@@ -125,15 +125,17 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
 
 `rust/` is one Cargo workspace, set up by #1174. Cargo runs from that directory.
 - **Toolchain.** `rust/rust-toolchain.toml` pins Rust 1.100.0 with `clippy`, `rustfmt` and the `wasm32-unknown-unknown`
-  target. CI's image and `rust/Dockerfile` name the same version, so the three are bumped together.
+  target. CI installs the toolchain from that file. `rust/Dockerfile`'s builder tag names the same version, and
+  `rust/Cargo.toml`'s `rust-version` names its minor, so the three are bumped together.
 - **Crates.** `rust/edge/` is the package `last-exit-edge`, a binary. `rust/core/` is the package `last-exit-core`.
   It is not named `core` because that would shadow Rust's own `core` crate. Both are placeholders until #1095 and
   #1175.
 - **Lockfile.** `rust/Cargo.lock` is committed, because the workspace builds a binary and a module that ship.
 - **Checks.** `rust/deny.toml` holds the licence policy ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
   [31](31-verification.md#continuous-integration) lists the checks and what they cost.
-- **The math guard.** `rust/core/clippy.toml` forbids `mul_add` and the platform's transcendentals (`sin`, `cos`,
-  `tan`, `atan2`, `hypot`, `powf`, `exp`, `ln`) in the core. CI's clippy treats a use as an error. This is the
+- **The math guard.** `rust/core/clippy.toml` forbids `mul_add` in the core. It also forbids every platform
+  transcendental on `f64` and `f32`: the trigonometric and hyperbolic functions, exponentials and logarithms, powers,
+  `cbrt` and `hypot`. `sqrt` and `+ - * /` stay allowed. CI's clippy treats a use as an error. This is the
   Rust form of "never call `Math.sin` in `shared/`" ([22.1](22.1-shared-simulation.md)).
 
 **How the WASM is built and loaded.** These are agent recommendations made under #1174:
