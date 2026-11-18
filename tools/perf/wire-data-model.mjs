@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { cliArgs } from '../../tests/helpers/args.js';
 import { FRAME_FIELDS, GATE_FIELDS, TRAP_FIELDS, PROJECTILE_FIELDS, EFFECT_FIELDS, EVENT_FIELDS } from '../../shared/simulation/projection-contract.ts';
-import { UNITS_PER_METRE as SCALE } from '../../shared/physics/types.ts';
+import { UNITS_PER_METRE as SCALE } from '../../shared/physics/units.ts';
 import { sliceFieldLists } from './wire-slice-fields.mjs';
 import { loadCachedMatch } from './wire-cached-match.mjs';
 

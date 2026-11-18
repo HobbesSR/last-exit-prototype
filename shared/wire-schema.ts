@@ -10,6 +10,7 @@
 // body poses are float32 metres, counters, ticks and keyed IDs (#1164) unsigned integers, content-derived
 // quantities (hit points, shields, cooldowns, radii, damage) exact numbers, closed unions enum tables.
 import { WIRE_VERSION } from './protocol.ts';
+import { UNITS_PER_METRE } from './physics/units.ts';
 import { createDescriptorCodec, type DescriptorCodec, type FieldDef, type FieldType, type RecordDef, type Schema } from './wire-codec.ts';
 import { AMMO_FAMILIES, BODY_KINDS, EFFECT_KINDS, EVENT_KINDS, ITEM_KINDS, PHASES, PLAYER_STATUSES, TRAP_KINDS, WEAPONS } from './enum-tables.ts';
 import {
@@ -114,6 +115,7 @@ const WAITING_STATE: RecordDef = { fields: [
 /** The schema; its version is the wire version, so any contract bump refuses the other side's bytes. */
 export const STATE_SCHEMA: Schema = Object.freeze({
   version: WIRE_VERSION,
+  unitsPerMetre: UNITS_PER_METRE,
   messages: { state: { id: 1, record: 'StateMessage' } },
   records: {
     StateMessage: { fields: [{ name: 'state', type: { union: 'phase', variants: { live: 'MatchState', finished: 'MatchState', waiting: 'WaitingState' } } }] },

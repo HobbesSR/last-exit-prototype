@@ -1,11 +1,11 @@
 import RAPIER from '@dimforge/rapier2d-compat';
 import { PHYSICS_SUBSTEP_SECONDS, physicsSpeedLimit } from './motion-limits.ts';
 import { constraintForce, validateConstraint } from './constraints.ts';
-import { UNITS_PER_METRE } from './types.ts';
+import { UNITS_PER_METRE } from './units.ts';
 import type { BodySpec, ConstraintSpec, MotorIntent, PhysicsContact, PhysicsSnapshot, Point, Transform } from './types.ts';
 import { cos, hypot, sin } from '../math.ts';
 
-// World units per Rapier metre. Exported so wire probes can test whether a world value is a scaled float32 (#1139).
+// World units per Rapier metre, the adapter's short name for units.ts's UNITS_PER_METRE.
 const SCALE = UNITS_PER_METRE;
 const SUBSTEPS = 4;
 const DT = PHYSICS_SUBSTEP_SECONDS;

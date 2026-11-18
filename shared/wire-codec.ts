@@ -6,7 +6,7 @@
 //   'uint'   unsigned safe integer, varint          'bool'  one byte
 //   'sint'   signed safe integer, zigzag varint     'str'   UTF-8 when well formed, else UTF-16 code units
 //   'f32'    an exact float32 (refuses any other)   'f64'   float64
-//   'f32m'   float32 metres: v / METRE, exact on the round trip (Rapier poses, 24.3 proposal 1)
+//   'f32m'   float32 metres: v / the schema's unitsPerMetre, exact on the round trip (Rapier poses, 24.1)
 //   'exact'  any finite number, kept exact: an integer varint, else float32, else float32 metres, else float64
 //   { enum: [values] }  one byte index            { list: T }   { nullable: T }
 //   { layer: T }        a plain list, or a keyframe envelope { k, all?, set?, drop? } (frame-layers, discovery)
@@ -19,8 +19,6 @@
 // Decoding refuses, before allocating, any length beyond the bytes left or the declared caps, and refuses
 // unknown formats, versions, messages, tags and enum values, non-finite or non-canonical numbers, missing
 // required fields and trailing or truncated bytes (24.1 "Schema and boundary").
-
-import { UNITS_PER_METRE } from './physics/types.ts';
 
 /** A value on either side of the codec. The schema, not TypeScript, is what closes its shape. */
 type Value = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -37,13 +35,16 @@ export interface Schema {
   records: Readonly<Record<string, RecordDef>>;
   /** Each message type's id and the record holding its fields other than `type`. */
   messages: Readonly<Record<string, { id: number; record: string }>>;
+  /**
+   * World units per metre, for schemas that carry float32 metres: it enables `f32m` and `exact`'s metres form.
+   * The codec is generic and holds no game constant; the live schema names the engine's (24.1, #1187).
+   */
+  unitsPerMetre?: number;
 }
 export interface Limits { maxBytes: number; maxCollection: number; maxString: number }
 
 /** The first byte of every message in this format. */
 export const FORMAT = 0xd1;
-/** World units per engine metre (physics/types.ts): body poses are float32 metres times this. */
-const METRE = UNITS_PER_METRE;
 export const DEFAULT_LIMITS: Limits = Object.freeze({ maxBytes: 1 << 22, maxCollection: 1 << 16, maxString: 1 << 12 });
 
 const textEncoder = new TextEncoder(), textDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
@@ -152,7 +153,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 const signedUint = (v: number) => (v < 0 ? -v * 2 - 1 : v * 2);
 const unsigned = (z: number) => (z % 2 ? -(z + 1) / 2 : z / 2);
 
-const SCALARS: Record<string, (limits: Limits) => Codec> = {
+const SCALARS: Record<string, (limits: Limits, metre: number | undefined) => Codec> = {
   uint: () => ({ w: (w, v) => { if (!Number.isSafeInteger(v) || v < 0) fail(`expected unsigned integer, got ${v}`); w.uint(v); }, r: r => r.uint() }),
   sint: () => ({
     w: (w, v) => { if (!Number.isSafeInteger(v) || Math.abs(v) >= 2 ** 52) fail(`expected signed integer, got ${v}`); w.uint(signedUint(v === 0 ? 0 : v)); },
@@ -161,24 +162,26 @@ const SCALARS: Record<string, (limits: Limits) => Codec> = {
   }),
   f32: () => ({ w: (w, v) => { if (typeof v !== 'number' || !Number.isFinite(v) || Math.fround(v) !== v) fail(`expected float32, got ${v}`); w.f32(v); }, r: r => r.f32() }),
   f64: () => ({ w: (w, v) => { if (typeof v !== 'number' || !Number.isFinite(v)) fail(`expected finite number, got ${v}`); w.f64(v); }, r: r => r.f64() }),
-  f32m: () => ({
+  f32m: (_, metre) => {
+    if (metre === undefined) throw new Error("'f32m' needs the schema's unitsPerMetre");
+    return {
     w: (w, v) => {
       if (typeof v !== 'number' || !Number.isFinite(v)) fail(`expected finite number, got ${v}`);
-      const m = Math.fround(v / METRE); if (m * METRE !== v) fail(`not float32 metres: ${v}`);
+      const m = Math.fround(v / metre); if (m * metre !== v) fail(`not float32 metres: ${v}`);
       w.f32(m);
     },
-    r: r => { const v = r.f32() * METRE; return v === 0 ? 0 : v; },
-  }),
+    r: r => { const v = r.f32() * metre; return v === 0 ? 0 : v; },
+    };
+  },
   // Header low bit 0: an integer, zigzag in the remaining bits. Otherwise 1: float64, 3: float32, 5: float32
-  // metres. The encoder takes the first form that holds the value exactly; the reader refuses a later form
-  // for a value an earlier one holds, so each value has one encoding.
-  exact: () => ({
+  // metres, only for a schema with unitsPerMetre. The encoder takes the first form that holds the value exactly;
+  // the reader refuses a later form for a value an earlier one holds, so each value has one encoding.
+  exact: (_, metre) => ({
     w: (w, v) => {
       if (typeof v !== 'number' || !Number.isFinite(v)) fail(`expected finite number, got ${v}`);
       if (Number.isInteger(v) && Math.abs(v) <= 2 ** 50) return w.uint(signedUint(v === 0 ? 0 : v) * 2);
       if (Math.fround(v) === v) { w.byte(3); return w.f32(v); }
-      const m = Math.fround(v / METRE);
-      if (m * METRE === v) { w.byte(5); return w.f32(m); }
+      if (metre !== undefined) { const m = Math.fround(v / metre); if (m * metre === v) { w.byte(5); return w.f32(m); } }
       w.byte(1); w.f64(v);
     },
     r: r => {
@@ -186,8 +189,8 @@ const SCALARS: Record<string, (limits: Limits) => Codec> = {
       if (h % 2 === 0) { const v = unsigned(h / 2); if (Math.abs(v) > 2 ** 50) bad('non-canonical number'); return v; }
       const early = (v: number) => Number.isInteger(v) && Math.abs(v) <= 2 ** 50;
       if (h === 3) { const v = r.f32(); if (early(v)) bad('non-canonical number'); return v; }
-      if (h === 5) { const v = r.f32() * METRE; if (early(v) || Math.fround(v) === v) bad('non-canonical number'); return v; }
-      if (h === 1) { const v = r.f64(); if (early(v) || Math.fround(v) === v || Math.fround(v / METRE) * METRE === v) bad('non-canonical number'); return v; }
+      if (h === 5 && metre !== undefined) { const v = r.f32() * metre; if (early(v) || Math.fround(v) === v) bad('non-canonical number'); return v; }
+      if (h === 1) { const v = r.f64(); if (early(v) || Math.fround(v) === v || (metre !== undefined && Math.fround(v / metre) * metre === v)) bad('non-canonical number'); return v; }
       return bad('bad number tag');
     },
   }),
@@ -216,7 +219,7 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
   const named = new Map<string, Codec>(), compiling = new Set<string>();
 
   function compile(type: FieldType): Codec {
-    if (typeof type === 'string') return SCALARS[type]?.(limits) ?? compileRecord(type);
+    if (typeof type === 'string') return SCALARS[type]?.(limits, schema.unitsPerMetre) ?? compileRecord(type);
     if ('enum' in type) return enumCodec(type.enum);
     if ('nullable' in type) {
       const t = compile(type.nullable);
@@ -264,7 +267,7 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
         if (!isRecord(v)) fail('expected layer');
         for (const k in v) if (k !== 'k' && k !== 'all' && k !== 'set' && k !== 'drop' && v[k] !== undefined) fail(`unknown layer key ${k}`);
         w.byte(1 | (v.all !== undefined ? 2 : 0) | (v.set !== undefined ? 4 : 0) | (v.drop !== undefined ? 8 : 0));
-        SCALARS.uint!(limits).w(w, v.k);
+        SCALARS.uint!(limits, schema.unitsPerMetre).w(w, v.k);
         if (v.all !== undefined) list.w(w, v.all);
         if (v.set !== undefined) list.w(w, v.set);
         if (v.drop !== undefined) ids.w(w, v.drop);
