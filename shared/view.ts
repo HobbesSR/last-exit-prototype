@@ -1,6 +1,6 @@
 import { lineClear, litPoint } from './movement.ts';
 import { bounds as shapeBounds, nearBounds, polygon, clipPolygonToRect } from './shape.ts';
-import { body as shapeBody, contains, overlaps } from './shape-queries.ts';
+import { contains, overlaps, prepare, type Prepared } from './shape-queries.ts';
 import type { Shape } from './shape.ts';
 import type { VisibilityPoint } from './movement.ts';
 import type { Building, Cell, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
@@ -100,14 +100,14 @@ export function seesShape(sight: Sight | null | undefined, map: RoofMap, shape: 
 
 /** One fogged frame's shape query. Prepare its lit camera coverage lazily, once for all props. */
 export function createShapeVisibility(sight: Sight | null | undefined, map: RoofMap): (shape: Shape) => boolean {
-  let regions: { shape: Shape; target: ReturnType<typeof shapeBody>; box: ReturnType<typeof shapeBounds> }[] | undefined;
+  let regions: { shape: Shape; target: Prepared; box: ReturnType<typeof shapeBounds> }[] | undefined;
   return shape => {
     if (!sight || sight.points.length < 3) return false;
     const box = shapeBounds(shape), x = box.x + box.w / 2, y = box.y + box.h / 2;
-    // Reject off-camera props before constructing SAT bodies or touching the sight boundary.
+    // Reject off-camera props before preparing them or touching the sight boundary.
     if (!inViewport(sight.bounds, x, y, ENTITY_MARGIN + hypot(box.w, box.h) / 2)
       || roofConceals(map, sight.eye, shape)) return false;
-    const target = shapeBody(shape);
+    const target = prepare(shape);
     if (contains(shape, shape.x, shape.y, target) && seesPoint(sight, map, shape.x, shape.y)) return true;
     if (!regions) {
       regions = [];
@@ -119,7 +119,7 @@ export function createShapeVisibility(sight: Sight | null | undefined, map: Roof
         const points = clipPolygonToRect([sight.eye, sight.points[i]!, sight.points[(i + 1) % sight.points.length]!], camera);
         if (points.length < 3) continue;
         const region = polygon(sight.eye.x, sight.eye.y, points.map(p => ({ x: p.x - sight.eye.x, y: p.y - sight.eye.y })));
-        regions.push({ shape: region, target: shapeBody(region), box: shapeBounds(region) });
+        regions.push({ shape: region, target: prepare(region), box: shapeBounds(region) });
       }
     }
     const extent = Math.max(box.w, box.h) / 2;

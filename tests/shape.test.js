@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
-import { body, contains, overlaps, sharesArea } from '../shared/shape-queries.ts';
+import { contains, diskPenetration, overlaps, prepare, sharesArea } from '../shared/shape-queries.ts';
 import { canOccupy, lineClear, moveBody } from '../shared/movement.ts';
 import { openArea } from './helpers/arena.js';
 
@@ -107,10 +107,20 @@ test('a polygon obstacle blocks occupancy, movement and sight like any other geo
   assert.equal(canOccupy(map, runner.x, runner.y), true, 'and is never pushed inside it');
 });
 
-test('the SAT body for each form is the one that form needs', () => {
-  assert.equal(body(circle(0, 0, 5)).r, 5);
-  assert.equal(body(rect(1, 2, 3, 4)).pos.x, 1);
-  assert.equal(body(polygon(9, 9, square)).pos.y, 9);
+test('a prepared shape answers as the shape does, and a disk is told how to leave it', () => {
+  for (const shape of [circle(0, 0, 5), rect(1, 2, 3, 4), polygon(9, 9, square)]) {
+    const prepared = prepare(shape), other = circle(4, 4, 3);
+    for (const [x, y] of [[0, 0], [2, 3], [9, 9], [40, 40]]) assert.equal(contains(shape, x, y, prepared), contains(shape, x, y));
+    assert.equal(overlaps(shape, other, prepared), overlaps(shape, other));
+  }
+  // Against a wall's face and another disk; contact counts, and apart is null.
+  for (const wall of [rect(3, -10, 10, 20), circle(8, 0, 4)]) {
+    const hit = diskPenetration(0, 0, 5, wall);
+    assert.equal(hit.x, -hit.depth);
+    assert.ok(hit.y === 0, 'straight out of the face');
+    assert.ok(diskPenetration(hit.x, hit.y, 5, wall), 'moved out, the disk still touches');
+  }
+  assert.equal(diskPenetration(0, 0, 5, rect(6, -10, 10, 20)), null);
 });
 
 test('fieldsOf writes a shape back as a record that shapeOf reads unchanged', () => {

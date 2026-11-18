@@ -88,9 +88,9 @@ test('the shape description imports only types and math', () => {
   assert.deepEqual(importedModules(readFileSync('shared/shape.ts', 'utf8')).sort(), ['./math.ts', './types.ts']);
 });
 
-// Which game-core modules name the SAT library. The shape queries own it; movement's circle sweep and
-// sliding still build SAT circles directly until #1183 puts them behind the queries.
-test('only the shape queries and movement import the SAT library', () => {
-  const users = reachedFrom('shared').filter(([, reached]) => reached.includes('sat')).map(([file]) => file).sort();
-  assert.deepEqual(users, ['shared/movement.ts', 'shared/shape-queries.ts']);
+// The shape queries are the game core's only user of the SAT library, and no SAT type crosses their
+// signatures, so the engine behind them can change without their callers (#1181).
+test('only the shape queries import the SAT library', () => {
+  const users = reachedFrom('shared').filter(([, reached]) => reached.includes('sat')).map(([file]) => file);
+  assert.deepEqual(users, ['shared/shape-queries.ts']);
 });

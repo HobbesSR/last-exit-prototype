@@ -5,40 +5,79 @@ import { hypot } from './math.ts';
 import { edgesOf, type Shape } from './shape.ts';
 
 /**
- * What a shape says about a point, a segment or another shape (29). `shape.ts` owns what a shape *is*;
- * this module asks questions of that description through the SAT library, so code that only describes,
- * moves or draws shapes does not depend on it (#1181). Its signatures still carry SAT's body types, and
- * `movement.ts` still builds SAT circles for its sweep and sliding; #1183 puts both behind this module.
+ * What a shape says about a point, a segment, a disk or another shape (29). `shape.ts` owns what a shape
+ * *is*; this module asks questions of that description. It is the game core's only user of the SAT
+ * library, and nothing of SAT crosses its signatures: callers pass shapes and numbers and get booleans,
+ * distances and plain vectors back (#1181), so the engine behind the queries can change without them.
  */
 
+declare const preparedBrand: unique symbol;
+/**
+ * A shape readied for repeated queries, from {@link prepare}. Opaque: callers keep it beside the shape
+ * it came from and hand both back, which spares rebuilding the shape's query form on every test.
+ */
+export type Prepared = { readonly [preparedBrand]: true };
+type Body = Circle | Polygon;
+const bodyOf = (prepared: Prepared): Body => prepared as unknown as Body;
+
 const vec = (x: World, y: World) => new SAT.Vector(x, y);
-/** The SAT body for a shape. Callers that test a shape every tick should cache the result. */
-export function body(shape: Shape): Circle | Polygon {
+function body(shape: Shape): Body {
   if (shape.kind === 'circle') return new SAT.Circle(vec(shape.x, shape.y), shape.r);
   if (shape.kind === 'rect') return new SAT.Box(vec(shape.x, shape.y), shape.w, shape.h).toPolygon();
   return new SAT.Polygon(vec(shape.x, shape.y), shape.points.map(point => vec(point.x, point.y)));
 }
 
+/** Ready a shape for repeated queries. Callers that test a shape every tick should keep the result. */
+export function prepare(shape: Shape): Prepared {
+  return body(shape) as unknown as Prepared;
+}
+
 // SAT has no shared supertype for circles and polygons, so the shape kind picks the test. Kept here
-// because every caller that sweeps a body against world geometry needs exactly this dispatch.
-export function separate(moving: Circle, shape: Shape, target: Circle | Polygon, response?: Response): boolean {
+// because every query that tests a disk against world geometry needs exactly this dispatch.
+function separate(moving: Circle, shape: Shape, target: Body, response?: Response): boolean {
   return shape.kind === 'circle'
     ? SAT.testCircleCircle(moving, target as Circle, response)
     : SAT.testCirclePolygon(moving, target as Polygon, response);
 }
 
-/** Is a world point inside the shape? */
-export function contains(shape: Shape, x: World, y: World, cached?: Circle | Polygon): boolean {
-  if (shape.kind === 'circle') return hypot(x - shape.x, y - shape.y) <= shape.r;
-  if (shape.kind === 'rect') return x >= shape.x && x <= shape.x + shape.w && y >= shape.y && y <= shape.y + shape.h;
-  return SAT.pointInPolygon(vec(x, y), (cached || body(shape)) as Polygon);
+/** How deep a disk sits in a shape, and the move that takes it back out. */
+export interface Penetration {
+  /** Penetration depth along the separating axis. */
+  depth: number;
+  /** The displacement that separates the disk from the shape: add it to the disk's centre. */
+  x: number;
+  y: number;
 }
 
-/** Do two shapes overlap (including contact)? Optional SAT response exposes penetration depth. */
-export function overlaps(a: Shape, b: Shape, bodyA: Circle | Polygon = body(a), bodyB: Circle | Polygon = body(b), response?: Response): boolean {
-  if (a.kind === 'circle') return separate(bodyA as Circle, b, bodyB, response);
-  if (b.kind === 'circle') return separate(bodyB as Circle, a, bodyA, response);
-  return SAT.testPolygonPolygon(bodyA as Polygon, bodyB as Polygon, response);
+// One disk and one response, reset before each test: the queries are synchronous and never re-entered.
+const disk = new SAT.Circle(new SAT.Vector(), 0), response = new SAT.Response();
+/**
+ * Does a disk of `radius` centred at `x`,`y` touch the shape (contact counts)? Returns how far it
+ * penetrates and the move that separates it, or `null` when the two are apart.
+ */
+export function diskPenetration(x: World, y: World, radius: World, shape: Shape, prepared: Prepared = prepare(shape)): Penetration | null {
+  disk.pos.x = x; disk.pos.y = y; disk.r = radius;
+  response.clear();
+  if (!separate(disk, shape, bodyOf(prepared), response)) return null;
+  return { depth: response.overlap, x: -response.overlapV.x, y: -response.overlapV.y };
+}
+
+/** Is a world point inside the shape? */
+export function contains(shape: Shape, x: World, y: World, prepared?: Prepared): boolean {
+  if (shape.kind === 'circle') return hypot(x - shape.x, y - shape.y) <= shape.r;
+  if (shape.kind === 'rect') return x >= shape.x && x <= shape.x + shape.w && y >= shape.y && y <= shape.y + shape.h;
+  return SAT.pointInPolygon(vec(x, y), (prepared ? bodyOf(prepared) : body(shape)) as Polygon);
+}
+
+function overlapsWith(a: Shape, b: Shape, bodyA: Body, bodyB: Body, result?: Response): boolean {
+  if (a.kind === 'circle') return separate(bodyA as Circle, b, bodyB, result);
+  if (b.kind === 'circle') return separate(bodyB as Circle, a, bodyA, result);
+  return SAT.testPolygonPolygon(bodyA as Polygon, bodyB as Polygon, result);
+}
+
+/** Do two shapes overlap (including contact)? */
+export function overlaps(a: Shape, b: Shape, preparedA: Prepared = prepare(a), preparedB: Prepared = prepare(b)): boolean {
+  return overlapsWith(a, b, bodyOf(preparedA), bodyOf(preparedB));
 }
 
 /**
@@ -46,8 +85,8 @@ export function overlaps(a: Shape, b: Shape, bodyA: Circle | Polygon = body(a), 
  * edge, a point or a tangent doesn't count. Authored areas use it (#404); collision does not.
  */
 export function sharesArea(a: Shape, b: Shape, tolerance = 0): boolean {
-  const response = new SAT.Response();
-  return overlaps(a, b, undefined, undefined, response) && response.overlap > tolerance;
+  const result = new SAT.Response();
+  return overlapsWith(a, b, body(a), body(b), result) && result.overlap > tolerance;
 }
 
 /** Exact Euclidean distance from a closed segment to a filled shape (29).

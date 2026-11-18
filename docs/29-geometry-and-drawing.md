@@ -7,10 +7,12 @@ Shape construction and element assembly are in [29.3](29.3-shape-construction-an
 
 ## One description, three consumers
 
-`shared/shape.ts` owns what a shape *is*. Everything else asks it. What a shape says about a point, a segment
-or another shape (containment, overlap, shared area, segment distance) is `shared/shape-queries.ts`'s. That
-module holds the SAT library, so code that only describes, moves or draws shapes does not depend on it
-(#1181). `movement.ts` still builds SAT circles for its sweep and sliding until #1183. A shape is one of three forms:
+`shared/shape.ts` owns what a shape *is*. Everything else asks it. What a shape says about a point, a segment,
+a disk or another shape (containment, overlap, shared area, disk penetration, segment distance) is
+`shared/shape-queries.ts`'s. It is the game core's only user of the SAT library, and no SAT type crosses its
+signatures: callers pass shapes and numbers, keep an opaque `prepare(shape)` handle for repeated tests, and
+get booleans, distances and plain vectors back. Code that only describes, moves or draws shapes does not
+depend on SAT, and the engine behind the queries can change without the callers (#1181). A shape is one of three forms:
 
 | Form | Anchor | Stored as |
 | --- | --- | --- |
@@ -91,8 +93,9 @@ body is built, not after. Reversing those two for closed gates cost roughly 6x o
 on `sim.step`, because `canOccupy` runs hundreds of times a frame and once built a body per gate on
 every call.
 
-`moveBody` provides SAT sliding for tools and lab walking: it steps the body to its desired position,
-then runs three separation passes over the nearby colliders, subtracting each overlap vector. That is
+`moveBody` provides disk sliding for tools and lab walking: it steps the body to its desired position,
+then runs three separation passes over the nearby colliders, moving the disk out of each by
+`diskPenetration`'s separating vector. That is
 what produces sliding along walls and around corners. Final position is rounded to three decimals.
 
 ## Sight
