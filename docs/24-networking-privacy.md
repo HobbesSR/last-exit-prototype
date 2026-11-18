@@ -62,8 +62,9 @@ rest of 8 ([17.4](17.4-live-service.md) #17). Snapshots and recordings are uncha
     back on a frame with bodies and the motor on one with `self`, so readers see the frames they did.
 - **One "none".** Own `reload`, `charging` and `respawnAt` are absent for none, never `null`. Inventory slots stay
   positional, `null` when empty.
-- **No unread fields.** `directed` left, since the client knows how it joined. So did own `cell` and `nodeId`, and
-  item `droppedBy`, `pickupAfter`, `nodeId`, `instanceId` and `lineageId`. A reload names its slot only. The
+- **No unread fields.** `directed` left, since the client knows how it joined. So did own `cell`, `nodeId` and
+  `attackCd`, body `omega` and `sleeping`, and item `droppedBy`, `pickupAfter`, `nodeId`, `instanceId` and
+  `lineageId`. A reload names its slot only. The
   map payload's items go through the same item contract as frames. A field is added when something reads
   it.
 - **Roster revision.** `seats` carries a `revision`, and each `state` names the revision it was projected
@@ -112,7 +113,7 @@ never as a client statement.
 Experimental physics P4 (#441) adds `predictionMotor` tuning, a match constant since #1131 stage 3 (sent with the map, restored to own frames by the client)
 (acceleration, braking, maximum speed, whether motor surfaces apply) beside the authorized correction-tick
 body lists. Own velocity remains private to that player; observed actors still
-omit motion and sleep fields. Fixed prediction proxies use only authorized
+omit velocity. No view carries angular velocity or sleep state (#1131 stage 3). Fixed prediction proxies use only authorized
 projected poses. No hidden contacts, force sources, endpoint IDs or backend
 checkpoints are sent to explain correction. Tick, consumed `lastSeq`, body
 generation and placement define reconciliation boundaries ([29.2](29.2-physics-state-networking.md)).
@@ -238,10 +239,10 @@ Actors use the same potential-visibility authorization as their player record;
 props use the potential radius plus their bounding radius, and item bodies also
 require the ground item to be authorized. Unknown actor associations are omitted.
 Observed opponent actor bodies carry pose, shape, generation and placement only;
-their velocity, angular velocity and sleep state are omitted, matching the
-observed-player contract. The viewer's own actor retains those correction values.
-Directed views and recordings retain full body values; non-actor physics props
-retain their authorized dynamic state. Closed body, shape and tether field copies
+their velocity is omitted, matching the observed-player contract. The viewer's own
+actor retains its velocity for correction, as do non-actor physics props and every
+body in a directed view. Angular velocity and sleep state stay in recordings only:
+no client read them, so #1131 stage 3 removed them from every view. Closed body, shape and tether field copies
 are owned by `simulation/projection-contract.ts` alongside the other wire contracts.
 A tether is omitted unless both endpoint bodies are authorized. No pending
 commands, motors, force sources, contacts, engine settings or private gameplay

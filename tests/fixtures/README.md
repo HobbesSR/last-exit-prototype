@@ -23,12 +23,12 @@ portal graph bots plan with, and the graph holds typed arrays that JSON drops.
 trace (1.3 s); `tests/slow/characterization-physics-bots.test.js` replays the bot matches
 (31 s). Both run from `tests/characterization-physics-scenarios.js`.
 
-Current projection checkpoint: `7c1f3dff` (#1131 stage 3, wire 6 / schema 20).
-Gzip SHA-256 `8d6a75395631d51a44ea013e29ae22ec228250daaaea7f5e2e1fa74fa2b7e3dc`; scripted JSON SHA-256
-`6110514e1c3cf3122ee64740c289423572021f3c219de704a4cd5634a0309bc1`. It is the decided schema closure of
+Current projection checkpoint: `35a49a18` (#1131 stage 3, wire 6 / schema 20).
+Gzip SHA-256 `405786de88d4fbfbd84366118171730c4c895d8dadc02dfd736df0caca2756eb`; scripted JSON SHA-256
+`0597778064b7760a114b18d3b2c4fb2dae021853a0ed0f639f88d101b378b8ee`. It is the decided schema closure of
 [24.3](../../docs/24.3-wire-data-model.md) (proposals 3, 6 and 8, with Corey's decision on the rest of 8 in
 [17.4](../../docs/17.4-live-service.md) #17): projections lose the match constants, `directed`, null "none"
-values and unread item and reload identity fields. Snapshots, gameplay and `last-exit-0.8-physics` are
+values, unread item and reload identity fields, own `attackCd` and body `omega` and `sleeping`. Snapshots, gameplay and `last-exit-0.8-physics` are
 unchanged. `tools/closure-continuity.mjs` proved it: every snapshot, and every view with the closure
 applied, hashes the same in a pristine export of `0ada96f8` and at the checkpoint, over both bot matches
 and the scripted trace ([report](../../docs/reports/issue-1131/closure-continuity.json)). The arenas were
