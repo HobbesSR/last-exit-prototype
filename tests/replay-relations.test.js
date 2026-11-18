@@ -121,8 +121,11 @@ test('the client normalizer draws a frame only against the roster revision it na
   const seat = (playerIdx, id) => ({ playerIdx, id, name: id.toUpperCase(), role: 'contestant', kit: 'warden' });
   const frames = createFrameNormalizer();
   const constants = { physicsProfile: 'P', predictionMotor: { acceleration: 1, braking: 2, maxSpeed: 3, surfaces: true } };
-  frames.envelope({ roster: [seat(0, 'a')], map, constants });
-  // A welcome's roster names no revision; the first `seats` does (#1131).
+  // A frame naming a revision is never drawn before this connection holds one (review 905 on #1170).
+  assert.throws(() => frames.normalize({ tick: 0, rosterRevision: 1, players: [] }), /revision 1/);
+  // A welcome names its roster's revision; `seats` may then name another (#1131).
+  frames.envelope({ roster: [seat(0, 'a')], rosterRevision: 3, map, constants });
+  assert.equal(frames.normalize({ tick: 0, rosterRevision: 3, players: [] }).tick, 0);
   frames.seats([seat(0, 'a'), seat(2, 'c')], 4);
   const body = { id: 7, kind: 'actor', x: 1, y: 1, angle: 0, generation: 1, owner: { kind: 'actor', playerIdx: 0 }, shape: { kind: 'circle', radius: 6 } };
   const own = frames.normalize({ tick: 1, rosterRevision: 4, self: { playerIdx: 0 }, players: [{ playerIdx: 2, x: 5, y: 5 }], bodies: [body] });
@@ -134,6 +137,9 @@ test('the client normalizer draws a frame only against the roster revision it na
   assert.equal(directed.physicsProfile, 'P'); assert.equal('predictionMotor' in directed, false, 'no motor without a viewer');
   assert.equal('physicsProfile' in frames.normalize({ tick: 1, rosterRevision: 4, players: [] }), false, 'no profile without bodies');
   assert.throws(() => frames.normalize({ tick: 2, rosterRevision: 5, players: [] }), /revision 5/, 'never drawn against another roster');
+  // A ready replaces the held revision with its own: a frame still naming the earlier roster is refused.
+  frames.envelope({ roster: [seat(0, 'a'), seat(2, 'c')], rosterRevision: 6, map, constants });
+  assert.throws(() => frames.normalize({ tick: 4, rosterRevision: 4, players: [] }), /revision 4/);
   // A label the roster taught goes when a later roster stops naming it.
   frames.seats([seat(0, 'a')], 5);
   assert.equal(frames.normalize({ tick: 3, rosterRevision: 5, players: [{ id: 'c', x: 0, y: 0 }] }).players[0].playerIdx, 1,

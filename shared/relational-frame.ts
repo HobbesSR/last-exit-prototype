@@ -142,7 +142,8 @@ export function withMatchConstants<T extends object>(source: T, constants: Const
 }
 export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }, initialRoster: readonly object[] = EMPTY) {
   // `revision` counts this normalizer's own roster changes, for its frame cache. `heldRevision` is the wire's
-  // roster revision (#1131) that the last `seats` named; every live frame names the one it was projected against.
+  // roster revision (#1131) that the last welcome, ready or `seats` named; every live frame names the one it was
+  // projected against.
   let map = initialMap, roster = new Map<number, Row>(), revision = 0, constants: Constants, heldRevision: number | undefined;
   // Labels a `seats` roster taught, pruned when a later one no longer names them; labels learned from legacy
   // recorded frames, which carry no roster, are kept.
@@ -196,9 +197,10 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
   function normalize<T extends object>(source: T): T {
     if (!source) return source;
     const frame = source as Frame;
-    // Never draw a frame against another roster than it names (#1131). One ordered socket always sends `seats`
-    // first; what a client does without it on a lossy transport is #1094's to decide.
-    if (typeof frame.rosterRevision === 'number' && heldRevision !== undefined && frame.rosterRevision !== heldRevision) {
+    // Never draw a frame against another roster than it names, nor one this connection was never sent (#1131).
+    // One ordered socket always delivers it first, in a welcome, ready or `seats`; what a client does without it
+    // on a lossy transport is #1094's to decide. Recorded frames name none, and are joined as before.
+    if (typeof frame.rosterRevision === 'number' && frame.rosterRevision !== heldRevision) {
       throw new Error(`a frame names roster revision ${frame.rosterRevision}, but revision ${heldRevision} is held`);
     }
     if (frame.roster) seats(frame.roster);
@@ -250,10 +252,10 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
     frames.set(source, { revision, map: map?.gates, constants, result });
     return result as T;
   }
-  /** What a welcome or ready says about the frames that follow it: their roster, map and match constants. A
-   * welcome's roster names no revision, so the next `seats` (which the server always sends first) sets it. */
-  function envelope(message: { roster?: readonly object[]; map?: { gates?: readonly object[] } | null; constants?: Constants }) {
-    seats(message.roster); map = message.map ?? undefined; constants = message.constants;
+  /** What a welcome or ready says about the frames that follow it: their roster and its revision, map and
+   * match constants. */
+  function envelope(message: { roster?: readonly object[]; rosterRevision?: number; map?: { gates?: readonly object[] } | null; constants?: Constants }) {
+    seats(message.roster, message.rosterRevision); map = message.map ?? undefined; constants = message.constants;
   }
   return { normalize, seats, envelope, setMap(value: { gates?: readonly object[] } | undefined) { map = value; } };
 }

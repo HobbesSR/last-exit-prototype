@@ -210,27 +210,30 @@ test('fake sessions retain owner checks, spectator delay and safe live-session r
   await h.service.close();
 });
 
-test('seats go out only when the roster revision changes, and each state names the one it was projected against', async () => {
+test('a roster is sent once per revision, and each state names the one it was projected against', async () => {
   const h = roomHarness({ reuseMaps: true }), made = await h.room();
-  // Each peer's raw messages in order: [type, revision] for seats and state (#1131).
-  const trail = p => p.rawMessages.filter(m => m.type === 'seats' || m.type === 'state').map(m => [m.type, m.type === 'seats' ? m.revision : m.state.rosterRevision]);
-  // Every state names the revision of the last seats before it (the harness's normalizer also refuses otherwise).
-  const consistent = p => { let held; for (const [type, revision] of trail(p)) if (type === 'seats') held = revision; else assert.equal(revision, held); };
+  // Each peer's raw messages in order: [type, revision] for whatever delivers a roster, and for each state (#1131).
+  const ROSTERS = ['welcome', 'ready', 'seats'];
+  const trail = p => p.rawMessages.filter(m => ROSTERS.includes(m.type) || m.type === 'state')
+    .map(m => [m.type, m.type === 'seats' ? m.revision : m.type === 'state' ? m.state.rosterRevision : m.rosterRevision]);
+  const rosters = p => trail(p).filter(([type]) => ROSTERS.includes(type));
+  // Every state names the revision of the last roster delivered before it (the harness's normalizer refuses otherwise).
+  const consistent = p => { let held; for (const [type, revision] of trail(p)) if (type !== 'state') held = revision; else assert.equal(revision, held); };
   try {
     const owner = h.joined(made, { ownerKey: made.ownerKey });
     for (let i = 0; i < 5; i++) h.wake(50);
-    const yard = trail(owner).filter(([type]) => type === 'seats');
-    assert.equal(yard.length, 1, 'an unchanged yard roster is sent once, not every tick');
+    assert.deepEqual(rosters(owner).map(([type]) => type), ['welcome'], 'the welcome names the yard roster, and no tick repeats it');
     h.joined(made, { role: 'gladiator' }); for (let i = 0; i < 3; i++) h.wake(50);
-    const joined = trail(owner).filter(([type]) => type === 'seats');
-    assert.equal(joined.length, 2); assert.notEqual(joined[1][1], joined[0][1], 'a join revises the roster');
+    const joined = rosters(owner);
+    assert.deepEqual(joined.map(([type]) => type), ['welcome', 'seats']); assert.notEqual(joined[1][1], joined[0][1], 'a join revises the roster');
     owner.send({ type: 'start' }); for (let i = 0; i < 5; i++) h.wake(50);
-    const match = trail(owner).filter(([type]) => type === 'seats').at(-1)[1];
-    assert.ok(![joined[0][1], joined[1][1]].includes(match), 'the match roster is a revision of its own, never the yard\'s');
+    const [readyType, match] = rosters(owner).at(-1);
+    assert.equal(readyType, 'ready', 'the start\'s ready delivers the match roster, so no seats follows it');
+    assert.ok(!joined.some(([, revision]) => revision === match), 'the match roster is a revision of its own');
     const spectator = h.joined(made, { mode: 'spectator', ownerKey: made.ownerKey });
     h.joined(made, { role: 'contestant', name: 'Late' }); for (let i = 0; i < 5; i++) h.wake(50);
     // The delayed view is still before the late join: it names the revision its captured frame had.
-    const late = trail(owner).filter(([type]) => type === 'seats').at(-1)[1];
+    const late = rosters(owner).at(-1)[1];
     assert.notEqual(late, match, 'the late join revises the live roster');
     assert.deepEqual([...new Set(trail(spectator).filter(([type]) => type === 'state').map(([, revision]) => revision))], [match]);
     for (const p of [owner, spectator]) consistent(p);

@@ -210,6 +210,8 @@ export interface WelcomeBase {
   map: GameMap | WaitingMap | null;
   state: Projected<Snapshot> | Record<string, unknown> | null;
   roster: SeatMetadata[];
+  /** The revision of `roster` (#1131): the client holds it until a `seats` names another. */
+  rosterRevision: number;
   /** The map's prediction constants, null with no map (24.3 proposal 3): no frame repeats them. */
   constants: PredictionConstants | null;
   /** How this connection's `state` messages are written, as its join asked. */
@@ -246,6 +248,7 @@ export interface ReadyMessage {
   map: GameMap | null;
   state: Projected<Snapshot> | null;
   roster: SeatMetadata[];
+  rosterRevision: number;
   constants: PredictionConstants | null;
 }
 
@@ -443,20 +446,20 @@ const hasExactKeys = (obj: Record<string, unknown>, expected: readonly string[])
 
 const WELCOME_PLAYER_KEYS = [
   'type', 'id', 'resumeKey', 'room', 'owner', 'devTools', 'paused',
-  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants', 'stateEncoding',
+  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state', 'roster', 'rosterRevision', 'constants', 'stateEncoding',
 ] as const;
 
 const WELCOME_SPECTATOR_KEYS = [
   'type', 'id', 'spectator', 'spectatorDelayTicks', 'room', 'owner', 'devTools',
-  'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants', 'stateEncoding',
+  'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'rosterRevision', 'constants', 'stateEncoding',
 ] as const;
 
 const WELCOME_DEV_KEYS = [
   'type', 'id', 'spectator', 'dev', 'devTools', 'room', 'owner',
-  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants', 'stateEncoding',
+  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'rosterRevision', 'constants', 'stateEncoding',
 ] as const;
 
-const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants'] as const;
+const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state', 'roster', 'rosterRevision', 'constants'] as const;
 
 /** A map's prediction constants (PredictionConstants), or null when there is no map yet. */
 const validConstants = (value: unknown): boolean => value === null || isRecord(value) && hasExactKeys(value, ['physicsProfile', 'predictionMotor']) &&
@@ -484,7 +487,7 @@ const validRoster = (value: unknown): value is SeatMetadata[] => Array.isArray(v
   (entry.seat === undefined || nonNegativeInt(entry.seat)));
 
 const validWelcomeCommon = (data: Record<string, unknown>): boolean =>
-  validRoster(data.roster) &&
+  validRoster(data.roster) && nonNegativeInt(data.rosterRevision) &&
   nonEmptyString(data.room) &&
   typeof data.owner === 'boolean' &&
   typeof data.devTools === 'boolean' &&
@@ -567,7 +570,7 @@ export function validateServerMessage(raw: unknown): ServerMessageValidation {
     }
     case SERVER_MESSAGE.READY: {
       if (
-        !hasExactKeys(raw, READY_KEYS) || !validRoster(raw.roster) || !validConstants(raw.constants) ||
+        !hasExactKeys(raw, READY_KEYS) || !validRoster(raw.roster) || !nonNegativeInt(raw.rosterRevision) || !validConstants(raw.constants) ||
         !nonEmptyString(raw.contentId) ||
         !isRecord(raw.presentation) ||
         (raw.map !== null && !isRecord(raw.map)) ||

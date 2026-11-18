@@ -8,7 +8,7 @@ import { createMatch, createLobby } from './match.js';
 import { randomWireIdKey } from './wire-key.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
-import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, viewEncoders, SPECTATOR_DELAY_TICKS } from './room-views.js';
+import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, rosterRevision, viewEncoders, SPECTATOR_DELAY_TICKS } from './room-views.js';
 import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats, waitingConstants } from '../shared/simulation/waiting.ts';
 import { waitingYard } from '../shared/waiting-yard.ts';
 import { JSON_STATE_REFUSED } from '../shared/protocol.ts';
@@ -231,7 +231,7 @@ export function createRoom({
     // `game` stays the tests' and benchmarks' escape hatch; nothing here reads it.
     Object.assign(state, { match, seats: match, game: match.diagnosticState });
     // Players stay in the waiting area, so only those watching are shown the new map now.
-    for (const client of state.clients) if (!client.playerId) send(client, readyMessage({ ...described(), ...view(client) }));
+    for (const client of state.clients) if (!client.playerId) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
     broadcastLobby(state);
     if (state.startRequested) startMatch();
   }
@@ -251,6 +251,10 @@ export function createRoom({
    * which keeps the match map hidden (17.3 #15); anyone else sees nothing until the map exists.
    */
   function view(client) {
+    const shown = viewOf(client);
+    return { ...shown, rosterRevision: rosterRevision(state, shown.roster) };
+  }
+  function viewOf(client) {
     // `constants` come with the map they belong to: the yard's, then the match's in the start's `ready` (24.3).
     if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: waitingSeats(state.waiting), constants: waitingConstants() };
     if (!state.match) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
@@ -349,7 +353,7 @@ export function createRoom({
     startRecording();
     remember(state, state.match.snapshot());
     // Out of the waiting area and onto the match map, each from their own spawn.
-    for (const client of state.clients) if (client.playerId) send(client, readyMessage({ ...described(), ...view(client) }));
+    for (const client of state.clients) if (client.playerId) sendEnvelope(client, readyMessage({ ...described(), ...view(client) }));
     broadcastLobby(state);
     broadcast(state, state.match.snapshot());
   }
@@ -380,8 +384,13 @@ export function createRoom({
   }
 
   // A joined client's welcome, then the recording's status when one is showing.
+  // A welcome or ready delivers a roster under its revision, so the client holds one from the first frame and
+  // no `seats` repeats it (#1131).
+  function sendEnvelope(client, message) {
+    if (send(client, message) !== false) client.rosterRevision = message.rosterRevision;
+  }
   function sendWelcome(client, message) {
-    send(client, message);
+    sendEnvelope(client, message);
     if (state.recordingStatus) send(client, state.recordingStatus);
   }
 

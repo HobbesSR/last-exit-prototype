@@ -232,8 +232,8 @@ export function stepWaiting(w: Waiting): void {
 
 /**
  * What one person waiting is sent: everyone there, since the yard is small and the lobby already lists
- * them, in the frame shape a match's player view has, with physics profile, prediction motor and bodies
- * for client Rapier prediction (#975). Others are described by the same fields a match shows of a player
+ * them, in the frame shape a match's player view has, with bodies for client Rapier prediction (#975); its
+ * physics profile and prediction motor come once, with the yard's map (`waitingConstants`). Others are described by the same fields a match shows of a player
  * in sight.
  */
 export function waitingView(w: Waiting, id: PlayerId) {

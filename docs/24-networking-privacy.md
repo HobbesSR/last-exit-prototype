@@ -67,14 +67,16 @@ rest of 8 ([17.4](17.4-live-service.md) #17). Snapshots and recordings are uncha
   `lineageId`. A reload names its slot only. The
   map payload's items go through the same item contract as frames. A field is added when something reads
   it.
-- **Roster revision.** `seats` carries a `revision`, and each `state` names the revision it was projected
-  against as `rosterRevision`, added by the transport rather than the projection.
+- **Roster revision.** `welcome`, `ready` and `seats` each name the `rosterRevision` (in `seats`, `revision`) of
+  the roster they deliver, and each `state` names the revision it was projected against as `rosterRevision`,
+  added by the transport rather than the projection.
   - A revision names a roster's content within its room (`server/room-views.js`). A delayed view therefore names
     its captured frame's roster, and the yard's and the match's never collide. It identifies a roster; it does
     not order rosters.
-  - A session is sent `seats` when its next state names a revision it does not hold, not every tick.
-  - The client refuses to draw a frame against a different roster revision than it holds, closing with the
-    unreadable notice. On one ordered socket that cannot happen; what a client does without the roster on a
+  - A session is sent `seats` when its next state names a revision it does not hold, not every tick; a welcome
+    or ready sets the one it holds.
+  - The client refuses to draw a frame against a different roster revision than it holds, or before it holds
+    one, closing with the unreadable notice. On one ordered socket that cannot happen; what a client does without the roster on a
     lossy transport is #1094's to decide ([24.2](24.2-lossy-transport-deltas.md)).
 
 Validation is transport-free and session concerns sit behind a minimal session interface (`id`, `deliver`, `close`, `rejectedMessages`) so room lifecycle, matchmaking, session admission/reconnection (`join`, `match`, `welcome`, `lobby`, `error`, `ping`/`pong`) and connection state can be absorbed by room middleware (Colyseus is the leading candidate) while game update, visibility projection, layered frame encoding, lag compensation and recording stay ours. When evaluating Colyseus against this seam, note three specifics: Colyseus 0.16 replaced `@filter` with `StateView` for per-client visibility; Colyseus 0.18 added built-in client prediction and input handling, so `input` is not automatically application-owned; and our 60-tick spectator delay projects a historical frame rather than current room state, which does not fit live schema state sync and keeps state/projection delivery on our own message path unless delayed spectators move to a downstream consumer ([Two-tier spectators](#two-tier-spectators)).

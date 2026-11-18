@@ -33,28 +33,27 @@ export function broadcastLobby(room) {
 /**
  * Roster revisions (#1131, 24.4). A revision names a roster's content within its room: each distinct roster is
  * numbered when first seen, and keeps that number wherever it appears again, so a delayed view names the
- * roster its captured frame had, and the yard's and the match's never collide. It identifies a roster, not an
- * order: a client compares it for equality with the one it holds.
+ * roster its captured frame had. Two rosters share a revision only when their metadata is identical (a yard
+ * and a match of the same people), so a client never draws with the wrong one. It identifies a roster, not an
+ * order: a client compares it for equality with the one it holds. The `seats` payload is built once per
+ * revision, so a tick that changes no roster serializes nothing but the content key.
  */
 function createRosterRevisions() {
-  const revisions = new Map();
-  return json => {
-    let revision = revisions.get(json);
-    if (revision === undefined) revisions.set(json, revision = revisions.size + 1);
-    return revision;
+  const byContent = new Map();
+  return roster => {
+    const text = rosterText(roster);
+    let seats = byContent.get(text);
+    if (!seats) {
+      const revision = byContent.size + 1;
+      byContent.set(text, seats = { revision, json: JSON.stringify(seatsMessage(roster, revision)) });
+    }
+    return seats;
   };
 }
 const rosterJson = new WeakMap();
 const rosterText = roster => { let json = rosterJson.get(roster); if (json === undefined) rosterJson.set(roster, json = JSON.stringify(roster)); return json; };
-/** A roster and its revision as one `seats` payload, built once per roster and revision. */
-const seatPayloads = new WeakMap();
-function seatsPayload(roster, revision) {
-  let byRevision = seatPayloads.get(roster);
-  if (!byRevision) seatPayloads.set(roster, byRevision = new Map());
-  let json = byRevision.get(revision);
-  if (!json) byRevision.set(revision, json = JSON.stringify(seatsMessage(roster, revision)));
-  return { revision, json };
-}
+/** A roster's revision in this room, as a welcome or ready names it beside the roster it delivers. */
+export const rosterRevision = (room, roster) => room.rosterRevisions(roster).revision;
 /** A session is sent `seats` when the revision its next state names is not the one it holds. */
 function deliverSeats(session, seats) {
   if (session.rosterRevision === seats.revision) return true;
@@ -64,7 +63,7 @@ function deliverSeats(session, seats) {
 }
 /** Each player's frame of the waiting area (#236); those watching see the match map, not this. */
 export function broadcastWaiting(room, view) {
-  const roster = waitingSeats(room.waiting), seats = seatsPayload(roster, room.rosterRevisions(rosterText(roster)));
+  const seats = room.rosterRevisions(waitingSeats(room.waiting));
   for (const session of room.clients) if (session.playerId) {
     if (!deliverSeats(session, seats)) continue;
     session.deliver(writeState({ ...view(room.waiting, session.playerId), rosterRevision: seats.revision }, session.stateEncoding), true);
@@ -95,8 +94,7 @@ export function broadcast(room, state) {
       const me = session.playerId && projected.self;
       if (me?.discovered) layers.discovered = encoderFor(room.discoveryEncoders, key, createDiscoveryEncoder).encode(me.discovered);
       profiler.stop('loop.encode');
-      const roster = room.match.seatMetadata(captured);
-      views.set(key, view = { state: projected, layers, roster: seatsPayload(roster, room.rosterRevisions(rosterText(roster))) });
+      views.set(key, view = { state: projected, layers, roster: room.rosterRevisions(room.match.seatMetadata(captured)) });
     }
     // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
     // not yet delivered that keyframe (shared/frame-layers.ts, shared/discovery.ts). Sessions in the
