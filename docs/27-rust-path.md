@@ -167,7 +167,8 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   - **How.** `tools/build-core.mjs`'s `buildCore` runs Cargo and returns the module's path in `rust/target`.
     Cargo makes it a no-op when nothing changed. `npm run core:build` runs it by hand.
   - **Who calls it.** Today, `tests/math.test.js`. In stage 2, the server's and the dev server's startup, and
-    whatever serves the module to the browser, since a server delivers the file it loads itself.
+    whatever serves the module to the browser, since a server delivers the file it loads itself. Every CI job
+    whose tests reach it then installs the toolchain as `verify` does: the `slow` job, once a slow test does.
   - **CI.** `verify` installs the toolchain `rust/rust-toolchain.toml` names, so `npm test` builds the module.
   - **Why not committed.** That was tried first under #1175. A committed binary must match every host's rebuild
     byte for byte. That held for Windows x64 against Linux arm64 (run 1243), but a reachable panic embeds its source
@@ -175,7 +176,7 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
     is behaviour, not bytes: WASM's exact operations give every host the same results, and the server and its
     clients run one file by construction. `tests/math.test.js`'s digests check the behaviour.
   - **The cost.** Every machine that runs the Node tests needs `cargo`. `verify` spends about 1 min installing the
-    toolchain cold, until the runner has a cache (studio-ops#8).
+    toolchain cold, until the runner offers a cache.
 
 **The edge on a Linux host.** `rust/Dockerfile` builds the edge in the official Rust image and runs it on
 `debian:bookworm-slim` as `nobody`, for whichever architecture builds it: x64 was checked under Docker on the

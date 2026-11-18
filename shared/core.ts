@@ -40,6 +40,7 @@ export async function loadCore(bytes: ArrayBuffer | ArrayBufferView): Promise<Co
   const core = instance.exports as unknown as CoreExports;
   const version = core.adapter_version();
   if (version !== CORE_ADAPTER_VERSION)
-    throw new Error(`core.wasm speaks adapter version ${version}, this loader ${CORE_ADAPTER_VERSION}; run npm run core:build`);
+    throw new Error(`the core module speaks adapter version ${version}, this loader ${CORE_ADAPTER_VERSION}: rust/core/src/lib.rs's ` +
+      `ADAPTER_VERSION and CORE_ADAPTER_VERSION here disagree, or the module predates a change; rebuild it (npm run core:build)`);
   return core;
 }
