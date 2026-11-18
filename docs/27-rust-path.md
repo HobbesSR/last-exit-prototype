@@ -78,6 +78,9 @@ graph cost a thread 150–200 ms to decode until #1089 packed it into buffers. T
    - **The flip:** once enough is ported, the world state moves into Rust memory and the tick crosses over.
      JavaScript then reads projections rather than feeding functions. #1066's functional tick and ECS-style state
      are the design for the flip, decided before it.
+   - **When (Corey, 2026-11-18).** Not yet: the sight port's crossings were cheap ([42.58](42.58-sight-core-adapter.md)),
+     so #1092's deltas are built in Node behind the projection seam. The flip comes after #1092 closes, or earlier if
+     a better point appears.
 3. **Measure early.** Port one per-tick module, measure its crossing cost against the TypeScript under the bench
    lock, and set a budget before porting more. Crossings too costly are evidence to flip sooner.
 
@@ -98,6 +101,22 @@ Port order is stability order:
   - **Its input (agent recommendation, #1175 comment 16341).** Sight takes a derived flat index, not the map: the
     obstacle and gate segments with their buckets, built in JavaScript and uploaded once, plus a per-tick
     open-gate mask. The map's language-neutral format then waits for a consumer that needs the map itself.
+  - **The port (#1175 stage 2).** `rust/core/src/sight.rs` is `visibilityPolygon`, and `shared/sight-core.ts` is
+    its adapter. `tests/sight-core.test.js` holds them equal to `shared/sight.ts` bit for bit, on synthetic maps
+    and on the room arena. Its measurement, and the budget it sets, are in [42.58](42.58-sight-core-adapter.md).
+    The game does not call it yet; startup wiring and a Chrome check come next.
+
+The adapter's shape, as the sight port settled it (adapter version 3):
+- **Memory.** `core_alloc`/`core_free` give JavaScript 8-byte-aligned buffers to fill. The core copies what it
+  keeps, so the adapter frees its upload buffers at once.
+- **Handles.** A long-lived input becomes a handle: a pointer to a boxed Rust value, made once and freed by a
+  `FinalizationRegistry` when the JavaScript list it mirrors is collected. Sight has two: an index per obstacle
+  list, and a gate set per gate list, each cached as `sight.ts` caches its own.
+- **Per call.** Mutable inputs are written in place into buffers the core owns (the open-gate mask). Scalars
+  that select the work (origin, radius) are arguments. Results stay in a buffer the core owns, which JavaScript
+  reads through a view.
+- **Views are made after each call,** since any allocation can grow the memory and detach `memory.buffer`.
+- **One function, not one scalar, per crossing:** a crossing returns a whole polygon, never a point.
 - **After it,** navigation ([22.6](22.6-hierarchical-navigation.md)) and the shape queries
   (`shared/shape-queries.ts`, [29](29-geometry-and-drawing.md)).
   - **Before navigation:** settle whether the free-space mesh's clipping has one owner (#1186).

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as math from '../shared/math.ts';
-import { loadCore } from '../shared/core.ts';
+import { CORE_ADAPTER_VERSION, loadCore } from '../shared/core.ts';
 import { buildCore } from '../tools/build-core.mjs';
 
 const { atan, atan2, cos, hypot, sin } = math;
@@ -103,7 +103,7 @@ test('the core loader refuses a module of another adapter version', async () => 
   const stale = Uint8Array.of(0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7f,
     0x03, 0x02, 0x01, 0x00, 0x07, 0x13, 0x01, 0x0f, ...new TextEncoder().encode('adapter_version'), 0x00, 0x00,
     0x0a, 0x06, 0x01, 0x04, 0x00, 0x41, 0x01, 0x0b);
-  await assert.rejects(loadCore(stale), /adapter version 1, this loader 2/);
+  await assert.rejects(loadCore(stale), new RegExp(`adapter version 1, this loader ${CORE_ADAPTER_VERSION}`));
 });
 
 test('the math module stays within 1 ulp of the engine and follows its special cases', () => {

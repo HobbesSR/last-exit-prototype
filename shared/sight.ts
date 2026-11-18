@@ -69,6 +69,37 @@ const gateEdges = (map: Pick<CollisionMap, 'gates'>, edges: (Edge[] | undefined)
 const visitedGates = new Visited(), visitedEdges = new Visited();
 
 /**
+ * A bucket map as one `i32` array for the Rust core (`rust/core/src/sight.rs`, `Grid`): `col0, row0,
+ * cols, rows`, then `cols * rows + 1` offsets, then the entries. Cells run column outer, as
+ * `eachCellIn` visits them, and each keeps its list in bucket order.
+ */
+function flatGrid(buckets: Map<string, number[]>): Int32Array {
+  const cells = [...buckets].map(([key, list]) => { const [col, row] = key.split(',').map(Number); return { col, row, list }; });
+  if (!cells.length) return Int32Array.of(0, 0, 0, 0, 0);
+  const col0 = Math.min(...cells.map(c => c.col)), row0 = Math.min(...cells.map(c => c.row));
+  const cols = Math.max(...cells.map(c => c.col)) - col0 + 1, rows = Math.max(...cells.map(c => c.row)) - row0 + 1;
+  const lists: number[][] = Array.from({ length: cols * rows }, () => []);
+  for (const { col, row, list } of cells) lists[(col - col0) * rows + (row - row0)] = list;
+  const words = new Int32Array(5 + cols * rows + lists.reduce((sum, list) => sum + list.length, 0));
+  words.set([col0, row0, cols, rows, 0]);
+  let offset = 0, at = 5 + cols * rows;
+  lists.forEach((list, i) => { offset += list.length; words[5 + i] = offset; words.set(list, at); at += list.length; });
+  return words;
+}
+const flatEdges = (edges: Edge[]): Float64Array => Float64Array.from(edges.flatMap(e => [e.a.x, e.a.y, e.b.x, e.b.y]));
+/** The sight index as flat arrays for the Rust core (#1175): `[ax, ay, bx, by]` per edge, and its cells. */
+export function sightTables(map: Pick<CollisionMap, 'obstacles'>): { segments: Float64Array; grid: Int32Array } {
+  const { segments, sight } = sightIndex.get(map);
+  return { segments: flatEdges(segments), grid: flatGrid(sight) };
+}
+/** The gates as flat arrays for the Rust core: every gate's edges, open or not, with offsets per gate, and their cells. */
+export function gateTables(map: Pick<CollisionMap, 'gates'>): { edges: Float64Array; offsets: Uint32Array; grid: Int32Array } {
+  const cached = gateEdgeList(map), edges: Edge[] = [], offsets = new Uint32Array(map.gates.length + 1);
+  map.gates.forEach((_, i) => { edges.push(...gateEdges(map, cached, i)); offsets[i + 1] = edges.length; });
+  return { edges: flatEdges(edges), offsets, grid: flatGrid(gateIndex(map).buckets) };
+}
+
+/**
  * Visit, until `visit` returns true, what the buckets hold in every cell within SIGHT_PAD of segment `ab`.
  * A segment meets an edge at a point inside both, so the edge is listed in a visited cell; the pad covers
  * rounding at cell borders. An entry listed in several cells may be visited more than once.

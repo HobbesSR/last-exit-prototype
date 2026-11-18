@@ -22,6 +22,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.55](42.55-wire-adoption.md) | The descriptor codec live (#1131 stage 2): the production runtime against JSON on a live room's own state messages, bytes and Node encode/decode CPU per view, steady and keyframes |
 | [42.56](42.56-transport-probe.md) | A real WebTransport session, Node to Chrome through a lossy UDP relay (#1095): datagrams against a reliable stream and a WebSocket, delivery, latency and staleness per network profile, the datagram cap and connection setup |
 | [42.57](42.57-edge-cpu.md) | The Rust edge's CPU carrying 1, 4 and 8 Chrome players on WebTransport through a live match (#1095, stage 1) |
+| [42.58](42.58-sight-core-adapter.md) | The core's first per-tick module: `visibilityPolygon` in Rust through the flat-buffer adapter against the TypeScript, the crossing's cost, and the budget it sets (#1175, stage 2) |
 
 ### Navigation
 
