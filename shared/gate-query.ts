@@ -1,4 +1,5 @@
-import { gatesNear, lineClear } from './movement.ts';
+import { lineClear } from './sight.ts';
+import { gatesNear } from './gate-index.ts';
 import { distance } from './vector.ts';
 import { GATE_REACH } from './simulation/rules.ts';
 import type { CollisionMap, Gate, Vec2 } from './types.ts';

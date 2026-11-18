@@ -3,7 +3,7 @@ import { bakeGraph, queryGraph } from './graph.mjs';
 import { createHierarchy } from './hierarchy.mjs';
 import { createClearance } from './clearance.mjs';
 import { gridRoute } from '../../map/tools/route.ts';
-import { reachClear } from '../../shared/movement.ts';
+import { reachClear } from '../../shared/sight.ts';
 
 const time=fn=>{const start=performance.now();const value=fn();return {ms:performance.now()-start,value};};
 const scene=(width,height,obstacles=[],gates=[])=>({width,height,obstacles,gates,playableArea:{cellSize:48,rows:Array.from({length:height/48},(_,y)=>({y,runs:[[0,width/48]]}))}});

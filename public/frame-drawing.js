@@ -1,4 +1,4 @@
-import { gateShape } from '/shared/movement.ts';
+import { gateShape } from '/shared/gate-index.ts';
 import { seesPoint, seesActor, roofAt, roofRevealed, stepRoofAlpha, openingDistance, createShapeVisibility, LOD_LOW_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { outline } from '/shared/shape.ts';
 import { bodyRadius, bodyShape } from '/shared/physics/presentation-geometry.ts';

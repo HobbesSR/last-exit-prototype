@@ -1,6 +1,6 @@
-import type { Box, World } from './types.ts';
+import type { Box, Vec2, World } from './types.ts';
 
-// The fixed cell grid that static geometry queries share (#667, #668): movement's colliders, sight edges and
+// The fixed cell grid that static geometry queries share (#667, #668): movement's colliders, sight's edges and
 // gates, and the swept shapes for shots and the hook. One cell size and one keying, so a change is made once.
 
 /** Cell side, in world units. */
@@ -36,5 +36,29 @@ export class Visited {
   first(i: number): boolean {
     if (this.marks[i] === this.mark) return false;
     this.marks[i] = this.mark; return true;
+  }
+}
+
+/**
+ * Each cell of a `size` grid within `radius` of segment `ab`: row by row, only the columns the
+ * segment's band crosses, so a long diagonal costs its length rather than its bounding square.
+ * With `cols` and `rows`, cells are clamped to that grid; without, indices may be negative.
+ */
+export function cellsAlong(a: Vec2, b: Vec2, radius: number, size: number, visit: (col: number, row: number) => void, cols?: number, rows?: number): void {
+  const low = cols === undefined ? -Infinity : 0;
+  const top = Math.max(low, Math.floor((Math.min(a.y, b.y) - radius) / size));
+  const bottom = Math.min((rows ?? Infinity) - 1, Math.floor((Math.max(a.y, b.y) + radius) / size));
+  const dy = b.y - a.y;
+  for (let row = top; row <= bottom; row++) {
+    // The part of the segment within `radius` of this row, as a range of x.
+    let t0 = 0, t1 = 1;
+    if (dy) {
+      const u = (row * size - radius - a.y) / dy, v = ((row + 1) * size + radius - a.y) / dy;
+      t0 = Math.max(0, Math.min(u, v)); t1 = Math.min(1, Math.max(u, v));
+      if (t0 > t1) continue;
+    }
+    const x0 = a.x + t0 * (b.x - a.x), x1 = a.x + t1 * (b.x - a.x);
+    const right = Math.min((cols ?? Infinity) - 1, Math.floor((Math.max(x0, x1) + radius) / size));
+    for (let col = Math.max(low, Math.floor((Math.min(x0, x1) - radius) / size)); col <= right; col++) visit(col, row);
   }
 }

@@ -1,4 +1,5 @@
-import { canOccupy, reachClear } from '../movement.ts';
+import { canOccupy } from '../movement.ts';
+import { reachClear } from '../sight.ts';
 import { carriedCell, collectAmmo, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload, forkItemAllocation, commitItemAllocation } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';

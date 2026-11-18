@@ -1,4 +1,5 @@
-import { reachClear, movementSpeed } from '../movement.ts';
+import { movementSpeed } from '../movement.ts';
+import { reachClear } from '../sight.ts';
 import { actorMotor } from './actor-physics.ts';
 import { applyFloorDrag, writePhysicalItemPoses } from './world-physics.ts';
 import { HZ } from './rules.ts';

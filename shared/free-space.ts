@@ -2,7 +2,8 @@ import ClipperLib from 'clipper-lib';
 import { IndexHeap } from './index-heap.ts';
 import { outline, rect, shapeOf, type Shape } from './shape.ts';
 import { CLIP_SCALE, canonicalRings, clipPath, strictlySimpleClipper, triangulateRings } from './shape-construction.ts';
-import { gateShape, playableAreaOf } from './movement.ts';
+import { gateShape } from './gate-index.ts';
+import { playableAreaOf } from './playable-area.ts';
 import type { Box, CollisionMap, Vec2, World } from './types.ts';
 import { hypot } from './math.ts';
 

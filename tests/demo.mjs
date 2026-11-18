@@ -13,7 +13,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
-import { lineClear } from '../shared/movement.ts';
+import { lineClear } from '../shared/sight.ts';
 import path from 'node:path';
 import { cliArgs } from './helpers/args.js';
 

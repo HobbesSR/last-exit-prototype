@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canOccupy, lineClear, moveBody, prepareMovementGeometry, reachClear, sweptClear, visibilityPolygon } from '../shared/movement.ts';
+import { canOccupy, moveBody, prepareMovementGeometry, sweptClear } from '../shared/movement.ts';
+import { lineClear, prepareSightIndex, reachClear, visibilityPolygon } from '../shared/sight.ts';
 import { openArea } from './helpers/arena.js';
+
+// Collision and sight each keep their own index; a match prepares both, collision first (#1184).
+async function prepareAll(map, yieldControl) {
+  await prepareMovementGeometry(map, yieldControl);
+  await prepareSightIndex(map, yieldControl);
+}
 
 // Small synthetic maps cover shape kinds and bucket boundaries without map-generation or physics cost.
 function mapOf(count = 180) {
@@ -32,11 +39,11 @@ function answers(map) {
 test('prepared geometry exactly matches synchronous collision, movement and sight queries', async () => {
   const sync = mapOf(), prepared = structuredClone(sync), expected = answers(sync);
   let yields = 0;
-  await prepareMovementGeometry(prepared, async () => { yields++; });
+  await prepareAll(prepared, async () => { yields++; });
   assert.ok(yields > 1, 'large enough to exercise multiple preparation batches');
   assert.deepEqual(answers(prepared), expected);
   // Maps that differ only in gates retain the existing obstacle-array cache sharing.
-  await prepareMovementGeometry({ ...prepared, gates: [] }, async () => assert.fail('already prepared'));
+  await prepareAll({ ...prepared, gates: [] }, async () => assert.fail('already prepared'));
 });
 
 test('preparation yields before resolving every collider, and a concurrent query sees complete data', async () => {
@@ -46,7 +53,7 @@ test('preparation yields before resolving every collider, and a concurrent query
     Object.defineProperty(obstacle, 'points', { get() { resolved.add(i); return points; } });
   }
   let resume, batches = 0;
-  const preparation = prepareMovementGeometry(map, () => {
+  const preparation = prepareAll(map, () => {
     batches++;
     return batches === 1 ? new Promise(resolve => { resume = resolve; }) : Promise.resolve();
   });
@@ -64,11 +71,11 @@ test('preparation yields before resolving every collider, and a concurrent query
 test('rejection leaves no partial cache and a later preparation can retry', async () => {
   const map = mapOf(), failure = new Error('cancel preparation');
   let attempts = 0;
-  await assert.rejects(prepareMovementGeometry(map, async () => {
+  await assert.rejects(prepareAll(map, async () => {
     if (++attempts === 2) throw failure;
   }), error => error === failure);
   let yields = 0;
-  await prepareMovementGeometry(map, async () => { yields++; });
+  await prepareAll(map, async () => { yields++; });
   assert.ok(yields > 1, 'the rejected build must not be treated as a completed cache');
   assert.deepEqual(answers(map), answers(mapOf()));
 });
@@ -76,9 +83,9 @@ test('rejection leaves no partial cache and a later preparation can retry', asyn
 test('concurrent preparations publish complete geometry even when one rejects', async () => {
   const map = mapOf();
   let resume;
-  const first = prepareMovementGeometry(map, () => new Promise(resolve => { resume = resolve; }));
-  await assert.rejects(prepareMovementGeometry(map, async () => { throw new Error('cancel sibling'); }), /cancel sibling/);
-  const second = prepareMovementGeometry(map, async () => {});
+  const first = prepareAll(map, () => new Promise(resolve => { resume = resolve; }));
+  await assert.rejects(prepareAll(map, async () => { throw new Error('cancel sibling'); }), /cancel sibling/);
+  const second = prepareAll(map, async () => {});
   await second;
   // Finish the suspended build with a completed cache already available.
   while (resume) {
@@ -95,7 +102,7 @@ test('preparation retries when the obstacle list grows or is replaced during a y
     const extra = { id: 'extra', x: 1200, y: 1200, w: 40, h: 40, kind: 'building' };
     expected.obstacles.push(extra);
     let yields = 0;
-    await prepareMovementGeometry(map, async () => {
+    await prepareAll(map, async () => {
       if (yields++ === 0) {
         if (replace) map.obstacles = [...map.obstacles, extra];
         else map.obstacles.push(extra);
@@ -106,7 +113,7 @@ test('preparation retries when the obstacle list grows or is replaced during a y
     assert.deepEqual(answers(map), answers(expected));
     map.obstacles.push({ ...extra, x: 1250 });
     let refreshed = false;
-    await prepareMovementGeometry(map, async () => { refreshed = true; });
+    await prepareAll(map, async () => { refreshed = true; });
     assert.ok(refreshed, 'a completed cache is invalidated by later list growth');
   }
 });

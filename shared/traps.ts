@@ -1,4 +1,5 @@
-import { canOccupy, lineClear } from './movement.ts';
+import { canOccupy } from './movement.ts';
+import { lineClear } from './sight.ts';
 import { distance } from './vector.ts';
 import { enqueueExplosionImpulses } from './simulation/explosion-physics.ts';
 import type { EffectKind, Game, Player, PlayerId, Vec2, World } from './types.ts';

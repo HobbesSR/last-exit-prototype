@@ -1,6 +1,6 @@
 import { bodyRelations, hydrateFrame, compactItems, omitBodyPose as omitPose } from '../relational-frame.ts';
 import { playerSlot } from './relations.ts';
-import { lineClear, VISION } from '../movement.ts';
+import { lineClear, VISION } from '../sight.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';

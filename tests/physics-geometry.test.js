@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPhysicsGeometry, physicsGate, MAX_PHYSICS_EXTENT } from '../shared/simulation/physics-geometry.ts';
-import { insideMap } from '../shared/movement.ts';
+import { insideMap } from '../shared/playable-area.ts';
 import { openArea } from './helpers/arena.js';
 
 const empty = (more = {}) => ({ width: 250, height: 250, playableArea: openArea(250, 250, 50), obstacles: [], gates: [], ...more });

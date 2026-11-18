@@ -1,5 +1,6 @@
 import { bodyRelations } from '../shared/relational-frame.ts';
-import { visibilityPolygon, sweptClear } from '/shared/movement.ts';
+import { sweptClear } from '/shared/movement.ts';
+import { visibilityPolygon } from '/shared/sight.ts';
 import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesActor, observeGates, roofAt, buildingOpenings, INSIDE_ZOOM, LOD_LABEL_ZOOM } from '/shared/view.ts';
 import { bodyRadius } from '/shared/physics/presentation-geometry.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';

@@ -1,4 +1,5 @@
-import { gateShape, playableAreaOf } from '../movement.ts';
+import { gateShape } from '../gate-index.ts';
+import { playableAreaOf } from '../playable-area.ts';
 import { convex, shapeOf } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { CollisionMap, Gate, Vec2 } from '../types.ts';

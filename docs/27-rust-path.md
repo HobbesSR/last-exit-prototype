@@ -94,7 +94,7 @@ Port order is stability order:
   - **Why it comes first:** `visibilityPolygon` was about half of tick time in a 24x12 profile. The shape
     queries were under 1% each (#1175, comment 16306). That was one unlocked run of 1,500 ticks, a rough guide;
     stage 2 measures under the bench lock.
-  - **The first step:** it moves out of `shared/movement.ts` into its own module with its segment index (#1184).
+  - **The first step, done:** it moved out of `shared/movement.ts` into `shared/sight.ts` with its own segment index (#1184).
   - **Its input (agent recommendation, #1175 comment 16341).** Sight takes a derived flat index, not the map: the
     obstacle and gate segments with their buckets, built in JavaScript and uploaded once, plus a per-tick
     open-gate mask. The map's language-neutral format then waits for a consumer that needs the map itself.

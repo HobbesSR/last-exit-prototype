@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canOccupy, insideMap, moveBody } from '../shared/movement.ts';
-import { openPlayableArea, playableAreaFromCells, playableAreaRects } from '../shared/playable-area.ts';
+import { canOccupy, moveBody } from '../shared/movement.ts';
+import { insideMap, openPlayableArea, playableAreaFromCells, playableAreaRects } from '../shared/playable-area.ts';
 
 const map = {
   width: 250, height: 250, obstacles: [], gates: [],
