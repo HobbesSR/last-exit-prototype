@@ -1,5 +1,5 @@
 //! The simulation core (docs/27), built natively for `cargo test` and to `wasm32-unknown-unknown`
-//! as the one module Node and the browser both load (`shared/core-wasm.ts`).
+//! as the one module Node and the browser both load (`shared/core.ts`).
 //!
 //! The WASM module uses plain exports, not wasm-bindgen: the adapter passes flat typed buffers in
 //! WASM memory (docs/27, rule 1), so there is no generated JavaScript glue to keep in step.

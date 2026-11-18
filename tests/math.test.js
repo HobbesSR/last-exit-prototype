@@ -88,7 +88,7 @@ test('the math module stays within 1 ulp of the engine and follows its special c
   // signed zero or a NaN is billions of ulps away, so those cases are still checked exactly.
   const special = [0, -0, 1, -1, 1e-310, -1e-310, 1e300, -1e300, Infinity, -Infinity, NaN];
   for (const a of special) {
-    // Past 2^19Â·Ï€/2 sin and cos are deterministic but not accurate (math.ts); the game never goes there.
+    // Past 2^19·π/2 sin and cos are deterministic but not accurate (math.ts); the game never goes there.
     if (!(Number.isFinite(a) && Math.abs(a) > 1e6)) assert.ok(ulps(sin(a), Math.sin(a)) <= 1 && ulps(cos(a), Math.cos(a)) <= 1, `${a}`);
     assert.ok(ulps(atan(a), Math.atan(a)) <= 1, `${a}`);
     for (const b of special) assert.ok(ulps(atan2(a, b), Math.atan2(a, b)) <= 1 && ulps(hypot(a, b), Math.hypot(a, b)) <= 1, `${a}, ${b}`);

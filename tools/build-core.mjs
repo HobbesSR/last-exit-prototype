@@ -11,6 +11,10 @@ const built = 'rust/target/wasm32-unknown-unknown/release/last_exit_core.wasm';
 const committed = 'shared/core.wasm';
 const result = spawnSync('cargo', ['build', '--locked', '--release', '-p', 'last-exit-core', '--target', 'wasm32-unknown-unknown'],
   { cwd: 'rust', stdio: 'inherit' });
+if (result.error) {
+  console.error(`cannot run cargo (${result.error.message}); install the toolchain rust/rust-toolchain.toml names`);
+  process.exit(1);
+}
 if (result.status !== 0) process.exit(result.status || 1);
 if (process.argv.includes('--check')) {
   if (!readFileSync(built).equals(readFileSync(committed))) {

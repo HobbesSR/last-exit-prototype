@@ -163,7 +163,8 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
     fails if the bytes differ.
   - **Why committed.** `npm test`, the server and the browser then need no Rust toolchain. Node's `verify` and
     every agent or contributor without `cargo` keep working as before.
-  - **Evidence that it reproduces.** A Windows x64 build is checked against CI's Linux arm64 rebuild on every PR.
+  - **Evidence that it reproduces.** The check compares the committed build with CI's Linux arm64 rebuild on every
+    PR. A committed Windows x64 build reproducing there was first tested by PR #1178's run; record the result here.
     The module holds no file paths today: it has no reachable panic. A panic location would embed a path, and the
     check would then fail across machines. Remap the path prefix then.
   - **The alternative.** `verify` builds it instead, which adds the toolchain to Node's job: about 1 min cold.

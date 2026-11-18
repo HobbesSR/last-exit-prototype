@@ -1,7 +1,7 @@
 //! The core's non-exact math: a port of `shared/math.ts`, which stays the reference (docs/27,
 //! "One math library on both sides"). Every function here must return the bits that file
-//! returns, on every platform; `tests/math.test.js` and `tests/core-wasm.test.js` hold the same
-//! digest over both.
+//! returns, on every platform. This crate's tests and `tests/math.test.js` (through the WASM
+//! module) hold the same digest over both.
 //!
 //! Only IEEE-exact operations are used: `+ - * /`, `sqrt`, `abs`, `floor` and `%`. Never fuse a
 //! multiply and an add (`rust/core/clippy.toml` forbids `mul_add` and the platform's
@@ -37,7 +37,7 @@ const S4: f64 = 2.75573137070700676789e-06;
 const S5: f64 = -2.50507602534068634195e-08;
 const S6: f64 = 1.58969099521155010221e-10;
 
-/// sin(x + y) for |x| â‰¤ Ï€/4, where y is the tail of the reduced argument (0 if unreduced).
+/// sin(x + y) for |x| ≤ π/4, where y is the tail of the reduced argument (0 if unreduced).
 fn kernel_sin(x: f64, y: f64) -> f64 {
     if (high(x) & 0x7fffffff) < 0x3e400000 {
         return x; // |x| < 2^-27
@@ -58,7 +58,7 @@ const C4: f64 = -2.75573143513906633035e-07;
 const C5: f64 = 2.08757232129817482790e-09;
 const C6: f64 = -1.13596475577881948265e-11;
 
-/// cos(x + y) for |x| â‰¤ Ï€/4.
+/// cos(x + y) for |x| ≤ π/4.
 fn kernel_cos(x: f64, y: f64) -> f64 {
     let ix = high(x) & 0x7fffffff;
     if ix < 0x3e400000 {
@@ -85,11 +85,11 @@ const PIO2_2: f64 = 6.07710050630396597660e-11;
 const PIO2_2T: f64 = 2.02226624879595063154e-21;
 const PIO2_3: f64 = 2.02226624871116645580e-21;
 const PIO2_3T: f64 = 8.47842766036889956997e-32;
-/// Beyond 2^19Â·Ï€/2 the Codyâ€“Waite reduction below runs out of bits.
+/// Beyond 2^19·π/2 the Cody–Waite reduction below runs out of bits.
 const MEDIUM: f64 = 823549.6658963379;
 const TWO_PI: f64 = 6.283185307179586;
 
-/// x âˆ’ nÂ·Ï€/2 as a head and tail, and n. Exact to fdlibm's accuracy for |x| â‰¤ 2^19Â·Ï€/2. Larger
+/// x − n·π/2 as a head and tail, and n. Exact to fdlibm's accuracy for |x| ≤ 2^19·π/2. Larger
 /// arguments, which the game never produces, are first brought into range with `%` (exact, as
 /// JavaScript's is), so they are deterministic but not accurate.
 fn rem_pio2(mut x: f64) -> (i32, f64, f64) {
@@ -99,7 +99,7 @@ fn rem_pio2(mut x: f64) -> (i32, f64, f64) {
     let hx = high(x);
     let ix = hx & 0x7fffffff;
     if ix <= 0x3fe921fb {
-        return (0, x, 0.0); // |x| â‰¤ Ï€/4
+        return (0, x, 0.0); // |x| ≤ π/4
     }
     let t = x.abs();
     let n = (t * INV_PIO2 + 0.5).floor();
@@ -186,7 +186,7 @@ pub fn atan(mut x: f64) -> f64 {
     let ix = hx & 0x7fffffff;
     let id: usize;
     if ix >= 0x44100000 {
-        // |x| â‰¥ 2^66, or NaN
+        // |x| ≥ 2^66, or NaN
         if x.is_nan() {
             return x;
         }
@@ -210,7 +210,7 @@ pub fn atan(mut x: f64) -> f64 {
     if ix < 0x3ff30000 {
         // |x| < 1.1875
         if ix < 0x3fe60000 {
-            id = 0; // 7/16 â‰¤ |x| < 11/16
+            id = 0; // 7/16 ≤ |x| < 11/16
             x = (2.0 * x - 1.0) / (2.0 + x);
         } else {
             id = 1;
@@ -270,7 +270,7 @@ pub fn atan2(y: f64, x: f64) -> f64 {
     }
     let k = ((high(y) & 0x7fffffff) - (high(x) & 0x7fffffff)) >> 20; // exponent gap
     if k > 60 {
-        m &= 1; // |y/x| > 2^60: Â±Ï€/2 whatever x's sign
+        m &= 1; // |y/x| > 2^60: ±π/2 whatever x's sign
     }
     let z = if k > 60 {
         PI / 2.0 + 0.5 * PI_LO
@@ -287,7 +287,7 @@ pub fn atan2(y: f64, x: f64) -> f64 {
     }
 }
 
-/// âˆš(xÂ² + yÂ²) without overflow or underflow, by V8's own algorithm: scale by the larger magnitude
+/// √(x² + y²) without overflow or underflow, by V8's own algorithm: scale by the larger magnitude
 /// and add the squares. Every step is exact, so it matches `Math.hypot` in V8.
 pub fn hypot(x: f64, y: f64) -> f64 {
     let x = x.abs();
