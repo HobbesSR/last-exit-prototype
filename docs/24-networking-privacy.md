@@ -8,7 +8,8 @@ is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data m
 live state, and the engine-side choices that shape a typed wire, are in
 [24.3](24.3-wire-data-model.md) (historical inventory and remaining proposals). The implemented relational data strategy,
 static geometry split and structured localized event design (#1146) are in
-[24.4](24.4-relational-data-model.md).
+[24.4](24.4-relational-data-model.md). The proposed transport, WebTransport with this WebSocket as its fallback
+(#1095), is [24.5](24.5-transport.md), not implemented.
 
 The rules this mechanism enforces are in [15](15-information-rules.md).
 
