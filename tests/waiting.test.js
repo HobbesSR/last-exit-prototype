@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generatedMap, roomHarness } from './helpers/room-harness.js';
 import { waitingYard } from '../shared/waiting-yard.ts';
-import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats } from '../shared/simulation/waiting.ts';
+import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats, waitingConstants } from '../shared/simulation/waiting.ts';
 import { canOccupy } from '../shared/movement.ts';
 
 const frames = peer => peer.messages.filter(m => m.type === 'state').map(m => m.state);
@@ -40,12 +40,9 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
 
     const view = waitingView(w, 'b');
     assert.equal(view.phase, 'waiting');
-    assert.equal(view.physicsProfile, 'last-exit-0.8-physics');
-    assert.ok(view.predictionMotor);
-    assert.equal(view.predictionMotor.acceleration, 3600);
-    assert.equal(view.predictionMotor.braking, 3600);
-    assert.equal(view.predictionMotor.maxSpeed, 600);
-    assert.equal(view.predictionMotor.surfaces, true);
+    // The yard's prediction constants come with its map, not in each frame (24.3 proposal 3).
+    assert.equal(Object.hasOwn(view, 'physicsProfile') || Object.hasOwn(view, 'predictionMotor'), false);
+    assert.deepEqual(waitingConstants(), { physicsProfile: 'last-exit-0.8-physics', predictionMotor: { acceleration: 3600, braking: 3600, maxSpeed: 600, surfaces: true } });
     assert.equal(view.bodies.length, 2);
     const ownBody = view.bodies.find(b => b.owner.kind === 'actor' && b.owner.playerIdx === 1);
     assert.ok(ownBody);

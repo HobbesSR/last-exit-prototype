@@ -9,6 +9,7 @@ import { characterMotor } from './actor-physics.ts';
 import { buildPhysicsGeometry } from './physics-geometry.ts';
 import { PhysicsIdentities } from './physics-identities.ts';
 import { PHYSICS_VERSION } from './physics-runtime.ts';
+import { predictionConstants } from './physics-presentation.ts';
 import { wireIds, type WireIdKey, type WireIds } from './wire-ids.ts';
 import { initRapier, isRapierInitialized, PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsBodyView } from '../physics/types.ts';
@@ -24,6 +25,8 @@ import type { GameMap, Kit, Player, PlayerId, PlayerIdx, PlayerInput, Role, Tick
 
 const ACTOR_PHYSICS = defaultContent().actorPhysics;
 const actorRadius = (role: Role): number => ACTOR_PHYSICS.geometry[role].bodyRadius;
+/** The yard's prediction constants, sent with its map as a match's are (24.3 proposal 3). */
+export const waitingConstants = () => predictionConstants(PHYSICS_VERSION, ACTOR_PHYSICS);
 const compare = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 /** A waiting area: a map with no exit, entry or objectives, since nothing happens there but walking. */
@@ -254,17 +257,7 @@ export function waitingView(w: Waiting, id: PlayerId) {
   return {
     tick: w.tick,
     phase: 'waiting' as const,
-    directed: false,
-    physicsProfile: PHYSICS_VERSION,
     bodies,
-    ...(viewer ? {
-      predictionMotor: {
-        acceleration: ACTOR_PHYSICS.acceleration,
-        braking: ACTOR_PHYSICS.braking,
-        maxSpeed: ACTOR_PHYSICS.maxSpeed,
-        surfaces: true,
-      }
-    } : {}),
     ...(viewer ? { self: ownPlayerFields(viewer, undefined, undefined, slotOf(w, id), w.wire, posed(slotOf(w, id))) } : {}),
     players: w.players.flatMap(p => p.id === id ? [] : [observed(p, slotOf(w, p.id), posed(slotOf(w, p.id)))]),
     items: [],

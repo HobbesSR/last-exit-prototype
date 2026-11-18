@@ -36,7 +36,7 @@ export async function open(base) {
   ws.on('message', (raw, binary) => {
     const data = readSocketMessage(raw, binary);
     if (data.type === 'seats') frames.seats(data.roster);
-    if (data.type === 'welcome' || data.type === 'ready') { frames.seats(data.roster); frames.setMap(data.map); }
+    if (data.type === 'welcome' || data.type === 'ready') frames.envelope(data);
     if (data.type === 'state') layers.decode(data.state);
     if (data.state) data.state = frames.normalize(data.state);
     hydrated.set(ws, { raw, data });

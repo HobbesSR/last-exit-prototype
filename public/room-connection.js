@@ -116,7 +116,7 @@ export function createRoomConnection({
         const described = envelopePresentation(data);
         if (!described) { toast('The arena sent a match this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); return; }
         presentation = described;
-        frames.seats(data.roster); frames.setMap(data.map);
+        frames.envelope(data);
         data.state = frames.normalize(data.state);
       }
       if (data.type === SERVER_MESSAGE.WELCOME) {

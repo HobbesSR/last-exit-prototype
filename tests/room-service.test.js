@@ -184,7 +184,9 @@ test('inventory gesture commands preserve source items in authoritative frames a
     assert.equal(command.input.slot, 0); assert.equal(command.input.drop, true);
     assert.equal(command.input.moveSlot, undefined);
     const delivered = owner.messages.filter(m => m.type === 'state').at(-1).state;
-    assert.deepEqual(delivered.players.find(p => p.id === player.id).inventory, player.inventory);
+    // Delivered as carried, less the instance identity no client reads (#1131 stage 3).
+    const unidentified = item => item && (({ instanceId, lineageId, ...rest }) => rest)(item);
+    assert.deepEqual(delivered.players.find(p => p.id === player.id).inventory, player.inventory.map(unidentified));
 
     h.wake(50);
     assert.equal(game.map.items.filter(item => item.droppedBy === player.id).length, 1, 'drop is consumed once');

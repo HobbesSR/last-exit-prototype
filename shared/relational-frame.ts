@@ -126,13 +126,27 @@ export function hydrateFrame<T extends object>(source: T, map?: { gates?: readon
 }
 
 /** Stateful only for a connection/archive's legacy labels and out-of-band seat metadata. */
+/** A map's prediction constants as a welcome or ready carries them (24.3 proposal 3, PredictionConstants). */
+type Constants = { physicsProfile: string; predictionMotor: object } | null | undefined;
+/**
+ * A live frame with its connection's match constants back where the projection used to put them: the profile on
+ * a frame with bodies, the motor on one the viewer predicts in (it has `self`). A frame that carries its own, as
+ * a recorded one does, keeps them; without constants the frame is returned as it is.
+ */
+export function withMatchConstants<T extends object>(source: T, constants: Constants): T {
+  const frame = source as Frame;
+  if (!constants || !frame.bodies) return source;
+  const profile = frame.physicsProfile === undefined, motor = !!frame.self && frame.predictionMotor === undefined;
+  if (!profile && !motor) return source;
+  return { ...frame, ...(profile ? { physicsProfile: constants.physicsProfile } : {}), ...(motor ? { predictionMotor: constants.predictionMotor } : {}) } as T;
+}
 export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }, initialRoster: readonly object[] = EMPTY) {
-  let map = initialMap, roster: Row[] = [], revision = 0;
+  let map = initialMap, roster: Row[] = [], revision = 0, constants: Constants;
   const labels = new Map<Id, number>(), bodyIds = new Map<Id, number>(), tetherIds = new Map<Id, number>(), itemIds = new Map<Id, number>(), propIds = new Map<Id, number>();
   const bodiesCache = new WeakMap<Row, { owner: Id | undefined; row: Row }>();
   const metadataCache = new WeakMap<Row, Row>(), playerCache = new WeakMap<Row, WeakMap<object, Row>>(), itemCache = new WeakMap<Row, Row>();
   const lists = new WeakMap<readonly object[], Row[]>(), tetherCache = new WeakMap<Row, Row>(), flightCache = new WeakMap<Row, Row>();
-  const frames = new WeakMap<object, { revision: number; map: unknown; result: object }>();
+  const frames = new WeakMap<object, { revision: number; map: unknown; constants: Constants; result: object }>();
   const numeric = (table: Map<Id, number>, id: Id): number => {
     if (typeof id === 'number') return id;
     if (!table.has(id)) table.set(id, table.size + 1);
@@ -180,7 +194,7 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
       labels.set(p.id, idx);
     }
     const held = frames.get(source);
-    if (held?.revision === revision && held.map === map?.gates) return held.result as T;
+    if (held?.revision === revision && held.map === map?.gates && held.constants === constants) return held.result as T;
     const mappedBodies = frame.bodies?.map(body => {
       if (body.owner) return body;
       const actor = body.actorId != null ? labels.get(body.actorId) : undefined;
@@ -212,10 +226,15 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
       const { casterId, ...rest } = f;
       return { ...rest, id: numeric(tetherIds, f.id!), a, casterIdx };
     });
-    const numericFrame = { ...frame, players: joined, ...(items ? { items } : {}), ...(bodies ? { bodies, tethers: tethers ?? EMPTY, hookFlights: hookFlights ?? EMPTY } : {}) };
+    const numericFrame = withMatchConstants({ ...frame, players: joined, ...(items ? { items } : {}),
+      ...(bodies ? { bodies, tethers: tethers ?? EMPTY, hookFlights: hookFlights ?? EMPTY } : {}) }, constants);
     const result = hydrateFrame(numericFrame, map);
-    frames.set(source, { revision, map: map?.gates, result });
+    frames.set(source, { revision, map: map?.gates, constants, result });
     return result as T;
   }
-  return { normalize, seats, setMap(value: { gates?: readonly object[] } | undefined) { map = value; } };
+  /** What a welcome or ready says about the frames that follow it: their roster, map and match constants. */
+  function envelope(message: { roster?: readonly object[]; map?: { gates?: readonly object[] } | null; constants?: Constants }) {
+    seats(message.roster); map = message.map ?? undefined; constants = message.constants;
+  }
+  return { normalize, seats, envelope, setMap(value: { gates?: readonly object[] } | undefined) { map = value; } };
 }

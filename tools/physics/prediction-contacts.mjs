@@ -10,6 +10,10 @@ import { contentById } from '../../shared/simulation/content.ts';
 import { createPhysicsPrediction } from '../../public/physics-prediction.js';
 import { arena } from '../../tests/helpers/arena.js';
 import { readArena, ARENA_FILE } from '../room-arena.mjs';
+import { withMatchConstants } from '../../shared/relational-frame.ts';
+import { predictionConstants } from '../../shared/simulation/physics-presentation.ts';
+// c0's view as its client predicts on it: the match constants come with the welcome (24.3 proposal 3).
+const liveView = game => withMatchConstants(playerView(game, snapshot(game), 'c0'), predictionConstants(game.version, game.content.actorPhysics));
 
 const variants = ['exact', 'repeat', 'own-player', 'own-body', 'proxies', 'xy-only', 'angle-only', 'velocity-only', 'omega-only', 'all'];
 const variantNumericFields = {
@@ -113,7 +117,7 @@ async function run(profile) {
     operation('correct', f);
   }
   try {
-    deliver(playerView(game, snapshot(game), 'c0'));
+    deliver(liveView(game));
     for (let tick = 1; tick <= 80; tick++) {
       const time = tick * 50;
       enqueue(time, () => {
@@ -127,7 +131,7 @@ async function run(profile) {
         if (profile.actor) setInput(game, 'c1', { seq: tick, x: tick < 35 ? -0.4 : 0, y: tick < 35 ? 0.15 : 0, sneak: false });
         step(game);
         if ((profile.gap && tick >= 20 && tick <= 24) || (profile.stale && tick >= 20 && tick <= 33)) return;
-        const frame = playerView(game, snapshot(game), 'c0');
+        const frame = liveView(game);
         enqueue(now + profile.delay * 50, () => deliver(frame));
       });
     }

@@ -83,7 +83,7 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
       if (typeof payload !== 'string') binary.push(data.type);
       rawMessages.push(structuredClone(data));
       if (data.type === 'seats') { frames.seats(data.roster); return; }
-      if (data.type === 'welcome' || data.type === 'ready') { frames.seats(data.roster); frames.setMap(data.map); }
+      if (data.type === 'welcome' || data.type === 'ready') frames.envelope(data);
       if (data.type === 'state') layers.decode(data.state);
       if (data.state) data.state = frames.normalize(data.state);
       // Welcome and ready carry a whole frame too; each tells where the server's ticks are.

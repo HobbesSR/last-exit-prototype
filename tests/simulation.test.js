@@ -212,7 +212,9 @@ test('directed views are unfogged, player views withhold private fields, and nei
   const frame = snapshot(s);
   const c = s.players.find(p => p.role === 'contestant');
   const mine = playerView(s, frame, c.id), directed = playerView(s, frame, 'presenter-1');
-  assert.equal(mine.directed, false); assert.equal(directed.directed, true);
+  // A directed view is the one without `self`; neither says which it is, since the client knows how it joined.
+  assert.ok(mine.self); assert.equal(Object.hasOwn(directed, 'self'), false);
+  for (const view of [mine, directed]) assert.equal(Object.hasOwn(view, 'directed'), false);
   assert.equal(directed.players.length, frame.players.length);
   assert.equal(directed.items.length, frame.items.length);
   assert.ok(mine.items.length < frame.items.length, 'a player view is fogged');
@@ -235,7 +237,7 @@ test('historical projections use historical player membership and contestant tot
   const frame = snapshot(s);
   p.status = 'eliminated'; p.id = 'replacement';
   const view = playerView(s, frame, frame.players[0].id);
-  assert.equal(view.directed, false);
+  assert.ok(view.self, 'a player view');
   assert.equal(view.contestantsActive, 8);
   assert.equal(playerView(s, frame, null).contestantsActive, 8);
 });

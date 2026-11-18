@@ -2,6 +2,7 @@ import { finite, safeInteger } from './numbers.ts';
 import { ROLES } from './simulation/rules.ts';
 import { sanitizeInput } from './simulation/input.ts';
 import type { WaitingMap } from './simulation/waiting.ts';
+import type { PredictionConstants } from './simulation/physics-presentation.ts';
 import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projected, Role, SeatMetadata, Snapshot, Tick } from './types.ts';
 
 /**
@@ -17,7 +18,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 5;
+export const WIRE_VERSION = 6;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -209,6 +210,8 @@ export interface WelcomeBase {
   map: GameMap | WaitingMap | null;
   state: Projected<Snapshot> | Record<string, unknown> | null;
   roster: SeatMetadata[];
+  /** The map's prediction constants, null with no map (24.3 proposal 3): no frame repeats them. */
+  constants: PredictionConstants | null;
   /** How this connection's `state` messages are written, as its join asked. */
   stateEncoding: StateEncoding;
 }
@@ -243,6 +246,7 @@ export interface ReadyMessage {
   map: GameMap | null;
   state: Projected<Snapshot> | null;
   roster: SeatMetadata[];
+  constants: PredictionConstants | null;
 }
 
 export interface SeatsMessage { type: typeof SERVER_MESSAGE.SEATS; roster: SeatMetadata[]; }
@@ -435,20 +439,26 @@ const hasExactKeys = (obj: Record<string, unknown>, expected: readonly string[])
 
 const WELCOME_PLAYER_KEYS = [
   'type', 'id', 'resumeKey', 'room', 'owner', 'devTools', 'paused',
-  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state', 'roster', 'stateEncoding',
+  'started', 'ready', 'matchmade', 'startsAt', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants', 'stateEncoding',
 ] as const;
 
 const WELCOME_SPECTATOR_KEYS = [
   'type', 'id', 'spectator', 'spectatorDelayTicks', 'room', 'owner', 'devTools',
-  'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'stateEncoding',
+  'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants', 'stateEncoding',
 ] as const;
 
 const WELCOME_DEV_KEYS = [
   'type', 'id', 'spectator', 'dev', 'devTools', 'room', 'owner',
-  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'stateEncoding',
+  'started', 'ready', 'paused', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants', 'stateEncoding',
 ] as const;
 
-const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state', 'roster'] as const;
+const READY_KEYS = ['type', 'contentId', 'presentation', 'map', 'state', 'roster', 'constants'] as const;
+
+/** A map's prediction constants (PredictionConstants), or null when there is no map yet. */
+const validConstants = (value: unknown): boolean => value === null || isRecord(value) && hasExactKeys(value, ['physicsProfile', 'predictionMotor']) &&
+  nonEmptyString(value.physicsProfile) && isRecord(value.predictionMotor) &&
+  hasExactKeys(value.predictionMotor, ['acceleration', 'braking', 'maxSpeed', 'surfaces']) && value.predictionMotor.surfaces === true &&
+  finite(value.predictionMotor.acceleration) && finite(value.predictionMotor.braking) && finite(value.predictionMotor.maxSpeed);
 const STATE_KEYS = ['type', 'state'] as const;
 const LOBBY_KEYS = [
   'type', 'room', 'name', 'started', 'matchmade', 'size',
@@ -478,6 +488,7 @@ const validWelcomeCommon = (data: Record<string, unknown>): boolean =>
   typeof data.paused === 'boolean' &&
   nonEmptyString(data.contentId) &&
   (STATE_ENCODINGS as readonly unknown[]).includes(data.stateEncoding) &&
+  validConstants(data.constants) &&
   isRecord(data.presentation) &&
   (data.map === null || isRecord(data.map)) &&
   (data.state === null || isRecord(data.state));
@@ -552,7 +563,7 @@ export function validateServerMessage(raw: unknown): ServerMessageValidation {
     }
     case SERVER_MESSAGE.READY: {
       if (
-        !hasExactKeys(raw, READY_KEYS) || !validRoster(raw.roster) ||
+        !hasExactKeys(raw, READY_KEYS) || !validRoster(raw.roster) || !validConstants(raw.constants) ||
         !nonEmptyString(raw.contentId) ||
         !isRecord(raw.presentation) ||
         (raw.map !== null && !isRecord(raw.map)) ||

@@ -53,7 +53,8 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     assert.equal(room.match.version, VERSION);
     assert.equal(header.version, VERSION);
     assert.equal(header.contentId, 'content-6');
-    assert.equal(owner.messages.at(-1).state.physicsProfile, VERSION);
+    // The profile travels once, with the match map in the start's `ready` (24.3 proposal 3).
+    assert.equal(owner.messages.findLast(message => message.type === 'ready').constants.physicsProfile, VERSION);
     const directed = owner.messages.filter(message => message.type === 'state').at(-1).decoded;
     assert.equal(directed.bodies.some(body => body.owner.kind === 'prop'), false,
       'out-of-range dynamics are not a local prediction dependency');
@@ -82,7 +83,8 @@ test('physics room pins mode at creation, withholds hidden dynamics, delays spec
     const keyframe = resumed.messages.filter(message => message.type === 'state').at(-1).state;
     assert.ok(keyframe.bodies && typeof keyframe.bodies === 'object' && 'all' in keyframe.bodies,
       'reconnected player receives a complete physics body keyframe');
-    assert.equal(keyframe.physicsProfile, VERSION);
+    // A reconnect's welcome brings the profile again, with the map (24.3 proposal 3).
+    assert.equal(resumed.messages.findLast(message => message.type === 'welcome').constants.physicsProfile, VERSION);
     assert.equal(keyframe.bodies.all.some(body => body.owner.kind === 'prop'), false);
 
     const world = runtime.world;

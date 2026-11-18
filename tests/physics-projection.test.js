@@ -55,7 +55,7 @@ test('real physics snapshot is detached and its public body is a closed display 
     assert.deepEqual(frame.bodies[0].owner, { kind: 'actor', playerIdx: own.playerIdx });
     assert.equal(frame.bodies[0].generation, frame.physics.world.bodies[0].generation);
     assert.equal(view.physics, undefined);
-    assert.equal(view.physicsProfile, frame.physicsProfile);
+    assert.equal(Object.hasOwn(view, 'physicsProfile'), false, 'a match constant, sent with the map');
     assert.deepEqual(view.bodies, frame.bodies);
     assert.deepEqual(view.tethers, []);
     frame.bodies[0].vx = 999;

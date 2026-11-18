@@ -21,13 +21,13 @@ test('the dev view follows the server policy and sees the current directed frame
   try {
     assert.equal(owner.messages.find(m => m.type === 'welcome').devTools, true);
     const dev = h.joined(room, { mode: 'dev' }), welcome = dev.messages[0];
-    assert.equal(welcome.dev, true); assert.equal(welcome.id, null); assert.equal(welcome.state.directed, true);
+    assert.equal(welcome.dev, true); assert.equal(welcome.id, null); assert.equal(Object.hasOwn(welcome.state, 'self'), false, 'directed');
     assert.equal(dev.session.playerId, null); assert.equal(room.match.roster().length, 1, 'the dev view holds no slot');
     const spectator = h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     for (let i = 0; i < 70; i++) h.wake(50);
     const live = dev.messages.at(-1).state, delayed = spectator.messages.at(-1).state;
     assert.equal(live.tick, room.match.tick, 'the dev view is not delayed');
-    assert.equal(live.directed, true); assert.ok(live.players.every(p => 'x' in p));
+    assert.equal(Object.hasOwn(live, 'self'), false); assert.ok(live.players.every(p => 'x' in p));
     assert.ok(room.match.tick - delayed.tick >= 55, 'the ordinary spectator delay is unchanged');
     dev.send({ type: 'input', seq: 1, x: 1 }); dev.send({ type: 'start' }); h.wake(50);
     assert.ok(!writer.frames.at(-1).commands.length, 'a dev view sends no commands');

@@ -9,7 +9,7 @@ import { randomWireIdKey } from './wire-key.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, viewEncoders, SPECTATOR_DELAY_TICKS } from './room-views.js';
-import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats } from '../shared/simulation/waiting.ts';
+import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats, waitingConstants } from '../shared/simulation/waiting.ts';
 import { waitingYard } from '../shared/waiting-yard.ts';
 import { JSON_STATE_REFUSED } from '../shared/protocol.ts';
 import {
@@ -251,12 +251,14 @@ export function createRoom({
    * which keeps the match map hidden (17.3 #15); anyone else sees nothing until the map exists.
    */
   function view(client) {
-    if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: waitingSeats(state.waiting) };
-    if (!state.match) return { map: null, state: null, roster: state.seats.seatMetadata() };
-    if (client.playerId) { const frame = state.match.snapshot(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame) }; }
+    // `constants` come with the map they belong to: the yard's, then the match's in the start's `ready` (24.3).
+    if (client.playerId && state.waiting) return { map: state.waiting.map, state: waitingView(state.waiting, client.playerId), roster: waitingSeats(state.waiting), constants: waitingConstants() };
+    if (!state.match) return { map: null, state: null, roster: state.seats.seatMetadata(), constants: null };
+    const constants = state.match.constants();
+    if (client.playerId) { const frame = state.match.snapshot(); return { map: state.match.payloadMap('live'), state: state.match.project(frame, client.playerId), roster: state.match.seatMetadata(frame), constants }; }
     // A spectator is shown the delayed frame; the dev view the present one.
     const frame = client.dev ? state.match.snapshot() : spectatorFrame(state);
-    return { map: state.match.payloadMap('spectator', frame), state: state.match.project(frame, null), roster: state.match.seatMetadata(frame) };
+    return { map: state.match.payloadMap('spectator', frame), state: state.match.project(frame, null), roster: state.match.seatMetadata(frame), constants };
   }
 
   function replayStatus(status) {

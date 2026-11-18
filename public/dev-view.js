@@ -53,7 +53,7 @@ export function createDevView({
         const described = envelopePresentation(data);
         if (!described) { toast('The dev view sent a match this browser cannot read.'); leave(); return; }
         presentation = described; roster = '';
-        frames.seats(data.roster); frames.setMap(data.map); data.state = frames.normalize(data.state);
+        frames.envelope(data); data.state = frames.normalize(data.state);
         if (data.map) showMap(data.map, data.state);
         else presentationChanged();
       }
