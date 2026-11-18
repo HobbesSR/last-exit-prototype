@@ -22,9 +22,16 @@ The backend has three natural cuts. They move in this order:
 | Core | The tick, geometry, navigation, physics ownership, projection | The hard part (below) | Module by module through an adapter (#1175), then the state flip (#1066) |
 | Room host | Threads, scheduler, room lifecycle, delivery, recording, lobbies | Follows the core | Last; native or hosting WASM is decided then |
 
-**Map generation stays in Node.** Its edge already exists: a generated map crosses into a room as one
-transferable buffer holding the map, its portal graph and its free-space tiles (`server/map-pack.js`, #1089). The
-core consumes that packed map. `map/` moves only if a later reason appears.
+**Map generation stays in Node.** Where its edge lies already exists: a generated map crosses into a room as one
+transferable package (`server/map-pack.js`, #1089). Its format does not suit Rust yet.
+- **What the package holds today.** The map and its portal graph are `node:v8`-serialized, which is V8's private
+  object-graph format. The free-space tiles are separate typed arrays.
+- **What the core needs.** A language-neutral form of the map. The tiles' flat arrays nearly are one already; the
+  map and its portal graph need a schema'd flat encoding, as D gave the state.
+- **When.** That format is part of the core's first consumer of map data, not of the math port.
+- **Otherwise unchanged.** `map/` moves only if a later reason appears.
+
+Review 907 on PR #1172 found the format gap.
 
 **Colyseus is retired as a candidate.** Its value was architectural guidance for rooms and lobby management,
 never the running game. Lobbies keep an edge where an external lobby service could still attach if nothing better
@@ -35,6 +42,19 @@ fits (17.4 #18).
 A Rust process built on `wtransport` (over `quinn`, `rustls` and `tokio`; MIT or Apache-2.0) terminates
 WebTransport. It forwards sessions to Node over one local framed connection. Rooms stay behind the session seam
 (`deliver`, `close`), so they cannot tell which transport carries a session.
+
+That seam has synchronous expectations, so the local framing must carry what the room host reads today:
+- **Backlog and skips.** `deliver` returns `false` for a droppable state frame it skipped (`server/room-views.js`
+  then keeps the layer's keyframe unacknowledged), and threaded rooms read `session.buffered()` before building a
+  frame. The real backlog now sits in the edge's QUIC streams. The edge therefore reports each session's backlog
+  to Node, and Node decides skips against that report. Otherwise Node either queues into the local pipe or
+  believes it delivered a keyframe the edge dropped.
+- **Certificates and the address.** The edge generates and rotates the development certificate and binds its own
+  UDP port. Node serves `/api/client-config`, so the edge reports the current certificate hash and its URL to Node.
+- **Origin checks.** The edge validates a session's `Origin` as `server/websocket.js` does, against the HTTP
+  origin, not the edge's port.
+
+Review 907 on PR #1172 raised these.
 - **WebSocket.** It stays in Node at first, as the fallback, and moves to the edge afterwards. Node then has one
   peer type.
 - **The local framing** between the edge and Node is a contract with its own version. A future Rust host absorbs it,
@@ -61,12 +81,24 @@ graph cost a thread 150–200 ms to decode until #1089 packed it into buffers. T
    lock, and set a budget before porting more. Crossings too costly are evidence to flip sooner.
 
 Port order is stability order:
-- **Math first;** everything depends on it.
+- **Math first;** every Rust module depends on it.
+  - **The crate's math serves Rust callers** and the parity check against `tests/math.test.js`. It does not
+    replace `shared/math.ts` for JavaScript callers.
+  - **Why not.** About 30 TypeScript modules in `shared/` and `map/` call `sin`, `cos`, `atan2` and `hypot` per
+    scalar inside hot loops. Sending those through WASM would break the flat-buffer rule, and a browser cannot
+    import an asynchronously instantiated module synchronously.
+  - **When `shared/math.ts` goes.** It stays until its last JavaScript caller has moved. Since `map/` stays in
+    Node, that may be a long time. Until then, both copies must keep the same digest.
 - **Then** shape geometry (`shared/shape.ts`, [29.3](29.3-shape-construction-and-assembly.md)) and navigation
   ([22.6](22.6-hierarchical-navigation.md)).
 
-Each module must match the current tests bit for bit before its TypeScript version is deleted. Both versions exist
-only while they are compared. A half-ported module is not left in place.
+Each module must match the current tests bit for bit before its TypeScript version is deleted. The TypeScript is
+deleted once its JavaScript callers have moved too. Until then, a module whose callers remain is kept on purpose,
+with a shared digest test, as math is. Otherwise both versions exist only while they are compared. A half-ported
+module is not left in place.
+
+The browser instantiates WASM asynchronously. The client therefore loads the core once at startup, before anything
+that uses it, rather than through synchronous imports.
 
 ## One math library on both sides
 
@@ -102,7 +134,7 @@ Corey's rule for this effort (17.4 #18):
 - **First,** get as close as possible to passing every test unchanged.
 - **Then,** case by case, rework tests for the new architecture: change them for intent, add new ones, remove old
   ones.
-- **Not matching every test perfectly is not a failure** (the agent's reading of his words, which 17.4 quotes).
+- **Not matching every test perfectly is not a failure** (Corey's correction of his own wording, 17.4 #18).
 
 The project invariant still holds. The fixture is never regenerated to make a port pass. A mismatch is first
 treated as a port bug. Only an architectural change that cannot preserve it is a decided recapture: a separate

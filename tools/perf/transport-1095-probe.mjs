@@ -8,7 +8,9 @@
 //   baseline only.
 // The relay applies 42.48's network profiles (and 42.50's bursty one) to every UDP packet in both directions:
 // half the rtt plus exponential jitter, independent loss, bursty outages per 50 ms slot. QUIC's own handshake,
-// acknowledgements and retransmissions go through it. The browser samples, every 10 ms, the age of the newest
+// acknowledgements and retransmissions go through it. The relay runs on its own thread and senders tick on absolute
+// deadlines, so neither Windows' timer granularity nor each other's timing skews the measurement (review 906).
+// `--profiles=poor-lossless` adds a control: poor's delays without its loss. The browser samples, every 10 ms, the age of the newest
 // frame it holds on each channel (staleness), and echoes 100 ms pings for round trip.
 //
 // The WebTransport server is @fails-components/webtransport (BSD-3-Clause), which is not a project dependency
@@ -28,6 +30,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import dgram from 'node:dgram';
+import { once } from 'node:events';
+import { Worker } from 'node:worker_threads';
 import { WebSocketServer } from 'ws';
 import { chromium } from '@playwright/test';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
@@ -46,8 +50,10 @@ const PROFILES = [
   { name: 'wifi', rtt: 120, jitter: 35, loss: 0.03 },
   { name: 'poor', rtt: 220, jitter: 70, loss: 0.05 },
   { name: 'bursty', rtt: 80, jitter: 12, loss: 0.03, burst: 4 },
+  // A control, run only when named: poor's delays without its loss, to separate loss-driven queuing from delay.
+  { name: 'poor-lossless', rtt: 220, jitter: 70, loss: 0, control: true },
 ];
-const chosen = (args.get('profiles') ?? PROFILES.map(p => p.name).join(',')).split(',')
+const chosen = (args.get('profiles') ?? PROFILES.filter(p => !p.control).map(p => p.name).join(',')).split(',')
   .map(name => PROFILES.find(p => p.name === name) ?? (() => { throw new Error(`Unknown profile ${name}`); })());
 
 // The package exports only an `import` condition, which createRequire cannot resolve, so follow its exports map.
@@ -55,7 +61,6 @@ const packageDir = join(moduleDir, 'node_modules', '@fails-components', 'webtran
 const entry = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')).exports['.'].node.import;
 const { Http3Server } = await import(pathToFileURL(join(packageDir, entry)).href);
 const now = () => performance.timeOrigin + performance.now();
-function rng(s) { let a = s >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 /** A short-lived ECDSA P-256 certificate and the SHA-256 of its DER, for serverCertificateHashes. */
 function certificate() {
@@ -84,6 +89,7 @@ window.probe = async (hash, wtUrl, wsUrl, duration, oversize) => {
   const got = (k, buf) => { const v = new DataView(buf.buffer, buf.byteOffset, buf.byteLength), seq = v.getUint32(0, true), sent = v.getFloat64(4, true)
     seen[k].add(seq); latency[k].push(now() - sent); if (seq > newest[k].seq) newest[k] = { seq, sent } }
   const isPing = b => b.byteLength === 9
+  let oversizeReceived = false
   const t0 = now()
   const wt = new WebTransport(wtUrl, { serverCertificateHashes: [{ algorithm: 'sha-256', value: new Uint8Array(hash) }] })
   await wt.ready
@@ -92,6 +98,7 @@ window.probe = async (hash, wtUrl, wsUrl, duration, oversize) => {
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej })
   ws.onmessage = e => { const b = new Uint8Array(e.data); isPing(b) ? rtt.ws.push(now() - new DataView(e.data).getFloat64(1, true)) : got('ws', b) }
   ;(async () => { const r = wt.datagrams.readable.getReader(); for (;;) { const { value, done } = await r.read(); if (done) return
+    if (value.byteLength === 1300) { oversizeReceived = true; continue }
     isPing(value) ? rtt.dgram.push(now() - new DataView(value.buffer, value.byteOffset).getFloat64(1, true)) : got('dgram', value) } })().catch(() => {})
   ;(async () => { const { value: s } = await wt.incomingUnidirectionalStreams.getReader().read(); const r = s.getReader()
     let pend = new Uint8Array(0)
@@ -107,7 +114,7 @@ window.probe = async (hash, wtUrl, wsUrl, duration, oversize) => {
   const sampler = setInterval(() => { const t = now(); for (const k of kinds) if (newest[k].sent) staleness[k].push(t - newest[k].sent) }, 10)
   await new Promise(r => setTimeout(r, duration))
   clearInterval(pings); clearInterval(sampler); wt.close(); ws.close()
-  const out = { connectMs, maxDatagramSize: wt.datagrams.maxDatagramSize, oversizeError, rtt }
+  const out = { connectMs, maxDatagramSize: wt.datagrams.maxDatagramSize, oversizeError, oversizeReceived, rtt }
   for (const k of kinds) out[k] = { seqs: [...seen[k]], latency: latency[k], staleness: staleness[k] }
   return out
 }
@@ -123,21 +130,76 @@ async function freeUdpPort() {
 }
 
 /**
- * Runs `fn` at `due` (ms, `now()` clock). Windows' setTimeout is coarse (about 15 ms), which would add its own
- * jitter to every relayed packet, so a timer brings the wait within 20 ms and setImmediate spins the rest.
+ * The relay runs on its own thread. Windows' setTimeout is coarse (about 15 ms), which would add its own jitter to
+ * every relayed packet, so the relay spins (setImmediate) while any packet is in flight and checks each one's due
+ * time. On the main thread that spin delayed the frame timers (review 906 on PR #1172: lan sent about 347 frames
+ * in 20 s instead of 400) and a timer armed for a late packet held back earlier ones; a thread of its own does
+ * neither. Every UDP packet in either direction is delayed rtt/2 + Exp(jitter), or dropped.
  */
+const RELAY = `
+const { parentPort, workerData } = require('node:worker_threads');
+const dgram = require('node:dgram');
+const { wtPort, profile, seed, tick } = workerData;
+const now = () => performance.timeOrigin + performance.now();
+let a = seed >>> 0;
+const random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const relay = dgram.createSocket('udp4'), upstream = dgram.createSocket('udp4');
+const counts = { up: 0, down: 0, upDropped: 0, downDropped: 0 };
+const start = now(), stay = profile.burst ? 1 - 1 / profile.burst : 0;
+const enter = profile.burst ? profile.loss * (1 - stay) / (1 - profile.loss) : 0;
+const outage = { up: [], down: [] };
+const inOutage = dir => { const slot = Math.floor((now() - start) / tick), o = outage[dir];
+  while (o.length <= slot) o.push(o.length && o.at(-1) ? random() < stay : random() < enter); return o[slot]; };
+const lost = dir => profile.burst ? inOutage(dir) : random() < profile.loss;
+const delay = () => profile.rtt / 2 - profile.jitter * Math.log(1 - random());
 const pending = [];
-let spinning = false;
-function at(due, fn) {
-  pending.push({ due, fn });
-  if (!spinning) { spinning = true; setImmediate(spin); }
-}
+let spinning = false, closed = false;
+const at = (due, fn) => { pending.push({ due, fn }); if (!spinning) { spinning = true; setImmediate(spin); } };
 function spin() {
   const t = now();
   for (let i = pending.length - 1; i >= 0; i--) if (pending[i].due <= t) pending.splice(i, 1)[0].fn();
-  if (!pending.length) { spinning = false; return; }
-  const next = Math.min(...pending.map(p => p.due));
-  next - t > 20 ? setTimeout(spin, next - t - 20) : setImmediate(spin);
+  if (!pending.length || closed) { spinning = false; return; }
+  setImmediate(spin);
+}
+let client = null;
+relay.on('message', (m, from) => {
+  client = from; counts.up++;
+  if (lost('up')) { counts.upDropped++; return; }
+  at(now() + delay(), () => upstream.send(m, wtPort, '127.0.0.1'));
+});
+upstream.on('message', m => {
+  counts.down++;
+  if (!client) return;
+  if (lost('down')) { counts.downDropped++; return; }
+  const to = client;
+  at(now() + delay(), () => relay.send(m, to.port, to.address));
+});
+relay.bind(0, '127.0.0.1', () => parentPort.postMessage({ port: relay.address().port }));
+parentPort.on('message', () => {
+  closed = true; pending.length = 0;
+  relay.close(); upstream.close();
+  parentPort.postMessage({ counts });
+});
+`;
+
+/**
+ * Calls `fn` every TICK ms on absolute deadlines. Windows' setInterval rounds to its timer granularity, which sent
+ * 171 frames in 10 s instead of 200; a timer brings each wait within 16 ms and setImmediate spins to the deadline.
+ * Returns a stop function.
+ */
+function ticker(fn) {
+  let due = now() + TICK, stopped = false, handle = null;
+  const wait = () => {
+    if (stopped) return;
+    const left = due - now();
+    if (left > 16) { handle = setTimeout(wait, left - 16); return; }
+    if (left > 0) { handle = setImmediate(wait); return; }
+    due += TICK;
+    fn();
+    wait();
+  };
+  handle = setTimeout(wait, TICK - 16);
+  return () => { stopped = true; clearTimeout(handle); clearImmediate(handle); };
 }
 
 const stats = list => {
@@ -149,11 +211,11 @@ const stats = list => {
 
 async function run(profile, runIndex, browser) {
   const { cert, key, hash } = certificate();
-  const random = rng(seed ^ (runIndex * 0x9E3779B1) ^ PROFILES.indexOf(profile) * 0x85EBCA6B);
   const wtPort = await freeUdpPort();
   const server = new Http3Server({ port: wtPort, host: '127.0.0.1', secret: randomBytes(16).toString('hex'), cert, privKey: key });
   server.startServer(); await server.ready;
-  const serverSide = { sessions: 0, datagramWriteErrors: 0, oversizeArrived: false };
+  const serverSide = { sessions: 0, datagramWriteErrors: 0, oversizeArrived: false, framesSent: 0,
+    maxDatagramSize: null, oversizeWriteError: null };
   const timers = new Set();
   (async () => {
     const reader = server.sessionStream('/probe').getReader();
@@ -163,16 +225,20 @@ async function run(profile, runIndex, browser) {
       await session.ready;
       const dw = (session.datagrams.createWritable?.() ?? session.datagrams.writable).getWriter();
       const sw = (await session.createUnidirectionalStream()).getWriter();
+      serverSide.maxDatagramSize = session.datagrams.maxDatagramSize ?? null;
+      // Server to client: does an oversized datagram fail, or vanish as Chrome's does?
+      await dw.write(new Uint8Array(1300)).catch(e => { serverSide.oversizeWriteError = String(e); });
       (async () => { const r = session.datagrams.readable.getReader(); for (;;) { const { value, done: end } = await r.read(); if (end) return
         if (value.byteLength === 9) dw.write(value).catch(() => serverSide.datagramWriteErrors++); else serverSide.oversizeArrived = true; } })().catch(() => {});
       let seq = 0;
-      const timer = setInterval(() => {
+      const stop = ticker(() => {
+        serverSide.framesSent = seq + 1;
         const f = frame(seq++), prefix = Buffer.alloc(4); prefix.writeUInt32LE(f.length);
         dw.write(new Uint8Array(f)).catch(() => serverSide.datagramWriteErrors++);
         sw.write(new Uint8Array(Buffer.concat([prefix, f]))).catch(() => {});
-      }, TICK);
-      timers.add(timer);
-      session.closed.finally(() => clearInterval(timer)).catch(() => {});
+      });
+      timers.add(stop);
+      session.closed.finally(stop).catch(() => {});
     }
   })().catch(() => {});
 
@@ -180,60 +246,43 @@ async function run(profile, runIndex, browser) {
   await new Promise(r => wss.on('listening', r));
   wss.on('connection', ws => {
     let seq = 0;
-    const timer = setInterval(() => ws.send(frame(seq++)), TICK);
-    timers.add(timer);
+    const stop = ticker(() => ws.send(frame(seq++)));
+    timers.add(stop);
     ws.on('message', m => ws.send(m));
-    ws.on('close', () => clearInterval(timer));
+    ws.on('close', stop);
   });
 
-  // The relay: every UDP packet in either direction is delayed rtt/2 + Exp(jitter), or dropped.
-  const relay = dgram.createSocket('udp4'), upstream = dgram.createSocket('udp4');
-  const counts = { up: 0, down: 0, upDropped: 0, downDropped: 0 };
-  const start = now(), stay = profile.burst ? 1 - 1 / profile.burst : 0;
-  const enter = profile.burst ? profile.loss * (1 - stay) / (1 - profile.loss) : 0;
-  const outage = { up: [], down: [] };
-  const inOutage = dir => { const slot = Math.floor((now() - start) / TICK), o = outage[dir];
-    while (o.length <= slot) o.push(o.length && o.at(-1) ? random() < stay : random() < enter); return o[slot]; };
-  const lost = dir => profile.burst ? inOutage(dir) : random() < profile.loss;
-  const delay = () => profile.rtt / 2 - profile.jitter * Math.log(1 - random());
-  let client = null;
-  relay.on('message', (m, from) => {
-    client = from; counts.up++;
-    if (lost('up')) { counts.upDropped++; return; }
-    at(now() + delay(), () => upstream.send(m, wtPort, '127.0.0.1'));
-  });
-  upstream.on('message', m => {
-    counts.down++;
-    if (!client) return;
-    if (lost('down')) { counts.downDropped++; return; }
-    const to = client;
-    at(now() + delay(), () => relay.send(m, to.port, to.address));
-  });
-  await new Promise(r => relay.bind(0, '127.0.0.1', r));
-  const relayPort = relay.address().port;
+  const relay = new Worker(RELAY, { eval: true, workerData: { wtPort, profile, seed: seed ^ (runIndex * 0x9E3779B1) ^ PROFILES.indexOf(profile) * 0x85EBCA6B, tick: TICK } });
+  const relayPort = (await once(relay, 'message'))[0].port;
 
   const http = createServer((_, res) => { res.setHeader('content-type', 'text/html'); res.end(PAGE); });
   await new Promise(r => http.listen(0, '127.0.0.1', r));
   const tab = await browser.newPage();
+  let out;
   try {
     await tab.goto(`http://127.0.0.1:${http.address().port}/`);
     const res = await tab.evaluate(([h, a, b, d, o]) => window.probe(h, a, b, d, o),
       [hash, `https://127.0.0.1:${relayPort}/probe`, `ws://127.0.0.1:${wss.address().port}/`, seconds * 1000, 1300]);
-    const out = { profile: profile.name, run: runIndex, bytes, seconds, connectMs: Math.round(res.connectMs),
-      maxDatagramSize: res.maxDatagramSize, oversize: { sent: 1300, clientError: res.oversizeError, arrived: serverSide.oversizeArrived },
-      relay: counts, server: { sessions: serverSide.sessions, datagramWriteErrors: serverSide.datagramWriteErrors },
+    out = { profile: profile.name, run: runIndex, bytes, seconds, connectMs: Math.round(res.connectMs),
+      maxDatagramSize: { client: res.maxDatagramSize, server: serverSide.maxDatagramSize },
+      oversize: { bytes: 1300, clientToServer: { writeError: res.oversizeError, arrived: serverSide.oversizeArrived },
+        serverToClient: { writeError: serverSide.oversizeWriteError, arrived: res.oversizeReceived } },
+      relay: null, server: { sessions: serverSide.sessions, datagramWriteErrors: serverSide.datagramWriteErrors, framesSent: serverSide.framesSent },
       rtt: { datagram: stats(res.rtt.dgram), webSocket: stats(res.rtt.ws) } };
     for (const [k, name] of [['dgram', 'datagram'], ['stream', 'reliableStream'], ['ws', 'webSocket']]) {
       const c = res[k], last = Math.max(...c.seqs);
       out[name] = { delivered: Math.round(1000 * c.seqs.length / (last + 1)) / 10, latency: stats(c.latency), staleness: stats(c.staleness) };
     }
-    return out;
   } finally {
     await tab.close();
-    for (const t of timers) clearInterval(t);
-    pending.length = 0; // packets still in flight would go to closed sockets
-    server.stopServer(); wss.close(); http.close(); relay.close(); upstream.close();
+    for (const stop of timers) stop();
+    relay.postMessage('stop');
+    const relayCounts = (await once(relay, 'message'))[0].counts;
+    if (out) out.relay = relayCounts;
+    await relay.terminate();
+    server.stopServer(); wss.close(); http.close();
   }
+  return out;
 }
 
 const lock = await acquireMachineLock('bench');

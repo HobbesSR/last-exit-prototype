@@ -1,7 +1,7 @@
 {
  "issue": 1095,
  "tool": "tools/perf/transport-1095-probe.mjs",
- "date": "2026-11-18T01:49:26.003Z",
+ "date": "2026-11-18T03:15:49.339Z",
  "node": "v24.15.0",
  "browser": "157.0.8103.51",
  "settings": {
@@ -47,6 +47,13 @@
     "jitter": 12,
     "loss": 0.03,
     "burst": 4
+   },
+   {
+    "name": "poor-lossless",
+    "rtt": 220,
+    "jitter": 70,
+    "loss": 0,
+    "control": true
    }
   ]
  },
@@ -56,88 +63,98 @@
    "run": 0,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 29,
-   "maxDatagramSize": 1211,
+   "connectMs": 22,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 929,
-    "down": 930,
+    "up": 1062,
+    "down": 1105,
     "upDropped": 0,
     "downDropped": 0
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 400
    },
    "rtt": {
     "datagram": {
      "n": 199,
-     "p50": 6.2,
-     "p95": 8.8,
-     "p99": 11.4,
-     "max": 13.2
+     "p50": 5.9,
+     "p95": 9.4,
+     "p99": 11.8,
+     "max": 13.4
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.5,
-     "p95": 0.9,
-     "p99": 1.2,
-     "max": 1.2
+     "p50": 0.3,
+     "p95": 0.5,
+     "p99": 0.7,
+     "max": 0.9
     }
    },
    "datagram": {
     "delivered": 100,
     "latency": {
-     "n": 348,
-     "p50": 4,
-     "p95": 6.3,
-     "p99": 8.1,
-     "max": 13.5
+     "n": 400,
+     "p50": 3.7,
+     "p95": 5.7,
+     "p99": 6.8,
+     "max": 8.4
     },
     "staleness": {
-     "n": 1996,
-     "p50": 32.1,
-     "p95": 59.8,
-     "p99": 65.9,
-     "max": 69.7
+     "n": 1995,
+     "p50": 25.8,
+     "p95": 46.2,
+     "p99": 55,
+     "max": 56.7
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 348,
-     "p50": 4,
-     "p95": 6,
-     "p99": 7.5,
-     "max": 8.1
+     "n": 399,
+     "p50": 3.7,
+     "p95": 6.2,
+     "p99": 8.1,
+     "max": 13.2
     },
     "staleness": {
      "n": 1996,
-     "p50": 32.4,
-     "p95": 59.8,
-     "p99": 65.7,
-     "max": 67.6
+     "p50": 25.9,
+     "p95": 46.3,
+     "p99": 55.2,
+     "max": 56.7
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 348,
-     "p50": 0.9,
-     "p95": 1,
-     "p99": 1.1,
-     "max": 1.6
+     "n": 400,
+     "p50": 0.8,
+     "p95": 0.9,
+     "p99": 1,
+     "max": 1.5
     },
     "staleness": {
      "n": 1995,
-     "p50": 29.8,
-     "p95": 57.3,
-     "p99": 60.9,
-     "max": 64.4
+     "p50": 21.7,
+     "p95": 42.1,
+     "p99": 42.6,
+     "max": 43.1
     }
    }
   },
@@ -147,87 +164,97 @@
    "bytes": 350,
    "seconds": 20,
    "connectMs": 24,
-   "maxDatagramSize": 1211,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 906,
-    "down": 916,
+    "up": 1020,
+    "down": 1054,
     "upDropped": 0,
     "downDropped": 0
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 400
    },
    "rtt": {
     "datagram": {
      "n": 199,
-     "p50": 6.2,
-     "p95": 9.2,
-     "p99": 10.6,
-     "max": 13.5
+     "p50": 6,
+     "p95": 9.4,
+     "p99": 11.5,
+     "max": 12.5
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.5,
-     "p95": 0.8,
-     "p99": 0.9,
-     "max": 0.9
+     "p50": 0.3,
+     "p95": 0.4,
+     "p99": 0.5,
+     "max": 0.6
     }
    },
    "datagram": {
     "delivered": 100,
     "latency": {
-     "n": 346,
-     "p50": 3.9,
-     "p95": 6.9,
-     "p99": 8.6,
-     "max": 9.2
+     "n": 400,
+     "p50": 3.6,
+     "p95": 6.2,
+     "p99": 7.5,
+     "max": 8.3
     },
     "staleness": {
-     "n": 1995,
-     "p50": 33.2,
-     "p95": 60.7,
-     "p99": 65.7,
-     "max": 69.6
+     "n": 1996,
+     "p50": 27.7,
+     "p95": 48.2,
+     "p99": 48.6,
+     "max": 57.8
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 346,
-     "p50": 4,
-     "p95": 6.4,
-     "p99": 7.9,
-     "max": 8.8
+     "n": 400,
+     "p50": 3.8,
+     "p95": 6.2,
+     "p99": 7.6,
+     "max": 8.7
     },
     "staleness": {
-     "n": 1995,
-     "p50": 33.2,
-     "p95": 60.6,
-     "p99": 65.6,
-     "max": 69.6
+     "n": 1996,
+     "p50": 27.7,
+     "p95": 48.2,
+     "p99": 48.8,
+     "max": 57.4
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 346,
+     "n": 400,
      "p50": 0.9,
-     "p95": 1,
+     "p95": 0.9,
      "p99": 1,
      "max": 1.1
     },
     "staleness": {
      "n": 1996,
-     "p50": 30,
-     "p95": 58.1,
-     "p99": 61.7,
-     "max": 64.2
+     "p50": 22.1,
+     "p95": 42.5,
+     "p99": 43,
+     "max": 43.6
     }
    }
   },
@@ -236,88 +263,98 @@
    "run": 2,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 18,
-   "maxDatagramSize": 1211,
+   "connectMs": 17,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 924,
-    "down": 925,
+    "up": 1028,
+    "down": 1088,
     "upDropped": 0,
     "downDropped": 0
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 400
    },
    "rtt": {
     "datagram": {
      "n": 199,
-     "p50": 6.3,
-     "p95": 9.2,
-     "p99": 11.6,
-     "max": 13.6
+     "p50": 6.1,
+     "p95": 9,
+     "p99": 11.4,
+     "max": 13.9
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.5,
-     "p95": 0.8,
-     "p99": 0.8,
-     "max": 0.9
+     "p50": 0.3,
+     "p95": 0.4,
+     "p99": 0.5,
+     "max": 0.7
     }
    },
    "datagram": {
     "delivered": 100,
     "latency": {
-     "n": 348,
+     "n": 400,
      "p50": 3.8,
-     "p95": 6,
-     "p99": 7.4,
-     "max": 8.3
+     "p95": 5.7,
+     "p99": 7.5,
+     "max": 9.4
     },
     "staleness": {
-     "n": 1994,
-     "p50": 32.2,
-     "p95": 59.9,
-     "p99": 64.5,
-     "max": 69
+     "n": 1996,
+     "p50": 26,
+     "p95": 46.5,
+     "p99": 55.2,
+     "max": 56.4
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 348,
+     "n": 400,
      "p50": 3.8,
-     "p95": 6.1,
-     "p99": 7.7,
-     "max": 8.8
+     "p95": 5.9,
+     "p99": 7.1,
+     "max": 8.3
     },
     "staleness": {
-     "n": 1994,
-     "p50": 32,
-     "p95": 59.8,
-     "p99": 64.1,
-     "max": 69.3
+     "n": 1996,
+     "p50": 26,
+     "p95": 46.5,
+     "p99": 55.2,
+     "max": 57.1
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 348,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
      "p99": 1,
-     "max": 1.2
+     "max": 1.1
     },
     "staleness": {
-     "n": 1995,
-     "p50": 30,
-     "p95": 58.2,
-     "p99": 61.1,
-     "max": 63.3
+     "n": 1996,
+     "p50": 22.1,
+     "p95": 42.4,
+     "p99": 43.1,
+     "max": 43.7
     }
    }
   },
@@ -326,88 +363,98 @@
    "run": 0,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 116,
-   "maxDatagramSize": 1211,
+   "connectMs": 123,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 879,
-    "down": 1024,
-    "upDropped": 2,
-    "downDropped": 3
+    "up": 911,
+    "down": 1053,
+    "upDropped": 3,
+    "downDropped": 2
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 400
    },
    "rtt": {
     "datagram": {
      "n": 198,
-     "p50": 47,
-     "p95": 58.1,
+     "p50": 47.6,
+     "p95": 59.3,
      "p99": 66.7,
-     "max": 74.8
+     "max": 67.7
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.8,
-     "max": 0.9
+     "p50": 0.3,
+     "p95": 0.4,
+     "p99": 0.5,
+     "max": 0.6
     }
    },
    "datagram": {
-    "delivered": 100,
+    "delivered": 99.8,
     "latency": {
-     "n": 383,
+     "n": 399,
      "p50": 23.9,
-     "p95": 33,
-     "p99": 37.5,
-     "max": 43.6
+     "p95": 33.5,
+     "p99": 39.5,
+     "max": 44
     },
     "staleness": {
-     "n": 1995,
-     "p50": 50.9,
-     "p95": 76.9,
-     "p99": 83.4,
-     "max": 100.9
+     "n": 1996,
+     "p50": 50.8,
+     "p95": 71.2,
+     "p99": 80.7,
+     "max": 120.2
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 384,
-     "p50": 24.3,
-     "p95": 37.4,
-     "p99": 49.8,
-     "max": 123.4
+     "n": 399,
+     "p50": 23.7,
+     "p95": 32,
+     "p99": 35.8,
+     "max": 48.5
     },
     "staleness": {
-     "n": 1994,
-     "p50": 51.2,
-     "p95": 79,
-     "p99": 90.3,
-     "max": 169.7
+     "n": 1996,
+     "p50": 50.8,
+     "p95": 71.2,
+     "p99": 80.4,
+     "max": 90.3
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 384,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
      "p99": 1,
-     "max": 1.1
+     "max": 1
     },
     "staleness": {
      "n": 1996,
-     "p50": 28.7,
-     "p95": 50.7,
-     "p99": 59.5,
-     "max": 65.1
+     "p50": 22.1,
+     "p95": 42.4,
+     "p99": 42.8,
+     "max": 43.3
     }
    }
   },
@@ -416,88 +463,98 @@
    "run": 1,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 99,
-   "maxDatagramSize": 1211,
+   "connectMs": 95,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 855,
-    "down": 1008,
-    "upDropped": 0,
-    "downDropped": 1
+    "up": 926,
+    "down": 1067,
+    "upDropped": 1,
+    "downDropped": 0
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 400
    },
    "rtt": {
     "datagram": {
      "n": 199,
-     "p50": 46.8,
-     "p95": 61.7,
-     "p99": 69.1,
-     "max": 72.7
+     "p50": 47.4,
+     "p95": 58.9,
+     "p99": 62.2,
+     "max": 64.4
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.8,
-     "max": 0.9
+     "p50": 0.3,
+     "p95": 0.4,
+     "p99": 0.5,
+     "max": 0.5
     }
    },
    "datagram": {
-    "delivered": 99.7,
+    "delivered": 100,
     "latency": {
-     "n": 382,
-     "p50": 24,
-     "p95": 33.1,
-     "p99": 36.5,
-     "max": 40.3
+     "n": 399,
+     "p50": 23.5,
+     "p95": 34.7,
+     "p99": 39.7,
+     "max": 56.3
     },
     "staleness": {
-     "n": 1994,
-     "p50": 50.9,
-     "p95": 77.7,
-     "p99": 85,
-     "max": 117.9
+     "n": 1996,
+     "p50": 46.1,
+     "p95": 75,
+     "p99": 76.6,
+     "max": 104.9
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 383,
-     "p50": 24.9,
-     "p95": 36.6,
-     "p99": 40.9,
-     "max": 47.8
+     "n": 400,
+     "p50": 24,
+     "p95": 36,
+     "p99": 40.1,
+     "max": 50.5
     },
     "staleness": {
      "n": 1995,
-     "p50": 51.5,
-     "p95": 79.1,
-     "p99": 87.1,
-     "max": 100
+     "p50": 46.4,
+     "p95": 75.3,
+     "p99": 85,
+     "max": 95.3
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 383,
-     "p50": 0.9,
-     "p95": 1,
+     "n": 400,
+     "p50": 0.8,
+     "p95": 0.9,
      "p99": 1,
-     "max": 1.1
+     "max": 1
     },
     "staleness": {
      "n": 1996,
-     "p50": 28.7,
-     "p95": 50.8,
-     "p99": 59.5,
-     "max": 62.5
+     "p50": 22.1,
+     "p95": 42.8,
+     "p99": 43.2,
+     "max": 43.5
     }
    }
   },
@@ -506,88 +563,98 @@
    "run": 2,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 108,
-   "maxDatagramSize": 1211,
+   "connectMs": 107,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 848,
-    "down": 994,
-    "upDropped": 1,
-    "downDropped": 1
+    "up": 896,
+    "down": 1073,
+    "upDropped": 0,
+    "downDropped": 2
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 400
    },
    "rtt": {
     "datagram": {
-     "n": 199,
-     "p50": 47.6,
-     "p95": 59.7,
-     "p99": 70.4,
-     "max": 71.5
+     "n": 198,
+     "p50": 46.7,
+     "p95": 58.6,
+     "p99": 69,
+     "max": 74.6
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.4,
-     "p95": 0.7,
-     "p99": 0.9,
-     "max": 0.9
+     "p50": 0.3,
+     "p95": 0.4,
+     "p99": 0.5,
+     "max": 0.5
     }
    },
    "datagram": {
-    "delivered": 99.7,
+    "delivered": 100,
     "latency": {
-     "n": 379,
-     "p50": 23.9,
-     "p95": 33.1,
-     "p99": 39.6,
-     "max": 50.4
+     "n": 399,
+     "p50": 23.7,
+     "p95": 34.8,
+     "p99": 43.8,
+     "max": 50.2
     },
     "staleness": {
      "n": 1995,
-     "p50": 50.8,
-     "p95": 78.2,
-     "p99": 86.1,
-     "max": 118.7
+     "p50": 45.8,
+     "p95": 74.5,
+     "p99": 84.1,
+     "max": 94.9
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 380,
-     "p50": 25.4,
-     "p95": 36.8,
-     "p99": 42.9,
-     "max": 45.7
+     "n": 399,
+     "p50": 24.7,
+     "p95": 36.4,
+     "p99": 42.5,
+     "max": 125.6
     },
     "staleness": {
-     "n": 1996,
-     "p50": 52.6,
-     "p95": 79,
-     "p99": 87.5,
-     "max": 105.8
+     "n": 1995,
+     "p50": 54.1,
+     "p95": 74.9,
+     "p99": 84.8,
+     "max": 164.9
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 381,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
      "p99": 1,
-     "max": 1
+     "max": 1.1
     },
     "staleness": {
      "n": 1996,
-     "p50": 27.9,
-     "p95": 50.9,
-     "p99": 59.2,
-     "max": 64.4
+     "p50": 22.2,
+     "p95": 42.7,
+     "p99": 43.3,
+     "max": 43.7
     }
    }
   },
@@ -597,87 +664,97 @@
    "bytes": 350,
    "seconds": 20,
    "connectMs": 238,
-   "maxDatagramSize": 1211,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 885,
-    "down": 1093,
-    "upDropped": 8,
-    "downDropped": 14
+    "up": 952,
+    "down": 1126,
+    "upDropped": 9,
+    "downDropped": 13
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 401
    },
    "rtt": {
     "datagram": {
-     "n": 193,
-     "p50": 102.3,
-     "p95": 138.4,
-     "p99": 153.7,
-     "max": 164.4
+     "n": 195,
+     "p50": 101.2,
+     "p95": 138.1,
+     "p99": 158.5,
+     "max": 184.1
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.4,
-     "p95": 0.5,
-     "p99": 0.7,
-     "max": 1
+     "p50": 0.3,
+     "p95": 0.4,
+     "p99": 0.4,
+     "max": 0.4
     }
    },
    "datagram": {
-    "delivered": 98.7,
+    "delivered": 99,
     "latency": {
-     "n": 389,
-     "p50": 50.8,
-     "p95": 76.6,
-     "p99": 93.8,
-     "max": 120.6
+     "n": 396,
+     "p50": 49,
+     "p95": 71.1,
+     "p99": 92.5,
+     "max": 141.7
     },
     "staleness": {
      "n": 1995,
-     "p50": 80.3,
-     "p95": 112.1,
-     "p99": 133.3,
-     "max": 176.4
+     "p50": 79.5,
+     "p95": 109.6,
+     "p99": 129.6,
+     "max": 160.2
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 391,
-     "p50": 55,
-     "p95": 90.1,
-     "p99": 180.2,
-     "max": 211.1
+     "n": 399,
+     "p50": 57.8,
+     "p95": 97.6,
+     "p99": 199.9,
+     "max": 228.5
     },
     "staleness": {
-     "n": 1996,
-     "p50": 83.2,
-     "p95": 125.1,
-     "p99": 202.9,
-     "max": 260.9
+     "n": 1995,
+     "p50": 89.1,
+     "p95": 129.7,
+     "p99": 219.2,
+     "max": 269.4
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 395,
-     "p50": 0.7,
-     "p95": 0.8,
-     "p99": 0.9,
-     "max": 0.9
+     "n": 400,
+     "p50": 0.9,
+     "p95": 0.9,
+     "p99": 1,
+     "max": 1.2
     },
     "staleness": {
      "n": 1996,
-     "p50": 24.9,
-     "p95": 49.2,
-     "p99": 52.8,
-     "max": 66.3
+     "p50": 22,
+     "p95": 42.3,
+     "p99": 43,
+     "max": 43.4
     }
    }
   },
@@ -687,87 +764,97 @@
    "bytes": 350,
    "seconds": 20,
    "connectMs": 226,
-   "maxDatagramSize": 1211,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 899,
-    "down": 1114,
-    "upDropped": 12,
-    "downDropped": 7
+    "up": 921,
+    "down": 1102,
+    "upDropped": 6,
+    "downDropped": 13
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 401
    },
    "rtt": {
     "datagram": {
-     "n": 194,
-     "p50": 101.7,
-     "p95": 149.1,
-     "p99": 165.7,
-     "max": 198.8
+     "n": 193,
+     "p50": 104.6,
+     "p95": 142.9,
+     "p99": 165,
+     "max": 178.1
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.4,
+     "p50": 0.3,
      "p95": 0.5,
-     "p99": 0.7,
-     "max": 0.7
+     "p99": 0.6,
+     "max": 0.6
     }
    },
    "datagram": {
-    "delivered": 99.5,
+    "delivered": 98.8,
     "latency": {
-     "n": 390,
-     "p50": 49.3,
-     "p95": 77.3,
-     "p99": 96.5,
-     "max": 133.5
+     "n": 395,
+     "p50": 49.9,
+     "p95": 77.4,
+     "p99": 97.4,
+     "max": 113.4
     },
     "staleness": {
      "n": 1996,
-     "p50": 79.6,
-     "p95": 111.3,
-     "p99": 132.3,
-     "max": 209.2
+     "p50": 75.8,
+     "p95": 115,
+     "p99": 135.5,
+     "max": 166
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 392,
-     "p50": 54.5,
-     "p95": 89.2,
-     "p99": 128,
-     "max": 178.3
+     "n": 400,
+     "p50": 56.5,
+     "p95": 100.9,
+     "p99": 200.2,
+     "max": 254.6
     },
     "staleness": {
      "n": 1995,
-     "p50": 82.3,
-     "p95": 120.5,
-     "p99": 154.7,
-     "max": 234.7
+     "p50": 85.3,
+     "p95": 135.1,
+     "p99": 235.1,
+     "max": 294.8
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 392,
-     "p50": 0.9,
-     "p95": 1,
+     "n": 400,
+     "p50": 0.8,
+     "p95": 0.9,
      "p99": 1,
-     "max": 1.2
+     "max": 1.1
     },
     "staleness": {
      "n": 1996,
-     "p50": 26.4,
-     "p95": 50.4,
-     "p99": 55,
-     "max": 65.9
+     "p50": 22.1,
+     "p95": 42.4,
+     "p99": 43.1,
+     "max": 43.3
     }
    }
   },
@@ -777,87 +864,97 @@
    "bytes": 350,
    "seconds": 20,
    "connectMs": 195,
-   "maxDatagramSize": 1211,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 850,
-    "down": 1074,
-    "upDropped": 7,
-    "downDropped": 14
+    "up": 942,
+    "down": 1112,
+    "upDropped": 11,
+    "downDropped": 11
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 401
    },
    "rtt": {
     "datagram": {
-     "n": 194,
-     "p50": 104.1,
-     "p95": 140.6,
-     "p99": 157.9,
-     "max": 186.7
+     "n": 195,
+     "p50": 101.3,
+     "p95": 144,
+     "p99": 174,
+     "max": 174.1
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.8,
-     "max": 0.9
+     "p50": 0.3,
+     "p95": 0.4,
+     "p99": 0.5,
+     "max": 0.5
     }
    },
    "datagram": {
-    "delivered": 98.5,
+    "delivered": 99,
     "latency": {
-     "n": 387,
-     "p50": 49.1,
+     "n": 395,
+     "p50": 49.5,
      "p95": 73.8,
-     "p99": 100.1,
-     "max": 101.8
+     "p99": 101.5,
+     "max": 117.9
     },
     "staleness": {
-     "n": 1994,
-     "p50": 77.9,
-     "p95": 112.4,
-     "p99": 137.4,
-     "max": 203.7
+     "n": 1996,
+     "p50": 78,
+     "p95": 108.4,
+     "p99": 137.6,
+     "max": 168.1
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 393,
-     "p50": 55.3,
-     "p95": 91.7,
-     "p99": 190.1,
-     "max": 201.9
+     "n": 399,
+     "p50": 59.8,
+     "p95": 98.4,
+     "p99": 192.3,
+     "max": 231.7
     },
     "staleness": {
-     "n": 1996,
-     "p50": 83.7,
-     "p95": 126.1,
-     "p99": 203.1,
-     "max": 243.4
+     "n": 1995,
+     "p50": 87.8,
+     "p95": 128.6,
+     "p99": 208.6,
+     "max": 277.6
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 393,
-     "p50": 0.9,
+     "n": 400,
+     "p50": 1,
      "p95": 1,
      "p99": 1.1,
      "max": 1.1
     },
     "staleness": {
      "n": 1996,
-     "p50": 27.4,
-     "p95": 49.5,
-     "p99": 55.8,
-     "max": 63.8
+     "p50": 22.1,
+     "p95": 42.5,
+     "p99": 43.1,
+     "max": 43.6
     }
    }
   },
@@ -866,88 +963,98 @@
    "run": 0,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 1044,
-   "maxDatagramSize": 1211,
+   "connectMs": 1039,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 1123,
-    "down": 1214,
-    "upDropped": 32,
+    "up": 1125,
+    "down": 1255,
+    "upDropped": 33,
     "downDropped": 34
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 402
    },
    "rtt": {
     "datagram": {
-     "n": 185,
-     "p50": 192.2,
-     "p95": 293.8,
-     "p99": 370.3,
-     "max": 424.2
+     "n": 182,
+     "p50": 186.9,
+     "p95": 291.8,
+     "p99": 331.3,
+     "max": 353.9
     },
     "webSocket": {
      "n": 199,
      "p50": 0.4,
      "p95": 0.6,
-     "p99": 0.7,
-     "max": 0.8
+     "p99": 0.6,
+     "max": 0.9
     }
    },
    "datagram": {
-    "delivered": 96.4,
+    "delivered": 97.8,
     "latency": {
-     "n": 374,
-     "p50": 93.9,
-     "p95": 170.3,
-     "p99": 234.7,
-     "max": 284.9
+     "n": 391,
+     "p50": 85.4,
+     "p95": 158.4,
+     "p99": 223.3,
+     "max": 260.7
     },
     "staleness": {
-     "n": 1994,
-     "p50": 121,
-     "p95": 190.9,
-     "p99": 223.1,
-     "max": 268
+     "n": 1733,
+     "p50": 111.3,
+     "p95": 171.4,
+     "p99": 199.9,
+     "max": 230.8
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 389,
-     "p50": 113.1,
-     "p95": 302.7,
-     "p99": 388.6,
-     "max": 471
+     "n": 396,
+     "p50": 111.2,
+     "p95": 263.6,
+     "p99": 361.8,
+     "max": 379.4
     },
     "staleness": {
-     "n": 1991,
-     "p50": 140.6,
-     "p95": 323.7,
-     "p99": 412,
-     "max": 512
+     "n": 1730,
+     "p50": 140.2,
+     "p95": 289.9,
+     "p99": 380,
+     "max": 420.9
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 390,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
      "p99": 0.9,
-     "max": 1
+     "max": 1.2
     },
     "staleness": {
-     "n": 1995,
-     "p50": 27,
-     "p95": 50.2,
-     "p99": 55.4,
-     "max": 62.5
+     "n": 1734,
+     "p50": 22.4,
+     "p95": 44.5,
+     "p99": 49.4,
+     "max": 50.8
     }
    }
   },
@@ -956,88 +1063,98 @@
    "run": 1,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 542,
-   "maxDatagramSize": 1211,
+   "connectMs": 728,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 1080,
-    "down": 1183,
-    "upDropped": 43,
-    "downDropped": 25
+    "up": 1118,
+    "down": 1265,
+    "upDropped": 37,
+    "downDropped": 34
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 405
    },
    "rtt": {
     "datagram": {
-     "n": 185,
-     "p50": 187,
-     "p95": 288.5,
-     "p99": 327.4,
-     "max": 374
+     "n": 179,
+     "p50": 172.6,
+     "p95": 281.2,
+     "p99": 333.6,
+     "max": 358.8
     },
     "webSocket": {
      "n": 199,
      "p50": 0.4,
      "p95": 0.6,
      "p99": 0.8,
-     "max": 0.9
+     "max": 0.8
     }
    },
    "datagram": {
-    "delivered": 97.2,
+    "delivered": 96.3,
     "latency": {
-     "n": 376,
-     "p50": 84.5,
-     "p95": 170.2,
-     "p99": 225.8,
-     "max": 318.3
+     "n": 388,
+     "p50": 86.7,
+     "p95": 174.7,
+     "p99": 230.8,
+     "max": 243.8
     },
     "staleness": {
-     "n": 1992,
-     "p50": 115.5,
-     "p95": 181.5,
-     "p99": 221.8,
-     "max": 265.3
+     "n": 1628,
+     "p50": 114.4,
+     "p95": 174.1,
+     "p99": 202.5,
+     "max": 266.1
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 387,
-     "p50": 105.5,
-     "p95": 243.4,
-     "p99": 346,
-     "max": 400.3
+     "n": 403,
+     "p50": 109.9,
+     "p95": 269.6,
+     "p99": 362.3,
+     "max": 434.3
     },
     "staleness": {
-     "n": 1984,
-     "p50": 131.9,
-     "p95": 270.2,
-     "p99": 379.9,
-     "max": 440.3
+     "n": 1631,
+     "p50": 136.2,
+     "p95": 299.7,
+     "p99": 396.5,
+     "max": 469.1
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 388,
-     "p50": 0.8,
-     "p95": 0.9,
-     "p99": 0.9,
-     "max": 1.1
+     "n": 400,
+     "p50": 0.9,
+     "p95": 1,
+     "p99": 1,
+     "max": 1
     },
     "staleness": {
-     "n": 1995,
-     "p50": 27.5,
-     "p95": 50.4,
-     "p99": 58.4,
-     "max": 63.3
+     "n": 1627,
+     "p50": 23.5,
+     "p95": 48,
+     "p99": 50.5,
+     "max": 50.9
     }
    }
   },
@@ -1046,88 +1163,98 @@
    "run": 2,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 550,
-   "maxDatagramSize": 1211,
+   "connectMs": 551,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 1056,
-    "down": 1166,
-    "upDropped": 28,
-    "downDropped": 47
+    "up": 1060,
+    "down": 1180,
+    "upDropped": 33,
+    "downDropped": 43
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 403
    },
    "rtt": {
     "datagram": {
-     "n": 186,
-     "p50": 193.9,
-     "p95": 324.1,
-     "p99": 388.8,
-     "max": 439.3
+     "n": 181,
+     "p50": 191.7,
+     "p95": 298.3,
+     "p99": 367.3,
+     "max": 370.6
     },
     "webSocket": {
      "n": 199,
      "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.7,
-     "max": 0.8
+     "p95": 0.5,
+     "p99": 0.6,
+     "max": 1
     }
    },
    "datagram": {
-    "delivered": 94.3,
+    "delivered": 95.5,
     "latency": {
-     "n": 364,
-     "p50": 89,
-     "p95": 179.3,
-     "p99": 246.2,
-     "max": 335
+     "n": 383,
+     "p50": 88.8,
+     "p95": 179.9,
+     "p99": 239.3,
+     "max": 274.6
     },
     "staleness": {
-     "n": 1996,
-     "p50": 119.7,
-     "p95": 189.6,
-     "p99": 227.6,
-     "max": 267.1
+     "n": 1548,
+     "p50": 116.2,
+     "p95": 184.5,
+     "p99": 222.9,
+     "max": 286.7
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 386,
-     "p50": 113.9,
-     "p95": 294.9,
-     "p99": 385.9,
-     "max": 444.9
+     "n": 400,
+     "p50": 116.7,
+     "p95": 301.4,
+     "p99": 398.6,
+     "max": 510.6
     },
     "staleness": {
-     "n": 1980,
-     "p50": 141.7,
-     "p95": 320,
-     "p99": 402.8,
-     "max": 489.7
+     "n": 1528,
+     "p50": 139.8,
+     "p95": 323.7,
+     "p99": 422.2,
+     "max": 550.3
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 386,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
      "p99": 1,
-     "max": 1.2
+     "max": 1.1
     },
     "staleness": {
-     "n": 1996,
-     "p50": 27.5,
-     "p95": 50.3,
-     "p99": 58.5,
-     "max": 63.3
+     "n": 1547,
+     "p50": 25,
+     "p95": 47.7,
+     "p99": 50.4,
+     "max": 50.9
     }
    }
   },
@@ -1136,88 +1263,98 @@
    "run": 0,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 815,
-   "maxDatagramSize": 1211,
+   "connectMs": 816,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 987,
-    "down": 1087,
-    "upDropped": 45,
-    "downDropped": 54
+    "up": 870,
+    "down": 945,
+    "upDropped": 42,
+    "downDropped": 46
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 403
    },
    "rtt": {
     "datagram": {
-     "n": 179,
-     "p50": 360.1,
-     "p95": 549.9,
-     "p99": 672.7,
-     "max": 694.1
+     "n": 174,
+     "p50": 355.3,
+     "p95": 584.4,
+     "p99": 683,
+     "max": 726.7
     },
     "webSocket": {
      "n": 199,
      "p50": 0.4,
      "p95": 0.5,
      "p99": 0.7,
-     "max": 0.8
+     "max": 8.2
     }
    },
    "datagram": {
-    "delivered": 94,
+    "delivered": 94.2,
     "latency": {
-     "n": 363,
-     "p50": 176,
-     "p95": 307.8,
-     "p99": 448.7,
-     "max": 519.2
+     "n": 376,
+     "p50": 199.1,
+     "p95": 400.2,
+     "p99": 514.4,
+     "max": 532.9
     },
     "staleness": {
-     "n": 1990,
-     "p50": 200.7,
-     "p95": 301.1,
-     "p99": 350.2,
-     "max": 469.1
+     "n": 1451,
+     "p50": 215.1,
+     "p95": 376.5,
+     "p99": 497.2,
+     "max": 639.1
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 386,
-     "p50": 290.3,
-     "p95": 581.5,
-     "p99": 718.7,
-     "max": 868.7
+     "n": 399,
+     "p50": 471.6,
+     "p95": 2510.3,
+     "p99": 2664.6,
+     "max": 2764.6
     },
     "staleness": {
-     "n": 1989,
-     "p50": 318.1,
-     "p95": 610.7,
-     "p99": 743.3,
-     "max": 915.5
+     "n": 1452,
+     "p50": 459.9,
+     "p95": 2514.2,
+     "p99": 2695.4,
+     "max": 2814.4
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 388,
-     "p50": 0.7,
-     "p95": 0.8,
-     "p99": 0.8,
-     "max": 1
+     "n": 400,
+     "p50": 0.8,
+     "p95": 0.9,
+     "p99": 3,
+     "max": 5.5
     },
     "staleness": {
-     "n": 1996,
-     "p50": 26.1,
-     "p95": 50.3,
-     "p99": 56.8,
-     "max": 63.2
+     "n": 1456,
+     "p50": 24.8,
+     "p95": 48,
+     "p99": 50.6,
+     "max": 52.1
     }
    }
   },
@@ -1227,87 +1364,97 @@
    "bytes": 350,
    "seconds": 20,
    "connectMs": 1000,
-   "maxDatagramSize": 1211,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 891,
-    "down": 981,
-    "upDropped": 34,
-    "downDropped": 40
+    "up": 1011,
+    "down": 1072,
+    "upDropped": 35,
+    "downDropped": 48
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 403
    },
    "rtt": {
     "datagram": {
-     "n": 180,
-     "p50": 385.8,
-     "p95": 566.9,
-     "p99": 753.4,
-     "max": 854.6
+     "n": 176,
+     "p50": 372,
+     "p95": 563.7,
+     "p99": 673.5,
+     "max": 693.6
     },
     "webSocket": {
      "n": 199,
      "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.8,
-     "max": 0.8
+     "p95": 0.5,
+     "p99": 0.6,
+     "max": 0.6
     }
    },
    "datagram": {
-    "delivered": 94,
+    "delivered": 95.3,
     "latency": {
-     "n": 358,
-     "p50": 189.5,
-     "p95": 365.4,
-     "p99": 484.2,
-     "max": 598.3
+     "n": 381,
+     "p50": 190.1,
+     "p95": 346.3,
+     "p99": 500.3,
+     "max": 566.9
     },
     "staleness": {
-     "n": 1985,
-     "p50": 212.1,
-     "p95": 346.8,
-     "p99": 424.3,
-     "max": 579.3
+     "n": 1515,
+     "p50": 209.7,
+     "p95": 340.9,
+     "p99": 414.9,
+     "max": 458
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 380,
-     "p50": 348.4,
-     "p95": 784.3,
-     "p99": 998.5,
-     "max": 1114.2
+     "n": 398,
+     "p50": 403.4,
+     "p95": 1451.2,
+     "p99": 1648.8,
+     "max": 1798.8
     },
     "staleness": {
-     "n": 1975,
-     "p50": 381.4,
-     "p95": 820.2,
-     "p99": 1010.9,
-     "max": 1164.1
+     "n": 1503,
+     "p50": 424.8,
+     "p95": 1463.2,
+     "p99": 1653.6,
+     "max": 1848.7
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 382,
-     "p50": 0.8,
-     "p95": 0.9,
+     "n": 400,
+     "p50": 0.9,
+     "p95": 1,
      "p99": 1,
-     "max": 1.1
+     "max": 1.2
     },
     "staleness": {
-     "n": 1995,
-     "p50": 27,
-     "p95": 50.5,
-     "p99": 59.3,
-     "max": 63.3
+     "n": 1523,
+     "p50": 24.5,
+     "p95": 47.8,
+     "p99": 50.6,
+     "max": 50.9
     }
    }
   },
@@ -1316,88 +1463,98 @@
    "run": 2,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 3484,
-   "maxDatagramSize": 1211,
+   "connectMs": 3466,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 991,
-    "down": 1113,
-    "upDropped": 45,
-    "downDropped": 57
+    "up": 884,
+    "down": 968,
+    "upDropped": 37,
+    "downDropped": 54
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 403
    },
    "rtt": {
     "datagram": {
      "n": 177,
      "p50": 376.9,
-     "p95": 572.9,
-     "p99": 627.4,
-     "max": 627.4
+     "p95": 586.3,
+     "p99": 795.2,
+     "max": 844.7
     },
     "webSocket": {
      "n": 199,
      "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.8,
-     "max": 0.9
+     "p95": 0.5,
+     "p99": 0.6,
+     "max": 0.6
     }
    },
    "datagram": {
-    "delivered": 94,
+    "delivered": 96,
     "latency": {
-     "n": 362,
-     "p50": 182.7,
-     "p95": 335,
-     "p99": 379.8,
-     "max": 553.9
+     "n": 384,
+     "p50": 198.4,
+     "p95": 380.7,
+     "p99": 501.6,
+     "max": 626.2
     },
     "staleness": {
-     "n": 1992,
-     "p50": 207.8,
-     "p95": 347.2,
-     "p99": 439.9,
-     "max": 540.1
+     "n": 1510,
+     "p50": 213.5,
+     "p95": 344.8,
+     "p99": 423.8,
+     "max": 485.2
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 349,
-     "p50": 285.6,
-     "p95": 1248.9,
-     "p99": 1617.5,
-     "max": 1766.9
+     "n": 392,
+     "p50": 336.8,
+     "p95": 1014.9,
+     "p99": 1237.2,
+     "max": 1299.3
     },
     "staleness": {
-     "n": 1947,
-     "p50": 341.6,
-     "p95": 1520,
-     "p99": 1899.9,
-     "max": 2090.4
+     "n": 1476,
+     "p50": 361.5,
+     "p95": 1035.7,
+     "p99": 1259.1,
+     "max": 1348.9
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 385,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
-     "p99": 1,
-     "max": 1.1
+     "p99": 0.9,
+     "max": 1
     },
     "staleness": {
-     "n": 1995,
-     "p50": 27,
-     "p95": 50.5,
-     "p99": 58.4,
-     "max": 63.3
+     "n": 1512,
+     "p50": 24,
+     "p95": 48,
+     "p99": 50.5,
+     "max": 50.8
     }
    }
   },
@@ -1406,88 +1563,98 @@
    "run": 0,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 346,
-   "maxDatagramSize": 1211,
+   "connectMs": 271,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 856,
-    "down": 1069,
-    "upDropped": 43,
-    "downDropped": 41
+    "up": 892,
+    "down": 1115,
+    "upDropped": 21,
+    "downDropped": 46
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 401
    },
    "rtt": {
     "datagram": {
-     "n": 179,
-     "p50": 104,
-     "p95": 133.8,
-     "p99": 158.8,
-     "max": 167.6
+     "n": 181,
+     "p50": 101.4,
+     "p95": 141.7,
+     "p99": 194.7,
+     "max": 229.1
     },
     "webSocket": {
      "n": 199,
-     "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.8,
+     "p50": 0.3,
+     "p95": 0.5,
+     "p99": 0.6,
      "max": 0.8
     }
    },
    "datagram": {
-    "delivered": 95.7,
+    "delivered": 93.8,
     "latency": {
      "n": 375,
-     "p50": 49.8,
-     "p95": 84.8,
-     "p99": 105.2,
-     "max": 142.7
+     "p50": 49.6,
+     "p95": 81.7,
+     "p99": 118.9,
+     "max": 151.3
     },
     "staleness": {
-     "n": 1997,
-     "p50": 80.5,
-     "p95": 140.8,
-     "p99": 406.3,
-     "max": 546
+     "n": 1570,
+     "p50": 77.9,
+     "p95": 143.8,
+     "p99": 725.3,
+     "max": 951.2
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 392,
-     "p50": 54.4,
-     "p95": 207.2,
-     "p99": 586,
-     "max": 736
+     "n": 400,
+     "p50": 60,
+     "p95": 247.5,
+     "p99": 822,
+     "max": 992.7
     },
     "staleness": {
-     "n": 1997,
-     "p50": 83.7,
-     "p95": 244.5,
-     "p99": 595.7,
-     "max": 784.8
+     "n": 1569,
+     "p50": 87.1,
+     "p95": 257.6,
+     "p99": 843.9,
+     "max": 1037.7
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 392,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
      "p99": 1,
-     "max": 1.3
+     "max": 1
     },
     "staleness": {
-     "n": 1996,
-     "p50": 25.8,
-     "p95": 49.7,
-     "p99": 55.8,
-     "max": 63
+     "n": 1570,
+     "p50": 23.5,
+     "p95": 48.5,
+     "p99": 50.8,
+     "max": 51
     }
    }
   },
@@ -1496,88 +1663,98 @@
    "run": 1,
    "bytes": 350,
    "seconds": 20,
-   "connectMs": 706,
-   "maxDatagramSize": 1211,
+   "connectMs": 268,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 863,
-    "down": 1064,
-    "upDropped": 35,
-    "downDropped": 10
+    "up": 854,
+    "down": 1072,
+    "upDropped": 5,
+    "downDropped": 52
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 402
    },
    "rtt": {
     "datagram": {
-     "n": 187,
-     "p50": 101.8,
-     "p95": 139.9,
-     "p99": 159.6,
-     "max": 163
+     "n": 184,
+     "p50": 100.7,
+     "p95": 139.6,
+     "p99": 157.2,
+     "max": 171.3
     },
     "webSocket": {
      "n": 199,
      "p50": 0.4,
-     "p95": 0.6,
-     "p99": 0.8,
-     "max": 0.8
+     "p95": 0.5,
+     "p99": 0.7,
+     "max": 1
     }
    },
    "datagram": {
-    "delivered": 99,
+    "delivered": 94.3,
     "latency": {
-     "n": 388,
-     "p50": 48.7,
-     "p95": 80.3,
-     "p99": 96.4,
-     "max": 108.2
+     "n": 377,
+     "p50": 49.7,
+     "p95": 84,
+     "p99": 109.5,
+     "max": 159.5
     },
     "staleness": {
-     "n": 1993,
-     "p50": 78,
-     "p95": 113,
-     "p99": 142.3,
-     "max": 321.3
+     "n": 1586,
+     "p50": 77.6,
+     "p95": 145.8,
+     "p99": 475.1,
+     "max": 709.2
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 392,
-     "p50": 54.5,
-     "p95": 86,
-     "p99": 307.4,
-     "max": 458.4
+     "n": 400,
+     "p50": 60.8,
+     "p95": 307.3,
+     "p99": 870.7,
+     "max": 1053.8
     },
     "staleness": {
-     "n": 1997,
-     "p50": 82.5,
-     "p95": 122.2,
-     "p99": 341,
-     "max": 501.1
+     "n": 1585,
+     "p50": 86.4,
+     "p95": 275.7,
+     "p99": 894.9,
+     "max": 1095.8
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 391,
+     "n": 400,
      "p50": 0.9,
      "p95": 1,
      "p99": 1.1,
-     "max": 1.1
+     "max": 1.2
     },
     "staleness": {
-     "n": 1996,
-     "p50": 26.4,
-     "p95": 49.3,
-     "p99": 55.9,
-     "max": 62.8
+     "n": 1586,
+     "p50": 23.9,
+     "p95": 48.1,
+     "p99": 50.9,
+     "max": 51.1
     }
    }
   },
@@ -1587,29 +1764,39 @@
    "bytes": 350,
    "seconds": 20,
    "connectMs": 232,
-   "maxDatagramSize": 1211,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
    "oversize": {
-    "sent": 1300,
-    "clientError": null,
-    "arrived": false
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
    },
    "relay": {
-    "up": 894,
-    "down": 1085,
-    "upDropped": 11,
-    "downDropped": 21
+    "up": 888,
+    "down": 1073,
+    "upDropped": 28,
+    "downDropped": 13
    },
    "server": {
     "sessions": 1,
-    "datagramWriteErrors": 0
+    "datagramWriteErrors": 0,
+    "framesSent": 401
    },
    "rtt": {
     "datagram": {
-     "n": 193,
-     "p50": 100.3,
-     "p95": 135.1,
-     "p99": 159.1,
-     "max": 180.4
+     "n": 188,
+     "p50": 103.9,
+     "p95": 150.8,
+     "p99": 181.3,
+     "max": 189.7
     },
     "webSocket": {
      "n": 199,
@@ -1620,54 +1807,354 @@
     }
    },
    "datagram": {
-    "delivered": 98,
+    "delivered": 96.5,
     "latency": {
-     "n": 385,
-     "p50": 49.9,
-     "p95": 76.8,
-     "p99": 95.3,
-     "max": 122
+     "n": 386,
+     "p50": 50.1,
+     "p95": 80.5,
+     "p99": 119.7,
+     "max": 149.3
     },
     "staleness": {
-     "n": 1993,
-     "p50": 78.7,
-     "p95": 117.8,
-     "p99": 184.3,
-     "max": 258.1
+     "n": 1581,
+     "p50": 76.6,
+     "p95": 124,
+     "p99": 280.9,
+     "max": 376.5
     }
    },
    "reliableStream": {
     "delivered": 100,
     "latency": {
-     "n": 393,
-     "p50": 54.7,
-     "p95": 93.8,
-     "p99": 262,
-     "max": 313.7
+     "n": 399,
+     "p50": 59.6,
+     "p95": 199.4,
+     "p99": 419.8,
+     "max": 469.8
     },
     "staleness": {
-     "n": 1996,
-     "p50": 83.9,
-     "p95": 126.2,
-     "p99": 276.7,
-     "max": 353.8
+     "n": 1584,
+     "p50": 85.7,
+     "p95": 193.3,
+     "p99": 439.5,
+     "max": 519.7
     }
    },
    "webSocket": {
     "delivered": 100,
     "latency": {
-     "n": 393,
+     "n": 400,
      "p50": 0.8,
      "p95": 0.9,
      "p99": 1,
-     "max": 1.1
+     "max": 1.2
     },
     "staleness": {
-     "n": 1996,
-     "p50": 26.3,
-     "p95": 49,
-     "p99": 55.3,
-     "max": 65.3
+     "n": 1584,
+     "p50": 23.2,
+     "p95": 48.9,
+     "p99": 50.7,
+     "max": 50.9
+    }
+   }
+  },
+  {
+   "profile": "poor-lossless",
+   "run": 0,
+   "bytes": 350,
+   "seconds": 20,
+   "connectMs": 698,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
+   "oversize": {
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
+   },
+   "relay": {
+    "up": 1134,
+    "down": 1226,
+    "upDropped": 0,
+    "downDropped": 0
+   },
+   "server": {
+    "sessions": 1,
+    "datagramWriteErrors": 0,
+    "framesSent": 402
+   },
+   "rtt": {
+    "datagram": {
+     "n": 193,
+     "p50": 352.6,
+     "p95": 558.3,
+     "p99": 747.4,
+     "max": 805.6
+    },
+    "webSocket": {
+     "n": 199,
+     "p50": 0.4,
+     "p95": 0.5,
+     "p99": 0.6,
+     "max": 0.6
+    }
+   },
+   "datagram": {
+    "delivered": 99.7,
+    "latency": {
+     "n": 398,
+     "p50": 172.8,
+     "p95": 326.6,
+     "p99": 383.5,
+     "max": 535
+    },
+    "staleness": {
+     "n": 1501,
+     "p50": 193.6,
+     "p95": 289.3,
+     "p99": 337.5,
+     "max": 400.3
+    }
+   },
+   "reliableStream": {
+    "delivered": 100,
+    "latency": {
+     "n": 399,
+     "p50": 218.5,
+     "p95": 428.2,
+     "p99": 540.1,
+     "max": 656.1
+    },
+    "staleness": {
+     "n": 1496,
+     "p50": 241.1,
+     "p95": 458.7,
+     "p99": 549.1,
+     "max": 704.7
+    }
+   },
+   "webSocket": {
+    "delivered": 100,
+    "latency": {
+     "n": 400,
+     "p50": 0.8,
+     "p95": 0.9,
+     "p99": 1,
+     "max": 2
+    },
+    "staleness": {
+     "n": 1510,
+     "p50": 25.1,
+     "p95": 47.8,
+     "p99": 50.2,
+     "max": 51.9
+    }
+   }
+  },
+  {
+   "profile": "poor-lossless",
+   "run": 1,
+   "bytes": 350,
+   "seconds": 20,
+   "connectMs": 927,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
+   "oversize": {
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
+   },
+   "relay": {
+    "up": 1163,
+    "down": 1263,
+    "upDropped": 0,
+    "downDropped": 0
+   },
+   "server": {
+    "sessions": 1,
+    "datagramWriteErrors": 0,
+    "framesSent": 403
+   },
+   "rtt": {
+    "datagram": {
+     "n": 195,
+     "p50": 351.2,
+     "p95": 594.3,
+     "p99": 830.1,
+     "max": 863
+    },
+    "webSocket": {
+     "n": 199,
+     "p50": 0.4,
+     "p95": 0.5,
+     "p99": 0.6,
+     "max": 0.6
+    }
+   },
+   "datagram": {
+    "delivered": 99.7,
+    "latency": {
+     "n": 398,
+     "p50": 184.6,
+     "p95": 353.6,
+     "p99": 459.4,
+     "max": 576.1
+    },
+    "staleness": {
+     "n": 1494,
+     "p50": 199.2,
+     "p95": 298.5,
+     "p99": 344.5,
+     "max": 399.7
+    }
+   },
+   "reliableStream": {
+    "delivered": 100,
+    "latency": {
+     "n": 396,
+     "p50": 233.9,
+     "p95": 658.8,
+     "p99": 857.9,
+     "max": 909.6
+    },
+    "staleness": {
+     "n": 1493,
+     "p50": 259.6,
+     "p95": 626.1,
+     "p99": 857,
+     "max": 959.4
+    }
+   },
+   "webSocket": {
+    "delivered": 100,
+    "latency": {
+     "n": 400,
+     "p50": 0.8,
+     "p95": 0.9,
+     "p99": 1,
+     "max": 2.9
+    },
+    "staleness": {
+     "n": 1495,
+     "p50": 24.9,
+     "p95": 47.6,
+     "p99": 50.2,
+     "max": 52.7
+    }
+   }
+  },
+  {
+   "profile": "poor-lossless",
+   "run": 2,
+   "bytes": 350,
+   "seconds": 20,
+   "connectMs": 1020,
+   "maxDatagramSize": {
+    "client": 1211,
+    "server": 1213
+   },
+   "oversize": {
+    "bytes": 1300,
+    "clientToServer": {
+     "writeError": null,
+     "arrived": false
+    },
+    "serverToClient": {
+     "writeError": null,
+     "arrived": false
+    }
+   },
+   "relay": {
+    "up": 1118,
+    "down": 1199,
+    "upDropped": 0,
+    "downDropped": 0
+   },
+   "server": {
+    "sessions": 1,
+    "datagramWriteErrors": 0,
+    "framesSent": 404
+   },
+   "rtt": {
+    "datagram": {
+     "n": 194,
+     "p50": 358,
+     "p95": 629.4,
+     "p99": 726.9,
+     "max": 927
+    },
+    "webSocket": {
+     "n": 199,
+     "p50": 0.4,
+     "p95": 0.6,
+     "p99": 0.7,
+     "max": 0.7
+    }
+   },
+   "datagram": {
+    "delivered": 99.5,
+    "latency": {
+     "n": 398,
+     "p50": 171.2,
+     "p95": 341.8,
+     "p99": 449.1,
+     "max": 490.6
+    },
+    "staleness": {
+     "n": 1486,
+     "p50": 192.4,
+     "p95": 295.2,
+     "p99": 348.9,
+     "max": 406.5
+    }
+   },
+   "reliableStream": {
+    "delivered": 100,
+    "latency": {
+     "n": 389,
+     "p50": 233.7,
+     "p95": 493,
+     "p99": 618.5,
+     "max": 668.6
+    },
+    "staleness": {
+     "n": 1478,
+     "p50": 261,
+     "p95": 533.9,
+     "p99": 663.8,
+     "max": 754.9
+    }
+   },
+   "webSocket": {
+    "delivered": 100,
+    "latency": {
+     "n": 400,
+     "p50": 0.9,
+     "p95": 1,
+     "p99": 1.7,
+     "max": 9
+    },
+    "staleness": {
+     "n": 1484,
+     "p50": 24.7,
+     "p95": 47.9,
+     "p99": 50.6,
+     "max": 58.2
     }
    }
   }
