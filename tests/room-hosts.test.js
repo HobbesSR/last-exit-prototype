@@ -39,7 +39,7 @@ async function host(threads) {
     const deliver = payload => {
       const data = readServerMessage(payload);
       if (typeof payload !== 'string') binary.push(data.type);
-      if (data.type === 'seats') { normalizer.seats(data.roster); return; }
+      if (data.type === 'seats') { normalizer.seats(data.roster, data.revision); return; }
       if (data.type === 'welcome' || data.type === 'ready') normalizer.envelope(data);
       if (data.type === 'state') layers.decode(data.state);
       if (data.state) data.state = normalizer.normalize(data.state);

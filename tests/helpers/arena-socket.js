@@ -35,7 +35,7 @@ export async function open(base) {
   decoders.set(ws, layers);
   ws.on('message', (raw, binary) => {
     const data = readSocketMessage(raw, binary);
-    if (data.type === 'seats') frames.seats(data.roster);
+    if (data.type === 'seats') frames.seats(data.roster, data.revision);
     if (data.type === 'welcome' || data.type === 'ready') frames.envelope(data);
     if (data.type === 'state') layers.decode(data.state);
     if (data.state) data.state = frames.normalize(data.state);

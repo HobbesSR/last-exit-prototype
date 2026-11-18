@@ -141,7 +141,13 @@ export function withMatchConstants<T extends object>(source: T, constants: Const
   return { ...frame, ...(profile ? { physicsProfile: constants.physicsProfile } : {}), ...(motor ? { predictionMotor: constants.predictionMotor } : {}) } as T;
 }
 export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }, initialRoster: readonly object[] = EMPTY) {
-  let map = initialMap, roster: Row[] = [], revision = 0, constants: Constants;
+  // `revision` counts this normalizer's own roster changes, for its frame cache. `heldRevision` is the wire's
+  // roster revision (#1131) that the last `seats` named; every live frame names the one it was projected against.
+  let map = initialMap, roster = new Map<number, Row>(), revision = 0, constants: Constants, heldRevision: number | undefined;
+  // Labels a `seats` roster taught, pruned when a later one no longer names them; labels learned from legacy
+  // recorded frames, which carry no roster, are kept.
+  let seatLabels = new Set<Id>();
+  const nextSlot = () => roster.size ? Math.max(...roster.keys()) + 1 : 0;
   const labels = new Map<Id, number>(), bodyIds = new Map<Id, number>(), tetherIds = new Map<Id, number>(), itemIds = new Map<Id, number>(), propIds = new Map<Id, number>();
   const bodiesCache = new WeakMap<Row, { owner: Id | undefined; row: Row }>();
   const metadataCache = new WeakMap<Row, Row>(), playerCache = new WeakMap<Row, WeakMap<object, Row>>(), itemCache = new WeakMap<Row, Row>();
@@ -153,7 +159,7 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
     return table.get(id)!;
   };
   function metadata(p: Row, idx: number): Row {
-    const current = roster[idx];
+    const current = roster.get(idx);
     if (current && ['id', 'name', 'role', 'kit', 'seat'].every(key => current[key] === p[key])) return current;
     let record = metadataCache.get(p);
     if (!record || record.playerIdx !== idx) {
@@ -163,14 +169,19 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
     }
     return record;
   }
-  function seats(value: readonly object[] = EMPTY) {
-    const next: Row[] = [];
-    rows(value).forEach((p, i) => { const idx = p.playerIdx ?? i; next[idx] = metadata(p, idx); if (p.id != null) labels.set(p.id, idx); });
-    // A dense walk: a yard roster has holes where people left (24.4), and `some` would skip them.
-    let changed = next.length !== roster.length;
-    for (let i = 0; !changed && i < next.length; i++) changed = next[i] !== roster[i];
+  function seats(value: readonly object[] = EMPTY, wireRevision?: number) {
+    // Keyed by slot: a yard roster has gaps where people left (24.4).
+    const next = new Map<number, Row>(), named = new Set<Id>();
+    rows(value).forEach((p, i) => {
+      const idx = p.playerIdx ?? i; next.set(idx, metadata(p, idx));
+      if (p.id != null) { labels.set(p.id, idx); named.add(p.id); }
+    });
+    for (const id of seatLabels) if (!named.has(id)) labels.delete(id);
+    seatLabels = named;
+    let changed = next.size !== roster.size;
+    for (const [idx, row] of next) if (changed || roster.get(idx) !== row) { changed = true; break; }
     if (changed) revision++;
-    roster = next;
+    roster = next; heldRevision = wireRevision;
   }
   seats(initialRoster);
   const convertList = (list: Row[] | undefined, cache: WeakMap<Row, Row>, convert: (row: Row) => Row) => {
@@ -185,12 +196,17 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
   function normalize<T extends object>(source: T): T {
     if (!source) return source;
     const frame = source as Frame;
+    // Never draw a frame against another roster than it names (#1131). One ordered socket always sends `seats`
+    // first; what a client does without it on a lossy transport is #1094's to decide.
+    if (typeof frame.rosterRevision === 'number' && heldRevision !== undefined && frame.rosterRevision !== heldRevision) {
+      throw new Error(`a frame names roster revision ${frame.rosterRevision}, but revision ${heldRevision} is held`);
+    }
     if (frame.roster) seats(frame.roster);
     const players = frame.self ? [frame.self, ...(frame.players ?? [])] : frame.players ?? EMPTY;
     for (const p of players) if (p.id != null) {
-      const idx = p.playerIdx ?? labels.get(p.id) ?? roster.length;
+      const idx = p.playerIdx ?? labels.get(p.id) ?? nextSlot();
       const record = metadata(p, idx);
-      if (record !== roster[idx]) { roster[idx] = record; revision++; }
+      if (record !== roster.get(idx)) { roster.set(idx, record); revision++; }
       labels.set(p.id, idx);
     }
     const held = frames.get(source);
@@ -208,7 +224,7 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
     });
     const bodies = mappedBodies?.every((body, i) => body === frame.bodies![i]) ? frame.bodies : mappedBodies;
     const joined = players.map(p => {
-      const playerIdx = p.playerIdx ?? labels.get(p.id!)!, meta = roster[playerIdx];
+      const playerIdx = p.playerIdx ?? labels.get(p.id!)!, meta = roster.get(playerIdx);
       if (p.playerIdx === playerIdx && (!meta || Object.keys(meta).every(key => Object.is(p[key], meta[key])))) return p;
       let byMeta = playerCache.get(p); if (!byMeta) playerCache.set(p, byMeta = new WeakMap());
       const key = meta ?? NONE;
@@ -226,13 +242,16 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
       const { casterId, ...rest } = f;
       return { ...rest, id: numeric(tetherIds, f.id!), a, casterIdx };
     });
-    const numericFrame = withMatchConstants({ ...frame, players: joined, ...(items ? { items } : {}),
+    // The revision is the transport's: the rebuilt frame is the projection, without it.
+    const { rosterRevision: _transport, ...projected } = frame;
+    const numericFrame = withMatchConstants({ ...projected, players: joined, ...(items ? { items } : {}),
       ...(bodies ? { bodies, tethers: tethers ?? EMPTY, hookFlights: hookFlights ?? EMPTY } : {}) }, constants);
     const result = hydrateFrame(numericFrame, map);
     frames.set(source, { revision, map: map?.gates, constants, result });
     return result as T;
   }
-  /** What a welcome or ready says about the frames that follow it: their roster, map and match constants. */
+  /** What a welcome or ready says about the frames that follow it: their roster, map and match constants. A
+   * welcome's roster names no revision, so the next `seats` (which the server always sends first) sets it. */
   function envelope(message: { roster?: readonly object[]; map?: { gates?: readonly object[] } | null; constants?: Constants }) {
     seats(message.roster); map = message.map ?? undefined; constants = message.constants;
   }

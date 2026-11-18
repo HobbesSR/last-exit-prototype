@@ -75,10 +75,11 @@ test('records the projection constructs have exactly the schema fields', async (
   assert.deepEqual(Object.keys(seen).sort(), fieldNames('Observed').sort());
   const participant = eventFields({ id: 1, tick: 2, kind: 'eliminated', target: { playerIdx: 0, name: 'A', extra: 1 } }).target;
   assert.deepEqual(Object.keys(participant), fieldNames('Participant'));
-  for (const message of await liveTraffic()) if (message.state.predictionMotor) assert.deepEqual(Object.keys(message.state.predictionMotor), fieldNames('Motor'));
-  // `phase` is the state union's discriminant, carried as its tag rather than a field.
+  // `phase` is the state union's discriminant, carried as its tag rather than a field, and the transport adds
+  // `rosterRevision` (#1131).
+  for (const message of await liveTraffic()) assert.ok(Number.isInteger(message.state.rosterRevision), 'every state names its roster revision');
   assert.deepEqual(Object.keys(waitingView({ players: [], tick: 0, discontinuities: new Map() }, 'nobody')).filter(k => k !== 'phase').sort(),
-    fieldNames('WaitingState').filter(f => !['tethers', 'hookFlights', 'predictionMotor', 'self'].includes(f)).sort());
+    fieldNames('WaitingState').filter(f => !['tethers', 'hookFlights', 'self', 'rosterRevision'].includes(f)).sort());
 });
 
 test('families a short bot match never sends round-trip exactly', async () => {

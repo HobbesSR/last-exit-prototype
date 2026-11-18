@@ -30,22 +30,45 @@ export function broadcastLobby(room) {
   const payload = JSON.stringify(lobbyPayload(room));
   for (const session of room.clients) session.deliver(payload);
 }
-/** Each player's frame of the waiting area (#236); those watching see the match map, not this. */
-const seatPayloads = new WeakMap();
-function seatsPayload(roster) {
-  let json = seatPayloads.get(roster);
-  if (!json) seatPayloads.set(roster, json = JSON.stringify(seatsMessage(roster)));
-  return json;
+/**
+ * Roster revisions (#1131, 24.4). A revision names a roster's content within its room: each distinct roster is
+ * numbered when first seen, and keeps that number wherever it appears again, so a delayed view names the
+ * roster its captured frame had, and the yard's and the match's never collide. It identifies a roster, not an
+ * order: a client compares it for equality with the one it holds.
+ */
+function createRosterRevisions() {
+  const revisions = new Map();
+  return json => {
+    let revision = revisions.get(json);
+    if (revision === undefined) revisions.set(json, revision = revisions.size + 1);
+    return revision;
+  };
 }
-function deliverSeats(session, json) {
-  if (session.seatsJson === json) return true;
-  if (session.deliver(json) === false) return false;
-  session.seatsJson = json;
+const rosterJson = new WeakMap();
+const rosterText = roster => { let json = rosterJson.get(roster); if (json === undefined) rosterJson.set(roster, json = JSON.stringify(roster)); return json; };
+/** A roster and its revision as one `seats` payload, built once per roster and revision. */
+const seatPayloads = new WeakMap();
+function seatsPayload(roster, revision) {
+  let byRevision = seatPayloads.get(roster);
+  if (!byRevision) seatPayloads.set(roster, byRevision = new Map());
+  let json = byRevision.get(revision);
+  if (!json) byRevision.set(revision, json = JSON.stringify(seatsMessage(roster, revision)));
+  return { revision, json };
+}
+/** A session is sent `seats` when the revision its next state names is not the one it holds. */
+function deliverSeats(session, seats) {
+  if (session.rosterRevision === seats.revision) return true;
+  if (session.deliver(seats.json) === false) return false;
+  session.rosterRevision = seats.revision;
   return true;
 }
+/** Each player's frame of the waiting area (#236); those watching see the match map, not this. */
 export function broadcastWaiting(room, view) {
-  const roster = seatsPayload(waitingSeats(room.waiting));
-  for (const session of room.clients) if (session.playerId) { if (!deliverSeats(session, roster)) continue; session.deliver(writeState(view(room.waiting, session.playerId), session.stateEncoding), true); }
+  const roster = waitingSeats(room.waiting), seats = seatsPayload(roster, room.rosterRevisions(rosterText(roster)));
+  for (const session of room.clients) if (session.playerId) {
+    if (!deliverSeats(session, seats)) continue;
+    session.deliver(writeState({ ...view(room.waiting, session.playerId), rosterRevision: seats.revision }, session.stateEncoding), true);
+  }
 }
 export function spectatorFrame(room) {
   const cutoff = Math.max(0, room.match.tick - SPECTATOR_DELAY_TICKS);
@@ -72,7 +95,8 @@ export function broadcast(room, state) {
       const me = session.playerId && projected.self;
       if (me?.discovered) layers.discovered = encoderFor(room.discoveryEncoders, key, createDiscoveryEncoder).encode(me.discovered);
       profiler.stop('loop.encode');
-      views.set(key, view = { state: projected, layers, roster: seatsPayload(room.match.seatMetadata(captured)) });
+      const roster = room.match.seatMetadata(captured);
+      views.set(key, view = { state: projected, layers, roster: seatsPayload(roster, room.rosterRevisions(rosterText(roster))) });
     }
     // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
     // not yet delivered that keyframe (shared/frame-layers.ts, shared/discovery.ts). Sessions in the
@@ -83,7 +107,8 @@ export function broadcast(room, state) {
     const variant = `${key}|${whole}|${session.stateEncoding}`;
     let payload = payloads.get(variant);
     if (payload === undefined) {
-      const frame = { ...view.state };
+      // The revision is the transport's, like the layers: the projection does not carry it.
+      const frame = { ...view.state, rosterRevision: view.roster.revision };
       for (const [layer, encoded] of Object.entries(view.layers)) {
         if (layer === 'discovered') continue;
         frame[layer] = 'plain' in encoded ? encoded.plain : whole.includes(layer) ? encoded.all() : encoded.changes;
@@ -102,9 +127,9 @@ export function broadcast(room, state) {
   for (const encoders of [room.layerEncoders, room.discoveryEncoders]) for (const key of encoders.keys()) if (!views.has(key)) encoders.delete(key);
   profiler.count('loop.viewsBuilt', views.size); profiler.count('loop.viewsSent', room.clients.size);
 }
-/** The keyframe encoders a room's views keep, one of each kind per view. Every room starts with them. */
+/** The keyframe encoders a room's views keep, one of each kind per view, and its roster revisions. Every room starts with them. */
 export function viewEncoders() {
-  return { layerEncoders: new Map(), discoveryEncoders: new Map() };
+  return { layerEncoders: new Map(), discoveryEncoders: new Map(), rosterRevisions: createRosterRevisions() };
 }
 function encoderFor(encoders, key, create) {
   let encoder = encoders.get(key);

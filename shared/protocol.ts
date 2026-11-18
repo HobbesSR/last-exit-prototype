@@ -249,7 +249,11 @@ export interface ReadyMessage {
   constants: PredictionConstants | null;
 }
 
-export interface SeatsMessage { type: typeof SERVER_MESSAGE.SEATS; roster: SeatMetadata[]; }
+/**
+ * A seat roster and its revision (#1131, 24.4). Each `state` names the revision it was projected against as
+ * `rosterRevision`, so a client can tell when it lacks the matching roster rather than assume arrival order.
+ */
+export interface SeatsMessage { type: typeof SERVER_MESSAGE.SEATS; roster: SeatMetadata[]; revision: number; }
 
 export interface StateMessage {
   type: typeof SERVER_MESSAGE.STATE;
@@ -574,7 +578,7 @@ export function validateServerMessage(raw: unknown): ServerMessageValidation {
       return { ok: true, message: raw as unknown as ReadyMessage };
     }
     case SERVER_MESSAGE.SEATS: {
-      if (!hasExactKeys(raw, ['type', 'roster']) || !validRoster(raw.roster)) return { ok: false, type, reason: 'Invalid seat metadata.' };
+      if (!hasExactKeys(raw, ['type', 'roster', 'revision']) || !validRoster(raw.roster) || !nonNegativeInt(raw.revision)) return { ok: false, type, reason: 'Invalid seat metadata.' };
       return { ok: true, message: raw as unknown as SeatsMessage };
     }
     case SERVER_MESSAGE.STATE: {
@@ -679,7 +683,7 @@ export const devWelcomeMessage = (fields: Omit<DevWelcomeMessage, 'type' | 'id' 
 export const readyMessage = (fields: Omit<ReadyMessage, 'type'>): ReadyMessage =>
   assertServerMessage({ type: SERVER_MESSAGE.READY, ...fields });
 
-export const seatsMessage = (roster: SeatMetadata[]): SeatsMessage => assertServerMessage({ type: SERVER_MESSAGE.SEATS, roster });
+export const seatsMessage = (roster: SeatMetadata[], revision: number): SeatsMessage => assertServerMessage({ type: SERVER_MESSAGE.SEATS, roster, revision });
 
 export const stateMessage = (state: StateMessage['state']): StateMessage => {
   if (!isRecord(state)) throw new TypeError('Invalid server message (state): StateMessage requires a state object.');

@@ -87,6 +87,8 @@ const BODY: RecordDef = { fields: [
   { name: 'discontinuity', type: oneOf(['placed']), optional: true },
 ] };
 
+// The roster revision the frame was projected against (#1131): added by the transport, not the projection.
+const ROSTER_REVISION: FieldDef = { name: 'rosterRevision', type: 'uint' };
 const STATE_TAIL: FieldDef[] = [
   { name: 'players', type: list('Observed') }, { name: 'items', type: layer('Item') }, { name: 'gates', type: layer('Gate') },
   { name: 'traps', type: list('Trap') }, { name: 'projectiles', type: list('Projectile') }, { name: 'effects', type: list('Effect') },
@@ -102,12 +104,12 @@ const frame = typed('Frame', words(FRAME_FIELDS), FRAME_TYPES).fields.filter(f =
 const MATCH_STATE: RecordDef = { fields: [
   ...frame, { name: 'contestantsActive', type: 'uint' }, ...PHYSICS,
   { name: 'predictionTethered', type: 'bool', optional: true }, { name: 'hookActive', type: 'bool', optional: true },
-  { name: 'self', type: 'Own', optional: true }, ...STATE_TAIL, { name: 'events', type: list('Event'), optional: true },
+  { name: 'self', type: 'Own', optional: true }, ...STATE_TAIL, { name: 'events', type: list('Event'), optional: true }, ROSTER_REVISION,
 ] };
 // The waiting yard's frame (shared/simulation/waiting.ts waitingView), in the match frame's shape.
 const WAITING_STATE: RecordDef = { fields: [
   { name: 'tick', type: 'uint' }, ...PHYSICS, { name: 'self', type: 'Own', optional: true },
-  ...STATE_TAIL, { name: 'events', type: list('Event') },
+  ...STATE_TAIL, { name: 'events', type: list('Event') }, ROSTER_REVISION,
 ] };
 
 /** The schema; its version is the wire version, so any contract bump refuses the other side's bytes. */

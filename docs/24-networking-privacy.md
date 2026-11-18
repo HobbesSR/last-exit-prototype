@@ -3,7 +3,7 @@
 Accepted encoding direction and candidate field precision (#1093) are in
 [24.1](24.1-wire-encoding-design.md), with measurements in
 [42.47](42.47-wire-encoding.md). The backend is selected: the descriptor codec D (24.1,
-[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) is staged (24.1 "Adoption status"). Since stage 2 (`WIRE_VERSION = 5`) the server writes each connection's `state` messages as D's bytes unless the connection negotiated the JSON debug encoding ([State encoding](#state-encoding)); every other message, inputs included, stays JSON. Stage 3 closes the schema (24.3's proposals 3, 6 and 8, and the roster revision). The proposed lossy-transport delta design (#1094)
+[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) is staged (24.1 "Adoption status"). Since stage 2 the server writes each connection's `state` messages as D's bytes unless the connection negotiated the JSON debug encoding ([State encoding](#state-encoding)); every other message, inputs included, stays JSON. Stage 3 (`WIRE_VERSION = 6`) closed the schema: match constants travel with the map, "none" is absent, unread fields left, and every state names its roster revision ([Schema closure](#schema-closure)). The proposed lossy-transport delta design (#1094)
 is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data model of the
 live state, and the engine-side choices that shape a typed wire, are in
 [24.3](24.3-wire-data-model.md) (historical inventory and remaining proposals). The implemented relational data strategy,
@@ -24,7 +24,7 @@ are implemented; exact reconciliation is not promised for hidden contacts.
 
 Every inbound WebSocket message passes through `acceptClientMessage` in `server/protocol.js` before room dispatch. Malformed messages (non-object JSON, unknown `type`, or invalid fields) are dropped—or answered with the existing refusal message for `join` (`error`), `choose` (`choose { ok: false }`) and `teleport` (`teleport { ok: false }`)—while incrementing `session.rejectedMessages` and logging a rate-limited warning (`REJECT_LOG_INTERVAL_MS`). When the server runs with `strictProtocol: true` (enabled in `tests/helpers/browser.js`), any rejected message throws immediately so browser integration tests fail on client/server protocol drift. Wrong-moment messages caused by normal client/server races (such as `start` or `choose` arriving just after match start, or `input` arriving as a match finishes) pass schema validation and are ignored by room state; they are never counted or logged as protocol rejects. Escalating malformed messages or repeated rejects to a socket close with client-side recovery is wanted, but requires its own recovery design and is left out of scope for #957.
 
-`join` separates connection `mode` (`'player' | 'spectator' | 'dev'`) from player `role` (`'contestant' | 'gladiator' | 'any'`). `welcome` preserves its three mode-specific variants, all sharing `room`, `owner`, `devTools`, `ready`, `paused`, `contentId`, `presentation`, `map`, `state` and `stateEncoding`:
+`join` separates connection `mode` (`'player' | 'spectator' | 'dev'`) from player `role` (`'contestant' | 'gladiator' | 'any'`). `welcome` preserves its three mode-specific variants, all sharing `room`, `owner`, `devTools`, `ready`, `paused`, `contentId`, `presentation`, `map`, `state`, `roster`, `constants` and `stateEncoding`:
 - `player` (`PlayerWelcomeMessage`) carries `id` (the assigned `PlayerId`), `resumeKey`, `started`, `matchmade`, and `startsAt`, with the waiting-yard or live `map` and `state` (the player's `role`, `kit` and `seat` arrive in `state` and `lobby`, not on `welcome`).
 - `spectator` (`SpectatorWelcomeMessage`) carries `id: null`, `spectator: true`, and `spectatorDelayTicks`, omits `started`, and carries `map` and `state` once `ready` is `true` (`null` while the map is still generating).
 - `dev` (`DevWelcomeMessage`) carries `id: null`, `spectator: true`, `dev: true`, and `started` (with `devTools: true`), and carries `map` and `state` once `ready` is `true` (`null` while the map is still generating).
@@ -49,6 +49,32 @@ infers an encoding from a failed decode.
   `broadcast` encodes each distinct (view, keyframe set, encoding) payload once and shares it between sessions,
   as before. In a room a binary payload is a `Uint8Array` and text is a string. A room on its own thread
   (#1089) transfers both as bytes with a `binary` flag, and the socket sends a binary frame only for those.
+
+### Schema closure
+
+Stage 3 of #1131 applied [24.3](24.3-wire-data-model.md)'s proposals 3, 6 and 8, with Corey's decision on the
+rest of 8 ([17.4](17.4-live-service.md) #17). Snapshots and recordings are unchanged.
+- **Constants once.** No frame carries `version`, `duration`, `cellChargeTicks`, `physicsProfile` or
+  `predictionMotor`.
+  - `welcome` and `ready` carry the map's `constants`, `{ physicsProfile, predictionMotor }`, or null with no
+    map; the content descriptor already names duration and charge time.
+  - The client's normalizer (`envelope`, `withMatchConstants` in `shared/relational-frame.ts`) puts the profile
+    back on a frame with bodies and the motor on one with `self`, so readers see the frames they did.
+- **One "none".** Own `reload`, `charging` and `respawnAt` are absent for none, never `null`. Inventory slots stay
+  positional, `null` when empty.
+- **No unread fields.** `directed` left, since the client knows how it joined. So did own `cell` and `nodeId`, and
+  item `droppedBy`, `pickupAfter`, `nodeId`, `instanceId` and `lineageId`. A reload names its slot only. The
+  map payload's items go through the same item contract as frames. A field is added when something reads
+  it.
+- **Roster revision.** `seats` carries a `revision`, and each `state` names the revision it was projected
+  against as `rosterRevision`, added by the transport rather than the projection.
+  - A revision names a roster's content within its room (`server/room-views.js`). A delayed view therefore names
+    its captured frame's roster, and the yard's and the match's never collide. It identifies a roster; it does
+    not order rosters.
+  - A session is sent `seats` when its next state names a revision it does not hold, not every tick.
+  - The client refuses to draw a frame against a different roster revision than it holds, closing with the
+    unreadable notice. On one ordered socket that cannot happen; what a client does without the roster on a
+    lossy transport is #1094's to decide ([24.2](24.2-lossy-transport-deltas.md)).
 
 Validation is transport-free and session concerns sit behind a minimal session interface (`id`, `deliver`, `close`, `rejectedMessages`) so room lifecycle, matchmaking, session admission/reconnection (`join`, `match`, `welcome`, `lobby`, `error`, `ping`/`pong`) and connection state can be absorbed by room middleware (Colyseus is the leading candidate) while game update, visibility projection, layered frame encoding, lag compensation and recording stay ours. When evaluating Colyseus against this seam, note three specifics: Colyseus 0.16 replaced `@filter` with `StateView` for per-client visibility; Colyseus 0.18 added built-in client prediction and input handling, so `input` is not automatically application-owned; and our 60-tick spectator delay projects a historical frame rather than current room state, which does not fit live schema state sync and keeps state/projection delivery on our own message path unless delayed spectators move to a downstream consumer ([Two-tier spectators](#two-tier-spectators)).
 
@@ -83,7 +109,7 @@ never as a client statement.
 
 ## Lag compensation
 
-Experimental physics P4 (#441) adds own-view-only `predictionMotor` tuning
+Experimental physics P4 (#441) adds `predictionMotor` tuning, a match constant since #1131 stage 3 (sent with the map, restored to own frames by the client)
 (acceleration, braking, maximum speed, whether motor surfaces apply) beside the authorized correction-tick
 body lists. Own velocity remains private to that player; observed actors still
 omit motion and sleep fields. Fixed prediction proxies use only authorized
@@ -128,7 +154,8 @@ Filtering is field-level as well: another player carries only what the renderer 
 
 `shared/simulation/projection-contract.ts` explicitly lists the live frame, own-player, equipment, gate, trap, projectile, effect and event fields. Source-key order and optional-field presence are retained for existing serialized output. Adding simulation bookkeeping now requires deliberate opt-in before it appears in those payloads. Wire version 4 separates `self` from observed `players`, both keyed by numeric `playerIdx`.
 Seat metadata (`id`, `name`, `role`, `kit`, optional contestant `seat`) is delivered in the
-welcome/ready `roster` and reliable `seats` updates ahead of matching state. The selected
+welcome/ready `roster` and reliable `seats` updates ahead of matching state, each `seats` naming the roster
+revision that state then names ([Schema closure](#schema-closure)). The selected
 captured frame supplies delayed-view metadata. Body poses are authoritative for active
 actors and physical items; bodyless players retain `x`/`y`. Static gate geometry stays in
 ordered `map.gates`; dynamic `state.gates` holds only `gateIdx`, `open`, `locked`.
@@ -186,7 +213,7 @@ minimap terrain remains fully available as described in [15](15-information-rule
 
 ### Dev view
 
-The dev view is a development tool for watching a live match: the directed view with no delay. Who may open it is a server policy, `DEV_TOOLS` = `none`, `owner` or `all` (`server/protocol.js`). Unset means `none`, so a server started for real players offers it to nobody; `npm run dev` and `npm run dev:lan` pass `--dev-tools=all`, which outranks the environment. Under `owner` a session needs the room's owner key, as the delayed spectator stream does; under `all` anyone may open it, including a player who also holds a slot, which is the exception [15](15-information-rules.md) records. A dev session joins with `mode: 'dev'`, counts against the same 24 non-player places, and otherwise behaves as a spectator: no slot, no recording, no commands, no diagnostics. Every dev session in a room shares one payload, built from the current frame rather than the delayed one. Each welcome carries `devTools`, whether that session may open the view, so the client offers the link only where it would be admitted. A welcome into a room whose map is still generating (#258) carries `ready: false` and no map or state; spectators and dev views then get `{ type: 'ready', map, state }` with what their welcome would have held. A player is shown the waiting yard instead until the start (#236): their welcome carries the yard's map, and `state` frames with `phase: 'waiting'` carry every player there (people only, in the fields a match shows of a player in sight, and the player's own fields, plus physics profile, bodies and prediction motor for client Rapier prediction, #975). The match map is first sent to a player in the `ready` the start brings. Input before the start moves them in the yard and is neither a match command nor recorded.
+The dev view is a development tool for watching a live match: the directed view with no delay. Who may open it is a server policy, `DEV_TOOLS` = `none`, `owner` or `all` (`server/protocol.js`). Unset means `none`, so a server started for real players offers it to nobody; `npm run dev` and `npm run dev:lan` pass `--dev-tools=all`, which outranks the environment. Under `owner` a session needs the room's owner key, as the delayed spectator stream does; under `all` anyone may open it, including a player who also holds a slot, which is the exception [15](15-information-rules.md) records. A dev session joins with `mode: 'dev'`, counts against the same 24 non-player places, and otherwise behaves as a spectator: no slot, no recording, no commands, no diagnostics. Every dev session in a room shares one payload, built from the current frame rather than the delayed one. Each welcome carries `devTools`, whether that session may open the view, so the client offers the link only where it would be admitted. A welcome into a room whose map is still generating (#258) carries `ready: false` and no map or state; spectators and dev views then get `{ type: 'ready', map, state }` with what their welcome would have held. A player is shown the waiting yard instead until the start (#236): their welcome carries the yard's map, and `state` frames with `phase: 'waiting'` carry every player there (people only, in the fields a match shows of a player in sight, and the player's own fields, plus bodies for client Rapier prediction, #975, with the yard's physics profile and prediction motor in the welcome's `constants`). The match map is first sent to a player in the `ready` the start brings. Input before the start moves them in the yard and is neither a match command nor recorded.
 
 A player steps out to it in place, with the telescope button or the backquote key, and back the same way (#246). The client opens a second socket as the dev viewer and draws its frames, while the player's own socket stays open, so they keep their slot; it sends no input meanwhile, so the server's usual repeat lets the character go idle, and it keeps receiving the player's frames so stepping back is immediate. Pauses, the lobby and saved replays still arrive on the player's socket. Opening a replay steps back first. `?room=…&dev` opens a standalone dev view with no player. Its camera belongs to `public/camera-director.js`, which every directed view shares (replays and spectators too): the whole arena, a free view (drag or WASD/arrows to pan, the wheel to zoom about the pointer), or a followed player. A followed player is shown in their own sight by default, at their own zoom, using the same shared sight rule a player's view uses; V turns that fog off and the wheel can then zoom, Esc stops following where the camera is, and 0 returns to the whole arena. The fog is drawn from data the directed view already has, so it shows what that player could see, not what their client was sent.
 

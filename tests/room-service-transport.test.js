@@ -271,11 +271,13 @@ test('outbound server message and HTTP builders enforce declared wire shapes at 
 
 test('a seat roster accepts strictly increasing slots with gaps and rejects repeats or reversals', () => {
   const seat = playerIdx => ({ playerIdx, id: `p${playerIdx}`, name: 'N', role: 'contestant', kit: 'warden' });
-  const ok = roster => validateServerMessage({ type: 'seats', roster }).ok;
+  const ok = roster => validateServerMessage({ type: 'seats', roster, revision: 3 }).ok;
   assert.equal(ok([seat(0), seat(2), seat(5)]), true, 'a yard roster may have gaps');
   assert.equal(ok([seat(0), seat(1)]), true);
   assert.equal(ok([]), true);
   assert.equal(ok([seat(1), seat(1)]), false, 'a repeated slot');
   assert.equal(ok([seat(2), seat(1)]), false, 'a decreasing slot');
   assert.equal(ok([seat(-1)]), false);
+  // Every roster names its revision (#1131), which each state then names.
+  for (const revision of [undefined, -1, 1.5]) assert.equal(validateServerMessage({ type: 'seats', roster: [], revision }).ok, false, `revision ${revision}`);
 });
