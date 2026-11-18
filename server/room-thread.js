@@ -1,5 +1,5 @@
 import { Worker } from 'node:worker_threads';
-import { randomUUID, randomBytes } from 'node:crypto';
+import { newOwnerKey, newRoomId } from './room-identity.js';
 import { ROLES } from '../shared/simulation/rules.ts';
 import { zoneSizeName } from '../map/live.ts';
 import { isPackedMap, packMap, packedTransfer } from './map-pack.js';
@@ -24,7 +24,7 @@ const asError = plain => Object.assign(new Error(plain.message), plain.stack ? {
  * when the thread dies unasked.
  */
 export function createRoomThread({ seed, matchmade, size, map, name, content, createdAt, devTools, replays, replayFinishTimeoutMs, profile, wireKey = null, hooks }) {
-  const id = randomBytes(4).toString('hex'), ownerKey = randomUUID();
+  const id = newRoomId(), ownerKey = newOwnerKey();
   const deferredMap = map !== undefined;
   const worker = new Worker(new URL('./room-worker.js', import.meta.url), {
     workerData: {

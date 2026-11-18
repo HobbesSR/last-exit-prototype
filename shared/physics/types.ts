@@ -1,5 +1,12 @@
 import type { BodyId, ItemId, PlayerIdx, PropId, TetherId } from '../types.ts';
 
+/**
+ * World units per engine metre: the one scale between game units and the physics engine's metres. The
+ * adapter (world.ts) converts with it, and the wire codec sends body poses as float32 metres times it
+ * (24.3). It lives here, apart from the engine, so the codec does not load Rapier to read it (#1187).
+ */
+export const UNITS_PER_METRE = 40;
+
 /** Public physics values use game world units and never expose Rapier objects. */
 export type Point = { x: number; y: number };
 export type BodyShape =

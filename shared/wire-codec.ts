@@ -20,6 +20,8 @@
 // unknown formats, versions, messages, tags and enum values, non-finite or non-canonical numbers, missing
 // required fields and trailing or truncated bytes (24.1 "Schema and boundary").
 
+import { UNITS_PER_METRE } from './physics/types.ts';
+
 /** A value on either side of the codec. The schema, not TypeScript, is what closes its shape. */
 type Value = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type FieldType =
@@ -40,8 +42,8 @@ export interface Limits { maxBytes: number; maxCollection: number; maxString: nu
 
 /** The first byte of every message in this format. */
 export const FORMAT = 0xd1;
-/** World units per Rapier metre (shared/physics/world.ts SCALE): body poses are float32 metres times this. */
-export const METRE = 40;
+/** World units per engine metre (physics/types.ts): body poses are float32 metres times this. */
+const METRE = UNITS_PER_METRE;
 export const DEFAULT_LIMITS: Limits = Object.freeze({ maxBytes: 1 << 22, maxCollection: 1 << 16, maxString: 1 << 12 });
 
 const textEncoder = new TextEncoder(), textDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
