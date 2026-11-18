@@ -119,7 +119,20 @@ What the map generation and builder test files check, the promise sweeps' fast a
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing
 it. It walks `server/`, `shared/`, `map/micro/`, `map/kernel/`, `map/tools/`,
-`public/`, `tests/` and `tools/`. `npm run typecheck` is the separate, stronger
+`public/`, `tests/` and `tools/`.
+
+It also rejects encoding damage in every tracked text file (#1179): a UTF-8 byte-order mark, or UTF-8 that was
+read as cp1252 and written back (`·`, U+00B7, becomes U+00C2 U+00B7). PowerShell 5.1's `Get-Content` and `Set-Content` and
+Python's default encoding on Windows cause it. It skips binaries, files whose attributes keep their bytes (`-text`)
+and `docs/reports/`, which retains evidence unchanged. The detector is `tools/lib/encoding-damage.mjs`. The scan adds
+about 2 s.
+
+Line endings are LF in every working copy: the root `.gitattributes` sets `* text=auto eol=lf`, whatever a host's
+`core.autocrlf`, and folders under `docs/reports/` that preserve raw bytes keep their own rules (#1179). An existing
+checkout picks this up as files are checked out again. To convert one at once, with nothing uncommitted,
+run `git rm -r --cached -q . && git reset -q --hard`.
+
+`npm run typecheck` is the separate, stronger
 pass: `tsc --noEmit` under `strict` over `shared/`, `map/micro/`, `map/kernel/` and
 the `map/*.ts` entry modules, then over `map/tools/` (including its `.mts` files,
 which the check walk does not strip). Both typecheck passes reject unused locals and

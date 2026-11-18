@@ -24,10 +24,10 @@ export const SETS = {
   tooling: {
     about: 'the test and CI tooling, the tools/ scripts, documentation and licence checks',
     fast: ['brief-reporter', 'ci-cancel-pr-runs', 'ci-slow-failures', 'doc-links', 'doc-reads', 'forgejo-usage', 'machine-lock',
-      'third-party-notices', 'vendor-modules', 'source-provenance', 'timing', 'profiler', 'sets',
+      'third-party-notices', 'vendor-modules', 'source-provenance', 'timing', 'profiler', 'sets', 'encoding-damage',
       // tools/navigation/*.mjs, the navigation report's library; they import nothing under shared/navigation.
       'navigation-clearance', 'navigation-graph', 'navigation-optimistic'],
-    sources: ['tests/*.mjs', 'tests/helpers/**', 'tools/**', '.forgejo/**', 'docs/**', 'AGENTS.md', 'package.json', 'THIRD-PARTY-NOTICES*', 'shared/profiler.ts'],
+    sources: ['tests/*.mjs', 'tests/helpers/**', 'tools/**', '.forgejo/**', 'docs/**', 'AGENTS.md', 'package.json', '.gitattributes', 'THIRD-PARTY-NOTICES*', 'shared/profiler.ts'],
   },
   geometry: {
     about: 'shapes, clipping, math and free-space meshes every system shares',

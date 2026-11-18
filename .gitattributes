@@ -1,0 +1,3 @@
+# Every working copy is LF, as the repository and CI are, whatever the host's core.autocrlf (#1179).
+# Folders under docs/reports/ that preserve raw bytes keep their own rules.
+* text=auto eol=lf
