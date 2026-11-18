@@ -102,6 +102,18 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
    if it reports a pending review, post the verdict with `create_comment`
    instead. Use `create_comment` for discussion.
+
+   **Say how you would have built it.** Corey (2026-11-18, verbatim, in the session behind PRs #1182 and
+   #1188): "asking reviewers to not only critique the work as is, but consider how they would do it
+   differently, to add as suggestion for the original implementer to consider, because it can make
+   solutions better at implementation time rather than later." Add design notes, labelled as suggestions
+   and kept apart from findings. #1188 took both of review 924's.
+
+   **The author answers each design note in the reply.** Either take it into this PR, or defer it with a
+   stated reason: it can move results (the frozen fixture, the chain sweep, wire bytes), it needs a
+   decision of Corey's, or it is a different review question. A note that preserves behaviour and removes
+   transitional state (a "until #N" caveat, an allow-list a later PR must shrink) usually belongs in this
+   PR. A self-imposed scope ("move, don't rewrite") is not a reason by itself (#1182, #1183).
 7. Humans merge; `main` is protected and needs one approval. Do not merge. After
    a merge, start the next task from step 2; the merged branch is left for the
    human to delete.

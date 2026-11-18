@@ -89,8 +89,16 @@ Port order is stability order:
     import an asynchronously instantiated module synchronously.
   - **When `shared/math.ts` goes.** It stays until its last JavaScript caller has moved. Since `map/` stays in
     Node, that may be a long time. Until then, both copies must keep the same digest.
-- **Then** shape geometry (`shared/shape.ts`, [29.3](29.3-shape-construction-and-assembly.md)) and navigation
-  ([22.6](22.6-hierarchical-navigation.md)).
+- **Then sight casting,** the first per-tick module (#1175 stage 2).
+  - **Why it comes first:** `visibilityPolygon` was about half of tick time in a 24x12 profile. The shape
+    queries were under 1% each (#1175, comment 16306).
+  - **The first step:** it moves out of `shared/movement.ts` into its own module with its segment index (#1184).
+  - **Its input (agent recommendation, #1175 comment 16341).** Sight takes a derived flat index, not the map: the
+    obstacle and gate segments with their buckets, built in JavaScript and uploaded once, plus a per-tick
+    open-gate mask. The map's language-neutral format then waits for a consumer that needs the map itself.
+- **After it,** navigation ([22.6](22.6-hierarchical-navigation.md)) and the shape queries
+  (`shared/shape-queries.ts`, [29](29-geometry-and-drawing.md)).
+  - **Before navigation:** settle whether the free-space mesh's clipping has one owner (#1186).
 
 Each module must match the current tests bit for bit before its TypeScript version is deleted. The TypeScript is
 deleted once its JavaScript callers have moved too. Until then, a module whose callers remain is kept on purpose,

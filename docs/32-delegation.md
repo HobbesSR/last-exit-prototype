@@ -33,6 +33,25 @@ returns in an already-working area. Compare candidates across the epic by user
 benefit, reach, dependency readiness, effort and risk; explain the choice briefly.
 Do not require every child to be exhausted before another workstream can advance.
 
+<a id="foundational-fixes-found-mid-task"></a>
+
+**Foundational fixes found mid-task.** Work often uncovers a seam worth fixing first: a concern in the wrong
+module, a library leaking past its owner, a value kept in two places. Fixing it later costs a rewrite of
+whatever is built on it meanwhile, but following every such fix turns a task into a chain of digressions
+(#1092 to #1173 to #1175 to #1181 and #1187, 2026-11-18). This rule was proposed by claudecode and accepted
+by Corey on 2026-11-18. Before starting one, ask in order:
+1. **Is the current task about to build on it?** If not, open an issue with the evidence and the trigger that
+   should bring it up ("before the navigation port"), and carry on.
+2. **Is it small, behaviour-preserving and one PR?** Then do it now, as its own PR ahead of the task, with the
+   checks [31](31-verification.md) names for its area. Corey's standing preference: separate concerns and
+   ownership, and decouple what need not be coupled for performance or similar reasons (#1181). That is
+   reason enough on its own; it needs no downstream task to earn it.
+3. **Does it need a decision of Corey's, or can it move results** (the frozen fixture, the chain sweep, wire
+   bytes)? Open an issue with its trigger and route around it; bring the decision to Corey.
+4. **Third in a row?** When a session has followed three fixes, each found while doing the last, stop.
+   Post a checkpoint on the tracker with the sequence back to the original task, and bring it to Corey
+   rather than following the chain further.
+
 Before implementation, state the observable outcome, representative acceptance
 evidence, explicit non-goals and stopping condition. A task should deliver a
 coherent functional improvement; bounded does not mean the smallest possible
