@@ -22,8 +22,8 @@ depend on SAT, and the engine behind the queries can change without the callers 
 
 `shapeOf(record)` resolves a stored map record into whichever form it describes: `points` wins, then
 `r`, then the box. That ordering is what the collision code always assumed, so nothing about existing
-maps or recordings changes. The three consumers are collision (`shared/movement.ts`), sight (also
-`movement.ts`, via `edgesOf`) and drawing (`public/static-drawing.js` and `public/frame-drawing.js`, via `outline`). None of them
+maps or recordings changes. The three consumers are collision (`shared/movement.ts`), sight (`shared/sight.ts`,
+via `edgesOf`) and drawing (`public/static-drawing.js` and `public/frame-drawing.js`, via `outline`). None of them
 re-derives geometry from raw fields any more, which is what previously allowed the renderer and the
 physics to disagree about what an obstacle looked like.
 
@@ -70,7 +70,7 @@ shape, with analytic circles and polygon/rectangle containment and edge tests; t
 (`shared/simulation/swept.ts`: the hook tip and tether, shots and the lab's Cast ahead) use it through
 `firstContact`, and so does the navigation adapter in [42.1](42.1-navigation-experiment.md). The
 engine's own contact does not. Shots and the hook query the map through `geometryContact`, which keeps
-static shapes and gate shapes in the static cell grid that movement's colliders, sight edges and gates also
+static shapes and gate shapes in the static cell grid that movement's colliders, sight's edges and the gate index also
 use (`shared/buckets.ts`, 200-unit cells), and hands `firstContact` only those whose bounds meet
 the sweep's box. The candidates stay in list order (static shapes, then closed gates, then extras). Each
 shape's bisection is bracketed by the contacts met before it, so a different order changes the result
@@ -79,14 +79,26 @@ in its last bits (#668).
 ### The swept mover
 
 `shared/movement.ts` is the only module that decides whether something may occupy a place. Its
-occupancy queries serve placement, planning and sight (`movePlayer` moved every body in contents 1 to 5,
-and was retired in #975 when the waiting yard moved onto Rapier).
+occupancy queries serve placement and planning (`movePlayer` moved every body in contents 1 to 5,
+and was retired in #975 when the waiting yard moved onto Rapier). Since #1184 it owns collision alone:
+
+- **Sight casting** is `shared/sight.ts`: `lineClear`, `reachClear`, `visibilityPolygon`, `litPoint`
+  and `seeThrough`, over its own index of the edges that block sight and the see-through obstacles
+  that stop hands. It imports nothing from collision, so it can be ported alone (27).
+- **Where the gates are** is `shared/gate-index.ts` (`gateShape`, `gatesNear`), which both read.
+- **Reading the playable area** (`insideMap`, `playableAreaOf`, the per-cell test) is
+  `shared/playable-area.ts`, beside its encoding.
+- **Each index is built from the obstacle list** through `shared/obstacle-cache.ts`, on demand or
+  prepared ahead in bounded batches (`prepareMovementGeometry`, `prepareSightIndex`).
+- **Actor tuning stays here:** `bodyRadius`, `movementSpeed` and `TILE`. They are the radius and
+  displacement collision consumes, no port needs them apart, and the rules module that might hold
+  them loads the whole content set.
 
 Bodies are circles: a contestant has radius 12, a gladiator 23, a projectile its own. World geometry
 is any shape. Every test is therefore circle-against-shape, dispatched by `separate()`.
 
 Broad phase is a uniform bucket grid of 200 world units, built once per map and cached in a WeakMap
-keyed by the map, invalidated when the obstacle array identity or its length changes. A query
+keyed by the obstacle list, invalidated when the obstacle array identity or its length changes. A query
 collects the buckets a radius touches, then rejects candidates on `nearBounds` — an axis-aligned
 bounds test — before any SAT call. **Order matters for cost:** the bounds test must run before a SAT
 body is built, not after. Reversing those two for closed gates cost roughly 6x on `sim.move` and 2x

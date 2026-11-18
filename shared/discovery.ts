@@ -1,5 +1,7 @@
 import { createFrameNormalizer } from './relational-frame.ts';
-import { gateShape, gatesNear, insideMap, litPoint, visibilityPolygon } from './movement.ts';
+import { litPoint, visibilityPolygon } from './sight.ts';
+import { gateShape, gatesNear } from './gate-index.ts';
+import { insideMap } from './playable-area.ts';
 import { itemsNear } from './simulation/ground-items.ts';
 import { ItemMemory, SeenCells } from './simulation/bot-memory.ts';
 import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';

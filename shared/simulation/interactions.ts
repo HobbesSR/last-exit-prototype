@@ -1,6 +1,7 @@
 import { forkItemAllocation, commitItemAllocation, itemLabel } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
-import { lineClear, reachClear, gateShape } from '../movement.ts';
+import { lineClear, reachClear } from '../sight.ts';
+import { gateShape } from '../gate-index.ts';
 import { carriedCell, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { nearbyGate } from '../gate-query.ts';
 import { observeGate } from '../discovery.ts';

@@ -1,6 +1,8 @@
 import { gateAt } from './relations.ts';
 import { createGameRecord } from './state.ts';
-import { canOccupy, gateShape, prepareMovementGeometry } from '../movement.ts';
+import { canOccupy, prepareMovementGeometry } from '../movement.ts';
+import { prepareSightIndex } from '../sight.ts';
+import { gateShape } from '../gate-index.ts';
 import { actorRadius, validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, synchronizePhysicalItems, validateWorldPhysics } from './world-physics.ts';
 import { reconcileHooks } from './hook.ts';
@@ -24,7 +26,7 @@ export const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, 
 export async function createGame(seed: number, map: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
   // Preparation is private until the factory resolves. Only the server supplies
   // event-loop yields; shared/browser callers retain the ordinary construction path.
-  if (yieldControl) await prepareMovementGeometry(map, yieldControl);
+  if (yieldControl) { await prepareMovementGeometry(map, yieldControl); await prepareSightIndex(map, yieldControl); }
   const s = createGameRecord(seed, map, content);
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);

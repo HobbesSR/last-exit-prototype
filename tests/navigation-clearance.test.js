@@ -4,7 +4,7 @@ import { createClearance } from '../tools/navigation/clearance.mjs';
 import { rect, circle, polygon } from '../shared/shape.ts';
 import { segmentShapeDistance } from '../shared/shape-queries.ts';
 import { bakeGraph, queryGraph } from '../tools/navigation/graph.mjs';
-import { reachClear } from '../shared/movement.ts';
+import { reachClear } from '../shared/sight.ts';
 import { openArea } from './helpers/arena.js';
 
 const p = (x,y) => ({x,y});

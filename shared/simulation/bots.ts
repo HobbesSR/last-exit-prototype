@@ -1,4 +1,7 @@
-import { canOccupy, gatesNear, insideMap, lineClear, reachClear } from '../movement.ts';
+import { canOccupy } from '../movement.ts';
+import { lineClear, reachClear } from '../sight.ts';
+import { gatesNear } from '../gate-index.ts';
+import { insideMap } from '../playable-area.ts';
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_CELL_SIZE, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import { contestantKnowledge } from '../navigation/knowledge.ts';

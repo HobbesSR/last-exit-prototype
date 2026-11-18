@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
-import { seeThrough } from '../shared/movement.ts';
+import { seeThrough } from '../shared/sight.ts';
 import { cellsOf } from './helpers/cells.js';
 import { SIZE, THOROUGH, brief, built, MASKS, SEEDS, DENSE, blockers, kind, boxOf, gapBetween, assertParkPromise, assertClumpSpacing,
   assertParkKinds, assertPiecesAtSizes, casesAt, FAST_CASES, SIZE_CASES } from './helpers/park-fixtures.js';

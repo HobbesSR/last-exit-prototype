@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
 import { contains, diskPenetration, overlaps, prepare, sharesArea } from '../shared/shape-queries.ts';
-import { canOccupy, lineClear, moveBody } from '../shared/movement.ts';
+import { canOccupy, moveBody } from '../shared/movement.ts';
+import { lineClear } from '../shared/sight.ts';
 import { openArea } from './helpers/arena.js';
 
 const square = [{ x: -30, y: -30 }, { x: 30, y: -30 }, { x: 30, y: 30 }, { x: -30, y: 30 }];

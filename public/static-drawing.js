@@ -1,5 +1,5 @@
 import { playableAreaRects } from '/shared/playable-area.ts';
-import { insideMap } from '/shared/movement.ts';
+import { insideMap } from '/shared/playable-area.ts';
 import { roofGroups, roofOverhang, roofCellBorders, ROOF_OVERHANG } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { mix } from './palette.js';

@@ -2,7 +2,7 @@ import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import { bounds, circle, polygon, rect } from '../shape.ts';
 import { segmentShapeDistance } from '../shape-queries.ts';
 import type { Shape } from '../shape.ts';
-import { seeThrough } from '../movement.ts';
+import { seeThrough } from '../sight.ts';
 import { bucketBox, eachCellIn, Visited } from '../buckets.ts';
 import type { BodyDefinition } from '../physics/types.ts';
 import { bodyShape } from '../physics/presentation-geometry.ts';

@@ -6,7 +6,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { createGame, step, snapshot, disposePhysics, PHYSICS_VERSION, playerView, enqueuePhysicsImpulse, setInput } from '../shared/simulation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { staticShapes } from '../shared/simulation/swept.ts';
-import { insideMap } from '../shared/movement.ts';
+import { insideMap } from '../shared/playable-area.ts';
 import { stringifyWithMap } from '../server/map-payload.js';
 import { replaceItem } from '../shared/simulation/ground-items.ts';
 import { openArea } from './helpers/arena.js';

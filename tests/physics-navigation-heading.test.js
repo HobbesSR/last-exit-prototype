@@ -5,7 +5,7 @@ import { contentById } from '../shared/simulation/content.ts';
 import { collectBotIntent } from '../shared/simulation/bots.ts';
 import { actorRadius } from '../shared/simulation/actor-physics.ts';
 import { visiblePoint, visibleTo } from '../shared/simulation/visibility.ts';
-import { VISION } from '../shared/movement.ts';
+import { VISION } from '../shared/sight.ts';
 import { openArea } from './helpers/arena.js';
 
 function fixture({ spawns = [{ x: 150, y: 400 }], gladiator = false, obstacles = [], items = [] } = {}) {

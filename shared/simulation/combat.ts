@@ -1,4 +1,4 @@
-import { lineClear } from '../movement.ts';
+import { lineClear } from '../sight.ts';
 import { equipped, syncWeapon } from '../equipment.ts';
 import { qualityDamage } from '../loot-tiers.ts';
 import { HZ } from './rules.ts';

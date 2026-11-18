@@ -1,8 +1,8 @@
-import { lineClear, litPoint } from './movement.ts';
+import { lineClear, litPoint } from './sight.ts';
 import { bounds as shapeBounds, nearBounds, polygon, clipPolygonToRect } from './shape.ts';
 import { contains, overlaps, prepare, type Prepared } from './shape-queries.ts';
 import type { Shape } from './shape.ts';
-import type { VisibilityPoint } from './movement.ts';
+import type { VisibilityPoint } from './sight.ts';
 import type { Building, Cell, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
 import { hypot } from './math.ts';
 

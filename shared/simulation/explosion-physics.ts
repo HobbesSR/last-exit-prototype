@@ -1,4 +1,4 @@
-import { lineClear } from '../movement.ts';
+import { lineClear } from '../sight.ts';
 import type { Game, Vec2 } from '../types.ts';
 import { enqueuePhysicsImpulse, physicsRuntime } from './physics-runtime.ts';
 import { hypot } from '../math.ts';

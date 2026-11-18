@@ -1,7 +1,8 @@
 // Guards the wedge-culled visibility polygon against a brute-force implementation of the same rays.
 // The optimisation must be exact: every vertex identical, not merely close.
 import { generatedMap } from './helpers/room-harness.js';
-import { visibilityPolygon, litPoint, lineClear, reachClear, canOccupy, VISION } from '../shared/movement.ts';
+import { canOccupy } from '../shared/movement.ts';
+import { visibilityPolygon, litPoint, lineClear, reachClear, VISION } from '../shared/sight.ts';
 import { outline, shapeOf } from '../shared/shape.ts';
 // Exact agreement needs the same trig as shared/; Math.* differs from it in the last bit on ARM (#566).
 import { atan2, cos, sin } from '../shared/math.ts';
