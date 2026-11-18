@@ -872,6 +872,8 @@ const cleanPlayerName = (name: unknown): string =>
 
 /** Read when a page joins this server's build: the server reads what it may send, never guesses it later. */
 export const STALE_CLIENT_REASON = 'This page is out of date with the arena. Reload to play.';
+/** Why a join or match request asking for JSON state was refused: the debug encoding needs dev tools. */
+export const JSON_STATE_REFUSED = 'JSON state is a debug encoding this arena grants only with its dev tools.';
 /**
  * A join's or match request's negotiation (24.1): the wire version the page was built for, when it says, and
  * the state encoding it reads. A page built for another wire version is refused before anything is sent to it.
@@ -899,6 +901,9 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
   const type = data.type as ClientMessageType;
   switch (type) {
     case CLIENT_MESSAGE.JOIN: {
+      // Negotiation first: a stale page is told to reload, whatever else its join gets wrong for this version.
+      const negotiated = negotiation(data);
+      if (!negotiated.ok) return { ok: false, type, reason: negotiated.reason };
       if (typeof data.room !== 'string' || !data.room.trim()) {
         return { ok: false, type, reason: 'A room id is required to join.' };
       }
@@ -920,8 +925,6 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
       if (data.resumeKey !== undefined && data.resumeKey !== null && typeof data.resumeKey !== 'string') {
         return { ok: false, type, reason: 'Resume key must be a string.' };
       }
-      const negotiated = negotiation(data);
-      if (!negotiated.ok) return { ok: false, type, reason: negotiated.reason };
       return {
         ok: true,
         message: {
@@ -938,6 +941,8 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
       };
     }
     case CLIENT_MESSAGE.MATCH: {
+      const negotiated = negotiation(data);
+      if (!negotiated.ok) return { ok: false, type, reason: negotiated.reason };
       if (data.role !== undefined && !(JOIN_ROLES as readonly unknown[]).includes(data.role)) {
         return { ok: false, type, reason: 'Match role must be contestant, gladiator, or any.' };
       }
@@ -947,8 +952,6 @@ export function validateClientMessage(raw: unknown): ClientMessageValidation {
       if (data.name !== undefined && typeof data.name !== 'string') {
         return { ok: false, type, reason: 'Player name must be a string.' };
       }
-      const negotiated = negotiation(data);
-      if (!negotiated.ok) return { ok: false, type, reason: negotiated.reason };
       return {
         ok: true,
         message: {

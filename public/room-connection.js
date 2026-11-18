@@ -26,6 +26,12 @@ export function joinNegotiation(search = globalThis.location?.search ?? '') {
   return { wireVersion: WIRE_VERSION, stateEncoding: new URLSearchParams(search).get('wire') === 'json' ? 'json' : 'binary' };
 }
 
+// Read once, as the page loads: the page rewrites its own address once it is welcomed (`?room=`), and a later
+// socket from it (a rejoin, the dev view) must still ask for what the page was opened with.
+const PAGE_NEGOTIATION = joinNegotiation();
+/** What this page asks for on every socket it opens. */
+export const pageNegotiation = () => PAGE_NEGOTIATION;
+
 /** Whether a `state` message arrived in the encoding its welcome confirmed: never read one that did not. */
 export const deliveredAs = (data, encoding) => (typeof data === 'string' ? 'json' : 'binary') === encoding;
 
@@ -91,7 +97,7 @@ export function createRoomConnection({
       disconnecting = false;
       let resumeKey;
       try { if (room) resumeKey = sessionStorage.getItem(`last-exit:resume:${room}`); } catch { /* Optional recovery. */ }
-      const negotiation = joinNegotiation();
+      const negotiation = pageNegotiation();
       socket.send(JSON.stringify(matchmake
         ? { type: CLIENT_MESSAGE.MATCH, role, kit, name, ...negotiation }
         : { type: CLIENT_MESSAGE.JOIN, room, ownerKey: key, resumeKey, mode, ...(mode === 'player' ? { role, kit, name } : {}), ...negotiation }));

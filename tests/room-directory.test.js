@@ -5,6 +5,7 @@ import { MAX_ROOMS } from '../server/room-directory.js';
 import { roomName, MAX_ROOM_NAME } from '../server/protocol.js';
 import { roomHarness, generatedMap } from './helpers/room-harness.js';
 import { readArena } from '../tools/room-arena.mjs';
+import { JSON_STATE_REFUSED, STALE_CLIENT_REASON, WIRE_VERSION } from '../shared/protocol.ts';
 
 // Listing, capacity and naming are about rooms, not maps, so these rooms reuse one generated map
 // (`reuseMaps`); room-service, map-generator and map-pool tests generate theirs.
@@ -86,6 +87,25 @@ test(`the directory holds at most ${MAX_ROOMS} rooms, and a finished one frees i
     const owner = h.joined(rooms[0], { ownerKey: rooms[0].ownerKey }); owner.send({ type: 'start' }); owner.send({ type: 'finish' });
     assert.ok(h.directory.createRoom(9));
   } finally { await h.service.close(); }
+});
+
+test('a matchmaking request the server will not serve is answered, and makes no room', async () => {
+  for (const devTools of ['none', 'owner', 'all']) {
+    const h = roomHarness({ devTools, reuseMaps: true });
+    try {
+      // A stale page is told to reload, and JSON state needs dev tools, which only `all` grants a matchmade
+      // join: it holds no owner key (24, State encoding).
+      const stale = h.peer(); stale.send({ type: 'match', wireVersion: WIRE_VERSION - 1 });
+      assert.equal(stale.messages.at(-1)?.message, STALE_CLIENT_REASON);
+      const json = h.peer(); json.send({ type: 'match', wireVersion: WIRE_VERSION, stateEncoding: 'json' });
+      if (devTools === 'all') {
+        assert.equal(json.messages.find(m => m.type === 'welcome')?.stateEncoding, 'json', `${devTools}: granted`);
+      } else {
+        assert.deepEqual(json.messages.map(m => m.message), [JSON_STATE_REFUSED], `${devTools}: refused`);
+        assert.deepEqual(h.service.summaries(), [], `${devTools}: no room was made for a refused request`);
+      }
+    } finally { await h.service.close(); }
+  }
 });
 
 test('rooms that reuse a generated map each hold their own copy of it', async () => {

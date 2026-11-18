@@ -1,5 +1,6 @@
 import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { CLIENT_MESSAGE, acceptClientMessage, errorMessage, randomSeed } from './protocol.js';
+import { JSON_STATE_REFUSED } from '../shared/protocol.ts';
 import { send } from './room-views.js';
 export const MAX_ROOMS = 8;
 const FULL = errorMessage('All arena slots are occupied. Try matchmaking again after a match ends.');
@@ -52,6 +53,9 @@ export function createRoomDirectory({ host, generateMap = null, pool = null, dev
     // Refused as a join is, with its reason: a stale page is told to reload rather than left waiting.
     if (!validated.ok) return send(session, errorMessage(validated.reason));
     if (!host.accepting()) return;
+    // Matchmade joins hold no owner key, so only `all` grants JSON state. Refused here, before `match` can
+    // make a room the join would then be refused from.
+    if (validated.message.stateEncoding === 'json' && devTools !== 'all') return send(session, errorMessage(JSON_STATE_REFUSED));
     const answer = match();
     if (!answer) return send(session, FULL);
     const { role, kit, name, stateEncoding } = validated.message;

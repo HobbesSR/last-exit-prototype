@@ -194,6 +194,8 @@ test('protocol validation counts and rate-limits rejected messages, throws in st
     assert.equal(asked(undefined).message.stateEncoding, 'binary');
     assert.equal(asked('msgpack').ok, false, `${type}: an unknown encoding is refused`);
     assert.deepEqual(validateClientMessage({ type, room: 'a', wireVersion: WIRE_VERSION - 1 }), { ok: false, type, reason: STALE_CLIENT_REASON });
+    // Checked before the version's other fields, so a stale page is told to reload whatever else it sends.
+    assert.equal(validateClientMessage({ type, room: 'a', wireVersion: WIRE_VERSION - 1, role: 'spectator' }).reason, STALE_CLIENT_REASON);
   }
   const logs = [], session = { id: 7 };
   assert.equal(acceptClientMessage(session, { type: 'unknown' }, { log: msg => logs.push(msg), now: 1000 }).ok, false);

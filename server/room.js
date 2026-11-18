@@ -11,6 +11,7 @@ import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, viewEncoders, SPECTATOR_DELAY_TICKS } from './room-views.js';
 import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView, waitingSeats } from '../shared/simulation/waiting.ts';
 import { waitingYard } from '../shared/waiting-yard.ts';
+import { JSON_STATE_REFUSED } from '../shared/protocol.ts';
 import {
   normalizeDiagnostic,
   playerWelcomeMessage,
@@ -471,7 +472,7 @@ export function createRoom({
     // page never reads an encoding it did not ask for.
     const stateEncoding = options.stateEncoding ?? 'binary';
     if (stateEncoding === 'json' && !devAllowed(owner)) {
-      return refuseJoin(clientId, 'JSON state is a debug encoding this arena grants only with its dev tools.');
+      return refuseJoin(clientId, JSON_STATE_REFUSED);
     }
     if (options.mode === 'dev') return joinDev(clientId, owner, stateEncoding);
     if (options.mode === 'spectator') return joinSpectator(clientId, owner, stateEncoding);

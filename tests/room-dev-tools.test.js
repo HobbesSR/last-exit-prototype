@@ -137,6 +137,13 @@ test('each connection reads state in the encoding it negotiated, and JSON only w
     assert.equal(refused.messages.length, 1);
   } finally { await closed.service.close(); }
 
+  // Under `owner` the debug encoding follows the owner key, as the dev view does.
+  const owned = roomHarness({ devTools: 'owner', reuseMaps: true }), mine = await owned.live();
+  try {
+    assert.equal(owned.joined(mine.room, { stateEncoding: 'json', ownerKey: mine.room.ownerKey }).messages[0].stateEncoding, 'json');
+    assert.match(owned.joined(mine.room, { stateEncoding: 'json' }).messages[0].message, /debug encoding/);
+  } finally { await owned.service.close(); }
+
   const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room } = await h.live();
   try {
     const text = h.joined(room, { mode: 'dev', stateEncoding: 'json' }), bytes = h.joined(room, { mode: 'dev' });

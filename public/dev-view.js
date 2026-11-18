@@ -1,7 +1,7 @@
 import { createFrameNormalizer } from '../shared/relational-frame.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { CLIENT_MESSAGE, SERVER_MESSAGE } from '/shared/protocol.ts';
-import { deliveredAs, envelopePresentation, joinNegotiation } from '/room-connection.js';
+import { deliveredAs, envelopePresentation, pageNegotiation } from '/room-connection.js';
 import { readServerMessage } from '/shared/wire-schema.ts';
 import { $, fillFollowOptions } from '/ui.js';
 
@@ -40,7 +40,7 @@ export function createDevView({
     // State arrives in the encoding the welcome confirms (24.1); anything unreadable ends the feed.
     socket.binaryType = 'arraybuffer';
     let stateEncoding = null;
-    socket.addEventListener('open', () => socket.send(JSON.stringify({ type: CLIENT_MESSAGE.JOIN, room: getRoomId(), ownerKey: getOwnerKey(), mode: 'dev', ...joinNegotiation() })));
+    socket.addEventListener('open', () => socket.send(JSON.stringify({ type: CLIENT_MESSAGE.JOIN, room: getRoomId(), ownerKey: getOwnerKey(), mode: 'dev', ...pageNegotiation() })));
     socket.addEventListener('message', event => {
       if (feed !== socket) return;
       let data;
