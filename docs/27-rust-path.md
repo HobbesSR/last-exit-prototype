@@ -28,7 +28,8 @@ transferable package (`server/map-pack.js`, #1089). Its format does not suit Rus
   object-graph format. The free-space tiles are separate typed arrays.
 - **What the core needs.** A language-neutral form of the map. The tiles' flat arrays nearly are one already; the
   map and its portal graph need a schema'd flat encoding, as D gave the state.
-- **When.** That format is part of the core's first consumer of map data, not of the math port.
+- **When.** That format is part of the core's first consumer that needs the map itself, not of the math port, and not
+  of a derived index such as sight's segments (port order, below).
 - **Otherwise unchanged.** `map/` moves only if a later reason appears.
 
 Review 907 on PR #1172 found the format gap.
@@ -91,7 +92,8 @@ Port order is stability order:
     Node, that may be a long time. Until then, both copies must keep the same digest.
 - **Then sight casting,** the first per-tick module (#1175 stage 2).
   - **Why it comes first:** `visibilityPolygon` was about half of tick time in a 24x12 profile. The shape
-    queries were under 1% each (#1175, comment 16306).
+    queries were under 1% each (#1175, comment 16306). That was one unlocked run of 1,500 ticks, a rough guide;
+    stage 2 measures under the bench lock.
   - **The first step:** it moves out of `shared/movement.ts` into its own module with its segment index (#1184).
   - **Its input (agent recommendation, #1175 comment 16341).** Sight takes a derived flat index, not the map: the
     obstacle and gate segments with their buckets, built in JavaScript and uploaded once, plus a per-tick

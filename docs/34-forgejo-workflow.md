@@ -107,7 +107,9 @@ them supplied explicitly; these files cannot grant missing tool capabilities.
    #1188): "asking reviewers to not only critique the work as is, but consider how they would do it
    differently, to add as suggestion for the original implementer to consider, because it can make
    solutions better at implementation time rather than later." Add design notes, labelled as suggestions
-   and kept apart from findings. #1188 took both of review 924's.
+   and kept apart from findings. #1188 took both of review 924's. Choose the verdict by what the notes need:
+   `REQUEST_CHANGES` (or `COMMENT`) when the author should answer them before merge, since an approval lets a
+   human merge first (#1182 was approved before its notes were answered); `APPROVED` when they are optional follow-ups.
 
    **The author answers each design note in the reply.** Either take it into this PR, or defer it with a
    stated reason: it can move results (the frozen fixture, the chain sweep, wire bytes), it needs a
