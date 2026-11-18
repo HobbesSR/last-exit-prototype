@@ -338,7 +338,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Tier | When | Runs |
 | --- | --- | --- |
 | Inner loop | every edit | The narrowest check that fails when the edit is wrong: a test file, a `--test-name-pattern`, a set or `set:word` ([Test sets](#test-sets)), or a replay. Seconds |
-| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; plus the area's extras |
+| Before the PR | once | What CI's `verify` runs ([below](#continuous-integration)): `npm run check`, `npm run typecheck`, `npm test`, and for a change under `map/macro/` also `npm run test:mapgen`, run from the repository root; for a change under `rust/`, what the `rust` workflow runs, from `rust/`; plus the area's extras |
 | Integration | once per PR, where the area can move it | The members of [Integration checks per set](31.1-test-catalogue.md#integration-checks-per-set) the change can move, and no others |
 
 | Changed area | Inner loop | Integration | Alone, 2026-11-05 |
@@ -354,6 +354,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`; `live-map` and `view-live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s, 18 s and 90 s |
 | The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-room`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
 | Shared geometry and math (`test:set geometry`) | the unit file | the full chain sweep (shapes reach every builder); the physics Node/Chrome equality scripts (`physics-world`, `-hook`, `-hook-live`, `-navigation`, 8 s), since simulation math must be bit-equal in Chrome | 167 s |
+| The Rust workspace (`rust/`, [27](27-rust-path.md#the-workspace)) | from `rust/`: `cargo test`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check` | `cargo deny check licenses sources` when a dependency changes; `cargo build --release -p last-exit-core --target wasm32-unknown-unknown`. The Node gates only when the change reaches what JavaScript loads | seconds, while the crates are placeholders (2026-11-17) |
 | Tooling and docs | the unit file; `test:set tooling` | none; `npm run test:browser` when the browser runner changes | |
 
 The replay needs its cache captured before the first edit (53). Whatever the area, a fixture is
@@ -448,7 +449,8 @@ open point.
 ## Continuous integration
 
 Forgejo Actions runs `.forgejo/workflows/ci.yml` in fresh `node:24.15.0` containers with
-the npm that `packageManager` names, as two jobs on separate runner queues:
+the npm that `packageManager` names, as two jobs on separate runner queues. `rust.yml` adds a third for the
+Rust workspace:
 
 - **`verify`** (label `docker`) runs on every pull request and every push to `main`:
   `npm run check`, `npm run typecheck`, `npm test` (through `brief`, so the log gives each
@@ -456,6 +458,21 @@ the npm that `packageManager` names, as two jobs on separate runner queues:
   tier on every pull request, not only the sets a branch reaches (Corey, 2026-11-05, #800 S5);
   a slow `verify` is answered by cutting the slowest fast-tier files' cost, not by narrowing it. It is the pull request's
   check. The runner is several times slower than the development machine (42.3, 2026-11-04).
+- **`rust`** (`.forgejo/workflows/rust.yml`, label `docker`, #1174) runs only when a pull request or a push to
+  `main` changes `rust/` or the workflow itself, so a change outside `rust/` never waits for it. In the Node image, it
+  installs `rustup`, and `rust/rust-toolchain.toml` then names the toolchain. It runs the licence and source check
+  ([21.1](21.1-third-party-licenses.md#the-rust-workspace)), `cargo fmt --check`, `clippy` with warnings denied,
+  `cargo test`, the core's WASM build and the edge's Linux release build. The runner is arm64, so that build is
+  aarch64; the x64 build is the Dockerfile's on an x64 host. The workflow
+  caches the toolchain, the registry and `rust/target`, keyed on the toolchain file and `Cargo.lock`, once the runner
+  offers a cache (below).
+  - **Its cost (2026-11-17, placeholder crates).** On the runner, the job took 40 s from start to finish. Of that,
+    25 s was the checkout and 10 s was the toolchain install. Fetching `cargo-deny` and running every check and build
+    took about 3 s.
+  - **No cache yet.** The runner has no cache service today: `actions/cache` warns and carries on, so every run is
+    cold. The step stays so that enabling the service in the runner's configuration needs no workflow change.
+  - **Watch for growth.** The edge's crates will make the cold build the cost to watch. Once a run takes minutes,
+    the remedy is a runner cache or an image with the toolchain baked in.
 - **`slow`** (label `slow`) runs `npm run test:slow` on every push to `main`, after
   merge, so pull requests never wait for it. When it fails,
   `tools/ci/slow-failures.mjs` files one issue per failing test, titled

@@ -1,0 +1,70 @@
+# The Rust workspace's checks (#1174). docs/31 lists them and their cost. Separate from ci.yml
+# so a change outside rust/ never waits for them; ci.yml's verify stays the Node gate.
+name: rust
+
+on:
+  push:
+    branches: [main]
+    paths: ['rust/**', '.forgejo/workflows/rust.yml']
+  pull_request:
+    paths: ['rust/**', '.forgejo/workflows/rust.yml']
+  workflow_dispatch:
+
+jobs:
+  rust:
+    runs-on: docker
+    container:
+      # The Node image, as verify uses: actions need Node, and the core's loader will run here.
+      image: node:24.15.0-bookworm
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      # The toolchain, the registry and the build directory are cached together, keyed on what
+      # decides them; a miss costs the toolchain download and a cold build.
+      - uses: https://data.forgejo.org/actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            rust/target
+          key: rust-${{ hashFiles('rust/rust-toolchain.toml', 'rust/Cargo.lock') }}
+          restore-keys: |
+            rust-${{ hashFiles('rust/rust-toolchain.toml') }}
+      # rustup only; rust-toolchain.toml then names the version, components and targets.
+      - run: |
+          if [ ! -x "$HOME/.cargo/bin/rustup" ]; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - run: rustup toolchain install
+      # cargo-deny's own release for the runner's architecture (it is arm64 today), checked
+      # against its published digest (docs/21.1).
+      - run: |
+          if ! cargo deny --version 2>/dev/null | grep -q '^cargo-deny 0.21.0$'; then
+            case "$(uname -m)" in
+              aarch64) arch=aarch64; digest=47cc5d88d43cd568028080fece02d729f56f0ff8e6c168563ce6589e3c0f4738 ;;
+              x86_64) arch=x86_64; digest=a2170b854ff697e79e39c4c538981c9c1bdd803addbae6719a4cb66b4585a903 ;;
+              *) echo "no cargo-deny digest for $(uname -m)"; exit 1 ;;
+            esac
+            name=cargo-deny-0.21.0-$arch-unknown-linux-musl
+            curl -sSfLO "https://github.com/EmbarkStudios/cargo-deny/releases/download/0.21.0/$name.tar.gz"
+            echo "$digest  $name.tar.gz" | sha256sum -c -
+            tar xzf "$name.tar.gz" -C "$HOME/.cargo/bin" --strip-components=1 "$name/cargo-deny"
+            rm "$name.tar.gz"
+          fi
+      - run: cargo deny --locked check licenses sources
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --locked --release -p last-exit-core --target wasm32-unknown-unknown
+      # The edge's Linux release build, as rust/Dockerfile builds it, for the runner's own
+      # architecture. The Dockerfile builds for whichever host runs it.
+      - run: cargo build --locked --release -p last-exit-edge

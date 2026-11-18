@@ -1,0 +1,13 @@
+# The project's Rust workspace (docs/27). `edge` terminates WebTransport (#1095, docs/24.5);
+# `core` is the simulation crate built to the one WASM binary Node and the browser both load.
+[workspace]
+resolver = "3"
+members = ["edge", "core"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.100"
+license = "MIT"
+publish = false
+

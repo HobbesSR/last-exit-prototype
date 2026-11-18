@@ -76,7 +76,8 @@ generation is in `map/`:
   itself.
 
 `map/` builds on the core, and `shared/` never imports `map/`; a test holds
-both rules. Map generation is documented in `docs/5x` together with 19 and 20
+both rules. `rust/` is the Cargo workspace for the Rust edge and core
+([27](docs/27-rust-path.md#the-workspace)); run `cargo` from there. Map generation is documented in `docs/5x` together with 19 and 20
 (`docs/50`), and mapgen's former docs are archived. `CLAUDE.md` files only
 import `AGENTS.md`; edit `AGENTS.md`, not them.
 

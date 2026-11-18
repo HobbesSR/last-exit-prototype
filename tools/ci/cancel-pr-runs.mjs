@@ -6,11 +6,13 @@ import { pathToFileURL } from 'node:url';
 import { options } from '../options.mjs';
 
 const ACTIVE = ['waiting', 'running', 'blocked'];
+// Every workflow a pull request starts on the runner queues: verify, and the Rust checks (#1174).
+export const WORKFLOWS = ['ci.yml', 'rust.yml'];
 const PAGE = 50;
 
 /**
- * Every active `ci.yml` run of this pull request, reading `page(n)` (one page of active
- * `ci.yml` runs, newest first) until a short page. The server's `event` filter is not used:
+ * Every active run of this pull request in one workflow, reading `page(n)` (one page of that
+ * workflow's active runs, newest first) until a short page. The server's `event` filter is not used:
  * it leaves out runs from `synchronized` pushes, which are exactly the leftovers.
  */
 export async function activeRuns(page, pr) {
@@ -29,12 +31,15 @@ async function main() {
   const env = name => { const value = process.env[name]; if (!value) throw new Error(`${name} is not set`); return value; };
   const api = `${env('GITHUB_SERVER_URL').replace(/\/$/, '')}/api/v1/repos/${env('GITHUB_REPOSITORY')}/actions/runs`;
   const headers = { Authorization: `token ${env('FORGEJO_TOKEN')}` };
-  const query = `workflow_id=ci.yml&${ACTIVE.map(status => `status=${status}`).join('&')}&limit=${PAGE}`;
-  const runs = await activeRuns(async n => {
-    const response = await fetch(`${api}?${query}&page=${n}`, { headers });
-    if (!response.ok) throw new Error(`GET runs page ${n}: ${response.status} ${await response.text()}`);
-    return (await response.json()).workflow_runs ?? [];
-  }, pr);
+  const runs = [];
+  for (const workflow of WORKFLOWS) {
+    const query = `workflow_id=${workflow}&${ACTIVE.map(status => `status=${status}`).join('&')}&limit=${PAGE}`;
+    runs.push(...await activeRuns(async n => {
+      const response = await fetch(`${api}?${query}&page=${n}`, { headers });
+      if (!response.ok) throw new Error(`GET ${workflow} runs page ${n}: ${response.status} ${await response.text()}`);
+      return (await response.json()).workflow_runs ?? [];
+    }, pr));
+  }
   if (!runs.length) console.log(`no active CI runs for #${pr}`);
   for (const run of runs) {
     if (!args.has('dry-run')) {

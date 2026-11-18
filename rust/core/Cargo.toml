@@ -1,0 +1,13 @@
+[package]
+# Not `core`, which would shadow Rust's own `core` crate.
+name = "last-exit-core"
+description = "The simulation core, built to one WASM binary for the Node server and the browser (docs/27)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+# cdylib is the WASM module; rlib lets `cargo test` run natively.
+crate-type = ["cdylib", "rlib"]

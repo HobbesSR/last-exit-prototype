@@ -1,0 +1,7 @@
+# The Rust workspace's toolchain (docs/27, #1174). CI installs it from this file. rust/Dockerfile's
+# builder tag names the same version and Cargo.toml's rust-version its minor; bump them together.
+[toolchain]
+channel = "1.100.0"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
+targets = ["wasm32-unknown-unknown"]
