@@ -41,38 +41,68 @@ test('shared/ computes non-exact math only through shared/math.ts (#566)', () =>
   assert.deepEqual(offenders, []);
 });
 
-/** A digest of exact output bits. rust/core/src/math.rs's tests compute the same one. */
-function digestOf({ sin, cos, atan, atan2, hypot }) {
+/** FNV-1a over exact output bits. NaN is mixed as the one canonical NaN, whatever its payload. */
+function digester() {
   let digest = 0x811c9dc5;
   const mix = value => {
-    bits.setFloat64(0, value);
+    bits.setFloat64(0, Number.isNaN(value) ? NaN : value);
     for (let i = 0; i < 8; i++) digest = Math.imul(digest ^ bits.getUint8(i), 0x01000193) >>> 0;
   };
+  return { mix, hex: () => digest.toString(16) };
+}
+
+/** A digest over arguments of every scale. rust/core/src/math.rs's tests compute the same one. */
+function digestOf({ sin, cos, atan, atan2, hypot }) {
+  const { mix, hex } = digester();
   const xs = inputs(20000);
   for (let i = 0; i < xs.length; i++) {
     const x = xs[i], y = xs[(i * 7 + 3) % xs.length];
     mix(sin(x)); mix(cos(x)); mix(atan(x)); mix(atan2(y, x)); mix(hypot(x, y));
   }
-  return digest.toString(16);
+  return hex();
+}
+
+/**
+ * A digest over what digestOf's inputs miss: signed zeros, subnormals, infinities, NaN, and
+ * |x| past math.ts's MEDIUM, where sin and cos first reduce with `%`. rust/core/src/math.rs's
+ * tests compute the same one natively.
+ */
+function edgeDigestOf({ sin, cos, atan, atan2, hypot }) {
+  const { mix, hex } = digester();
+  const special = [0, -0, 1, -1, 1e-310, -1e-310, 1e6, -1e6, 1e300, -1e300, Infinity, -Infinity, NaN];
+  for (const a of special) {
+    mix(sin(a)); mix(cos(a)); mix(atan(a));
+    for (const b of special) { mix(atan2(a, b)); mix(hypot(a, b)); }
+  }
+  const large = [];
+  for (let i = 0, x = 823549.6658963379; i < 200; i++, x *= 1.37) large.push(i % 2 ? -x : x);
+  for (let i = 0; i < large.length; i++) {
+    const x = large[i], y = large[(i + 1) % large.length];
+    mix(sin(x)); mix(cos(x)); mix(atan(x)); mix(atan2(y, x)); mix(hypot(x, y));
+  }
+  return hex();
 }
 
 test('the math module returns the same bits on every platform', () => {
   // It holds on x86 and ARM alike (#566). If it moves, the simulation's results moved, and
   // that is a fixture version decision (31), not a test update.
   assert.equal(digestOf(math), '5a8ef1eb');
+  assert.equal(edgeDigestOf(math), '774d7a76');
 });
 
 test('the Rust core computes the same bits as the math module (docs/27)', async () => {
   const core = await loadCore(readFileSync('shared/core.wasm'));
   const ported = { sin: core.math_sin, cos: core.math_cos, atan: core.math_atan, atan2: core.math_atan2, hypot: core.math_hypot };
   assert.equal(digestOf(ported), '5a8ef1eb');
-  // The digest's inputs are finite; the special cases must match bit for bit too, not to an ulp.
-  const special = [0, -0, 1, -1, 1e-310, -1e-310, 1e6, -1e6, 1e300, -1e300, Infinity, -Infinity, NaN];
-  for (const a of special) {
-    for (const name of ['sin', 'cos', 'atan']) assert.ok(Object.is(ported[name](a), math[name](a)), `${name}(${a})`);
-    for (const b of special)
-      for (const name of ['atan2', 'hypot']) assert.ok(Object.is(ported[name](a, b), math[name](a, b)), `${name}(${a}, ${b})`);
-  }
+  assert.equal(edgeDigestOf(ported), '774d7a76');
+});
+
+test('the core loader refuses a module of another adapter version', async () => {
+  // A hand-assembled module whose only export is adapter_version, returning 1.
+  const stale = Uint8Array.of(0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7f,
+    0x03, 0x02, 0x01, 0x00, 0x07, 0x13, 0x01, 0x0f, ...new TextEncoder().encode('adapter_version'), 0x00, 0x00,
+    0x0a, 0x06, 0x01, 0x04, 0x00, 0x41, 0x01, 0x0b);
+  await assert.rejects(loadCore(stale), /adapter version 1, this loader 2/);
 });
 
 test('the math module stays within 1 ulp of the engine and follows its special cases', () => {

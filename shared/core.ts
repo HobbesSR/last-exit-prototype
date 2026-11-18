@@ -17,10 +17,17 @@ declare const WebAssembly: {
   instantiate(bytes: ArrayBuffer | ArrayBufferView, imports: object): Promise<{ instance: { exports: object } }>;
 };
 
+/** The production contract: memory and buffer entry points only, never per-scalar calls (docs/27). */
 export interface CoreExports {
   readonly memory: { readonly buffer: ArrayBuffer };
   adapter_version(): number;
-  /** The crate's port of shared/math.ts, exported for the parity check only (docs/27). */
+}
+
+/**
+ * The crate's port of shared/math.ts, exported per scalar for tests/math.test.js's parity check
+ * only. JavaScript callers keep shared/math.ts (docs/27, "Port order").
+ */
+export interface MathParityExports extends CoreExports {
   math_sin(x: number): number;
   math_cos(x: number): number;
   math_atan(x: number): number;

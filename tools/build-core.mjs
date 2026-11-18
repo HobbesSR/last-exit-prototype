@@ -16,6 +16,17 @@ if (result.error) {
   process.exit(1);
 }
 if (result.status !== 0) process.exit(result.status || 1);
+// A reachable panic in the crate embeds its source path (`core\src\lib.rs` on Windows,
+// `core/src/lib.rs` on Linux), so the module would no longer reproduce across machines. The
+// prebuilt standard library's paths, its own and its dependencies', are remapped to /rustc/<hash>/
+// and /cargo/registry/ when it is built, and are the same everywhere.
+const sources = [...new Set(readFileSync(built).toString('latin1').match(/[\x20-\x7e]*\.rs\b/g) ?? [])]
+  .filter(source => !source.startsWith('/rustc/') && !source.startsWith('/cargo/registry/'));
+if (sources.length) {
+  console.error(`the module embeds source paths, so it would differ between machines: ${sources.join(', ')}.\n` +
+    'A panic in the crate is reachable from an export; make that path panic-free (docs/27).');
+  process.exit(1);
+}
 if (process.argv.includes('--check')) {
   if (!readFileSync(built).equals(readFileSync(committed))) {
     console.error(`${committed} is not what rust/core builds to; run npm run core:build and commit it`);

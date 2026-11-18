@@ -141,6 +141,11 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   transcendental on `f64` and `f32`: the trigonometric and hyperbolic functions, exponentials and logarithms, powers,
   `cbrt` and `hypot`. `sqrt` and `+ - * /` stay allowed. CI's clippy treats a use as an error. This is the
   Rust form of "never call `Math.sin` in `shared/`" ([22.1](22.1-shared-simulation.md)).
+- **The order guard.** The same file forbids `std`'s `HashMap`, `HashSet` and `RandomState`, which seed themselves
+  randomly per process, and its clocks. Use ordered collections or a fixed hasher.
+  - **Why not `no_std`,** which would rule these out structurally (review 913's follow-up on #1175). On stable Rust
+    a `no_std` crate has no `f64::floor` or `sqrt`, and WASM's own instructions for them are unstable. It would
+    need the `libm` crate or a hand-written correctly rounded `sqrt`.
 
 **How the WASM is built and loaded.** These are agent recommendations made under #1174:
 - **Plain exports, not `wasm-bindgen`.** The core compiles as a `cdylib` with `extern "C"` exports.
@@ -154,6 +159,8 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   - **The first call.** The loader reads `adapter_version` before anything else. That is the version of the contract
     between the module and its adapter.
   - **The loader** is `shared/core.ts`'s `loadCore`. It takes the bytes and checks the version.
+  - **Its contract** is `CoreExports`: memory and buffer entry points. The math's per-scalar exports are a separate
+    `MathParityExports`, for the parity check only.
   - **Evidence.** The math digest matches through the module in Node 24 on Windows and in headless Chrome 157
     (2026-11-17, #1175). `tests/math.test.js` holds the Node half.
 - **The module is committed** as `shared/core.wasm`, an agent decision under #1175.
@@ -165,8 +172,13 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
     every agent or contributor without `cargo` keep working as before.
   - **Evidence that it reproduces.** A Windows x64 build of Rust 1.100.0 matched CI's Linux arm64 rebuild byte
     for byte (PR #1178, run 1243, 2026-11-18). The crate's native digest test passed on that runner too.
-    The module holds no file paths today: it has no reachable panic. A panic location would embed a path, and the
-    check would then fail across machines. Remap the path prefix then.
+  - **Panics break reproduction.** A panic reachable from an export embeds its location's source path, and Cargo
+    passes workspace paths relative but with the host's separator (`core\src\lib.rs` on Windows), which no
+    `--remap-path-prefix` rewrites. `build-core` therefore fails on any embedded `.rs` path of the crate's own,
+    on the developer's machine, before CI's comparison. The standard library's paths are already remapped and pass.
+  - **When the adapter needs a panic,** two remedies: make the path panic-free, or make the WASM build
+    `no_std` with a panic handler that ignores the location, which should let the optimizer drop the strings (untried:
+    it needs the `floor` and `sqrt` above).
   - **The alternative.** `verify` builds it instead, which adds the toolchain to Node's job: about 1 min cold.
 
 **The edge on a Linux host.** `rust/Dockerfile` builds the edge in the official Rust image and runs it on

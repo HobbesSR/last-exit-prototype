@@ -325,26 +325,87 @@ mod tests {
             .collect()
     }
 
-    /// The same digest as `tests/math.test.js`, so the native build is held to it too.
+    /// FNV-1a over exact output bits, as `tests/math.test.js`'s `digester`. NaN is mixed as the
+    /// one canonical NaN, whatever its payload.
+    struct Digest(u32);
+
+    impl Digest {
+        fn new() -> Self {
+            Digest(0x811c9dc5)
+        }
+        fn mix(&mut self, value: f64) {
+            let value = if value.is_nan() { f64::NAN } else { value };
+            for byte in value.to_bits().to_be_bytes() {
+                self.0 = (self.0 ^ byte as u32).wrapping_mul(0x01000193);
+            }
+        }
+        fn hex(&self) -> String {
+            format!("{:x}", self.0)
+        }
+    }
+
+    /// `tests/math.test.js`'s `digestOf`, so the native build is held to it too.
     #[test]
     fn matches_the_typescript_digest() {
-        let mut digest: u32 = 0x811c9dc5;
-        let mut mix = |value: f64| {
-            for byte in value.to_bits().to_be_bytes() {
-                digest = (digest ^ byte as u32).wrapping_mul(0x01000193);
-            }
-        };
+        let mut digest = Digest::new();
         let xs = inputs(20000);
         for i in 0..xs.len() {
             let x = xs[i];
             let y = xs[(i * 7 + 3) % xs.len()];
-            mix(sin(x));
-            mix(cos(x));
-            mix(atan(x));
-            mix(atan2(y, x));
-            mix(hypot(x, y));
+            digest.mix(sin(x));
+            digest.mix(cos(x));
+            digest.mix(atan(x));
+            digest.mix(atan2(y, x));
+            digest.mix(hypot(x, y));
         }
-        assert_eq!(format!("{digest:x}"), "5a8ef1eb");
+        assert_eq!(digest.hex(), "5a8ef1eb");
+    }
+
+    /// `tests/math.test.js`'s `edgeDigestOf`: signed zeros, subnormals, infinities, NaN, and |x|
+    /// past `MEDIUM`, where sin and cos first reduce with `%`.
+    #[test]
+    fn matches_the_typescript_edge_digest() {
+        let mut digest = Digest::new();
+        let special = [
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            1e-310,
+            -1e-310,
+            1e6,
+            -1e6,
+            1e300,
+            -1e300,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NAN,
+        ];
+        for a in special {
+            digest.mix(sin(a));
+            digest.mix(cos(a));
+            digest.mix(atan(a));
+            for b in special {
+                digest.mix(atan2(a, b));
+                digest.mix(hypot(a, b));
+            }
+        }
+        let mut large = Vec::with_capacity(200);
+        let mut x = MEDIUM;
+        for i in 0..200 {
+            large.push(if i % 2 == 1 { -x } else { x });
+            x *= 1.37;
+        }
+        for i in 0..large.len() {
+            let x = large[i];
+            let y = large[(i + 1) % large.len()];
+            digest.mix(sin(x));
+            digest.mix(cos(x));
+            digest.mix(atan(x));
+            digest.mix(atan2(y, x));
+            digest.mix(hypot(x, y));
+        }
+        assert_eq!(digest.hex(), "774d7a76");
     }
 
     #[test]
