@@ -145,6 +145,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const mapPool = process.env.MAP_POOL ? Number(process.env.MAP_POOL) : MAP_POOL_SIZE;
   // EDGE_LINK_PORT is where the WebTransport edge connects, on loopback (24.5); unset runs without one.
   const edgeLink = process.env.EDGE_LINK_PORT ? Number(process.env.EDGE_LINK_PORT) : undefined;
+  if (edgeLink !== undefined && !(Number.isInteger(edgeLink) && edgeLink >= 0 && edgeLink <= 65535)) {
+    console.error(`EDGE_LINK_PORT must be a port number from 0 to 65535, not ${JSON.stringify(process.env.EDGE_LINK_PORT)}.`); process.exit(1);
+  }
   const arena = await createArenaServer(devTools === undefined ? { mapPool, edgeLink } : { devTools, mapPool, edgeLink });
   const lan = process.argv.includes('--lan') || process.env.LAN === '1';
   const host = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
@@ -159,7 +162,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else { console.error(error); process.exit(1); }
   });
   // The bound port, not the requested one: PORT=0 asks the OS for any free port.
-  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port, arena.policy));
+  arena.http.on('listening', () => {
+    printListeningUrls(host, arena.http.address().port, arena.policy);
+    // The bound port, so EDGE_LINK_PORT=0 still tells the edge where to connect.
+    if (arena.edgeLink) console.log(`WebTransport edge link on 127.0.0.1:${arena.edgeLink.port} (npm run edge -- --link 127.0.0.1:${arena.edgeLink.port})`);
+  });
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });
 }

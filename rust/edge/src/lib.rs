@@ -392,7 +392,15 @@ async fn serve_session(link: &Arc<Link>, max_bytes: usize, request: SessionReque
     let Ok(connection) = request.accept().await else {
         return;
     };
-    let stream = tokio::time::timeout(STREAM_WAIT, connection.accept_bi()).await;
+    // Subscribed before the wait, so a link lost while the client is still opening its stream is seen.
+    let mut down = link.down.subscribe();
+    let stream = tokio::select! {
+        stream = tokio::time::timeout(STREAM_WAIT, connection.accept_bi()) => stream,
+        _ = down.wait_for(|down| *down) => {
+            connection.close(VarInt::from_u32(CLOSE_GOING_AWAY as u32), b"link lost");
+            return;
+        }
+    };
     let Ok(Ok((send, recv))) = stream else {
         connection.close(VarInt::from_u32(CLOSE_POLICY as u32), b"no stream");
         return;
@@ -401,10 +409,11 @@ async fn serve_session(link: &Arc<Link>, max_bytes: usize, request: SessionReque
     let (tx, rx) = mpsc::unbounded_channel();
     link.sessions.lock().unwrap().insert(id, tx);
     if !link.send(frame::encode(OPEN, &[&id.to_be_bytes()])).await {
+        link.sessions.lock().unwrap().remove(&id);
+        connection.close(VarInt::from_u32(CLOSE_GOING_AWAY as u32), b"link lost");
         return;
     }
 
-    let mut down = link.down.subscribe();
     let outcome = tokio::select! {
         outcome = read_loop(recv, link, id, max_bytes) => outcome,
         outcome = write_loop(send, rx, link, id) => outcome,
@@ -424,7 +433,7 @@ fn finish(connection: &Connection, outcome: Outcome) {
 
 /// Forwards the client's frames to Node as MESSAGE until the stream ends or a frame breaks the rules.
 async fn read_loop(mut recv: RecvStream, link: &Link, id: u32, max_bytes: usize) -> Outcome {
-    let mut decoder = frame::Decoder::new(max_bytes + 1);
+    let mut decoder = frame::Decoder::new(max_bytes);
     let mut chunk = vec![0u8; 64 * 1024];
     loop {
         match recv.read(&mut chunk).await {
@@ -435,8 +444,8 @@ async fn read_loop(mut recv: RecvStream, link: &Link, id: u32, max_bytes: usize)
         loop {
             match decoder.next_frame() {
                 Ok(Some((flag, payload))) => {
-                    if flag > frame::BINARY || payload.len() > max_bytes {
-                        return Outcome::Close(CLOSE_POLICY, b"message too large".to_vec());
+                    if flag > frame::BINARY {
+                        return Outcome::Close(CLOSE_POLICY, b"bad frame".to_vec());
                     }
                     let message = frame::encode(MESSAGE, &[&id.to_be_bytes(), &[flag], &payload]);
                     if !link.send(message).await {
@@ -444,7 +453,13 @@ async fn read_loop(mut recv: RecvStream, link: &Link, id: u32, max_bytes: usize)
                     }
                 }
                 Ok(None) => break,
-                Err(_) => return Outcome::Close(CLOSE_POLICY, b"bad frame".to_vec()),
+                // Refused as soon as its header is seen, before its payload is read.
+                Err(frame::FrameError::TooLarge) => {
+                    return Outcome::Close(CLOSE_POLICY, b"message too large".to_vec());
+                }
+                Err(frame::FrameError::Empty) => {
+                    return Outcome::Close(CLOSE_POLICY, b"bad frame".to_vec());
+                }
             }
         }
     }

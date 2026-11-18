@@ -163,6 +163,10 @@ test('a malformed frame drops the link and its sessions, and a new edge may then
   const silent = await edge(); await waitFor(() => silent.closed, 'a second live edge refused');
   const raw = await fakeEdge(link.port); raw.send(FRAME.OPEN, u32(1)); // before EDGE
   await waitFor(() => raw.closed, 'OPEN before EDGE refused'); raw.end();
+  again.socket.destroy(); await waitFor(() => link.info() === null, 'the linked edge gone');
+  // An offer the browser could not be given is refused at the link, so client-config never carries it.
+  const bad = await edge(); bad.hello({ certificateHash: 'not-hex' });
+  await waitFor(() => bad.closed && link.info() === null, 'a malformed certificate hash refused');
 });
 
 test('client configuration offers WebTransport while an edge is linked, and through a real server a session gets a welcome path', async () => {

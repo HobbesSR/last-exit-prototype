@@ -135,3 +135,45 @@ test('over WebTransport: open, text and binary messages, framed sends, backlog, 
   assert.deepEqual([event.code, event.reason, socket.readyState], [1008, 'Invalid message', 3]);
   assert.throws(() => socket.send('x'), /not open/);
 });
+
+test('closing while WebTransport is opening abandons the session at once, with one close and no error', async () => {
+  const Transport = fakeTransport({ opens: false });
+  const socket = opener({ WebTransport: Transport, location: { ...location, search: '?transport=wt' } })();
+  const events = []; for (const type of ['open', 'error', 'close']) socket.addEventListener(type, () => events.push(type));
+  for (let i = 0; i < 50 && !Transport.made.length; i++) await new Promise(r => setTimeout(r, 2));
+  socket.close();
+  await new Promise(r => setTimeout(r, 10));
+  assert.deepEqual(events, ['close']);
+  assert.equal(Transport.made[0].closeCalls.length, 1, 'the opening session was closed, not left to finish');
+
+  // Closed before the config even answered: no WebTransport is made at all.
+  let answer; const late = opener({ WebTransport: Transport, fetchConfig: () => new Promise(resolve => { answer = resolve; }) })();
+  late.close(); await new Promise(r => setTimeout(r, 1)); answer(offer); await new Promise(r => setTimeout(r, 10));
+  assert.equal(Transport.made.length, 1); assert.equal(FakeWebSocket.made.length, 0);
+});
+
+test('a failed WebTransport asks for the config again, so a restarted edge\'s new certificate is learned', async () => {
+  let fetches = 0;
+  const open = opener({ WebTransport: fakeTransport({ opens: false }), fetchConfig: async () => { fetches++; return offer; } });
+  open(); await new Promise(r => setTimeout(r, 60));
+  open(); await new Promise(r => setTimeout(r, 5));
+  assert.equal(fetches, 1, 'the fallen-back page does not need it');
+  const Stalled = fakeTransport({ opens: false });
+  const forced = opener({ WebTransport: Stalled, timeoutMs: 20, fetchConfig: async () => { fetches++; return offer; },
+    location: { ...location, search: '?transport=wt' } });
+  const first = forced();
+  for (let i = 0; i < 50 && !Stalled.made.length; i++) await new Promise(r => setTimeout(r, 2));
+  first.close(); await new Promise(r => setTimeout(r, 5));
+  forced(); await new Promise(r => setTimeout(r, 5));
+  assert.equal(fetches, 3, 'after an abandoned attempt, the next socket fetches afresh');
+});
+
+test('binary messages are Blobs unless an ArrayBuffer is asked for, as on a WebSocket', async () => {
+  const Transport = fakeTransport();
+  const socket = opener({ WebTransport: Transport })();
+  await next(socket, 'open');
+  const got = next(socket, 'message');
+  await Transport.made[0].inbound.writable.getWriter().write(frame(1, Uint8Array.of(5)));
+  const { data } = await got;
+  assert.ok(data instanceof Blob); assert.deepEqual([...new Uint8Array(await data.arrayBuffer())], [5]);
+});

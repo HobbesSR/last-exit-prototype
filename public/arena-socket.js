@@ -95,7 +95,9 @@ export function createArenaSocketOpener(env = {}) {
       dispatchedClose = true; readyState = CLOSED;
       socket.dispatchEvent(event('close', { code, reason, wasClean }));
     };
-    const fail = () => { socket.dispatchEvent(event('error')); settle(1006, '', false); };
+    const fail = () => { if (dispatchedClose) return; socket.dispatchEvent(event('error')); settle(1006, '', false); };
+    // Abandons a WebTransport attempt still opening, when the caller closes the socket first.
+    let cancelOpen = null;
 
     Object.defineProperties(socket, {
       readyState: { get: () => readyState },
@@ -119,23 +121,28 @@ export function createArenaSocketOpener(env = {}) {
       socket.close = (code, reason) => { if (readyState >= CLOSING) return; readyState = CLOSING; ws.close(code, reason); };
     }
 
-    /** Opens the session and its stream within `limit` ms (none when null); resolves with false if it could not. */
+    /**
+     * Opens the session and its stream within `limit` ms (none when null); resolves with false if it could not, or
+     * if the socket was closed meanwhile, in which case the session is closed at once.
+     */
     async function useWebTransport(offer, limit) {
       const location = where(), Transport = WT();
       let wt = null, timer = null;
+      const aborted = new Promise((_, reject) => { cancelOpen = () => reject(new Error('Closed while connecting')); });
       const options = offer.certificateHash ? { serverCertificateHashes: [{ algorithm: 'sha-256', value: hexBytes(offer.certificateHash) }] } : {};
       try {
         wt = new Transport(`https://${location.hostname}:${offer.port}/arena`, options);
         const opened = (async () => { await wt.ready; return wt.createBidirectionalStream(); })();
         opened.catch(() => {});
         const timeout = limit === null ? null : new Promise((_, reject) => { timer = setTimeout(() => { reject(new Error('WebTransport timed out')); }, limit); });
-        const stream = await (timeout ? Promise.race([opened, timeout]) : opened);
-        clearTimeout(timer);
-        if (wantClose) { wt.close({ closeCode: wantClose[0] ?? 1000, reason: wantClose[1] ?? '' }); settle(wantClose[0] ?? 1005, wantClose[1] ?? '', true); return true; }
+        aborted.catch(() => {});
+        const stream = await Promise.race(timeout ? [opened, timeout, aborted] : [opened, aborted]);
+        clearTimeout(timer); cancelOpen = null;
+        if (wantClose) throw new Error('Closed while connecting');
         attach(wt, stream);
         return true;
       } catch {
-        clearTimeout(timer);
+        clearTimeout(timer); cancelOpen = null;
         try { wt?.close(); } catch { /* Already failed. */ }
         return false;
       }
@@ -167,7 +174,9 @@ export function createArenaSocketOpener(env = {}) {
             const { value, done } = await reader.read();
             if (done) break;
             for (const frame of frames(value)) {
-              const data = frame.binary ? frame.payload.slice().buffer : decoder.decode(frame.payload);
+              // As a WebSocket does: a binary message is a Blob unless the caller asked for an ArrayBuffer.
+              const data = !frame.binary ? decoder.decode(frame.payload)
+                : binaryType === 'blob' ? new Blob([frame.payload]) : frame.payload.slice().buffer;
               if (readyState === OPEN) socket.dispatchEvent(event('message', { data }));
             }
           }
@@ -181,24 +190,32 @@ export function createArenaSocketOpener(env = {}) {
     socket.close = (code, reason) => {
       if (readyState >= CLOSING) return;
       wantClose = [code, reason]; readyState = CLOSING;
-      // Not yet connected: the choice resolves, and then closes at once.
-      if (transport === null) queueMicrotask(() => { if (transport === null) settle(1006, '', false); });
+      // Not yet connected: close at once, and abandon a WebTransport attempt still opening.
+      if (transport === null) { cancelOpen?.(); queueMicrotask(() => { if (transport === null) settle(1006, '', false); }); }
     };
 
     (async () => {
       const forced = forcedTransport(where().search);
+      // One budget covers the config, the session and its stream; a forced choice has none.
+      const deadline = forced === 'wt' ? null : Date.now() + timeoutMs;
+      const remaining = () => Math.max(0, deadline - Date.now());
       let offer = null;
-      if (forced !== 'ws') {
-        // The config counts against the same time as the session and stream do.
-        const limit = forced === 'wt' ? null : timeoutMs;
-        const timeout = limit === null ? null : new Promise(resolve => setTimeout(() => resolve(null), limit));
+      // A page that has fallen back stays on the WebSocket, so only a forced WebTransport still needs the offer.
+      if (forced === 'wt' || (forced === null && !fellBack)) {
+        let timer = null;
+        const timeout = deadline === null ? null : new Promise(resolve => { timer = setTimeout(() => resolve(null), remaining()); });
         const loaded = await (timeout ? Promise.race([config(), timeout]) : config());
+        clearTimeout(timer);
         offer = loaded?.webTransport ?? null;
       }
+      if (wantClose) { settle(1006, '', false); return; }
       const choice = chooseTransport({ forced, webTransport: offer, available: !!WT(), fellBack });
       if (choice === 'wt') {
         if (!offer || !WT()) { fail(); return; }
-        if (await useWebTransport(offer, forced === 'wt' ? null : timeoutMs)) return;
+        if (await useWebTransport(offer, deadline === null ? null : remaining())) return;
+        // The edge may have restarted or rotated its certificate: the next socket asks for the config again.
+        configPromise = null;
+        if (wantClose) { settle(1006, '', false); return; }
         if (forced === 'wt') { fail(); return; }
         fellBack = true;
       }

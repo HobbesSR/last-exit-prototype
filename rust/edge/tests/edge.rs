@@ -223,14 +223,37 @@ async fn carries_messages_both_ways_and_closes_with_the_code() {
 }
 
 #[tokio::test]
-async fn an_oversized_client_frame_closes_with_1008() {
+async fn a_client_frame_at_the_limit_passes_and_one_over_closes_with_1008() {
     let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
     let connection = connect(port, &hash, "/arena", None).await.unwrap();
-    let big = vec![b'x'; MAX_BYTES + 1];
-    let (_send, _recv) = open_stream(&connection, &frame::encode(frame::TEXT, &[&big])).await;
+    let mut bytes = frame::encode(frame::TEXT, &[&vec![b'x'; MAX_BYTES]]);
+    bytes.extend(frame::encode(frame::TEXT, &[&vec![b'x'; MAX_BYTES + 1]]));
+    let (_send, _recv) = open_stream(&connection, &bytes).await;
     let (kind, session) = node.next().await;
     assert_eq!(kind, OPEN);
-    assert_eq!(closed_with(&connection).await.0, 1008);
+    assert_eq!(
+        node.next().await.0,
+        MESSAGE,
+        "a payload of exactly the limit is forwarded"
+    );
+    assert_eq!(
+        closed_with(&connection).await,
+        (1008, b"message too large".to_vec())
+    );
+    assert_eq!(node.next().await, (CLOSED, session));
+}
+
+#[tokio::test]
+async fn an_unknown_flag_closes_with_1008_as_a_bad_frame() {
+    let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
+    let connection = connect(port, &hash, "/arena", None).await.unwrap();
+    let (_send, _recv) = open_stream(&connection, &frame::encode(2, &[b"x"])).await;
+    let (kind, session) = node.next().await;
+    assert_eq!(kind, OPEN);
+    assert_eq!(
+        closed_with(&connection).await,
+        (1008, b"bad frame".to_vec())
+    );
     assert_eq!(node.next().await, (CLOSED, session));
 }
 

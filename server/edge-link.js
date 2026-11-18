@@ -1,5 +1,5 @@
 import { createServer } from 'node:net';
-import { CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverable, parseMessage, acceptMessageRate } from './protocol.js';
+import { CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverable, isWebTransportOffer, parseMessage, acceptMessageRate } from './protocol.js';
 
 // The link between the WebTransport edge and this process (24.5 "The link"): one loopback TCP connection the
 // edge opens, carrying every edge session as a peer behind the same session seam a WebSocket uses, so a room
@@ -33,9 +33,8 @@ const closeHeader = (id, code) => { const b = Buffer.allocUnsafe(6); b.writeUInt
 function readEdge(body) {
   try {
     const edge = JSON.parse(decoder.decode(body));
-    if (!edge || typeof edge !== 'object') return null;
-    if (!Number.isInteger(edge.port) || edge.port < 1 || edge.port > 65535) return null;
-    if (edge.certificateHash !== null && typeof edge.certificateHash !== 'string') return null;
+    // What the browser will be offered must pass the same check /api/client-config applies.
+    if (!edge || typeof edge !== 'object' || !isWebTransportOffer({ port: edge.port, certificateHash: edge.certificateHash })) return null;
     return edge;
   } catch { return null; }
 }

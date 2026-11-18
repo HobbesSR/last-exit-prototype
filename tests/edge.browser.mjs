@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 
@@ -10,9 +12,8 @@ const RUST = path.resolve('rust');
 execFileSync('cargo', ['build', '--locked', '-p', 'last-exit-edge'], { cwd: RUST, stdio: 'inherit' });
 const binary = path.join(RUST, 'target', 'debug', process.platform === 'win32' ? 'last-exit-edge.exe' : 'last-exit-edge');
 
-const { server, base, browser, close } = await serveWithBrowser({
-  profileSummary: false, roomThreads: false, edgeLink: 0, replayDir: path.resolve('test-results/edge-replays'),
-});
+const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-edge-'));
+const { server, base, browser, close } = await serveWithBrowser({ profileSummary: false, roomThreads: false, edgeLink: 0, replayDir });
 const edge = spawn(binary, ['--link', `127.0.0.1:${server.edgeLink.port}`, '--port', '0'], { stdio: ['ignore', 'inherit', 'inherit'] });
 const errors = [];
 try {
@@ -49,7 +50,11 @@ try {
   });
   assert.equal(used, 'webtransport', 'an unforced socket chooses WebTransport when the edge is offered');
 
-  // The edge going away withdraws the offer, so later pages use the WebSocket; the room outlives it.
+  // Nothing went wrong while the edge was up.
+  assert.deepEqual(errors, []);
+  // The edge going away withdraws the offer, so later pages use the WebSocket; the room outlives it. The pages
+  // whose sessions it carried may report the lost connection, and only that.
+  const sinceKill = errors.length;
   edge.kill();
   let withdrawn = false;
   for (let i = 0; i < 100 && !withdrawn; i++) {
@@ -58,9 +63,9 @@ try {
   }
   assert.ok(withdrawn, 'a lost edge is no longer offered');
   assert.equal(server.rooms.has(room), true, 'the room outlives the edge');
-  assert.deepEqual(errors.filter(text => !/WebTransport|ERR_QUIC|net::/.test(text)), []);
+  assert.deepEqual(errors.slice(sinceKill).filter(text => !/WebTransport|ERR_QUIC|net::/.test(text)), []);
   console.log('edge browser check passed');
 } finally {
   edge.kill();
-  await close();
+  try { await close(); } finally { await rm(replayDir, { recursive: true, force: true }); }
 }

@@ -781,6 +781,17 @@ export function profileToggleResponse(enabled: boolean): ProfileToggleResponse {
   return { enabled };
 }
 
+/**
+ * The edge's offer as the browser is given it (24.5): its UDP port, and the hex SHA-256 of a self-signed
+ * certificate or null for a CA-issued one. The edge link checks what the edge reports against this too.
+ */
+export function isWebTransportOffer(value: unknown): value is { port: number; certificateHash: string | null } {
+  if (!isRecord(value) || !hasExactKeys(value, ['port', 'certificateHash'])) return false;
+  const { port, certificateHash } = value;
+  return Number.isInteger(port) && (port as number) >= 1 && (port as number) <= 65535 &&
+    (certificateHash === null || (typeof certificateHash === 'string' && /^[0-9a-f]{64}$/i.test(certificateHash)));
+}
+
 export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVersion'>): ClientConfigResponse {
   const payload: ClientConfigResponse = { wireVersion: WIRE_VERSION, ...fields };
   const raw = payload as unknown as Record<string, unknown>;
@@ -801,9 +812,7 @@ export function clientConfigResponse(fields: Omit<ClientConfigResponse, 'wireVer
     !raw.sizes.every(nonEmptyString) ||
     !nonEmptyString(raw.defaultSize) ||
     !nonNegativeInt(raw.matchmakingCountdownMs) ||
-    (raw.webTransport !== null && (!isRecord(raw.webTransport) || !hasExactKeys(raw.webTransport, ['port', 'certificateHash']) ||
-      !nonNegativeInt(raw.webTransport.port) || raw.webTransport.port < 1 || raw.webTransport.port > 65535 ||
-      (raw.webTransport.certificateHash !== null && !(typeof raw.webTransport.certificateHash === 'string' && /^[0-9a-f]{64}$/i.test(raw.webTransport.certificateHash)))))
+    (raw.webTransport !== null && !isWebTransportOffer(raw.webTransport))
   ) {
     throw new TypeError('Invalid /api/client-config response payload.');
   }
