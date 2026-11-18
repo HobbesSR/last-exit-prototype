@@ -5,9 +5,9 @@ name: rust
 on:
   push:
     branches: [main]
-    paths: ['rust/**', '.forgejo/workflows/rust.yml']
+    paths: ['rust/**', 'shared/core.wasm', 'tools/build-core.mjs', '.forgejo/workflows/rust.yml']
   pull_request:
-    paths: ['rust/**', '.forgejo/workflows/rust.yml']
+    paths: ['rust/**', 'shared/core.wasm', 'tools/build-core.mjs', '.forgejo/workflows/rust.yml']
   workflow_dispatch:
 
 jobs:
@@ -64,7 +64,9 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
-      - run: cargo build --locked --release -p last-exit-core --target wasm32-unknown-unknown
+      # The committed core module must be what this toolchain builds, byte for byte (docs/27).
+      - run: node tools/build-core.mjs --check
+        working-directory: .
       # The edge's Linux release build, as rust/Dockerfile builds it, for the runner's own
       # architecture. The Dockerfile builds for whichever host runs it.
       - run: cargo build --locked --release -p last-exit-edge

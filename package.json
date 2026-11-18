@@ -10,6 +10,7 @@
   "packageManager": "npm@12.0.2",
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local server/index.js --dev-tools=all",
+    "core:build": "node tools/build-core.mjs",
     "edge": "cargo run --release --manifest-path rust/Cargo.toml -p last-exit-edge --",
     "dev:lan": "node --env-file-if-exists=.env.local server/index.js --lan --dev-tools=all",
     "test": "node --test --test-global-setup=tests/helpers/test-lock-setup.mjs --test-concurrency=4 tests/*.test.js",

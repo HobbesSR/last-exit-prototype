@@ -354,7 +354,7 @@ the change cannot move adds minutes and no evidence (#542). "The map was touched
 | Rooms, recording and replay (`server/`) | the unit file for the rule; `test:set rooms` | `room-sizes`; `live-map` and `view-live-map` for the live adapter (`map/live*.ts`); `tests/browser.mjs` when the protocol or what a client is sent changes | 17 s, plus 20 s, 18 s and 90 s |
 | The client (`public/`) | the unit file; `test:set client` | `npm run brief -- test:set client --browser`; and the browser scripts of the flows the change reaches: `browser.mjs` (lobby, play, touch, replays, diagnostics), `default-room`, `hearing`, `transit`, `physics-playback` and `physics-geometry` (physics drawing), `physics-prediction` | client set 56 s; all 22 scripts 378 s |
 | Shared geometry and math (`test:set geometry`) | the unit file | the full chain sweep (shapes reach every builder); the physics Node/Chrome equality scripts (`physics-world`, `-hook`, `-hook-live`, `-navigation`, 8 s), since simulation math must be bit-equal in Chrome | 167 s |
-| The Rust workspace (`rust/`, [27](27-rust-path.md#the-workspace)) | from `rust/`: `cargo test`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check` | `cargo deny check licenses sources` when a dependency changes; `cargo build --release -p last-exit-core --target wasm32-unknown-unknown`. The Node gates only when the change reaches what JavaScript loads. For the edge (`rust/edge/`), the `rooms` set and `tests/edge.browser.mjs`, which builds the edge and needs `cargo` | seconds; the edge's integration tests take about 1 s (2026-11-17) |
+| The Rust workspace (`rust/`, [27](27-rust-path.md#the-workspace)) | from `rust/`: `cargo test`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check` | `cargo deny check licenses sources` when a dependency changes; `npm run core:build` for a change under `rust/core/`, and commit `shared/core.wasm` with it; then `tests/math.test.js`, which checks the module's math digest. The Node gates only when the change reaches what JavaScript loads. For the edge (`rust/edge/`), the `rooms` set and `tests/edge.browser.mjs`, which builds the edge and needs `cargo` | seconds; the edge's integration tests take about 1 s (2026-11-17) |
 | Tooling and docs | the unit file; `test:set tooling` | none; `npm run test:browser` when the browser runner changes | |
 
 The replay needs its cache captured before the first edit (53). Whatever the area, a fixture is
@@ -459,10 +459,11 @@ Rust workspace:
   a slow `verify` is answered by cutting the slowest fast-tier files' cost, not by narrowing it. It is the pull request's
   check. The runner is several times slower than the development machine (42.3, 2026-11-04).
 - **`rust`** (`.forgejo/workflows/rust.yml`, label `docker`, #1174) runs only when a pull request or a push to
-  `main` changes `rust/` or the workflow itself, so a change outside `rust/` never waits for it. In the Node image, it
+  `main` changes `rust/`, `shared/core.wasm`, its build script or the workflow itself, so a change outside `rust/` never waits for it. In the Node image, it
   installs `rustup`, and `rust/rust-toolchain.toml` then names the toolchain. It runs the licence and source check
   ([21.1](21.1-third-party-licenses.md#the-rust-workspace)), `cargo fmt --check`, `clippy` with warnings denied,
-  `cargo test`, the core's WASM build and the edge's Linux release build. The runner is arm64, so that build is
+  `cargo test`, the core's WASM build (which must reproduce the committed `shared/core.wasm` byte for byte,
+  [27](27-rust-path.md#the-workspace)) and the edge's Linux release build. The runner is arm64, so that build is
   aarch64; the x64 build is the Dockerfile's on an x64 host. The workflow
   caches the toolchain, the registry and `rust/target`, keyed on the toolchain file and `Cargo.lock`, once the runner
   offers a cache (below).

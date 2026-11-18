@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { atan, atan2, cos, hypot, sin } from '../shared/math.ts';
+import * as math from '../shared/math.ts';
+import { loadCore } from '../shared/core.ts';
+
+const { atan, atan2, cos, hypot, sin } = math;
 
 const bits = new DataView(new ArrayBuffer(16));
 const ulps = (a, b) => {
@@ -38,9 +41,8 @@ test('shared/ computes non-exact math only through shared/math.ts (#566)', () =>
   assert.deepEqual(offenders, []);
 });
 
-test('the math module returns the same bits on every platform', () => {
-  // A digest of exact output bits: it holds on x86 and ARM alike (#566). If it moves, the
-  // simulation's results moved, and that is a fixture version decision (31), not a test update.
+/** A digest of exact output bits. rust/core/src/math.rs's tests compute the same one. */
+function digestOf({ sin, cos, atan, atan2, hypot }) {
   let digest = 0x811c9dc5;
   const mix = value => {
     bits.setFloat64(0, value);
@@ -51,7 +53,26 @@ test('the math module returns the same bits on every platform', () => {
     const x = xs[i], y = xs[(i * 7 + 3) % xs.length];
     mix(sin(x)); mix(cos(x)); mix(atan(x)); mix(atan2(y, x)); mix(hypot(x, y));
   }
-  assert.equal(digest.toString(16), '5a8ef1eb');
+  return digest.toString(16);
+}
+
+test('the math module returns the same bits on every platform', () => {
+  // It holds on x86 and ARM alike (#566). If it moves, the simulation's results moved, and
+  // that is a fixture version decision (31), not a test update.
+  assert.equal(digestOf(math), '5a8ef1eb');
+});
+
+test('the Rust core computes the same bits as the math module (docs/27)', async () => {
+  const core = await loadCore(readFileSync('shared/core.wasm'));
+  const ported = { sin: core.math_sin, cos: core.math_cos, atan: core.math_atan, atan2: core.math_atan2, hypot: core.math_hypot };
+  assert.equal(digestOf(ported), '5a8ef1eb');
+  // The digest's inputs are finite; the special cases must match bit for bit too, not to an ulp.
+  const special = [0, -0, 1, -1, 1e-310, -1e-310, 1e6, -1e6, 1e300, -1e300, Infinity, -Infinity, NaN];
+  for (const a of special) {
+    for (const name of ['sin', 'cos', 'atan']) assert.ok(Object.is(ported[name](a), math[name](a)), `${name}(${a})`);
+    for (const b of special)
+      for (const name of ['atan2', 'hypot']) assert.ok(Object.is(ported[name](a, b), math[name](a, b)), `${name}(${a}, ${b})`);
+  }
 });
 
 test('the math module stays within 1 ulp of the engine and follows its special cases', () => {
@@ -67,7 +88,7 @@ test('the math module stays within 1 ulp of the engine and follows its special c
   // signed zero or a NaN is billions of ulps away, so those cases are still checked exactly.
   const special = [0, -0, 1, -1, 1e-310, -1e-310, 1e300, -1e300, Infinity, -Infinity, NaN];
   for (const a of special) {
-    // Past 2^19·π/2 sin and cos are deterministic but not accurate (math.ts); the game never goes there.
+    // Past 2^19Â·Ï€/2 sin and cos are deterministic but not accurate (math.ts); the game never goes there.
     if (!(Number.isFinite(a) && Math.abs(a) > 1e6)) assert.ok(ulps(sin(a), Math.sin(a)) <= 1 && ulps(cos(a), Math.cos(a)) <= 1, `${a}`);
     assert.ok(ulps(atan(a), Math.atan(a)) <= 1, `${a}`);
     for (const b of special) assert.ok(ulps(atan2(a, b), Math.atan2(a, b)) <= 1 && ulps(hypot(a, b), Math.hypot(a, b)) <= 1, `${a}, ${b}`);

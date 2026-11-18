@@ -132,7 +132,8 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   - **The edge** is #1095's stage 1 ([24.5](24.5-transport.md#stage-1s-contracts)): `src/lib.rs` runs it,
     `src/frame.rs` frames both of its connections, and `src/origin.rs` checks origins. `tests/edge.rs` drives it
     with a real `wtransport` client against a fake Node.
-  - **The core** is a placeholder until #1175.
+  - **The core** holds `src/math.rs`, the port of `shared/math.ts` (#1175). Its tests compute the same digest as
+    `tests/math.test.js`.
 - **Lockfile.** `rust/Cargo.lock` is committed, because the workspace builds a binary and a module that ship.
 - **Checks.** `rust/deny.toml` holds the licence policy ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
   [31](31-verification.md#continuous-integration) lists the checks and what they cost.
@@ -152,10 +153,20 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   - **When.** Both call `WebAssembly.instantiate` once at startup, before anything that uses the core.
   - **The first call.** The loader reads `adapter_version` before anything else. That is the version of the contract
     between the module and its adapter.
-  - **Evidence.** The placeholder loads in Node 24 on Windows and in CI's Linux image.
-- **Open for #1175.** Where the built `.wasm` comes from for `npm test` and the server is not settled. Either
-  `verify` builds it, or it is committed and CI checks that a rebuild reproduces it byte for byte. #1175 decides it
-  with its first JavaScript caller.
+  - **The loader** is `shared/core.ts`'s `loadCore`. It takes the bytes and checks the version.
+  - **Evidence.** The math digest matches through the module in Node 24 on Windows and in headless Chrome 157
+    (2026-11-17, #1175). `tests/math.test.js` holds the Node half.
+- **The module is committed** as `shared/core.wasm`, an agent decision under #1175.
+  - **How it is built.** `npm run core:build` (`tools/build-core.mjs`) builds it and copies it there. Run it after
+    any change under `rust/core/`, and commit the result.
+  - **How CI holds it.** The `rust` workflow runs the same script with `--check`, which rebuilds the module and
+    fails if the bytes differ.
+  - **Why committed.** `npm test`, the server and the browser then need no Rust toolchain. Node's `verify` and
+    every agent or contributor without `cargo` keep working as before.
+  - **Evidence that it reproduces.** A Windows x64 build is checked against CI's Linux arm64 rebuild on every PR.
+    The module holds no file paths today: it has no reachable panic. A panic location would embed a path, and the
+    check would then fail across machines. Remap the path prefix then.
+  - **The alternative.** `verify` builds it instead, which adds the toolchain to Node's job: about 1 min cold.
 
 **The edge on a Linux host.** `rust/Dockerfile` builds the edge in the official Rust image and runs it on
 `debian:bookworm-slim` as `nobody`, for whichever architecture builds it: x64 was checked under Docker on the
