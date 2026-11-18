@@ -81,3 +81,16 @@ test('macro and micro stay independent of each other and their assembly', () => 
   for (const [dir, others] of [['map/macro', /^map\/(micro\/(?!sdk\.ts$)|tools\/|(?:chain|engines|live)\.ts$)/], ['map/micro', /^map\/(?:(?:macro|tools)\/|(?:chain|engines|live)\.ts$)/]])
     for (const [file, reached] of reachedFrom(dir)) assert.deepEqual(reached.filter(target => others.test(target)), [], file);
 });
+
+// The shape description is the contract every consumer reads, the Rust core's flat encoding included
+// (29, #1181): it names only the project's types and math, never a geometry library.
+test('the shape description imports only types and math', () => {
+  assert.deepEqual(importedModules(readFileSync('shared/shape.ts', 'utf8')).sort(), ['./math.ts', './types.ts']);
+});
+
+// Which game-core modules name the SAT library. The shape queries own it; movement's circle sweep and
+// sliding still build SAT circles directly until #1183 puts them behind the queries.
+test('only the shape queries and movement import the SAT library', () => {
+  const users = reachedFrom('shared').filter(([, reached]) => reached.includes('sat')).map(([file]) => file).sort();
+  assert.deepEqual(users, ['shared/movement.ts', 'shared/shape-queries.ts']);
+});

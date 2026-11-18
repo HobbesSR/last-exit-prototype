@@ -9,8 +9,8 @@ Shape construction and element assembly are in [29.3](29.3-shape-construction-an
 
 `shared/shape.ts` owns what a shape *is*. Everything else asks it. What a shape says about a point, a segment
 or another shape (containment, overlap, shared area, segment distance) is `shared/shape-queries.ts`'s. That
-module alone holds the SAT library, so code that only describes, moves or draws shapes does not depend on it
-(#1181). A shape is one of three forms:
+module holds the SAT library, so code that only describes, moves or draws shapes does not depend on it
+(#1181). `movement.ts` still builds SAT circles for its sweep and sliding until #1183. A shape is one of three forms:
 
 | Form | Anchor | Stored as |
 | --- | --- | --- |

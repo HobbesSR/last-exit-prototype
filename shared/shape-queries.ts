@@ -6,8 +6,9 @@ import { edgesOf, type Shape } from './shape.ts';
 
 /**
  * What a shape says about a point, a segment or another shape (29). `shape.ts` owns what a shape *is*;
- * this module asks questions of that description, and it alone holds the SAT library, so code that only
- * describes, moves or draws shapes does not depend on it (#1181).
+ * this module asks questions of that description through the SAT library, so code that only describes,
+ * moves or draws shapes does not depend on it (#1181). Its signatures still carry SAT's body types, and
+ * `movement.ts` still builds SAT circles for its sweep and sliding; #1183 puts both behind this module.
  */
 
 const vec = (x: World, y: World) => new SAT.Vector(x, y);

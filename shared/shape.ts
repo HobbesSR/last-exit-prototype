@@ -12,7 +12,8 @@ import { cos, sin } from './math.ts';
  * as a unit. Polygons must be convex and wound consistently — SAT separation is only defined for
  * convex bodies. Concave generated content has to be decomposed into convex pieces before it
  * becomes geometry, which `shape-construction.ts` does (29). What a shape says about a point, a
- * segment or another shape is `shape-queries.ts`'s, which alone holds the SAT library (#1181).
+ * segment or another shape is `shape-queries.ts`'s, which holds the SAT library this module never imports
+ * (#1181).
  */
 export type Shape =
   | { kind: 'rect'; x: World; y: World; w: World; h: World }
