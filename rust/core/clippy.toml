@@ -57,3 +57,12 @@ disallowed-methods = [
   { path = "f32::cbrt", reason = "platform math; use the crate's port of shared/math.ts (docs/27)" },
   { path = "f32::hypot", reason = "platform math; use the crate's port of shared/math.ts (docs/27)" },
 ]
+# Results must not depend on iteration order, a random seed or the clock (docs/27). The std hash
+# collections seed themselves randomly per process; use an ordered collection or a fixed hasher.
+disallowed-types = [
+  { path = "std::collections::HashMap", reason = "randomly seeded iteration order; use BTreeMap or a fixed hasher (docs/27)" },
+  { path = "std::collections::HashSet", reason = "randomly seeded iteration order; use BTreeSet or a fixed hasher (docs/27)" },
+  { path = "std::hash::RandomState", reason = "a random seed per process (docs/27)" },
+  { path = "std::time::Instant", reason = "the clock is not simulation input (docs/27)" },
+  { path = "std::time::SystemTime", reason = "the clock is not simulation input (docs/27)" },
+]

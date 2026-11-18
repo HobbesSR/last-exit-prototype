@@ -22,6 +22,26 @@ jobs:
       - run: npm install -g npm@12.0.2
       - run: npm ci
       - run: npm --prefix map/macro ci
+      # The Rust toolchain, for the core's WASM module, which tests build rather than commit
+      # (docs/27). rust-toolchain.toml names the version. Cached once the runner offers a cache.
+      - uses: https://data.forgejo.org/actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            rust/target
+          key: verify-rust-${{ hashFiles('rust/rust-toolchain.toml', 'rust/Cargo.lock') }}
+          restore-keys: |
+            verify-rust-${{ hashFiles('rust/rust-toolchain.toml') }}
+      - run: |
+          if [ ! -x "$HOME/.cargo/bin/rustup" ]; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - run: rustup toolchain install
+        working-directory: rust
       - run: npm run check
       - run: npm run typecheck
       # Through the thin reporter: a line per file with its wall time, each failure, and the

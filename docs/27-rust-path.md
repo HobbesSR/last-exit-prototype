@@ -132,7 +132,8 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   - **The edge** is #1095's stage 1 ([24.5](24.5-transport.md#stage-1s-contracts)): `src/lib.rs` runs it,
     `src/frame.rs` frames both of its connections, and `src/origin.rs` checks origins. `tests/edge.rs` drives it
     with a real `wtransport` client against a fake Node.
-  - **The core** is a placeholder until #1175.
+  - **The core** holds `src/math.rs`, the port of `shared/math.ts` (#1175). Its tests compute the same digest as
+    `tests/math.test.js`.
 - **Lockfile.** `rust/Cargo.lock` is committed, because the workspace builds a binary and a module that ship.
 - **Checks.** `rust/deny.toml` holds the licence policy ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
   [31](31-verification.md#continuous-integration) lists the checks and what they cost.
@@ -140,6 +141,11 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   transcendental on `f64` and `f32`: the trigonometric and hyperbolic functions, exponentials and logarithms, powers,
   `cbrt` and `hypot`. `sqrt` and `+ - * /` stay allowed. CI's clippy treats a use as an error. This is the
   Rust form of "never call `Math.sin` in `shared/`" ([22.1](22.1-shared-simulation.md)).
+- **The order guard.** The same file forbids `std`'s `HashMap`, `HashSet` and `RandomState`, which seed themselves
+  randomly per process, and its clocks. Use ordered collections or a fixed hasher.
+  - **Why not `no_std`,** which would rule these out structurally (Antigravity's notes on #1175, comment 16252). On stable Rust
+    a `no_std` crate has no `f64::floor` or `sqrt`, and WASM's own instructions for them are unstable. It would
+    need the `libm` crate or a hand-written correctly rounded `sqrt`.
 
 **How the WASM is built and loaded.** These are agent recommendations made under #1174:
 - **Plain exports, not `wasm-bindgen`.** The core compiles as a `cdylib` with `extern "C"` exports.
@@ -152,10 +158,25 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
   - **When.** Both call `WebAssembly.instantiate` once at startup, before anything that uses the core.
   - **The first call.** The loader reads `adapter_version` before anything else. That is the version of the contract
     between the module and its adapter.
-  - **Evidence.** The placeholder loads in Node 24 on Windows and in CI's Linux image.
-- **Open for #1175.** Where the built `.wasm` comes from for `npm test` and the server is not settled. Either
-  `verify` builds it, or it is committed and CI checks that a rebuild reproduces it byte for byte. #1175 decides it
-  with its first JavaScript caller.
+  - **The loader** is `shared/core.ts`'s `loadCore`. It takes the bytes and checks the version.
+  - **Its contract** is `CoreExports`: memory and buffer entry points. The math's per-scalar exports are a separate
+    `MathParityExports`, for the parity check only.
+  - **Evidence.** The math digests match through the module in Node 24 on Windows and in headless Chrome 157
+    (2026-11-17, #1175), and in CI's Linux arm64. `tests/math.test.js` holds the Node half.
+- **The module is built, never committed** (Corey, 2026-11-18, PR #1178). Each host builds its own.
+  - **How.** `tools/build-core.mjs`'s `buildCore` runs Cargo and returns the module's path in `rust/target`.
+    Cargo makes it a no-op when nothing changed. `npm run core:build` runs it by hand.
+  - **Who calls it.** Today, `tests/math.test.js`. In stage 2, the server's and the dev server's startup, and
+    whatever serves the module to the browser, since a server delivers the file it loads itself. Every CI job
+    whose tests reach it then installs the toolchain as `verify` does: the `slow` job, once a slow test does.
+  - **CI.** `verify` installs the toolchain `rust/rust-toolchain.toml` names, so `npm test` builds the module.
+  - **Why not committed.** That was tried first under #1175. A committed binary must match every host's rebuild
+    byte for byte. That held for Windows x64 against Linux arm64 (run 1243), but a reachable panic embeds its source
+    path with the host's separator (`core\src\lib.rs`), which no `--remap-path-prefix` rewrites. What must agree
+    is behaviour, not bytes: WASM's exact operations give every host the same results, and the server and its
+    clients run one file by construction. `tests/math.test.js`'s digests check the behaviour.
+  - **The cost.** Every machine that runs the Node tests needs `cargo`. `verify` spends about 1 min installing the
+    toolchain cold, until the runner offers a cache.
 
 **The edge on a Linux host.** `rust/Dockerfile` builds the edge in the official Rust image and runs it on
 `debian:bookworm-slim` as `nobody`, for whichever architecture builds it: x64 was checked under Docker on the

@@ -32,7 +32,7 @@ export const SETS = {
   geometry: {
     about: 'shapes, clipping, math and free-space meshes every system shares',
     fast: ['shape', 'shape-clipping', 'shape-construction', 'math', 'free-space', 'swept-index', 'map-cell-primitives'],
-    sources: ['shared/shape*.ts', 'shared/math.ts', 'shared/free-space.ts', 'shared/vector.ts', 'shared/numbers.ts', 'shared/buckets.ts', 'shared/index-heap.ts'],
+    sources: ['shared/shape*.ts', 'shared/math.ts', 'shared/core.ts', 'tools/build-core.mjs', 'rust/core/**', 'shared/free-space.ts', 'shared/vector.ts', 'shared/numbers.ts', 'shared/buckets.ts', 'shared/index-heap.ts'],
   },
   client: {
     about: 'what the browser draws and how it presents and buffers frames',
