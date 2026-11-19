@@ -64,8 +64,21 @@ test('sustained stalling is bounded rather than believed', () => {
 test('pings are rate limited to their own interval', () => {
   const h = session();
   assert.equal(pingSession(h.session, 1000, h.deliver), true, 'the first ping goes out');
+  acceptPong(h.session, { token: h.sent.at(-1).token }, 1050);
   assert.equal(pingSession(h.session, 1200, h.deliver), false, 'a second inside the interval does not');
   assert.equal(pingSession(h.session, 2100, h.deliver), true, 'the next interval does');
+  assert.equal(h.sent.length, 2);
+});
+
+test('a backed-up connection is sent one ping, not one a second', () => {
+  // A ping waits behind whatever the stream still holds, as at a join that took a minute on a slow path (#1095).
+  // Pinging each second meanwhile queued sixty, which arrived together and were echoed together.
+  const h = session();
+  pingSession(h.session, 1000, h.deliver);
+  for (let at = 2000; at <= 61000; at += 1000) assert.equal(pingSession(h.session, at, h.deliver), false, `no second ping at ${at}`);
+  assert.equal(acceptPong(h.session, { token: h.sent[0].token }, 61500), true, 'the late echo is still timed');
+  assert.equal(roundTripMs(h.session), MAX_RTT_MS, 'and clamped, as any stalled echo is');
+  assert.equal(pingSession(h.session, 62000, h.deliver), true, 'pinging resumes once it is answered');
   assert.equal(h.sent.length, 2);
 });
 
@@ -73,11 +86,13 @@ test('an echo that arrives before the server sent anything is impossible to forg
   const h = session();
   pingSession(h.session, 1000, h.deliver);
   const first = h.sent.at(-1).token;
+  acceptPong(h.session, { token: first }, 1040);
   // The token embeds the send time, so a client cannot produce the *next* one in advance.
   pingSession(h.session, 2100, h.deliver);
   const second = h.sent.at(-1).token;
   assert.notEqual(first, second);
-  assert.equal(acceptPong(h.session, { token: first }, 2101), false, 'the superseded token no longer counts');
+  assert.equal(acceptPong(h.session, { token: first }, 2101), false, 'a spent token no longer counts');
+  assert.equal(acceptPong(h.session, { token: second }, 2130), true, 'the outstanding one does');
 });
 
 test('separate sessions keep separate measurements', () => {

@@ -31,8 +31,14 @@ export function trackLatency(session) {
   return session;
 }
 
-/** Stamp and send a token if this session is due one. */
+/**
+ * Stamp and send a token if this session is due one: a ping interval has passed and the last token has come back.
+ * Pings go on a reliable stream, so an unanswered one is behind a backlog, not lost. Sending more would queue one a
+ * second behind it, and the client echoes them all on arrival: after a join that took a minute on a slow path, a
+ * burst of pongs that tripped the message-rate limit and closed the session (#1095).
+ */
 export function pingSession(session, now, deliver) {
+  if (session.pingToken) return false;
   if (session.lastPingAt && now - session.lastPingAt < PING_INTERVAL_MS) return false;
   session.lastPingAt = now;
   // One outstanding token at a time: a reply carrying anything else is stale or invented.
