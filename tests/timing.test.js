@@ -10,6 +10,22 @@ const timing = fileURLToPath(new URL('./timing.mjs', import.meta.url));
 // CI=1 skips the host loopback lock so unit tests do not deadlock against the parent runner's shared lock.
 const timingTestEnv = () => { const env = { ...process.env, CI: '1' }; delete env.MACHINE_LOCK_HELD; return env; };
 
+/**
+ * A preload for the timing command that fakes each timed file's child (`node --test <file>`) with `outcome`, a
+ * source expression, after `setup` runs. Every other child, such as the core build tools/build-core.mjs runs
+ * first (a no-op once built), keeps the real spawnSync.
+ */
+function fakeTimedChildren(path, outcome, setup = '') {
+  writeFileSync(path, `import childProcess from 'node:child_process';
+import { syncBuiltinESMExports } from 'node:module';
+${setup}
+const realSpawnSync = childProcess.spawnSync;
+childProcess.spawnSync = (command, ...rest) => command === process.execPath ? (${outcome}) : realSpawnSync(command, ...rest);
+syncBuiltinESMExports();
+`);
+  return pathToFileURL(path).href;
+}
+
 for (const scenario of [
   { name: 'launch error', result: "{ status: null, error: new Error('spawn EPERM') }", reason: 'spawn EPERM' },
   { name: 'signal termination', result: "{ status: null, signal: 'SIGTERM' }", reason: 'terminated by SIGTERM' },
@@ -21,13 +37,8 @@ for (const scenario of [
     try {
       // Inject the child outcome without relying on OS-specific ways to deny spawning
       // or kill a test process. The timing command itself runs as a real subprocess.
-      const preload = join(dir, 'outcome.mjs');
-      writeFileSync(preload, `import childProcess from 'node:child_process';
-import { syncBuiltinESMExports } from 'node:module';
-childProcess.spawnSync = () => (${scenario.result});
-syncBuiltinESMExports();
-`);
-      const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, timing, '--strict', 'tests/example.test.js'], { encoding: 'utf8', env: timingTestEnv() });
+      const preload = fakeTimedChildren(join(dir, 'outcome.mjs'), scenario.result);
+      const result = spawnSync(process.execPath, ['--import', preload, timing, '--strict', 'tests/example.test.js'], { encoding: 'utf8', env: timingTestEnv() });
       assert.ifError(result.error);
       assert.equal(result.status, scenario.reason ? 1 : 0, result.stderr);
       if (scenario.reason) {
@@ -49,15 +60,9 @@ syncBuiltinESMExports();
 // Every child "passes" and takes 20 s of the clock the runner reads (two reads per file), so discovery and the tier
 // each file is held to are observable without running a single real test.
 function stubbedRun(dir, args) {
-  const preload = join(dir, 'clock.mjs');
-  writeFileSync(preload, `import childProcess from 'node:child_process';
-import { syncBuiltinESMExports } from 'node:module';
-let now = 0;
-performance.now = () => (now += 20_000);
-childProcess.spawnSync = () => ({ status: 0, stdout: '', stderr: '' });
-syncBuiltinESMExports();
-`);
-  return spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, timing, ...args], { encoding: 'utf8', cwd: fileURLToPath(new URL('..', import.meta.url)), env: timingTestEnv() });
+  const preload = fakeTimedChildren(join(dir, 'clock.mjs'), "{ status: 0, stdout: '', stderr: '' }",
+    'let now = 0; performance.now = () => (now += 20_000);');
+  return spawnSync(process.execPath, ['--import', preload, timing, ...args], { encoding: 'utf8', cwd: fileURLToPath(new URL('..', import.meta.url)), env: timingTestEnv() });
 }
 
 test('timing inventory includes the root and macro tiers', () => {
