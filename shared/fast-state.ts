@@ -133,8 +133,11 @@ type Keyed = { id: unknown };
  * - `current()` is the newest frame as it would be drawn now, or null: for a reader that could not draw it when
  *   it arrived (its roster, or the match's map, still on the stream).
  * - `newest()` is the tick to acknowledge, or null before any frame.
- * - `arrived()` is the events first held with the newest frame, each once, in the order they happened: every event
- *   whose window a kept frame fell in, including those a burst pushed out of the six drawn.
+ * - `arrived()` is the events first held with the frame the last `fast` call took, each once, in the order they
+ *   happened: every event whose window a kept frame fell in, including those a burst pushed out of the six drawn.
+ *   It is empty after a call that ignored its frame, and set even when nothing could be drawn yet (no `slow`), so a
+ *   consumer reads it after every call. It is once per reader: a page that resumes builds a new reader, whose
+ *   first frame's window may repeat events the old one gave; a consumer that must span that compares ids.
  *
  * The frame to draw is the fast part with the item-body hold applied, its events as `keptEvents` gives them (the
  * frame's window merged with those already held, so none repeats or goes missing), the slow layers held, and the
@@ -154,7 +157,7 @@ export function createFastReader(ticks = FAST_HISTORY_TICKS) {
     baseline: (tick: number) => history.get(tick),
     fast(next: Message): FastFrame | null {
       const tick = next.state.tick as number;
-      if (newest !== null && tick < newest) return null;
+      if (newest !== null && tick < newest) { arrived = []; return null; }
       history.record(tick, next.state);
       newest = tick; message = next; complete = version !== null && version >= next.slowVersion;
       const sent = next.state.events as Event[] | undefined;

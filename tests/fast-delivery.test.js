@@ -132,7 +132,7 @@ function windowed(projected) {
 test('through bursts of loss every event reaches the client once, where the last six alone would drop some', async t => {
   // Each burst: two events a tick for five ticks, ten in all, while datagrams go missing for eight.
   const burst = i => i < 100 && i % 20 >= 5 && i % 20 < 10;
-  const { client, projected, largest } = await play({
+  const { other, client, projected, largest } = await play({
     lose: n => n < 100 && n % 20 >= 4 && n % 20 < 12, ackDelay: 3, ackEvery: 2,
     each: (i, room) => {
       if (!burst(i) || !room.game) return;
@@ -153,6 +153,8 @@ test('through bursts of loss every event reaches the client once, where the last
   for (const frame of client.drawn) assert.deepEqual(frame.events, projected.get(frame.tick).events, `the events drawn at tick ${frame.tick}`);
   const sent = windowed(projected);
   const longest = Math.max(...ticks.map(tick => sent.get(tick).events.length));
+  // `largest` counts datagrams only; a message over the limit would have gone on the stream instead.
+  assert.equal(other.rawMessages.filter(m => m.type === 'fast').length, 0, 'no fast message overflowed to the stream');
   assert.ok(largest <= MAX_FAST_DATAGRAM_BYTES, `the largest fast message, ${largest} B, fits the edge's fragments`);
   t.diagnostic(`${all.length} events; the last six alone would drop ${dropped.length}; up to ${longest} in a frame; largest message ${largest} B`);
 });
@@ -171,6 +173,18 @@ test('a reader draws the newest six events, each once, from frames that carry a 
   assert.deepEqual(win({ tick: 5, events: [e(5, 5)] }).events, [e(2, 2), e(5, 5)], 'until four ticks have passed');
   const frame = { tick: 9, events: [e(5, 5)] };
   assert.equal(win(frame), frame, 'nothing older kept: the frame itself');
+  // The reader: arrivals per call, through a frame before any `slow`, a stale one and a paused re-send.
+  const reader = createFastReader();
+  const fast = (tick, events) => reader.fast({ rosterRevision: 1, slowVersion: 1, state: { tick, phase: 'live', events } });
+  assert.equal(fast(10, [e(1), e(2)]), null, 'nothing drawn before the slow layers');
+  assert.deepEqual(reader.arrived(), [e(1), e(2)], 'but its events have arrived');
+  reader.slow([], [], 1);
+  fast(12, [e(1), e(2), e(3)]);
+  assert.deepEqual(reader.arrived(), [e(3)], 'each once');
+  assert.equal(fast(11, [e(1), e(2)]), null);
+  assert.deepEqual(reader.arrived(), [], 'a stale frame brings nothing');
+  assert.deepEqual(fast(12, [e(1), e(2), e(3)]).events, [e(1), e(2), e(3)], 'a paused re-send draws the same events');
+  assert.deepEqual(reader.arrived(), [], 'and brings none again');
 });
 
 test('until a frame is acknowledged every frame is whole; after, each is a delta against the newest acknowledged', async () => {

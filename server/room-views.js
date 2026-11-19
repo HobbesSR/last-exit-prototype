@@ -83,7 +83,7 @@ export function remember(room, frame) {
   while (room.history.length > SPECTATOR_DELAY_TICKS + 2) room.history.shift();
 }
 export function broadcast(room, state) {
-  const views = new Map(), payloads = new Map(), delayed = spectatorFrame(room);
+  const views = new Map(), payloads = new Map(), delayed = spectatorFrame(room), fastViews = new Set();
   for (const session of room.clients) {
     // The dev view is the directed view without the delay: every dev session shares one payload.
     const key = session.playerId || (session.dev ? 'dev' : 'spectator');
@@ -98,6 +98,8 @@ export function broadcast(room, state) {
       profiler.stop('loop.encode');
       views.set(key, view = { state: projected, layers, roster: room.rosterRevisions(room.match.seatMetadata(captured)) });
     }
+    // Marked before the roster can hold the frame back: a window kept through a skipped tick stays unbroken.
+    if (deliversFast(session)) fastViews.add(key);
     if (!deliverSeats(session, view.roster)) continue;
     if (deliversFast(session)) { deliverSplit(room, session, key, view); continue; }
     // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
@@ -124,8 +126,10 @@ export function broadcast(room, state) {
     }
     if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;
   }
-  // A view nobody holds any more (a player who left) takes its keyframes, slow version and event window with it.
-  for (const encoders of [room.layerEncoders, room.discoveryEncoders, room.slowVersions, room.fastEvents]) for (const key of encoders.keys()) if (!views.has(key)) encoders.delete(key);
+  // A view nobody holds any more (a player who left) takes its keyframes and slow version with it, and a view not
+  // delivered fast (one resumed on a WebSocket) its event window.
+  for (const encoders of [room.layerEncoders, room.discoveryEncoders, room.slowVersions]) for (const key of encoders.keys()) if (!views.has(key)) encoders.delete(key);
+  for (const key of room.fastEvents.keys()) if (!fastViews.has(key)) room.fastEvents.delete(key);
   profiler.count('loop.viewsBuilt', views.size); profiler.count('loop.viewsSent', room.clients.size);
 }
 /**
