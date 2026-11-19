@@ -141,9 +141,10 @@ export function createRoomConnection({
       // the page acknowledges a newer one (24.2 "Recovery").
       catch (error) { if (!(error instanceof MissingBaseline)) unreadable(); return; }
       if (data.type === SERVER_MESSAGE.STATE && !deliveredAs(event.data, stateEncoding)) { unreadable(); return; }
-      // The split is only for a binary session, and its messages are always bytes.
+      // The split is only for a binary session, and its messages are always bytes. A `fast` datagram can overtake
+      // the welcome itself, before the encoding is known: it is kept, and waits for the envelope like any other.
       const split = data.type === SERVER_MESSAGE.FAST || data.type === SERVER_MESSAGE.SLOW;
-      if (split && (stateEncoding !== 'binary' || !deliveredAs(event.data, 'binary'))) { unreadable(); return; }
+      if (split && (!deliveredAs(event.data, 'binary') || (stateEncoding !== null && stateEncoding !== 'binary'))) { unreadable(); return; }
       const bytes = typeof event.data === 'string' ? event.data.length : event.data.byteLength;
       if (data.type === SERVER_MESSAGE.WELCOME || data.type === SERVER_MESSAGE.READY) {
         const described = envelopePresentation(data);

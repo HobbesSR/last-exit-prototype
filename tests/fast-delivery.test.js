@@ -237,6 +237,9 @@ test('the reader keeps only newer frames, draws with the slow layers it holds, a
   const again = reader.fast(frame(12, { moved: true }, 3));
   assert.equal(again.moved, true);
   assert.equal(reader.baseline(12), undefined);
+  // A `slow` skipped under backlog is re-sent at the current version: one past the frame's version still draws it.
+  reader.fast(frame(13, {}, 4));
+  assert.equal(reader.slow([{ id: 7 }], [], 5).tick, 13, 'version 4 was skipped; 5 completes frame 13');
 });
 
 test("a fast message over the edge's four fragments goes on the stream; its deltas, which fit, on datagrams", async () => {
