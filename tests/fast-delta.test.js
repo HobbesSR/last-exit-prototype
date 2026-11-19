@@ -162,4 +162,15 @@ test('the schema refuses a key it cannot address by, and a delta inside a delta'
   assert.throws(build({ list: 'E', key: 'f' }), /required uint or str/);
   assert.throws(build({ list: 'uint', key: 'id' }), /required uint or str/);
   assert.throws(build({ delta: 'D' }, { D: { fields: [{ name: 'x', type: { delta: 'uint' } }] } }), /delta inside a delta/);
+  // However deep: inside a list, a nullable or a union variant (review 938 on PR #1197).
+  assert.throws(build({ delta: 'D' }, { D: { fields: [{ name: 'x', type: { list: { nullable: { delta: 'uint' } } } }] } }), /delta inside a delta/);
+  assert.throws(build({ delta: { union: 'k', variants: { a: 'D' } } }, { D: { fields: [{ name: 'x', type: { enumMap: [['p'], { delta: 'uint' }] } }] } }), /delta inside a delta/);
+});
+
+test('a whole keyed list refuses duplicate keys both ways, since it can become a baseline', () => {
+  const twice = { a: 1, list: [{ id: 1, n: 0 }, { id: 1, n: 2 }] };
+  assert.throws(() => SMALL.encode({ type: 'm', v: twice }), /duplicate key/);
+  // Whole R: presence (b absent), a, two entries keyed 1.
+  assert.throws(() => SMALL.decode(Uint8Array.from([FORMAT, 1, 1, 0, 0, 1, 2, 1, 0, 1, 2])), /duplicate list key/);
+  assert.deepEqual(SMALL.decode(Uint8Array.from([FORMAT, 1, 1, 0, 0, 1, 2, 1, 0, 2, 2])), { type: 'm', v: { a: 1, list: [{ id: 1, n: 0 }, { id: 2, n: 2 }] } });
 });

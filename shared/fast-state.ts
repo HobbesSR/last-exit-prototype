@@ -9,7 +9,8 @@ export const SLOW_FIELDS = ['items', 'gates'] as const;
 
 /**
  * The fast part of a projected player view: the view without its slow layers. A new object; the records in it
- * are the projection's own, so a frame kept as a baseline shares them with the view.
+ * are the projection's own, so a frame kept as a baseline shares them with the view. It takes the view as the
+ * projection gives it, before the transport adds `rosterRevision`, which the `fast` message carries beside it.
  */
 export function fastFrame<T extends Record<string, unknown>>(view: T): Record<string, unknown> {
   const fast: Record<string, unknown> = { ...view };

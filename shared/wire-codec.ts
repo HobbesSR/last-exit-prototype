@@ -296,6 +296,7 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
         r: r => { const tag = r.byte(); if (tag === 0) return null; if (tag !== 1) bad('bad nullable tag'); return t.r(r); } };
     }
     if ('delta' in type) {
+      if (holdsDelta(type.delta)) throw new Error('a delta inside a delta');
       const whole = compile(type.delta), changes = compileDelta(type.delta);
       return {
         w: (w, v) => {
@@ -315,10 +316,26 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
       };
     }
     if ('list' in type) {
-      if (type.key !== undefined) keyField(type.list, type.key);
-      const t = compile(type.list);
-      return { w: (w, v) => { if (!Array.isArray(v)) fail('expected list'); w.uint(v.length); for (let i = 0; i < v.length; i++) t.w(w, v[i]); },
-        r: r => { const n = r.count(), out = new Array(n); for (let i = 0; i < n; i++) out[i] = t.r(r); return out; } };
+      const t = compile(type.list), key = type.key;
+      if (key === undefined) {
+        return { w: (w, v) => { if (!Array.isArray(v)) fail('expected list'); w.uint(v.length); for (let i = 0; i < v.length; i++) t.w(w, v[i]); },
+          r: r => { const n = r.count(), out = new Array(n); for (let i = 0; i < n; i++) out[i] = t.r(r); return out; } };
+      }
+      // A keyed list's keys are unique on both sides, since a whole list can become a delta's baseline.
+      keyField(type.list, key);
+      return {
+        w: (w, v) => {
+          if (!Array.isArray(v)) fail('expected list');
+          const keys = new Set();
+          w.uint(v.length);
+          for (let i = 0; i < v.length; i++) { t.w(w, v[i]); const k = v[i][key]; if (keys.has(k)) fail(`duplicate key ${k}`); keys.add(k); }
+        },
+        r: r => {
+          const n = r.count(), out = new Array(n), keys = new Set();
+          for (let i = 0; i < n; i++) { const e = t.r(r), k = e[key]; if (keys.has(k)) bad('duplicate list key'); keys.add(k); out[i] = e; }
+          return out;
+        },
+      };
     }
     if ('layer' in type) return layerCodec(compile({ list: type.layer }), compile({ list: 'uint' }));
     if ('enumMap' in type) {
@@ -381,6 +398,23 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
       throw new Error(`a keyed list's key must be a required uint or str field of its record, not ${JSON.stringify(list)}.${key}`);
     }
     return field;
+  }
+
+  // Whether a type holds a delta anywhere within it, through records, lists, unions and maps alike.
+  function holdsDelta(type: FieldType, seen = new Set<string>()): boolean {
+    if (typeof type === 'string') {
+      const def = schema.records[type];
+      if (!def || seen.has(type)) return false;
+      seen.add(type);
+      return def.fields.some(f => holdsDelta(f.type, seen));
+    }
+    if ('delta' in type) return true;
+    if ('list' in type) return holdsDelta(type.list, seen);
+    if ('nullable' in type) return holdsDelta(type.nullable, seen);
+    if ('layer' in type) return holdsDelta(type.layer, seen);
+    if ('enumMap' in type) return holdsDelta(type.enumMap[1], seen);
+    if ('union' in type) return Object.values(type.variants).some(v => holdsDelta(v, seen));
+    return false;
   }
 
   function compileDelta(type: FieldType): DeltaCodec {
