@@ -152,6 +152,9 @@ test('inputs are packed newest last, with as many earlier ones as fit, up to thr
   assert.equal(dec(packInputDatagram([a, b, c], 13 + 8 * 2)), '{"inputs":[{"s":2},{"s":3}]}');
   assert.equal(dec(packInputDatagram([a, b, c], 13 + 8)), '{"inputs":[{"s":3}]}');
   assert.equal(packInputDatagram([a, b, c], 13 + 6), null);
+  // An idle client acknowledges with no input; with nothing at all there is no datagram.
+  assert.equal(dec(packInputDatagram([], Infinity, 41)), '{"ack":41,"inputs":[]}');
+  assert.equal(packInputDatagram([]), null);
 });
 
 test('over WebTransport, inputs go as datagrams repeating the two before them; a WebSocket or a session without datagrams sends them on the stream', async () => {

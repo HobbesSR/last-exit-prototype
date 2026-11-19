@@ -138,10 +138,44 @@ test('until a frame is acknowledged every frame is whole; after, each is a delta
     h.service.acknowledge(other.session, first[0].tick); // late and older: changes nothing
     for (let i = 0; i < 3; i++) h.wake(50);
     assert.deepEqual(read().map(m => m.asked), [[first[2].tick], [first[2].tick], [first[2].tick]]);
-    // An acknowledgement the history no longer holds, or never held, gets whole frames again.
+    // A tick past the match's is no acknowledgement: it must not outrank the true ones after it.
     h.service.acknowledge(other.session, first.at(-1).tick + 10_000);
     h.wake(50);
-    assert.deepEqual(read().map(m => m.asked), [[]]);
+    const after = read();
+    assert.deepEqual(after.map(m => m.asked), [[first[2].tick]]);
+    h.service.acknowledge(other.session, after[0].tick);
+    h.wake(50);
+    assert.deepEqual(read().map(m => m.asked), [[after[0].tick]]);
+  } finally { await h.service.close(); }
+});
+
+test('a slow message the stream skips is sent again on the next tick, with its keyframes whole', async () => {
+  const h = roomHarness({ reuseMaps: true });
+  const made = await h.room();
+  const owner = h.joined(made, { ownerKey: made.ownerKey, role: 'gladiator' });
+  // A session whose stream skips the first `slow` it is offered, as a backed-up one does.
+  const slow = [];
+  let skip = true;
+  const session = h.service.connect({
+    deliver: payload => {
+      if (typeof payload === 'string') return true;
+      const message = codec.decode(payload);
+      if (message.type !== 'slow') return true;
+      if (skip) { skip = false; return false; }
+      slow.push(message); return true;
+    },
+    datagram: () => true,
+    close: () => {},
+  });
+  h.directory.receive(session, { type: 'join', room: made.id, role: 'contestant' });
+  try {
+    h.wake(50); owner.send({ type: 'start' });
+    h.wake(50);
+    assert.equal(skip, false, 'the first was offered and skipped');
+    assert.equal(slow.length, 1, 'and sent again on the next tick');
+    assert.ok(['items', 'gates', 'discovered'].every(layer => 'all' in slow[0][layer]), 'each keyframe whole, since none was delivered');
+    h.wake(50);
+    assert.ok(slow.length <= 2, 'after that, only when the layers change');
   } finally { await h.service.close(); }
 });
 

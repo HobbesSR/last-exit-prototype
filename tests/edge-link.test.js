@@ -193,20 +193,21 @@ test('input datagrams reach the room once each, in order, whichever path an inpu
   assert.equal(seqsOf(4).length, MAX_MESSAGES_PER_SECOND);
 });
 
-test('acknowledgements ride the input datagrams and reach the service only when newer', async t => {
+test('acknowledgements ride the input datagrams and reach the service unless repeated', async t => {
   const { service, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
   for (const id of [1, 2]) e.send(FRAME.OPEN, u32(id));
   await waitFor(() => service.peers.length === 2, 'two sessions');
   const send = (id, body) => e.send(FRAME.DATAGRAM, u32(id), json(body));
   send(1, { ack: 40, inputs: [{ type: 'input', seq: 1, tick: 41 }] });
-  // An acknowledgement alone, with no input, is a datagram too; a late, older one says nothing.
+  // An acknowledgement alone, with no input, is a datagram too. A repeat is dropped; a late, older one goes on, for
+  // the room to judge, so a stray value cannot latch here.
+  send(1, { ack: 42, inputs: [] });
   send(1, { ack: 42, inputs: [] });
   send(1, { ack: 41, inputs: [{ type: 'input', seq: 1, tick: 41 }] });
-  send(1, { ack: 42, inputs: [] });
   send(1, { ack: 45, inputs: [{ type: 'input', seq: 2, tick: 46 }] });
-  await waitFor(() => service.acks.length === 3 && service.received.length === 2, 'the acknowledgements');
-  assert.deepEqual(service.acks, [[0, 40], [0, 42], [0, 45]]);
+  await waitFor(() => service.acks.length === 4 && service.received.length === 2, 'the acknowledgements');
+  assert.deepEqual(service.acks, [[0, 40], [0, 42], [0, 41], [0, 45]]);
   // Neither an empty datagram nor a malformed acknowledgement is one.
   for (const [i, bad] of [{ inputs: [] }, { ack: -1, inputs: [] }, { ack: null, inputs: [{ type: 'input', seq: 1 }] }, { ack: 1.5, inputs: [] }, { ack: 3, inputs: [], extra: 1 }].entries()) {
     e.send(FRAME.OPEN, u32(10 + i));
@@ -214,7 +215,7 @@ test('acknowledgements ride the input datagrams and reach the service only when 
     const close = await e.next(FRAME.CLOSE);
     assert.deepEqual([close.body.readUInt32BE(0), close.body.subarray(6).toString()], [10 + i, CLOSE_REASON.INVALID_MESSAGE], JSON.stringify(bad));
   }
-  assert.equal(service.acks.length, 3);
+  assert.equal(service.acks.length, 4);
 });
 
 test('an invalid input passes on to be refused, but does not hold back the valid ones after it', async t => {

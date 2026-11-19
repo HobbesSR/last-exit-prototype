@@ -38,10 +38,12 @@ export function chooseTransport({ forced, webTransport, available, fellBack }) {
 /**
  * Packs encoded input messages, oldest first, as one datagram (24.5 "Stage 2's contracts"): a JSON object
  * `{ ack?, inputs }` whose `inputs` are as many of the newest as fit in `max` bytes. `ack` is the newest fast
- * frame's tick the client holds, or null for none. Null when not even the newest input fits.
+ * frame's tick the client holds, or null for none. With no inputs and an `ack`, the datagram carries the
+ * acknowledgement alone. Null when not even the newest input fits.
  */
 export function packInputDatagram(inputs, max = Infinity, ack = null) {
   const head = encoder.encode(ack === null ? '{"inputs":[' : `{"ack":${ack},"inputs":[`);
+  if (!inputs.length) return ack === null || head.length + 2 > max ? null : encoder.encode(`{"ack":${ack},"inputs":[]}`);
   // The head, then each input and its separator (a comma, or the closing `]`), then the closing brace.
   let from = inputs.length, size = head.length + 1;
   while (from > 0 && size + inputs[from - 1].length + 1 <= max) size += inputs[--from].length + 1;

@@ -613,11 +613,14 @@ export function createRoom({
 
   /**
    * A session's acknowledgement of the newest fast frame it holds (24.2 "Acknowledgement and baselines"): its
-   * next frames are deltas against that one while the history holds it. A late, older one changes nothing.
+   * next frames are deltas against that one while the history holds it. A late, older one changes nothing, and
+   * neither does a tick past the match's, which no frame could have carried: kept, it would outrank every true
+   * acknowledgement after it.
    */
   function onAck(clientId, tick) {
     const client = clientMap.get(clientId);
-    if (client && (client.fastAck === null || tick > client.fastAck)) client.fastAck = tick;
+    if (!client || !state.match || tick > state.match.tick) return;
+    if (client.fastAck === null || tick > client.fastAck) client.fastAck = tick;
   }
 
   // The waiting area keeps the match's tick rate on its own clock, so walking there feels the same.

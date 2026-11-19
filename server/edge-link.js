@@ -6,7 +6,7 @@ import { CLIENT_MESSAGE, CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverabl
 // cannot tell the transport. Inputs may also arrive as datagrams (24.5 "Stage 2's contracts"), each carrying the
 // newest input and those just before it; the link passes each input on once, in order, so the room sees what a
 // WebSocket would have given it. A datagram also carries the client's acknowledgement of fast state (24.5
-// "Stage 3's contracts"), passed on only when newer than the last. Edge sessions do not offer the room datagrams
+// "Stage 3's contracts"), passed on when it differs from the last. Edge sessions do not offer the room datagrams
 // yet: that waits for the edge's datagram send, so every edge session is sent today's `state` on its stream.
 
 export const LINK_VERSION = 3;
@@ -163,8 +163,9 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
           try { datagram = parseInputDatagram(body.subarray(4)); } catch { datagram = null; }
           if (!datagram) return reject(id, state, CLOSE_REASON.INVALID_MESSAGE);
           const { ack, inputs } = datagram;
-          // A late datagram's older acknowledgement says nothing new.
-          if (ack !== null && ack > state.ack) { state.ack = ack; service.acknowledge(state.session, ack); }
+          // Repeats are dropped here; whether a tick is newer, and one the room could have sent, is the room's to judge,
+          // so a stray value cannot latch here and silence the acknowledgements after it.
+          if (ack !== null && ack !== state.ack) { state.ack = ack; service.acknowledge(state.session, ack); }
           let passed = 0;
           for (const input of inputs) {
             if (state.closing) return;
