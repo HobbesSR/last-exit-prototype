@@ -18,7 +18,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 8;
+export const WIRE_VERSION = 9;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -889,22 +889,31 @@ export function parseMessage(raw: string | Buffer): Record<string, unknown> | nu
 export const INPUT_DATAGRAM_INPUTS = 3;
 const datagramText = new TextDecoder('utf-8', { fatal: true });
 
+/** An input datagram's contents: the acknowledged tick, when there is one, and its inputs, oldest first. */
+export interface InputDatagram { ack: number | null; inputs: Record<string, unknown>[] }
+
 /**
- * Reads an input datagram: a JSON array of one to `INPUT_DATAGRAM_INPUTS` `input` messages, oldest first, whose
- * `seq` values are non-negative safe integers and strictly increase. Null for anything else. It checks only the envelope;
- * each message is still validated as any client message is (`validateClientMessage`). Throws on bad JSON.
+ * Reads an input datagram (24.5 "Stage 2's contracts", acknowledgements from stage 3): a JSON object
+ * `{ ack?, inputs }`. `ack` is the newest fast frame's tick the client holds whole, a non-negative safe integer.
+ * `inputs` is zero to `INPUT_DATAGRAM_INPUTS` `input` messages, oldest first, whose `seq` values are non-negative
+ * safe integers and strictly increase; it may be empty only beside an `ack`. Null for anything else. It checks
+ * only the envelope; each message is still validated as any client message is (`validateClientMessage`). Throws
+ * on bad JSON.
  */
-export function parseInputDatagram(raw: string | Uint8Array): Record<string, unknown>[] | null {
+export function parseInputDatagram(raw: string | Uint8Array): InputDatagram | null {
   const data: unknown = JSON.parse(typeof raw === 'string' ? raw : datagramText.decode(raw));
-  if (!Array.isArray(data) || data.length < 1 || data.length > INPUT_DATAGRAM_INPUTS) return null;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const { ack = null, inputs, ...rest } = data as Record<string, unknown>;
+  if (Object.keys(rest).length || ('ack' in data && (!Number.isSafeInteger(ack) || (ack as number) < 0))) return null;
+  if (!Array.isArray(inputs) || inputs.length > INPUT_DATAGRAM_INPUTS || (!inputs.length && ack === null)) return null;
   let last = -1;
-  for (const item of data as unknown[]) {
+  for (const item of inputs as unknown[]) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
     const { type, seq } = item as Record<string, unknown>;
     if (type !== CLIENT_MESSAGE.INPUT || !Number.isSafeInteger(seq) || (seq as number) <= last) return null;
     last = seq as number;
   }
-  return data as Record<string, unknown>[];
+  return { ack: ack as number | null, inputs: inputs as Record<string, unknown>[] };
 }
 
 export function acceptMessageRate(window: { start: number; messages: number }, now: number): boolean {

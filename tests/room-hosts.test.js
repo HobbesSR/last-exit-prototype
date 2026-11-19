@@ -13,7 +13,7 @@ import { generatedMap } from './helpers/room-harness.js';
 import { readArchive } from './helpers/recordings.js';
 import { profileFields } from '../server/http-api.js';
 import { profileResponse } from '../shared/protocol.ts';
-import { readServerMessage } from '../shared/wire-schema.ts';
+import { readServerMessage, wireCodec } from '../shared/wire-schema.ts';
 
 // The room lifecycle (room.js) run on both hosts of it: every room in this thread, and each on its own
 // worker thread (#1089), through the same scenarios. Maps are the pregenerated arena, never generated here.
@@ -34,28 +34,32 @@ async function host(threads) {
   const replays = await createFileReplayStore(dir), errors = [];
   const service = createRoomService({ replays, threads, devTools: 'all', reportError: error => errors.push(error) });
   const stop = startScheduler(service.advance);
-  const peer = () => {
+  // With `datagrams`, the peer's transport has datagrams, and their bytes are kept in `datagrams`.
+  const peer = ({ datagrams: withDatagrams = false } = {}) => {
+    const datagrams = [];
     const messages = [], closes = [], layers = createLayerDecoder(), frames = [], normalizer = createFrameNormalizer(), binary = [];
     const deliver = payload => {
       const data = readServerMessage(payload);
       if (typeof payload !== 'string') binary.push(data.type);
       if (data.type === 'seats') { normalizer.seats(data.roster, data.revision); return; }
       if (data.type === 'welcome' || data.type === 'ready') normalizer.envelope(data);
+      if (data.type === 'slow') return void messages.push(data);
       if (data.type === 'state') layers.decode(data.state);
       if (data.state) data.state = normalizer.normalize(data.state);
       messages.push(data);
       if (data.type === 'state') frames.push(data.state);
     };
-    const session = service.connect({ deliver, close: (...args) => { closes.push(args); service.disconnect(session); } });
+    const datagram = withDatagrams ? bytes => { datagrams.push(bytes); return true; } : undefined;
+    const session = service.connect({ deliver, ...(datagram ? { datagram } : {}), close: (...args) => { closes.push(args); service.disconnect(session); } });
     const p = {
-      session, messages, closes, frames, binary,
+      session, messages, closes, frames, binary, datagrams,
       send: message => service.receive(session, message),
       welcome: () => messages.find(m => m.type === 'welcome'),
       has: type => messages.some(m => m.type === type),
     };
     return p;
   };
-  const join = (room, extra = {}) => { const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p; };
+  const join = (room, extra = {}, transport = {}) => { const p = peer(transport); p.send({ type: 'join', room: room.id, ...extra }); return p; };
   let finished = false;
   const finish = async () => {
     if (finished) return; finished = true;
@@ -156,6 +160,37 @@ for (const threads of [false, true]) {
       await until(() => player.messages.some(m => m.type === 'error' && /could not be generated/.test(m.message)), 'the error message');
       await until(() => !inRoom(h.service, room.id), 'the room leaving the directory');
       assert.deepEqual(h.errors.map(e => e.message), ['generation broke']);
+    } finally { await h.finish(); }
+  });
+
+  test(`a player with datagrams is sent fast state on them, as deltas once it acknowledges (${label})`, async () => {
+    const h = await host(threads);
+    try {
+      const room = h.service.makeRoom(9, false, undefined, generatedMap(9));
+      await room.ready;
+      const owner = h.join(room, { ownerKey: room.ownerKey }), fast = h.join(room, { role: 'gladiator' }, { datagrams: true });
+      await until(() => owner.has('welcome') && fast.has('welcome'), 'welcomes');
+      owner.send({ type: 'start' });
+      const codec = wireCodec(), held = new Map();
+      // Each datagram read as a client would, holding every frame; the baseline each one asked for, if any.
+      let read = 0;
+      const next = () => fast.datagrams.slice(read).map(bytes => {
+        read++;
+        let asked = null;
+        const { state } = codec.decode(bytes, { baseline: tick => { asked = tick; return held.get(tick); } });
+        held.set(state.tick, state);
+        return { tick: state.tick, asked };
+      });
+      await until(() => fast.datagrams.length >= 3, 'fast frames');
+      const whole = next();
+      assert.deepEqual(whole.map(m => m.asked), whole.map(() => null), 'whole until acknowledged');
+      assert.ok(fast.has('slow'), 'the slow layers on the stream');
+      assert.ok(!fast.frames.some(f => f.phase === 'live'), 'no live `state` for it');
+      const acked = whole.at(-1).tick;
+      h.service.acknowledge(fast.session, acked);
+      await until(() => next().some(m => m.asked === acked), 'a delta against the acknowledged frame');
+      assert.ok(owner.frames.some(f => f.phase === 'live'), 'a stream player still gets `state`');
+      assert.deepEqual(h.errors, []);
     } finally { await h.finish(); }
   });
 

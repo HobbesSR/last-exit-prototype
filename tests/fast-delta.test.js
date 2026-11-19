@@ -7,7 +7,7 @@ import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { fastFrame } from '../shared/fast-state.ts';
 
 // The codec's deltas (24.5 stage 3, wire-codec.ts "Deltas"): a player view's fast part, written as changes
-// against an earlier frame the reader holds, rebuilds that frame exactly. Nothing sends `fast` yet.
+// against an earlier frame the reader holds, rebuilds that frame exactly. fast-delivery.test.js covers sending it.
 
 const codec = wireCodec();
 const HISTORY = 32; // 24.2 "Acknowledgement and baselines"
@@ -38,7 +38,7 @@ async function playerViews() {
   } finally { await h.service.close(); }
 }
 
-const message = (rosterRevision, state) => ({ type: 'fast', rosterRevision, state });
+const message = (rosterRevision, state) => ({ type: 'fast', rosterRevision, slowVersion: 1, state });
 const holding = (id, frame) => ({ baseline: asked => (asked === id ? frame : undefined) });
 
 test('a player view\'s fast part rebuilds exactly against any baseline in the history, and whole', async t => {

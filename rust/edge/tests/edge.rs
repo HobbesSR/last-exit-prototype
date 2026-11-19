@@ -70,7 +70,7 @@ impl Node {
         let (kind, body) = self.next().await;
         assert_eq!(kind, EDGE);
         let accept =
-            format!("{{\"link\":2,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
+            format!("{{\"link\":3,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
         self.send(ACCEPT, &[accept.as_bytes()]).await;
         String::from_utf8(body).unwrap()
     }

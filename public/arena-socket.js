@@ -36,17 +36,21 @@ export function chooseTransport({ forced, webTransport, available, fellBack }) {
 }
 
 /**
- * Packs encoded input messages, oldest first, as one datagram: a JSON array of as many of the newest as fit in
- * `max` bytes. Null when not even the newest fits.
+ * Packs encoded input messages, oldest first, as one datagram (24.5 "Stage 2's contracts"): a JSON object
+ * `{ ack?, inputs }` whose `inputs` are as many of the newest as fit in `max` bytes. `ack` is the newest fast
+ * frame's tick the client holds, or null for none. Null when not even the newest input fits.
  */
-export function packInputDatagram(inputs, max = Infinity) {
-  let from = inputs.length, size = 1;
+export function packInputDatagram(inputs, max = Infinity, ack = null) {
+  const head = encoder.encode(ack === null ? '{"inputs":[' : `{"ack":${ack},"inputs":[`);
+  // The head, then each input and its separator (a comma, or the closing `]`), then the closing brace.
+  let from = inputs.length, size = head.length + 1;
   while (from > 0 && size + inputs[from - 1].length + 1 <= max) size += inputs[--from].length + 1;
   if (from === inputs.length) return null;
   const out = new Uint8Array(size);
-  let at = 0;
-  for (let i = from; i < inputs.length; i++) { out[at++] = i === from ? 0x5b : 0x2c; out.set(inputs[i], at); at += inputs[i].length; }
-  out[at] = 0x5d;
+  out.set(head);
+  let at = head.length;
+  for (let i = from; i < inputs.length; i++) { if (i > from) out[at++] = 0x2c; out.set(inputs[i], at); at += inputs[i].length; }
+  out[at++] = 0x5d; out[at] = 0x7d;
   return out;
 }
 

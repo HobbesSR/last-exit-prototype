@@ -5,9 +5,11 @@ import { CLIENT_MESSAGE, CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverabl
 // edge opens, carrying every edge session as a peer behind the same session seam a WebSocket uses, so a room
 // cannot tell the transport. Inputs may also arrive as datagrams (24.5 "Stage 2's contracts"), each carrying the
 // newest input and those just before it; the link passes each input on once, in order, so the room sees what a
-// WebSocket would have given it.
+// WebSocket would have given it. A datagram also carries the client's acknowledgement of fast state (24.5
+// "Stage 3's contracts"), passed on only when newer than the last. Edge sessions do not offer the room datagrams
+// yet: that waits for the edge's datagram send, so every edge session is sent today's `state` on its stream.
 
-export const LINK_VERSION = 2;
+export const LINK_VERSION = 3;
 /** The longest frame (type and body) the link accepts; a longer length is a malformed link. */
 export const MAX_LINK_FRAME_BYTES = 64 * 1024 * 1024;
 
@@ -46,7 +48,7 @@ function readEdge(body) {
 
 /**
  * Listens on `host:port` (0 picks a free port) and accepts one edge at a time. `service` is the host's
- * `{ connect, receive, disconnect }`. `httpPort` is a number or a function, read when ACCEPT is sent, since
+ * `{ connect, receive, acknowledge, disconnect }`. `httpPort` is a number or a function, read when ACCEPT is sent, since
  * the HTTP server may not be listening yet. Returns `{ listening, port, info, counts, close }`: `listening`
  * resolves once bound, `port` is the bound link port, `info()` is the latest `{ port, certificateHash }` of the
  * linked edge, or null while none is linked, and `counts()` is how many MESSAGE and DATAGRAM frames have arrived
@@ -68,8 +70,8 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
     const drop = () => socket.destroy();
 
     function openSession(id) {
-      // `inputSeq` is the newest input `seq` passed on from either path.
-      const state = { sent: 0, written: 0, closing: false, ended: false, rate: { start: Date.now(), messages: 0 }, inputSeq: -Infinity, session: null };
+      // `inputSeq` is the newest input `seq` passed on from either path; `ack` the newest acknowledgement.
+      const state = { sent: 0, written: 0, closing: false, ended: false, rate: { start: Date.now(), messages: 0 }, inputSeq: -Infinity, ack: -1, session: null };
       link.sessions.set(id, state);
       const buffered = () => Math.max(0, state.sent - state.written);
       state.session = service.connect({
@@ -157,9 +159,12 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
           // counts inputs as on a WebSocket, and a datagram of repeats still costs one.
           const now = Date.now();
           if (!acceptMessageRate(state.rate, now)) return reject(id, state, CLOSE_REASON.RATE_EXCEEDED);
-          let inputs;
-          try { inputs = parseInputDatagram(body.subarray(4)); } catch { inputs = null; }
-          if (!inputs) return reject(id, state, CLOSE_REASON.INVALID_MESSAGE);
+          let datagram;
+          try { datagram = parseInputDatagram(body.subarray(4)); } catch { datagram = null; }
+          if (!datagram) return reject(id, state, CLOSE_REASON.INVALID_MESSAGE);
+          const { ack, inputs } = datagram;
+          // A late datagram's older acknowledgement says nothing new.
+          if (ack !== null && ack > state.ack) { state.ack = ack; service.acknowledge(state.session, ack); }
           let passed = 0;
           for (const input of inputs) {
             if (state.closing) return;

@@ -47,7 +47,8 @@ const byRole = count => Object.fromEntries(ROLES.map(role => [role, count(role)]
 /**
  * Single-room lifecycle shaped around Colyseus-style hooks (`onCreate`, `onJoin`, `onLeave`,
  * `onMessage`, `onDispose`), keeping inbound commands/inputs as plain data and outbound wire
- * traffic as serialized payloads via `deliver(clientId, serializedPayload, droppable)`.
+ * traffic as serialized payloads via `deliver(clientId, serializedPayload, droppable)`, and a player session's
+ * fast state via `datagram(clientId, bytes)` when its transport has datagrams (room-views.js `deliversFast`).
  *
  * Explicit internal boundaries:
  * - Waiting-yard simulation to match handoff (`waiting` -> `match`) in `startMatch()`
@@ -67,6 +68,7 @@ export function createRoom({
   // each (createArenaServer's default), a literal key is used as given (tests), and null keeps internal IDs.
   wireKey = null,
   deliver = () => true,
+  datagram = () => true,
   closeClient = () => {},
   onFinalization = () => {},
   onDispose: notifyDispose = () => {},
@@ -95,7 +97,14 @@ export function createRoom({
       diagnosticCount: 0,
       diagnosticAt: -Infinity,
       layerKeys: {},
+      // Whether the session's transport has datagrams (onJoin's `transport`); the newest acknowledged fast frame's
+      // tick, the fast frames sent and the slow version held, for the split delivery (room-views.js).
+      datagrams: false,
+      fastAck: null,
+      fastHistory: null,
+      slowVersion: null,
       deliver: (payload, droppable) => deliver(clientId, payload, droppable),
+      datagram: payload => datagram(clientId, payload),
       close: (code, reason) => closeClient(clientId, code, reason),
       ...fields,
     };
@@ -433,7 +442,7 @@ export function createRoom({
     }));
   }
 
-  function joinPlayer(clientId, owner, options) {
+  function joinPlayer(clientId, owner, options, transport) {
     const asked = options.role === 'gladiator' ? 'gladiator' : 'contestant';
     // Before the start a full side falls back to the other, since the lobby lets a player change (#235).
     const role = state.matchmade ? state.seats.preferredRole(options.role) : state.started ? asked : state.seats.preferredRole(asked);
@@ -457,7 +466,7 @@ export function createRoom({
     }
     if (!p) return refuseJoin(clientId, `No ${role} places remain in this match.`);
     const stateEncoding = options.stateEncoding;
-    const client = makeClientRecord(clientId, { playerId: p.id, owner, dev: false, devTools: devAllowed(owner), stateEncoding });
+    const client = makeClientRecord(clientId, { playerId: p.id, owner, dev: false, devTools: devAllowed(owner), stateEncoding, datagrams: !!transport.datagrams });
     state.clients.add(client);
     clientMap.set(clientId, client);
     for (const [key, id] of state.resumes) if (id === p.id) state.resumes.delete(key);
@@ -475,8 +484,11 @@ export function createRoom({
     return { ok: true, clientId, playerId: p.id, owner: client.owner, dev: false, devTools: client.devTools, replacedClientId };
   }
 
-  /** Admit a client into this room as a player, spectator, or dev watcher. */
-  function onJoin(clientId, options = {}) {
+  /**
+   * Admit a client into this room as a player, spectator, or dev watcher. `transport` is the host's, never the
+   * client's: `{ datagrams }` when the session can be sent datagrams.
+   */
+  function onJoin(clientId, options = {}, transport = {}) {
     if (!isCurrent() || clientMap.has(clientId)) {
       return refuseJoin(clientId, 'This arena has ended or no longer exists. Start a new match.');
     }
@@ -489,7 +501,7 @@ export function createRoom({
     }
     if (options.mode === 'dev') return joinDev(clientId, owner, stateEncoding);
     if (options.mode === 'spectator') return joinSpectator(clientId, owner, stateEncoding);
-    return joinPlayer(clientId, owner, { ...options, stateEncoding });
+    return joinPlayer(clientId, owner, { ...options, stateEncoding }, transport);
   }
 
   /** Remove a client from this room, freeing its spectator slot or returning its seat to a bot. */
@@ -597,6 +609,15 @@ export function createRoom({
     const client = clientMap.get(clientId);
     if (!client?.playerId) return false;
     return state.match.setViewLag(client.playerId, rttMs);
+  }
+
+  /**
+   * A session's acknowledgement of the newest fast frame it holds (24.2 "Acknowledgement and baselines"): its
+   * next frames are deltas against that one while the history holds it. A late, older one changes nothing.
+   */
+  function onAck(clientId, tick) {
+    const client = clientMap.get(clientId);
+    if (client && (client.fastAck === null || tick > client.fastAck)) client.fastAck = tick;
   }
 
   // The waiting area keeps the match's tick rate on its own clock, so walking there feels the same.
@@ -739,6 +760,7 @@ export function createRoom({
     adoptMap,
     failMap,
     setViewLag,
+    onAck,
     tick,
     close,
     summary,

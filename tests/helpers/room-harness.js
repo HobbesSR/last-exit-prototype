@@ -72,7 +72,8 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
   } };
   const service = createRoomService({ replays, wallNow: () => wall, reportError, reportReject, ...serviceOptions });
   const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
-  const peer = () => {
+  // `datagram`, when given, makes the peer's transport one with datagrams: it receives each one's bytes.
+  const peer = ({ datagram } = {}) => {
     const messages = [], rawMessages = [], closes = [], layers = createLayerDecoder(), frames = createFrameNormalizer();
     // The type of each message that arrived as bytes rather than text: only `state`, under binary (24.1).
     const binary = [];
@@ -96,7 +97,7 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
       messages.push(data); sizes.push(payload.length);
     };
     const sizes = [];
-    const session = service.connect({ deliver, close: (...args) => { closes.push(args); service.disconnect(session); } });
+    const session = service.connect({ deliver, ...(datagram ? { datagram } : {}), close: (...args) => { closes.push(args); service.disconnect(session); } });
     // An input without a stamp is stamped for the next tick after the last frame seen, or after the last
     // stamp: with no network between them, each input is spent on the next free tick in the order sent,
     // as the client's clock would place it. A test about stamps sends its own `tick`.
@@ -107,8 +108,8 @@ export function roomHarness({ finalize, reportError, reportReject = null, startW
     };
     return { session, messages, rawMessages, binary, sizes, closes, send: message => directory.receive(session, stamp(message)) };
   };
-  const joined = (room, extra = {}) => {
-    const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;
+  const joined = (room, extra = {}, transport = {}) => {
+    const p = peer(transport); p.send({ type: 'join', room: room.id, ...extra }); return p;
   };
   // A room with its match built: on a copy of the seed's shared map with `reuseMaps`, else generated inline.
   // It never asks `generateMap`, which only the directory's rooms use: with both set, `h.room()` still takes the copy.

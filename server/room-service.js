@@ -37,6 +37,8 @@ const asText = bytes => {
  * `wallNow` or timers, so those apply only to rooms run here.
  *
  * Sessions provide deliver(serializedPayload, droppable, binary) and close(code, reason); no socket dependency.
+ * A session whose transport has datagrams also provides datagram(bytes), and its player view is then sent fast
+ * state that way (room-views.js `deliversFast`); its acknowledgements arrive through `acknowledge`.
  * A text payload is a string, or UTF-8 bytes for a session that says `bytes: true` (a threaded room's payloads
  * arrive as bytes; other sessions are given them decoded). A binary payload (a descriptor-codec `state`
  * message, 24.1) is a Uint8Array with `binary` set, and every session is given it as bytes. Only state frames are droppable (protocol.js
@@ -142,6 +144,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       replays: replays.threadOptions, replayFinishTimeoutMs, profile: profiler.profiling(), wireKey,
       hooks: {
         deliver: (clientId, payload, binary) => sessions.get(clientId)?.deliver(payload, false, binary),
+        datagram: (clientId, payload) => sessions.get(clientId)?.datagram?.(payload),
         backlog: clientId => sessions.get(clientId)?.buffered?.() ?? 0,
         closeClient,
         joined: (clientId, joined) => {
@@ -187,6 +190,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       wireKey,
       // A room here writes text as strings, so its bytes are always a binary state message.
       deliver: (clientId, payload, droppable) => sessions.get(clientId)?.deliver(payload, droppable, payload instanceof Uint8Array),
+      datagram: (clientId, payload) => sessions.get(clientId)?.datagram?.(payload),
       closeClient,
       onFinalization: trackFinalization,
       onDispose: retireRoom,
@@ -235,12 +239,21 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       session.roomId = room.id;
       roomSessions.get(room.id)?.add(session);
       if (threads) pendingJoins.set(session.connectionId, room);
-      const joined = room.onJoin(session.connectionId, data);
+      const joined = room.onJoin(session.connectionId, data, { datagrams: typeof session.datagram === 'function' });
       if (joined) settleJoin(session, room, joined);
       return;
     }
     if (!session.roomId) return;
     rooms.get(session.roomId)?.onMessage(session.connectionId, data);
+  }
+
+  /**
+   * A session's acknowledgement of the newest fast frame it holds, from its transport (edge-link.js): passed to
+   * its room, which deltas its next fast frames against that one (room-views.js).
+   */
+  function acknowledge(session, tick) {
+    if (closing || !session.roomId) return;
+    rooms.get(session.roomId)?.onAck(session.connectionId, tick);
   }
 
   function disconnect(session) {
@@ -309,7 +322,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   }
 
   return {
-    rooms, devTools, threads, accepting: () => !closing, summaries, metrics, makeRoom, connect, validate, receive, disconnect, advance, close, setProfiling, roomProfiles,
+    rooms, devTools, threads, accepting: () => !closing, summaries, metrics, makeRoom, connect, validate, receive, acknowledge, disconnect, advance, close, setProfiling, roomProfiles,
     /** How a room created now would be labelled: the deploy form's default, never a particular room's. */
     defaultPresentation: () => describeContent(content()),
   };

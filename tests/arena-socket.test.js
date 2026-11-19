@@ -142,15 +142,16 @@ test('over WebTransport: open, text and binary messages, framed sends, backlog, 
   assert.throws(() => socket.send('x'), /not open/);
 });
 
-test('inputs are packed newest last, with as many earlier ones as fit, up to three', () => {
+test('inputs are packed newest last, with as many earlier ones as fit, up to three, beside the acknowledged tick', () => {
   const enc = text => new TextEncoder().encode(text), dec = bytes => bytes && new TextDecoder().decode(bytes);
   const [a, b, c] = ['{"s":1}', '{"s":2}', '{"s":3}'].map(enc);
-  assert.equal(dec(packInputDatagram([a, b, c])), '[{"s":1},{"s":2},{"s":3}]');
-  assert.equal(dec(packInputDatagram([c])), '[{"s":3}]');
-  // Each input costs its bytes and one separator; the brackets cost two.
-  assert.equal(dec(packInputDatagram([a, b, c], 2 + 7 * 2 + 1)), '[{"s":2},{"s":3}]');
-  assert.equal(dec(packInputDatagram([a, b, c], 9)), '[{"s":3}]');
-  assert.equal(packInputDatagram([a, b, c], 8), null);
+  assert.equal(dec(packInputDatagram([a, b, c])), '{"inputs":[{"s":1},{"s":2},{"s":3}]}');
+  assert.equal(dec(packInputDatagram([c])), '{"inputs":[{"s":3}]}');
+  assert.equal(dec(packInputDatagram([b, c], Infinity, 41)), '{"ack":41,"inputs":[{"s":2},{"s":3}]}');
+  // Each input costs its bytes and one separator; the head and the closing brace cost thirteen.
+  assert.equal(dec(packInputDatagram([a, b, c], 13 + 8 * 2)), '{"inputs":[{"s":2},{"s":3}]}');
+  assert.equal(dec(packInputDatagram([a, b, c], 13 + 8)), '{"inputs":[{"s":3}]}');
+  assert.equal(packInputDatagram([a, b, c], 13 + 6), null);
 });
 
 test('over WebTransport, inputs go as datagrams repeating the two before them; a WebSocket or a session without datagrams sends them on the stream', async () => {
@@ -161,16 +162,16 @@ test('over WebTransport, inputs go as datagrams repeating the two before them; a
   const wt = Transport.made[0];
   for (let seq = 0; seq < 5; seq++) socket.sendInput(input(seq));
   for (let i = 0; i < 50 && wt.datagramsSent.length < 5; i++) await new Promise(r => setTimeout(r, 2));
-  const seqs = wt.datagramsSent.map(bytes => JSON.parse(new TextDecoder().decode(bytes)).map(m => m.seq));
+  const seqs = wt.datagramsSent.map(bytes => JSON.parse(new TextDecoder().decode(bytes)).inputs.map(m => m.seq));
   assert.deepEqual(seqs, [[0], [0, 1], [0, 1, 2], [1, 2, 3], [2, 3, 4]]);
   // Too large for a datagram: the stream carries it, and later datagrams do not repeat it.
-  wt.datagrams.maxDatagramSize = 2 + input(5).length - 1;
+  wt.datagrams.maxDatagramSize = 13 + input(5).length - 1;
   socket.sendInput(input(5));
   wt.datagrams.maxDatagramSize = 1200;
   socket.sendInput(input(6));
   for (let i = 0; i < 50 && (wt.datagramsSent.length < 6 || !wt.sent.length); i++) await new Promise(r => setTimeout(r, 2));
   assert.deepEqual([...wt.sent[0]], [...frame(0, Buffer.from(input(5)))]);
-  assert.deepEqual(JSON.parse(new TextDecoder().decode(wt.datagramsSent[5])).map(m => m.seq), [3, 4, 6]);
+  assert.deepEqual(JSON.parse(new TextDecoder().decode(wt.datagramsSent[5])).inputs.map(m => m.seq), [3, 4, 6]);
 
   const plain = fakeTransport(), streamed = opener({ WebTransport: plain })();
   await next(streamed, 'open');
