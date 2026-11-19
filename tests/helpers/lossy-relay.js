@@ -38,9 +38,13 @@ const due = dir => { const t = now() + delay(); return profile.ordered ? (last[d
 const pending = [];
 let spinning = false, closed = false;
 const at = (due, fn) => { pending.push({ due, fn }); if (!spinning) { spinning = true; setImmediate(spin); } };
+// Packets due by now leave in due order, earliest first and in arrival order among equals. Sending them last-first
+// (as 42.56's relay did) reversed every packet due in the same pass, which an ordered profile makes common.
 function spin() {
-  const t = now();
-  for (let i = pending.length - 1; i >= 0; i--) if (pending[i].due <= t) pending.splice(i, 1)[0].fn();
+  const t = now(), ready = [];
+  for (let i = 0; i < pending.length;) if (pending[i].due <= t) ready.push(pending.splice(i, 1)[0]); else i++;
+  ready.sort((a, b) => a.due - b.due);
+  for (const packet of ready) packet.fn();
   if (!pending.length || closed) { spinning = false; return; }
   setImmediate(spin);
 }

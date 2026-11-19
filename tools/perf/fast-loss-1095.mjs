@@ -5,12 +5,15 @@
 //
 // Per run, the server side records every fast datagram the player's session sends: its tick, its size, and
 // whether it went as a delta (the session's acknowledged frame was in its history, as `deliverSplit` decides).
-// The page samples, every 10 ms, the tick of the newest frame it has drawn (`arenaDebug().buffer.newest`), and
-// staleness is that sample's time less the time the server sent that tick. Both clocks are the machine's
-// (performance.timeOrigin + performance.now()), as in 42.56. Staleness includes the up-to-50 ms gap between ticks.
+// The page counts the datagrams Chrome hands it, so `received` is the messages that arrived whole, and `drawn` the
+// frames it drew: fewer when a frame arrives after a newer one, which the reader ignores. It samples, every 10 ms,
+// the tick of the newest frame it has drawn (`arenaDebug().buffer.newest`), and staleness is that sample's time less
+// the time the server sent that tick. Both clocks are the machine's (performance.timeOrigin + performance.now()), as
+// in 42.56. Staleness includes the up-to-50 ms gap between ticks. Each run also notes how its WebTransport sessions
+// ended, as the page saw it: a session closed mid-run is the measurement's failure, not a lost frame.
 //
 // Usage: node tools/perf/fast-loss-1095.mjs [--profiles=lan,typical,poor] [--seconds=20] [--runs=1] [--seed=1095]
-//        [--map-seed=4217] [--out=FILE]
+//        [--map-seed=4217] [--ordered] [--out=FILE]
 // Needs the Rust toolchain: the edge is built in release first. Takes the bench lock.
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -61,6 +64,17 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
     window.WebTransport = class extends Native {
       constructor(...a) {
         super(...a);
+        // Every datagram Chrome hands the page: its time and the edge's header (message number, index, count).
+        const readable = this.datagrams.readable, getReader = readable.getReader.bind(readable), got = window.__datagrams = [];
+        readable.getReader = (...r) => {
+          const reader = getReader(...r), read = reader.read.bind(reader);
+          reader.read = async () => {
+            const result = await read();
+            if (result.value?.length >= 4) got.push([performance.timeOrigin + performance.now(), (result.value[0] << 8) | result.value[1], result.value[2], result.value[3]]);
+            return result;
+          };
+          return reader;
+        };
         const opened = performance.timeOrigin + performance.now();
         this.closed.then(info => ended.push({ opened, at: performance.timeOrigin + performance.now(), code: info?.closeCode ?? null, reason: info?.reason ?? '' }),
           error => ended.push({ opened, at: performance.timeOrigin + performance.now(), error: String(error) }));
@@ -83,7 +97,9 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
     client.datagram = bytes => {
       const delta = client.fastAck !== null && client.fastAck !== undefined && !!client.fastHistory?.get(client.fastAck);
       const tick = room.match.tick, at = now();
-      sends.push({ at, tick, bytes: bytes.length, delta });
+      // How many ticks behind the send the session's newest acknowledgement is (null before any).
+      const ackAge = client.fastAck === null || client.fastAck === undefined ? null : tick - client.fastAck;
+      sends.push({ at, tick, bytes: bytes.length, delta, ackAge });
       if (!sentAt.has(tick)) sentAt.set(tick, at);
       return datagram(bytes);
     };
@@ -109,9 +125,21 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
     client.datagram = datagram;
     // Whether the session measured lasted the run: a page that lost its session resumes on a new one.
     const sessionKept = room.clients.has(client), playerSessions = [...room.clients].filter(c => c.playerId).length;
-    const perSecond = [];
-    for (const { at } of sends) { const i = Math.floor((at - samples[0][0]) / 1000); if (i >= 0) perSecond[i] = (perSecond[i] ?? 0) + 1; }
-    const transport = await page.evaluate(start => (window.__sessionsEnded ?? []).map(e => ({ ...e, opened: Math.round(e.opened - start), at: Math.round(e.at - start) })), samples[0][0]);
+    // Sends, and whole frames among them, per second of the run.
+    const perSecond = [], wholePerSecond = [];
+    for (const { at, delta } of sends) {
+      const i = Math.floor((at - samples[0][0]) / 1000); if (i < 0) continue;
+      perSecond[i] = (perSecond[i] ?? 0) + 1;
+      if (!delta) wholePerSecond[i] = (wholePerSecond[i] ?? 0) + 1;
+    }
+    // A player eliminated before the run draws a spectator's frames of its own view: small deltas, not a mover's.
+    const playerStatus = await page.evaluate(() => window.arenaDebug().me?.status ?? null);
+    // Messages whose every fragment reached the page within the run, against those the edge was given.
+    const pieces = await page.evaluate(([from, to]) => (window.__datagrams ?? []).filter(([t]) => t >= from && t <= to + 1000), [samples[0][0], samples.at(-1)[0]]);
+    const parts = new Map();
+    for (const [, number, index, count] of pieces) { const m = parts.get(number) ?? { count, got: new Set() }; m.got.add(index); parts.set(number, m); }
+    const received = [...parts.values()].filter(m => m.got.size === m.count).length;
+    const sessionsEnded = await page.evaluate(start => (window.__sessionsEnded ?? []).map(e => ({ ...e, opened: Math.round(e.opened - start), at: Math.round(e.at - start) })), samples[0][0]);
 
     const serverAfter = server.profiler.report(), relayAfter = await relay.counts(), linkAfter = server.edgeLink.counts();
     const drawn = counts((await page.evaluate(() => window.arenaProfile())).series, 'net.stateBytes') - drawnBefore;
@@ -128,10 +156,11 @@ async function run(profile, runIndex, { server, base, browser }, offer) {
     return {
       profile: profile.name, run: runIndex, seconds: Math.round((samples.at(-1)[0] - samples[0][0]) / 100) / 10,
       endedLive: samples.at(-1)[2] === 'live', joinToLiveMs: liveMs,
-      sent: sends.length, drawn, drawnPercent: percent(drawn, sends.length),
+      sent: sends.length, received, receivedPercent: percent(received, sends.length), drawn, drawnPercent: percent(drawn, sends.length),
+      ackAge: { whole: stats(kinds.whole.filter(s => s.ackAge !== null).map(s => s.ackAge)), delta: stats(kinds.delta.map(s => s.ackAge)), wholeWithoutAck: kinds.whole.filter(s => s.ackAge === null).length },
       whole: { count: kinds.whole.length, bytes: stats(kinds.whole.map(s => s.bytes)), fragments: stats(kinds.whole.map(s => fragments(s.bytes))) },
       delta: { count: kinds.delta.length, percent: percent(kinds.delta.length, sends.length), bytes: stats(kinds.delta.map(s => s.bytes)), fragments: stats(kinds.delta.map(s => fragments(s.bytes))) },
-      streamed: serverCount('loop.fastStreamed'), sessionKept, playerSessions, sendsPerSecond: Array.from(perSecond, n => n ?? 0), page: transport,
+      streamed: serverCount('loop.fastStreamed'), sessionKept, playerSessions, sendsPerSecond: Array.from(perSecond, n => n ?? 0), wholePerSecond: Array.from({ length: perSecond.length }, (_, i) => wholePerSecond[i] ?? 0), playerStatus, sessionsEnded,
       acknowledgements: linkAfter.acks - linkBefore.acks, inputDatagrams: linkAfter.datagrams - linkBefore.datagrams,
       staleness: stats(staleness), longestStallMs: Math.round(longest),
       relay: Object.fromEntries(Object.keys(relayAfter).map(k => [k, relayAfter[k] - relayBefore[k]])),
@@ -158,7 +187,7 @@ try {
   for (const profile of chosen) for (let i = 0; i < runs; i++) {
     const r = await run(profile, i, session, offer);
     results.push(r);
-    console.log(`${profile.name}#${i}: drawn ${r.drawn}/${r.sent} (${r.drawnPercent}%) | delta ${r.delta.percent}% | whole p50 ${r.whole.bytes?.p50} B | stale ${r.staleness?.p50}/${r.staleness?.p95}/${r.staleness?.p99} ms | stall ${r.longestStallMs} ms | streamed ${r.streamed} | errors ${r.errors.length}`);
+    console.log(`${profile.name}#${i}: received ${r.receivedPercent}% drawn ${r.drawn}/${r.sent} (${r.drawnPercent}%) | delta ${r.delta.percent}% | whole p50 ${r.whole.bytes?.p50} B | stale ${r.staleness?.p50}/${r.staleness?.p95}/${r.staleness?.p99} ms | stall ${r.longestStallMs} ms | streamed ${r.streamed} | errors ${r.errors.length}`);
   }
 } finally {
   edge.kill();

@@ -82,6 +82,8 @@ try {
   sent.length = 0;
   await relay.update({ rtt: 0, jitter: 0, loss: 0 });
   await page.waitForFunction(at => window.arenaDebug().buffer.newest > at + 10, stalled, { timeout: 5000 });
+  // The first whole frame jumps the page past the outage at once; deltas follow once its acknowledgement lands.
+  for (let waited = 0; !sent.includes('delta') && waited < 3000; waited += 50) await new Promise(resolve => setTimeout(resolve, 50));
   const firstDelta = sent.indexOf('delta');
   assert.ok(sent[0] === 'whole' && firstDelta > 0, `recovery began whole and deltas resumed (${sent.join(',')})`);
   assert.ok(live.match.tick - await drawnTick() < 5, 'the page draws the current tick again');
