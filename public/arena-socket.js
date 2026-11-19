@@ -6,7 +6,9 @@
 // ArrayBuffer for a binary one. `transport` names what the socket ended up on.
 
 const CONNECTING = 0, OPEN = 1, CLOSING = 2, CLOSED = 3;
-const FLAG_TEXT = 0, FLAG_BINARY = 1;
+/** The client stream's flag byte; `tests/edge-contract.test.js` holds it to the edge's. */
+export const FLAG = Object.freeze({ TEXT: 0, BINARY: 1 });
+const { TEXT: FLAG_TEXT, BINARY: FLAG_BINARY } = FLAG;
 /** How long WebTransport has to open its session and stream before the WebSocket is used. */
 export const FALLBACK_MS = 3000;
 const encoder = new TextEncoder(), decoder = new TextDecoder();

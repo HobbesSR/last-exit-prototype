@@ -13,7 +13,9 @@ export const FRAME = Object.freeze({
   EDGE: 0x01, ACCEPT: 0x81, OPEN: 0x02, MESSAGE: 0x03, DELIVER: 0x82, WRITTEN: 0x04, CLOSE: 0x83, CLOSED: 0x05,
 });
 
-const FLAG_TEXT = 0, FLAG_BINARY = 1;
+/** A message frame's flag byte, as the client stream and MESSAGE/DELIVER carry it. */
+export const FLAG = Object.freeze({ TEXT: 0, BINARY: 1 });
+const { TEXT: FLAG_TEXT, BINARY: FLAG_BINARY } = FLAG;
 const encoder = new TextEncoder(), decoder = new TextDecoder('utf-8', { fatal: true });
 
 /** One frame: u32 big-endian length of what follows, a u8 type, then the body parts. */
