@@ -5,7 +5,7 @@ import { wireCodec } from '../shared/wire-schema.ts';
 import { MissingBaseline } from '../shared/wire-codec.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '../shared/discovery.ts';
-import { createFastHistory, fastFrame, holdItemBodies, FAST_HISTORY_TICKS } from '../shared/fast-state.ts';
+import { createFastHistory, createFastReader, fastFrame, holdItemBodies, FAST_HISTORY_TICKS, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
 import { deliversFast } from '../server/room-views.js';
 
 // The split delivery (24.5 "Stage 3's contracts"): a player session with datagrams is sent its fast state on
@@ -56,25 +56,24 @@ async function play({ lose = () => false, ackDelay = 2, ackEvery = 1 } = {}) {
   } finally { await h.service.close(); }
 }
 
-/** The client's side, as the next PR's apply will be: it keeps the frames it rebuilt and applies only newer ones. */
+/** The client's side, through the reader its apply uses (`createFastReader`): it keeps only newer frames. */
 function fakeClient() {
-  const held = createFastHistory(), frames = [];
-  let newest = -1;
+  const reader = createFastReader(), frames = [];
   const client = {
     frames, kept: 0, missing: 0, stale: 0, deltas: 0,
     /** Applies one datagram; the tick it now holds as newest, or null when it applied nothing. */
     receive(bytes) {
       let message;
       let delta = false;
-      try { message = codec.decode(bytes, { baseline: tick => { delta = true; return held.get(tick); } }); } catch (error) {
+      try { message = codec.decode(bytes, { baseline: tick => { delta = true; return reader.baseline(tick); } }); } catch (error) {
         if (error instanceof MissingBaseline) { client.missing++; return null; }
         throw error;
       }
-      const { state } = message;
-      if (state.tick <= newest) { client.stale++; return null; }
-      newest = state.tick; held.record(state.tick, state); client.kept++; if (delta) client.deltas++;
+      const newest = reader.newest();
+      if (newest !== null && message.state.tick <= newest) { client.stale++; return null; }
+      reader.fast(message); client.kept++; if (delta) client.deltas++;
       frames.push(message);
-      return newest;
+      return reader.newest();
     },
   };
   return client;
@@ -211,4 +210,73 @@ test('the item-body hold leaves out a body whose item the reader lacks, and any 
   assert.deepEqual(held.bodies.map(b => b.id), [1, 3]);
   assert.deepEqual(held.tethers.map(t => t.id), [2]);
   assert.equal(frame.bodies.length, 3, 'the rebuilt frame, the reader\'s baseline, is unchanged');
+});
+
+test('the reader keeps only newer frames, draws with the slow layers it holds, and holds back bodies of items it lacks', () => {
+  const reader = createFastReader();
+  const frame = (tick, extra = {}, slowVersion = 1) => ({ rosterRevision: 1, slowVersion, state: { tick, phase: 'live', bodies: [{ id: 1, owner: { kind: 'item', itemId: 7 } }], ...extra } });
+  assert.equal(reader.fast(frame(10)), null, 'nothing is drawn before the slow layers arrive');
+  assert.equal(reader.newest(), 10, 'but the frame is held and acknowledged');
+  assert.equal(reader.baseline(10).tick, 10);
+  assert.equal(reader.slow([{ id: 8 }], [{ id: 'g' }], 1).tick, 10, 'the held frame is drawn once they do');
+  const drawn = reader.fast(frame(11));
+  assert.deepEqual(drawn.bodies, [], 'item 7 is not held, so its body waits');
+  assert.deepEqual([drawn.items, drawn.gates, drawn.rosterRevision], [[{ id: 8 }], [{ id: 'g' }], 1]);
+  assert.equal(reader.baseline(11).bodies.length, 1, 'the baseline is the frame as rebuilt, not as drawn');
+  assert.equal(reader.fast(frame(9)), null, 'an older frame is ignored');
+  assert.equal(reader.newest(), 11);
+  assert.equal(reader.slow([{ id: 8 }], [], 1), null, 'the newest was drawn with the layers it names: no redraw');
+  // A frame projected with layers the stream has not yet brought: drawn now, and again when they arrive, since
+  // after a pause or the match's end no frame may follow them.
+  assert.equal(reader.fast(frame(12, {}, 2)).bodies.length, 0);
+  const redrawn = reader.slow([{ id: 7 }], [], 2);
+  assert.deepEqual([redrawn.tick, redrawn.bodies.length], [12, 1], 'item 7 arrived with the layers frame 12 names');
+  assert.equal(reader.slow([{ id: 7 }], [], 3), null, 'a later version than the newest frame names: no redraw');
+  assert.equal(reader.current().tick, 12, 'what a reader waiting on a roster would draw');
+  // A paused room re-sends its tick after a dev teleport: drawn, but no longer a baseline.
+  const again = reader.fast(frame(12, { moved: true }, 3));
+  assert.equal(again.moved, true);
+  assert.equal(reader.baseline(12), undefined);
+  // A `slow` skipped under backlog is re-sent at the current version: one past the frame's version still draws it.
+  reader.fast(frame(13, {}, 4));
+  assert.equal(reader.slow([{ id: 7 }], [], 5).tick, 13, 'version 4 was skipped; 5 completes frame 13');
+});
+
+test("a fast message over the edge's four fragments goes on the stream; its deltas, which fit, on datagrams", async () => {
+  const h = roomHarness({ reuseMaps: true });
+  const made = await h.room();
+  const owner = h.joined(made, { ownerKey: made.ownerKey, role: 'gladiator' });
+  const reader = createFastReader(), streamed = [], datagrams = [];
+  const read = (bytes, into) => {
+    const message = codec.decode(bytes, { baseline: reader.baseline });
+    if (message.type !== 'fast') return;
+    into.push({ bytes: bytes.length, tick: message.state.tick });
+    reader.fast(message);
+  };
+  const session = h.service.connect({
+    deliver: payload => { if (typeof payload !== 'string') read(payload, streamed); return true; },
+    datagram: bytes => { read(bytes, datagrams); return true; },
+    close: () => {},
+  });
+  h.directory.receive(session, { type: 'join', room: made.id, role: 'contestant' });
+  // A bigger roster or map than this arena's: the contestant's view gains props until a whole frame needs more
+  // than four of the edge's fragments. They do not move, so a delta against an acknowledged frame stays small.
+  const project = made.match.project;
+  made.match.project = (frame, id) => {
+    const view = project(frame, id);
+    if (id !== session.playerId || view.phase === 'waiting' || !view.bodies?.length) return view;
+    const [model] = view.bodies;
+    const props = Array.from({ length: 120 }, (_, i) => ({ ...model, id: 100_000 + i, owner: { kind: 'prop', propId: 100_000 + i } }));
+    return { ...view, bodies: [...view.bodies, ...props] };
+  };
+  try {
+    h.wake(50); owner.send({ type: 'start' });
+    for (let i = 0; i < 4; i++) h.wake(50);
+    assert.ok(streamed.length >= 3 && datagrams.length === 0, `${streamed.length} whole frames streamed, ${datagrams.length} sent as datagrams`);
+    assert.ok(streamed.every(m => m.bytes > MAX_FAST_DATAGRAM_BYTES), 'each over the limit');
+    h.service.acknowledge(session, reader.newest());
+    for (let i = 0; i < 3; i++) h.wake(50);
+    assert.equal(datagrams.length, 3, 'deltas against the acknowledged frame fit');
+    assert.ok(datagrams.every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES));
+  } finally { await h.service.close(); }
 });

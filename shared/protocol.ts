@@ -18,7 +18,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 9;
+export const WIRE_VERSION = 10;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -72,6 +72,9 @@ export const SERVER_MESSAGE = Object.freeze({
   WELCOME: 'welcome',
   READY: 'ready',
   STATE: 'state',
+  // A player session with datagrams is sent fast state as `fast` and its slow layers as `slow` (24.5 stage 3).
+  FAST: 'fast',
+  SLOW: 'slow',
   SEATS: 'seats',
   LOBBY: 'lobby',
   CHOOSE: 'choose',
@@ -263,6 +266,26 @@ export interface StateMessage {
   state: Projected<Snapshot> | Record<string, unknown>;
 }
 
+/**
+ * A frame's fast part (24.5 "Stage 3's contracts"): whole, or a delta against a baseline the reader holds, which
+ * only the codec writes and reads. It names the roster and the slow layers' version it was projected with.
+ */
+export interface FastMessage {
+  type: typeof SERVER_MESSAGE.FAST;
+  rosterRevision: number;
+  slowVersion: number;
+  state: Record<string, unknown>;
+}
+
+/** A player view's slow layers (items, gates, own discovery) as keyframe layers, and their version. */
+export interface SlowMessage {
+  type: typeof SERVER_MESSAGE.SLOW;
+  slowVersion: number;
+  items: unknown;
+  gates: unknown;
+  discovered?: unknown;
+}
+
 export interface LobbyPlayerSummary {
   id: PlayerId;
   name: string;
@@ -338,6 +361,8 @@ export type ServerMessage =
   | WelcomeMessage
   | ReadyMessage
   | StateMessage
+  | FastMessage
+  | SlowMessage
   | SeatsMessage
   | LobbyMessage
   | ChooseReplyMessage
@@ -469,6 +494,8 @@ const validConstants = (value: unknown): boolean => value === null || isRecord(v
   hasExactKeys(value.predictionMotor, ['acceleration', 'braking', 'maxSpeed', 'surfaces']) && value.predictionMotor.surfaces === true &&
   finite(value.predictionMotor.acceleration) && finite(value.predictionMotor.braking) && finite(value.predictionMotor.maxSpeed);
 const STATE_KEYS = ['type', 'state'] as const;
+const FAST_KEYS = ['type', 'rosterRevision', 'slowVersion', 'state'] as const;
+const SLOW_KEYS = ['type', 'slowVersion', 'items', 'gates', 'discovered'] as const;
 const LOBBY_KEYS = [
   'type', 'room', 'name', 'started', 'matchmade', 'size',
   'startsAt', 'ready', 'starting', 'capacity', 'players',
@@ -592,6 +619,19 @@ export function validateServerMessage(raw: unknown): ServerMessageValidation {
       }
       return { ok: true, message: raw as unknown as StateMessage };
     }
+    case SERVER_MESSAGE.FAST: {
+      if (!hasExactKeys(raw, FAST_KEYS) || !nonNegativeInt(raw.rosterRevision) || !nonNegativeInt(raw.slowVersion) || !isRecord(raw.state)) {
+        return { ok: false, type, reason: 'Fast message does not match FastMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as FastMessage };
+    }
+    case SERVER_MESSAGE.SLOW: {
+      // `discovered` is a contestant's own discovery, and absent for a gladiator.
+      if (!Object.keys(raw).every(key => (SLOW_KEYS as readonly string[]).includes(key)) || !nonNegativeInt(raw.slowVersion) || raw.items === undefined || raw.gates === undefined) {
+        return { ok: false, type, reason: 'Slow message does not match SlowMessage contract.' };
+      }
+      return { ok: true, message: raw as unknown as SlowMessage };
+    }
     case SERVER_MESSAGE.LOBBY: {
       if (
         !hasExactKeys(raw, LOBBY_KEYS) ||
@@ -694,6 +734,10 @@ export const stateMessage = (state: StateMessage['state']): StateMessage => {
   if (!isRecord(state)) throw new TypeError('Invalid server message (state): StateMessage requires a state object.');
   return { type: SERVER_MESSAGE.STATE, state };
 };
+
+/** A `fast` message; its `state` may be a codec delta (`against`), which only the codec reads. */
+export const fastMessage = (fields: Omit<FastMessage, 'type'>): FastMessage => assertServerMessage({ type: SERVER_MESSAGE.FAST, ...fields });
+export const slowMessage = (fields: Omit<SlowMessage, 'type'>): SlowMessage => assertServerMessage({ type: SERVER_MESSAGE.SLOW, ...fields });
 
 export const lobbyMessage = (fields: Omit<LobbyMessage, 'type'>): LobbyMessage =>
   assertServerMessage({ type: SERVER_MESSAGE.LOBBY, ...fields });

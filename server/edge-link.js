@@ -6,16 +6,17 @@ import { CLIENT_MESSAGE, CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverabl
 // cannot tell the transport. Inputs may also arrive as datagrams (24.5 "Stage 2's contracts"), each carrying the
 // newest input and those just before it; the link passes each input on once, in order, so the room sees what a
 // WebSocket would have given it. A datagram also carries the client's acknowledgement of fast state (24.5
-// "Stage 3's contracts"), passed on when it differs from the last. Edge sessions do not offer the room datagrams
-// yet: that waits for the edge's datagram send, so every edge session is sent today's `state` on its stream.
+// "Stage 3's contracts"), passed on when it differs from the last. Every edge session offers the room
+// `datagram(bytes)`, which the edge sends to the client as up to four datagram fragments, so a player session on
+// the edge is sent fast state on datagrams (24.5 "Delivery").
 
-export const LINK_VERSION = 3;
+export const LINK_VERSION = 4;
 /** The longest frame (type and body) the link accepts; a longer length is a malformed link. */
 export const MAX_LINK_FRAME_BYTES = 64 * 1024 * 1024;
 
 export const FRAME = Object.freeze({
   EDGE: 0x01, ACCEPT: 0x81, OPEN: 0x02, MESSAGE: 0x03, DELIVER: 0x82, WRITTEN: 0x04, CLOSE: 0x83, CLOSED: 0x05,
-  DATAGRAM: 0x06,
+  DATAGRAM: 0x06, SEND: 0x84,
 });
 
 /** A message frame's flag byte, as the client stream and MESSAGE/DELIVER carry it. */
@@ -51,13 +52,13 @@ function readEdge(body) {
  * `{ connect, receive, acknowledge, disconnect }`. `httpPort` is a number or a function, read when ACCEPT is sent, since
  * the HTTP server may not be listening yet. Returns `{ listening, port, info, counts, close }`: `listening`
  * resolves once bound, `port` is the bound link port, `info()` is the latest `{ port, certificateHash }` of the
- * linked edge, or null while none is linked, and `counts()` is how many MESSAGE and DATAGRAM frames have arrived
- * since the listener started.
+ * linked edge, or null while none is linked, and `counts()` is how many MESSAGE and DATAGRAM frames have arrived,
+ * how many acknowledgements were passed on and how many SEND frames went, since the listener started.
  */
 export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort }) {
   const server = createServer();
   let live = null, info = null;
-  const counts = { messages: 0, datagrams: 0 };
+  const counts = { messages: 0, datagrams: 0, acks: 0, sends: 0 };
   const sockets = new Set();
 
   server.on('connection', socket => {
@@ -81,6 +82,14 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
           const bytes = typeof payload === 'string' ? encoder.encode(payload) : payload;
           send(encodeFrame(FRAME.DELIVER, u32(id), Uint8Array.of(binary ? FLAG_BINARY : FLAG_TEXT), bytes));
           state.sent += bytes.length;
+          return true;
+        },
+        // One message for the edge to send as datagrams (FRAGMENT_BYTES each, at most MAX_FRAGMENTS). It never waits
+        // on the stream's backlog: a datagram may be lost, and the room re-sends whole until it is acknowledged.
+        datagram: payload => {
+          if (state.ended || state.closing || socket.destroyed) return false;
+          send(encodeFrame(FRAME.SEND, u32(id), payload));
+          counts.sends++;
           return true;
         },
         bytes: true,
@@ -165,7 +174,7 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
           const { ack, inputs } = datagram;
           // Repeats are dropped here; whether a tick is newer, and one the room could have sent, is the room's to judge,
           // so a stray value cannot latch here and silence the acknowledgements after it.
-          if (ack !== null && ack !== state.ack) { state.ack = ack; service.acknowledge(state.session, ack); }
+          if (ack !== null && ack !== state.ack) { state.ack = ack; counts.acks++; service.acknowledge(state.session, ack); }
           let passed = 0;
           for (const input of inputs) {
             if (state.closing) return;

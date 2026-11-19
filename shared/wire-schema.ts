@@ -12,7 +12,7 @@
 import { WIRE_VERSION } from './protocol.ts';
 import { UNITS_PER_METRE } from './physics/units.ts';
 import { SLOW_FIELDS } from './fast-state.ts';
-import { createDescriptorCodec, type DescriptorCodec, type FieldDef, type FieldType, type RecordDef, type Schema } from './wire-codec.ts';
+import { createDescriptorCodec, type DecodeOptions, type DescriptorCodec, type FieldDef, type FieldType, type RecordDef, type Schema } from './wire-codec.ts';
 import { AMMO_FAMILIES, BODY_KINDS, EFFECT_KINDS, EVENT_KINDS, ITEM_KINDS, PHASES, PLAYER_STATUSES, TRAP_KINDS, WEAPONS } from './enum-tables.ts';
 import {
   EFFECT_FIELDS, EVENT_FIELDS, FRAME_FIELDS, GATE_FIELDS, ITEM_FIELDS, OBSERVED, OWN_FIELDS, PROJECTILE_FIELDS, TRAP_FIELDS,
@@ -167,13 +167,14 @@ export function wireCodec(): DescriptorCodec {
 
 /**
  * A server message as a socket delivers it: JSON text, or the descriptor codec's bytes. Throws for anything
- * that is neither, so a reader never guesses at a message it cannot read (24.1 rollout).
+ * that is neither, so a reader never guesses at a message it cannot read (24.1 rollout). `options.baseline`
+ * supplies the baselines a `fast` delta names; one it lacks throws `MissingBaseline` (wire-codec.ts).
  */
-export function readServerMessage(data: string | ArrayBuffer | Uint8Array): Record<string, unknown> {
+export function readServerMessage(data: string | ArrayBuffer | Uint8Array, options?: DecodeOptions): Record<string, unknown> {
   if (typeof data === 'string') {
     const message: unknown = JSON.parse(data);
     if (!message || typeof message !== 'object' || Array.isArray(message)) throw new TypeError('a server message is an object');
     return message as Record<string, unknown>;
   }
-  return wireCodec().decode(data instanceof Uint8Array ? data : new Uint8Array(data));
+  return wireCodec().decode(data instanceof Uint8Array ? data : new Uint8Array(data), options);
 }

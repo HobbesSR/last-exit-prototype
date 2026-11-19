@@ -124,6 +124,21 @@ test('an edge session is a peer: text and binary deliveries, WRITTEN-driven back
   assert.equal(peer.deliver('{}', true), true);
 });
 
+test('an edge session offers datagrams: each goes to the edge as one SEND, outside the backlog, and none once closing', async t => {
+  const { service, edge } = await started(t);
+  const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
+  e.send(FRAME.OPEN, u32(3));
+  await waitFor(() => service.peers.length === 1, 'a session');
+  const { peer } = service.peers[0];
+  assert.equal(typeof peer.datagram, 'function', 'so the room gives it the split');
+  assert.equal(peer.datagram(Uint8Array.of(1, 2, 3)), true);
+  const sent = await e.next(FRAME.SEND);
+  assert.deepEqual([sent.body.readUInt32BE(0), [...sent.body.subarray(4)]], [3, [1, 2, 3]]);
+  assert.equal(peer.buffered(), 0, 'a datagram is not stream backlog');
+  peer.close(1000, 'bye');
+  assert.equal(peer.datagram(Uint8Array.of(4)), false);
+});
+
 test('close, invalid input and edge-side ends reach the session seam once', async t => {
   const { service, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
@@ -175,7 +190,7 @@ test('input datagrams reach the room once each, in order, whichever path an inpu
   await waitFor(() => service.received.length === 7, 'the inputs and the pong');
   assert.deepEqual(seqsOf(0), [0, 1, 2, 3, 4, 5, undefined]);
   assert.deepEqual(service.received[0][1], input(0), 'an input reaches the room as it was sent');
-  assert.deepEqual(link.counts(), { messages: 3, datagrams: 5 });
+  assert.deepEqual(link.counts(), { messages: 3, datagrams: 5, acks: 0, sends: 0 });
 
   // Anything but up to three inputs, oldest first, with non-negative seqs, is refused as invalid; the stage 2
   // array form among them.

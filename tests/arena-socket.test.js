@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createArenaSocketOpener, chooseTransport, createFrameReader, encodeStreamFrame, forcedTransport, packInputDatagram } from '../public/arena-socket.js';
+import { ACK_ALONE_MS, createArenaSocketOpener, chooseTransport, createDatagramAssembler, createFrameReader, encodeStreamFrame, forcedTransport, packInputDatagram } from '../public/arena-socket.js';
 
 // The browser socket's choice, fallback and framing, with a fake WebSocket and WebTransport: no browser.
 
@@ -26,7 +26,8 @@ function fakeTransport({ opens = true, maxDatagramSize = null } = {}) {
       this.closed = new Promise(resolve => { this.end = resolve; });
       this.closeCalls = []; this.datagramsSent = [];
       if (maxDatagramSize !== null) {
-        this.datagrams = { maxDatagramSize, createWritable: () => new WritableStream({ write: chunk => { this.datagramsSent.push(chunk); } }) };
+        this.datagramsIn = new TransformStream();
+        this.datagrams = { maxDatagramSize, readable: this.datagramsIn.readable, createWritable: () => new WritableStream({ write: chunk => { this.datagramsSent.push(chunk); } }) };
       }
     }
     async createBidirectionalStream() {
@@ -232,4 +233,67 @@ test('binary messages are Blobs unless an ArrayBuffer is asked for, as on a WebS
   await Transport.made[0].inbound.writable.getWriter().write(frame(1, Uint8Array.of(5)));
   const { data } = await got;
   assert.ok(data instanceof Blob); assert.deepEqual([...new Uint8Array(await data.arrayBuffer())], [5]);
+});
+
+/** The edge's fragments of `message` under `number` (24.5 "Delivery"), each 4 header bytes and up to `size` bytes. */
+const fragments = (number, message, size = 1100) => {
+  const count = Math.ceil(message.length / size);
+  return Array.from({ length: count }, (_, i) => Uint8Array.of(number >> 8, number & 255, i, count, ...message.subarray(i * size, (i + 1) * size)));
+};
+
+test("the edge's fragments are rebuilt in any order; a repeated, malformed or abandoned fragment is ignored", () => {
+  const assemble = createDatagramAssembler(2);
+  const message = Uint8Array.from({ length: 3000 }, (_, i) => i % 251);
+  const [a, b, c] = fragments(7, message);
+  assert.deepEqual(assemble(fragments(6, Uint8Array.of(9))[0]), Uint8Array.of(9), 'one fragment is the message');
+  assert.equal(assemble(c), null);
+  assert.equal(assemble(c), null, 'a repeat');
+  assert.equal(assemble(a), null);
+  assert.deepEqual(assemble(b), message);
+  assert.equal(assemble(Uint8Array.of(0, 1, 0, 5, 1)), null, 'more than four fragments');
+  assert.equal(assemble(Uint8Array.of(0, 1, 2, 2, 1)), null, 'an index past the count');
+  assert.equal(assemble(Uint8Array.of(0, 1, 0, 1)), null, 'no payload');
+  // Only the newest two incomplete messages are kept: message 1, which lost a fragment, is forgotten.
+  const [first] = fragments(1, message), [, second] = fragments(2, message), [third] = fragments(3, message);
+  for (const part of [first, second, third]) assert.equal(assemble(part), null);
+  assert.equal(assemble(fragments(1, message)[1]), null, 'message 1 starts again');
+  // Wrapping numbers: a message left incomplete is forgotten once single-fragment ones move past it, so the
+  // same number coming round again starts afresh rather than completing with the old fragment.
+  const wrap = createDatagramAssembler(2), [left] = fragments(10, message);
+  assert.equal(wrap(left), null);
+  for (const n of [11, 12, 13]) assert.deepEqual(wrap(fragments(n, Uint8Array.of(n))[0]), Uint8Array.of(n));
+  const other = Uint8Array.from({ length: 3000 }, () => 1), [, b2, c2] = fragments(10, other);
+  assert.equal(wrap(b2), null);
+  assert.equal(wrap(c2), null, 'without the forgotten fragment it stays incomplete');
+});
+
+test('over WebTransport, server datagrams arrive as binary messages, and acknowledgements ride inputs or go alone when idle', async () => {
+  const Transport = fakeTransport({ maxDatagramSize: 1200 });
+  const socket = opener({ WebTransport: Transport })();
+  socket.binaryType = 'arraybuffer';
+  await next(socket, 'open');
+  const wt = Transport.made[0], writer = wt.datagramsIn.writable.getWriter();
+  const message = Uint8Array.from({ length: 2500 }, (_, i) => i % 13);
+  const arrived = next(socket, 'message');
+  for (const part of fragments(0, message).reverse()) await writer.write(part);
+  assert.deepEqual(new Uint8Array((await arrived).data), message);
+
+  const sent = () => wt.datagramsSent.map(bytes => JSON.parse(new TextDecoder().decode(bytes)));
+  const settle = async count => { for (let i = 0; i < 50 && wt.datagramsSent.length < count; i++) await new Promise(r => setTimeout(r, 2)); };
+  // Idle: the acknowledgement goes alone, once per tick acknowledged.
+  socket.acknowledge(40);
+  socket.acknowledge(40);
+  await settle(1);
+  assert.deepEqual(sent(), [{ ack: 40, inputs: [] }]);
+  // Active: an input just went, so the next acknowledgement waits for the next input.
+  socket.sendInput(JSON.stringify({ type: 'input', seq: 1, tick: 41 }));
+  socket.acknowledge(41);
+  socket.sendInput(JSON.stringify({ type: 'input', seq: 2, tick: 42 }));
+  await settle(3);
+  assert.deepEqual(sent().map(d => [d.ack, d.inputs.map(m => m.seq)]), [[40, []], [40, [1]], [41, [1, 2]]]);
+  await new Promise(r => setTimeout(r, ACK_ALONE_MS + 10));
+  socket.acknowledge(42);
+  await settle(4);
+  assert.deepEqual(sent().at(-1), { ack: 42, inputs: [] });
+  socket.close();
 });
