@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { withoutReporterOptions } from './brief.mjs';
 import { acquireMachineLock, LOCK_ENV } from './helpers/machine-lock.js';
+import { buildCore } from '../tools/build-core.mjs';
 
 // Times each unit test file alone, one at a time, and flags the ones over budget so a slow test is
 // noticed when it is added rather than when someone waits on it. Files run serially on purpose:
@@ -27,6 +28,8 @@ const files = named.length ? named : [
 const lock = await acquireMachineLock('bench', { mode: 'exclusive' });
 const rows = [];
 try {
+  // Files run without the runner's global setup; the core is built once here, outside any file's time (docs/27).
+  buildCore();
   for (const file of files) {
     const start = performance.now();
     // This parses spec output, so a reporter inherited through NODE_OPTIONS (npm run brief) is dropped.

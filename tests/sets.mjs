@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { acquireMachineLock, LOCK_ENV } from './helpers/machine-lock.js';
+import { buildCore } from '../tools/build-core.mjs';
 
 // Test sets (31, "Test sets"; #800): every test file belongs to exactly one set, named for what it
 // validates. A set lists its fast, slow and browser members and the source paths whose change
@@ -190,7 +191,12 @@ async function main(args) {
     // The thin reporter's record is named for the selection, so each keeps its own history.
     const env = { ...baseEnv, BRIEF_SCRIPT: `set-${names.join('+').replace(/:/g, '-')}${flags.has('--slow') ? '-slow' : ''}` };
     let status = 0;
-    if (unit.length) status = spawnSync(process.execPath, ['--test', '--test-concurrency=4', ...unit], { stdio: 'inherit', env }).status ?? 1;
+    // Unit files run without the runner's global setup, and every stepping game loads the core, so it is
+    // built once here, before them: none finds it missing or stale, and none builds it concurrently (docs/27).
+    if (unit.length) {
+      try { buildCore(); } catch (error) { console.error(error.message); return 1; }
+      status = spawnSync(process.execPath, ['--test', '--test-concurrency=4', ...unit], { stdio: 'inherit', env }).status ?? 1;
+    }
     if (browser.length && runBrowser(browser, env) !== 0) status ||= 1;
     return status;
   });

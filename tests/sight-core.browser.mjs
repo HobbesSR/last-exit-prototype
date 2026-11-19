@@ -11,7 +11,8 @@ const { map } = readArena();
 let state = 11;
 const next = () => (state = (state * 1103515245 + 12345) % 2147483648) / 2147483648;
 const origins = Array.from({ length: 120 }, () => ({ x: next() * map.width, y: next() * map.height }));
-const gateStates = [map.gates.map(() => false), map.gates.map(() => true)];
+// All closed, all open, and alternating, so the open-gate mask is read per gate.
+const gateStates = [map.gates.map(() => false), map.gates.map(() => true), map.gates.map((_, i) => i % 2 === 0)];
 
 /** Per polygon its length, then each point's x, y, angle and length, as float64 bytes in hex. */
 const bytesOf = values => Array.from(new Uint8Array(new Float64Array(values).buffer), b => b.toString(16).padStart(2, '0')).join('');
@@ -31,6 +32,8 @@ try {
   const errors = []; collectBrowserErrors(page, errors);
   // The client loads the core before its scene, so a failed load or an adapter mismatch is a page error.
   await page.goto(base);
+  // client.js sets arenaDebug after its top-level await of the core, so this shows it got past the load.
+  await page.waitForFunction(() => typeof window.arenaDebug === 'function');
   const actual = await page.evaluate(async ({ map, origins, gateStates, radius }) => {
     const { initCoreSight } = await import('/shared/sight-core.ts');
     const sight = await initCoreSight(), values = [];
