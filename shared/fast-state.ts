@@ -28,9 +28,13 @@ export const FAST_QUANTA: Readonly<Record<string, Readonly<Record<string, number
   hookFlights: { x: POSITION_QUANTUM, y: POSITION_QUANTUM },
 });
 
-/** `value` rounded to the nearest whole multiple of `quantum`, as the codec's `{ grid }` type carries it; never -0. */
+/**
+ * `value` rounded to the nearest whole multiple of `quantum`, as the codec's `{ grid }` type carries it; never -0.
+ * A non-finite value stays non-finite, so the codec refuses it rather than sending a made-up 0.
+ */
 export function quantize(value: number, quantum: number): number {
-  return Math.round(value / quantum) * quantum || 0;
+  const rounded = Math.round(value / quantum) * quantum;
+  return rounded === 0 ? 0 : rounded;
 }
 
 type Fields = Record<string, unknown>;

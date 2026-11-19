@@ -269,7 +269,9 @@ const SCALARS: Record<string, (limits: Limits, metre: number | undefined) => Cod
 };
 
 // A value is on the grid when the nearest whole multiple of the quantum is the value itself; for a quantum that
-// is not a power of two, `k * q` is the one float64 that names step k, on both sides.
+// is not a power of two, `k * q` is the one float64 that names step k, on both sides. The reader refuses a step
+// the writer could not have written: one whose value is not finite, or that does not round back to itself (past
+// about 2^51 steps of a quantum that is not a power of two, neighbouring steps share a value).
 const gridCodec = (q: number): Codec => {
   if (!(Number.isFinite(q) && q > 0)) throw new Error(`a grid's quantum must be a positive finite number, got ${q}`);
   return {
@@ -279,7 +281,11 @@ const gridCodec = (q: number): Codec => {
       if (Math.abs(k) >= 2 ** 52 || k * q !== v) fail(`${v} is not on the grid of ${q}`);
       w.uint(signedUint(k === 0 ? 0 : k));
     },
-    r: r => { const k = unsigned(r.uint()); if (Math.abs(k) >= 2 ** 52) bad('grid step out of range'); const v = k * q; return v === 0 ? 0 : v; },
+    r: r => {
+      const k = unsigned(r.uint()), v = k * q;
+      if (Math.abs(k) >= 2 ** 52 || !Number.isFinite(v) || Math.round(v / q) !== k) bad('grid step out of range');
+      return v === 0 ? 0 : v;
+    },
   };
 };
 
