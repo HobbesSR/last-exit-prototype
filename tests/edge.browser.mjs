@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 
-// The WebTransport edge end to end (#1095, 24.5 stage 1): the Rust edge, linked to this server, carries a real
+// The WebTransport edge end to end (#1095, 24.5 stages 1 and 2): the Rust edge, linked to this server, carries a real
 // Chrome session behind the session seam. A room cannot tell the transport, so the default room's join, start and
 // walk must work on WebTransport as they do on the WebSocket. Needs the Rust toolchain: the edge is built first.
 const RUST = path.resolve('rust');
@@ -37,6 +37,8 @@ try {
   const before = await page.evaluate(() => window.arenaDebug().me.x);
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
   await page.waitForFunction(x => window.arenaDebug().me.x > x + 40, before, { timeout: 5000 });
+  // Stage 2: the walk's inputs rode datagrams, Chrome's real ones through the edge, not the stream.
+  assert.ok(server.edgeLink.counts().datagrams > 10, `inputs arrived as datagrams (${JSON.stringify(server.edgeLink.counts())})`);
 
   // Unforced, the page chooses WebTransport too. Its spectator join reaches the same room through the edge.
   const watcher = await browser.newPage();

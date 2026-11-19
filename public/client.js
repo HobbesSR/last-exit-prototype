@@ -317,7 +317,7 @@ function inputTick() {
   const stamp = prediction.stamp(room.roundTripMs());
   if (!stamp) return false;
   const input = { type: CLIENT_MESSAGE.INPUT, ...stamp, ...inputController.collectIntent({ blocked, pointerAim }) };
-  room.send(input); prediction.apply(input, state);
+  room.sendInput(input); prediction.apply(input, state);
   inputController.consumeActions();
   hudController.setSneak(input.sneak);
   return true;

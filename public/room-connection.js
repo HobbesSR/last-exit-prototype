@@ -185,6 +185,11 @@ export function createRoomConnection({
       if (ws?.readyState !== WebSocket.OPEN) return false;
       ws.send(JSON.stringify(message)); return true;
     },
+    /** Sends an `input` message as `send` does, by the socket's input path (`arena-socket.js`). */
+    sendInput(message) {
+      if (ws?.readyState !== WebSocket.OPEN) return false;
+      ws.sendInput(JSON.stringify(message)); return true;
+    },
     bufferedBytes: () => ws?.bufferedAmount,
     roomId: () => roomId, ownerKey: () => ownerKey, playerId: () => playerId, isOwner: () => owner, isDev: () => dev,
     liveMap: () => liveMap, liveState: () => liveState, presentation: () => presentation,
