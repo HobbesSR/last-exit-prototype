@@ -196,13 +196,15 @@ function deliverSplit(room, session, key, view) {
   // The limit is the edge's: four fragments of DATAGRAM_PAYLOAD_BYTES (fast-state.ts), past which it sends nothing.
   const streamed = bytes.length > MAX_FAST_DATAGRAM_BYTES;
   if (streamed) profiler.count('loop.fastStreamed');
+  const sent = streamed ? session.deliver(bytes, true) !== false : session.datagram(bytes) !== false;
+  if (!sent) return;
+  history.record(frame.tick, frame);
   // 24.2 asks that overflow be counted in production, so the room counts it whether or not the profiler is on
   // (`fastSends`, read by `metrics()`). Steady deltas taking more than one fragment are the cue for priority packing.
+  // Only messages the session took count: a skipped one is built again next tick and counted then, if sent.
   const sends = room.fastSends;
   if (streamed) sends.streamed++;
   else { sends.datagrams++; if (base && bytes.length > DATAGRAM_PAYLOAD_BYTES) sends.fragmentedDeltas++; }
-  const sent = streamed ? session.deliver(bytes, true) !== false : session.datagram(bytes) !== false;
-  if (sent) history.record(frame.tick, frame);
 }
 
 /**

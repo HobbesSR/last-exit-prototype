@@ -323,15 +323,20 @@ test("a fast message over the edge's four fragments goes on the stream, its delt
   const made = await h.room();
   const owner = h.joined(made, { ownerKey: made.ownerKey, role: 'gladiator' });
   const reader = createFastReader(), streamed = [], datagrams = [];
-  const read = (bytes, into) => {
+  // The stream skips the first `fast` it is offered, as a backed-up one does, and the transport refuses the first
+  // datagram, as an ending session's does: neither arrives, so neither may be counted.
+  const refused = { stream: false, datagram: false };
+  const offer = (bytes, into, path) => {
     const message = codec.decode(bytes, { baseline: reader.baseline });
-    if (message.type !== 'fast') return;
+    if (message.type !== 'fast') return true;
+    if (!refused[path]) { refused[path] = true; return false; }
     into.push({ bytes: bytes.length, tick: message.state.tick });
     reader.fast(message);
+    return true;
   };
   const session = h.service.connect({
-    deliver: payload => { if (typeof payload !== 'string') read(payload, streamed); return true; },
-    datagram: bytes => { read(bytes, datagrams); return true; },
+    deliver: payload => typeof payload === 'string' || offer(payload, streamed, 'stream'),
+    datagram: bytes => offer(bytes, datagrams, 'datagram'),
     close: () => {},
   });
   h.directory.receive(session, { type: 'join', room: made.id, role: 'contestant' });
@@ -350,17 +355,19 @@ test("a fast message over the edge's four fragments goes on the stream, its delt
   try {
     h.wake(50); owner.send({ type: 'start' });
     for (let i = 0; i < 4; i++) h.wake(50);
-    assert.ok(streamed.length >= 3 && datagrams.length === 0, `${streamed.length} whole frames streamed, ${datagrams.length} sent as datagrams`);
+    assert.ok(refused.stream && streamed.length >= 3 && datagrams.length === 0, `${streamed.length} whole frames streamed, ${datagrams.length} sent as datagrams`);
     assert.ok(streamed.every(m => m.bytes > MAX_FAST_DATAGRAM_BYTES), 'each over the limit');
     h.service.acknowledge(session, reader.newest());
     for (let i = 0; i < 3; i++) h.wake(50);
-    assert.equal(datagrams.length, 3, 'deltas against the acknowledged frame fit');
+    assert.ok(refused.datagram);
+    assert.equal(datagrams.length, 2, 'deltas against the acknowledged frame fit, but for the one refused');
     assert.ok(datagrams.every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES));
     moving = true;
     for (let i = 0; i < 3; i++) { h.service.acknowledge(session, reader.newest()); h.wake(50); }
-    const fragmented = datagrams.slice(3).filter(m => m.bytes > DATAGRAM_PAYLOAD_BYTES).length;
-    assert.ok(fragmented >= 2 && datagrams.slice(3).every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES), `moving props: ${datagrams.slice(3).map(m => m.bytes)} B`);
-    // Health counts each apart, without the profiler, and keeps the counts once the room retires (24.2 "Byte budget").
+    const fragmented = datagrams.slice(2).filter(m => m.bytes > DATAGRAM_PAYLOAD_BYTES).length;
+    assert.ok(fragmented >= 2 && datagrams.slice(2).every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES), `moving props: ${datagrams.slice(2).map(m => m.bytes)} B`);
+    // Health counts each apart, without the profiler, only what was taken, and keeps the counts once the room
+    // retires (24.2 "Byte budget").
     const counts = () => { const m = h.service.metrics(); return [m.fastDatagrams, m.fastFragmentedDeltas, m.fastStreamed]; };
     assert.deepEqual(counts(), [datagrams.length, fragmented, streamed.length]);
     owner.send({ type: 'finish' });
