@@ -70,7 +70,7 @@ export const SETS = {
       'client-config', 'edge-link', 'edge-contract', 'latency', 'map-pool', 'map-generator', 'live-map', 'live-map-adapter', 'wire-codec'],
     slow: ['live-map', 'live-map-adapter', 'live-recipe', 'map-generator', 'room-arena', 'room-sizes'],
     browser: ['browser', 'default-room', 'wire-codec', 'edge'],
-    sources: ['server/**', 'rust/edge/**', 'shared/recording.ts', 'shared/relational-frame.ts', 'shared/wire-*.ts', 'shared/protocol.ts', 'map/live*.ts'],
+    sources: ['server/**', 'rust/edge/**', 'public/arena-socket.js', 'shared/recording.ts', 'shared/relational-frame.ts', 'shared/wire-*.ts', 'shared/protocol.ts', 'map/live*.ts'],
   },
   macro: {
     about: 'macro generation, the chain and its library, map tools and the Map Lab (also npm run test:mapgen)',
