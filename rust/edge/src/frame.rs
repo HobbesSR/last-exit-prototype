@@ -6,6 +6,19 @@ pub const TEXT: u8 = 0;
 /// Flag for a binary message.
 pub const BINARY: u8 = 1;
 
+/// The link's frame types (docs/24.5 "The link"). `tests/edge-contract.test.js` holds Node's `FRAME` and 24.5's
+/// table to exactly this list.
+pub mod link {
+    pub const EDGE: u8 = 0x01;
+    pub const OPEN: u8 = 0x02;
+    pub const MESSAGE: u8 = 0x03;
+    pub const WRITTEN: u8 = 0x04;
+    pub const CLOSED: u8 = 0x05;
+    pub const ACCEPT: u8 = 0x81;
+    pub const DELIVER: u8 = 0x82;
+    pub const CLOSE: u8 = 0x83;
+}
+
 /// Encodes one frame whose body is the concatenation of `parts`.
 pub fn encode(kind: u8, parts: &[&[u8]]) -> Vec<u8> {
     let body: usize = parts.iter().map(|part| part.len()).sum();

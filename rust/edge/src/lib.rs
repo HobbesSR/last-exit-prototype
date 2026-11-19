@@ -19,6 +19,8 @@ use wtransport::endpoint::{IncomingSession, SessionRequest};
 use wtransport::quinn::TransportConfig;
 use wtransport::{Connection, Endpoint, Identity, RecvStream, SendStream, ServerConfig, VarInt};
 
+use frame::link::{ACCEPT, CLOSE, CLOSED, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN};
+
 /// The link protocol version this edge speaks.
 const LINK_VERSION: u64 = 1;
 /// The only session path.
@@ -37,16 +39,6 @@ const LINK_MAX_BODY: usize = 32 << 20;
 const CLOSE_NORMAL: u16 = 1000;
 const CLOSE_GOING_AWAY: u16 = 1001;
 const CLOSE_POLICY: u16 = 1008;
-
-// Link frame types.
-const EDGE: u8 = 0x01;
-const OPEN: u8 = 0x02;
-const MESSAGE: u8 = 0x03;
-const WRITTEN: u8 = 0x04;
-const CLOSED: u8 = 0x05;
-const ACCEPT: u8 = 0x81;
-const DELIVER: u8 = 0x82;
-const CLOSE: u8 = 0x83;
 
 /// What the edge is told on its command line.
 #[derive(Clone, Debug)]

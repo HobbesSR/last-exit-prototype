@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use last_exit_edge::frame::link::{ACCEPT, CLOSE, CLOSED, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN};
 use last_exit_edge::frame::{self, Decoder};
 use last_exit_edge::{Config, run};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -14,14 +15,6 @@ use wtransport::error::ConnectionError;
 use wtransport::tls::Sha256Digest;
 use wtransport::{Connection, Endpoint, RecvStream, SendStream};
 
-const EDGE: u8 = 0x01;
-const OPEN: u8 = 0x02;
-const MESSAGE: u8 = 0x03;
-const WRITTEN: u8 = 0x04;
-const CLOSED: u8 = 0x05;
-const ACCEPT: u8 = 0x81;
-const DELIVER: u8 = 0x82;
-const CLOSE: u8 = 0x83;
 const MAX_BYTES: usize = 1000;
 const HTTP_PORT: u16 = 3000;
 
