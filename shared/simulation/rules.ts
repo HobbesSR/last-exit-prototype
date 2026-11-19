@@ -12,6 +12,11 @@ export const isArenaSeed = (seed: number): boolean => Number.isInteger(seed) && 
  * resolution has to know about: it is part of how far behind a player's view runs when they aim.
  */
 export const INTERPOLATION_DELAY_TICKS = 2;
+/**
+ * How many of the newest events a match keeps (`event`, loot.ts), and so how many a frame carries. A reader of
+ * fast frames, which hold events longer, draws this many too (24.5 "Events"; fast-state.ts).
+ */
+export const KEPT_EVENTS = 6;
 
 // Standalone defaults for callers without a match. A live match reads its own pinned content
 // instead; these are detached copies of the shipped set (22.7), so editing one changes neither the

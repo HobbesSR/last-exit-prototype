@@ -3,6 +3,7 @@
 // (frame-layers.ts, discovery.ts), and everything else is fast state, sent on datagrams as changes against a
 // frame the client has acknowledged. This module owns where that line falls; the wire schema's `fast`
 // message types what is left (wire-schema.ts).
+import { KEPT_EVENTS } from './simulation/rules.ts';
 
 /** The view's fields that stay on the reliable stream. Own discovery (`self.discovered`) stays there too. */
 export const SLOW_FIELDS = ['items', 'gates'] as const;
@@ -58,6 +59,42 @@ export function createFastHistory(ticks = FAST_HISTORY_TICKS) {
   };
 }
 
+type Event = { id: unknown; tick: number };
+
+/**
+ * The events a view's fast frames carry (24.5 "Events"). A match keeps only its newest `KEPT_EVENTS`
+ * (rules.ts), and over datagrams an event would reach a client only if a frame holding it arrived before that
+ * many newer ones pushed it out. One view's window keeps each event in its frames for `ticks` ticks after the tick
+ * it happened, the history's span, so a client that keeps any frame within the history's span receives it: the
+ * events the frame was projected with, after any older ones still in the window, in the order they happened.
+ * Returns a function from each sent fast frame to the frame to send, the frame itself when no older event is kept.
+ * Ids are the projection's, compared for equality only, since a keyed match maps them (#1164).
+ */
+export function createEventWindow(ticks = FAST_HISTORY_TICKS) {
+  let kept: Event[] = [];
+  return (frame: FastFrame): FastFrame => {
+    const events = frame.events as Event[] | undefined;
+    if (!events) return frame;
+    const tick = frame.tick as number, current = new Set(events.map(event => event.id));
+    // Anything kept but no longer projected is older than every projected event, so it goes first.
+    const older = kept.filter(event => !current.has(event.id) && event.tick > tick - ticks);
+    kept = [...older, ...events];
+    return older.length ? { ...frame, events: kept } : frame;
+  };
+}
+
+/**
+ * A reader's events (24.5 "Events"): the `KEPT_EVENTS` newest of those it held and those a new frame carries, each
+ * once. Since a frame carries every event of the window, and the newest ones beside, one it held that the frame
+ * lacks is older than all the frame carries. A reader that kept a frame within each event's window so draws the
+ * events a `state` of the same tick would carry, without a repeat or a gap.
+ */
+export function keptEvents(held: readonly Event[] | undefined, sent: readonly Event[] | undefined): Event[] | undefined {
+  if (!sent) return undefined;
+  const ids = new Set(sent.map(event => event.id));
+  return [...(held ?? []).filter(event => !ids.has(event.id)), ...sent].slice(-KEPT_EVENTS);
+}
+
 type Body = { id: unknown; owner?: { kind?: string; itemId?: unknown } };
 type Tether = { a: unknown; b: unknown };
 
@@ -96,24 +133,37 @@ type Keyed = { id: unknown };
  * - `current()` is the newest frame as it would be drawn now, or null: for a reader that could not draw it when
  *   it arrived (its roster, or the match's map, still on the stream).
  * - `newest()` is the tick to acknowledge, or null before any frame.
+ * - `arrived()` is the events first held with the frame the last `fast` call took, each once, in the order they
+ *   happened: every event whose window a kept frame fell in, including those a burst pushed out of the six drawn.
+ *   It is empty after a call that ignored its frame, and set even when nothing could be drawn yet (no `slow`), so a
+ *   consumer reads it after every call. It is once per reader: a page that resumes builds a new reader, whose
+ *   first frame's window may repeat events the old one gave; a consumer that must span that compares ids.
  *
- * The frame to draw is the fast part with the item-body hold applied, the slow layers held, and the message's
- * roster revision.
+ * The frame to draw is the fast part with the item-body hold applied, its events as `keptEvents` gives them (the
+ * frame's window merged with those already held, so none repeats or goes missing), the slow layers held, and the
+ * message's roster revision. The reader de-duplicates events because it alone knows which frames arrived. An event
+ * is in a view's window for one unbroken run of ticks (`createEventWindow`), so one the newest frame carries was
+ * received before exactly when the frame kept before it carried it too.
  */
 export function createFastReader(ticks = FAST_HISTORY_TICKS) {
   type Message = { rosterRevision: number; slowVersion: number; state: FastFrame };
   const history = createFastHistory(ticks);
-  let newest: number | null = null, message: Message | null = null, complete = false;
+  let newest: number | null = null, message: Message | null = null, complete = false, events: Event[] | undefined;
+  let carried = new Set<unknown>(), arrived: Event[] = [];
   let items: Keyed[] | null = null, gates: unknown[] = [], held = new Set<unknown>(), version: number | null = null;
   const current = (): FastFrame | null => message && items
-    ? { ...holdItemBodies(message.state, id => held.has(id)), items, gates, rosterRevision: message.rosterRevision } : null;
+    ? { ...holdItemBodies(message.state, id => held.has(id)), ...(events ? { events } : {}), items, gates, rosterRevision: message.rosterRevision } : null;
   return {
     baseline: (tick: number) => history.get(tick),
     fast(next: Message): FastFrame | null {
       const tick = next.state.tick as number;
-      if (newest !== null && tick < newest) return null;
+      if (newest !== null && tick < newest) { arrived = []; return null; }
       history.record(tick, next.state);
       newest = tick; message = next; complete = version !== null && version >= next.slowVersion;
+      const sent = next.state.events as Event[] | undefined;
+      events = keptEvents(events, sent);
+      arrived = (sent ?? []).filter(event => !carried.has(event.id));
+      carried = new Set((sent ?? []).map(event => event.id));
       return current();
     },
     slow(nextItems: Keyed[], nextGates: unknown[], slowVersion: number): FastFrame | null {
@@ -127,5 +177,6 @@ export function createFastReader(ticks = FAST_HISTORY_TICKS) {
     },
     current,
     newest: () => newest,
+    arrived: (): readonly Event[] => arrived,
   };
 }
