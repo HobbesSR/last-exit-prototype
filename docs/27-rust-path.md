@@ -104,7 +104,23 @@ Port order is stability order:
   - **The port (#1175 stage 2).** `rust/core/src/sight.rs` is `visibilityPolygon`, and `shared/sight-core.ts` is
     its adapter. `tests/sight-core.test.js` holds them equal to `shared/sight.ts` bit for bit, on synthetic maps
     and on the room arena. Its measurement, and the budget it sets, are in [42.58](42.58-sight-core-adapter.md).
-    The game does not call it yet; startup wiring and a Chrome check come next.
+  - **How the game reaches it (Corey, 2026-11-18, #1175).** Loading and choosing are kept apart:
+    - **Loading is per process.** `initCoreSight()` (`shared/sight-core.ts`) binds the process's one core once, as
+      `initRapier` loads Rapier. It decides nothing.
+    - **Choosing is per game.** `createGame`, already async and already giving each game its physics world,
+      awaits it and attaches it beside physics (`shared/simulation/sight-runtime.ts`). That is a side table, so
+      snapshots and replays never carry it, and none of `createGame`'s callers supply it.
+    - **The tick passes it.** `discover()` takes the `SightCaster` to observe through in place of a flag; the
+      tick passes `sightOf(s)` for bots. A record from `createGameRecord` alone has no sight: its bots discover
+      as people do until a game steps.
+    - **The client** awaits `initCoreSight()` before its scene and hands the scene the caster (`api.sight`). The
+      fog keeps one gate list per map and rewrites only `open`, so the core indexes the gates once, not per frame.
+    - **Why not a module-level switch in `sight.ts`:** which implementation a game runs would be hidden process
+      state. **Why not a parameter from every caller:** `createGame` is the one door a stepping game comes
+      through, and its callers (the server, the physics lab, tools and tests) have no say in it.
+  - **Checks.** `tests/sight-core.test.js` holds parity in Node, and `tests/sight-core.browser.mjs` holds it in
+    Chrome through the client page's own load. The TypeScript `visibilityPolygon` stays as the reference
+    until its remaining callers, tests and benches, have moved.
 
 The adapter's shape, as the sight port settled it (adapter version 3):
 - **Memory.** `core_alloc`/`core_free` give JavaScript 8-byte-aligned buffers to fill. The core copies what it
@@ -126,8 +142,8 @@ deleted once its JavaScript callers have moved too. Until then, a module whose c
 with a shared digest test, as math is. Otherwise both versions exist only while they are compared. A half-ported
 module is not left in place.
 
-The browser instantiates WASM asynchronously. The client therefore loads the core once at startup, before anything
-that uses it, rather than through synchronous imports.
+The browser instantiates WASM asynchronously. Every host therefore loads the core once, before anything that uses
+it, rather than through synchronous imports: `createGame` awaits it for a game, and the client before its scene.
 
 ## One math library on both sides
 
@@ -182,12 +198,18 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
     have nothing to do. Its command-line tool must also match the crate's version exactly, and it adds crates to the
     tree.
   - **When to revisit.** Only if an export ever needs JavaScript strings or objects, which rule 1 rules out.
-- **One loader.** One JavaScript loader instantiates the module from bytes that its host supplies.
-  - **Where the bytes come from.** Node reads the file. The browser fetches it from a served path.
-  - **When.** Both call `WebAssembly.instantiate` once at startup, before anything that uses the core.
+- **One loader.** One JavaScript loader instantiates the module.
+  - **Where the bytes come from (agent recommendation, accepted by Corey 2026-11-18, #1175).** `buildCore` also
+    writes them as base64 into `shared/core-wasm.generated.ts`, ignored by git. `shared/core.ts`'s `initCore`
+    imports that module, so Node and the browser load the core the same way, as Rapier's `-compat` package
+    embeds its own. There is no file read in one host and fetch in the other, and no route to serve the file:
+    `/shared` serves the generated module like any other. It is about 55 KB of WASM, 73 KB as text.
+  - **When.** `initCore` instantiates once per process (per thread in the server's room workers), memoized, before
+    anything that uses the core.
   - **The first call.** The loader reads `adapter_version` before anything else. That is the version of the contract
     between the module and its adapter.
-  - **The loader** is `shared/core.ts`'s `loadCore`. It takes the bytes and checks the version.
+  - **The loader** is `shared/core.ts`'s `loadCore`. It takes the bytes and checks the version; `initCore` and
+    tests that build their own module both call it.
   - **Its contract** is `CoreExports`: memory and buffer entry points. The math's per-scalar exports are a separate
     `MathParityExports`, for the parity check only.
   - **Evidence.** The math digests match through the module in Node 24 on Windows and in headless Chrome 157
@@ -195,10 +217,13 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
 - **The module is built, never committed** (Corey, 2026-11-18, PR #1178). Each host builds its own.
   - **How.** `tools/build-core.mjs`'s `buildCore` runs Cargo and returns the module's path in `rust/target`.
     Cargo makes it a no-op when nothing changed. `npm run core:build` runs it by hand.
-  - **Who calls it.** Today, `tests/math.test.js`. In stage 2, the server's and the dev server's startup, and
-    whatever serves the module to the browser, since a server delivers the file it loads itself. Every CI job
-    whose tests reach it then installs the toolchain as `verify` does: the `slow` job, once a slow test does.
-  - **CI.** `verify` installs the toolchain `rust/rust-toolchain.toml` names, so `npm test` builds the module.
+  - **Who calls it.** The test runner's global setup (`tests/helpers/test-lock-setup.mjs`), so every test file
+    finds the module; `serveWithBrowser`, for the browser scripts; and `npm run dev`/`dev:lan` before the server
+    starts. Anything else that runs a game, such as a physics tool, needs `npm run core:build` once; `initCore`
+    names that command when the module is missing.
+  - **CI.** `tools/ci/rust-toolchain.sh` installs the toolchain `rust/rust-toolchain.toml` names, for `rust.yml`
+    and for `ci.yml`'s `verify` and `slow`: every stepping game loads the core, so the slow characterization
+    tests build it too.
   - **Why not committed.** That was tried first under #1175. A committed binary must match every host's rebuild
     byte for byte. That held for Windows x64 against Linux arm64 (run 1243), but a reachable panic embeds its source
     path with the host's separator (`core\src\lib.rs`), which no `--remap-path-prefix` rewrites. What must agree
@@ -246,3 +271,16 @@ That removes the wrapper's per-collider costs, but it is a different binary, pos
 (`enhanced-determinism`). If the fixture's digests move then, it is the decided recapture above: Corey accepted it
 in advance (17.4 #18). If physics ever runs natively instead of as the shared WASM, that determinism needs its own
 evidence.
+
+Why it waits for the flip (#1066): while the state lives in JavaScript, the tick calls the world many times a tick
+(`queueAddBody`, `commitMutations`, `step`, `snapshot`), and moving Rapier into the core would only trade the
+wrapper's crossings for the adapter's. The gain comes when the world lives in Rust and the tick crosses once.
+
+Two checks the move needs, which the core's own guards do not give (tracked with the move in #1192):
+- **The math guard stops at the crate.** `rust/core/clippy.toml` forbids platform transcendentals and `mul_add` in
+  our code only; clippy does not lint dependencies. Rapier and its math crates (`nalgebra`, `parry2d`, and what
+  they pull in) must be shown to compile to WASM without platform `sin`/`cos` or fused operations, by their
+  feature flags or by inspecting the built module.
+- **The licence record.** Rapier is Apache-2.0, compatible with the MIT licence, but as a crate it passes
+  `cargo deny` and is recorded in [21.1](21.1-third-party-licenses.md#the-rust-workspace), with its dependencies.
+  The npm package's record goes when the wrapper does.

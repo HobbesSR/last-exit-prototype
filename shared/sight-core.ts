@@ -1,6 +1,6 @@
 import { count } from './profiler.ts';
-import type { CoreExports } from './core.ts';
-import { gateTables, sightTables, VISION, type VisibilityPoint } from './sight.ts';
+import { initCore, type CoreExports } from './core.ts';
+import { gateTables, sightTables, VISION, type SightCaster, type VisibilityPoint } from './sight.ts';
 import type { CollisionMap, Gate, Obstacle, Vec2, World } from './types.ts';
 
 // The adapter between `shared/sight.ts` and the Rust core's port of `visibilityPolygon`
@@ -17,7 +17,7 @@ import type { CollisionMap, Gate, Obstacle, Vec2, World } from './types.ts';
 /** A live handle, which is a pointer into WASM memory. */
 type Handle = number;
 
-export interface CoreSight {
+export interface CoreSight extends SightCaster {
   /** `visibilityPolygon` computed by the core: equal to the TypeScript's bit for bit. */
   visibilityPolygon(map: CollisionMap, origin: Vec2, radius?: World): VisibilityPoint[];
   /**
@@ -26,6 +26,13 @@ export interface CoreSight {
    */
   visibilityPolygonFlat(map: CollisionMap, origin: Vec2, radius?: World): Float64Array;
 }
+
+let processSight: Promise<CoreSight> | undefined;
+/**
+ * Sight through the process's one core (`initCore`), bound once: its uploaded indexes are shared by
+ * every game and scene in the process, as the core's memory is. Games receive it from `createGame`.
+ */
+export const initCoreSight = (): Promise<CoreSight> => processSight ??= initCore().then(coreSight);
 
 /** Bind a loaded core to sight. Instantiate once per core. */
 export function coreSight(core: CoreExports): CoreSight {

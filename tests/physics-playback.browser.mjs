@@ -24,7 +24,8 @@ try {
         { ...near('cloaked-body', 575, 440, { kind: 'circle', radius: 20 }), kind: 'actor', actorId: 'cloaked' },
         near('hidden', 4000, 2500, { kind: 'circle', radius: 30 })], tethers: [{ id: 'r1', a: 'circle', b: 'box' },
         { id: 'cloaked-rope', a: 'circle', b: 'cloaked-body' }, { id: 'hidden-rope', a: 'circle', b: 'hidden' }] };
-    const api = { map: () => map, state: () => state, self: () => player, playerId: () => player.id, directed: () => false,
+    const { initCoreSight } = await import('/shared/sight-core.ts');
+    const api = { sight: await initCoreSight(), map: () => map, state: () => state, self: () => player, playerId: () => player.id, directed: () => false,
       follow: () => null, replay: () => true, onFrame() {}, onReady(scene) { window.scene = scene; }, onFire() {}, frameAlpha: () => 0, aim: () => 0 };
     window.fixture = { map, player, state, api };
     window.game = new Phaser.Game({ type: Phaser.WEBGL, width: 900, height: 700, audio: { noAudio: true }, scene: makeArenaScene(api) });

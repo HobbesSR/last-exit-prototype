@@ -532,7 +532,9 @@ try {
       frameAlpha: 0,
       scene: null,
     };
+    const { initCoreSight } = await import('/shared/sight-core.ts');
     const api = {
+      sight: await initCoreSight(),
       map: () => f.map,
       state: () => f.state,
       self: () => f.state.players.find(p => p.id === 'self') || null,

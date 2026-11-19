@@ -20,7 +20,8 @@ try {
       buildings: [{ id: 'house', x: 100, y: 100, w: 412, h: 200 }], obstacles: [{ id: 'tree', kind: 'tree', x: 450, y: 400, r: 32 }] };
     const player = { id: 'self', name: 'Tester', role: 'contestant', x: 500, y: 400, heading: 0, status: 'active', hp: 100, maxHp: 100 };
     const state = { tick: 1, players: [player], gates: [], items: [], traps: [], projectiles: [], effects: [] };
-    const api = { map: () => window.fixture.map, state: () => state, self: () => player, playerId: () => player.id, directed: () => false,
+    const { initCoreSight } = await import('/shared/sight-core.ts');
+    const api = { sight: await initCoreSight(), map: () => window.fixture.map, state: () => state, self: () => player, playerId: () => player.id, directed: () => false,
       follow: () => null, replay: () => false, onFrame() {}, onReady(scene) { window.fixture.scene = scene; }, onFire() {}, frameAlpha: () => 0, aim: () => 0 };
     window.fixture = { map, player, state };
     window.fixture.game = new Phaser.Game({ type: Phaser.WEBGL, width: 900, height: 700, audio: { noAudio: true }, render: { preserveDrawingBuffer: true }, scene: makeArenaScene(api) });

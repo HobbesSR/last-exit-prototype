@@ -23,6 +23,13 @@ export interface VisibilityPoint extends Vec2 {
   angle: number;
   length: World;
 }
+/**
+ * What casts visibility polygons for a game: the Rust core's port (`sight-core.ts`), which `createGame`
+ * attaches to every stepping game. `visibilityPolygon` below is its reference until it retires (27).
+ */
+export interface SightCaster {
+  visibilityPolygon(map: CollisionMap, origin: Vec2, radius?: World): VisibilityPoint[];
+}
 
 interface SightIndex {
   count: number;
