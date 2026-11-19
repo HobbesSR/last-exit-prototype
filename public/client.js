@@ -2,6 +2,7 @@ import { createInputController } from '/input-controller.js';
 import { createHUDController } from '/hud-controller.js';
 import { resetDiagnostics, diagnosticTimings, reportDiagnostics, manualMark, forgetTiming } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
+import { initCoreSight } from '/shared/sight-core.ts';
 import { createReplayController } from '/replay-controller.js';
 import { createCameraDirector } from '/camera-director.js';
 import { createSnapshotBuffer } from '/snapshot-buffer.js';
@@ -257,7 +258,10 @@ function choosePalette(id) {
   $('dev-palette').value = palette; scene?.setPalette(palette);
 }
 let scene;
+// The core loads once, before the scene can draw a lit polygon (docs/27).
+const sight = await initCoreSight();
 const ArenaScene = makeArenaScene({
+  sight,
   palette: () => palette,
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => room.playerId(),
   kits: () => displayPresentation()?.kits,

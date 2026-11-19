@@ -24,6 +24,10 @@ import {
   isFeatureDiscovered,
 } from '../shared/discovery.ts';
 import { readServerMessage } from '../shared/wire-schema.ts';
+import { initCoreSight } from '../shared/sight-core.ts';
+
+// Bots observe through the core's sight, as a game's do (sightOf).
+const sight = await initCoreSight();
 
 // Cases that never step build the game without its physics world; cases that step build the shipped engine (#920).
 const game = (seed = 4217) => createGameRecord(seed, generatedMap(), defaultContent());
@@ -91,7 +95,7 @@ test('geometry in the view window is discovered behind a wall; only line of sigh
   assert.equal(memory.seen, undefined, 'people keep no line-of-sight set');
   // A bot's line of sight sees its own side and not past the wall.
   const bot = createDiscovery();
-  discover(bot, map, eye, undefined, true);
+  discover(bot, map, eye, undefined, sight);
   assert.ok(bot.seen.has(westCell) && bot.seen.has(eyeCell));
   assert.equal(bot.seen.has(eastCell), false, 'line of sight stops at the wall');
   // Beyond the window, nothing: (1824, 288) is 1536 east of the eye, past half of 2400.
@@ -113,7 +117,7 @@ test('a roof hides its interior from line of sight outside, not from the view wi
     buildings: [building],
   };
 
-  discover(memory, map, eye, undefined, true);
+  discover(memory, map, eye, undefined, sight);
 
   // Cell inside the building: col 2, row 1 -> center (480, 288)
   const roofCell = cellIndexAt(map, 480, 288);
@@ -392,7 +396,7 @@ test('nearby items and gates within discovery radius are indexed and remembered 
 
   // 1. Unfrozen / loose items
   const memory = createDiscovery();
-  discover(memory, map, eye, undefined, true);
+  discover(memory, map, eye, undefined, sight);
   assert.ok(memory.items?.has('item-near'), 'loose item at 700 units (inside radius) is remembered');
   assert.equal(memory.items?.has('item-far'), false, 'item beyond radius is not remembered');
   assert.ok(memory.gates?.has('gate-near'), 'gate at 700 units (inside radius) is observed');
@@ -401,7 +405,7 @@ test('nearby items and gates within discovery radius are indexed and remembered 
   // 2. Frozen items (which populate ground-items spatial cells)
   for (const item of map.items) Object.freeze(item);
   const memoryFrozen = createDiscovery();
-  discover(memoryFrozen, map, eye, undefined, true);
+  discover(memoryFrozen, map, eye, undefined, sight);
   assert.ok(memoryFrozen.items?.has('item-near'), 'frozen item at 700 units is remembered');
   assert.equal(memoryFrozen.items?.has('item-far'), false, 'frozen item beyond radius is not remembered');
 });
@@ -425,7 +429,7 @@ test('discovery memory items match whole-list filter and preserve ground order (
     gates: [],
   };
   const memory = createDiscovery();
-  discover(memory, map, eye, undefined, true);
+  discover(memory, map, eye, undefined, sight);
 
   const expectedIds = items.filter(i => Math.hypot(i.x - eye.x, i.y - eye.y) <= DISCOVERY_RADIUS).map(i => i.id);
   const rememberedIds = [...memory.items.keys()];

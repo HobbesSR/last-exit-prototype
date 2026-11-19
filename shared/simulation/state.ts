@@ -11,6 +11,7 @@ import { initializeItemInstances } from '../item-instances.ts';
 import { assignWeaponQualities } from '../loot-tiers.ts';
 import { loadMapWeapons, seedAmmo } from './ammo.ts';
 import type { Game, GameMap, ItemId, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
+import type { SightCaster } from '../sight.ts';
 
 /**
  * `map` is the arena the game runs in, which is what lets behaviour be characterized against a stored
@@ -18,8 +19,9 @@ import type { Game, GameMap, ItemId, Kit, Player, PlayerId, PlayerInput, Role } 
  * The game mutates what it is given (items are taken, gates open), so a caller reusing a map passes a copy.
  * `content` defaults to the shipped set. This builds the record only: `createGame` builds on it
  * and is what steps, so a game from here alone suits code that reads a match without running it.
+ * `sight` is what bots first observe through; without it they discover as people do until a tick.
  */
-export function createGameRecord(seed: number, map: GameMap, content = defaultContent()): Game {
+export function createGameRecord(seed: number, map: GameMap, content = defaultContent(), sight?: SightCaster): Game {
   assertEnumKeys(content.weapons, WEAPONS, 'weapon');
   assertEnumKeys(content.kits, KITS, 'kit');
   const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map: map as unknown as GameMap<ItemId>, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
@@ -55,7 +57,7 @@ export function createGameRecord(seed: number, map: GameMap, content = defaultCo
         const memory = createDiscovery();
         attachDiscovery(p, memory);
         // The lobby's NOWHERE map has no dimensions or spawns; discovery sampling runs only once on a real map.
-        if (map.width && map.height && map.spawns?.length) discover(memory, s.map, p, undefined, p.bot);
+        if (map.width && map.height && map.spawns?.length) discover(memory, s.map, p, undefined, p.bot ? sight : undefined);
       }
     }
   }

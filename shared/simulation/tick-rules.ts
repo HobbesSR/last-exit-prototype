@@ -2,6 +2,7 @@
 import { DISCOVERY_INTERVAL, discover } from '../discovery.ts';
 import { start, stop } from '../profiler.ts';
 import { damage } from './combat.ts';
+import { sightOf } from './sight-runtime.ts';
 import type { Game, Player } from '../types.ts';
 
 const TIMERS = ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun'] as const;
@@ -27,7 +28,7 @@ export function advanceDiscovery(s: Game): void {
   for (let i = 0; i < s.players.length; i++) {
     const p = s.players[i]!;
     if (p.role === 'contestant' && p.discovery && p.status === 'active' && (s.tick + i) % DISCOVERY_INTERVAL === 0) {
-      discover(p.discovery, s.map, p, undefined, p.bot);
+      discover(p.discovery, s.map, p, undefined, p.bot ? sightOf(s) : undefined);
     }
   }
   stop('sim.discovery');

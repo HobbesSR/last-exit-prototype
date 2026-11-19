@@ -2,6 +2,8 @@ import { gateAt } from './relations.ts';
 import { createGameRecord } from './state.ts';
 import { canOccupy, prepareMovementGeometry } from '../movement.ts';
 import { prepareSightIndex } from '../sight.ts';
+import { initCoreSight } from '../sight-core.ts';
+import { attachSight } from './sight-runtime.ts';
 import { gateShape } from '../gate-index.ts';
 import { actorRadius, validateActorPhysics } from './actor-physics.ts';
 import { addAuthoredProps, synchronizePhysicalItems, validateWorldPhysics } from './world-physics.ts';
@@ -20,14 +22,17 @@ export const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 export const actorId = (p: Player) => `actor:${p.id}`;
 export const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, b.id));
 
-/** Build a stepping match: `createGameRecord` builds its record, and this adds the physics world.
+/** Build a stepping match: `createGameRecord` builds its record, and this adds the engines it runs on: the
+ * physics world, and the core's sight (`sight-runtime.ts`), which every caller gets without supplying it.
  * `yieldControl` is for private preparation of a caller-owned map; the caller must
  * not publish or mutate that map while construction is pending. It never runs in a tick. */
 export async function createGame(seed: number, map: GameMap, content?: MatchContent, yieldControl?: () => Promise<void>): Promise<Game> {
   // Preparation is private until the factory resolves. Only the server supplies
   // event-loop yields; shared/browser callers retain the ordinary construction path.
   if (yieldControl) { await prepareMovementGeometry(map, yieldControl); await prepareSightIndex(map, yieldControl); }
-  const s = createGameRecord(seed, map, content);
+  const sight = await initCoreSight();
+  const s = createGameRecord(seed, map, content, sight);
+  attachSight(s, sight);
   if (yieldControl) await yieldControl();
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);

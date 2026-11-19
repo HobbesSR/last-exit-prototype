@@ -1,6 +1,5 @@
 import { bodyRelations } from '../shared/relational-frame.ts';
 import { sweptClear } from '/shared/movement.ts';
-import { visibilityPolygon } from '/shared/sight.ts';
 import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesActor, observeGates, roofAt, buildingOpenings, INSIDE_ZOOM, LOD_LABEL_ZOOM } from '/shared/view.ts';
 import { bodyRadius } from '/shared/physics/presentation-geometry.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
@@ -23,6 +22,8 @@ const EYE_TAU_MS = 31;
  * The arena's Phaser scene: lifecycle, input, the camera and its eased eye, sight and shade, and the
  * actors. The map's static drawing is in static-drawing.js, baked by tile-cache.js; the per-frame
  * layers are in frame-drawing.js, drawn by `update` in a fixed order.
+ *
+ * `api.sight` casts the lit polygon: the client passes the core's (`initCoreSight`, docs/27).
  */
 export function makeArenaScene(api) {
   return class ArenaScene extends Phaser.Scene {
@@ -93,11 +94,21 @@ export function makeArenaScene(api) {
       const label = this.add.text(x, y, text, { fontFamily: 'Arial', fontSize: size, fontStyle: 'bold', color }).setOrigin(0.5);
       this.labels.push(label); this.decor.add(label);
     }
+    /**
+     * The remembered gates as one list per map, with only `open` rewritten each frame: the caster indexes a
+     * gate list once and reads open states per call, so a fresh list each frame would be indexed again.
+     */
+    sightGates(remembered) {
+      const gates = this.stableGates;
+      if (gates?.length !== remembered.length) return this.stableGates = remembered.map(g => ({ ...g }));
+      for (let i = 0; i < gates.length; i++) gates[i].open = remembered[i].open;
+      return gates;
+    }
     buildMap() {
       const map = api.map();
       if (!map?.obstacles) return;
       this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null; this.insideBlend = 0;
-      this.sight = null; this.visionPoints = null; this.vision.clear(); this.sightMap = { ...map };
+      this.sight = null; this.visionPoints = null; this.vision.clear(); this.sightMap = { ...map }; this.stableGates = null;
       this.actors.forEach(a => a.container.destroy()); this.actors.clear();
       // Chain starts can be right by the western edge. Follow must still centre on
       // that subject at every viewport/zoom; its authoritative position is bounded.
@@ -224,8 +235,8 @@ export function makeArenaScene(api) {
         start('render.vision');
         this.viewBounds = viewBounds(eye, this.scale.width, this.scale.height, zoom);
         this.rememberedGates = observeGates(map, eye, this.viewBounds, this.gateMemory, state.tick);
-        this.sightMap.obstacles = map.obstacles; this.sightMap.gates = this.rememberedGates;
-        this.visionPoints = visibilityPolygon(this.sightMap, eye, viewRadius(this.viewBounds, eye));
+        this.sightMap.obstacles = map.obstacles; this.sightMap.gates = this.sightGates(this.rememberedGates);
+        this.visionPoints = api.sight.visibilityPolygon(this.sightMap, eye, viewRadius(this.viewBounds, eye));
         this.sight = { eye, bounds: this.viewBounds, points: this.visionPoints };
         this.vision.clear(); this.vision.fillStyle(0xffffff); this.vision.fillPoints(this.visionPoints, true);
         // Shade covers the whole arena; the inverted mask cuts the lit wedge back out of it.

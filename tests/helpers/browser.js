@@ -4,12 +4,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createArenaServer } from '../../server/index.js';
 import { listen } from './listen.js';
+import { buildCore } from '../../tools/build-core.mjs';
 
 /**
  * An arena server on an ephemeral loopback port, and the headless Chrome the browser scripts
- * drive it with. close() disposes both, browser first.
+ * drive it with. close() disposes both, browser first. The core is built first: the server's
+ * games and the client's scene both load it (docs/27).
  */
 export async function serveWithBrowser(options) {
+  buildCore();
   const server = await createArenaServer({ strictProtocol: true, ...options });
   try {
     const base = await listen(server);

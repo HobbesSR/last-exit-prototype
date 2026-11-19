@@ -11,6 +11,10 @@ import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { arena } from './helpers/arena.js';
 import { generatedMap } from './helpers/room-harness.js';
 import { stagePhysics } from './helpers/scenario.js';
+import { initCoreSight } from '../shared/sight-core.ts';
+
+// Bots observe through the core's sight, as a game's do (sightOf).
+const sight = await initCoreSight();
 
 // Contestant bots know what they have discovered, like people (15, #230). On the shipped content and its
 // engine (#920), which plans over tiles with route repair. Cases that only plan collect a bot's intent
@@ -24,7 +28,7 @@ test('the sight that discovers cells remembers the items it sees, not ones under
   const memory = createDiscovery();
   discover(memory, map, { x: 200, y: 200 });
   assert.equal(memory.items, undefined, 'only bots keep item memory');
-  discover(memory, map, { x: 200, y: 200 }, undefined, true);
+  discover(memory, map, { x: 200, y: 200 }, undefined, sight);
   assert.deepEqual([...memory.items.keys()], ['in-view']);
 });
 
@@ -33,7 +37,7 @@ test('a remembered item is forgotten once its spot is seen empty, and kept while
   const map = openMap([], [building]);
   const memory = createDiscovery();
   memory.items = new Map([['taken', { id: 'taken', kind: 'cell', x: 200, y: 320 }], ['roofed', { id: 'roofed', kind: 'cell', x: 480, y: 288 }]]);
-  discover(memory, map, { x: 200, y: 200 }, undefined, true);
+  discover(memory, map, { x: 200, y: 200 }, undefined, sight);
   assert.deepEqual([...memory.items.keys()], ['roofed']);
 });
 

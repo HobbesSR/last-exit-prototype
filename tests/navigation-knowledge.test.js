@@ -6,6 +6,10 @@ import { createDiscovery, discover, discoveryGrid, observeGate } from '../shared
 import { sweptClear } from '../shared/movement.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
 import { generatedMap } from './helpers/room-harness.js';
+import { initCoreSight } from '../shared/sight-core.ts';
+
+// Bots observe through the core's sight, as a game's do (sightOf).
+const sight = await initCoreSight();
 
 // A contestant plans over what it has discovered, assuming unknown ground open (22.6, #423).
 
@@ -89,7 +93,7 @@ test('information test through discovery: the same walk observes the same, so it
   const plans = [twinA, twinB].map(map => {
     const memory = createDiscovery(), planner = createKnowledgePlanner(map, 'contestant'), out = [];
     for (const eye of [{ x: 300, y: 1152 }, { x: 800, y: 1100 }, { x: 1300, y: 1152 }]) {
-      discover(memory, map, eye, undefined, true);
+      discover(memory, map, eye, undefined, sight);
       out.push(planner.route(contestantKnowledge(memory, 0), eye, { x: 4300, y: 1152 }));
     }
     return { out, surveyed: [...memory.surveyed].sort((a, b) => a - b), discovered: [...memory.discovered].sort((a, b) => a - b), gates: [...memory.gates], revision: memory.revision };
@@ -142,7 +146,7 @@ test('a stale door observation stands until the door is seen again, and the earl
   const { memory } = knowing(everything, { gates: { d1: { open: false, locked: true } } });
   const before = planner.route(contestantKnowledge(memory, 0), from, to);
   assert.equal(before.status, 'no-known-route', 'it plans with the lock it saw, not the live door');
-  discover(memory, map, { x: 800, y: 1152 }, undefined, true);
+  discover(memory, map, { x: 800, y: 1152 }, undefined, sight);
   assert.deepEqual(memory.gates.get('d1'), { open: true, locked: false });
   assert.equal(checkRoute(before, contestantKnowledge(memory, 0)).status, 'stale');
   assert.equal(planner.route(contestantKnowledge(memory, 0), from, to).status, 'complete');
@@ -176,7 +180,7 @@ test('repeated invalidation: each discovery makes the last route stale, until th
   let previous = null;
   const statuses = [];
   for (const eye of [{ x: 300, y: 1152 }, { x: 1500, y: 1152 }, { x: 2700, y: 1152 }, { x: 3900, y: 1152 }]) {
-    discover(memory, twinA, eye, undefined, true);
+    discover(memory, twinA, eye, undefined, sight);
     const knowledge = contestantKnowledge(memory, 0);
     if (previous) assert.equal(checkRoute(previous, knowledge).status, 'stale');
     previous = planner.route(knowledge, { x: 300, y: 1152 }, goal);
@@ -217,11 +221,11 @@ test('a search advanced a slice at a time expands the same places and returns th
 
 test('frozen knowledge keeps the cells and doors known when it was taken', () => {
   const memory = createDiscovery();
-  discover(memory, twinA, { x: 300, y: 1152 }, undefined, true);
+  discover(memory, twinA, { x: 300, y: 1152 }, undefined, sight);
   // A door the map does not have, so discovery leaves its observation alone.
   memory.gates.set('x1', { open: false, locked: true });
   const live = contestantKnowledge(memory, 1), frozen = frozenKnowledge(live, COLS * ROWS, ['x1', 'x2']), before = [...memory.discovered];
-  discover(memory, twinA, { x: 2700, y: 1152 }, undefined, true);
+  discover(memory, twinA, { x: 2700, y: 1152 }, undefined, sight);
   memory.gates.set('x1', { open: true, locked: false });
   const cells = Array.from({ length: COLS * ROWS }, (_, cell) => cell);
   assert.ok(cells.some(cell => live.known(cell) && !frozen.known(cell)), 'the live knowledge grew');
@@ -232,7 +236,7 @@ test('frozen knowledge keeps the cells and doors known when it was taken', () =>
 test('information test on a live map: obstacles out of every known cell, removed or reordered, change nothing', () => {
   const map = generatedMap(), { cols } = discoveryGrid(map), memory = createDiscovery();
   const spawn = map.spawns[0];
-  for (let i = 0; i < 4; i++) discover(memory, map, { x: spawn.x + i * 900, y: spawn.y }, undefined, true);
+  for (let i = 0; i < 4; i++) discover(memory, map, { x: spawn.x + i * 900, y: spawn.y }, undefined, sight);
   const knownCell = cell => memory.discovered.has(cell) || memory.surveyed.has(cell);
   const touchesKnown = o => {
     const b = bounds(shapeOf(o));

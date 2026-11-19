@@ -38,13 +38,10 @@ jobs:
           key: rust-${{ hashFiles('rust/rust-toolchain.toml', 'rust/Cargo.lock') }}
           restore-keys: |
             rust-${{ hashFiles('rust/rust-toolchain.toml') }}
-      # rustup only; rust-toolchain.toml then names the version, components and targets.
-      - run: |
-          if [ ! -x "$HOME/.cargo/bin/rustup" ]; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
-          fi
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - run: rustup toolchain install
+      # rustup only; rust-toolchain.toml then names the version, components and targets. The script
+      # is shared with ci.yml's jobs and runs from the repository root.
+      - run: bash tools/ci/rust-toolchain.sh
+        working-directory: .
       # cargo-deny's own release for the runner's architecture (it is arm64 today), checked
       # against its published digest (docs/21.1).
       - run: |

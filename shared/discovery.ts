@@ -1,5 +1,5 @@
 import { createFrameNormalizer } from './relational-frame.ts';
-import { litPoint, visibilityPolygon } from './sight.ts';
+import { litPoint, type SightCaster, type VisibilityPoint } from './sight.ts';
 import { gateShape, gatesNear } from './gate-index.ts';
 import { insideMap } from './playable-area.ts';
 import { itemsNear } from './simulation/ground-items.ts';
@@ -98,8 +98,9 @@ export function isFeatureDiscovered(memory: DiscoveryMemory | null | undefined, 
  * - **World geometry** is learned from the view window: every cell whose centre lies within the largest
  *   viewport a client may have is discovered, regardless of walls and roofs. Landmarks are discovered
  *   from their beacon radius. This is what the minimap draws.
- * - **Dynamic state** needs line of sight. With `observe` (bots, #230), one visibility polygon marks the
- *   cells whose centres are lit and not roof-concealed as `memory.seen`, which a bot searches against,
+ * - **Dynamic state** needs line of sight. Given a `sight` to observe through (bots, #230; a game's is
+ *   `sightOf(s)`), one visibility polygon marks the cells whose centres are lit and not roof-concealed
+ *   as `memory.seen`, which a bot searches against,
  *   and updates `memory.items`: items in sight are remembered, and a remembered item whose spot is seen
  *   empty is forgotten. Doors in sight are remembered as they stand (`memory.gates`), and every cell
  *   the view window covers is `memory.surveyed`, the layout navigation may treat as known (22.6).
@@ -110,7 +111,7 @@ export function discover(
   map: DiscoveryMap,
   eye: Vec2,
   radius: World = DISCOVERY_RADIUS,
-  observe = false
+  sight?: SightCaster
 ): number[] {
   const { cols, rows } = discoveryGrid(map);
   const newlyDiscovered: number[] = [];
@@ -128,7 +129,7 @@ export function discover(
   };
 
   cells(DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, mark);
-  if (observe) {
+  if (sight) {
     const surveyed = memory.surveyed ??= new Set();
     cells(DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, idx => { if (!surveyed.has(idx)) { surveyed.add(idx); changed = true; } }, true);
   }
@@ -140,15 +141,15 @@ export function discover(
     if (idx !== -1) mark(idx);
   }
 
-  if (observe) {
-    let poly: ReturnType<typeof visibilityPolygon> | null = null;
+  if (sight) {
+    let poly: VisibilityPoint[] | null = null;
     const radiusSq = radius * radius;
     // The polygon is built only once something in reach needs it.
     const sees = (x: World, y: World): boolean => {
       const ex = x - eye.x, ey = y - eye.y;
       if (ex * ex + ey * ey > radiusSq) return false;
       if (roofConceals(map, eye, { x, y })) return false;
-      if (!poly) poly = visibilityPolygon(map, eye, radius);
+      if (!poly) poly = sight.visibilityPolygon(map, eye, radius);
       return litPoint(poly, eye, x, y);
     };
     const seen = memory.seen ??= new SeenCells(cols, rows);

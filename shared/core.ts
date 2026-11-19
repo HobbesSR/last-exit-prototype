@@ -1,8 +1,8 @@
 /**
- * The one loader for the Rust core (`rust/core`, docs/27), shared by Node and the browser. The
- * host supplies the module's bytes: Node reads the file `tools/build-core.mjs` builds, and the
- * browser fetches it. Both instantiate once at startup, before anything that uses the core,
- * because a browser cannot import an asynchronously instantiated module synchronously.
+ * The one loader for the Rust core (`rust/core`, docs/27), shared by Node and the browser.
+ * `initCore` instantiates the module `tools/build-core.mjs` embeds, once per process (per thread in
+ * the server's room workers), before anything uses it: shared code cannot await mid-tick.
+ * `loadCore` takes bytes directly, for tests that load a module of their own.
  *
  * The module is a build output, never committed: each host builds its own (docs/27).
  */
@@ -44,6 +44,21 @@ export interface MathParityExports extends CoreExports {
   math_atan(x: number): number;
   math_atan2(y: number, x: number): number;
   math_hypot(x: number, y: number): number;
+}
+
+/** The generated module holding the core's bytes; named through a variable so tsc need not find it. */
+const EMBEDDED = './core-wasm.generated.ts';
+let embedded: Promise<CoreExports> | undefined;
+
+/**
+ * The process's one core: the module `tools/build-core.mjs` embeds, instantiated once and shared by
+ * every caller, as `initRapier` shares Rapier. Node and the browser import it the same way, so neither
+ * host supplies the bytes. It only loads; which sight a game uses is given to the game (`createGame`).
+ */
+export function initCore(): Promise<CoreExports> {
+  return embedded ??= (import(EMBEDDED) as Promise<{ CORE_WASM_BASE64: string }>).then(
+    ({ CORE_WASM_BASE64 }) => loadCore(Uint8Array.from(atob(CORE_WASM_BASE64), c => c.charCodeAt(0))),
+    error => { throw new Error(`the core module is not built (npm run core:build): ${(error as Error).message}`); });
 }
 
 /** Instantiates the core and checks its adapter version before anything else is called. */

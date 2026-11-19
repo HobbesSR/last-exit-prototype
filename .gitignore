@@ -4,3 +4,4 @@ test-results/
 *.log
 .env.local
 .forgejo-cache/
+shared/core-wasm.generated.ts
