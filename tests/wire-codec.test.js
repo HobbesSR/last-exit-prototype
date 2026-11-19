@@ -234,3 +234,21 @@ test('float32 metres need the schema to name its scale', () => {
   assert.equal(metred.decode(narrow).v, v);
   assert.throws(() => plain.decode(narrow), /bad number tag/);
 });
+
+test('a grid type carries whole multiples of its quantum exactly, and refuses any other value', () => {
+  for (const bad of [0, -1, Infinity, NaN]) assert.throws(() => scalar({ grid: bad }), /positive finite/);
+  const turn = 2 * Math.PI / 65536, grid = scalar({ grid: turn }), metres = scalar({ grid: 1 / 256 });
+  for (const k of [0, 1, -1, 32768, -32767, 12345]) assert.equal(grid.decode(grid.encode({ type: 'm', v: k * turn })).v, k * turn);
+  assert.equal(metres.encode({ type: 'm', v: -2048.5 }).length, 3 + 3, 'a step count, not a float');
+  assert.equal(Object.is(metres.decode(metres.encode({ type: 'm', v: -0 })).v, 0), true, '-0 reads as 0');
+  for (const off of [0.001, 1 / 512, Math.PI]) assert.throws(() => metres.encode({ type: 'm', v: off }), /not on the grid/);
+  assert.throws(() => metres.encode({ type: 'm', v: 2 ** 50 }), /not on the grid/);
+  for (const bad of [NaN, Infinity, -Infinity, '1']) assert.throws(() => metres.encode({ type: 'm', v: bad }), /expected finite number/);
+  assert.throws(() => metres.decode(craft(varint(2 ** 53 - 1))), /grid step out of range/, 'a safe varint whose step no writer sends');
+  // Every step the reader accepts, the writer writes back: none that shares its value with a neighbour, none past finite.
+  const zigzag = k => (k < 0 ? -k * 2 - 1 : k * 2);
+  assert.throws(() => grid.decode(craft(varint(zigzag(2 ** 52 - 6)))), /grid step out of range/, 'a step that does not round back to itself');
+  const huge = scalar({ grid: 1e300 });
+  assert.equal(huge.decode(huge.encode({ type: 'm', v: 1e300 })).v, 1e300);
+  assert.throws(() => huge.decode(craft(varint(zigzag(1e9)))), /grid step out of range/, 'a step past the largest finite value');
+});

@@ -11,7 +11,7 @@
 // quantities (hit points, shields, cooldowns, radii, damage) exact numbers, closed unions enum tables.
 import { WIRE_VERSION } from './protocol.ts';
 import { UNITS_PER_METRE } from './physics/units.ts';
-import { SLOW_FIELDS } from './fast-state.ts';
+import { FAST_QUANTA, SLOW_FIELDS } from './fast-state.ts';
 import { createDescriptorCodec, type DecodeOptions, type DescriptorCodec, type FieldDef, type FieldType, type RecordDef, type Schema } from './wire-codec.ts';
 import { AMMO_FAMILIES, BODY_KINDS, EFFECT_KINDS, EVENT_KINDS, ITEM_KINDS, PHASES, PLAYER_STATUSES, TRAP_KINDS, WEAPONS } from './enum-tables.ts';
 import {
@@ -76,6 +76,10 @@ const EVENT = typed('Event', words(EVENT_FIELDS), {
 
 // ---- Records the projection constructs ------------------------------------------------------------------------
 
+const HOOK_FLIGHT: RecordDef = { fields: [
+  { name: 'id', type: 'uint' }, { name: 'a', type: 'uint' }, { name: 'casterIdx', type: 'uint' }, { name: 'x', type: 'exact' }, { name: 'y', type: 'exact' },
+] };
+
 const BODY: RecordDef = { fields: [
   { name: 'id', type: 'uint' }, { name: 'kind', type: oneOf(BODY_KINDS) },
   // Omitted when the receiving keyframe already holds it (24.4 baseline shape compression).
@@ -124,9 +128,19 @@ const FAST_KEYS: Readonly<Record<string, readonly [string, string]>> = {
   traps: ['Trap', 'id'], projectiles: ['Projectile', 'id'], effects: ['Effect', 'id'], events: ['Event', 'id'],
 };
 const FAST_LEFT_OUT = new Set<string>([...SLOW_FIELDS, ROSTER_REVISION.name]);
+// The fast part rounds FAST_QUANTA's fields (fast-state.ts, 24.2 decision 3): its records for those lists are
+// their state records with each rounded field typed as its grid. `state` keeps the exact records.
+const ROUNDED_SOURCES: Readonly<Record<string, RecordDef>> = { Observed: OBSERVED_RECORD, Trap: TRAP, Projectile: PROJECTILE, Effect: EFFECT, HookFlight: HOOK_FLIGHT };
+const FAST_RECORDS: Record<string, RecordDef> = {};
+for (const [list, quanta] of Object.entries(FAST_QUANTA)) {
+  const name = FAST_KEYS[list]?.[0], fields = name ? ROUNDED_SOURCES[name]?.fields : undefined;
+  if (!name || !fields) throw new Error(`wire schema: rounded list ${list} is not a keyed list of a known record`);
+  for (const field of Object.keys(quanta)) if (!fields.some(f => f.name === field)) throw new Error(`wire schema ${name}: no field ${field} to round`);
+  FAST_RECORDS[`Fast${name}`] = { fields: fields.map(f => (f.name in quanta ? { ...f, type: { grid: quanta[f.name]! } } : f)) };
+}
 const FAST_MATCH: RecordDef = { fields: MATCH_STATE.fields.filter(f => !FAST_LEFT_OUT.has(f.name)).map((f): FieldDef => {
   const keyed = FAST_KEYS[f.name];
-  return keyed ? { ...f, type: { list: keyed[0], key: keyed[1] } } : f;
+  return keyed ? { ...f, type: { list: f.name in FAST_QUANTA ? `Fast${keyed[0]}` : keyed[0], key: keyed[1] } } : f;
 }) };
 for (const name of Object.keys(FAST_KEYS)) if (!FAST_MATCH.fields.some(f => f.name === name)) throw new Error(`wire schema FastMatch: no field ${name} to key`);
 
@@ -155,7 +169,7 @@ export const STATE_SCHEMA: Schema = Object.freeze({
     OwnerItem: { fields: [{ name: 'itemId', type: 'uint' }] },
     OwnerProp: { fields: [{ name: 'propId', type: 'uint' }] },
     Tether: { fields: [{ name: 'id', type: 'uint' }, { name: 'a', type: 'uint' }, { name: 'b', type: 'uint' }] },
-    HookFlight: { fields: [{ name: 'id', type: 'uint' }, { name: 'a', type: 'uint' }, { name: 'casterIdx', type: 'uint' }, { name: 'x', type: 'exact' }, { name: 'y', type: 'exact' }] },
+    HookFlight: HOOK_FLIGHT, ...FAST_RECORDS,
   },
 });
 
