@@ -5,7 +5,9 @@ import { wireCodec } from '../shared/wire-schema.ts';
 import { MissingBaseline } from '../shared/wire-codec.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '../shared/discovery.ts';
-import { createFastHistory, createFastReader, fastFrame, holdItemBodies, FAST_HISTORY_TICKS, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
+import { createEventWindow, createFastHistory, createFastReader, fastFrame, holdItemBodies, keptEvents, FAST_HISTORY_TICKS, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
+import { event, participant } from '../shared/simulation/loot.ts';
+import { KEPT_EVENTS } from '../shared/simulation/rules.ts';
 import { deliversFast } from '../server/room-views.js';
 
 // The split delivery (24.5 "Stage 3's contracts"): a player session with datagrams is sent its fast state on
@@ -20,15 +22,16 @@ const TICKS = 120;
  * One short room (the fast-delta test's): a gladiator owner on the stream, and a contestant behind a fake
  * datagram transport. `lose(i)` says whether the i-th datagram is lost; acknowledgements reach the server
  * `ackDelay` ticks after the frame arrives, and only every `ackEvery`-th kept frame is acknowledged. `projected`
- * holds what the server projected for the contestant at each tick, as the room's history would.
+ * holds what the server projected for the contestant at each tick, as the room's history would. `each(i, room)`
+ * runs before the i-th tick, to arrange the match.
  */
-async function play({ lose = () => false, ackDelay = 2, ackEvery = 1 } = {}) {
+async function play({ lose = () => false, ackDelay = 2, ackEvery = 1, each = () => {} } = {}) {
   const h = roomHarness({ reuseMaps: true });
   const made = await h.room();
   const received = [], acks = [], projected = new Map();
-  let count = 0;
+  let count = 0, largest = 0;
   const owner = h.joined(made, { ownerKey: made.ownerKey, role: 'gladiator' });
-  const other = h.joined(made, { role: 'contestant' }, { datagram: bytes => { if (!lose(count++)) received.push(bytes); return true; } });
+  const other = h.joined(made, { role: 'contestant' }, { datagram: bytes => { largest = Math.max(largest, bytes.length); if (!lose(count++)) received.push(bytes); return true; } });
   // The views the room projects for the contestant: what it sends, split, is checked against these.
   const project = made.match.project;
   made.match.project = (frame, id) => {
@@ -41,6 +44,7 @@ async function play({ lose = () => false, ackDelay = 2, ackEvery = 1 } = {}) {
     h.wake(50);
     owner.send({ type: 'start' });
     for (let i = 0; i < TICKS; i++) {
+      each(i, made);
       h.wake(50);
       // The harness stamps an input from its peer's own `state` frames, and the datagram peer has none: both are
       // stamped from the owner's.
@@ -52,15 +56,19 @@ async function play({ lose = () => false, ackDelay = 2, ackEvery = 1 } = {}) {
       }
       while (acks.length && acks[0].at <= i) h.service.acknowledge(other.session, acks.shift().tick);
     }
-    return { other, client, projected, sent: count };
+    return { other, client, projected, sent: count, largest };
   } finally { await h.service.close(); }
 }
 
-/** The client's side, through the reader its apply uses (`createFastReader`): it keeps only newer frames. */
+/**
+ * The client's side, through the reader its apply uses (`createFastReader`): it keeps only newer frames. `drawn`
+ * holds the frames it would draw, with empty slow layers, and `arrived` the events as the reader first held them.
+ */
 function fakeClient() {
-  const reader = createFastReader(), frames = [];
+  const reader = createFastReader(), frames = [], drawn = [], arrived = [];
+  reader.slow([], [], 0);
   const client = {
-    frames, kept: 0, missing: 0, stale: 0, deltas: 0,
+    frames, drawn, arrived, kept: 0, missing: 0, stale: 0, deltas: 0,
     /** Applies one datagram; the tick it now holds as newest, or null when it applied nothing. */
     receive(bytes) {
       let message;
@@ -71,7 +79,7 @@ function fakeClient() {
       }
       const newest = reader.newest();
       if (newest !== null && message.state.tick <= newest) { client.stale++; return null; }
-      reader.fast(message); client.kept++; if (delta) client.deltas++;
+      drawn.push(reader.fast(message)); arrived.push(...reader.arrived()); client.kept++; if (delta) client.deltas++;
       frames.push(message);
       return reader.newest();
     },
@@ -97,10 +105,8 @@ test('a player session with datagrams rebuilds every frame it keeps exactly, thr
   assert.equal(client.missing, 0, 'the server deltas only against frames the client acknowledged');
   assert.ok(client.kept > 40 && client.kept < projected.size, `${client.kept} frames kept of ${projected.size}`);
   assert.ok(client.deltas > client.kept * 0.8, `${client.deltas} of ${client.kept} kept frames were deltas`);
-  for (const { state } of client.frames) {
-    const { rosterRevision: _r, ...view } = projected.get(state.tick);
-    assert.deepEqual(state, fastFrame(view), `the fast part at tick ${state.tick}`);
-  }
+  const sentFrames = windowed(projected);
+  for (const { state } of client.frames) assert.deepEqual(state, sentFrames.get(state.tick), `the fast part at tick ${state.tick}`);
   // The slow layers: a `slow` message only when they change, each with the next version, and rebuilt they are
   // what the server projected.
   const slow = slowLayers(other), last = projected.get(Math.max(...projected.keys()));
@@ -111,6 +117,60 @@ test('a player session with datagrams rebuilds every frame it keeps exactly, thr
     [last.items, last.gates, last.self.discovered.toSorted((a, b) => a - b)]);
   assert.equal(client.frames.at(-1).slowVersion, slow.at(-1).slowVersion, 'the newest frame names the slow layers it was projected with');
   t.diagnostic(`kept ${client.kept} of ${projected.size} (${client.deltas} deltas); ${slow.length} slow messages; ${client.stale} late`);
+});
+
+/** The fast frames the server sends for `projected`'s views, tick by tick: each view's fast part through one event window. */
+function windowed(projected) {
+  const window = createEventWindow(), sent = new Map();
+  for (const tick of [...projected.keys()].sort((a, b) => a - b)) {
+    const { rosterRevision: _r, ...view } = projected.get(tick);
+    sent.set(tick, window(fastFrame(view)));
+  }
+  return sent;
+}
+
+test('through bursts of loss every event reaches the client once, where the last six alone would drop some', async t => {
+  // Each burst: two events a tick for five ticks, ten in all, while datagrams go missing for eight.
+  const burst = i => i < 100 && i % 20 >= 5 && i % 20 < 10;
+  const { client, projected, largest } = await play({
+    lose: n => n < 100 && n % 20 >= 4 && n % 20 < 12, ackDelay: 3, ackEvery: 2,
+    each: (i, room) => {
+      if (!burst(i) || !room.game) return;
+      const actor = participant(room.game, room.game.players[0]);
+      for (let k = 0; k < 2; k++) event(room.game, { kind: 'respawned', actor });
+    },
+  });
+  const ticks = [...projected.keys()].sort((a, b) => a - b);
+  const all = [...new Set(ticks.flatMap(tick => projected.get(tick).events.map(e => e.id)))];
+  assert.ok(all.length >= 40, `${all.length} events`);
+  // The six-event rule: the events in the frames this client kept, had they carried only the projection's.
+  const kept = client.drawn.map(frame => frame.tick);
+  const lastSix = new Set(kept.flatMap(tick => projected.get(tick).events.map(e => e.id)));
+  const dropped = all.filter(id => !lastSix.has(id));
+  assert.ok(dropped.length > 0, 'the last six alone would have dropped some');
+  // The window: each event arrives once, in order, and each frame drawn carries the events a `state` of its tick would.
+  assert.deepEqual(client.arrived.map(e => e.id), all, 'every event arrives, once, in order');
+  for (const frame of client.drawn) assert.deepEqual(frame.events, projected.get(frame.tick).events, `the events drawn at tick ${frame.tick}`);
+  const sent = windowed(projected);
+  const longest = Math.max(...ticks.map(tick => sent.get(tick).events.length));
+  assert.ok(largest <= MAX_FAST_DATAGRAM_BYTES, `the largest fast message, ${largest} B, fits the edge's fragments`);
+  t.diagnostic(`${all.length} events; the last six alone would drop ${dropped.length}; up to ${longest} in a frame; largest message ${largest} B`);
+});
+
+test('a reader draws the newest six events, each once, from frames that carry a longer window', () => {
+  const e = (id, tick = id) => ({ id, tick });
+  assert.equal(keptEvents([e(1)], undefined), undefined, 'a frame without events draws none');
+  assert.deepEqual(keptEvents(undefined, [e(1), e(2)]), [e(1), e(2)]);
+  assert.deepEqual(keptEvents([e(1), e(2)], [e(2), e(3)]), [e(1), e(2), e(3)], 'held once');
+  const window = Array.from({ length: 9 }, (_, i) => e(i + 3));
+  assert.deepEqual(keptEvents([e(1), e(2), e(3)], window), window.slice(-KEPT_EVENTS), 'the newest six');
+  // The server's window: an event stays for the history's span after its tick, beside the projection's own.
+  const win = createEventWindow(4);
+  assert.deepEqual(win({ tick: 1, events: [e(1, 1)] }).events, [e(1, 1)]);
+  assert.deepEqual(win({ tick: 2, events: [e(2, 2)] }).events, [e(1, 1), e(2, 2)], 'kept after the projection drops it');
+  assert.deepEqual(win({ tick: 5, events: [e(5, 5)] }).events, [e(2, 2), e(5, 5)], 'until four ticks have passed');
+  const frame = { tick: 9, events: [e(5, 5)] };
+  assert.equal(win(frame), frame, 'nothing older kept: the frame itself');
 });
 
 test('until a frame is acknowledged every frame is whole; after, each is a delta against the newest acknowledged', async () => {

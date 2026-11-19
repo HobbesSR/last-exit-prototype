@@ -5,7 +5,7 @@ import { allocateItemId, ensureItemIdentity, validateItemPayload, forkItemAlloca
 import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { addItems, draftItem, itemsNear, removeItem, replaceItem, settledItem } from './ground-items.ts';
-import { HZ } from './rules.ts';
+import { HZ, KEPT_EVENTS } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
 import type { AmmoFamily, EffectKind, Game, GroundItem, InventoryItem, Player, PlayerInput, Vec2, World } from '../types.ts';
 import { cos, sin } from '../math.ts';
@@ -13,7 +13,7 @@ import { playerIndex } from './relations.ts';
 import type { EventParticipant, GameEventPayload } from '../types.ts';
 
 export function participant(s: Game, p: Player): EventParticipant { return { playerIdx: playerIndex(s, p), name: p.name }; }
-export function event(s: Game, payload: GameEventPayload): void { s.events.push({ id: s.serial++, tick: s.tick, ...payload }); s.events = s.events.slice(-6); }
+export function event(s: Game, payload: GameEventPayload): void { s.events.push({ id: s.serial++, tick: s.tick, ...payload }); s.events = s.events.slice(-KEPT_EVENTS); }
 export function effect(s: Game, p: Vec2, kind: EffectKind, radius: World = 60): void { s.effects.push({ id: s.serial++, x: p.x, y: p.y, kind, radius, life: 12 }); }
 
 /** The bounded L0 spiral search: a free, reachable point near `origin`, clear of both lists. */

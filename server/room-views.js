@@ -7,7 +7,7 @@ import { stringifyWithMap } from './map-payload.js';
 import { assertServerMessage, fastMessage, lobbyMessage, slowMessage, stateMessage, seatsMessage } from './protocol.js';
 import { wireCodec } from '../shared/wire-schema.ts';
 import { against } from '../shared/wire-codec.ts';
-import { createFastHistory, fastFrame, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
+import { createEventWindow, createFastHistory, fastFrame, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(stringifyWithMap(assertServerMessage(value)));
 /**
@@ -124,8 +124,8 @@ export function broadcast(room, state) {
     }
     if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;
   }
-  // A view nobody holds any more (a player who left) takes its keyframes and slow version with it.
-  for (const encoders of [room.layerEncoders, room.discoveryEncoders, room.slowVersions]) for (const key of encoders.keys()) if (!views.has(key)) encoders.delete(key);
+  // A view nobody holds any more (a player who left) takes its keyframes, slow version and event window with it.
+  for (const encoders of [room.layerEncoders, room.discoveryEncoders, room.slowVersions, room.fastEvents]) for (const key of encoders.keys()) if (!views.has(key)) encoders.delete(key);
   profiler.count('loop.viewsBuilt', views.size); profiler.count('loop.viewsSent', room.clients.size);
 }
 /**
@@ -161,7 +161,8 @@ function slowLayers(room, key, view) {
  * them. The fast part goes as a `fast` message on a datagram: a delta against the newest frame the session has
  * acknowledged while the history still holds it, else whole, so a session that has acknowledged nothing yet is
  * sent the whole frame every tick. Each sent frame joins the session's history. A message too large for
- * `MAX_FAST_DATAGRAM_BYTES` goes on the stream instead, where it can be skipped like a `state` frame.
+ * `MAX_FAST_DATAGRAM_BYTES` goes on the stream instead, where it can be skipped like a `state` frame. The fast part
+ * carries the view's event window (`createEventWindow`), so an event outlives the loss of the frames that held it.
  */
 function deliverSplit(room, session, key, view) {
   const slow = slowLayers(room, key, view);
@@ -178,7 +179,7 @@ function deliverSplit(room, session, key, view) {
       for (const layer of whole) held[layer] = view.layers[layer].k;
     }
   }
-  const frame = view.fast ??= fastFrame(view.state);
+  const frame = view.fast ??= encoderFor(room.fastEvents, key, createEventWindow)(fastFrame(view.state));
   const history = session.fastHistory ??= createFastHistory();
   const base = session.fastAck === null || session.fastAck === undefined ? undefined : history.get(session.fastAck);
   profiler.start('loop.serialize');
@@ -196,9 +197,12 @@ function deliverSplit(room, session, key, view) {
   if (sent) history.record(frame.tick, frame);
 }
 
-/** The keyframe encoders a room's views keep, one of each kind per view, its slow layers' versions and its roster revisions. Every room starts with them. */
+/**
+ * The keyframe encoders a room's views keep, one of each kind per view, its slow layers' versions, its fast views'
+ * event windows and its roster revisions. Every room starts with them.
+ */
 export function viewEncoders() {
-  return { layerEncoders: new Map(), discoveryEncoders: new Map(), slowVersions: new Map(), rosterRevisions: createRosterRevisions() };
+  return { layerEncoders: new Map(), discoveryEncoders: new Map(), slowVersions: new Map(), fastEvents: new Map(), rosterRevisions: createRosterRevisions() };
 }
 function encoderFor(encoders, key, create) {
   let encoder = encoders.get(key);
