@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createArenaSocketOpener, chooseTransport, createFrameReader, encodeStreamFrame, forcedTransport } from '../public/arena-socket.js';
+import { createArenaSocketOpener, chooseTransport, createFrameReader, encodeStreamFrame, forcedTransport, packInputDatagram } from '../public/arena-socket.js';
 
 // The browser socket's choice, fallback and framing, with a fake WebSocket and WebTransport: no browser.
 
@@ -12,8 +12,11 @@ class FakeWebSocket extends EventTarget {
   close() {}
 }
 
-/** A WebTransport whose session and stream open when `go()` is called, or never. */
-function fakeTransport({ opens = true } = {}) {
+/**
+ * A WebTransport whose session and stream open at once, or never. With `maxDatagramSize`, it has datagrams, and
+ * the ones written are kept in `datagramsSent`.
+ */
+function fakeTransport({ opens = true, maxDatagramSize = null } = {}) {
   const made = [];
   return class {
     constructor(url, options) {
@@ -21,7 +24,10 @@ function fakeTransport({ opens = true } = {}) {
       this.inbound = new TransformStream(); this.sent = [];
       this.ready = opens ? Promise.resolve() : new Promise(() => {});
       this.closed = new Promise(resolve => { this.end = resolve; });
-      this.closeCalls = [];
+      this.closeCalls = []; this.datagramsSent = [];
+      if (maxDatagramSize !== null) {
+        this.datagrams = { maxDatagramSize, createWritable: () => new WritableStream({ write: chunk => { this.datagramsSent.push(chunk); } }) };
+      }
     }
     async createBidirectionalStream() {
       return { readable: this.inbound.readable, writable: new WritableStream({ write: chunk => { this.sent.push(chunk); } }) };
@@ -134,6 +140,49 @@ test('over WebTransport: open, text and binary messages, framed sends, backlog, 
   const event = await closed;
   assert.deepEqual([event.code, event.reason, socket.readyState], [1008, 'Invalid message', 3]);
   assert.throws(() => socket.send('x'), /not open/);
+});
+
+test('inputs are packed newest last, with as many earlier ones as fit, up to three', () => {
+  const enc = text => new TextEncoder().encode(text), dec = bytes => bytes && new TextDecoder().decode(bytes);
+  const [a, b, c] = ['{"s":1}', '{"s":2}', '{"s":3}'].map(enc);
+  assert.equal(dec(packInputDatagram([a, b, c])), '[{"s":1},{"s":2},{"s":3}]');
+  assert.equal(dec(packInputDatagram([c])), '[{"s":3}]');
+  // Each input costs its bytes and one separator; the brackets cost two.
+  assert.equal(dec(packInputDatagram([a, b, c], 2 + 7 * 2 + 1)), '[{"s":2},{"s":3}]');
+  assert.equal(dec(packInputDatagram([a, b, c], 9)), '[{"s":3}]');
+  assert.equal(packInputDatagram([a, b, c], 8), null);
+});
+
+test('over WebTransport, inputs go as datagrams repeating the two before them; a WebSocket or a session without datagrams sends them on the stream', async () => {
+  const input = seq => JSON.stringify({ type: 'input', seq, tick: seq });
+  const Transport = fakeTransport({ maxDatagramSize: 1200 });
+  const socket = opener({ WebTransport: Transport })();
+  await next(socket, 'open');
+  const wt = Transport.made[0];
+  for (let seq = 0; seq < 5; seq++) socket.sendInput(input(seq));
+  for (let i = 0; i < 50 && wt.datagramsSent.length < 5; i++) await new Promise(r => setTimeout(r, 2));
+  const seqs = wt.datagramsSent.map(bytes => JSON.parse(new TextDecoder().decode(bytes)).map(m => m.seq));
+  assert.deepEqual(seqs, [[0], [0, 1], [0, 1, 2], [1, 2, 3], [2, 3, 4]]);
+  // Too large for a datagram: the stream carries it, and later datagrams do not repeat it.
+  wt.datagrams.maxDatagramSize = 2 + input(5).length - 1;
+  socket.sendInput(input(5));
+  wt.datagrams.maxDatagramSize = 1200;
+  socket.sendInput(input(6));
+  for (let i = 0; i < 50 && (wt.datagramsSent.length < 6 || !wt.sent.length); i++) await new Promise(r => setTimeout(r, 2));
+  assert.deepEqual([...wt.sent[0]], [...frame(0, Buffer.from(input(5)))]);
+  assert.deepEqual(JSON.parse(new TextDecoder().decode(wt.datagramsSent[5])).map(m => m.seq), [3, 4, 6]);
+
+  const plain = fakeTransport(), streamed = opener({ WebTransport: plain })();
+  await next(streamed, 'open');
+  streamed.sendInput(input(0));
+  for (let i = 0; i < 50 && !plain.made[0].sent.length; i++) await new Promise(r => setTimeout(r, 2));
+  assert.deepEqual([...plain.made[0].sent[0]], [...frame(0, Buffer.from(input(0)))]);
+
+  const ws = opener({ WebTransport: undefined })();
+  await new Promise(r => setTimeout(r, 5));
+  assert.equal(ws.transport, 'websocket');
+  assert.equal(ws.sendInput, ws.send);
+  assert.throws(() => opener({ WebTransport: fakeTransport({ opens: false }) })().sendInput('x'), /not open/);
 });
 
 test('closing while WebTransport is opening abandons the session at once, with one close and no error', async () => {

@@ -2,7 +2,9 @@
 
 use std::time::Duration;
 
-use last_exit_edge::frame::link::{ACCEPT, CLOSE, CLOSED, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN};
+use last_exit_edge::frame::link::{
+    ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN,
+};
 use last_exit_edge::frame::{self, Decoder};
 use last_exit_edge::{Config, run};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -68,7 +70,7 @@ impl Node {
         let (kind, body) = self.next().await;
         assert_eq!(kind, EDGE);
         let accept =
-            format!("{{\"link\":1,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
+            format!("{{\"link\":2,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
         self.send(ACCEPT, &[accept.as_bytes()]).await;
         String::from_utf8(body).unwrap()
     }
@@ -216,6 +218,29 @@ async fn carries_messages_both_ways_and_closes_with_the_code() {
 }
 
 #[tokio::test]
+async fn forwards_datagrams_unparsed_and_drops_one_over_the_limit() {
+    let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
+    let connection = connect(port, &hash, "/arena", None).await.unwrap();
+    let (_send, _recv) = open_stream(&connection, &frame::encode(frame::TEXT, &[b"hi"])).await;
+    let (kind, session) = node.next().await;
+    assert_eq!(kind, OPEN);
+    assert_eq!(node.next().await.0, MESSAGE);
+
+    connection.send_datagram(b"[1]").unwrap();
+    assert_eq!(
+        node.next().await,
+        (DATAGRAM, [&session[..], b"[1]"].concat())
+    );
+    // Over the limit is dropped, as a lost datagram would be; the session stays open and the next one passes.
+    connection.send_datagram(vec![b'x'; MAX_BYTES + 1]).unwrap();
+    connection.send_datagram(b"[2]").unwrap();
+    assert_eq!(
+        node.next().await,
+        (DATAGRAM, [&session[..], b"[2]"].concat())
+    );
+}
+
+#[tokio::test]
 async fn a_client_frame_at_the_limit_passes_and_one_over_closes_with_1008() {
     let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
     let connection = connect(port, &hash, "/arena", None).await.unwrap();
@@ -303,7 +328,7 @@ async fn another_link_version_is_fatal() {
     stream
         .write_all(&frame::encode(
             ACCEPT,
-            &[br#"{"link":2,"httpPort":1,"maxMessageBytes":1}"#],
+            &[br#"{"link":1,"httpPort":1,"maxMessageBytes":1}"#],
         ))
         .await
         .unwrap();

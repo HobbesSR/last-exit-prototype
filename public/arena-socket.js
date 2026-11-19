@@ -1,9 +1,15 @@
 // The browser's connection to the arena (24.5 "Stage 1's contracts"): a WebSocket-like socket that tries
 // WebTransport through the edge when the server offers it and the browser has it, and otherwise, or on
 // failure or timeout, uses the WebSocket for the rest of the page's life. Callers see one interface:
-// `addEventListener('open' | 'message' | 'close' | 'error')`, `send(string)`, `close(code, reason)`,
-// `readyState`, `bufferedAmount` and `binaryType`. A message's `data` is a string for a text frame and an
-// ArrayBuffer for a binary one. `transport` names what the socket ended up on.
+// `addEventListener('open' | 'message' | 'close' | 'error')`, `send(string)`, `sendInput(string)`,
+// `close(code, reason)`, `readyState`, `bufferedAmount` and `binaryType`. A message's `data` is a string for a text
+// frame and an ArrayBuffer for a binary one. `transport` names what the socket ended up on.
+//
+// `sendInput` is for `input` messages only (24.5 "Stage 2's contracts"). On WebTransport each goes as a datagram
+// carrying it and the inputs sent just before it, so a lost datagram costs nothing while the next arrives; on a
+// WebSocket it is `send`.
+
+import { INPUT_DATAGRAM_INPUTS } from '../shared/protocol.ts';
 
 const CONNECTING = 0, OPEN = 1, CLOSING = 2, CLOSED = 3;
 /** The client stream's flag byte; `tests/edge-contract.test.js` holds it to the edge's. */
@@ -27,6 +33,21 @@ export function chooseTransport({ forced, webTransport, available, fellBack }) {
   if (forced === 'ws') return 'ws';
   if (forced === 'wt') return 'wt';
   return webTransport && available && !fellBack ? 'wt' : 'ws';
+}
+
+/**
+ * Packs encoded input messages, oldest first, as one datagram: a JSON array of as many of the newest as fit in
+ * `max` bytes. Null when not even the newest fits.
+ */
+export function packInputDatagram(inputs, max = Infinity) {
+  let from = inputs.length, size = 1;
+  while (from > 0 && size + inputs[from - 1].length + 1 <= max) size += inputs[--from].length + 1;
+  if (from === inputs.length) return null;
+  const out = new Uint8Array(size);
+  let at = 0;
+  for (let i = from; i < inputs.length; i++) { out[at++] = i === from ? 0x5b : 0x2c; out.set(inputs[i], at); at += inputs[i].length; }
+  out[at] = 0x5d;
+  return out;
 }
 
 const hexBytes = hex => Uint8Array.from(hex.match(/../g) ?? [], pair => parseInt(pair, 16));
@@ -120,6 +141,7 @@ export function createArenaSocketOpener(env = {}) {
       ws.addEventListener('close', e => settle(e.code, e.reason, e.wasClean));
       if (wantClose) ws.close(...wantClose);
       socket.send = data => ws.send(data);
+      socket.sendInput = socket.send;
       socket.close = (code, reason) => { if (readyState >= CLOSING) return; readyState = CLOSING; ws.close(code, reason); };
     }
 
@@ -162,6 +184,21 @@ export function createArenaSocketOpener(env = {}) {
         buffered += frame.length;
         writer.write(frame).then(() => { buffered -= frame.length; }, () => { buffered = 0; });
       };
+      // The session's datagrams, when it has them; without, inputs share the stream.
+      let datagrams = null;
+      try { datagrams = (wt.datagrams?.createWritable ? wt.datagrams.createWritable() : wt.datagrams?.writable)?.getWriter() ?? null; } catch { datagrams = null; }
+      const recent = [];
+      socket.sendInput = text => {
+        if (readyState !== OPEN) throw new DOMException('The socket is not open', 'InvalidStateError');
+        if (!datagrams) return socket.send(text);
+        const bytes = encoder.encode(text);
+        // Read per send: the session's limit can change, and an oversized write vanishes silently (42.56).
+        const packed = packInputDatagram([...recent, bytes], wt.datagrams.maxDatagramSize ?? Infinity);
+        if (!packed) return socket.send(text);
+        recent.push(bytes);
+        if (recent.length >= INPUT_DATAGRAM_INPUTS) recent.shift();
+        datagrams.write(packed).catch(() => {});
+      };
       socket.close = (code, reason) => {
         if (readyState >= CLOSING) return;
         readyState = CLOSING;
@@ -189,6 +226,7 @@ export function createArenaSocketOpener(env = {}) {
     }
 
     socket.send = () => { throw new DOMException('The socket is not open', 'InvalidStateError'); };
+    socket.sendInput = socket.send;
     socket.close = (code, reason) => {
       if (readyState >= CLOSING) return;
       wantClose = [code, reason]; readyState = CLOSING;

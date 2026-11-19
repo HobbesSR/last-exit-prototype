@@ -14,6 +14,7 @@ pub mod link {
     pub const MESSAGE: u8 = 0x03;
     pub const WRITTEN: u8 = 0x04;
     pub const CLOSED: u8 = 0x05;
+    pub const DATAGRAM: u8 = 0x06;
     pub const ACCEPT: u8 = 0x81;
     pub const DELIVER: u8 = 0x82;
     pub const CLOSE: u8 = 0x83;

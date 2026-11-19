@@ -67,13 +67,13 @@ async function started(t, httpPort = 3333) {
 test('the first EDGE is answered with ACCEPT, a different link version closes the link, and a second edge is refused', async t => {
   const { link, edge } = await started(t, 4242);
   assert.equal(link.info(), null);
-  const bad = await edge(); bad.hello({ link: 2 });
+  const bad = await edge(); bad.hello({ link: LINK_VERSION - 1 });
   await waitFor(() => bad.closed, 'a version refusal');
   assert.equal(link.info(), null);
 
   const first = await edge(); first.hello();
   const accept = await first.next(FRAME.ACCEPT);
-  assert.deepEqual(JSON.parse(accept.body.toString()), { link: 1, httpPort: 4242, maxMessageBytes: MAX_MESSAGE_BYTES });
+  assert.deepEqual(JSON.parse(accept.body.toString()), { link: LINK_VERSION, httpPort: 4242, maxMessageBytes: MAX_MESSAGE_BYTES });
   assert.deepEqual(link.info(), { port: 4433, certificateHash: 'ab'.repeat(32) });
 
   const second = await edge(); await waitFor(() => second.closed, 'a second edge refused');
@@ -148,6 +148,42 @@ test('close, invalid input and edge-side ends reach the session seam once', asyn
   e.end();
   await waitFor(() => service.disconnected.length === 4, 'the rest disconnected on link loss');
   assert.deepEqual(service.disconnected.toSorted(), [0, 1, 2, 3]);
+});
+
+test('input datagrams reach the room once each, in order, whichever path an input took', async t => {
+  const { service, link, edge } = await started(t);
+  const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
+  for (const id of [1, 2, 3]) e.send(FRAME.OPEN, u32(id));
+  await waitFor(() => service.peers.length === 3, 'three sessions');
+  const input = seq => ({ type: 'input', seq, tick: 100 + seq, x: 1 });
+  const datagram = (id, ...seqs) => e.send(FRAME.DATAGRAM, u32(id), json(seqs.map(input)));
+  const seqsOf = session => service.received.filter(([s]) => s === session).map(([, data]) => data.seq);
+  const closeOf = frame => [frame.body.readUInt32BE(0), frame.body.readUInt16BE(4), frame.body.subarray(6).toString()];
+
+  // Each datagram repeats the two inputs before its newest. The one carrying 2 is lost, and 2 arrives with 3;
+  // a late, reordered copy passes nothing on.
+  datagram(1, 0);
+  datagram(1, 0, 1);
+  datagram(1, 1, 2, 3);
+  datagram(1, 0, 1, 2);
+  // An input too large for a datagram takes the stream, and the datagrams' copies of it are not passed on again.
+  e.send(FRAME.MESSAGE, u32(1), Buffer.from([0]), json(input(4)));
+  datagram(1, 3, 4, 5);
+  e.send(FRAME.MESSAGE, u32(1), Buffer.from([0]), json(input(5)));
+  e.send(FRAME.MESSAGE, u32(1), Buffer.from([0]), json({ type: 'pong', token: 't' }));
+  await waitFor(() => service.received.length === 7, 'the inputs and the pong');
+  assert.deepEqual(seqsOf(0), [0, 1, 2, 3, 4, 5, undefined]);
+  assert.deepEqual(service.received[0][1], input(0), 'an input reaches the room as it was sent');
+  assert.deepEqual(link.counts(), { messages: 3, datagrams: 5 });
+
+  // Anything but an array of one to three inputs, oldest first, is refused as an invalid message.
+  e.send(FRAME.DATAGRAM, u32(2), json([input(2), input(1)]));
+  assert.deepEqual(closeOf(await e.next(FRAME.CLOSE)), [2, 1008, CLOSE_REASON.INVALID_MESSAGE]);
+  // One datagram is one message to the rate limit.
+  for (let i = 0; i < 80; i++) datagram(3, i);
+  assert.deepEqual(closeOf(await e.next(FRAME.CLOSE)), [3, 1008, CLOSE_REASON.RATE_EXCEEDED]);
+  assert.equal(seqsOf(1).length, 0);
+  assert.ok(seqsOf(2).length >= 60 && seqsOf(2).length <= 70);
 });
 
 test('a malformed frame drops the link and its sessions, and a new edge may then connect', async t => {

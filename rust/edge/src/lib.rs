@@ -19,10 +19,10 @@ use wtransport::endpoint::{IncomingSession, SessionRequest};
 use wtransport::quinn::TransportConfig;
 use wtransport::{Connection, Endpoint, Identity, RecvStream, SendStream, ServerConfig, VarInt};
 
-use frame::link::{ACCEPT, CLOSE, CLOSED, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN};
+use frame::link::{ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN};
 
 /// The link protocol version this edge speaks.
-const LINK_VERSION: u64 = 1;
+const LINK_VERSION: u64 = 2;
 /// The only session path.
 const ARENA_PATH: &str = "/arena";
 /// QUIC's cap on unacknowledged bytes per connection, so a write completes only when the client keeps up.
@@ -409,6 +409,7 @@ async fn serve_session(link: &Arc<Link>, max_bytes: usize, request: SessionReque
     let outcome = tokio::select! {
         outcome = read_loop(recv, link, id, max_bytes) => outcome,
         outcome = write_loop(send, rx, link, id) => outcome,
+        outcome = datagram_loop(&connection, link, id, max_bytes) => outcome,
         _ = connection.closed() => Outcome::Gone,
         _ = down.wait_for(|down| *down) => Outcome::Close(CLOSE_GOING_AWAY, b"link lost".to_vec()),
     };
@@ -453,6 +454,26 @@ async fn read_loop(mut recv: RecvStream, link: &Link, id: u32, max_bytes: usize)
                     return Outcome::Close(CLOSE_POLICY, b"bad frame".to_vec());
                 }
             }
+        }
+    }
+}
+
+/// Forwards the client's datagrams to Node as DATAGRAM, unparsed (docs/24.5 "Stage 2's contracts"). One longer
+/// than the message limit is dropped, as a lost one would be: a datagram carries no promise of arrival.
+async fn datagram_loop(connection: &Connection, link: &Link, id: u32, max_bytes: usize) -> Outcome {
+    loop {
+        let Ok(datagram) = connection.receive_datagram().await else {
+            return Outcome::Gone;
+        };
+        let payload = datagram.payload();
+        if payload.is_empty() || payload.len() > max_bytes {
+            continue;
+        }
+        if !link
+            .send(frame::encode(DATAGRAM, &[&id.to_be_bytes(), &payload]))
+            .await
+        {
+            return Outcome::Gone;
         }
     }
 }

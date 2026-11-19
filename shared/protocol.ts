@@ -18,7 +18,7 @@ import type { ContentPresentation, GameMap, Kit, PlayerId, PlayerInput, Projecte
  */
 
 /** Wire protocol version for server<->client WebSocket and HTTP messages (bumped on breaking shape changes). */
-export const WIRE_VERSION = 7;
+export const WIRE_VERSION = 8;
 
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
@@ -880,6 +880,30 @@ export const deliverable = (bufferedBytes: number, droppable?: boolean): boolean
 export function parseMessage(raw: string | Buffer): Record<string, unknown> | null {
   const data = JSON.parse(typeof raw === 'string' ? raw : raw.toString('utf8'));
   return data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : null;
+}
+
+/**
+ * How many inputs one input datagram carries (24.5 "Stage 2's contracts"): the newest and the two sent before
+ * it, so a lost datagram's input still arrives with the next.
+ */
+export const INPUT_DATAGRAM_INPUTS = 3;
+
+/**
+ * Reads an input datagram: a JSON array of one to `INPUT_DATAGRAM_INPUTS` `input` messages, oldest first, whose
+ * `seq` values are safe integers and strictly increase. Null for anything else. It checks only the envelope;
+ * each message is still validated as any client message is (`validateClientMessage`). Throws on bad JSON.
+ */
+export function parseInputDatagram(raw: string | Uint8Array): Record<string, unknown>[] | null {
+  const data: unknown = JSON.parse(typeof raw === 'string' ? raw : new TextDecoder('utf-8', { fatal: true }).decode(raw));
+  if (!Array.isArray(data) || data.length < 1 || data.length > INPUT_DATAGRAM_INPUTS) return null;
+  let last = -Infinity;
+  for (const item of data as unknown[]) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+    const { type, seq } = item as Record<string, unknown>;
+    if (type !== CLIENT_MESSAGE.INPUT || !Number.isSafeInteger(seq) || (seq as number) <= last) return null;
+    last = seq as number;
+  }
+  return data as Record<string, unknown>[];
 }
 
 export function acceptMessageRate(window: { start: number; messages: number }, now: number): boolean {
