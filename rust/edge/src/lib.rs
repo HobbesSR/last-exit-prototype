@@ -1,5 +1,6 @@
 //! The network edge (#1095, docs/24.5, docs/27). It terminates WebTransport and forwards each session to Node
-//! over one framed TCP link, as "Stage 1's contracts" and "Stage 2's contracts" in 24.5 specify.
+//! over one framed TCP link, as "Stage 1's contracts" and "Stage 2's contracts" in 24.5 specify, and sends Node's
+//! SEND frames to the client as datagram fragments ("Stage 3's contracts").
 
 pub mod frame;
 pub mod origin;
@@ -7,7 +8,7 @@ pub mod origin;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -19,10 +20,10 @@ use wtransport::endpoint::{IncomingSession, SessionRequest};
 use wtransport::quinn::TransportConfig;
 use wtransport::{Connection, Endpoint, Identity, RecvStream, SendStream, ServerConfig, VarInt};
 
-use frame::link::{ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN};
+use frame::link::{ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, SEND, WRITTEN};
 
 /// The link protocol version this edge speaks.
-const LINK_VERSION: u64 = 3;
+const LINK_VERSION: u64 = 4;
 /// The only session path.
 const ARENA_PATH: &str = "/arena";
 /// QUIC's cap on unacknowledged bytes per connection, so a write completes only when the client keeps up.
@@ -77,11 +78,19 @@ enum Down {
     Close(u16, Vec<u8>),
 }
 
+/// What the link keeps for one session: the queue to its stream writer, and its connection so datagrams
+/// can be sent without waiting behind stream writes.
+struct Session {
+    tx: mpsc::UnboundedSender<Down>,
+    connection: Connection,
+    next_number: AtomicU16,
+}
+
 /// One live link to Node: its outgoing frames and the sessions it carries.
 struct Link {
     out: mpsc::Sender<Vec<u8>>,
     params: OnceLock<Params>,
-    sessions: Mutex<HashMap<u32, mpsc::UnboundedSender<Down>>>,
+    sessions: Mutex<HashMap<u32, Arc<Session>>>,
     next_id: AtomicU32,
     down: watch::Sender<bool>,
 }
@@ -320,17 +329,31 @@ async fn read_link(
                 _ if link.params.get().is_none() => return Ok(()),
                 DELIVER if body.len() >= 5 => {
                     let id = u32::from_be_bytes([body[0], body[1], body[2], body[3]]);
-                    let sender = link.sessions.lock().unwrap().get(&id).cloned();
-                    if let Some(sender) = sender {
-                        let _ = sender.send(Down::Deliver(body[4], body[5..].to_vec()));
+                    let session = link.sessions.lock().unwrap().get(&id).cloned();
+                    if let Some(session) = session {
+                        let _ = session.tx.send(Down::Deliver(body[4], body[5..].to_vec()));
                     }
                 }
                 CLOSE if body.len() >= 6 => {
                     let id = u32::from_be_bytes([body[0], body[1], body[2], body[3]]);
                     let code = u16::from_be_bytes([body[4], body[5]]);
-                    let sender = link.sessions.lock().unwrap().get(&id).cloned();
-                    if let Some(sender) = sender {
-                        let _ = sender.send(Down::Close(code, body[6..].to_vec()));
+                    let session = link.sessions.lock().unwrap().get(&id).cloned();
+                    if let Some(session) = session {
+                        let _ = session.tx.send(Down::Close(code, body[6..].to_vec()));
+                    }
+                }
+                SEND if body.len() >= 5 => {
+                    let id = u32::from_be_bytes([body[0], body[1], body[2], body[3]]);
+                    let session = link.sessions.lock().unwrap().get(&id).cloned();
+                    if let Some(session) = session {
+                        // Numbered even when refused, so a gap tells the client a message was not sent.
+                        let number = session.next_number.fetch_add(1, Ordering::Relaxed);
+                        // Empty or too long is dropped; a lost or unsupported datagram is dropped too.
+                        if let Some(parts) = frame::datagram::fragments(number, &body[4..]) {
+                            for part in parts {
+                                let _ = session.connection.send_datagram(part);
+                            }
+                        }
                     }
                 }
                 _ => {}
@@ -399,7 +422,14 @@ async fn serve_session(link: &Arc<Link>, max_bytes: usize, request: SessionReque
     };
     let id = link.next_id.fetch_add(1, Ordering::Relaxed);
     let (tx, rx) = mpsc::unbounded_channel();
-    link.sessions.lock().unwrap().insert(id, tx);
+    link.sessions.lock().unwrap().insert(
+        id,
+        Arc::new(Session {
+            tx,
+            connection: connection.clone(),
+            next_number: AtomicU16::new(0),
+        }),
+    );
     if !link.send(frame::encode(OPEN, &[&id.to_be_bytes()])).await {
         link.sessions.lock().unwrap().remove(&id);
         connection.close(VarInt::from_u32(CLOSE_GOING_AWAY as u32), b"link lost");

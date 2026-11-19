@@ -7,6 +7,8 @@ import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
 import { CLIENT_MESSAGE, SERVER_MESSAGE, WIRE_VERSION } from '/shared/protocol.ts';
 import { readServerMessage } from '/shared/wire-schema.ts';
+import { MissingBaseline } from '/shared/wire-codec.ts';
+import { createFastReader } from '/shared/fast-state.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { DEFAULT_CALLSIGN } from '/ui.js';
 
@@ -74,6 +76,16 @@ export function createRoomConnection({
     const me = frame?.players?.find(p => p.id === playerId);
     if (me?.discovered) discovery.decode(me.discovered);
   }
+  // A frame from the server, whichever way it came, becomes the live frame.
+  function accept(frame, bytes) {
+    // Gap between authoritative frames: separates server pacing from client render cost.
+    const receivedAt = performance.now();
+    if (lastStateAt) profiler.observe('net.stateGap', receivedAt - lastStateAt);
+    lastStateAt = receivedAt;
+    profiler.observe('net.stateBytes', bytes, 'n');
+    liveState = frame;
+    onState(frame);
+  }
   function join({ room, key, mode = 'player', role = 'contestant', kit = DEFAULT_KIT, name = DEFAULT_CALLSIGN, matchmake = false }) {
     const saved = ownerRecord(room);
     // A dev view borrows the owner key for an `owner` policy, but never the owner's player slot.
@@ -92,6 +104,10 @@ export function createRoomConnection({
     const socket = openArenaSocket();
     // Items and gates arrive as changes against a keyframe this socket was sent (shared/frame-layers.ts).
     ws = socket; const layers = createLayerDecoder(), frames = createFrameNormalizer();
+    // A player on datagrams is sent `fast` and `slow` instead of `state` (24.5 "Stage 3's contracts").
+    // A new map (`ready`) starts it again, so a later clock is never taken for older frames.
+    let fast = createFastReader();
+    const decodeOptions = { baseline: tick => fast.baseline(tick) };
     // State may arrive in the descriptor codec's binary form as well as JSON (#1131, 24.1).
     socket.binaryType = 'arraybuffer';
     socket.addEventListener('open', () => {
@@ -109,8 +125,10 @@ export function createRoomConnection({
       // A message this build cannot read ends the connection: never a guess, and never a silent fallback.
       // That includes a state message in another encoding than the welcome confirmed.
       const unreadable = () => { toast('The arena sent a message this browser cannot read.'); showStatus('UNAVAILABLE'); disconnecting = true; socket.close(); };
-      try { data = readServerMessage(event.data); }
-      catch { unreadable(); return; }
+      try { data = readServerMessage(event.data, decodeOptions); }
+      // A delta against a frame this page no longer holds is discarded: the server sends whole frames until
+      // the page acknowledges a newer one (24.2 "Recovery").
+      catch (error) { if (!(error instanceof MissingBaseline)) unreadable(); return; }
       if (data.type === SERVER_MESSAGE.STATE && !deliveredAs(event.data, stateEncoding)) { unreadable(); return; }
       const bytes = typeof event.data === 'string' ? event.data.length : event.data.byteLength;
       if (data.type === SERVER_MESSAGE.WELCOME || data.type === SERVER_MESSAGE.READY) {
@@ -133,20 +151,28 @@ export function createRoomConnection({
         setPaused(!!data.paused);
         onWelcome(data);
       } else if (data.type === SERVER_MESSAGE.READY) {
-        liveMap = data.map; liveState = data.state;
+        liveMap = data.map; liveState = data.state; fast = createFastReader();
         onReady(data);
       } else if (data.type === SERVER_MESSAGE.STATE) {
         notePacket(bytes); layers.decode(data.state);
         // A frame naming a roster this socket was not sent is unreadable too (#1131), never drawn with another.
         try { data.state = frames.normalize(data.state); } catch { unreadable(); return; }
         learn(data.state);
-        // Gap between authoritative frames: separates server pacing from client render cost.
-        const receivedAt = performance.now();
-        if (lastStateAt) profiler.observe('net.stateGap', receivedAt - lastStateAt);
-        lastStateAt = receivedAt;
-        profiler.observe('net.stateBytes', bytes, 'n');
-        liveState = data.state;
-        onState(data.state);
+        accept(data.state, bytes);
+      } else if (data.type === SERVER_MESSAGE.SLOW) {
+        notePacket(bytes); layers.decode(data);
+        fast.slow(data.items, data.gates);
+        if (data.discovered) discovery.decode(data.discovered);
+      } else if (data.type === SERVER_MESSAGE.FAST) {
+        notePacket(bytes);
+        const frame = fast.fast(data);
+        socket.acknowledge(fast.newest());
+        if (!frame) return;
+        // On datagrams a frame may outrun the `seats` its roster came in: it is kept as a baseline, and drawing
+        // waits for the roster, rather than ending the connection as a `state` would.
+        let normalized;
+        try { normalized = frames.normalize(frame); } catch { return; }
+        accept(normalized, bytes);
       } else if (data.type === SERVER_MESSAGE.SEATS) {
         frames.seats(data.roster, data.revision);
       } else if (data.type === SERVER_MESSAGE.PING) {

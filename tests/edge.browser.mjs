@@ -5,9 +5,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
 
-// The WebTransport edge end to end (#1095, 24.5 stages 1 and 2): the Rust edge, linked to this server, carries a real
+// The WebTransport edge end to end (#1095, 24.5 stages 1 to 3): the Rust edge, linked to this server, carries a real
 // Chrome session behind the session seam. A room cannot tell the transport, so the default room's join, start and
-// walk must work on WebTransport as they do on the WebSocket. Needs the Rust toolchain: the edge is built first.
+// walk must work on WebTransport as they do on the WebSocket. On it the player's match frames come as `fast`
+// datagrams the page rebuilds and acknowledges, so the walk is drawn from them. Needs the Rust toolchain: the edge is built first.
 const RUST = path.resolve('rust');
 execFileSync('cargo', ['build', '--locked', '-p', 'last-exit-edge'], { cwd: RUST, stdio: 'inherit' });
 const binary = path.join(RUST, 'target', 'debug', process.platform === 'win32' ? 'last-exit-edge.exe' : 'last-exit-edge');
@@ -39,6 +40,12 @@ try {
   await page.waitForFunction(x => window.arenaDebug().me.x > x + 40, before, { timeout: 5000 });
   // Stage 2: the walk's inputs rode datagrams, Chrome's real ones through the edge, not the stream.
   assert.ok(server.edgeLink.counts().datagrams > 10, `inputs arrived as datagrams (${JSON.stringify(server.edgeLink.counts())})`);
+  // Stage 3: the match's fast state went as datagrams, and Chrome acknowledged the frames it rebuilt, so the
+  // server could send deltas. The walk above was drawn from them: a player session is sent no match `state`.
+  const tick = await page.evaluate(() => window.arenaDebug().tick);
+  await page.waitForFunction(at => window.arenaDebug().tick > at + 10, tick, { timeout: 5000 });
+  const counts = server.edgeLink.counts();
+  assert.ok(counts.sends > 20 && counts.acks > 10, `fast state went as datagrams and was acknowledged (${JSON.stringify(counts)})`);
 
   // Unforced, the page chooses WebTransport too. Its spectator join reaches the same room through the edge.
   const watcher = await browser.newPage();

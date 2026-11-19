@@ -8,8 +8,14 @@
 // `sendInput` is for `input` messages only (24.5 "Stage 2's contracts"). On WebTransport each goes as a datagram
 // carrying it and the inputs sent just before it, so a lost datagram costs nothing while the next arrives; on a
 // WebSocket it is `send`.
+//
+// On WebTransport the server may also send messages as datagrams (24.5 "Stage 3's contracts"): the edge splits
+// each into up to four fragments, and the socket dispatches it as a binary `message` once all have arrived, as
+// if it had come on the stream. `acknowledge(tick)` names the newest fast frame the page holds; it rides the next
+// input datagram, or goes alone when no input has gone lately. On a WebSocket it does nothing.
 
 import { INPUT_DATAGRAM_INPUTS, MAX_MESSAGE_BYTES } from '../shared/protocol.ts';
+import { DATAGRAM_HEADER_BYTES, MAX_FAST_FRAGMENTS } from '../shared/fast-state.ts';
 
 const CONNECTING = 0, OPEN = 1, CLOSING = 2, CLOSED = 3;
 /** The client stream's flag byte; `tests/edge-contract.test.js` holds it to the edge's. */
@@ -57,6 +63,42 @@ export function packInputDatagram(inputs, max = Infinity, ack = null) {
 }
 
 const hexBytes = hex => Uint8Array.from(hex.match(/../g) ?? [], pair => parseInt(pair, 16));
+
+/**
+ * Rebuilds the server's datagram messages from the edge's fragments (24.5 "Delivery"): each datagram is a `u16`
+ * big-endian message number, a `u8` index and a `u8` count, then its part of the message. Push each datagram; a
+ * message comes back once every fragment of it has arrived, otherwise null. A fragment that is malformed or
+ * repeated is ignored. Only the newest `pending` incomplete messages are kept, so a message that lost a fragment
+ * is forgotten as later ones arrive.
+ */
+export function createDatagramAssembler(pending = 8) {
+  const partial = new Map();
+  return datagram => {
+    if (datagram.length <= DATAGRAM_HEADER_BYTES) return null;
+    const number = (datagram[0] << 8) | datagram[1], index = datagram[2], count = datagram[3];
+    if (count < 1 || count > MAX_FAST_FRAGMENTS || index >= count) return null;
+    const part = datagram.subarray(DATAGRAM_HEADER_BYTES);
+    if (count === 1) return part;
+    let held = partial.get(number);
+    // The number wraps; a different count means an old message's leftovers under a reused number.
+    if (held?.count !== count) {
+      partial.delete(number);
+      partial.set(number, held = { count, parts: new Array(count), arrived: 0 });
+      for (const oldest of partial.keys()) { if (partial.size <= pending) break; partial.delete(oldest); }
+    }
+    if (held.parts[index]) return null;
+    held.parts[index] = part;
+    if (++held.arrived < count) return null;
+    partial.delete(number);
+    const out = new Uint8Array(held.parts.reduce((size, p) => size + p.length, 0));
+    let at = 0;
+    for (const p of held.parts) { out.set(p, at); at += p.length; }
+    return out;
+  };
+}
+
+/** How long without an input datagram before an acknowledgement is sent alone. */
+export const ACK_ALONE_MS = 100;
 
 /** One frame: u32 big-endian length of what follows, a u8 flag (0 text, 1 binary), then the payload. */
 export function encodeStreamFrame(data) {
@@ -148,6 +190,7 @@ export function createArenaSocketOpener(env = {}) {
       if (wantClose) ws.close(...wantClose);
       socket.send = data => ws.send(data);
       socket.sendInput = socket.send;
+      socket.acknowledge = () => {};
       socket.close = (code, reason) => { if (readyState >= CLOSING) return; readyState = CLOSING; ws.close(code, reason); };
     }
 
@@ -194,18 +237,49 @@ export function createArenaSocketOpener(env = {}) {
       let datagrams = null;
       try { datagrams = (wt.datagrams?.createWritable ? wt.datagrams.createWritable() : wt.datagrams?.writable)?.getWriter() ?? null; } catch { datagrams = null; }
       const recent = [];
+      // The newest fast frame's tick to acknowledge, and when a datagram last carried one.
+      let ack = null, sentAt = -Infinity;
+      // Read per send: the session's limit can change, and an oversized write vanishes silently (42.56). The
+      // edge drops a datagram over the message limit, so that caps it too.
+      const datagramLimit = () => Math.min(wt.datagrams.maxDatagramSize ?? Infinity, MAX_MESSAGE_BYTES);
       socket.sendInput = text => {
         if (readyState !== OPEN) throw new DOMException('The socket is not open', 'InvalidStateError');
         if (!datagrams) return socket.send(text);
         const bytes = encoder.encode(text);
-        // Read per send: the session's limit can change, and an oversized write vanishes silently (42.56). The
-        // edge drops a datagram over the message limit, so that caps it too.
-        const packed = packInputDatagram([...recent, bytes], Math.min(wt.datagrams.maxDatagramSize ?? Infinity, MAX_MESSAGE_BYTES));
+        const packed = packInputDatagram([...recent, bytes], datagramLimit(), ack);
         if (!packed) return socket.send(text);
         recent.push(bytes);
         if (recent.length >= INPUT_DATAGRAM_INPUTS) recent.shift();
+        sentAt = performance.now();
         datagrams.write(packed).catch(() => {});
       };
+      socket.acknowledge = tick => {
+        if (readyState !== OPEN || !datagrams || tick === ack) return;
+        ack = tick;
+        // An active page's next input carries it; an idle one (dead, or waiting for the match) sends it alone.
+        const now = performance.now();
+        if (now - sentAt < ACK_ALONE_MS) return;
+        const packed = packInputDatagram([], datagramLimit(), ack);
+        if (!packed) return;
+        sentAt = now;
+        datagrams.write(packed).catch(() => {});
+      };
+      // The server's datagrams, rebuilt from the edge's fragments and dispatched as stream messages are.
+      const readable = wt.datagrams?.readable;
+      if (readable) {
+        const assemble = createDatagramAssembler();
+        (async () => {
+          const datagramReader = readable.getReader();
+          try {
+            while (true) {
+              const { value, done } = await datagramReader.read();
+              if (done) break;
+              const message = assemble(value);
+              if (message && readyState === OPEN) socket.dispatchEvent(event('message', { data: binaryType === 'blob' ? new Blob([message]) : message.slice().buffer }));
+            }
+          } catch { /* The session ended; its close is reported by `closed`. */ }
+        })();
+      }
       socket.close = (code, reason) => {
         if (readyState >= CLOSING) return;
         readyState = CLOSING;
@@ -234,6 +308,7 @@ export function createArenaSocketOpener(env = {}) {
 
     socket.send = () => { throw new DOMException('The socket is not open', 'InvalidStateError'); };
     socket.sendInput = socket.send;
+    socket.acknowledge = () => {};
     socket.close = (code, reason) => {
       if (readyState >= CLOSING) return;
       wantClose = [code, reason]; readyState = CLOSING;

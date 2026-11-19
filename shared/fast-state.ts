@@ -25,9 +25,15 @@ export function fastFrame<T extends Record<string, unknown>>(view: T): Record<st
 
 /** How many ticks of sent fast frames a view keeps as baselines, 1.6 s (24.2 "Acknowledgement and baselines"). */
 export const FAST_HISTORY_TICKS = 32;
-/** The conservative datagram payload 24.2 budgets for ("Byte budget and overflow"); the path's QUIC limit may be larger. */
-export const DATAGRAM_PAYLOAD_BYTES = 1200;
-/** A fast message larger than this many datagram payloads goes on the reliable stream instead (24.2). */
+/**
+ * The edge's fragments (24.5 "Delivery"; `rust/edge/src/frame.rs`, `datagram`): each datagram to a client is a
+ * header (`u16` message number, `u8` index, `u8` count) and at most `DATAGRAM_PAYLOAD_BYTES` of one message. The
+ * 1,104 bytes fit the smallest WebTransport datagram QUIC allows at its minimum path MTU, so the limit holds on
+ * any path. `tests/edge-contract.test.js` holds these to the edge's.
+ */
+export const DATAGRAM_HEADER_BYTES = 4;
+export const DATAGRAM_PAYLOAD_BYTES = 1100;
+/** A fast message larger than this many fragments goes on the reliable stream instead (24.2 "Byte budget and overflow"). */
 export const MAX_FAST_FRAGMENTS = 4;
 export const MAX_FAST_DATAGRAM_BYTES = DATAGRAM_PAYLOAD_BYTES * MAX_FAST_FRAGMENTS;
 
@@ -70,4 +76,38 @@ export function holdItemBodies(frame: FastFrame, holdsItem: (itemId: unknown) =>
   const held: FastFrame = { ...frame, bodies: kept };
   if (Array.isArray(frame.tethers)) held.tethers = (frame.tethers as Tether[]).filter(t => ids.has(t.a) && ids.has(t.b));
   return held;
+}
+
+type Keyed = { id: unknown };
+
+/**
+ * A reader's side of the split (24.5 "Delivery"): what a client holds of the fast frames and slow layers its
+ * session is sent, and the frame to draw from them.
+ * - `baseline(tick)` is the decoder's `baseline` option: the frames it holds, as rebuilt.
+ * - `slow(items, gates)` takes a `slow` message's layers once the layer decoder has rebuilt them.
+ * - `fast(message)` takes a decoded `fast` message. A frame older than the newest held is ignored, and null is
+ *   returned. Otherwise the frame becomes the newest, and is kept, as rebuilt, as a baseline. A frame of the
+ *   newest tick again (a paused room's re-send after a dev teleport) is drawn, but that tick is then no
+ *   baseline, as on the server. It returns the frame to draw: the fast part with the item-body hold applied,
+ *   the slow layers held, and the message's roster revision; or null until a `slow` message has arrived.
+ * - `newest()` is the tick to acknowledge, or null before any frame.
+ */
+export function createFastReader(ticks = FAST_HISTORY_TICKS) {
+  const history = createFastHistory(ticks);
+  let newest: number | null = null, items: Keyed[] | null = null, gates: unknown[] = [], held = new Set<unknown>();
+  return {
+    baseline: (tick: number) => history.get(tick),
+    slow(nextItems: Keyed[], nextGates: unknown[]) {
+      items = nextItems; gates = nextGates; held = new Set(nextItems.map(item => item.id));
+    },
+    fast(message: { rosterRevision: number; state: FastFrame }): FastFrame | null {
+      const state = message.state, tick = state.tick as number;
+      if (newest !== null && tick < newest) return null;
+      history.record(tick, state);
+      newest = tick;
+      if (!items) return null;
+      return { ...holdItemBodies(state, id => held.has(id)), items, gates, rosterRevision: message.rosterRevision };
+    },
+    newest: () => newest,
+  };
 }

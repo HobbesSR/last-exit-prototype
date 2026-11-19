@@ -18,6 +18,47 @@ pub mod link {
     pub const ACCEPT: u8 = 0x81;
     pub const DELIVER: u8 = 0x82;
     pub const CLOSE: u8 = 0x83;
+    /// Node → edge: `u32` session id, then one message to send to that session as datagrams.
+    pub const SEND: u8 = 0x84;
+}
+
+/// The datagram fragments the edge sends to a client (docs/24.5 "The link").
+pub mod datagram {
+    /// Each datagram is a `u16` big-endian message number, a `u8` fragment index, a `u8` fragment count, then
+    /// the fragment's bytes.
+    pub const HEADER: usize = 4;
+    /// At most this many message bytes per datagram, so a datagram is at most 1,104 bytes. That fits the
+    /// smallest WebTransport datagram QUIC allows at its minimum 1,200-byte path MTU (about 1,146 bytes after a
+    /// 20-byte connection id, the packet number, the AEAD tag, the DATAGRAM frame header and the session's
+    /// quarter stream id), so the limit does not depend on path MTU discovery.
+    pub const FRAGMENT_BYTES: usize = 1100;
+    /// The most fragments one message may take.
+    pub const MAX_FRAGMENTS: usize = 4;
+    /// The longest message that can be sent as datagrams; Node streams anything larger.
+    pub const MAX_MESSAGE: usize = FRAGMENT_BYTES * MAX_FRAGMENTS;
+
+    /// Splits `message` into numbered datagrams, or `None` when it is empty or longer than [`MAX_MESSAGE`].
+    pub fn fragments(number: u16, message: &[u8]) -> Option<Vec<Vec<u8>>> {
+        if message.is_empty() || message.len() > MAX_MESSAGE {
+            return None;
+        }
+        let count = message.len().div_ceil(FRAGMENT_BYTES);
+        let number = number.to_be_bytes();
+        Some(
+            message
+                .chunks(FRAGMENT_BYTES)
+                .enumerate()
+                .map(|(index, chunk)| {
+                    let mut out = Vec::with_capacity(HEADER + chunk.len());
+                    out.extend_from_slice(&number);
+                    out.push(index as u8);
+                    out.push(count as u8);
+                    out.extend_from_slice(chunk);
+                    out
+                })
+                .collect(),
+        )
+    }
 }
 
 /// Encodes one frame whose body is the concatenation of `parts`.
@@ -134,5 +175,24 @@ mod tests {
         let mut decoder = Decoder::new(3);
         decoder.push(&encode(TEXT, &[b"abc"]));
         assert!(matches!(decoder.next_frame(), Ok(Some(_))));
+    }
+
+    #[test]
+    fn fragments_split_by_the_limit() {
+        use super::datagram::*;
+        assert_eq!(fragments(7, &[1]).unwrap(), vec![vec![0, 7, 0, 1, 1]]);
+        assert_eq!(fragments(0, &vec![0; FRAGMENT_BYTES]).unwrap().len(), 1);
+        assert_eq!(fragments(0, &vec![0; FRAGMENT_BYTES + 1]).unwrap().len(), 2);
+        let message: Vec<u8> = (0..MAX_MESSAGE).map(|i| (i % 251) as u8).collect();
+        let parts = fragments(0x0102, &message).unwrap();
+        assert_eq!(parts.len(), 4);
+        for (index, part) in parts.iter().enumerate() {
+            assert_eq!(&part[..4], &[1, 2, index as u8, 4]);
+            assert!(part.len() <= HEADER + FRAGMENT_BYTES);
+        }
+        let joined: Vec<u8> = parts.iter().flat_map(|p| p[4..].to_vec()).collect();
+        assert_eq!(joined, message);
+        assert!(fragments(0, &vec![0; MAX_MESSAGE + 1]).is_none());
+        assert!(fragments(0, &[]).is_none());
     }
 }

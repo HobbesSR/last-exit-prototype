@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use last_exit_edge::frame::link::{
-    ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN,
+    ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, SEND, WRITTEN,
 };
 use last_exit_edge::frame::{self, Decoder};
 use last_exit_edge::{Config, run};
@@ -70,7 +70,7 @@ impl Node {
         let (kind, body) = self.next().await;
         assert_eq!(kind, EDGE);
         let accept =
-            format!("{{\"link\":3,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
+            format!("{{\"link\":4,\"httpPort\":{HTTP_PORT},\"maxMessageBytes\":{MAX_BYTES}}}");
         self.send(ACCEPT, &[accept.as_bytes()]).await;
         String::from_utf8(body).unwrap()
     }
@@ -238,6 +238,59 @@ async fn forwards_datagrams_unparsed_and_drops_empty_or_oversize_ones() {
     assert_eq!(
         node.next().await,
         (DATAGRAM, [&session[..], b"[2]"].concat())
+    );
+}
+
+#[tokio::test]
+async fn sends_datagrams_as_numbered_fragments_and_drops_oversize_messages() {
+    use frame::datagram::{FRAGMENT_BYTES, HEADER, MAX_MESSAGE};
+    let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
+    let connection = connect(port, &hash, "/arena", None).await.unwrap();
+    let (_send, _recv) = open_stream(&connection, &frame::encode(frame::TEXT, &[b"hi"])).await;
+    let (kind, session) = node.next().await;
+    assert_eq!(kind, OPEN);
+    assert_eq!(node.next().await.0, MESSAGE);
+    let max = connection.max_datagram_size().expect("datagrams supported");
+    println!("client max_datagram_size on loopback: {max}");
+    assert!(max >= HEADER + FRAGMENT_BYTES);
+
+    let receive = |connection: Connection| async move {
+        timeout(Duration::from_secs(5), connection.receive_datagram())
+            .await
+            .expect("a datagram")
+            .unwrap()
+            .payload()
+            .to_vec()
+    };
+
+    // (a) A small message is one fragment, number 0.
+    node.send(SEND, &[&session[..], b"0123456789"]).await;
+    assert_eq!(
+        receive(connection.clone()).await,
+        [&[0u8, 0, 0, 1][..], b"0123456789"].concat()
+    );
+
+    // (b) The largest message is four fragments, number 1, reassembled by index.
+    let message: Vec<u8> = (0..MAX_MESSAGE).map(|i| (i % 251) as u8).collect();
+    node.send(SEND, &[&session[..], &message]).await;
+    let mut parts: Vec<Option<Vec<u8>>> = vec![None; 4];
+    for _ in 0..4 {
+        let datagram = receive(connection.clone()).await;
+        assert!(datagram.len() <= HEADER + FRAGMENT_BYTES);
+        assert_eq!((datagram[0], datagram[1], datagram[3]), (0, 1, 4));
+        parts[datagram[2] as usize] = Some(datagram[HEADER..].to_vec());
+    }
+    let joined: Vec<u8> = parts.into_iter().flat_map(|part| part.unwrap()).collect();
+    assert_eq!(joined, message);
+
+    // (c) An oversize message is not sent. It still takes number 2, so the next message is number 3 and the
+    // gap shows the client one was refused.
+    node.send(SEND, &[&session[..], &vec![7u8; MAX_MESSAGE + 1]])
+        .await;
+    node.send(SEND, &[&session[..], b"after"]).await;
+    assert_eq!(
+        receive(connection.clone()).await,
+        [&[0u8, 3, 0, 1][..], b"after"].concat()
     );
 }
 

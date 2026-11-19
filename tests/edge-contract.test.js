@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { FLAG, FRAME, LINK_VERSION } from '../server/edge-link.js';
 import { FLAG as CLIENT_FLAG } from '../public/arena-socket.js';
 import { CLOSE_CODE } from '../server/protocol.js';
+import { DATAGRAM_HEADER_BYTES, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_FRAGMENTS } from '../shared/fast-state.ts';
 
 // The edge's contracts are written three times: in the Rust edge, in Node (and the browser client), and in
 // 24.5. The version handshake catches two sides on different versions, not two that disagree under one, and
@@ -75,4 +76,14 @@ test("the edge's own close codes agree with the protocol and 24.5", () => {
   assert.match(closes, new RegExp(`\\*\\*${rust('CLOSE_POLICY')}\\*\\* for an oversized or malformed client frame`));
   assert.match(closes, new RegExp(`\\*\\*${rust('CLOSE_GOING_AWAY')}, "link lost"\\*\\*`));
   assert.match(LIB_RS, /Outcome::Close\(CLOSE_GOING_AWAY, b"link lost"/, 'the edge sends "link lost" with CLOSE_GOING_AWAY');
+});
+
+test("the edge's datagram fragments agree with Node's overflow limit and 24.5", () => {
+  // Node streams a fast message the edge could not send in its fragments; the client reassembles them.
+  assert.equal(rust('HEADER'), DATAGRAM_HEADER_BYTES);
+  assert.equal(rust('FRAGMENT_BYTES'), DATAGRAM_PAYLOAD_BYTES);
+  assert.equal(rust('MAX_FRAGMENTS'), MAX_FAST_FRAGMENTS);
+  const stated = DOC.match(/at most ([\d,]+) bytes of the message, in at most (\d+) datagrams/);
+  assert.ok(stated, "24.5 states the edge's fragment size and count");
+  assert.deepEqual([Number(stated[1].replaceAll(',', '')), Number(stated[2])], [DATAGRAM_PAYLOAD_BYTES, MAX_FAST_FRAGMENTS]);
 });

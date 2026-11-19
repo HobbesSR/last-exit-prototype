@@ -4,7 +4,7 @@ import * as profiler from '../shared/profiler.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
 import { createDiscoveryEncoder } from '../shared/discovery.ts';
 import { stringifyWithMap } from './map-payload.js';
-import { assertServerMessage, lobbyMessage, stateMessage, seatsMessage } from './protocol.js';
+import { assertServerMessage, fastMessage, lobbyMessage, slowMessage, stateMessage, seatsMessage } from './protocol.js';
 import { wireCodec } from '../shared/wire-schema.ts';
 import { against } from '../shared/wire-codec.ts';
 import { createFastHistory, fastFrame, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
@@ -168,10 +168,10 @@ function deliverSplit(room, session, key, view) {
   const held = session.layerKeys ||= {};
   const whole = SLOW_LAYERS.filter(layer => view.layers[layer] && 'k' in view.layers[layer] && held[layer] !== view.layers[layer].k);
   if (session.slowVersion !== slow.version || whole.length) {
-    const message = { type: 'slow', slowVersion: slow.version };
-    for (const [layer, changes] of Object.entries(slow.changes)) message[layer] = whole.includes(layer) ? view.layers[layer].all() : changes;
+    const layers = {};
+    for (const [layer, changes] of Object.entries(slow.changes)) layers[layer] = whole.includes(layer) ? view.layers[layer].all() : changes;
     profiler.start('loop.serialize');
-    const bytes = wireCodec().encode(message);
+    const bytes = wireCodec().encode(slowMessage({ slowVersion: slow.version, ...layers }));
     profiler.stop('loop.serialize');
     if (session.deliver(bytes, true) !== false) {
       session.slowVersion = slow.version;
@@ -182,13 +182,14 @@ function deliverSplit(room, session, key, view) {
   const history = session.fastHistory ??= createFastHistory();
   const base = session.fastAck === null || session.fastAck === undefined ? undefined : history.get(session.fastAck);
   profiler.start('loop.serialize');
-  const bytes = wireCodec().encode({
-    type: 'fast', rosterRevision: view.roster.revision, slowVersion: slow.version,
+  const bytes = wireCodec().encode(fastMessage({
+    rosterRevision: view.roster.revision, slowVersion: slow.version,
     state: base ? against(session.fastAck, base, frame) : frame,
-  });
+  }));
   profiler.stop('loop.serialize');
   profiler.count(base ? 'loop.fastDelta' : 'loop.fastWhole');
   // 24.2 asks that overflow be counted in production: a steady rate of it is the cue for priority packing.
+  // The limit is the edge's: four fragments of DATAGRAM_PAYLOAD_BYTES (fast-state.ts), past which it sends nothing.
   const streamed = bytes.length > MAX_FAST_DATAGRAM_BYTES;
   if (streamed) profiler.count('loop.fastStreamed');
   const sent = streamed ? session.deliver(bytes, true) !== false : session.datagram(bytes) !== false;
