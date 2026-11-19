@@ -8,6 +8,9 @@
 //   'f32'    an exact float32 (refuses any other)   'f64'   float64
 //   'f32m'   float32 metres: v / the schema's unitsPerMetre, exact on the round trip (Rapier poses, 24.1)
 //   'exact'  any finite number, kept exact: an integer varint, else float32, else float32 metres, else float64
+//   { grid: q }  a whole multiple k * q of a positive quantum, written as k, zigzag varint. Exact on the round
+//                trip; it refuses a value off its grid, since rounding is the caller's (24.2 "Quantization
+//                boundary")
 //   { enum: [values] }  one byte index            { list: T }   { nullable: T }
 //   { layer: T }        a plain list, or a keyframe envelope { k, all?, set?, drop? } (frame-layers, discovery)
 //   { enumMap: [keys, T] }  an object keyed by an enum's values
@@ -42,6 +45,7 @@ import { rebuildKeyed } from './keyed-list.ts';
 type Value = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type FieldType =
   | 'uint' | 'sint' | 'f32' | 'f64' | 'f32m' | 'exact' | 'bool' | 'str' | string
+  | { grid: number }
   | { enum: readonly string[] } | { list: FieldType; key?: string } | { nullable: FieldType } | { layer: FieldType }
   | { delta: FieldType }
   | { enumMap: readonly [readonly string[], FieldType] }
@@ -264,6 +268,21 @@ const SCALARS: Record<string, (limits: Limits, metre: number | undefined) => Cod
   str: limits => ({ w: (w, v) => { if (typeof v !== 'string') fail('expected string'); w.str(v, limits.maxString); }, r: r => r.str() }),
 };
 
+// A value is on the grid when the nearest whole multiple of the quantum is the value itself; for a quantum that
+// is not a power of two, `k * q` is the one float64 that names step k, on both sides.
+const gridCodec = (q: number): Codec => {
+  if (!(Number.isFinite(q) && q > 0)) throw new Error(`a grid's quantum must be a positive finite number, got ${q}`);
+  return {
+    w: (w, v) => {
+      if (typeof v !== 'number' || !Number.isFinite(v)) fail(`expected finite number, got ${v}`);
+      const k = Math.round(v / q);
+      if (Math.abs(k) >= 2 ** 52 || k * q !== v) fail(`${v} is not on the grid of ${q}`);
+      w.uint(signedUint(k === 0 ? 0 : k));
+    },
+    r: r => { const k = unsigned(r.uint()); if (Math.abs(k) >= 2 ** 52) bad('grid step out of range'); const v = k * q; return v === 0 ? 0 : v; },
+  };
+};
+
 const enumCodec = (values: readonly string[]): Codec => {
   if (values.length > 256) throw new Error('an enum is at most 256 values');
   const index = new Map(values.map((v, i) => [v, i]));
@@ -290,6 +309,7 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
   function compile(type: FieldType): Codec {
     if (typeof type === 'string') return SCALARS[type]?.(limits, schema.unitsPerMetre) ?? compileRecord(type);
     if ('enum' in type) return enumCodec(type.enum);
+    if ('grid' in type) return gridCodec(type.grid);
     if ('nullable' in type) {
       const t = compile(type.nullable);
       return { w: (w, v) => { if (v === null) return w.byte(0); w.byte(1); t.w(w, v); },

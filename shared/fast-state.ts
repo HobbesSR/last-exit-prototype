@@ -8,10 +8,45 @@ import { KEPT_EVENTS } from './simulation/rules.ts';
 /** The view's fields that stay on the reliable stream. Own discovery (`self.discovered`) stays there too. */
 export const SLOW_FIELDS = ['items', 'gates'] as const;
 
+/** 24.1's candidate quanta: world units, radians, and world units per tick (a projectile's dx and dy). */
+export const POSITION_QUANTUM = 1 / 256;
+export const ANGLE_QUANTUM = 2 * Math.PI / 65536;
+export const DISPLACEMENT_QUANTUM = 1 / 256;
+
 /**
- * The fast part of a projected player view: the view without its slow layers. A new object; the records in it
- * are the projection's own, so a frame kept as a baseline shares them with the view. It takes the view as the
- * projection gives it, before the transport adds `rosterRevision`, which the `fast` message carries beside it.
+ * The fast part's rounded fields, by list and field (24.2 decision 3): only those client prediction does not
+ * collide with. The viewer's own record and every body stay exact. Bodies with an item were on decision 3's list,
+ * but body poses travel as exact float32 metres (24.3), and a type rounding some bodies but not others would cost
+ * every exact body a byte a field, more than item bodies would save (24.5 "Delivery", Quantization). The wire
+ * schema types these fields from this table (wire-schema.ts), so the two cannot drift.
+ */
+export const FAST_QUANTA: Readonly<Record<string, Readonly<Record<string, number>>>> = Object.freeze({
+  players: { x: POSITION_QUANTUM, y: POSITION_QUANTUM, heading: ANGLE_QUANTUM },
+  traps: { x: POSITION_QUANTUM, y: POSITION_QUANTUM, homeX: POSITION_QUANTUM, homeY: POSITION_QUANTUM, heading: ANGLE_QUANTUM },
+  projectiles: { x: POSITION_QUANTUM, y: POSITION_QUANTUM, dx: DISPLACEMENT_QUANTUM, dy: DISPLACEMENT_QUANTUM },
+  effects: { x: POSITION_QUANTUM, y: POSITION_QUANTUM },
+  hookFlights: { x: POSITION_QUANTUM, y: POSITION_QUANTUM },
+});
+
+/** `value` rounded to the nearest whole multiple of `quantum`, as the codec's `{ grid }` type carries it; never -0. */
+export function quantize(value: number, quantum: number): number {
+  return Math.round(value / quantum) * quantum || 0;
+}
+
+type Fields = Record<string, unknown>;
+function quantizeRecord(record: Fields, quanta: Readonly<Record<string, number>>): Fields {
+  const out = { ...record };
+  for (const field in quanta) if (typeof out[field] === 'number') out[field] = quantize(out[field], quanta[field]!);
+  return out;
+}
+
+/**
+ * The fast part of a projected player view, as it is transmitted: the view without its slow layers, with
+ * `FAST_QUANTA`'s fields rounded. Rounding comes after disclosure and before any comparison, so a value moving
+ * within its quantum sends nothing, and a frame kept as a baseline is the rounded one (24.2 "Quantization
+ * boundary"). A new object; records with no rounded field are the projection's own, shared with the view, and a
+ * rounded record is a copy, so the view keeps its exact values. It takes the view as the projection gives it,
+ * before the transport adds `rosterRevision`, which the `fast` message carries beside it.
  */
 export function fastFrame<T extends Record<string, unknown>>(view: T): Record<string, unknown> {
   const fast: Record<string, unknown> = { ...view };
@@ -20,6 +55,10 @@ export function fastFrame<T extends Record<string, unknown>>(view: T): Record<st
   if (self?.discovered !== undefined) {
     const { discovered: _discovered, ...rest } = self;
     fast.self = rest;
+  }
+  for (const list in FAST_QUANTA) {
+    const records = fast[list];
+    if (Array.isArray(records) && records.length) fast[list] = records.map(record => quantizeRecord(record as Fields, FAST_QUANTA[list]!));
   }
   return fast;
 }

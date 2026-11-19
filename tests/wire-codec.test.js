@@ -234,3 +234,15 @@ test('float32 metres need the schema to name its scale', () => {
   assert.equal(metred.decode(narrow).v, v);
   assert.throws(() => plain.decode(narrow), /bad number tag/);
 });
+
+test('a grid type carries whole multiples of its quantum exactly, and refuses any other value', () => {
+  for (const bad of [0, -1, Infinity, NaN]) assert.throws(() => scalar({ grid: bad }), /positive finite/);
+  const turn = 2 * Math.PI / 65536, grid = scalar({ grid: turn }), metres = scalar({ grid: 1 / 256 });
+  for (const k of [0, 1, -1, 32768, -32767, 12345]) assert.equal(grid.decode(grid.encode({ type: 'm', v: k * turn })).v, k * turn);
+  assert.equal(metres.encode({ type: 'm', v: -2048.5 }).length, 3 + 3, 'a step count, not a float');
+  assert.equal(Object.is(metres.decode(metres.encode({ type: 'm', v: -0 })).v, 0), true, '-0 reads as 0');
+  for (const off of [0.001, 1 / 512, Math.PI]) assert.throws(() => metres.encode({ type: 'm', v: off }), /not on the grid/);
+  assert.throws(() => metres.encode({ type: 'm', v: 2 ** 50 }), /not on the grid/);
+  const varint = v => { const out = []; while (v >= 0x80) { out.push((v % 0x80) | 0x80); v = Math.floor(v / 0x80); } return [...out, v]; };
+  assert.throws(() => metres.decode(craft(varint(2 ** 53 - 1))), /grid step out of range/, 'a safe varint whose step no writer sends');
+});

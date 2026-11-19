@@ -5,7 +5,7 @@ import { wireCodec } from '../shared/wire-schema.ts';
 import { MissingBaseline } from '../shared/wire-codec.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '../shared/discovery.ts';
-import { createEventWindow, createFastHistory, createFastReader, fastFrame, holdItemBodies, keptEvents, FAST_HISTORY_TICKS, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
+import { ANGLE_QUANTUM, createEventWindow, createFastHistory, createFastReader, fastFrame, holdItemBodies, keptEvents, quantize, FAST_HISTORY_TICKS, FAST_QUANTA, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
 import { event, participant } from '../shared/simulation/loot.ts';
 import { KEPT_EVENTS } from '../shared/simulation/rules.ts';
 import { deliversFast } from '../server/room-views.js';
@@ -353,4 +353,28 @@ test("a fast message over the edge's four fragments goes on the stream; its delt
     assert.equal(datagrams.length, 3, 'deltas against the acknowledged frame fit');
     assert.ok(datagrams.every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES));
   } finally { await h.service.close(); }
+});
+
+test('the fast part rounds only the fields prediction does not collide with, so a change within a quantum sends nothing', () => {
+  const self = { x: 10.123456, y: 4.987654, heading: 0.1234567 }, body = { id: 1, x: 10.123456, y: 4.987654, angle: 0.3 };
+  const view = { tick: 9, self, bodies: [body], items: [], gates: [],
+    players: [{ playerIdx: 2, heading: 1000.1 * ANGLE_QUANTUM, x: 3.14159 }], projectiles: [{ id: 4, x: 1.3, y: -2.7, dx: 0.33333, dy: -0.1, life: 3 }],
+    effects: [{ id: 5, x: 7.77777, y: 8.88888, radius: 1.2345 }], traps: [{ id: 't', x: 1.111, homeX: 2.222, heading: -0.5555, offset: 0.123 }] };
+  const fast = fastFrame(view);
+  assert.equal(fast.self, self, 'the viewer\'s own record is exact, the projection\'s own');
+  assert.equal(fast.bodies[0], body, 'every body is exact');
+  assert.equal(view.players[0].heading, 1000.1 * ANGLE_QUANTUM, 'the view keeps its exact values');
+  for (const [list, quanta] of Object.entries(FAST_QUANTA)) for (const [i, record] of (fast[list] ?? []).entries()) {
+    for (const [field, value] of Object.entries(record)) {
+      const exact = view[list][i][field];
+      if (field in quanta) {
+        assert.equal(value, quantize(exact, quanta[field]), `${list}.${field} is rounded`);
+        assert.ok(Math.abs(value - exact) <= quanta[field] / 2, `${list}.${field} within half a quantum`);
+      } else assert.equal(value, exact, `${list}.${field} is exact`);
+    }
+  }
+  assert.equal(fast.effects[0].radius, 1.2345, 'radius is exact (24.1)');
+  // A heading moving within its quantum is no change (fast-delta.test.js rebuilds real rounded frames through the schema).
+  const nudged = fastFrame({ ...view, players: [{ ...view.players[0], heading: view.players[0].heading + ANGLE_QUANTUM / 8 }] });
+  assert.deepEqual(nudged.players, fast.players);
 });
