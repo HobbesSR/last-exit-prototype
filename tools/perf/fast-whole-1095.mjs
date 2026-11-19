@@ -9,6 +9,10 @@
 // - **delta:** the same against the previous tick's frame, the steady case on a clean path.
 // Sizes are the encoded message's bytes, before the edge's 4-byte fragment headers. A view that is waiting or has
 // no fast part yet is skipped. Bytes only: no clock, so it takes no machine lock.
+// - **Ids** are keyed, as in a live room (`wireKey`, #1164), with a fixed key so runs repeat: unkeyed ids would be
+//   small sequential numbers, a byte or two shorter each than the 20-bit ones players receive.
+// - **`slowVersion`** is each view's own, numbered from 1 and advanced whenever its slow layers (items, gates and
+//   own discovery) change, as `slowLayers` in server/room-views.js numbers them.
 //
 // Usage: node tools/perf/fast-whole-1095.mjs [--sizes=12x6,24x12] [--seed=9] [--ticks=N] [--out=FILE]
 // `--ticks` stops early; by default the match plays to its end. 36x18 takes several minutes of one core.
@@ -23,11 +27,17 @@ import { against } from '../../shared/wire-codec.ts';
 import { createEventWindow, fastFrame, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_DATAGRAM_BYTES } from '../../shared/fast-state.ts';
 
 const args = cliArgs();
-const wanted = (args.get('sizes') ?? '12x6,24x12').split(',');
+const wanted = (args.get('sizes') ?? '12x6,24x12').split(',').map(name => name.trim());
+const sizeNames = LIVE_ZONE_SIZES.map(zoneSizeName), unknown = wanted.filter(name => !sizeNames.includes(name));
+if (unknown.length) throw new Error(`Unknown --sizes: ${unknown.join(', ')}. Supported: ${sizeNames.join(', ')}`);
 const seed = Number(args.get('seed') ?? 9), tickLimit = args.has('ticks') ? Number(args.get('ticks')) : Infinity;
 const codec = wireCodec();
+// tools/perf/wire-typed-comparison.mjs's fixed key.
+const WIRE_KEY = [0x2545f491, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35];
+const messageBytes = (slowVersion, state) => codec.encode(fastMessage({ rosterRevision: 1, slowVersion, state })).length;
 
 const summarize = list => {
+  if (!list.length) return { samples: 0 };
   const sorted = [...list].sort((a, b) => a - b), at = q => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
   return {
     samples: sorted.length, p50: at(0.5), p95: at(0.95), p99: at(0.99), max: sorted.at(-1),
@@ -38,7 +48,7 @@ const summarize = list => {
 
 async function measure(size) {
   // A writer that keeps nothing, as tests/helpers/room-sizes.js's: the default keeps every frame, which a 36x18 match exhausts.
-  const h = roomHarness({ startWriter: head => ({ append() {}, mark() { return true; }, async finish(result) { return { id: head.id, ...result }; } }) });
+  const h = roomHarness({ wireKey: WIRE_KEY, startWriter: head => ({ append() {}, mark() { return true; }, async finish(result) { return { id: head.id, ...result }; } }) });
   const whole = [], delta = [], wholeByPhase = { live: [], finished: [] };
   let largest = null, ticks = 0;
   try {
@@ -48,9 +58,9 @@ async function measure(size) {
     owner.send({ type: 'start' });
     h.joined(room, { mode: 'spectator', ownerKey: room.ownerKey });
     h.service.disconnect(owner.session);
-    const windows = new Map(), previous = new Map();
+    const windows = new Map(), previous = new Map(), slow = new Map();
     const limit = Math.min(room.content.durationTicks, tickLimit);
-    for (; ticks <= limit && !room.finished; ticks++) {
+    for (; ticks < limit && !room.finished; ticks++) {
       h.wake(TICK_MS);
       const frame = room.match.snapshot();
       for (const player of room.game.players) {
@@ -59,20 +69,23 @@ async function measure(size) {
         let window = windows.get(player.id);
         if (!window) windows.set(player.id, window = createEventWindow());
         const fast = window(fastFrame(view));
-        const message = state => codec.encode(fastMessage({ rosterRevision: 1, slowVersion: 1, state })).length;
-        const bytes = message(fast);
+        const slowText = JSON.stringify([view.items, view.gates, view.self?.discovered]), held = slow.get(player.id);
+        const slowVersion = held?.text === slowText ? held.version : (held?.version ?? 0) + 1;
+        if (held?.version !== slowVersion) slow.set(player.id, { version: slowVersion, text: slowText });
+        const bytes = messageBytes(slowVersion, fast);
         whole.push(bytes);
         (wholeByPhase[fast.phase] ??= []).push(bytes);
         if (!largest || bytes > largest.bytes) {
-          largest = { bytes, tick: fast.tick, player: player.id, bot: !!player.bot, bodies: fast.bodies?.length ?? 0, players: fast.players?.length ?? 0, events: fast.events?.length ?? 0 };
+          largest = { bytes, slowVersion, tick: fast.tick, player: player.id, bot: !!player.bot, bodies: fast.bodies?.length ?? 0, players: fast.players?.length ?? 0, events: fast.events?.length ?? 0 };
         }
         const before = previous.get(player.id);
-        if (before && before.tick < fast.tick) delta.push(message(against(before.tick, before, fast)));
+        if (before && before.tick < fast.tick) delta.push(messageBytes(slowVersion, against(before.tick, before, fast)));
         previous.set(player.id, fast);
       }
     }
     return {
       size: zoneSizeName(size), seed, ticks, seats: room.game.players.length,
+      slowVersions: { max: Math.max(0, ...[...slow.values()].map(v => v.version)) },
       whole: summarize(whole), delta: summarize(delta),
       wholeByPhase: Object.fromEntries(Object.entries(wholeByPhase).filter(([, l]) => l.length).map(([k, l]) => [k, summarize(l)])),
       largest,
@@ -89,4 +102,4 @@ for (const size of LIVE_ZONE_SIZES.filter(s => wanted.includes(zoneSizeName(s)))
   console.log(JSON.stringify(result));
 }
 const out = args.get('out');
-if (out) await writeFile(out, JSON.stringify({ date: new Date().toISOString().slice(0, 10), fragment: DATAGRAM_PAYLOAD_BYTES, limit: MAX_FAST_DATAGRAM_BYTES, results }, null, 2));
+if (out) await writeFile(out, JSON.stringify({ date: new Date().toISOString().slice(0, 10), fragment: DATAGRAM_PAYLOAD_BYTES, limit: MAX_FAST_DATAGRAM_BYTES, wireKey: 'fixed (tool constant)', results }, null, 2));
