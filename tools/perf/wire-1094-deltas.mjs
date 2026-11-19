@@ -22,6 +22,7 @@ import { attachPortalGraph } from '../../shared/navigation/portal-graph.ts';
 import { adoptPackedTiles } from '../../shared/free-space.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { cliArgs } from '../../tests/helpers/args.js';
+import { NETWORK_PROFILES } from '../../tests/helpers/network-profiles.js';
 import { collectKeys, createCodec } from './wire-codec-prototype.mjs';
 import { encodeDelta, applyDelta, quantizeFrame, predictionDependency, ENVELOPE_KEYS } from './wire-1094-delta-format.mjs';
 
@@ -36,16 +37,8 @@ const git = (...a) => execFileSync('git', a, { encoding: 'utf8' });
 const hash = data => createHash('sha256').update(data).digest('hex');
 const DECLARATION_EXPORTS = ['shared/simulation/projection-contract.ts', 'shared/simulation/visibility.ts'];
 
-// 42.48's profiles unchanged (rtt ms, mean exponential jitter ms, independent loss), plus one bursty profile:
-// Gilbert-Elliott over 50 ms send slots, 3% of slots lost with a mean outage of 4 slots, at typical's rtt and jitter.
-const PROFILES = [
-  { name: 'lan', rtt: 4, jitter: 1, loss: 0 },
-  { name: 'good', rtt: 40, jitter: 4, loss: 0.002 },
-  { name: 'typical', rtt: 80, jitter: 12, loss: 0.01 },
-  { name: 'wifi', rtt: 120, jitter: 35, loss: 0.03 },
-  { name: 'poor', rtt: 220, jitter: 70, loss: 0.05 },
-  { name: 'bursty', rtt: 80, jitter: 12, loss: 0.03, burst: 4 },
-];
+// 42.48's profiles and 42.50's bursty one (tests/helpers/network-profiles.js).
+const PROFILES = NETWORK_PROFILES.filter(p => !p.control);
 function rng(s) { let a = s >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const seedOf = (...parts) => parseInt(hash(parts.join('|')).slice(0, 8), 16) ^ seed;
 // A counter-based draw: one number per (stream, slot, packet, purpose), whatever else was drawn, so every candidate

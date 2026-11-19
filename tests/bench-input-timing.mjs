@@ -20,6 +20,7 @@ import { queueInput, consumeInput, resetInput, inputLeadFrom } from '../shared/s
 import { createInputClock } from '../shared/input-clock.ts';
 import { HZ } from '../shared/simulation/rules.ts';
 import { cliArgs } from './helpers/args.js';
+import { INDEPENDENT_PROFILES } from './helpers/network-profiles.js';
 
 const args = cliArgs();
 const seconds = Number(args.get('seconds') ?? 600), players = Number(args.get('players') ?? 8), seed = Number(args.get('seed') ?? 1096);
@@ -39,13 +40,7 @@ const SPEED_UP = 0.9, SLOW_DOWN = 1.05, WINDOW = 20;
 // rtt and jitter in ms; jitter is the mean of an exponential extra delay on each one-way trip. `ws` is a reliable
 // ordered socket, where loss becomes a stall that also holds every later packet; `dg` is an unreliable datagram,
 // where loss is real and packets can pass each other.
-const profiles = [
-  { name: 'lan', rtt: 4, jitter: 1, loss: 0 },
-  { name: 'good', rtt: 40, jitter: 4, loss: 0.002 },
-  { name: 'typical', rtt: 80, jitter: 12, loss: 0.01 },
-  { name: 'wifi', rtt: 120, jitter: 35, loss: 0.03 },
-  { name: 'poor', rtt: 220, jitter: 70, loss: 0.05 },
-];
+const profiles = INDEPENDENT_PROFILES;
 
 function rng(s) { let a = s >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const pct = (xs, q) => { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
