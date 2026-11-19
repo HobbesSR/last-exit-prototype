@@ -3,13 +3,13 @@
 Accepted encoding direction and candidate field precision (#1093) are in
 [24.1](24.1-wire-encoding-design.md), with measurements in
 [42.47](42.47-wire-encoding.md). The backend is selected: the descriptor codec D (24.1,
-[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) is staged (24.1 "Adoption status"). Since stage 2 the server writes each connection's `state` messages as D's bytes unless the connection negotiated the JSON debug encoding ([State encoding](#state-encoding)); every other message, inputs included, stays JSON. Stage 3 (`WIRE_VERSION = 6`) closed the schema: match constants travel with the map, "none" is absent, unread fields left, and every state names its roster revision ([Schema closure](#schema-closure)). The proposed lossy-transport delta design (#1094)
-is [24.2](24.2-lossy-transport-deltas.md), not implemented. The per-field data model of the
+[42.54](42.54-field-typed-codec.md)). Live adoption (#1131) is staged (24.1 "Adoption status"). Since stage 2 the server writes each connection's `state` messages as D's bytes unless the connection negotiated the JSON debug encoding ([State encoding](#state-encoding)); every other message, inputs included, stays JSON. Stage 3 (`WIRE_VERSION = 6`) closed the schema: match constants travel with the map, "none" is absent, unread fields left, and every state names its roster revision ([Schema closure](#schema-closure)). The lossy-transport delta design (#1094)
+is [24.2](24.2-lossy-transport-deltas.md), implemented under #1095 (24.5 stage 3). The per-field data model of the
 live state, and the engine-side choices that shape a typed wire, are in
 [24.3](24.3-wire-data-model.md) (historical inventory and remaining proposals). The implemented relational data strategy,
 static geometry split and structured localized event design (#1146) are in
 [24.4](24.4-relational-data-model.md). The transport, WebTransport from a Rust edge with this WebSocket as its fallback
-(#1095, [27](27-rust-path.md)), is [24.5](24.5-transport.md), not implemented.
+(#1095, [27](27-rust-path.md)), is [24.5](24.5-transport.md): stages 1–3 are built, and stage 4 is #1207.
 
 The rules this mechanism enforces are in [15](15-information-rules.md).
 
