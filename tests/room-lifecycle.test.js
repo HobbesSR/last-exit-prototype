@@ -90,7 +90,7 @@ test('Room lifecycle covers deferred map adoption, waiting yard isolation, and w
   assert.equal(descriptor.name, 'Lifecycle Check');
   assert.equal(room.summary().phase, 'lobby');
   assert.equal(room.summary().ready, false);
-  assert.deepEqual(room.metrics(), { live: false, emptyLive: false });
+  assert.deepEqual(room.metrics(), { live: false, emptyLive: false, fastDatagrams: 0, fastFragmentedDeltas: 0, fastStreamed: 0 });
 
   const joined = room.onJoin('c1', { ownerKey: 'owner-1', role: 'contestant', name: 'Alice' });
   assert.equal(joined.ok, true);
@@ -122,7 +122,7 @@ test('Room lifecycle covers deferred map adoption, waiting yard isolation, and w
   assert.equal(room.waiting, null, 'waiting simulation is disposed on match handoff');
   assert.equal(room.summary().phase, 'live');
   assert.equal(room.summary().ready, true);
-  assert.deepEqual(room.metrics(), { live: true, emptyLive: false });
+  assert.deepEqual(room.metrics(), { live: true, emptyLive: false, fastDatagrams: 0, fastFragmentedDeltas: 0, fastStreamed: 0 });
   assert.equal(replays.started.length, 1, 'one recording, opened when the match was prepared');
   assert.equal(replays.started[0].frames[0].commands.at(-1).type, 'start', 'its first frame is the start');
   assert.ok(h.lastOfType('c1', 'ready')?.map?.width > 0, 'ready payload notifies client of live match handoff');

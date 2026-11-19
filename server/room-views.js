@@ -7,7 +7,7 @@ import { stringifyWithMap } from './map-payload.js';
 import { assertServerMessage, fastMessage, lobbyMessage, slowMessage, stateMessage, seatsMessage } from './protocol.js';
 import { wireCodec } from '../shared/wire-schema.ts';
 import { against } from '../shared/wire-codec.ts';
-import { createEventWindow, createFastHistory, fastFrame, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
+import { createEventWindow, createFastHistory, fastFrame, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(stringifyWithMap(assertServerMessage(value)));
 /**
@@ -193,20 +193,29 @@ function deliverSplit(room, session, key, view) {
   }));
   profiler.stop('loop.serialize');
   profiler.count(base ? 'loop.fastDelta' : 'loop.fastWhole');
-  // 24.2 asks that overflow be counted in production: a steady rate of it is the cue for priority packing.
   // The limit is the edge's: four fragments of DATAGRAM_PAYLOAD_BYTES (fast-state.ts), past which it sends nothing.
   const streamed = bytes.length > MAX_FAST_DATAGRAM_BYTES;
   if (streamed) profiler.count('loop.fastStreamed');
+  // 24.2 asks that overflow be counted in production, so the room counts it whether or not the profiler is on
+  // (`fastSends`, read by `metrics()`). Steady deltas taking more than one fragment are the cue for priority packing.
+  const sends = room.fastSends;
+  if (streamed) sends.streamed++;
+  else { sends.datagrams++; if (base && bytes.length > DATAGRAM_PAYLOAD_BYTES) sends.fragmentedDeltas++; }
   const sent = streamed ? session.deliver(bytes, true) !== false : session.datagram(bytes) !== false;
   if (sent) history.record(frame.tick, frame);
 }
 
 /**
  * The keyframe encoders a room's views keep, one of each kind per view, its slow layers' versions, its fast views'
- * event windows and its roster revisions. Every room starts with them.
+ * event windows and its roster revisions, and how many `fast` messages it has sent on datagrams, how many of those
+ * were deltas over one fragment, and how many went on the stream (`fastSends`, 24.2 "Byte budget and overflow").
+ * Every room starts with them.
  */
 export function viewEncoders() {
-  return { layerEncoders: new Map(), discoveryEncoders: new Map(), slowVersions: new Map(), fastEvents: new Map(), rosterRevisions: createRosterRevisions() };
+  return {
+    layerEncoders: new Map(), discoveryEncoders: new Map(), slowVersions: new Map(), fastEvents: new Map(), rosterRevisions: createRosterRevisions(),
+    fastSends: { datagrams: 0, fragmentedDeltas: 0, streamed: 0 },
+  };
 }
 function encoderFor(encoders, key, create) {
   let encoder = encoders.get(key);

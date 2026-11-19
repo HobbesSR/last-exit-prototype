@@ -747,10 +747,17 @@ export function createRoom({
     };
   }
 
-  /** Plain health counters for the room host (`live`, `emptyLive`). */
+  /**
+   * Plain health counters for the room host: `live`, `emptyLive`, and the `fast` messages sent so far on datagrams
+   * (`fastDatagrams`), the deltas among them over one fragment (`fastFragmentedDeltas`), and those too large for
+   * datagrams, sent on the stream (`fastStreamed`).
+   */
   function metrics() {
-    const live = Boolean(state && state.started && !state.finished);
-    return { live, emptyLive: live && state.clients.size === 0 };
+    const live = Boolean(state && state.started && !state.finished), sends = state?.fastSends;
+    return {
+      live, emptyLive: live && state.clients.size === 0,
+      fastDatagrams: sends?.datagrams ?? 0, fastFragmentedDeltas: sends?.fragmentedDeltas ?? 0, fastStreamed: sends?.streamed ?? 0,
+    };
   }
 
   return {

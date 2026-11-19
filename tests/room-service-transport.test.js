@@ -255,11 +255,11 @@ test('outbound server message and HTTP builders enforce declared wire shapes at 
 
   assert.equal(healthResponse({
     rulesVersion: 'r1', physicsVersion: 'p1', tickRate: 20, profiling: false,
-    devTools: 'none', liveRooms: 0, emptyLiveRooms: 0, mapPool: null,
+    devTools: 'none', liveRooms: 0, emptyLiveRooms: 0, fastDatagrams: 0, fastFragmentedDeltas: 0, fastStreamed: 0, mapPool: null,
   }).ok, true);
   assert.throws(() => healthResponse({
     rulesVersion: 'r1', physicsVersion: 'p1', tickRate: 20, profiling: false,
-    devTools: 'none', liveRooms: 0, emptyLiveRooms: 0, mapPool: null, version: 'legacy',
+    devTools: 'none', liveRooms: 0, emptyLiveRooms: 0, fastDatagrams: 0, fastFragmentedDeltas: 0, fastStreamed: 0, mapPool: null, version: 'legacy',
   }), /Invalid \/api\/health/);
   assert.throws(() => clientConfigResponse({
     devTools: 'none', presentation: { contentId: 'content-7' }, seed: { min: 1, max: 99 },
