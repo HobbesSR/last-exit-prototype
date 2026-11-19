@@ -12,6 +12,8 @@
 //   { layer: T }        a plain list, or a keyframe envelope { k, all?, set?, drop? } (frame-layers, discovery)
 //   { enumMap: [keys, T] }  an object keyed by an enum's values
 //   { union: field, variants: { tag: Record } }  a record picked by its `field`; the variant omits that field
+//   { list: Record, key: field }  a list of records with unique `key`s: as { list }, except inside a delta
+//   { delta: T }        a T whole, or written `against` a baseline the reader holds ("Deltas" below)
 // A record is { fields: [{ name, type, optional? }] }. Optional fields share one presence mask; undefined is
 // absent, as in JSON, and `null` is only ever a declared { nullable } value. Unknown keys refuse to encode.
 // Recursive schemas are refused, so nesting depth is bounded by the schema.
@@ -19,12 +21,29 @@
 // Decoding refuses, before allocating, any length beyond the bytes left or the declared caps, and refuses
 // unknown formats, versions, messages, tags and enum values, non-finite or non-canonical numbers, missing
 // required fields and trailing or truncated bytes (24.1 "Schema and boundary").
+//
+// Deltas (24.2, 24.5 stage 3). A { delta: T } value is a T whole, or `against(id, base, value)`: the reader
+// asks its `baseline(id)` for `base` and rebuilds `value` from the changes exactly (deep equality, an
+// undefined field the same as an absent one). Changes are written by type:
+//   a record      a changed-field mask (bit 0: removals follow; bit i + 1: field i changed), the removed-field
+//                 mask when bit 0 is set, then each changed field: its delta when the baseline holds it, else whole
+//   a union       its tag; the variant's delta when the baseline has the same tag, else the variant whole
+//   a keyed list  a flags byte (1 additions, 2 changes, 4 drops, 8 order), then the additions whole, each change
+//                 as its key and the entry's delta, the dropped keys, and the complete key order only when
+//                 keyed-list.ts's rebuild rule (baseline order, changes in place, additions appended) would not
+//                 reproduce it
+//   anything else whole
+// Masks are little-endian bitsets of a fixed length per record. A delta refers to nothing but its one baseline,
+// so a reader holding that needs no other message; a reader without it gets `MissingBaseline`.
+
+import { rebuildKeyed } from './keyed-list.ts';
 
 /** A value on either side of the codec. The schema, not TypeScript, is what closes its shape. */
 type Value = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type FieldType =
   | 'uint' | 'sint' | 'f32' | 'f64' | 'f32m' | 'exact' | 'bool' | 'str' | string
-  | { enum: readonly string[] } | { list: FieldType } | { nullable: FieldType } | { layer: FieldType }
+  | { enum: readonly string[] } | { list: FieldType; key?: string } | { nullable: FieldType } | { layer: FieldType }
+  | { delta: FieldType }
   | { enumMap: readonly [readonly string[], FieldType] }
   | { union: string; variants: Readonly<Record<string, string>> };
 export interface FieldDef { name: string; type: FieldType; optional?: boolean }
@@ -55,6 +74,32 @@ const bad = (why: string): never => { throw new RangeError(why); };
 // String.prototype.isWellFormed is ES2024; this is the same test.
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 const wellFormed = (s: string) => !LONE_SURROGATE.test(s);
+/** A value to write as its changes against `base`, which the reader holds as baseline `id`. */
+export class Delta {
+  readonly id: number; readonly base: Value; readonly value: Value;
+  constructor(id: number, base: Value, value: Value) { this.id = id; this.base = base; this.value = value; }
+}
+export const against = (id: number, base: Value, value: Value) => new Delta(id, base, value);
+/** A decode refusal for a delta whose baseline the reader does not hold: discard the message, not the connection. */
+export class MissingBaseline extends RangeError {}
+export interface DecodeOptions { baseline?: (id: number) => Value }
+
+/** Whether two values carry the same meaning: deep equality, with an undefined field the same as an absent one. */
+export function sameValue(a: Value, b: Value): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b) || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (!sameValue(a[i], b[i])) return false;
+    return true;
+  }
+  if (Array.isArray(b)) return false;
+  let n = 0;
+  for (const k in a) if (a[k] !== undefined) { n++; if (!sameValue(a[k], b[k])) return false; }
+  for (const k in b) if (b[k] !== undefined) n--;
+  return n === 0;
+}
+
 const varintSize = (v: number) => { let n = 1; while (v >= 0x80) { v = Math.floor(v / 0x80); n++; } return n; };
 
 class Writer {
@@ -73,6 +118,15 @@ class Writer {
     const b = this.bytes;
     while (v >= 0x80) { b[this.at++] = (v % 0x80) | 0x80; v = Math.floor(v / 0x80); }
     b[this.at++] = v;
+  }
+  // A fixed-length bitset of n bits, little-endian.
+  bits(n: number, has: (i: number) => boolean) {
+    const size = Math.ceil(n / 8); this.reserve(size);
+    for (let b = 0; b < size; b++) {
+      let v = 0;
+      for (let j = 0; j < 8; j++) { const i = b * 8 + j; if (i < n && has(i)) v |= 1 << j; }
+      this.bytes[this.at++] = v;
+    }
   }
   f64(v: number) { this.reserve(8); this.view.setFloat64(this.at, v === 0 ? 0 : v, true); this.at += 8; }
   f32(v: number) { this.reserve(4); this.view.setFloat32(this.at, v, true); this.at += 4; }
@@ -103,9 +157,9 @@ class Writer {
 }
 
 class Reader {
-  bytes: Uint8Array; limits: Limits; view: DataView; at = 0; end: number;
-  constructor(bytes: Uint8Array, limits: Limits) {
-    this.bytes = bytes; this.limits = limits;
+  bytes: Uint8Array; limits: Limits; view: DataView; at = 0; end: number; baseline: DecodeOptions['baseline'];
+  constructor(bytes: Uint8Array, limits: Limits, baseline?: DecodeOptions['baseline']) {
+    this.bytes = bytes; this.limits = limits; this.baseline = baseline;
     this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); this.end = bytes.length;
   }
   byte() { if (this.at >= this.end) bad('truncated message'); return this.bytes[this.at++]!; }
@@ -125,6 +179,14 @@ class Reader {
   // -0 reads as 0, as the writer writes it and JSON carries it.
   f64() { if (this.at + 8 > this.end) bad('truncated message'); const v = this.view.getFloat64(this.at, true); this.at += 8; if (!Number.isFinite(v)) bad('non-finite number'); return v === 0 ? 0 : v; }
   f32() { if (this.at + 4 > this.end) bad('truncated message'); const v = this.view.getFloat32(this.at, true); this.at += 4; if (!Number.isFinite(v)) bad('non-finite number'); return v === 0 ? 0 : v; }
+  // A bitset as the writer writes it; bits past n must be clear.
+  bits(n: number) {
+    const size = Math.ceil(n / 8);
+    if (this.at + size > this.end) bad('truncated message');
+    const mask = this.bytes.subarray(this.at, this.at + size); this.at += size;
+    if (n % 8 && mask[size - 1]! >> (n % 8)) bad('bad change mask');
+    return mask;
+  }
   // Every element takes at least one byte, so a count beyond the bytes left is refused before allocating.
   count() {
     const n = this.uint();
@@ -149,6 +211,10 @@ class Reader {
 }
 
 interface Codec { w: (w: Writer, v: Value) => void; r: (r: Reader) => Value }
+/** A type's changes, written only against a baseline value of the type and read against that value. */
+interface DeltaCodec { dw: (w: Writer, base: Value, v: Value) => void; dr: (r: Reader, base: Value) => Value }
+const bit = (mask: Uint8Array, i: number) => (mask[i >> 3]! >> (i & 7)) & 1;
+const LIST_ADDS = 1, LIST_CHANGES = 2, LIST_DROPS = 4, LIST_ORDER = 8;
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const signedUint = (v: number) => (v < 0 ? -v * 2 - 1 : v * 2);
 const unsigned = (z: number) => (z % 2 ? -(z + 1) / 2 : z / 2);
@@ -209,7 +275,8 @@ const enumCodec = (values: readonly string[]): Codec => {
 
 export interface DescriptorCodec {
   encode(message: { type: string }): Uint8Array;
-  decode(bytes: Uint8Array): Value;
+  /** `options.baseline` supplies the baselines that deltas name. */
+  decode(bytes: Uint8Array, options?: DecodeOptions): Value;
   readonly version: number;
 }
 
@@ -218,7 +285,7 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
   const limits: Limits = { ...DEFAULT_LIMITS, ...limitOverrides };
   const metre = schema.unitsPerMetre;
   if (metre !== undefined && !(Number.isFinite(metre) && metre > 0)) throw new Error(`unitsPerMetre must be a positive finite number, got ${metre}`);
-  const named = new Map<string, Codec>(), compiling = new Set<string>();
+  const named = new Map<string, Codec>(), compiling = new Set<string>(), deltas = new Map<string, DeltaCodec>();
 
   function compile(type: FieldType): Codec {
     if (typeof type === 'string') return SCALARS[type]?.(limits, schema.unitsPerMetre) ?? compileRecord(type);
@@ -228,7 +295,27 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
       return { w: (w, v) => { if (v === null) return w.byte(0); w.byte(1); t.w(w, v); },
         r: r => { const tag = r.byte(); if (tag === 0) return null; if (tag !== 1) bad('bad nullable tag'); return t.r(r); } };
     }
+    if ('delta' in type) {
+      const whole = compile(type.delta), changes = compileDelta(type.delta);
+      return {
+        w: (w, v) => {
+          if (!(v instanceof Delta)) { w.byte(0); return whole.w(w, v); }
+          if (!Number.isSafeInteger(v.id) || v.id < 0) fail(`expected a baseline id, got ${v.id}`);
+          if (v.base === undefined) fail('a delta needs its baseline');
+          w.byte(1); w.uint(v.id); changes.dw(w, v.base, v.value);
+        },
+        r: r => {
+          const tag = r.byte();
+          if (tag === 0) return whole.r(r);
+          if (tag !== 1) bad('bad delta tag');
+          const id = r.uint(), base = r.baseline?.(id);
+          if (base === undefined) throw new MissingBaseline(`missing baseline ${id}`);
+          return changes.dr(r, base);
+        },
+      };
+    }
     if ('list' in type) {
+      if (type.key !== undefined) keyField(type.list, type.key);
       const t = compile(type.list);
       return { w: (w, v) => { if (!Array.isArray(v)) fail('expected list'); w.uint(v.length); for (let i = 0; i < v.length; i++) t.w(w, v[i]); },
         r: r => { const n = r.count(), out = new Array(n); for (let i = 0; i < n; i++) out[i] = t.r(r); return out; } };
@@ -283,6 +370,158 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
         if (tag & 4) out.set = list.r(r);
         if (tag & 8) out.drop = ids.r(r);
         return out;
+      },
+    };
+  }
+
+  // A keyed list's key: a required unsigned integer or string field of its record.
+  function keyField(list: FieldType, key: string): FieldDef {
+    const field = typeof list === 'string' ? schema.records[list]?.fields.find(f => f.name === key) : undefined;
+    if (!field || field.optional || (field.type !== 'uint' && field.type !== 'str')) {
+      throw new Error(`a keyed list's key must be a required uint or str field of its record, not ${JSON.stringify(list)}.${key}`);
+    }
+    return field;
+  }
+
+  function compileDelta(type: FieldType): DeltaCodec {
+    if (typeof type === 'string' && !SCALARS[type]) return recordDelta(type);
+    if (typeof type === 'object' && 'delta' in type) throw new Error('a delta inside a delta');
+    if (typeof type === 'object' && 'list' in type && type.key !== undefined) return keyedDelta(type.list as string, type.key);
+    if (typeof type === 'object' && 'union' in type) return unionDelta(type);
+    const whole = compile(type);
+    return { dw: (w, _, v) => whole.w(w, v), dr: r => whole.r(r) };
+  }
+
+  function unionDelta(type: { union: string; variants: Readonly<Record<string, string>> }): DeltaCodec {
+    const field = type.union, tags = Object.keys(type.variants), index = new Map(tags.map((t, i) => [t, i]));
+    const whole = tags.map(tag => compileRecord(type.variants[tag]!, field)), changes = tags.map(tag => recordDelta(type.variants[tag]!, field));
+    return {
+      dw: (w, base, v) => {
+        const i = isRecord(v) ? index.get(v[field] as string) : undefined;
+        if (i === undefined) return fail(`unknown ${field} ${isRecord(v) ? v[field] : v}`);
+        w.byte(i);
+        if (isRecord(base) && base[field] === v[field]) changes[i]!.dw(w, base, v); else whole[i]!.w(w, v);
+      },
+      dr: (r, base) => {
+        const i = r.byte(); if (i >= tags.length) bad('bad union tag');
+        const tag = tags[i]!, out = isRecord(base) && base[field] === tag ? changes[i]!.dr(r, base) : whole[i]!.r(r);
+        out[field] = tag;
+        return out;
+      },
+    };
+  }
+
+  // A record's changes: which fields changed or went, then each changed field, as its own delta where it can be.
+  function recordDelta(name: string, discriminant?: string): DeltaCodec {
+    const cacheKey = discriminant ? `${name}|${discriminant}` : name;
+    const known = deltas.get(cacheKey); if (known) return known;
+    compileRecord(name, discriminant); // refuses an unknown or recursive record first
+    const fields = schema.records[name]!.fields, n = fields.length, names = fields.map(f => f.name);
+    const whole = fields.map(f => compile(f.type)), changes = fields.map(f => compileDelta(f.type));
+    const allowed = new Set(discriminant ? [...names, discriminant] : names);
+    const codec: DeltaCodec = {
+      dw: (w, base, v) => {
+        if (!isRecord(v) || !isRecord(base)) fail(`expected ${name} record`);
+        for (const k in v) if (v[k] !== undefined && !allowed.has(k)) fail(`field ${k} is not in ${name}`);
+        const set: number[] = [], removed: number[] = [];
+        for (let i = 0; i < n; i++) {
+          const was = base[names[i]!], now = v[names[i]!];
+          if (now === undefined) {
+            if (!fields[i]!.optional) fail(`${name}.${names[i]}: required field missing`);
+            if (was !== undefined) removed.push(i);
+          } else if (was === undefined || !sameValue(was, now)) set.push(i);
+        }
+        const changed = new Set(set), gone = new Set(removed);
+        w.bits(n + 1, i => (i === 0 ? gone.size > 0 : changed.has(i - 1)));
+        if (gone.size) w.bits(n, i => gone.has(i));
+        for (const i of set) {
+          const was = base[names[i]!], now = v[names[i]!];
+          if (was === undefined) whole[i]!.w(w, now); else changes[i]!.dw(w, was, now);
+        }
+      },
+      dr: (r, base) => {
+        const mask = r.bits(n + 1), removed = bit(mask, 0) ? r.bits(n) : undefined;
+        if (removed && removed.every(b => b === 0)) bad('bad change mask');
+        const out: Record<string, Value> = {};
+        for (let i = 0; i < n; i++) {
+          const key = names[i]!, was = base[key], gone = removed !== undefined && bit(removed, i) === 1;
+          if (bit(mask, i + 1)) {
+            if (gone) bad('bad change mask');
+            out[key] = was === undefined ? whole[i]!.r(r) : changes[i]!.dr(r, was);
+          } else if (gone) {
+            if (!fields[i]!.optional || was === undefined) bad('bad change mask');
+          } else if (was !== undefined) out[key] = was;
+          else if (!fields[i]!.optional) bad(`${name}.${key}: required field missing`);
+        }
+        return out;
+      },
+    };
+    deltas.set(cacheKey, codec);
+    return codec;
+  }
+
+  // A keyed list's changes against its baseline copy: additions, changed entries, drops and, when needed, order.
+  function keyedDelta(name: string, key: string): DeltaCodec {
+    const entry = compileRecord(name), changes = recordDelta(name), id = compile(keyField(name, key).type);
+    const keyOf = (e: Value) => e[key];
+    return {
+      dw: (w, base, v) => {
+        if (!Array.isArray(v) || !Array.isArray(base)) fail('expected list');
+        const was = new Map((base as Value[]).map(e => [keyOf(e), e])), present = new Set(), adds: Value[] = [], changed: Value[] = [];
+        for (const e of v) {
+          if (!isRecord(e)) fail(`expected ${name} record`);
+          const k = keyOf(e);
+          if (present.has(k)) fail(`duplicate ${name}.${key} ${k}`);
+          present.add(k);
+          const old = was.get(k);
+          if (old === undefined) adds.push(e); else if (!sameValue(old, e)) changed.push(e);
+        }
+        const drops = (base as Value[]).map(keyOf).filter(k => !present.has(k));
+        // The rebuild rule gives the baseline's kept entries in its order, then the additions as listed.
+        let at = 0, ordered = true;
+        for (const e of base) if (present.has(keyOf(e)) && keyOf(v[at++]) !== keyOf(e)) { ordered = false; break; }
+        w.byte((adds.length ? LIST_ADDS : 0) | (changed.length ? LIST_CHANGES : 0) | (drops.length ? LIST_DROPS : 0) | (ordered ? 0 : LIST_ORDER));
+        if (adds.length) { w.uint(adds.length); for (const e of adds) entry.w(w, e); }
+        if (changed.length) { w.uint(changed.length); for (const e of changed) { id.w(w, keyOf(e)); changes.dw(w, was.get(keyOf(e)), e); } }
+        if (drops.length) { w.uint(drops.length); for (const k of drops) id.w(w, k); }
+        if (!ordered) { w.uint(v.length); for (const e of v) id.w(w, keyOf(e)); }
+      },
+      dr: (r, base) => {
+        const flags = r.byte();
+        if (flags > 15) bad('bad list flags');
+        const list = base as Value[], was = new Map(list.map(e => [keyOf(e), e])), touched = new Set<Value>();
+        const adds: Value[] = [], set: Value[] = [], drops: Value[] = [];
+        const count = () => { const c = r.count(); if (!c) bad('bad list flags'); return c; };
+        const refuse = () => bad(`bad ${name} list change`);
+        if (flags & LIST_ADDS) for (let i = count(); i > 0; i--) {
+          const e = entry.r(r), k = keyOf(e);
+          if (was.has(k) || touched.has(k)) refuse();
+          touched.add(k); adds.push(e);
+        }
+        if (flags & LIST_CHANGES) for (let i = count(); i > 0; i--) {
+          const k = id.r(r), old = was.get(k);
+          if (old === undefined || touched.has(k)) refuse();
+          const e = changes.dr(r, old);
+          if (keyOf(e) !== k) refuse();
+          touched.add(k); set.push(e);
+        }
+        if (flags & LIST_DROPS) for (let i = count(); i > 0; i--) {
+          const k = id.r(r);
+          if (!was.has(k) || touched.has(k)) refuse();
+          touched.add(k); drops.push(k);
+        }
+        let order: Value[] | undefined;
+        if (flags & LIST_ORDER) {
+          const n = r.count(), gone = new Set(drops), seen = new Set<Value>();
+          if (n !== was.size - drops.length + adds.length) refuse();
+          order = [];
+          for (let i = 0; i < n; i++) {
+            const k = id.r(r);
+            if (seen.has(k) || gone.has(k) || !(was.has(k) || touched.has(k))) refuse();
+            seen.add(k); order.push(k);
+          }
+        }
+        return rebuildKeyed(list, keyOf, [...set, ...adds], drops, order);
       },
     };
   }
@@ -356,9 +595,9 @@ export function createDescriptorCodec(schema: Schema, limitOverrides: Partial<Li
       m.codec.w(writer, message);
       return writer.bytes.slice(0, writer.at);
     },
-    decode(bytes) {
+    decode(bytes, options) {
       if (bytes.length > limits.maxBytes) bad('message too large');
-      const r = new Reader(bytes, limits);
+      const r = new Reader(bytes, limits, options?.baseline);
       if (r.byte() !== FORMAT) bad('unknown format');
       if (r.uint() !== schema.version) bad('unsupported schema version');
       const m = byId.get(r.uint()); if (!m) return bad('unknown message type');

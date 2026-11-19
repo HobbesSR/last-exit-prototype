@@ -11,6 +11,7 @@
 // quantities (hit points, shields, cooldowns, radii, damage) exact numbers, closed unions enum tables.
 import { WIRE_VERSION } from './protocol.ts';
 import { UNITS_PER_METRE } from './physics/units.ts';
+import { SLOW_FIELDS } from './fast-state.ts';
 import { createDescriptorCodec, type DescriptorCodec, type FieldDef, type FieldType, type RecordDef, type Schema } from './wire-codec.ts';
 import { AMMO_FAMILIES, BODY_KINDS, EFFECT_KINDS, EVENT_KINDS, ITEM_KINDS, PHASES, PLAYER_STATUSES, TRAP_KINDS, WEAPONS } from './enum-tables.ts';
 import {
@@ -112,14 +113,30 @@ const WAITING_STATE: RecordDef = { fields: [
   ...STATE_TAIL, { name: 'events', type: list('Event') }, ROSTER_REVISION,
 ] };
 
+// The fast part of a match frame (fast-state.ts), for datagrams (24.5 stage 3): the match frame without its slow
+// layers and the transport's roster revision, which the message carries beside it. Its keyed lists name their
+// key, so a delta carries a list's changed entries rather than the list (wire-codec.ts "Deltas").
+const FAST_KEYS: Readonly<Record<string, readonly [string, string]>> = {
+  bodies: ['Body', 'id'], tethers: ['Tether', 'id'], hookFlights: ['HookFlight', 'id'], players: ['Observed', 'playerIdx'],
+  traps: ['Trap', 'id'], projectiles: ['Projectile', 'id'], effects: ['Effect', 'id'], events: ['Event', 'id'],
+};
+const FAST_LEFT_OUT = new Set<string>([...SLOW_FIELDS, ROSTER_REVISION.name]);
+const FAST_MATCH: RecordDef = { fields: MATCH_STATE.fields.filter(f => !FAST_LEFT_OUT.has(f.name)).map((f): FieldDef => {
+  const keyed = FAST_KEYS[f.name];
+  return keyed ? { ...f, type: { list: keyed[0], key: keyed[1] } } : f;
+}) };
+for (const name of Object.keys(FAST_KEYS)) if (!FAST_MATCH.fields.some(f => f.name === name)) throw new Error(`wire schema FastMatch: no field ${name} to key`);
+
 /** The schema; its version is the wire version, so any contract bump refuses the other side's bytes. */
 export const STATE_SCHEMA: Schema = Object.freeze({
   version: WIRE_VERSION,
   unitsPerMetre: UNITS_PER_METRE,
-  messages: { state: { id: 1, record: 'StateMessage' } },
+  // `fast` is not sent yet: stage 3's delivery sends it (24.5).
+  messages: { state: { id: 1, record: 'StateMessage' }, fast: { id: 2, record: 'FastMessage' } },
   records: {
     StateMessage: { fields: [{ name: 'state', type: { union: 'phase', variants: { live: 'MatchState', finished: 'MatchState', waiting: 'WaitingState' } } }] },
-    MatchState: MATCH_STATE, WaitingState: WAITING_STATE,
+    FastMessage: { fields: [ROSTER_REVISION, { name: 'state', type: { delta: { union: 'phase', variants: { live: 'FastMatch', finished: 'FastMatch' } } } }] },
+    MatchState: MATCH_STATE, WaitingState: WAITING_STATE, FastMatch: FAST_MATCH,
     Own: OWN, Observed: OBSERVED_RECORD, Item: ITEM,
     Reload: { fields: [{ name: 'slot', type: 'uint' }, { name: 'until', type: 'exact' }] },
     Heard: { fields: [{ name: 'x', type: 'exact' }, { name: 'y', type: 'exact' }, { name: 'tick', type: 'uint' }, { name: 'until', type: 'uint' }] },
