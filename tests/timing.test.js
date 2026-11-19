@@ -20,11 +20,13 @@ for (const scenario of [
     const dir = mkdtempSync(join(tmpdir(), 'last-exit-timing-'));
     try {
       // Inject the child outcome without relying on OS-specific ways to deny spawning
-      // or kill a test process. The timing command itself runs as a real subprocess.
+      // or kill a test process. The timing command itself runs as a real subprocess. Its core build
+      // (tools/build-core.mjs, a no-op once built) keeps the real spawnSync; only the timed file's is faked.
       const preload = join(dir, 'outcome.mjs');
       writeFileSync(preload, `import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
-childProcess.spawnSync = () => (${scenario.result});
+const realSpawnSync = childProcess.spawnSync;
+childProcess.spawnSync = (command, ...rest) => command === 'cargo' ? realSpawnSync(command, ...rest) : (${scenario.result});
 syncBuiltinESMExports();
 `);
       const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, timing, '--strict', 'tests/example.test.js'], { encoding: 'utf8', env: timingTestEnv() });
