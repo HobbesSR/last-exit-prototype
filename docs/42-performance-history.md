@@ -24,6 +24,7 @@ current unresolved slowdown and the older evidence that has no child of its own.
 | [42.57](42.57-edge-cpu.md) | The Rust edge's CPU carrying 1, 4 and 8 Chrome players on WebTransport through a live match (#1095, stage 1) |
 | [42.58](42.58-sight-core-adapter.md) | The core's first per-tick module: `visibilityPolygon` in Rust through the flat-buffer adapter against the TypeScript, the crossing's cost, and the budget it sets (#1175, stage 2) |
 | [42.59](42.59-split-delivery-under-loss.md) | Stage 3's split delivery in Chrome through the edge and a lossy relay (#1095): received and drawn frames, deltas and whole-frame recovery, staleness per profile, the ping pile-up it found, and the relay's reordering |
+| [42.60](42.60-whole-fast-frames.md) | A live player's whole fast frame on each generated size (#1095): whole and delta sizes over full bot matches against the edge's 1,100-byte fragment |
 
 ### Navigation
 
