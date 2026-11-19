@@ -91,8 +91,8 @@ test('an echo that arrives before the server sent anything is impossible to forg
   pingSession(h.session, 2100, h.deliver);
   const second = h.sent.at(-1).token;
   assert.notEqual(first, second);
-  assert.equal(acceptPong(h.session, { token: first }, 2101), false, 'a spent token no longer counts');
-  assert.equal(acceptPong(h.session, { token: second }, 2130), true, 'the outstanding one does');
+  // Spending a token once is 'a token the server did not just send is ignored'; this case is only that each is new.
+  assert.equal(acceptPong(h.session, { token: second }, 2130), true, 'the new token is the one that counts');
 });
 
 test('separate sessions keep separate measurements', () => {
