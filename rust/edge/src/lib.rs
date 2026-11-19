@@ -1,5 +1,5 @@
 //! The network edge (#1095, docs/24.5, docs/27). It terminates WebTransport and forwards each session to Node
-//! over one framed TCP link, as "Stage 1's contracts" in 24.5 specifies.
+//! over one framed TCP link, as "Stage 1's contracts" and "Stage 2's contracts" in 24.5 specify.
 
 pub mod frame;
 pub mod origin;

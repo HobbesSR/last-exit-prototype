@@ -887,16 +887,17 @@ export function parseMessage(raw: string | Buffer): Record<string, unknown> | nu
  * it, so a lost datagram's input still arrives with the next.
  */
 export const INPUT_DATAGRAM_INPUTS = 3;
+const datagramText = new TextDecoder('utf-8', { fatal: true });
 
 /**
  * Reads an input datagram: a JSON array of one to `INPUT_DATAGRAM_INPUTS` `input` messages, oldest first, whose
- * `seq` values are safe integers and strictly increase. Null for anything else. It checks only the envelope;
+ * `seq` values are non-negative safe integers and strictly increase. Null for anything else. It checks only the envelope;
  * each message is still validated as any client message is (`validateClientMessage`). Throws on bad JSON.
  */
 export function parseInputDatagram(raw: string | Uint8Array): Record<string, unknown>[] | null {
-  const data: unknown = JSON.parse(typeof raw === 'string' ? raw : new TextDecoder('utf-8', { fatal: true }).decode(raw));
+  const data: unknown = JSON.parse(typeof raw === 'string' ? raw : datagramText.decode(raw));
   if (!Array.isArray(data) || data.length < 1 || data.length > INPUT_DATAGRAM_INPUTS) return null;
-  let last = -Infinity;
+  let last = -1;
   for (const item of data as unknown[]) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
     const { type, seq } = item as Record<string, unknown>;

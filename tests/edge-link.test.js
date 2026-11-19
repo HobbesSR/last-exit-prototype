@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { attachEdgeLink, encodeFrame, FRAME, LINK_VERSION } from '../server/edge-link.js';
 import { createArenaServer } from '../server/index.js';
-import { MAX_BUFFERED_BYTES, MAX_MESSAGE_BYTES, CLOSE_CODE, CLOSE_REASON } from '../server/protocol.js';
+import { MAX_BUFFERED_BYTES, MAX_MESSAGE_BYTES, MAX_MESSAGES_PER_SECOND, CLOSE_CODE, CLOSE_REASON } from '../server/protocol.js';
 import { listen } from './helpers/listen.js';
 
 // A fake edge over a real loopback socket against a stub service: the link's framing and session contract,
@@ -153,8 +153,8 @@ test('close, invalid input and edge-side ends reach the session seam once', asyn
 test('input datagrams reach the room once each, in order, whichever path an input took', async t => {
   const { service, link, edge } = await started(t);
   const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
-  for (const id of [1, 2, 3]) e.send(FRAME.OPEN, u32(id));
-  await waitFor(() => service.peers.length === 3, 'three sessions');
+  for (const id of [1, 2, 3, 4, 5]) e.send(FRAME.OPEN, u32(id));
+  await waitFor(() => service.peers.length === 5, 'five sessions');
   const input = seq => ({ type: 'input', seq, tick: 100 + seq, x: 1 });
   const datagram = (id, ...seqs) => e.send(FRAME.DATAGRAM, u32(id), json(seqs.map(input)));
   const seqsOf = session => service.received.filter(([s]) => s === session).map(([, data]) => data.seq);
@@ -176,14 +176,32 @@ test('input datagrams reach the room once each, in order, whichever path an inpu
   assert.deepEqual(service.received[0][1], input(0), 'an input reaches the room as it was sent');
   assert.deepEqual(link.counts(), { messages: 3, datagrams: 5 });
 
-  // Anything but an array of one to three inputs, oldest first, is refused as an invalid message.
+  // Anything but an array of one to three inputs, oldest first, with non-negative seqs, is refused as invalid.
   e.send(FRAME.DATAGRAM, u32(2), json([input(2), input(1)]));
   assert.deepEqual(closeOf(await e.next(FRAME.CLOSE)), [2, 1008, CLOSE_REASON.INVALID_MESSAGE]);
-  // One datagram is one message to the rate limit.
-  for (let i = 0; i < 80; i++) datagram(3, i);
-  assert.deepEqual(closeOf(await e.next(FRAME.CLOSE)), [3, 1008, CLOSE_REASON.RATE_EXCEEDED]);
-  assert.equal(seqsOf(1).length, 0);
-  assert.ok(seqsOf(2).length >= 60 && seqsOf(2).length <= 70);
+  e.send(FRAME.DATAGRAM, u32(4), json([input(-1)]));
+  assert.deepEqual(closeOf(await e.next(FRAME.CLOSE)), [4, 1008, CLOSE_REASON.INVALID_MESSAGE]);
+  assert.equal(seqsOf(1).length + seqsOf(3).length, 0);
+
+  // The limit counts inputs, as on a WebSocket: a datagram of three new ones costs three, one of repeats costs one.
+  for (let i = 0; i < 23; i++) datagram(5, 3 * i, 3 * i + 1, 3 * i + 2);
+  // 69 counted so far. This datagram is the 70th, its first new input rides on it, and its second is one too many.
+  datagram(5, 69, 70, 71);
+  assert.deepEqual(closeOf(await e.next(FRAME.CLOSE)), [5, 1008, CLOSE_REASON.RATE_EXCEEDED]);
+  assert.equal(seqsOf(4).length, MAX_MESSAGES_PER_SECOND);
+});
+
+test('an invalid input passes on to be refused, but does not hold back the valid ones after it', async t => {
+  const { service, edge } = await started(t);
+  const e = await edge(); e.hello(); await e.next(FRAME.ACCEPT);
+  e.send(FRAME.OPEN, u32(1));
+  await waitFor(() => service.peers.length === 1, 'a session');
+  // No tick: the validator refuses it. A high seq on it must not latch.
+  e.send(FRAME.DATAGRAM, u32(1), json([{ type: 'input', seq: 1000 }]));
+  e.send(FRAME.MESSAGE, u32(1), Buffer.from([0]), json({ type: 'input', seq: 2000, tick: -5 }));
+  e.send(FRAME.DATAGRAM, u32(1), json([{ type: 'input', seq: 1, tick: 9 }]));
+  await waitFor(() => service.received.length === 3, 'three inputs');
+  assert.deepEqual(service.received.map(([, data]) => data.seq), [1000, 2000, 1]);
 });
 
 test('a malformed frame drops the link and its sessions, and a new edge may then connect', async t => {

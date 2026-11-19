@@ -9,7 +9,7 @@
 // carrying it and the inputs sent just before it, so a lost datagram costs nothing while the next arrives; on a
 // WebSocket it is `send`.
 
-import { INPUT_DATAGRAM_INPUTS } from '../shared/protocol.ts';
+import { INPUT_DATAGRAM_INPUTS, MAX_MESSAGE_BYTES } from '../shared/protocol.ts';
 
 const CONNECTING = 0, OPEN = 1, CLOSING = 2, CLOSED = 3;
 /** The client stream's flag byte; `tests/edge-contract.test.js` holds it to the edge's. */
@@ -192,8 +192,9 @@ export function createArenaSocketOpener(env = {}) {
         if (readyState !== OPEN) throw new DOMException('The socket is not open', 'InvalidStateError');
         if (!datagrams) return socket.send(text);
         const bytes = encoder.encode(text);
-        // Read per send: the session's limit can change, and an oversized write vanishes silently (42.56).
-        const packed = packInputDatagram([...recent, bytes], wt.datagrams.maxDatagramSize ?? Infinity);
+        // Read per send: the session's limit can change, and an oversized write vanishes silently (42.56). The
+        // edge drops a datagram over the message limit, so that caps it too.
+        const packed = packInputDatagram([...recent, bytes], Math.min(wt.datagrams.maxDatagramSize ?? Infinity, MAX_MESSAGE_BYTES));
         if (!packed) return socket.send(text);
         recent.push(bytes);
         if (recent.length >= INPUT_DATAGRAM_INPUTS) recent.shift();

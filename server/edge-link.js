@@ -1,5 +1,5 @@
 import { createServer } from 'node:net';
-import { CLIENT_MESSAGE, CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverable, isWebTransportOffer, parseMessage, parseInputDatagram, acceptMessageRate } from './protocol.js';
+import { CLIENT_MESSAGE, CLOSE_CODE, CLOSE_REASON, MAX_MESSAGE_BYTES, deliverable, isWebTransportOffer, parseMessage, parseInputDatagram, acceptMessageRate, validateClientMessage } from './protocol.js';
 
 // The link between the WebTransport edge and this process (24.5 "The link"): one loopback TCP connection the
 // edge opens, carrying every edge session as a peer behind the same session seam a WebSocket uses, so a room
@@ -95,11 +95,14 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
       state.closing = true;
       send(encodeFrame(FRAME.CLOSE, closeHeader(id, CLOSE_CODE.POLICY_VIOLATION), encoder.encode(reason)));
     }
-    // An input reaches the room only when it is newer than every input before it, whichever path each took.
+    // An input reaches the room only when it is newer than every valid input before it, whichever path each
+    // took. An invalid one goes on unlatched, for the service to refuse as it would any message, so it cannot
+    // hold back the valid inputs after it. Says whether a new input was passed on.
     function passInput(state, input) {
-      if (input.seq <= state.inputSeq) return;
-      state.inputSeq = input.seq;
+      if (input.seq <= state.inputSeq) return false;
+      if (validateClientMessage(input).ok) state.inputSeq = input.seq;
       service.receive(state.session, input);
+      return true;
     }
     const endSession = id => {
       const state = link.sessions.get(id);
@@ -150,12 +153,20 @@ export function attachEdgeLink({ service, port = 0, host = '127.0.0.1', httpPort
           const id = body.readUInt32BE(0), state = link.sessions.get(id);
           counts.datagrams++;
           if (!state || state.closing) return;
-          // One datagram is one message to the rate limit, however many inputs it repeats.
-          if (!acceptMessageRate(state.rate, Date.now())) return reject(id, state, CLOSE_REASON.RATE_EXCEEDED);
+          // A datagram is one message to the rate limit, and each new input past its first is one more: the limit
+          // counts inputs as on a WebSocket, and a datagram of repeats still costs one.
+          const now = Date.now();
+          if (!acceptMessageRate(state.rate, now)) return reject(id, state, CLOSE_REASON.RATE_EXCEEDED);
           let inputs;
           try { inputs = parseInputDatagram(body.subarray(4)); } catch { inputs = null; }
           if (!inputs) return reject(id, state, CLOSE_REASON.INVALID_MESSAGE);
-          for (const input of inputs) passInput(state, input);
+          let passed = 0;
+          for (const input of inputs) {
+            if (state.closing) return;
+            if (input.seq <= state.inputSeq) continue;
+            if (passed++ && !acceptMessageRate(state.rate, now)) return reject(id, state, CLOSE_REASON.RATE_EXCEEDED);
+            passInput(state, input);
+          }
           return;
         }
         case FRAME.WRITTEN: {

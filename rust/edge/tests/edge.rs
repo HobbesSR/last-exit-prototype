@@ -218,7 +218,7 @@ async fn carries_messages_both_ways_and_closes_with_the_code() {
 }
 
 #[tokio::test]
-async fn forwards_datagrams_unparsed_and_drops_one_over_the_limit() {
+async fn forwards_datagrams_unparsed_and_drops_empty_or_oversize_ones() {
     let (mut node, _edge, port, hash) = start(Duration::from_secs(3600)).await;
     let connection = connect(port, &hash, "/arena", None).await.unwrap();
     let (_send, _recv) = open_stream(&connection, &frame::encode(frame::TEXT, &[b"hi"])).await;
@@ -231,8 +231,9 @@ async fn forwards_datagrams_unparsed_and_drops_one_over_the_limit() {
         node.next().await,
         (DATAGRAM, [&session[..], b"[1]"].concat())
     );
-    // Over the limit is dropped, as a lost datagram would be; the session stays open and the next one passes.
+    // Over the limit, or empty, is dropped, as a lost datagram would be; the session stays open and the next one passes.
     connection.send_datagram(vec![b'x'; MAX_BYTES + 1]).unwrap();
+    connection.send_datagram(b"").unwrap();
     connection.send_datagram(b"[2]").unwrap();
     assert_eq!(
         node.next().await,

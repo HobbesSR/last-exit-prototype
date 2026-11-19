@@ -182,7 +182,10 @@ test('over WebTransport, inputs go as datagrams repeating the two before them; a
   await new Promise(r => setTimeout(r, 5));
   assert.equal(ws.transport, 'websocket');
   assert.equal(ws.sendInput, ws.send);
-  assert.throws(() => opener({ WebTransport: fakeTransport({ opens: false }) })().sendInput('x'), /not open/);
+  // Closed at once, so it never falls back to a WebSocket that a later test would count.
+  const opening = opener({ WebTransport: fakeTransport({ opens: false }) })();
+  assert.throws(() => opening.sendInput('x'), /not open/);
+  opening.close(); ws.close(); streamed.close(); socket.close();
 });
 
 test('closing while WebTransport is opening abandons the session at once, with one close and no error', async () => {
