@@ -62,6 +62,15 @@ function deliver(clientId, payload, droppable) {
   return true;
 }
 
+// A fast frame for a session with datagrams (room-views.js): sent at once, never counted against the stream.
+function datagram(clientId, payload) {
+  if (!backlog.has(clientId)) return false;
+  let index = payloadIndex.get(payload);
+  if (index === undefined) { index = payloads.length; payloadIndex.set(payload, index); payloads.push(payload); }
+  emit(['datagram', clientId, index]);
+  return true;
+}
+
 function retireWhenDone() {
   if (disposed && finalizing === 0) { stopScheduler(); emit(['retired']); }
 }
@@ -73,6 +82,7 @@ const room = createRoom({
   wireKey,
   reportError: error => emit(['error', asPlainError(error)]),
   deliver,
+  datagram,
   closeClient: (clientId, code, reason) => { backlog.delete(clientId); emit(['close', clientId, code, reason]); },
   onFinalization: completion => {
     finalizing++;
@@ -99,7 +109,7 @@ function handle(message) {
     case 'map-failed': room.failMap(Object.assign(new Error(message.error.message), message.error.stack ? { stack: message.error.stack } : {})); break;
     case 'join': {
       backlog.set(message.clientId, 0);
-      const joined = room.onJoin(message.clientId, message.options);
+      const joined = room.onJoin(message.clientId, message.options, message.transport);
       if (!joined.ok) backlog.delete(message.clientId);
       emit(['joined', message.clientId, joined]);
       break;
@@ -108,6 +118,7 @@ function handle(message) {
     case 'message': room.onMessage(message.clientId, message.data); break;
     case 'invalid': room.onInvalidMessage(message.clientId, message.info); break;
     case 'lag': room.setViewLag(message.clientId, message.rttMs); break;
+    case 'ack': room.onAck(message.clientId, message.tick); break;
     case 'backlog': for (const [clientId, bytes] of message.entries) if (backlog.has(clientId)) backlog.set(clientId, bytes); break;
     case 'profile': profiler.enable(message.enabled); break;
     // This thread's profiler series, for the host's profile endpoint and summary (#1115).

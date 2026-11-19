@@ -109,7 +109,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   const http = createHttpServer(app), wss = attachWebSockets(http, { connect: service.connect, receive: directory.receive, disconnect: service.disconnect });
   const stopScheduler = startScheduler(service.advance);
   const linkReady = edgeLink === undefined ? Promise.resolve() : (edge = attachEdgeLink({
-    service: { connect: service.connect, receive: directory.receive, disconnect: service.disconnect },
+    service: { connect: service.connect, receive: directory.receive, acknowledge: service.acknowledge, disconnect: service.disconnect },
     port: edgeLink, httpPort: () => http.address()?.port,
   })).listening;
   // The host thread's series, then each threaded room's own (#1115).

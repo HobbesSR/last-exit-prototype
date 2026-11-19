@@ -90,6 +90,9 @@ const BODY: RecordDef = { fields: [
 
 // The roster revision the frame was projected against (#1131): added by the transport, not the projection.
 const ROSTER_REVISION: FieldDef = { name: 'rosterRevision', type: 'uint' };
+// The version of a view's slow layers (24.5 stage 3): a `slow` message carries it, and each `fast` names the one
+// its frame was projected with, so a reader can tell when it reads across the two.
+const SLOW_VERSION: FieldDef = { name: 'slowVersion', type: 'uint' };
 const STATE_TAIL: FieldDef[] = [
   { name: 'players', type: list('Observed') }, { name: 'items', type: layer('Item') }, { name: 'gates', type: layer('Gate') },
   { name: 'traps', type: list('Trap') }, { name: 'projectiles', type: list('Projectile') }, { name: 'effects', type: list('Effect') },
@@ -131,11 +134,12 @@ for (const name of Object.keys(FAST_KEYS)) if (!FAST_MATCH.fields.some(f => f.na
 export const STATE_SCHEMA: Schema = Object.freeze({
   version: WIRE_VERSION,
   unitsPerMetre: UNITS_PER_METRE,
-  // `fast` is not sent yet: stage 3's delivery sends it (24.5).
-  messages: { state: { id: 1, record: 'StateMessage' }, fast: { id: 2, record: 'FastMessage' } },
+  // A player session with datagrams is sent `fast` on datagrams and `slow` on its stream (24.5 stage 3).
+  messages: { state: { id: 1, record: 'StateMessage' }, fast: { id: 2, record: 'FastMessage' }, slow: { id: 3, record: 'SlowMessage' } },
   records: {
     StateMessage: { fields: [{ name: 'state', type: { union: 'phase', variants: { live: 'MatchState', finished: 'MatchState', waiting: 'WaitingState' } } }] },
-    FastMessage: { fields: [ROSTER_REVISION, { name: 'state', type: { delta: { union: 'phase', variants: { live: 'FastMatch', finished: 'FastMatch' } } } }] },
+    FastMessage: { fields: [ROSTER_REVISION, SLOW_VERSION, { name: 'state', type: { delta: { union: 'phase', variants: { live: 'FastMatch', finished: 'FastMatch' } } } }] },
+    SlowMessage: { fields: [SLOW_VERSION, { name: 'items', type: layer('Item') }, { name: 'gates', type: layer('Gate') }, { name: 'discovered', type: layer('uint'), optional: true }] },
     MatchState: MATCH_STATE, WaitingState: WAITING_STATE, FastMatch: FAST_MATCH,
     Own: OWN, Observed: OBSERVED_RECORD, Item: ITEM,
     Reload: { fields: [{ name: 'slot', type: 'uint' }, { name: 'until', type: 'exact' }] },

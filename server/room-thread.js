@@ -10,7 +10,7 @@ const asError = plain => Object.assign(new Error(plain.message), plain.stack ? {
 /**
  * The host's side of a room running on its own worker thread (room-worker.js, #1089). It answers the host
  * as an in-process room (room.js) does, so the room service runs either behind one interface: `onJoin`,
- * `onLeave`, `onMessage`, `onInvalidMessage`, `setViewLag`, `close`, `summary`, `metrics`. What differs is
+ * `onLeave`, `onMessage`, `onInvalidMessage`, `setViewLag`, `onAck`, `close`, `summary`, `metrics`. What differs is
  * time and answers: the room ticks on its own scheduler (`tick` here only reports), a join is answered later
  * through `joined`, and `summary`/`metrics` are the room's latest report, adjusted for joins still in flight
  * so the directory never offers the same last place twice.
@@ -18,7 +18,8 @@ const asError = plain => Object.assign(new Error(plain.message), plain.stack ? {
  * `map` is a map, a promise of one, a packed map (map-pack.js) or a promise of one, or absent to generate in
  * the room's thread. A map the generator packed reaches the room without the host decoding it; a plain map
  * (a test's) is packed here first. Hooks are the host's: `deliver(clientId, bytes, binary)` with the room's own
- * drop decision already made (`binary` for a codec `state` message, else UTF-8 text), `backlog(clientId)` the socket's buffered bytes, `closeClient`, `joined`,
+ * drop decision already made (`binary` for a codec `state` message, else UTF-8 text), `datagram(clientId, bytes)`
+ * for a fast frame (room-views.js), `backlog(clientId)` the socket's buffered bytes, `closeClient`, `joined`,
  * `onFinalization`, `onDispose(roomId, clientIds)`, `published(meta)`, `reportError`, and `failed(roomId)`
  * when the thread dies unasked.
  */
@@ -78,6 +79,7 @@ export function createRoomThread({ id, ownerKey, seed, matchmade, size, map, nam
     for (const event of events) {
       switch (event[0]) {
         case 'deliver': hooks.deliver(event[1], payloads[event[2]], event[3]); break;
+        case 'datagram': hooks.datagram(event[1], payloads[event[2]]); break;
         case 'close': hooks.closeClient(event[1], event[2], event[3]); break;
         case 'joined': {
           const at = inFlight.indexOf(event[1]);
@@ -136,17 +138,18 @@ export function createRoomThread({ id, ownerKey, seed, matchmade, size, map, nam
     descriptor: { id, ownerKey, seed, size, name, ready },
     get finished() { return summary === null; },
     /** Joins are answered through the host's `joined` hook once the room has decided. */
-    onJoin(clientId, options) {
+    onJoin(clientId, options, transport = {}) {
       if (options.mode !== 'dev' && options.mode !== 'spectator') {
         inFlight.push(clientId);
         inFlightRoles.set(clientId, options.role === 'gladiator' ? 'gladiator' : 'contestant');
       }
-      post({ op: 'join', clientId, options });
+      post({ op: 'join', clientId, options, transport });
     },
     onLeave(clientId) { reported.delete(clientId); blocked.delete(clientId); post({ op: 'leave', clientId }); return true; },
     onMessage(clientId, data) { post({ op: 'message', clientId, data }); },
     onInvalidMessage(clientId, info) { post({ op: 'invalid', clientId, info }); },
     setViewLag(clientId, rttMs) { post({ op: 'lag', clientId, rttMs }); return true; },
+    onAck(clientId, tick) { post({ op: 'ack', clientId, tick }); },
     setProfiling(enabled) { post({ op: 'profile', enabled }); },
     /**
      * The room thread's own profiler series, `{ frames, series }`, or null once the thread has ended or when it

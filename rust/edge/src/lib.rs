@@ -22,7 +22,7 @@ use wtransport::{Connection, Endpoint, Identity, RecvStream, SendStream, ServerC
 use frame::link::{ACCEPT, CLOSE, CLOSED, DATAGRAM, DELIVER, EDGE, MESSAGE, OPEN, WRITTEN};
 
 /// The link protocol version this edge speaks.
-const LINK_VERSION: u64 = 2;
+const LINK_VERSION: u64 = 3;
 /// The only session path.
 const ARENA_PATH: &str = "/arena";
 /// QUIC's cap on unacknowledged bytes per connection, so a write completes only when the client keeps up.
