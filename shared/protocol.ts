@@ -385,6 +385,12 @@ export interface HealthResponse {
   devTools: DevToolsPolicy;
   liveRooms: number;
   emptyLiveRooms: number;
+  /** `fast` messages sent on datagrams since the server started (24.5 "Delivery"). */
+  fastDatagrams: number;
+  /** Of those, deltas over one of the edge's fragments: 24.2's cue for priority packing. */
+  fastFragmentedDeltas: number;
+  /** `fast` messages sent on the stream instead, too large for the edge's fragments: the overflow 24.2 counts. */
+  fastStreamed: number;
   mapPool: Record<string, number> | null;
 }
 
@@ -765,7 +771,7 @@ export const pingMessage = (token: string, rtt: number | null): PingMessage =>
 
 const HEALTH_KEYS = [
   'ok', 'rulesVersion', 'physicsVersion', 'wireVersion', 'tickRate',
-  'profiling', 'devTools', 'liveRooms', 'emptyLiveRooms', 'mapPool',
+  'profiling', 'devTools', 'liveRooms', 'emptyLiveRooms', 'fastDatagrams', 'fastFragmentedDeltas', 'fastStreamed', 'mapPool',
 ] as const;
 
 const PROFILE_KEYS = ['enabled', 'tickRate', 'budgetMs', 'effectiveHz', 'frames', 'rooms', 'series', 'roomProfiles'] as const;
@@ -792,6 +798,9 @@ export function healthResponse(fields: Omit<HealthResponse, 'ok' | 'wireVersion'
     !(DEV_TOOLS_POLICIES as readonly unknown[]).includes(raw.devTools) ||
     !nonNegativeInt(raw.liveRooms) ||
     !nonNegativeInt(raw.emptyLiveRooms) ||
+    !nonNegativeInt(raw.fastDatagrams) ||
+    !nonNegativeInt(raw.fastFragmentedDeltas) ||
+    !nonNegativeInt(raw.fastStreamed) ||
     (raw.mapPool !== null && (!isRecord(raw.mapPool) || !Object.values(raw.mapPool).every(nonNegativeInt)))
   ) {
     throw new TypeError('Invalid /api/health response payload.');

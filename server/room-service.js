@@ -13,6 +13,8 @@ import { mapHere } from './map-pack.js';
 
 export { EMPTY_ROOM_GRACE_MS, MATCHMAKING_COUNTDOWN_MS };
 
+// A room's `fast` message counts in `metrics()` (room.js), which the host sums across rooms, retired ones included.
+const FAST_COUNTS = ['fastDatagrams', 'fastFragmentedDeltas', 'fastStreamed'];
 const decoder = new TextDecoder();
 // One decoding per payload however many sessions without byte delivery receive it.
 const decoded = new WeakMap();
@@ -56,6 +58,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   const sessions = new Map();
   const roomSessions = new Map();
   const finalizations = new Set();
+  // The `fast` message counts of rooms retired, so `metrics()` counts since the process started.
+  const retiredFast = Object.fromEntries(FAST_COUNTS.map(name => [name, 0]));
   let closing;
 
   const connect = peer => {
@@ -73,6 +77,11 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   }
 
   function retireRoom(roomId, clientIds) {
+    const room = rooms.get(roomId);
+    if (room) {
+      const counts = room.metrics();
+      for (const name of FAST_COUNTS) retiredFast[name] += counts[name];
+    }
     rooms.delete(roomId);
     const attached = roomSessions.get(roomId);
     roomSessions.delete(roomId);
@@ -294,14 +303,21 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     return closing;
   }
 
-  /** Counts of live rooms (started, unfinished) for the health and profile endpoints; plain numbers, never a room. */
+  /**
+   * Counts of live rooms (started, unfinished) for the health and profile endpoints, and of the `fast` messages
+   * sent since the process started, rooms retired since included: on datagrams, the deltas among them over one
+   * fragment, and those sent on the stream for being too large (24.2 "Byte budget and overflow"). Plain numbers,
+   * never a room.
+   */
   const metrics = () => {
     let live = 0, emptyLive = 0;
+    const fast = { ...retiredFast };
     for (const room of rooms.values()) {
       const m = room.metrics();
       if (m.live) { live++; if (m.emptyLive) emptyLive++; }
+      for (const name of FAST_COUNTS) fast[name] += m[name];
     }
-    return { liveRooms: live, emptyLiveRooms: emptyLive };
+    return { liveRooms: live, emptyLiveRooms: emptyLive, ...fast };
   };
 
   /** Turn profiling on or off here and in every room's thread. */

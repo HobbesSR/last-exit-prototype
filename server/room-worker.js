@@ -37,10 +37,14 @@ function schedule() {
   scheduled = true;
   queueMicrotask(flush);
 }
-function flush() {
-  scheduled = false;
+// The room's summary and metrics, when they have changed since the last report.
+function report() {
   const summary = room.summary(), metrics = room.metrics(), text = JSON.stringify([summary, metrics]);
   if (text !== lastSummary) { lastSummary = text; events.push(['summary', summary, metrics]); }
+}
+function flush() {
+  scheduled = false;
+  report();
   if (!events.length) return;
   const out = events, bytes = payloads;
   events = []; payloads = []; payloadIndex = new Map();
@@ -89,7 +93,8 @@ const room = createRoom({
     emit(['finalizing']);
     completion.finally(() => { finalizing--; emit(['finalized']); retireWhenDone(); });
   },
-  onDispose: (_id, clientIds) => { disposed = true; emit(['disposed', clientIds]); retireWhenDone(); },
+  // The last report goes before `disposed`, since the host totals a retired room's counts from it.
+  onDispose: (_id, clientIds) => { disposed = true; report(); emit(['disposed', clientIds]); retireWhenDone(); },
 });
 
 room.onCreate(options).ready.then(() => emit(['ready']));

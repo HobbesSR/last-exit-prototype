@@ -5,11 +5,12 @@ import { wireCodec } from '../shared/wire-schema.ts';
 import { MissingBaseline } from '../shared/wire-codec.ts';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '../shared/discovery.ts';
-import { ANGLE_QUANTUM, createEventWindow, createFastHistory, createFastReader, fastFrame, holdItemBodies, keptEvents, quantize, FAST_HISTORY_TICKS, FAST_QUANTA, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
+import { ANGLE_QUANTUM, createEventWindow, createFastHistory, createFastReader, fastFrame, holdItemBodies, keptEvents, quantize, FAST_HISTORY_TICKS, FAST_QUANTA, DATAGRAM_PAYLOAD_BYTES, MAX_FAST_DATAGRAM_BYTES } from '../shared/fast-state.ts';
 import { event, participant } from '../shared/simulation/loot.ts';
 import { KEPT_EVENTS } from '../shared/simulation/rules.ts';
 import { deliversFast } from '../server/room-views.js';
 import { EFFECT_KINDS } from '../shared/enum-tables.ts';
+import { UNITS_PER_METRE } from '../shared/physics/units.ts';
 
 // The split delivery (24.5 "Stage 3's contracts"): a player session with datagrams is sent its fast state on
 // datagrams, as deltas against the newest frame it acknowledged, and its slow layers on the stream. A fake
@@ -317,42 +318,65 @@ test('the reader keeps only newer frames, draws with the slow layers it holds, a
   assert.equal(reader.slow([{ id: 7 }], [], 5).tick, 13, 'version 4 was skipped; 5 completes frame 13');
 });
 
-test("a fast message over the edge's four fragments goes on the stream; its deltas, which fit, on datagrams", async () => {
+test("a fast message over the edge's four fragments goes on the stream, its deltas on datagrams, and health counts each", async () => {
   const h = roomHarness({ reuseMaps: true });
   const made = await h.room();
   const owner = h.joined(made, { ownerKey: made.ownerKey, role: 'gladiator' });
   const reader = createFastReader(), streamed = [], datagrams = [];
-  const read = (bytes, into) => {
+  // The stream skips the first `fast` it is offered, as a backed-up one does, and the transport refuses the first
+  // datagram, as an ending session's does: neither arrives, so neither may be counted.
+  const refused = { stream: false, datagram: false };
+  const offer = (bytes, into, path) => {
     const message = codec.decode(bytes, { baseline: reader.baseline });
-    if (message.type !== 'fast') return;
+    if (message.type !== 'fast') return true;
+    if (!refused[path]) { refused[path] = true; return false; }
     into.push({ bytes: bytes.length, tick: message.state.tick });
     reader.fast(message);
+    return true;
   };
   const session = h.service.connect({
-    deliver: payload => { if (typeof payload !== 'string') read(payload, streamed); return true; },
-    datagram: bytes => { read(bytes, datagrams); return true; },
+    deliver: payload => typeof payload === 'string' || offer(payload, streamed, 'stream'),
+    datagram: bytes => offer(bytes, datagrams, 'datagram'),
     close: () => {},
   });
   h.directory.receive(session, { type: 'join', room: made.id, role: 'contestant' });
   // A bigger roster or map than this arena's: the contestant's view gains props until a whole frame needs more
-  // than four of the edge's fragments. They do not move, so a delta against an acknowledged frame stays small.
+  // than four of the edge's fragments. They do not move, so a delta against an acknowledged frame stays small,
+  // until `moving`: then each moves every tick, and a delta takes more than one fragment.
   const project = made.match.project;
+  let moving = false;
   made.match.project = (frame, id) => {
     const view = project(frame, id);
     if (id !== session.playerId || view.phase === 'waiting' || !view.bodies?.length) return view;
     const [model] = view.bodies;
-    const props = Array.from({ length: 120 }, (_, i) => ({ ...model, id: 100_000 + i, owner: { kind: 'prop', propId: 100_000 + i } }));
+    const props = Array.from({ length: 120 }, (_, i) => ({ ...model, id: 100_000 + i, owner: { kind: 'prop', propId: 100_000 + i }, ...(moving ? { x: model.x + view.tick * UNITS_PER_METRE } : {}) }));
     return { ...view, bodies: [...view.bodies, ...props] };
   };
   try {
     h.wake(50); owner.send({ type: 'start' });
     for (let i = 0; i < 4; i++) h.wake(50);
-    assert.ok(streamed.length >= 3 && datagrams.length === 0, `${streamed.length} whole frames streamed, ${datagrams.length} sent as datagrams`);
+    assert.ok(refused.stream && streamed.length >= 3 && datagrams.length === 0, `${streamed.length} whole frames streamed, ${datagrams.length} sent as datagrams`);
     assert.ok(streamed.every(m => m.bytes > MAX_FAST_DATAGRAM_BYTES), 'each over the limit');
     h.service.acknowledge(session, reader.newest());
     for (let i = 0; i < 3; i++) h.wake(50);
-    assert.equal(datagrams.length, 3, 'deltas against the acknowledged frame fit');
+    assert.ok(refused.datagram);
+    assert.equal(datagrams.length, 2, 'deltas against the acknowledged frame fit, but for the one refused');
     assert.ok(datagrams.every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES));
+    moving = true;
+    for (let i = 0; i < 3; i++) { h.service.acknowledge(session, reader.newest()); h.wake(50); }
+    const fragmented = datagrams.slice(2).filter(m => m.bytes > DATAGRAM_PAYLOAD_BYTES).length;
+    assert.ok(fragmented >= 2 && datagrams.slice(2).every(m => m.bytes <= MAX_FAST_DATAGRAM_BYTES), `moving props: ${datagrams.slice(2).map(m => m.bytes)} B`);
+    // Health counts each apart, without the profiler, only what was taken, and keeps the counts once the room
+    // retires (24.2 "Byte budget").
+    const counts = () => { const m = h.service.metrics(); return [m.fastDatagrams, m.fastFragmentedDeltas, m.fastStreamed]; };
+    assert.deepEqual(counts(), [datagrams.length, fragmented, streamed.length]);
+    owner.send({ type: 'finish' });
+    h.wake(50);
+    const sent = counts();
+    h.service.disconnect(owner.session); h.service.disconnect(session);
+    h.wake(50, 200_000);
+    assert.ok(!h.service.rooms.has(made.id), 'the room retired');
+    assert.deepEqual(counts(), sent);
   } finally { await h.service.close(); }
 });
 

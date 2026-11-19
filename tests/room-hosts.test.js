@@ -190,6 +190,9 @@ for (const threads of [false, true]) {
       h.service.acknowledge(fast.session, acked);
       await until(() => next().some(m => m.asked === acked), 'a delta against the acknowledged frame');
       assert.ok(owner.frames.some(f => f.phase === 'live'), 'a stream player still gets `state`');
+      // The room's count of them reaches the host's health metrics, from its own thread too.
+      await until(() => h.service.metrics().fastDatagrams >= fast.datagrams.length, 'the fast datagrams counted');
+      assert.equal(h.service.metrics().fastStreamed + h.service.metrics().fastFragmentedDeltas, 0, 'none fragmented or streamed');
       assert.deepEqual(h.errors, []);
     } finally { await h.finish(); }
   });

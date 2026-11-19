@@ -37,7 +37,7 @@ export function createRoomThread({ id, ownerKey, seed, matchmade, size, map, nam
     id, name, kind: matchmade ? 'matchmade' : 'private', phase: 'lobby', ready: false, size: zoneSizeName(size), createdAt,
     players: byRole(() => 0), open: byRole(capacity),
   };
-  let metrics = { live: false, emptyLive: false };
+  let metrics = { live: false, emptyLive: false, fastDatagrams: 0, fastFragmentedDeltas: 0, fastStreamed: 0 };
   // Player joins sent and not yet answered, by the role asked for.
   const inFlight = [], inFlightRoles = new Map();
   let ended = false, closing, resolveClosed, resolveReady;
@@ -68,7 +68,7 @@ export function createRoomThread({ id, ownerKey, seed, matchmade, size, map, nam
     if (ended) return;
     ended = true;
     summary = null;
-    metrics = { live: false, emptyLive: false };
+    metrics = { ...metrics, live: false, emptyLive: false };
     resolveReady(); while (finalizations.length) settleFinalization(); resolveClosed();
     for (const resolve of profileRequests.values()) resolve(null);
     profileRequests.clear();
