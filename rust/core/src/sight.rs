@@ -1,4 +1,5 @@
-//! Sight casting: the port of `visibilityPolygon` in `shared/sight.ts` (#1175 stage 2, docs/27).
+//! Sight casting: `visibilityPolygon`, ported from `shared/sight.ts` (#1175 stage 2, docs/27), whose
+//! TypeScript cast has since retired.
 //!
 //! Its input is a derived flat index, not the map. JavaScript builds it from the map
 //! (`shared/sight-core.ts`) and uploads it once:
@@ -6,9 +7,10 @@
 //! - **A gate set:** each gate's edges, its cells, and a mask of which gates are open, which the
 //!   adapter rewrites before each call.
 //!
-//! The result must equal the TypeScript's bit for bit. So this follows it operation for operation:
-//! the same visiting order, the same stable sorts, the same floating-point expressions, and the
-//! crate's own `atan2`/`cos`/`sin`.
+//! It equalled the TypeScript's bit for bit, and `tests/sight-core.test.js` now pins its polygons by
+//! digest. So it follows that cast operation for operation: the same visiting order, the same stable
+//! sorts, the same floating-point expressions, and the crate's own `atan2`/`cos`/`sin`. Keep it so;
+//! a moved digest is a gameplay change (docs/31).
 
 use crate::math::{atan2, cos, sin};
 use core::f64::consts::PI;

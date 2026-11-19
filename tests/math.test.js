@@ -5,6 +5,7 @@ import path from 'node:path';
 import * as math from '../shared/math.ts';
 import { CORE_ADAPTER_VERSION, loadCore } from '../shared/core.ts';
 import { buildCore } from '../tools/build-core.mjs';
+import { digester } from './helpers/float-digest.js';
 
 const { atan, atan2, cos, hypot, sin } = math;
 
@@ -41,16 +42,6 @@ test('shared/ computes non-exact math only through shared/math.ts (#566)', () =>
   }
   assert.deepEqual(offenders, []);
 });
-
-/** FNV-1a over exact output bits. NaN is mixed as the one canonical NaN, whatever its payload. */
-function digester() {
-  let digest = 0x811c9dc5;
-  const mix = value => {
-    bits.setFloat64(0, Number.isNaN(value) ? NaN : value);
-    for (let i = 0; i < 8; i++) digest = Math.imul(digest ^ bits.getUint8(i), 0x01000193) >>> 0;
-  };
-  return { mix, hex: () => digest.toString(16) };
-}
 
 /** A digest over arguments of every scale. rust/core/src/math.rs's tests compute the same one. */
 function digestOf({ sin, cos, atan, atan2, hypot }) {

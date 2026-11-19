@@ -82,9 +82,10 @@ in its last bits (#668).
 occupancy queries serve placement and planning (`movePlayer` moved every body in contents 1 to 5,
 and was retired in #975 when the waiting yard moved onto Rapier). Since #1184 it owns collision alone:
 
-- **Sight casting** is `shared/sight.ts`: `lineClear`, `reachClear`, `visibilityPolygon`, `litPoint`
-  and `seeThrough`, over its own index of the edges that block sight and the see-through obstacles
-  that stop hands. It imports nothing from collision, so it can be ported alone (27).
+- **Sight casting** is `shared/sight.ts`: `lineClear`, `reachClear`, `litPoint` and `seeThrough`,
+  over its own index of the edges that block sight and the see-through obstacles that stop hands. It
+  imports nothing from collision. `visibilityPolygon` is the Rust core's (`rust/core/src/sight.rs`,
+  through `shared/sight-core.ts`), uploaded from that index; the TypeScript cast retired in #1175 (27).
 - **Where the gates are** is `shared/gate-index.ts` (`gateShape`, `gatesNear`), which both read.
 - **Reading the playable area** (`insideMap`, `playableAreaOf`, the per-cell test) is
   `shared/playable-area.ts`, beside its encoding.

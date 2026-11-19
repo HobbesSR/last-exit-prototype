@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { canOccupy, moveBody, prepareMovementGeometry, sweptClear } from '../shared/movement.ts';
-import { lineClear, prepareSightIndex, reachClear, visibilityPolygon } from '../shared/sight.ts';
+import { lineClear, prepareSightIndex, reachClear } from '../shared/sight.ts';
+import { initCoreSight } from '../shared/sight-core.ts';
 import { openArea } from './helpers/arena.js';
+
+const { visibilityPolygon } = await initCoreSight();
 
 // Collision and sight each keep their own index; a match prepares both, collision first (#1184).
 async function prepareAll(map, yieldControl) {

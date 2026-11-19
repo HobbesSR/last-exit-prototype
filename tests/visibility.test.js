@@ -1,13 +1,17 @@
-// Guards the wedge-culled visibility polygon against a brute-force implementation of the same rays.
+// Guards the wedge-culled visibility polygon, cast by the Rust core (#1175), against a brute-force
+// implementation of the same rays.
 // The optimisation must be exact: every vertex identical, not merely close.
 import { generatedMap } from './helpers/room-harness.js';
 import { canOccupy } from '../shared/movement.ts';
-import { visibilityPolygon, litPoint, lineClear, reachClear, VISION } from '../shared/sight.ts';
+import { litPoint, lineClear, reachClear, VISION } from '../shared/sight.ts';
+import { initCoreSight } from '../shared/sight-core.ts';
 import { outline, shapeOf } from '../shared/shape.ts';
 // Exact agreement needs the same trig as shared/; Math.* differs from it in the last bit on ARM (#566).
 import { atan2, cos, sin } from '../shared/math.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
+const { visibilityPolygon } = await initCoreSight();
 // The rays below are deliberately an independent implementation — that is what this test guards.
 // What a shape *is* is deliberately not: a second description of that is the exact defect `shape.ts`
 // exists to prevent, and this reference did carry one. It read every obstacle from raw `x/y/w/h`, so

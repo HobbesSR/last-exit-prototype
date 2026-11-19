@@ -1,18 +1,17 @@
-// The adapter measurement for #1175 stage 2: `visibilityPolygon` in TypeScript against the Rust
-// core through the flat-buffer adapter, on the room arena's real map (docs/27, 42.58).
+// The adapter measurement for #1175 stage 2: the Rust core's `visibilityPolygon` through the flat-buffer
+// adapter, on the room arena's real map (docs/27, 42.58). 42.58 measured it against the TypeScript cast,
+// which retired once the core matched it (#1175); this keeps the crossing and materialization costs.
 //
 //   node tests/bench-sight.mjs [--calls=2000] [--rounds=7] [--radius=620]
 //
 // Each round times every variant in turn on the same origins, rotating which goes first, so
 // machine load is shared: judge by each round's ratio (31). Process CPU is reported beside wall time.
-// - `ts`: shared/sight.ts.
 // - `core`: shared/sight-core.ts, returning the same point objects.
 // - `flat`: the same call, leaving the points in WASM memory: the crossing without building objects.
 // - `empty`: a call to `adapter_version`, the floor for one crossing.
 import { readFileSync } from 'node:fs';
 import { loadCore } from '../shared/core.ts';
 import { coreSight } from '../shared/sight-core.ts';
-import { visibilityPolygon } from '../shared/sight.ts';
 import { insideMap } from '../shared/playable-area.ts';
 import { buildCore } from '../tools/build-core.mjs';
 import { readArena } from '../tools/room-arena.mjs';
@@ -44,12 +43,10 @@ try {
   const upload = performance.now() - uploadStart;
 
   const core = coreSight(exports);
-  const expected = visibilityPolygon(map, origins[0], radius), actual = core.visibilityPolygon(map, origins[0], radius);
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error('the core and TypeScript polygons differ; run tests/sight-core.test.js');
+  const points = core.visibilityPolygon(map, origins[0], radius).length;
 
   let sink = 0;
   const variants = {
-    ts: origin => { sink += visibilityPolygon(map, origin, radius).length; },
     core: origin => { sink += core.visibilityPolygon(map, origin, radius).length; },
     flat: origin => { sink += core.visibilityPolygonFlat(map, origin, radius).length; },
     empty: () => { sink += exports.adapter_version(); },
@@ -71,12 +68,12 @@ try {
   }
   const median = values => [...values].sort((a, b) => a - b)[values.length >> 1];
   const round2 = value => Math.round(value * 100) / 100;
-  const ratios = results.ts.wall.map((ts, i) => round2(results.core.wall[i] / ts));
+  const ratios = results.core.wall.map((core, i) => round2(results.flat.wall[i] / core));
   console.log(JSON.stringify({
     map: { obstacles: map.obstacles.length, gates: map.gates.length, width: map.width, height: map.height },
-    calls, rounds, radius, points: expected.length, uploadMs: round2(upload),
+    calls, rounds, radius, points, uploadMs: round2(upload),
     perCallMicros: Object.fromEntries(names.map(name => [name, { wall: round2(median(results[name].wall)), cpu: round2(median(results[name].cpu)) }])),
-    coreOverTsByRound: ratios,
+    flatOverCoreByRound: ratios,
     contention: lock.contention(),
     sink: sink > 0,
   }, null, 2));

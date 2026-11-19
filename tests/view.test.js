@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, buildingOpenings, ROOF_REVEAL_RANGE, ROOF_FADE_MS, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
-import { visibilityPolygon, litPoint } from '../shared/sight.ts';
+import { litPoint } from '../shared/sight.ts';
+import { initCoreSight } from '../shared/sight-core.ts';
 import { readArena } from '../tools/room-arena.mjs';
 import { hypot } from '../shared/math.ts';
+
+const { visibilityPolygon } = await initCoreSight();
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
   const eye = { x: 3000, y: 2000 }, map = { obstacles: [], gates: [] };
