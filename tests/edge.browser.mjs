@@ -4,11 +4,14 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { collectBrowserErrors, serveWithBrowser } from './helpers/browser.js';
+import { startLossyRelay } from './helpers/lossy-relay.js';
 
 // The WebTransport edge end to end (#1095, 24.5 stages 1 to 3): the Rust edge, linked to this server, carries a real
 // Chrome session behind the session seam. A room cannot tell the transport, so the default room's join, start and
 // walk must work on WebTransport as they do on the WebSocket. On it the player's match frames come as `fast`
-// datagrams the page rebuilds and acknowledges, so the walk is drawn from them. Needs the Rust toolchain: the edge is built first.
+// datagrams the page rebuilds and acknowledges, so the walk is drawn from them. The page reaches the edge through a
+// UDP relay, which later loses datagrams: the page keeps drawing through loss and recovers from an outage longer than
+// the 32-tick history with whole frames. Needs the Rust toolchain: the edge is built first.
 const RUST = path.resolve('rust');
 execFileSync('cargo', ['build', '--locked', '-p', 'last-exit-edge'], { cwd: RUST, stdio: 'inherit' });
 const binary = path.join(RUST, 'target', 'debug', process.platform === 'win32' ? 'last-exit-edge.exe' : 'last-exit-edge');
@@ -17,6 +20,7 @@ const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-edge-'));
 const { server, base, browser, close } = await serveWithBrowser({ profileSummary: false, roomThreads: false, edgeLink: 0, replayDir });
 const edge = spawn(binary, ['--link', `127.0.0.1:${server.edgeLink.port}`, '--port', '0'], { stdio: ['ignore', 'inherit', 'inherit'] });
 const errors = [];
+let relay = null;
 try {
   // The edge reports its port and certificate over the link, and the page learns them from the client config.
   let offer = null;
@@ -26,9 +30,15 @@ try {
   }
   assert.ok(offer?.port && /^[0-9a-f]{64}$/.test(offer.certificateHash), 'the linked edge is offered with its certificate hash');
 
-  // Forced WebTransport never falls back, so a match that starts and moves proves the edge carried it.
+  // Forced WebTransport never falls back, so a match that starts and moves proves the edge carried it. The page
+  // learns the edge from the client config, which points it at the relay; lossless, the relay only forwards.
+  relay = await startLossyRelay({ target: offer.port, profile: { rtt: 0, jitter: 0, loss: 0 }, seed: 1095 });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   collectBrowserErrors(page, errors, { consoleErrors: true });
+  await page.route('**/api/client-config', async route => {
+    const response = await route.fetch(), config = await response.json();
+    await route.fulfill({ response, json: { ...config, webTransport: { ...config.webTransport, port: relay.port } } });
+  });
   await page.goto(`${base}/?seed=4217&transport=wt`);
   const start = page.getByRole('button', { name: 'Start match', exact: true });
   await start.waitFor({ state: 'visible', timeout: 60000 });
@@ -46,6 +56,38 @@ try {
   await page.waitForFunction(at => window.arenaDebug().tick > at + 10, tick, { timeout: 5000 });
   const counts = server.edgeLink.counts();
   assert.ok(counts.sends > 20 && counts.acks > 10, `fast state went as datagrams and was acknowledged (${JSON.stringify(counts)})`);
+
+  // Under loss (24.5 "Stage 3's contracts"): each fast datagram the player's session sends is noted, delta or whole,
+  // as the room decides (a delta when the acknowledged frame is in the session's history).
+  const live = server.rooms.get(room), client = [...live.clients].find(c => c.playerId), datagram = client.datagram;
+  const sent = [];
+  client.datagram = bytes => {
+    sent.push(client.fastAck !== null && client.fastAck !== undefined && !!client.fastHistory?.get(client.fastAck) ? 'delta' : 'whole');
+    return datagram(bytes);
+  };
+  const drawnTick = () => page.evaluate(() => window.arenaDebug().buffer.newest);
+  // A fifth of the packets lost each way: frames keep being drawn, from deltas against what the page acknowledged.
+  await relay.update({ rtt: 0, jitter: 0, loss: 0.2 });
+  const lossyFrom = await drawnTick();
+  await page.waitForTimeout(2000);
+  const lossy = await relay.counts(), lossyDrawn = await drawnTick() - lossyFrom;
+  assert.ok(lossy.downDropped > 5, `the relay lost datagrams (${JSON.stringify(lossy)})`);
+  assert.ok(lossyDrawn > 20, `frames kept being drawn through loss (${lossyDrawn} ticks in 2 s)`);
+  assert.ok(sent.filter(kind => kind === 'delta').length > sent.length / 2, `deltas carried the lossy stretch (${sent.join(',')})`);
+  // An outage longer than the history: the page's acknowledged frame ages out, so the room sends whole frames until
+  // one arrives and is acknowledged; then deltas resume and the page draws the current tick again.
+  await relay.update({ rtt: 0, jitter: 0, loss: 1 });
+  await page.waitForTimeout(2500);
+  const stalled = await drawnTick();
+  sent.length = 0;
+  await relay.update({ rtt: 0, jitter: 0, loss: 0 });
+  await page.waitForFunction(at => window.arenaDebug().buffer.newest > at + 10, stalled, { timeout: 5000 });
+  // The first whole frame jumps the page past the outage at once; deltas follow once its acknowledgement lands.
+  for (let waited = 0; !sent.includes('delta') && waited < 3000; waited += 50) await new Promise(resolve => setTimeout(resolve, 50));
+  const firstDelta = sent.indexOf('delta');
+  assert.ok(sent[0] === 'whole' && firstDelta > 0, `recovery began whole and deltas resumed (${sent.join(',')})`);
+  assert.ok(live.match.tick - await drawnTick() < 5, 'the page draws the current tick again');
+  client.datagram = datagram;
 
   // Unforced, the page chooses WebTransport too. Its spectator join reaches the same room through the edge.
   const watcher = await browser.newPage();
@@ -75,6 +117,7 @@ try {
   assert.deepEqual(errors.slice(sinceKill).filter(text => !/WebTransport|ERR_QUIC|net::/.test(text)), []);
   console.log('edge browser check passed');
 } finally {
+  await relay?.stop();
   edge.kill();
   try { await close(); } finally { await rm(replayDir, { recursive: true, force: true }); }
 }

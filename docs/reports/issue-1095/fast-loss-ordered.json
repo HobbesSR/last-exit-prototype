@@ -1,0 +1,301 @@
+{
+ "issue": 1095,
+ "tool": "tools/perf/fast-loss-1095.mjs",
+ "date": "2026-11-19T16:43:55.345Z",
+ "node": "v24.15.0",
+ "browser": "157.0.8103.51",
+ "settings": {
+  "seconds": 20,
+  "runs": 1,
+  "seed": 1095,
+  "mapSeed": 4217,
+  "tickMs": 50,
+  "fragmentBytes": 1100,
+  "profiles": [
+   {
+    "name": "wifi",
+    "rtt": 120,
+    "jitter": 35,
+    "loss": 0.03,
+    "ordered": true
+   },
+   {
+    "name": "poor",
+    "rtt": 220,
+    "jitter": 70,
+    "loss": 0.05,
+    "ordered": true
+   }
+  ]
+ },
+ "results": [
+  {
+   "profile": "wifi",
+   "run": 0,
+   "seconds": 20,
+   "endedLive": true,
+   "joinToLiveMs": 30936,
+   "sent": 400,
+   "received": 387,
+   "receivedPercent": 96.8,
+   "drawn": 387,
+   "drawnPercent": 96.8,
+   "ackAge": {
+    "whole": null,
+    "delta": {
+     "n": 400,
+     "p50": 5,
+     "p95": 8,
+     "p99": 11,
+     "max": 13
+    },
+    "wholeWithoutAck": 0
+   },
+   "whole": {
+    "count": 0,
+    "bytes": null,
+    "fragments": null
+   },
+   "delta": {
+    "count": 400,
+    "percent": 100,
+    "bytes": {
+     "n": 400,
+     "p50": 68,
+     "p95": 96,
+     "p99": 99,
+     "max": 155
+    },
+    "fragments": {
+     "n": 400,
+     "p50": 1,
+     "p95": 1,
+     "p99": 1,
+     "max": 1
+    }
+   },
+   "streamed": 0,
+   "sessionKept": true,
+   "playerSessions": 1,
+   "sendsPerSecond": [
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20
+   ],
+   "wholePerSecond": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "ackAgePerSecond": [
+    11,
+    10,
+    6,
+    8,
+    8,
+    7,
+    8,
+    8,
+    13,
+    7,
+    7,
+    8,
+    11,
+    7,
+    8,
+    9,
+    8,
+    7,
+    8,
+    9
+   ],
+   "playerStatus": "active",
+   "sessionsEnded": [],
+   "acknowledgements": 264,
+   "inputDatagrams": 399,
+   "staleness": {
+    "n": 1984,
+    "p50": 127.3,
+    "p95": 219.2,
+    "p99": 279.7,
+    "max": 341.4
+   },
+   "longestStallMs": 268,
+   "relay": {
+    "up": 582,
+    "down": 639,
+    "upDropped": 15,
+    "downDropped": 20
+   },
+   "errors": []
+  },
+  {
+   "profile": "poor",
+   "run": 0,
+   "seconds": 20,
+   "endedLive": true,
+   "joinToLiveMs": 34978,
+   "sent": 400,
+   "received": 386,
+   "receivedPercent": 96.5,
+   "drawn": 386,
+   "drawnPercent": 96.5,
+   "ackAge": {
+    "whole": null,
+    "delta": {
+     "n": 400,
+     "p50": 10,
+     "p95": 14,
+     "p99": 18,
+     "max": 20
+    },
+    "wholeWithoutAck": 0
+   },
+   "whole": {
+    "count": 0,
+    "bytes": null,
+    "fragments": null
+   },
+   "delta": {
+    "count": 400,
+    "percent": 100,
+    "bytes": {
+     "n": 400,
+     "p50": 69,
+     "p95": 101,
+     "p99": 151,
+     "max": 152
+    },
+    "fragments": {
+     "n": 400,
+     "p50": 1,
+     "p95": 1,
+     "p99": 1,
+     "max": 1
+    }
+   },
+   "streamed": 0,
+   "sessionKept": true,
+   "playerSessions": 1,
+   "sendsPerSecond": [
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20
+   ],
+   "wholePerSecond": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "ackAgePerSecond": [
+    14,
+    14,
+    15,
+    15,
+    13,
+    19,
+    14,
+    15,
+    20,
+    16,
+    12,
+    15,
+    14,
+    14,
+    13,
+    15,
+    13,
+    12,
+    12,
+    12
+   ],
+   "playerStatus": "active",
+   "sessionsEnded": [],
+   "acknowledgements": 186,
+   "inputDatagrams": 396,
+   "staleness": {
+    "n": 1965,
+    "p50": 234.1,
+    "p95": 428.5,
+    "p99": 547.5,
+    "max": 647.5
+   },
+   "longestStallMs": 480,
+   "relay": {
+    "up": 565,
+    "down": 601,
+    "upDropped": 33,
+    "downDropped": 27
+   },
+   "errors": []
+  }
+ ]
+}
