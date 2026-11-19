@@ -257,6 +257,14 @@ test("the edge's fragments are rebuilt in any order; a repeated, malformed or ab
   const [first] = fragments(1, message), [, second] = fragments(2, message), [third] = fragments(3, message);
   for (const part of [first, second, third]) assert.equal(assemble(part), null);
   assert.equal(assemble(fragments(1, message)[1]), null, 'message 1 starts again');
+  // Wrapping numbers: a message left incomplete is forgotten once single-fragment ones move past it, so the
+  // same number coming round again starts afresh rather than completing with the old fragment.
+  const wrap = createDatagramAssembler(2), [left] = fragments(10, message);
+  assert.equal(wrap(left), null);
+  for (const n of [11, 12, 13]) assert.deepEqual(wrap(fragments(n, Uint8Array.of(n))[0]), Uint8Array.of(n));
+  const other = Uint8Array.from({ length: 3000 }, () => 1), [, b2, c2] = fragments(10, other);
+  assert.equal(wrap(b2), null);
+  assert.equal(wrap(c2), null, 'without the forgotten fragment it stays incomplete');
 });
 
 test('over WebTransport, server datagrams arrive as binary messages, and acknowledgements ride inputs or go alone when idle', async () => {

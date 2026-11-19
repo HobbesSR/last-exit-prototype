@@ -84,30 +84,45 @@ type Keyed = { id: unknown };
  * A reader's side of the split (24.5 "Delivery"): what a client holds of the fast frames and slow layers its
  * session is sent, and the frame to draw from them.
  * - `baseline(tick)` is the decoder's `baseline` option: the frames it holds, as rebuilt.
- * - `slow(items, gates)` takes a `slow` message's layers once the layer decoder has rebuilt them.
  * - `fast(message)` takes a decoded `fast` message. A frame older than the newest held is ignored, and null is
  *   returned. Otherwise the frame becomes the newest, and is kept, as rebuilt, as a baseline. A frame of the
  *   newest tick again (a paused room's re-send after a dev teleport) is drawn, but that tick is then no
- *   baseline, as on the server. It returns the frame to draw: the fast part with the item-body hold applied,
- *   the slow layers held, and the message's roster revision; or null until a `slow` message has arrived.
+ *   baseline, as on the server. It returns the frame to draw, or null until a `slow` message has arrived.
+ * - `slow(items, gates, slowVersion)` takes a `slow` message's layers once the layer decoder has rebuilt them. It
+ *   returns the newest frame to draw again when that frame was waiting for these layers: never drawn, or drawn
+ *   with older layers than the version it names. A slow message can trail the last frame on the stream, and no
+ *   frame may follow it (a pause, or a finished match). Otherwise null.
+ * - `current()` is the newest frame as it would be drawn now, or null: for a reader that could not draw it when
+ *   it arrived (its roster, or the match's map, still on the stream).
  * - `newest()` is the tick to acknowledge, or null before any frame.
+ *
+ * The frame to draw is the fast part with the item-body hold applied, the slow layers held, and the message's
+ * roster revision.
  */
 export function createFastReader(ticks = FAST_HISTORY_TICKS) {
+  type Message = { rosterRevision: number; slowVersion: number; state: FastFrame };
   const history = createFastHistory(ticks);
-  let newest: number | null = null, items: Keyed[] | null = null, gates: unknown[] = [], held = new Set<unknown>();
+  let newest: number | null = null, message: Message | null = null, complete = false;
+  let items: Keyed[] | null = null, gates: unknown[] = [], held = new Set<unknown>(), version: number | null = null;
+  const current = (): FastFrame | null => message && items
+    ? { ...holdItemBodies(message.state, id => held.has(id)), items, gates, rosterRevision: message.rosterRevision } : null;
   return {
     baseline: (tick: number) => history.get(tick),
-    slow(nextItems: Keyed[], nextGates: unknown[]) {
-      items = nextItems; gates = nextGates; held = new Set(nextItems.map(item => item.id));
-    },
-    fast(message: { rosterRevision: number; state: FastFrame }): FastFrame | null {
-      const state = message.state, tick = state.tick as number;
+    fast(next: Message): FastFrame | null {
+      const tick = next.state.tick as number;
       if (newest !== null && tick < newest) return null;
-      history.record(tick, state);
-      newest = tick;
-      if (!items) return null;
-      return { ...holdItemBodies(state, id => held.has(id)), items, gates, rosterRevision: message.rosterRevision };
+      history.record(tick, next.state);
+      newest = tick; message = next; complete = version === next.slowVersion;
+      return current();
     },
+    slow(nextItems: Keyed[], nextGates: unknown[], slowVersion: number): FastFrame | null {
+      const waiting = message !== null && (items === null || (!complete && message.slowVersion === slowVersion));
+      items = nextItems; gates = nextGates; held = new Set(nextItems.map(item => item.id)); version = slowVersion;
+      if (!waiting) return null;
+      complete = message!.slowVersion === slowVersion;
+      return current();
+    },
+    current,
     newest: () => newest,
   };
 }

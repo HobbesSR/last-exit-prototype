@@ -214,23 +214,29 @@ test('the item-body hold leaves out a body whose item the reader lacks, and any 
 
 test('the reader keeps only newer frames, draws with the slow layers it holds, and holds back bodies of items it lacks', () => {
   const reader = createFastReader();
-  const frame = (tick, extra = {}) => ({ rosterRevision: 1, slowVersion: 1, state: { tick, phase: 'live', bodies: [{ id: 1, owner: { kind: 'item', itemId: 7 } }], ...extra } });
+  const frame = (tick, extra = {}, slowVersion = 1) => ({ rosterRevision: 1, slowVersion, state: { tick, phase: 'live', bodies: [{ id: 1, owner: { kind: 'item', itemId: 7 } }], ...extra } });
   assert.equal(reader.fast(frame(10)), null, 'nothing is drawn before the slow layers arrive');
   assert.equal(reader.newest(), 10, 'but the frame is held and acknowledged');
   assert.equal(reader.baseline(10).tick, 10);
-  reader.slow([{ id: 8 }], [{ id: 'g' }]);
+  assert.equal(reader.slow([{ id: 8 }], [{ id: 'g' }], 1).tick, 10, 'the held frame is drawn once they do');
   const drawn = reader.fast(frame(11));
   assert.deepEqual(drawn.bodies, [], 'item 7 is not held, so its body waits');
   assert.deepEqual([drawn.items, drawn.gates, drawn.rosterRevision], [[{ id: 8 }], [{ id: 'g' }], 1]);
   assert.equal(reader.baseline(11).bodies.length, 1, 'the baseline is the frame as rebuilt, not as drawn');
   assert.equal(reader.fast(frame(9)), null, 'an older frame is ignored');
   assert.equal(reader.newest(), 11);
-  reader.slow([{ id: 7 }], []);
+  assert.equal(reader.slow([{ id: 8 }], [], 1), null, 'the newest was drawn with the layers it names: no redraw');
+  // A frame projected with layers the stream has not yet brought: drawn now, and again when they arrive, since
+  // after a pause or the match's end no frame may follow them.
+  assert.equal(reader.fast(frame(12, {}, 2)).bodies.length, 0);
+  const redrawn = reader.slow([{ id: 7 }], [], 2);
+  assert.deepEqual([redrawn.tick, redrawn.bodies.length], [12, 1], 'item 7 arrived with the layers frame 12 names');
+  assert.equal(reader.slow([{ id: 7 }], [], 3), null, 'a later version than the newest frame names: no redraw');
+  assert.equal(reader.current().tick, 12, 'what a reader waiting on a roster would draw');
   // A paused room re-sends its tick after a dev teleport: drawn, but no longer a baseline.
-  const again = reader.fast(frame(11, { moved: true }));
+  const again = reader.fast(frame(12, { moved: true }, 3));
   assert.equal(again.moved, true);
-  assert.equal(again.bodies.length, 1, 'item 7 is held now');
-  assert.equal(reader.baseline(11), undefined);
+  assert.equal(reader.baseline(12), undefined);
 });
 
 test("a fast message over the edge's four fragments goes on the stream; its deltas, which fit, on datagrams", async () => {

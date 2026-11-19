@@ -68,8 +68,8 @@ const hexBytes = hex => Uint8Array.from(hex.match(/../g) ?? [], pair => parseInt
  * Rebuilds the server's datagram messages from the edge's fragments (24.5 "Delivery"): each datagram is a `u16`
  * big-endian message number, a `u8` index and a `u8` count, then its part of the message. Push each datagram; a
  * message comes back once every fragment of it has arrived, otherwise null. A fragment that is malformed or
- * repeated is ignored. Only the newest `pending` incomplete messages are kept, so a message that lost a fragment
- * is forgotten as later ones arrive.
+ * repeated is ignored. At most `pending` incomplete messages are kept, and none more than `pending` numbers from
+ * the newest datagram's, so a message that lost a fragment is forgotten as later ones arrive.
  */
 export function createDatagramAssembler(pending = 8) {
   const partial = new Map();
@@ -77,6 +77,9 @@ export function createDatagramAssembler(pending = 8) {
     if (datagram.length <= DATAGRAM_HEADER_BYTES) return null;
     const number = (datagram[0] << 8) | datagram[1], index = datagram[2], count = datagram[3];
     if (count < 1 || count > MAX_FAST_FRAGMENTS || index >= count) return null;
+    // Numbers wrap at 2^16: an incomplete message more than `pending` numbers behind this one is forgotten,
+    // whatever arrives, so it cannot linger until its number comes round again.
+    for (const held of partial.keys()) if (((number - held) & 0xffff) > pending && ((held - number) & 0xffff) > pending) partial.delete(held);
     const part = datagram.subarray(DATAGRAM_HEADER_BYTES);
     if (count === 1) return part;
     let held = partial.get(number);

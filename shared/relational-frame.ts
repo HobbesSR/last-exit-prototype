@@ -257,5 +257,7 @@ export function createFrameNormalizer(initialMap?: { gates?: readonly object[] }
   function envelope(message: { roster?: readonly object[]; rosterRevision?: number; map?: { gates?: readonly object[] } | null; constants?: Constants }) {
     seats(message.roster, message.rosterRevision); map = message.map ?? undefined; constants = message.constants;
   }
-  return { normalize, seats, envelope, setMap(value: { gates?: readonly object[] } | undefined) { map = value; } };
+  /** Whether a frame naming roster revision `wire` would be normalized: the roster it names is held. */
+  const holds = (wire: number) => wire === heldRevision;
+  return { normalize, seats, envelope, holds, setMap(value: { gates?: readonly object[] } | undefined) { map = value; } };
 }
