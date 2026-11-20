@@ -330,3 +330,21 @@ test('map geometry shares one fixed body but keeps its own pose, contacts and re
     assert.equal(world.counts().static, 1);
   } finally { world.dispose(); }
 });
+
+test('a hull Rapier rejects mid-commit keeps what the commit already did (review 972)', async () => {
+  const world = await createPhysicsWorld();
+  try {
+    world.queueAddBody(circle('a')); world.commitMutations();
+    world.queueRemoveBody('a');
+    // Strictly convex in f64, collinear once rounded to Rapier's f32.
+    world.queueAddBody({ id: 'z', kind: 'static', x: 0, y: 0,
+      shape: { kind: 'convex', vertices: [{ x: -1e8, y: -1e8 }, { x: 1e8, y: 1e8 - 1 }, { x: 1e8, y: 1e8 + 1 }] } });
+    assert.throws(() => world.commitMutations(), /invalid convex body/);
+    assert.equal(world.hasBody('a'), false);
+    assert.equal(world.bodyLifetime('a'), undefined);
+    assert.equal(world.getTransform('a'), undefined);
+    assert.equal(world.counts().dynamic, 0);
+    assert.deepEqual(world.snapshot().pending.add.map(spec => spec.id), ['z']);
+    assert.throws(() => world.commitMutations(), /invalid convex body/);
+  } finally { world.dispose(); }
+});

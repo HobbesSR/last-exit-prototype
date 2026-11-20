@@ -360,19 +360,23 @@ export class PhysicsWorld {
   /**
    * Applies the queues in the core, in world.ts's old order, and takes its facts into the records: a removed body's
    * record goes, an added body's frozen spec becomes its record with a new lifetime, an added constraint's spec is kept.
+   * A body Rapier cannot hull stops the commit: what was done before it stays done and reaches the records, and the
+   * rest stays queued, as the old adapter's mid-commit throw left it.
    */
   commitMutations(): void {
     this.ensure();
     if (!this.dirty) return;
-    const count = this.core.physics_commit(this.native);
-    if (count < 0) throw refusal(count);
-    const facts = this.output(count * 2);
-    for (let i = 0; i < facts.length; i += 2) {
+    const code = this.core.physics_commit(this.native);
+    const count = this.output(1)[0]!, facts = this.output(1 + count * 2);
+    for (let i = 1; i < facts.length; i += 2) {
       const kind = facts[i]!, key = facts[i + 1]!;
       if (kind === 0) this.records[key] = undefined;
-      else if (kind === 1) this.records[key] = { spec: this.pendingSpecs.get(key)!, lifetime: Object.freeze({}) };
-      else this.constraintSpecs[key] = this.pendingConstraintSpecs.get(key)!;
+      else if (kind === 1) {
+        this.records[key] = { spec: this.pendingSpecs.get(key)!, lifetime: Object.freeze({}) };
+        this.pendingSpecs.delete(key);
+      } else this.constraintSpecs[key] = this.pendingConstraintSpecs.get(key)!;
     }
+    if (code < 0) throw refusal(code);
     this.pendingSpecs.clear(); this.pendingConstraintSpecs.clear();
     this.dirty = false;
   }
@@ -499,9 +503,10 @@ export class PhysicsWorld {
     const pointer = this.core.physics_step(this.native, options.discardContacts ? 1 : 0) >>> 0;
     const header = this.view(pointer, STEP_HEADER);
     const status = header[0]!, failed = header[1]!, count = header[2]!, dropped = header[3]!;
-    const output = this.view(pointer, STEP_HEADER + count + (SUBSTEPS + 1) * count * 2);
+    // A failed step's output is its header alone.
     if (status === 1) throw new Error(`nonfinite physics speed ${this.ids[failed]}`);
     if (status === 2) throw new Error(`nonfinite physics angular speed ${this.ids[failed]}`);
+    const output = this.view(pointer, STEP_HEADER + count + (SUBSTEPS + 1) * count * 2);
 
     const distance: Record<string, number> = Object.create(null);
     const paths: Record<string, Point[]> = Object.create(null);

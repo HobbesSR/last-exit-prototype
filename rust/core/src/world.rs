@@ -439,11 +439,14 @@ impl World {
     }
 
     /// Applies the queues in world.ts's order: constraint removals, body removals, body additions,
-    /// constraint additions, each by ID. The output holds the facts as `kind, key` pairs (`FACT_*`)
-    /// for JavaScript's records; returns their count, or `E_INVALID_CONVEX`.
+    /// constraint additions, each by ID. The output holds the count of facts, then the facts as
+    /// `kind, key` pairs (`FACT_*`) for JavaScript's records. Returns 0, or `E_INVALID_CONVEX` when
+    /// Rapier cannot hull a body: the facts are then those of the mutations done before it, which
+    /// stay done, as world.ts's mid-commit throw left them, and the rest stay queued.
     pub fn commit(&mut self) -> i32 {
         let mut facts = std::mem::take(&mut self.output);
         facts.clear();
+        facts.push(0.0);
         let bodies_changed = !self.pending_add.is_empty() || !self.pending_remove.is_empty();
         let removed = std::mem::take(&mut self.pending_remove);
         let existed: Vec<Key> = removed
@@ -499,8 +502,9 @@ impl World {
             // it is a replacement with a new engine handle.
             if !removed.contains(&p.key) || existed.contains(&p.key) {
                 if !self.add(p) {
-                    // As world.ts threw mid-commit: what is left stays queued.
                     self.pending_add = add.split_off(index);
+                    self.settle_bodies(&removed, added);
+                    facts[0] = ((facts.len() - 1) / 2) as f64;
                     self.output = facts;
                     return E_INVALID_CONVEX;
                 }
@@ -532,17 +536,23 @@ impl World {
             facts.extend_from_slice(&[FACT_CONSTRAINT_ADDED, f64::from(c.key)]);
         }
         if bodies_changed {
-            self.dynamic.retain(|k| !removed.contains(k));
-            self.dynamic.extend(added);
-            let mut dynamic = std::mem::take(&mut self.dynamic);
-            dynamic.sort_by(|&a, &b| self.order(a, b));
-            self.dynamic = dynamic;
+            self.settle_bodies(&removed, added);
         }
+        facts[0] = ((facts.len() - 1) / 2) as f64;
+        self.output = facts;
+        0
+    }
+
+    /// After a commit's body mutations: the dynamic list drops the removed bodies and takes the added
+    /// ones, in ID order, and queued pushes on removed bodies go.
+    fn settle_bodies(&mut self, removed: &[Key], added: Vec<Key>) {
+        self.dynamic.retain(|k| !removed.contains(k));
+        self.dynamic.extend(added);
+        let mut dynamic = std::mem::take(&mut self.dynamic);
+        dynamic.sort_by(|&a, &b| self.order(a, b));
+        self.dynamic = dynamic;
         self.forces.retain(|f| !removed.contains(&f.0));
         self.impulses.retain(|f| !removed.contains(&f.0));
-        let count = facts.len() / 2;
-        self.output = facts;
-        count as i32
     }
 
     pub fn has_constraint(&self, key: Key) -> bool {
@@ -689,7 +699,8 @@ impl World {
     /// One tick, after `commit`. The output: `STEP_HEADER` (status, the failing body's key, the
     /// dynamic count `n`, contacts dropped), the `n` dynamic keys in ID order, then their positions
     /// before the first substep and after each, as the engine's step gives them. A nonzero status
-    /// or a dropped contact is an error JavaScript throws, as world.ts did.
+    /// or a dropped contact is an error JavaScript throws, as world.ts did; a nonzero status's
+    /// output is the header alone.
     pub fn step(&mut self, discard_contacts: bool) -> &[f64] {
         let mut forces = std::mem::take(&mut self.forces);
         forces.sort_by(|a, b| self.order(a.0, b.0));
@@ -757,13 +768,14 @@ impl World {
         let mut output = std::mem::take(&mut self.output);
         output.clear();
         output.extend_from_slice(&[status, 0.0, n as f64, 0.0]);
-        output.extend(self.dynamic.iter().map(|&k| f64::from(k)));
-        output.extend_from_slice(&result[HEADER..HEADER + positions]);
         if status != 0.0 {
+            // The engine stopped mid-step, so its paths are partial: only the header crosses.
             output[1] = f64::from(self.dynamic[failed as usize]);
             self.output = output;
             return &self.output;
         }
+        output.extend(self.dynamic.iter().map(|&k| f64::from(k)));
+        output.extend_from_slice(&result[HEADER..HEADER + positions]);
         let event_rows =
             &result[HEADER + positions..HEADER + positions + events * physics::EVENT_STRIDE];
         let broken_rows = &result[HEADER + positions + events * physics::EVENT_STRIDE..][..broken];
@@ -1039,10 +1051,10 @@ mod tests {
             queue_ball(&mut world, a, physics::KIND_PROP, 0.0),
             E_DUPLICATE_BODY
         );
-        assert_eq!(world.commit(), 2);
+        assert_eq!(world.commit(), 0);
         assert_eq!(
             world.output(),
-            [FACT_ADDED, f64::from(a), FACT_ADDED, f64::from(b)]
+            [2.0, FACT_ADDED, f64::from(a), FACT_ADDED, f64::from(b)]
         );
         assert_eq!((world.generation(a), world.generation(b)), (1.0, 2.0));
         assert_eq!(world.dynamic, [a, b]);
@@ -1052,13 +1064,57 @@ mod tests {
         assert_eq!(world.queue_remove_body(c), 0);
         assert_eq!(world.queue_remove_body(a), 0);
         assert_eq!(queue_ball(&mut world, a, physics::KIND_PROP, -40.0), 0);
-        assert_eq!(world.commit(), 2);
+        assert_eq!(world.commit(), 0);
         assert_eq!(
             world.output(),
-            [FACT_REMOVED, f64::from(a), FACT_ADDED, f64::from(a)]
+            [2.0, FACT_REMOVED, f64::from(a), FACT_ADDED, f64::from(a)]
         );
         assert_eq!(world.generation(a), 3.0);
         assert_eq!(world.generation(c), -1.0);
+    }
+
+    #[test]
+    fn a_hull_rejected_mid_commit_reports_what_was_done() {
+        let mut world = World::new();
+        let (a, z) = (intern(&mut world, "prop:a"), intern(&mut world, "z"));
+        queue_ball(&mut world, a, physics::KIND_PROP, 0.0);
+        world.commit();
+        assert_eq!(world.queue_remove_body(a), 0);
+        // Valid in f64, but collinear once rounded to Rapier's f32 (review 972).
+        let vertices = [-1e8, -1e8, 1e8, 1e8 - 1.0, 1e8, 1e8 + 1.0];
+        let mut row = vec![0.0; BODY_ROW];
+        row[0] = f64::from(z);
+        row[1] = f64::from(physics::KIND_STATIC);
+        row[3] = 2.0;
+        row[12] = 1.0;
+        row[15] = f64::NAN;
+        row[16] = f64::NAN;
+        row[17] = f64::from((0x0001 << 16) | 0x000f);
+        row[21] = 3.0;
+        row.extend_from_slice(&vertices);
+        world.input(row.len()).copy_from_slice(&row);
+        assert_eq!(world.queue_add_body(), 0);
+        assert_eq!(world.commit(), E_INVALID_CONVEX);
+        assert_eq!(world.output(), [1.0, FACT_REMOVED, f64::from(a)]);
+        assert!(world.dynamic.is_empty());
+        assert_eq!(world.generation(a), -1.0);
+        // The rejected body stays queued, and the next commit refuses it again.
+        assert_eq!(world.commit(), E_INVALID_CONVEX);
+        assert_eq!(world.output(), [0.0]);
+    }
+
+    #[test]
+    fn a_nonfinite_speed_stops_the_step_with_only_its_header() {
+        let mut world = World::new();
+        let a = intern(&mut world, "prop:a");
+        queue_ball(&mut world, a, physics::KIND_PROP, 0.0);
+        world.commit();
+        let slot = world.body(a).expect("live").slot;
+        world.engine.set_velocity_for_test(slot, f64::NAN);
+        let output = world.step(true);
+        assert_eq!(output.len(), STEP_HEADER);
+        assert_eq!(output[0], 1.0);
+        assert_eq!(output[1], f64::from(a));
     }
 
     #[test]

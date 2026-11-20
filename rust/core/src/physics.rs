@@ -501,6 +501,13 @@ impl World {
         &self.output
     }
 
+    /// Sets a body's linear velocity directly, for tests that need a speed no spec admits.
+    #[cfg(test)]
+    pub fn set_velocity_for_test(&mut self, slot: u32, vx: f64) {
+        self.body_mut(slot)
+            .set_linvel(Vector::new(vx as Real, 0.0), true);
+    }
+
     /// The body's position and its external force accumulator, in world units.
     pub fn user_force(&mut self, slot: u32) -> &[f64] {
         let body = &self.bodies[self.slot(slot).body];

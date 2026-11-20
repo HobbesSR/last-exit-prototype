@@ -385,7 +385,8 @@ world_export!(
 );
 world_export!(physics_can_add_bodies(count: usize) -> u32 = |w| u32::from(w.can_add_bodies(count)));
 world_export!(
-    /// Applies the queues; returns the count of `kind, key` facts in the output.
+    /// Applies the queues: 0 or `E_INVALID_CONVEX`. The output holds the facts' count, then the
+    /// `kind, key` facts of whatever was done.
     physics_commit() -> i32 = |w| w.commit()
 );
 world_export!(physics_has_constraint(key: u32) -> u32 = |w| u32::from(w.has_constraint(key)));
