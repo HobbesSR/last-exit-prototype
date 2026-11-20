@@ -26,9 +26,9 @@ test('the sight that discovers cells remembers the items it sees, not ones under
   const building = { id: 'b1', nodeId: 'node-1', x: 384, y: 192, w: 192, h: 192 };
   const map = openMap([{ id: 'in-view', kind: 'cell', x: 200, y: 320 }, { id: 'roofed', kind: 'cell', x: 480, y: 288 }], [building]);
   const memory = createDiscovery();
-  discover(memory, map, { x: 200, y: 200 });
+  discover(sight, memory, map, { x: 200, y: 200 });
   assert.equal(memory.items, undefined, 'only bots keep item memory');
-  discover(memory, map, { x: 200, y: 200 }, undefined, sight);
+  discover(sight, memory, map, { x: 200, y: 200 }, undefined, true);
   assert.deepEqual([...memory.items.keys()], ['in-view']);
 });
 
@@ -37,7 +37,7 @@ test('a remembered item is forgotten once its spot is seen empty, and kept while
   const map = openMap([], [building]);
   const memory = createDiscovery();
   memory.items = new Map([['taken', { id: 'taken', kind: 'cell', x: 200, y: 320 }], ['roofed', { id: 'roofed', kind: 'cell', x: 480, y: 288 }]]);
-  discover(memory, map, { x: 200, y: 200 }, undefined, sight);
+  discover(sight, memory, map, { x: 200, y: 200 }, undefined, true);
   assert.deepEqual([...memory.items.keys()], ['roofed']);
 });
 

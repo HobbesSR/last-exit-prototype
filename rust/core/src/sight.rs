@@ -25,7 +25,7 @@ const SEAM: f64 = PI + 1e-4;
 type Edge = [f64; 4];
 
 /// JavaScript's `Math.min`: NaN if either is, and -0 below +0.
-fn js_min(a: f64, b: f64) -> f64 {
+pub(crate) fn js_min(a: f64, b: f64) -> f64 {
     if a.is_nan() || b.is_nan() {
         f64::NAN
     } else if a < b || (a == b && a.is_sign_negative()) {
@@ -36,7 +36,7 @@ fn js_min(a: f64, b: f64) -> f64 {
 }
 
 /// JavaScript's `Math.max`: NaN if either is, and +0 above -0.
-fn js_max(a: f64, b: f64) -> f64 {
+pub(crate) fn js_max(a: f64, b: f64) -> f64 {
     if a.is_nan() || b.is_nan() {
         f64::NAN
     } else if a > b || (a == b && a.is_sign_positive()) {

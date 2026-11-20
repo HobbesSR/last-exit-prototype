@@ -394,6 +394,22 @@ export function roofAt(map: RoofMap, point: Vec2): Roof | Building | null {
   return null;
 }
 
+/**
+ * The roofs `roofAt` reads, flat, for the Rust core's port of it (`rust/core/src/discovery.rs`, #1210):
+ * per roof `id, x, y, w, h, originX, originY, cellSize, cellCount` and its cells' `x, y`; then per building
+ * no roof declares, `id, x, y, w, h`. Ids are interned in that order, so equal ids get equal numbers.
+ */
+export function roofTables(map: RoofMap): { roofs: Float64Array; buildings: Float64Array } {
+  const ids = new Map<string, number>(), id = (key: string) => ids.get(key) ?? ids.set(key, ids.size).get(key)!;
+  const index = getRoofIndex(map), roofs: number[] = [], buildings: number[] = [];
+  for (const r of map.roofs || []) {
+    roofs.push(id(r.id), r.bounds.x, r.bounds.y, r.bounds.w, r.bounds.h, r.origin.x, r.origin.y, r.cellSize, r.cells.length);
+    for (const c of r.cells) roofs.push(c.x, c.y);
+  }
+  for (const b of map.buildings || []) if (!index.coveredBuildingIds.has(b.id)) buildings.push(id(b.id), b.x, b.y, b.w, b.h);
+  return { roofs: Float64Array.from(roofs), buildings: Float64Array.from(buildings) };
+}
+
 export function roofConceals(map: RoofMap, eye: Vec2, point: Vec2): boolean {
   const targetRoof = roofAt(map, point);
   if (!targetRoof) return false;

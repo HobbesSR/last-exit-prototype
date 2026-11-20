@@ -8,7 +8,7 @@
  */
 
 /** The adapter contract this loader speaks: `ADAPTER_VERSION` in `rust/core/src/lib.rs`. */
-export const CORE_ADAPTER_VERSION = 4;
+export const CORE_ADAPTER_VERSION = 5;
 
 // The project's lib is ES2023 without the DOM, which is where TypeScript declares WebAssembly.
 // Both hosts have it; this names only what the loader uses.
@@ -32,6 +32,14 @@ export interface CoreExports {
   gate_set_free(gates: number): void;
   gate_set_open(gates: number): number;
   visibility_polygon(index: number, gates: number, x: number, y: number, radius: number): number;
+  // Discovery (`rust/core/src/discovery.rs`), driven by `shared/discovery.ts` through `shared/sight-core.ts`.
+  discovery_map_new(constants: number, inside: number, cellCount: number, landmarks: number, landmarkCount: number,
+    roofs: number, roofWords: number, buildings: number, buildingCount: number): number;
+  discovery_map_free(map: number): void;
+  discovery_input(map: number, len: number): number;
+  discovery_sample(map: number, index: number, gates: number): number;
+  /** `roofAt`'s interned id at a point, or -1: for `tests/discovery-core.test.js`'s parity check with `shared/view.ts`. */
+  discovery_roof_at(map: number, x: number, y: number): number;
 }
 
 /**

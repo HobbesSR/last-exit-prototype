@@ -119,9 +119,9 @@ Port order is stability order:
     - **Choosing is per game.** `createGame`, already async and already giving each game its physics world,
       awaits it and attaches it beside physics (`shared/simulation/sight-runtime.ts`). That is a side table, so
       snapshots and replays never carry it, and none of `createGame`'s callers supply it.
-    - **The tick passes it.** `discover()` takes the `SightCaster` to observe through in place of a flag; the
-      tick passes `sightOf(s)` for bots. A record from `createGameRecord` alone has no sight: its bots discover
-      as people do until a game steps.
+    - **The tick passes it.** `discover()` takes the game's core binding, `sightOf(s)`, for every contestant,
+      since discovery itself runs in the core (#1210), and a flag for line of sight, set for bots. A record from
+      `createGameRecord` alone has no binding: its contestants start with nothing discovered until a game steps.
     - **The client** awaits `initCoreSight()` before its scene and hands the scene the caster (`api.sight`). The
       fog keeps one gate list per map and rewrites only `open`, so the core indexes the gates once, not per frame.
     - **Why not a module-level switch in `sight.ts`:** which implementation a game runs would be hidden process
@@ -256,6 +256,21 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
 | 5 | Phases 3–7 in the core (#1213): actions; phase 4's floor drag and the solver around it, with the write-back of item and actor poses and `movedThisTick` and the contact drain; then 5–7 | Preserved |
 | 6 | The flip: the core keeps the state, Node mirrors it (#1214) | Preserved |
 | Later | Bots and navigation in the core, with the language-neutral map format (#1215) | Preserved |
+
+**Step 2, discovery (#1210, adapter version 5).** `rust/core/src/discovery.rs` is the rule `discover` was; `discover`
+in `shared/discovery.ts` is now its adapter, through the game's binding (`shared/sight-core.ts`).
+- **Uploaded once per map:** the discovery grid with the rule's constants (which `discovery.ts` still owns), which
+  cells' centres are playable ground (`insideMap`), the landmarks with their cells, and the roofs (`roofTables` in
+  `shared/view.ts`). The handle is keyed on the map's playable area and rebuilt when another field it read differs.
+- **Packed per sample, near the eye:** the items within reach (`itemsNear`), the remembered items near the eye,
+  the boxes of the doors near it (`gatesNear`, `gateShape`) and the reach window's seen flags, so the polygon is
+  still built only when something unseen needs it. JavaScript keeps the queries, which have other callers.
+- **Applied in the rule's order:** discovered cells, surveyed cells, seen cells, then items remembered and
+  forgotten, then doors (`observeGate`), so set and map insertion orders, and a bot's ties, are unchanged.
+- **The roof rule has two copies on purpose.** `roofAt` keeps JavaScript callers (the fog, projection,
+  `simulation/visibility.ts`), so the core's port is held equal to it by `tests/discovery.test.js` ("the core
+  reads roofs as roofAt does"), as math is by its digests. `litPoint` stays in `sight.ts` for the fog too.
+- **Cost:** [42.62](42.62-discovery-core-adapter.md). The crossing is about 2% of the TypeScript's cost.
 
 ## One math library on both sides
 
