@@ -6,6 +6,7 @@
 
 pub mod discovery;
 pub mod math;
+pub mod phase_one;
 pub mod physics;
 pub mod sight;
 
@@ -14,7 +15,7 @@ use std::slice;
 
 /// The version of the contract between this module and its JavaScript adapter. A loader checks it
 /// before calling anything else, and it changes whenever an export's meaning or layout does.
-pub const ADAPTER_VERSION: u32 = 5;
+pub const ADAPTER_VERSION: u32 = 6;
 
 /// Exported to JavaScript as `adapter_version`.
 #[unsafe(no_mangle)]
@@ -273,6 +274,33 @@ pub unsafe extern "C" fn discovery_sample(
         };
         (*map).sample(sight).as_ptr()
     }
+}
+
+/// Tick phase 1's buffers (`phase_one::PhaseOne`), made once per core by `shared/simulation/phase-one.ts`.
+#[unsafe(no_mangle)]
+pub extern "C" fn phase_one_new() -> *mut phase_one::PhaseOne {
+    Box::into_raw(Box::default())
+}
+
+/// Phase 1's input, resized to `len` words (`phase_one::PhaseOne::input`).
+///
+/// # Safety
+/// `phase` came from `phase_one_new`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn phase_one_input(phase: *mut phase_one::PhaseOne, len: usize) -> *mut f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*phase).input(len).as_mut_ptr() }
+}
+
+/// Runs phase 1 from player `from` (`phase_one::PhaseOne::run`); returns a pointer to its `f64`
+/// output, valid until the next call.
+///
+/// # Safety
+/// `phase` came from `phase_one_new`, and its input holds a whole tick.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn phase_one_run(phase: *mut phase_one::PhaseOne, from: usize) -> *const f64 {
+    // SAFETY: the caller's contract.
+    unsafe { (*phase).run(from).as_ptr() }
 }
 
 /// `roofAt`'s interned id at `(x, y)`, or -1: for the parity check against `shared/view.ts`

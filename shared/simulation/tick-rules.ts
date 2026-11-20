@@ -5,17 +5,8 @@ import { damage } from './combat.ts';
 import { sightOf } from './sight-runtime.ts';
 import type { Game, Player } from '../types.ts';
 
-const TIMERS = ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun'] as const;
-
-export function advanceTick(s: Game): void {
-  s.tick++;
-  s.hazardX = Math.round(-80 + Math.max(0, s.tick - s.content.hazardGraceTicks) / (s.content.durationTicks - s.content.hazardGraceTicks) * (s.map.width + 100));
-  s.effects = s.effects.filter(e => --e.life > 0);
-}
-
-export function advanceTimers(p: Player): void {
-  for (const key of TIMERS) p[key] = Math.max(0, p[key] - 1);
-}
+// The tick, the hazard wall, effect lives and the countdown timers advance in the core's phase 1
+// (`rust/core/src/phase_one.rs`).
 
 export function applyEnvironment(s: Game, p: Player): void {
   if (p.x < s.hazardX && s.tick % 5 === 0) damage(s, p, 9, null);

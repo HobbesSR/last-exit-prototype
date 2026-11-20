@@ -7,7 +7,8 @@ import type { Game, Player, Station, StationId, Vec2 } from '../types.ts';
 
 // Gladiator transit between stations (12 "Transit route selection", 14, #692).
 
-const RAIL_COOLDOWN = 180;
+/** The rail cooldown, started on landing; the core's arrival (`rust/core/src/phase_one.rs`) receives it. */
+export const RAIL_COOLDOWN = 180;
 
 /**
  * Where `p` may transit to now: from the station within reach, to every other station ahead of the wall.
@@ -48,16 +49,11 @@ export function transit(s: Game, p: Player, choice?: StationId): void {
   land(s, p, at);
 }
 
-/** Land a gladiator whose transit is due, or keep it waiting a tick while its landing can't be placed. */
-export function arrive(s: Game, p: Player): void {
-  if (p.status !== 'transit' || !p.transit || s.tick < p.transit.arriveAt) return;
-  const to = s.map.stations.find(st => st.id === p.transit!.to)!, at = landing(s, p, to);
-  if (!at) return;
-  p.status = 'active'; delete p.transit; p.inputTick = s.tick;
-  land(s, p, at);
-}
-
-function landing(s: Game, p: Player, to: Station): Vec2 | null {
+/**
+ * Where `p` lands at `to`, or null while it can't be placed. A due transit's arrival runs in the core's phase 1
+ * (`rust/core/src/phase_one.rs`), which asks this, and waits a tick when it is null.
+ */
+export function landing(s: Game, p: Player, to: Station): Vec2 | null {
   const runtime = physicsRuntime(s);
   return runtime ? runtime.placement(p, to) : to;
 }

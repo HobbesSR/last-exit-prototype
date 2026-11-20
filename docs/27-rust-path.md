@@ -191,8 +191,8 @@ it, rather than through synchronous imports: `createGame` awaits it for a game, 
     | Write | Where | Phase | Fields | Reaches the mirror |
     | --- | --- | --- | --- | --- |
     | Gladiator death, entering respawning | `lifecycle.ts` (`damage`) | Wherever damage lands, 3–7 | `input` cleared | `tick_finish` |
-    | Respawn | `lifecycle.ts` (`respawn`) | 1 | `input` cleared, `inputTick` set, `route` cleared | `tick_begin` |
-    | Transit arrival | `transit.ts` (`arrive`) | 1 | `inputTick` set | `tick_begin` |
+    | Respawn | `phase_one.rs`, applied by `phase-one.ts` | 1 | `input` cleared, `inputTick` set, `route` cleared | `tick_begin` |
+    | Transit arrival | `phase_one.rs`, applied by `phase-one.ts` | 1 | `inputTick` set | `tick_begin` |
     | Delayed transit departure | `transit.ts` (`transit`) | 6 | `input` and `route` cleared | `tick_finish` |
     | Instant transit | `transit.ts` (`transit`, then `land`) | 6 | `route` cleared only | `tick_finish` |
     | A gate opened or closed by its user | `interactions.ts` (`interact`) | 6 | that player's `route` cleared | `tick_finish` |
@@ -290,6 +290,27 @@ in `shared/discovery.ts` is now its adapter, through the game's binding (`shared
 - **Discovery** takes the ground as an argument (`discover(..., lineOfSight, ground)`), which the tick and
   `createGameRecord` pass as `s.items`. A bare map's own `items` is the default, for tools and tests.
 
+**Step 4, phase 1's rules (#1212, adapter version 6).** `rust/core/src/phase_one.rs` advances the tick, the hazard wall
+and the effects' lives, then per player in roster order runs respawn, transit arrival and an active player's timers.
+`beginTick` (`shared/simulation/phase-one.ts`) packs the players, effects and stations each tick and applies the result.
+- **Facts in allocation order.** The core takes every ID it allocates from `serial`, which is packed in and out (D6),
+  and reports each respawn and landing as a fact with its ID. `beginTick` applies them in order: the event and effect
+  records, built by `event` and `effect` with the core's IDs, and the Node-owned writes of the change-list table above.
+- **Two queries stay in JavaScript:** whether a station is clear for a respawn (`canOccupy`) and where a transit lands
+  (`landing`, the placement search `synchronize` shares). The run stops before a player that needs one; `beginTick`
+  applies the players before it, answers, and resumes from that player. A landing reads those players as they stand,
+  as the TypeScript tick did, so the run stops rather than asking ahead. They move into the core with the map format
+  (#1215) and the physics adapter's placement (#1213).
+- **The rest of phase 1 stays in TypeScript for now:** the body sync (`synchronize`, which phase 7 and the between-tick
+  commands share), the hook revalidation, and the pending spawns, impulses and attachments, whose queues and checks
+  belong to the physics adapter (`physics-runtime.ts`, `shared/physics/world.ts`). They move with the solver around
+  phase 4 in step 5 (#1213).
+- **The item counters stay in TypeScript for now.** Phase 1 allocates no item IDs. `itemSerial` and `scatterSerial`
+  are allocated only in phases 3 and 6 (`item-instances.ts`, the drop planner and pickups), so they move into the core
+  with those phases (#1213).
+- **Cost:** [42.63](42.63-phase-one-core-adapter.md). About 1.8 µs a tick: over 42.58's relative budget, because the
+  rules are tiny, and about 0.06% of the tick. The flip (#1214) removes the packing.
+
 ## One math library on both sides
 
 "Native on the server, WebAssembly in the browser" is not bit-identical by itself. Native Rust's `sin`, `cos` and
@@ -323,7 +344,8 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
     `src/frame.rs` frames both of its connections, and `src/origin.rs` checks origins. `tests/edge.rs` drives it
     with a real `wtransport` client against a fake Node.
   - **The core** holds `src/math.rs`, the port of `shared/math.ts` (#1175). Its tests compute the same digest as
-    `tests/math.test.js`. `src/sight.rs` is sight casting, and `src/physics.rs` holds Rapier (#1192).
+    `tests/math.test.js`. `src/sight.rs` is sight casting, `src/discovery.rs` discovery (#1210), `src/phase_one.rs` tick phase 1's
+    rules (#1212), and `src/physics.rs` holds Rapier (#1192).
 - **Lockfile.** `rust/Cargo.lock` is committed, because the workspace builds a binary and a module that ship.
 - **Checks.** `rust/deny.toml` holds the licence policy ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
   [31](31-verification.md#continuous-integration) lists the checks and what they cost.
