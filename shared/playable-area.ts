@@ -48,6 +48,16 @@ export function occupiedCell(area: PlayableArea, col: number, row: number): bool
   }
   return lo < runs.length && runs[lo][0] <= col;
 }
+/**
+ * The playable area as one byte per cell of the map's grid, row-major, nonzero where the cell is playable:
+ * what `occupiedCell` answers for every cell `insideMap` can ask about, for the Rust core (#1233).
+ */
+export function playableCells(map: Pick<CollisionMap, 'width' | 'height' | 'playableArea'>): { cellSize: World; cols: number; rows: number; occupied: Uint8Array } {
+  const area = playableAreaOf(map), cellSize = area.cellSize;
+  const cols = Math.ceil(map.width / cellSize), rows = Math.ceil(map.height / cellSize), occupied = new Uint8Array(cols * rows);
+  for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) occupied[row * cols + col] = occupiedCell(area, col, row) ? 1 : 0;
+  return { cellSize, cols, rows, occupied };
+}
 /** The map's playable area. Every match map has one; a map without it is rejected rather than bounded by a default shape. */
 export function playableAreaOf(map: Pick<CollisionMap, 'playableArea'>): PlayableArea {
   if (!map.playableArea) throw new RangeError('Map has no playableArea');

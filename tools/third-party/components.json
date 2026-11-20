@@ -45,7 +45,7 @@
       "license": "MIT",
       "source": "https://github.com/jriecken/sat-js",
       "delivery": "game",
-      "served": "/vendor/sat/SAT.js, and /vendor/sat.mjs for the dev labs",
+      "served": "/vendor/sat/SAT.js, and /vendor/sat.mjs for the dev labs; its circle tests translated into rust/core/src/collision.rs (#1233), compiled into the core's WebAssembly (/shared/core-wasm.generated.ts)",
       "texts": ["node_modules/sat/LICENSE"]
     },
     {

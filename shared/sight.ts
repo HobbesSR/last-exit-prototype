@@ -3,7 +3,7 @@ import { shapeOf, bounds, edgesOf } from './shape.ts';
 import type { Edge } from './shape.ts';
 import type { Box, CollisionMap, Gate, GateId, Obstacle, Vec2, World } from './types.ts';
 import { atan2, hypot } from './math.ts';
-import { BUCKET, bucketBox, cellsAlong } from './buckets.ts';
+import { BUCKET, bucketBox, cellsAlong, flatGrid } from './buckets.ts';
 import { gateIndex, gateShape } from './gate-index.ts';
 import { obstacleCache, PREPARATION_CHUNK, type ObstacleCache } from './obstacle-cache.ts';
 
@@ -38,19 +38,21 @@ interface SightIndex {
   segments: Edge[];
   /** Indices into `segments`, bucketed by `BUCKET`-sized cell, each under every cell its bounds touch. */
   sight: Map<string, number[]>;
-  /** The edges of each see-through obstacle, bucketed under every cell its bounds touch: hands stop at them. */
-  through: Map<string, Edge[][]>;
+  /** The edges of each see-through obstacle, in obstacle order: hands stop at them. */
+  windows: Edge[][];
+  /** Indices into `windows`, bucketed under every cell the obstacle's bounds touch. */
+  through: Map<string, number[]>;
 }
 const edgeBox = (edge: Edge): Box => {
   const x = Math.min(edge.a.x, edge.b.x), y = Math.min(edge.a.y, edge.b.y);
   return { x, y, w: Math.max(edge.a.x, edge.b.x) - x, h: Math.max(edge.a.y, edge.b.y) - y };
 };
 function* buildSightIndex(obstacles: readonly Obstacle[]): Generator<void, SightIndex> {
-  const segments: Edge[] = [], sight = new Map<string, number[]>(), through = new Map<string, Edge[][]>();
+  const segments: Edge[] = [], sight = new Map<string, number[]>(), windows: Edge[][] = [], through = new Map<string, number[]>();
   let work = 0;
   for (const o of obstacles) {
     const shape = shapeOf(o);
-    if (seeThrough(o.kind)) bucketBox(through, bounds(shape), edgesOf(shape));
+    if (seeThrough(o.kind)) { bucketBox(through, bounds(shape), windows.length); windows.push(edgesOf(shape)); }
     else for (const edge of edgesOf(shape)) {
       const i = segments.length;
       segments.push(edge);
@@ -59,7 +61,7 @@ function* buildSightIndex(obstacles: readonly Obstacle[]): Generator<void, Sight
     if (++work % PREPARATION_CHUNK === 0) yield;
   }
   if (work % PREPARATION_CHUNK !== 0) yield;
-  return { count: obstacles.length, segments, sight, through };
+  return { count: obstacles.length, segments, sight, windows, through };
 }
 const sightIndex: ObstacleCache<SightIndex> = obstacleCache(buildSightIndex);
 /** Prepare the sight index ahead of the first query, yielding between bounded batches (see `ObstacleCache`). */
@@ -75,35 +77,31 @@ function gateEdgeList(map: Pick<CollisionMap, 'gates'>): (Edge[] | undefined)[] 
 }
 const gateEdges = (map: Pick<CollisionMap, 'gates'>, edges: (Edge[] | undefined)[], i: number): Edge[] => edges[i] ??= edgesOf(shapeOf(gateShape(map.gates[i])));
 
-/**
- * A bucket map as one `i32` array for the Rust core (`rust/core/src/sight.rs`, `Grid`): `col0, row0,
- * cols, rows`, then `cols * rows + 1` offsets, then the entries. Cells run column outer, as
- * `eachCellIn` visits them, and each keeps its list in bucket order.
- */
-function flatGrid(buckets: Map<string, number[]>): Int32Array {
-  const cells = [...buckets].map(([key, list]) => { const [col, row] = key.split(',').map(Number); return { col, row, list }; });
-  if (!cells.length) return Int32Array.of(0, 0, 0, 0, 0);
-  const col0 = Math.min(...cells.map(c => c.col)), row0 = Math.min(...cells.map(c => c.row));
-  const cols = Math.max(...cells.map(c => c.col)) - col0 + 1, rows = Math.max(...cells.map(c => c.row)) - row0 + 1;
-  const lists: number[][] = Array.from({ length: cols * rows }, () => []);
-  for (const { col, row, list } of cells) lists[(col - col0) * rows + (row - row0)] = list;
-  const words = new Int32Array(5 + cols * rows + lists.reduce((sum, list) => sum + list.length, 0));
-  words.set([col0, row0, cols, rows, 0]);
-  let offset = 0, at = 5 + cols * rows;
-  lists.forEach((list, i) => { offset += list.length; words[5 + i] = offset; words.set(list, at); at += list.length; });
-  return words;
-}
 const flatEdges = (edges: Edge[]): Float64Array => Float64Array.from(edges.flatMap(e => [e.a.x, e.a.y, e.b.x, e.b.y]));
-/** The sight index as flat arrays for the Rust core (#1175): `[ax, ay, bx, by]` per edge, and its cells. */
-export function sightTables(map: Pick<CollisionMap, 'obstacles'>): { segments: Float64Array; grid: Int32Array } {
-  const { segments, sight } = sightIndex.get(map);
-  return { segments: flatEdges(segments), grid: flatGrid(sight) };
+/** Lists of edges as one flat edge array and `lists.length + 1` offsets, list `i` from `offsets[i]` to `offsets[i + 1]`. */
+function flatLists(lists: Edge[][]): { edges: Float64Array; offsets: Uint32Array } {
+  const offsets = new Uint32Array(lists.length + 1);
+  lists.forEach((list, i) => { offsets[i + 1] = offsets[i] + list.length; });
+  return { edges: flatEdges(lists.flat()), offsets };
 }
-/** The gates as flat arrays for the Rust core: every gate's edges, open or not, with offsets per gate, and their cells. */
-export function gateTables(map: Pick<CollisionMap, 'gates'>): { edges: Float64Array; offsets: Uint32Array; grid: Int32Array } {
-  const cached = gateEdgeList(map), edges: Edge[] = [], offsets = new Uint32Array(map.gates.length + 1);
-  map.gates.forEach((_, i) => { edges.push(...gateEdges(map, cached, i)); offsets[i + 1] = edges.length; });
-  return { edges: flatEdges(edges), offsets, grid: flatGrid(gateIndex(map).buckets) };
+/**
+ * The sight index as flat arrays for the Rust core (#1175): `[ax, ay, bx, by]` per edge, and its cells; and
+ * the see-through obstacles' edges, with offsets per obstacle, and their cells (#1233, `reachClear`).
+ */
+export function sightTables(map: Pick<CollisionMap, 'obstacles'>): {
+  segments: Float64Array; grid: Int32Array; through: { edges: Float64Array; offsets: Uint32Array; grid: Int32Array };
+} {
+  const { segments, sight, windows, through } = sightIndex.get(map);
+  return { segments: flatEdges(segments), grid: flatGrid(sight), through: { ...flatLists(windows), grid: flatGrid(through) } };
+}
+/**
+ * The gates as flat arrays for the Rust core: every gate's edges, open or not, with offsets per gate; their
+ * boxes (`gateShape`, `x, y, w, h`), which collision tests; and their cells.
+ */
+export function gateTables(map: Pick<CollisionMap, 'gates'>): { edges: Float64Array; offsets: Uint32Array; boxes: Float64Array; grid: Int32Array } {
+  const cached = gateEdgeList(map);
+  const boxes = Float64Array.from(map.gates.flatMap(g => { const box = gateShape(g); return [box.x, box.y, box.w, box.h]; }));
+  return { ...flatLists(map.gates.map((_, i) => gateEdges(map, cached, i))), boxes, grid: flatGrid(gateIndex(map).buckets) };
 }
 
 /**
@@ -157,7 +155,8 @@ export function reachClear(map: CollisionMap, a: Vec2, b: Vec2): boolean {
   const length = hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
-  return !someAlong(sightIndex.get(map).through, a, b, edges => edges.some(edge => hitRay(a, dx, dy, edge) < length));
+  const { windows, through } = sightIndex.get(map);
+  return !someAlong(through, a, b, i => windows[i].some(edge => hitRay(a, dx, dy, edge) < length));
 }
 // Is a world point inside an already-computed visibility polygon? The vertices ascend by angle, so the
 // bracketing pair is a binary search away and the test is which side of that boundary edge the point

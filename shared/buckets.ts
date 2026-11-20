@@ -23,6 +23,25 @@ export function eachCellIn<T>(buckets: Map<string, T[]>, left: World, top: World
 }
 
 /**
+ * A bucket map as one `i32` array for the Rust core (`rust/core/src/sight.rs`, `Grid`): `col0, row0,
+ * cols, rows`, then `cols * rows + 1` offsets, then the entries. Cells run column outer, as
+ * `eachCellIn` visits them, and each keeps its list in bucket order.
+ */
+export function flatGrid(buckets: Map<string, number[]>): Int32Array {
+  const cells = [...buckets].map(([key, list]) => { const [col, row] = key.split(',').map(Number); return { col, row, list }; });
+  if (!cells.length) return Int32Array.of(0, 0, 0, 0, 0);
+  const col0 = Math.min(...cells.map(c => c.col)), row0 = Math.min(...cells.map(c => c.row));
+  const cols = Math.max(...cells.map(c => c.col)) - col0 + 1, rows = Math.max(...cells.map(c => c.row)) - row0 + 1;
+  const lists: number[][] = Array.from({ length: cols * rows }, () => []);
+  for (const { col, row, list } of cells) lists[(col - col0) * rows + (row - row0)] = list;
+  const words = new Int32Array(5 + cols * rows + lists.reduce((sum, list) => sum + list.length, 0));
+  words.set([col0, row0, cols, rows, 0]);
+  let offset = 0, at = 5 + cols * rows;
+  lists.forEach((list, i) => { offset += list.length; words[5 + i] = offset; words.set(list, at); at += list.length; });
+  return words;
+}
+
+/**
  * Which indices a query has already met, for entries listed in several cells. `begin` starts a query in
  * constant time by moving to a fresh mark, so nothing is allocated per query once the array has grown.
  */
