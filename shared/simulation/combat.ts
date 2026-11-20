@@ -11,20 +11,21 @@ import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
 import { hookSkill } from './hook.ts';
 import { attackInCore } from './phase-three.ts';
+import { UTILITY_RULES } from './action-records.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
 
 type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
 
 /** Whether this utility can change the current health/shield state. */
 export function utilityApplies(p: UtilityState, item: InventoryItem | null | undefined): item is StackItem {
-  return item?.kind === 'med' ? p.hp < p.maxHp : item?.kind === 'shield' && p.shield < 75;
+  return item?.kind === 'med' ? p.hp < p.maxHp : item?.kind === 'shield' && p.shield < UTILITY_RULES.maxShield;
 }
 
-/** Pure utility effect, shared by actual use and bots previewing their own use. */
+/** Pure utility preview; actual core use receives the same rules and is checked for parity. */
 export function utilityOutcome(p: UtilityState, item: InventoryItem | null | undefined): Pick<Player, 'hp' | 'shield'> | null {
   if (!utilityApplies(p, item)) return null;
-  return item.kind === 'med' ? { hp: Math.min(p.maxHp, p.hp + 40), shield: p.shield }
-    : { hp: p.hp, shield: Math.min(75, p.shield + 30) };
+  return item.kind === 'med' ? { hp: Math.min(p.maxHp, p.hp + UTILITY_RULES.medHealth), shield: p.shield }
+    : { hp: p.hp, shield: Math.min(UTILITY_RULES.maxShield, p.shield + UTILITY_RULES.shieldAmount) };
 }
 
 export function damage(s: Game, target: Player, amount: number, source: Player | null): void {

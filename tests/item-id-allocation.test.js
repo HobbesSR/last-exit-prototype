@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGameRecord, snapshot } from '../shared/simulation.ts';
-import { allocateItemId, initializeItemInstances, itemIdForLabel, itemLabel } from '../shared/item-instances.ts';
+import { createGame, createGameRecord, disposePhysics, snapshot } from '../shared/simulation.ts';
+import { allocateItemId, ensureItemIdentity, forkItemAllocation, initializeItemInstances, itemIdForLabel, itemLabel, registerItemLabel } from '../shared/item-instances.ts';
+import { allocateInCore, ensureInCore, initItemAllocation, nextItemIdInCore } from '../shared/item-allocation-core.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { generatedMap } from './helpers/room-harness.js';
 import { arena } from './helpers/arena.js';
@@ -52,5 +53,64 @@ test('reload identities validate before normalization mutates records and join t
     assert.equal(p.reload.instanceId, itemIdForLabel(s, label));
     assert.equal(snapshot(s).players[0].reload.instanceId, p.reload.instanceId);
     assert.ok(allocateItemId(s) > p.reload.instanceId);
+  }
+});
+
+test('item allocation belongs to each game across core initialization and tentative forks', async () => {
+  const content = { ...defaultContent(), roster: { contestants: ['A'], gladiators: [] }, discovery: false };
+  const map = () => arena({ cols: 4, rows: 3, spawns: [{ x: 100, y: 100 }],
+    items: [{ id: 'authored', kind: 'cell', charge: 1, x: 300, y: 200 }] }).map;
+  const before = createGameRecord(17, map(), content);
+  const assertUnbound = s => {
+    assert.equal(s.itemAllocator, undefined);
+    const serial = s.itemSerial, scatter = s.scatterSerial, item = { kind: 'cell', charge: 0 };
+    assert.equal(allocateInCore(s), undefined);
+    assert.equal(ensureInCore(s, item), undefined);
+    assert.equal(nextItemIdInCore(s), undefined);
+    assert.equal(s.itemSerial, serial);
+    assert.equal(s.scatterSerial, scatter);
+    assert.equal(item.instanceId, undefined);
+    const id = allocateItemId(s);
+    assert.equal(id, serial);
+    assert.equal(itemLabel(s, id), `instance-${scatter}`);
+  };
+  assertUnbound(before);
+  const game = await createGame(17, map(), content);
+  try {
+    const allocator = await initItemAllocation();
+    assert.equal(game.itemAllocator, allocator);
+    assert.equal(await initItemAllocation(), allocator, 'initialization returns the cached binding');
+    assert.ok(Object.isFrozen(allocator));
+    assertUnbound(before);
+    assertUnbound(createGameRecord(17, map(), content));
+
+    // Count calls while delegating to the real Rust binding: explicit records must
+    // bind before normalization, and every operation must bypass setup allocation.
+    const calls = { allocate: 0, ensure: 0, nextId: 0 };
+    const tracked = Object.fromEntries(Object.keys(calls).map(key => [key, (...args) => {
+      calls[key]++;
+      return allocator[key](...args);
+    }]));
+    const bound = createGameRecord(17, map(), content, undefined, tracked);
+    assert.ok(calls.nextId > 0, 'authored item normalization uses the supplied binding');
+    const fork = forkItemAllocation(bound);
+    assert.equal(fork.itemAllocator, tracked);
+    const serial = bound.itemSerial, scatter = bound.scatterSerial;
+    const id = allocateItemId(fork);
+    assert.equal(id, serial);
+    assert.equal(itemLabel(fork, id), `instance-${scatter}`);
+    const item = { kind: 'cell', charge: 0 };
+    ensureItemIdentity(fork, item);
+    assert.equal(item.lineageId, item.instanceId);
+    assert.equal(registerItemLabel(fork, 'fork-only'), item.instanceId + 1);
+    assert.equal(calls.allocate, 1);
+    assert.equal(calls.ensure, 1);
+    assert.equal(bound.itemSerial, serial);
+    assert.equal(bound.scatterSerial, scatter);
+    assert.equal(itemIdForLabel(bound, 'fork-only'), undefined);
+    assert.equal(itemIdForLabel(bound, `instance-${scatter}`), undefined);
+    assert.equal(itemIdForLabel(fork, 'authored'), itemIdForLabel(bound, 'authored'));
+  } finally {
+    disposePhysics(game);
   }
 });

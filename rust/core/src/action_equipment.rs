@@ -4,6 +4,7 @@ use crate::action_types::{
     Item, Player, Rules, Weapon, present, safe, truthy,
 };
 use crate::drop_planner::Allocation;
+use crate::math::js_min;
 
 fn index(n: f64, len: usize) -> Option<usize> {
     (n.is_finite() && n.fract() == 0.0 && n >= 0.0 && n < len as f64).then_some(n as usize)
@@ -171,15 +172,6 @@ pub fn rearrange(
     }
     sync_weapon(p, rules);
     Ok(true)
-}
-
-// JavaScript's Math.min propagates NaN, unlike f64::min.
-fn js_min(a: f64, b: f64) -> f64 {
-    if a.is_nan() || b.is_nan() {
-        f64::NAN
-    } else {
-        a.min(b)
-    }
 }
 
 // Both absent properties compare equal in TypeScript (`undefined === undefined`).

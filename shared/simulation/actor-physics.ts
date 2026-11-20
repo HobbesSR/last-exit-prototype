@@ -25,11 +25,7 @@ export function validateActorPhysics(profile: ActorPhysics, map: Omit<GameMap, '
   }
 }
 
-export function actorMotor(s: Game, p: Player, x: number, y: number, speed: number): { x: number; y: number; accel: number } {
-  return characterMotor(s.content.actorPhysics, s.map.motorSurfaces, p, x, y, speed);
-}
-
-/** Shared motor calculation for the authoritative solver and local prediction. */
+/** Prediction's motor arithmetic; physics-prediction-contract holds it equal to the core's motor. */
 export function characterMotor(profile: Pick<ActorPhysics, 'acceleration' | 'braking'>,
   surfaces: MotorSurface[] | undefined, p: Vec2, x: number, y: number, speed: number): { x: number; y: number; accel: number } {
   const length = Math.max(1, hypot(x, y));

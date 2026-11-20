@@ -6,6 +6,10 @@ import type { PhysicsExports, PhysicsWorld } from '../physics/world.ts';
 import { physicsRefusal } from '../physics/world.ts';
 import type { AmmoFamily, Game, GroundItem, InventoryItem, ItemId, ItemLabel, Player, PlayerInput } from '../types.ts';
 import type { ActionIntent, DropPlan } from './action-records.ts';
+import { UTILITY_RULES } from './action-records.ts';
+import { MOVEMENT_SPEED } from '../movement.ts';
+import { HZ } from './rules.ts';
+import { playerIndex } from './relations.ts';
 import { addItems, groundItem, itemsNear } from './ground-items.ts';
 import { physicsRuntime, type PhysicsRuntime } from './physics-runtime.ts';
 import { asSeenBy } from './rewind.ts';
@@ -33,6 +37,8 @@ function configure(s: Game, r: PhysicsRuntime, core: Core, world: number): void 
   const data = [c.itemInstances.groundCapacity, c.reloading ? 1 : 0, a.acceleration, a.braking,
     a.geometry.contestant.bodyRadius, a.geometry.gladiator.bodyRadius, c.worldPhysics.loot.radius,
     c.hearing?.ticks ?? 0, DISCOVERY_CELL_SIZE, s.map.width, s.map.height, c.hook.cooldownTicks,
+    HZ, MOVEMENT_SPEED.contestant, MOVEMENT_SPEED.gladiator, MOVEMENT_SPEED.contestantBoost, MOVEMENT_SPEED.gladiatorBoost,
+    MOVEMENT_SPEED.stun, MOVEMENT_SPEED.sneak, UTILITY_RULES.medHealth, UTILITY_RULES.shieldAmount, UTILITY_RULES.maxShield,
     ...KITS.map(k => n(c.kits[k]?.cooldown)), ...KITS.map(k => n(c.kits[k]?.damage)),
     c.lootTiers?.damage.length ?? 0, ...c.lootTiers?.damage ?? [], WEAPONS.length];
   for (const type of WEAPONS) {
@@ -73,10 +79,10 @@ function putItem(item: InventoryItem, row: Float64Array, at: number): void {
 function ground(row: Float64Array, at: number, p: Player, tick: number): GroundItem {
   const kind = ITEM_KINDS[row[at]!]!, id = row[at + 10]! as ItemId, lineageId = row[at + 6]! as ItemId;
   const x = row[at + 11]!, y = row[at + 12]!;
-  if (kind === 'ammo') return { kind, id, lineageId, family: AMMO_FAMILIES[row[at + 13]!]!, count: row[at + 3]!, x, y, droppedBy: p.id, pickupAfter: tick + 20 };
+  if (kind === 'ammo') return { kind, id, lineageId, family: AMMO_FAMILIES[row[at + 13]!]!, count: row[at + 3]!, x, y, droppedBy: p.id, pickupAfter: tick + HZ };
   return { kind, id, lineageId, ...(!Number.isNaN(row[at + 7]!) ? { quality: row[at + 7]! } : {}),
     ...(kind === 'weapon' ? { weaponType: WEAPONS[row[at + 1]!]!, ammo: row[at + 2]! }
-      : kind === 'cell' ? { charge: row[at + 4]! } : { count: 1 }), x, y, droppedBy: p.id, pickupAfter: tick + 20 };
+      : kind === 'cell' ? { charge: row[at + 4]! } : { count: 1 }), x, y, droppedBy: p.id, pickupAfter: tick + HZ };
 }
 
 type Damage = (s: Game, target: Player, amount: number, source: Player | null) => void;
@@ -98,7 +104,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const allocations: InventoryItem[] = [], droppers: Player[] = [];
   let allocationCount = 0, context = mode === 1, hearing = false, queries = mode === 1;
   for (const p of actors) {
-    const intent = intents[s.players.indexOf(p)], input = intent?.input;
+    const intent = intents[playerIndex(s, p)], input = intent?.input;
     if (input?.moveSlot) { allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += p.inventory?.filter(i => i && i.instanceId === undefined).length ?? 0; }
     if (mode === 2 || mode === 3 || input?.drop || input?.dropAmmo || intent?.discardSlot !== undefined) {
       droppers.push(p); allocations.push(...p.inventory?.filter(i => i !== null) ?? []); allocationCount += 4; context = true; queries = true;
@@ -129,15 +135,15 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
     for (const p of s.players) for (const item of p.inventory ?? []) if (item?.instanceId) carried.push(token(item), item.instanceId);
   }
   const contexts = context ? s.players : [];
-  const hooks = actors.some(p => p.kit === 'hook' && intents[s.players.indexOf(p)]?.input.skill) ? r.hooks : [];
+  const hooks = actors.some(p => p.kit === 'hook' && intents[playerIndex(s, p)]?.input.skill) ? r.hooks : [];
   const data: number[] = [mode, options.start ?? 0, options.stage ?? 0, s.tick, s.serial, source.itemSerial ?? 1, source.scatterSerial ?? 0,
     items.length, Math.max(0, s.players.length - r.actors.size), actors.length, contexts.length, phases.length, known.size,
     near.size, groundIds.length, carried.length / 2, hooks.length, options.mandatory ? 1 : 0, code(AMMO_FAMILIES, options.family), n(options.count), 0];
   for (const p of actors) {
-    const intent = intents[s.players.indexOf(p)], input: PlayerInput = intent?.input ?? {};
+    const intent = intents[playerIndex(s, p)], input: PlayerInput = intent?.input ?? {};
     const inventory = options.item ? [options.item] : mode === 1 || mode === 2 || !!(input.slot !== undefined || input.moveSlot || intent?.utilitySlot !== undefined
       || input.drop || intent?.discardSlot !== undefined || input.reload || p.reload || input.attack && p.role === 'contestant' && p.attackCd <= 0) ? p.inventory : undefined;
-    data.push(s.players.indexOf(p), r.world.key(`actor:${p.id}`), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), KITS.indexOf(p.kit),
+    data.push(playerIndex(s, p), r.world.key(`actor:${p.id}`), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), KITS.indexOf(p.kit),
       p.x, p.y, p.heading, p.hp, p.maxHp, p.shield, n(p.selectedSlot), p.weapon, p.attackCd, p.cooldown, p.cloak, p.revealed, p.boost, p.stun, p.level,
       inventory?.length ?? -1, p.reserves ? 1 : 0, p.reload ? 1 : 0, 0);
     if (p.reserves) data.push(p.reserves.pistol, p.reserves.rifle, p.reserves.shell);
@@ -150,7 +156,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
   const seen = mode === 1 && options.player?.role === 'gladiator' ? asSeenBy(s, options.player) : undefined;
   for (const p of contexts) {
     const at = seen?.(p) ?? p, cues = hearing ? p.heard ?? [] : [];
-    data.push(s.players.indexOf(p), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), at.x, at.y,
+    data.push(playerIndex(s, p), p.role === 'contestant' ? 0 : 1, PLAYER_STATUSES.indexOf(p.status), at.x, at.y,
       s.content.actorPhysics.geometry[p.role].bodyRadius, r.world.key(`actor:${p.id}`), cues.length);
     for (const cue of cues) data.push(cue.x, cue.y, cue.tick, cue.until);
   }
@@ -222,7 +228,7 @@ function call(s: Game, intents: readonly (ActionIntent | undefined)[], options: 
         startedTick: s.tick, phase: 'flying', generationA: out[at + 1]! });
       r.hooks.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     } else if (op === 7) r.world.adoptMotor(out[at]!, out[at + 1]!, out[at + 2]!, out[at + 3]!);
-    else if (op === 8) r.world.adoptCommit(out[at]!, out, at + 1);
+    else if (op === 8) { r.world.adoptCommit(out[at]!, out, at + 1); r.world.adoptQueue(out[at + len - 1]!); }
     else if (op === 9) {
       const p = s.players[out[at]!]!, records = Array.from({ length: out[at + 1]! }, (_, i) => ground(out, at + 2 + i * RECORD_ROW, p, s.tick));
       addItems(s, ...records); launchPhysicalDrops(s, records, p);

@@ -10,7 +10,7 @@ import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
 import { initializeItemInstances } from '../item-instances.ts';
 import { assignWeaponQualities } from '../loot-tiers.ts';
 import { loadMapWeapons, seedAmmo } from './ammo.ts';
-import type { Game, GameMap, ItemId, Kit, MatchMap, Player, PlayerId, PlayerInput, Role } from '../types.ts';
+import type { Game, GameMap, ItemAllocator, ItemId, Kit, MatchMap, Player, PlayerId, PlayerInput, Role } from '../types.ts';
 import type { CoreSight } from '../sight-core.ts';
 
 /**
@@ -22,8 +22,9 @@ import type { CoreSight } from '../sight-core.ts';
  * and is what steps, so a game from here alone suits code that reads a match without running it.
  * `sight` is the core binding discovery's first sample runs through; without it, contestants start with
  * nothing discovered until a game steps (#1210).
+ * `itemAllocator` binds core allocation before item normalization; bare records use synchronous setup.
  */
-export function createGameRecord(seed: number, map: GameMap, content = defaultContent(), sight?: CoreSight): Game {
+export function createGameRecord(seed: number, map: GameMap, content = defaultContent(), sight?: CoreSight, itemAllocator?: ItemAllocator): Game {
   assertEnumKeys(content.weapons, WEAPONS, 'weapon');
   assertEnumKeys(content.kits, KITS, 'kit');
   const { items, traps } = map as unknown as GameMap<ItemId>, fieldOrder = Object.keys(map);
@@ -32,6 +33,7 @@ export function createGameRecord(seed: number, map: GameMap, content = defaultCo
   const arena = map as unknown as MatchMap;
   mapFieldOrders.set(arena, fieldOrder);
   const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map: arena, items, traps, gates: arena.gates, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
+  if (itemAllocator) s.itemAllocator = itemAllocator;
   // Identifier and iteration order are part of the recorded contract, so both are derived from the
   // roster's own order rather than from anything that could reorder independently of it.
   for (const role of ROLES) {

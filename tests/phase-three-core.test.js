@@ -3,16 +3,20 @@ import test from 'node:test';
 import { createGame, disposePhysics, setInput, snapshot, step } from '../shared/simulation.ts';
 import { contentById, defaultContent } from '../shared/simulation/content.ts';
 import { planDrop } from '../shared/simulation/loot.ts';
+import { phaseThree } from '../shared/simulation/phase-three.ts';
+import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
+import { createPhysicsWorld } from '../shared/physics/world.ts';
 import { arena } from './helpers/arena.js';
 import { itemId, itemLabel } from './helpers/item-identity.js';
 
 // Phase 3's bounded witnesses (27, step 5c.2): one or two ticks on an empty arena. The frozen
 // match trace rarely rearranges unidentified items or combines a slot drop and reserve drop.
-async function fixture(t, { ammo = false, capacity } = {}) {
+async function fixture(t, { ammo = false, capacity, damage1 } = {}) {
   const content = structuredClone(ammo ? contentById('content-ammo-1') : defaultContent());
   content.roster = { contestants: ['A', 'B'], gladiators: [] };
   content.discovery = false;
   if (capacity !== undefined) content.itemInstances.groundCapacity = capacity;
+  if (damage1 !== undefined) { content.lootTiers = structuredClone(contentById('content-loot-1').lootTiers); content.lootTiers.damage[0] = damage1; }
   const { map } = arena({ cols: 12, rows: 6, cellSize: 100,
     spawns: [{ x: 300, y: 300 }, { x: 900, y: 300 }] });
   const s = await createGame(1238, map, content);
@@ -210,4 +214,98 @@ test('reload completion preserves an explicit NaN write when the carried magazin
   assert.ok(Number.isNaN(gun.ammo));
   assert.ok(Number.isNaN(p.reserves.pistol));
   assert.equal(p.reload, null);
+});
+
+// A fresh diagnostic world lets the unrelated constraint occupy key zero before any actor key.
+async function hookFixture(t) {
+  const content = structuredClone(defaultContent());
+  content.roster = { contestants: [], gladiators: ['A', 'B', 'C'].map(name => ({ name, kit: 'hook' })) };
+  content.discovery = false;
+  const { map } = arena({ cols: 6, rows: 3, cellSize: 100,
+    hunterSpawns: [{ x: 100, y: 150 }, { x: 300, y: 150 }, { x: 500, y: 150 }] });
+  const s = await createGame(1238, map, content);
+  t.after(() => disposePhysics(s));
+  const r = physicsRuntime(s), previous = r.world;
+  r.world = await createPhysicsWorld();
+  previous.dispose();
+  assert.equal(r.world.key('limit:0'), 0);
+  r.hooks = []; r.items.clear(); r.gates.fill(0);
+  for (const p of s.players) {
+    p.bot = false; p.cooldown = 0;
+    r.world.queueAddBody({ id: `actor:${p.id}`, kind: 'actor', x: p.x, y: p.y,
+      shape: { kind: 'circle', radius: content.actorPhysics.geometry.gladiator.bodyRadius } });
+  }
+  r.world.commitMutations();
+  return { s, r, p: s.players[0] };
+}
+
+function ropeFor(s, id) {
+  return { id, a: `actor:${s.players[0].id}`, b: `actor:${s.players[1].id}`, maxDistance: 500 };
+}
+
+function activeHook(s, r, p) {
+  const id = `hook:${p.id}`;
+  r.world.queueAddConstraint(ropeFor(s, id));
+  r.world.commitMutations();
+  const hook = { id, tetherId: r.identities.newTether(), casterIdx: s.players.indexOf(p),
+    x: p.x, y: p.y, dx: 1, dy: 0, travelled: 0, startedTick: s.tick, phase: 'flying',
+    generationA: r.world.getGeneration(`actor:${p.id}`) };
+  r.hooks.push(hook);
+  return hook;
+}
+
+const hookInput = (s, p) => s.players.map(actor => actor === p ? { input: { skill: true, x: 1 } } : undefined);
+const noDamage = () => {};
+const actorMotor = (r, p) => r.world.snapshot().bodies.find(body => body.spec.id === `actor:${p.id}`).motor;
+
+test('new hook sentinels cannot alias an unrelated constraint at key zero', async t => {
+  const { s, r } = await hookFixture(t);
+  for (let i = 0; i < 6; i++) r.world.queueAddConstraint(ropeFor(s, `limit:${i}`));
+  r.world.commitMutations();
+  assert.equal(r.world.counts().constraints, 6);
+  phaseThree(s, s.players.map(() => ({ input: { skill: true } })), noDamage);
+  assert.deepEqual(r.hooks.map(hook => hook.id), ['hook:g0', 'hook:g1']);
+  assert.deepEqual(s.players.map(p => p.cooldown), [s.content.hook.cooldownTicks, s.content.hook.cooldownTicks, 0]);
+  assert.equal(r.world.counts().constraints, 6, 'flying hooks reserve capacity without creating constraints yet');
+});
+
+test('hook cancellation queue refusal preserves the hook, queued commands and prior motor', async t => {
+  const { s, r, p } = await hookFixture(t);
+  const hook = activeHook(s, r, p), actor = `actor:${p.id}`;
+  r.world.setMotor(actor, { x: 0, y: -20, accel: 17 });
+  for (let i = 0; i < 1024; i++) r.world.queueImpulse(actor, { x: 1, y: 0 });
+  const before = r.world.snapshot();
+  assert.throws(() => phaseThree(s, hookInput(s, p), noDamage), /physics command queue capacity exceeded/);
+  assert.equal(r.hooks[0], hook);
+  assert.equal(r.world.hasConstraint(hook.id), true);
+  assert.deepEqual(r.world.snapshot(), before, 'refusal occurs before commit or movement');
+});
+
+test('hook cancellation commit refusal preserves partial removal and stops before the motor', async t => {
+  const { s, r, p } = await hookFixture(t);
+  const hook = activeHook(s, r, p), actor = `actor:${p.id}`;
+  r.world.setMotor(actor, { x: 0, y: -20, accel: 17 });
+  const motor = actorMotor(r, p);
+  // Strictly convex in f64, collinear in Rapier f32: admitted to the queue, refused at commit.
+  r.world.queueAddBody({ id: 'invalid-hull', kind: 'static', x: 0, y: 0,
+    shape: { kind: 'convex', vertices: [{ x: -1e8, y: -1e8 }, { x: 1e8, y: 1e8 - 1 }, { x: 1e8, y: 1e8 + 1 }] } });
+  assert.throws(() => phaseThree(s, hookInput(s, p), noDamage), /invalid convex body/);
+  assert.deepEqual(r.hooks, [], 'the gameplay hook is removed before the commit attempt');
+  assert.equal(r.world.hasConstraint(hook.id), false, 'commit retains its earlier constraint removal');
+  assert.deepEqual(r.world.snapshot().pending.add.map(body => body.id), ['invalid-hull']);
+  assert.deepEqual(r.world.snapshot().pending.removeConstraints, []);
+  assert.deepEqual(actorMotor(r, p), motor);
+});
+
+test('an absent quality uses configured tier one damage while explicit NaN falls back to one', async t => {
+  const { s, p } = await fixture(t, { damage1: 1.75 });
+  const base = s.content.weapons.pistol.damage;
+  for (const [metadata, expected] of [[{}, base * 1.75], [{ quality: NaN }, base]]) {
+    p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 1, ...metadata };
+    p.attackCd = 0;
+    s.projectiles = [];
+    phaseThree(s, s.players.map(actor => actor === p ? { input: { attack: true } } : undefined), noDamage);
+    assert.equal(s.projectiles.length, 1);
+    assert.equal(s.projectiles[0].damage, expected);
+  }
 });

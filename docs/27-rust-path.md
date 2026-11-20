@@ -436,7 +436,7 @@ admission shares), in the TypeScript's order. `scatterInCore`
   again needs setup to run with the core bound.
 - **Cost:** [42.68](42.68-drop-scatter-core.md).
 
-**Step 5c.2, phase 3 and item allocation (#1238, adapter version 12).** `phase_three.rs` runs the action loop in
+**Step 5c.2, phase 3 and item allocation (#1238, adapter version 13).** `phase_three.rs` runs the action loop in
 `ordered(s)` order: heading, selection, rearrangement, utility use, slot and reserve drops, reload, non-warden
 skills, contestant attack and motor. `action_equipment.rs` and `action_combat.rs` own its equipment, reload,
 attack, skill and motor rules; the motor is set directly in the world's records. `phase-three.ts` packs and
@@ -456,10 +456,12 @@ so the core adapter does not import its callers.
   `scatter_point`, checks uniqueness and stages every allocation before publishing a complete plan. Capacity is
   checked before search, uniqueness after it; mandatory fallback spots join the earlier spots. Callers in phases
   5 and 6 share this planner through the adapter, including staged swap lists with NaN coordinates.
-- **IDs are allocated in the core.** `item_allocation.rs` also serves the synchronous allocation helpers once
-  `createGame` binds it, before constructing the game record. Node keeps the label registry and supplies free
+- **IDs are allocated in the core.** `createGame` passes the `item_allocation.rs` binding into `createGameRecord`,
+  before normalization and ammo seeding. The record's `itemAllocator` is copied into tentative allocation forks;
+  an unbound record always uses its TypeScript setup allocator, regardless of other games' initialization.
+  Node keeps the label registry and supplies free
   `instance-N` phases; the core reports registrations in allocation order. Forked plans publish only into their
-  own registry layer. Bare synchronous records created before binding retain their setup path; a bare record's
+  own registry layer. Bare synchronous records without an explicit binding retain their setup path; a bare record's
   planner and attack retain TypeScript because it has no physics world and cannot step.
 - **Packing follows reads.** Only actors with an intent cross as action records. Inventories cross for selection,
   move, drops, reloads or an eligible attack; ground positions come from the drop origins' bounded grid queries,
@@ -467,6 +469,24 @@ so the core adapter does not import its callers.
   Content and motor surfaces upload once per world. An absence mask keeps a missing item field distinct from
   explicit NaN; object tokens retain carried object identity through moves, merges and consumption. The
   snapshot, recording frame and wire version are unchanged.
+- **Shared parameters, retained arithmetic.** `movement.ts` owns `MOVEMENT_SPEED`; `rules.ts` owns `HZ`, and
+  `action-records.ts` owns `UTILITY_RULES`. They upload with the content through `actions_configure`, so the core
+  has no independent copy of the speed multipliers, utility amounts/cap or utility cooldown. `actorMotor`, the
+  unused TypeScript reload advancement and TypeScript rearrangement have retired. Equipment tests now exercise
+  the core action loop, and the prediction contract checks the actual core motor.
+- **Two copies on purpose.** These remaining callers still need a TypeScript rule. Each row names its equality
+  evidence and the issue that will resolve ownership; any rule change must update both implementations until then.
+
+  | Rule and core owner | Remaining TypeScript caller | Equality evidence | One owner again |
+  | --- | --- | --- | --- |
+  | Motor, `action_combat::motor` | Client prediction's `movementSpeed` and `characterMotor` | `physics-prediction-contract` compares actual core motors across roles, boost/stun/sneak, zero input and surface ties; parameters are shared | #1241 decides a batched core caller versus retained prediction arithmetic with parity |
+  | Utility outcome, `action_combat::attack` | Bots' `utilityOutcome` preview and bare-record attack | Shared `UTILITY_RULES`/`HZ`; `utility-use` compares preview with actual core use, including caps/refusal | #1215 moves bot previews; #1241 owns remaining setup callers |
+  | Attack/hearing, `action_combat::attack` and `phase_three.rs` | Bare-record/scenario fallback in `combat.ts` and `hearing.ts` | `action-parity` directly compares firearm, utility, melee and heard-cue state/facts with the core; frozen characterization covers live calls | #1241 |
+  | Non-warden skill and hook launch/cancel, `phase_three.rs`/`action_combat.rs` | Direct scenario entry points in `combat.ts` and `hook.ts` | `action-parity` compares specter/striker and hook launch/cancel with the core; `phase-three-core` covers key-zero capacity and refusal ordering | #1241; #1229 owns the separate swept revalidation and warden skill |
+  | Drop plans, `drop_planner.rs` | Bare setup planners in `loot.ts` | `action-parity` compares complete plans, staged allocations and NaN/fallback refusals on common empty-world geometry; 5c.1 documents the intentional physics-only loot-body test | #1241 |
+  | Item allocation, `item_allocation.rs` | Explicitly unbound setup records | `item-id-allocation` checks selection before/after another game initializes, actual Rust operations and fork isolation; setup/live suites check the same allocation expectations | #1241 |
+  | Equipment access, validation and weapon selection, `action_equipment.rs` | Node pickups/swaps and bot reads in `equipment.ts`/`item-instances.ts` | `equipment`, `item-instances`, `action-parity` and frozen characterization cover the core action and retained transfer/validation paths; weapon parameters remain content-owned | #1230 moves phase-6 writers, #1215 moves bot reads, #1241 owns remaining setup callers |
+
 - **Cost:** [42.69](42.69-phase-three-core.md), under 42.58's state-flip exception; remeasure at #1214.
 
 ## One math library on both sides

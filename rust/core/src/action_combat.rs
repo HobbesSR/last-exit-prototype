@@ -1,6 +1,6 @@
 //! Phase-three combat facts and character motor calculations (27, D1).
 use crate::action_equipment::{equipped, sync_weapon};
-use crate::action_types::{ABSENT_AMMO, Player, Rules, present, truthy};
+use crate::action_types::{ABSENT_AMMO, ABSENT_QUALITY, Player, Rules, present, truthy};
 use crate::collision::line_clear;
 use crate::math::{atan2, cos, hypot, js_max, js_min, sin};
 use crate::sight::{GateSet, SightIndex};
@@ -122,12 +122,12 @@ pub fn attack(
             if p.hp.partial_cmp(&p.max_hp) != Some(std::cmp::Ordering::Less) {
                 return;
             }
-            p.hp = js_min(p.max_hp, p.hp + 40.0);
+            p.hp = js_min(p.max_hp, p.hp + rules.utility[0]);
         } else {
-            if p.shield.partial_cmp(&75.0) != Some(std::cmp::Ordering::Less) {
+            if p.shield.partial_cmp(&rules.utility[2]) != Some(std::cmp::Ordering::Less) {
                 return;
             }
-            p.shield = js_min(75.0, p.shield + 30.0);
+            p.shield = js_min(rules.utility[2], p.shield + rules.utility[1]);
         }
         let slot = slot(p).unwrap();
         let inventory = p.inventory.as_mut().unwrap();
@@ -139,7 +139,7 @@ pub fn attack(
             p.retired.push(item.clone());
             inventory[slot] = None;
         }
-        p.attack_cd = 20.0;
+        p.attack_cd = rules.hz;
         sync_weapon(p, rules);
         effect(serial, facts, p.x, p.y, 3, 30.0);
         return;
@@ -163,7 +163,7 @@ pub fn attack(
     }
     carried.ammo -= 1.0;
     p.attack_cd = weapon.cooldown;
-    let quality = present(carried.quality, 1.0) - 1.0;
+    let quality = carried.value(ABSENT_QUALITY, carried.quality, 1.0) - 1.0;
     let multiplier = if quality.is_finite() && quality.fract() == 0.0 && quality >= 0.0 {
         rules
             .quality_damage
@@ -221,15 +221,16 @@ pub fn skill(
 }
 
 pub fn motor(p: &Player, rules: &Rules, x: f64, y: f64, sneak: bool) -> [f64; 3] {
-    let mut speed = if p.role == 0.0 { 9.0 } else { 8.0 } * 20.0;
+    let role = usize::from(p.role != 0.0);
+    let mut speed = rules.movement[role] * rules.hz;
     if truthy(p.boost) {
-        speed *= if p.role == 0.0 { 1.45 } else { 1.5 };
+        speed *= rules.movement[2 + role];
     }
     if truthy(p.stun) {
-        speed *= 0.35;
+        speed *= rules.movement[4];
     }
     if sneak && p.role == 0.0 {
-        speed *= 0.55;
+        speed *= rules.movement[5];
     }
     let length = js_max(1.0, hypot(x, y));
     let surface = rules

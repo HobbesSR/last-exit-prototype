@@ -837,7 +837,16 @@ export type GameEventPayload =
   | { kind: 'match_finished' };
 export type GameEvent = { id: Serial; tick: Tick } & GameEventPayload;
 
+/** Synchronous item operations bound explicitly when preparing a stepping game. */
+export interface ItemAllocator {
+  allocate(s: Game): ItemId;
+  ensure(s: Game, item: InventoryItem): void;
+  nextId(s: Game): ItemId;
+}
+
 export interface Game {
+  /** Private engine binding; enumerable so tentative game copies keep the same allocator. */
+  itemAllocator?: ItemAllocator | undefined;
   /** Private match identity registry; staged plans fork it explicitly. */
   itemIdentities?: import('./item-instances.ts').ItemRegistry | undefined;
   /** Temporary compatibility phase: preserves allocation-driven drop geometry (24.4). */

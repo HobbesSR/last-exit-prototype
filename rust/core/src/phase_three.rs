@@ -71,6 +71,9 @@ impl PhaseThree {
         let map_width = r.n();
         let map_height = r.n();
         let hook_cooldown = r.n();
+        let hz = r.n();
+        let movement = r.row();
+        let utility = r.row();
         let kit_cooldown = r.vec(4);
         let kit_damage = r.vec(4);
         let n = r.count();
@@ -114,6 +117,9 @@ impl PhaseThree {
             map_width,
             map_height,
             hook_cooldown,
+            hz,
+            movement,
+            utility,
         });
     }
 }
@@ -575,19 +581,29 @@ impl PhaseThree {
                                 let code = world.queue_remove_constraint(key);
                                 if code < 0 {
                                     error = (f64::from(code), f64::from(key));
+                                    players[i] = p;
+                                    break;
                                 }
                             }
+                            // remove() changed the hook list before commitMutations; a failed
+                            // queue leaves it alone, but a failed commit keeps that removal.
+                            op(&mut log, 5.0, &[p.roster as f64]);
                             let code = world.commit();
                             let mut row = vec![f64::from(code)];
                             row.extend_from_slice(world.output());
+                            row.push(world.queued_count() as f64);
                             op(&mut log, 8.0, &row);
-                            op(&mut log, 5.0, &[p.roster as f64]);
+                            if code < 0 {
+                                error = (f64::from(code), -1.0);
+                                players[i] = p;
+                                break;
+                            }
                         } else if p.cooldown <= 0.0 {
                             world.counts();
                             let count = world.output()[3];
                             let active = hooks
                                 .iter()
-                                .filter(|h| world.has_constraint(h[1] as u32))
+                                .filter(|h| h[1] >= 0.0 && world.has_constraint(h[1] as u32))
                                 .count();
                             let generation = world.generation(p.key);
                             if count - active as f64 + (hooks.len() as f64) < 8.0

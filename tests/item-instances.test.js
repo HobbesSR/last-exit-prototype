@@ -2,10 +2,13 @@ import { renderedSnapshot } from './helpers/relational.js';
 import { renderedPlayerView as playerView } from './helpers/relational.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { isDeepStrictEqual } from 'node:util';
+import { phaseThree } from '../shared/simulation/phase-three.ts';
+import { damage } from '../shared/simulation/combat.ts';
 import { Writable } from 'node:stream';
 import { createGameRecord, createGame, disposePhysics, PHYSICS_VERSION, setInput, step as stepRaw, snapshot as snapshotRaw, synchronizePhysics } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { collectInstanceEquipment as collectRaw, rearrangeInstanceEquipment as rearrangeRaw } from '../shared/equipment.ts';
+import { collectInstanceEquipment as collectRaw } from '../shared/equipment.ts';
 import { allocateItemId, commitItemAllocation, forkItemAllocation, itemIdForLabel, itemLabel, registerItemLabel } from '../shared/item-instances.ts';
 import { automaticPickups as pickupsRaw, dropInventorySlot as dropRaw } from '../shared/simulation/loot.ts';
 import { eliminate as eliminateRaw } from '../shared/simulation/lifecycle.ts';
@@ -37,7 +40,15 @@ const ground = (id, kind, fields = {}) => ({ id, kind, x: 120, y: 200, ...fields
 const step = s => { identifyItems(s); return stepRaw(s); };
 const snapshot = s => { identifyItems(s); return snapshotRaw(s); };
 const collectInstanceEquipment = (s, ...args) => { identifyItems(s); return collectRaw(s, ...args); };
-const rearrangeInstanceEquipment = (s, ...args) => { identifyItems(s); return rearrangeRaw(s, ...args); };
+// Exercise only this actor's phase-three action, without unrelated ground pickups.
+const moveSlot = (s, p, from, to) => {
+  identifyItems(s);
+  const state = () => ({ inventory: p.inventory, selectedSlot: p.selectedSlot, weapon: p.weapon,
+    itemSerial: s.itemSerial, scatterSerial: s.scatterSerial });
+  const before = structuredClone(state());
+  phaseThree(s, s.players.map(actor => actor === p ? { input: { moveSlot: { from, to } } } : undefined), damage);
+  return !isDeepStrictEqual(state(), before);
+};
 const automaticPickups = (s, ...args) => { identifyItems(s); return pickupsRaw(s, ...args); };
 const dropInventorySlot = (s, ...args) => { identifyItems(s); return dropRaw(s, ...args); };
 const eliminate = (s, ...args) => { identifyItems(s); return eliminateRaw(s, ...args); };
@@ -116,13 +127,13 @@ test('partial ground transfers preserve the remainder; same-quality merges retai
   assert.equal(p.inventory.filter(Boolean).reduce((n, item) => n + (item.count ?? 1), 0) + source.count, 5);
 
   p.inventory[1] = { kind: 'med', count: 1, quality: 3, instanceId: 'other', lineageId: 'other' };
-  assert.equal(rearrangeInstanceEquipment(s, p, 1, 0), false, 'a full target cannot absorb more');
-  assert.equal(rearrangeInstanceEquipment(s, p, 0, 1), true);
+  assert.equal(moveSlot(s, p, 1, 0), false, 'a full target cannot absorb more');
+  assert.equal(moveSlot(s, p, 0, 1), true);
   assert.equal(p.inventory[1].instanceId, itemId(s, 'other'));
   assert.equal(p.inventory[1].count, 3);
   assert.equal(p.inventory[0].count, 1);
   p.inventory[2] = { kind: 'med', count: 1, quality: 4, instanceId: 'different', lineageId: 'different' };
-  assert.equal(rearrangeInstanceEquipment(s, p, 0, 2), true);
+  assert.equal(moveSlot(s, p, 0, 2), true);
   assert.deepEqual([p.inventory[0].quality, p.inventory[2].quality], [4, 3], 'different qualities swap without blending');
 });
 
@@ -171,7 +182,7 @@ test('optional capacity failure and invalid slot/payload do not mutate inventory
   assert.equal(dropInventorySlot(s, p, 0), false);
   assert.equal(dropInventorySlot(s, p, 9), false);
   assert.equal(dropInventorySlot(s, p, 0.5), false);
-  assert.equal(rearrangeInstanceEquipment(s, p, -1, 1), false);
+  assert.equal(moveSlot(s, p, -1, 1), false);
   assert.deepEqual({ inventory: p.inventory, items: s.items, itemSerial: s.itemSerial }, before);
   for (const bad of [ground('bad-count', 'med', { count: -1 }), ground('bad-ammo', 'weapon', { weaponType: 'pistol', ammo: NaN }), ground('bad-quality', 'cell', { charge: 2, quality: 9 })]) {
     s.items.push(bad);

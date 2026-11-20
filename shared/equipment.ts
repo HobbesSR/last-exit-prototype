@@ -1,6 +1,6 @@
 import { defaultContent } from './simulation/content.ts';
 import { AMMO_FAMILIES as AMMO_ORDER, WEAPONS as WEAPON_ORDER } from './enum-tables.ts';
-import type { AmmoFamily, ItemId, CellItem, Game, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
+import type { AmmoFamily, ItemId, CellItem, Game, InventoryItem, GroundItem, Player, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from './item-instances.ts';
 
 export const SLOT_COUNT = 6;
@@ -109,27 +109,4 @@ function collectRounds(s: Game, p: Player, family: AmmoFamily, item: GroundItem,
 export function collectAmmo(s: Game, p: Player, item: GroundItem, listed = item): boolean {
   if (item.kind !== 'ammo' || !s.content.reloading || !validIdentityState(s, p, item, listed)) return false;
   return collectRounds(s, p, item.family!, item, 'count');
-}
-
-/** L0 rearrangement; the target stack survives a same-quality merge. */
-export function rearrangeInstanceEquipment(s: Game, p: Player, from: SlotIndex, to: SlotIndex): boolean {
-  if (!validIdentityState(s, p) || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= SLOT_COUNT || to >= SLOT_COUNT || from === to) return false;
-  const source = p.inventory![from], target = p.inventory![to];
-  if (!source) return false;
-  if (target && stackKind(source.kind) && stackKind(target.kind) && source.kind === target.kind && sameQuality(source, target)) {
-    const stackSource = source as StackItem, stackTarget = target as StackItem;
-    const transfer = Math.min(stackSource.count, 3 - stackTarget.count);
-    if (transfer <= 0) return false;
-    prepareCarried(s, p);
-    stackTarget.count += transfer;
-    stackSource.count -= transfer;
-    if (!stackSource.count) { p.inventory![from] = null; if (p.selectedSlot === from) p.selectedSlot = to; }
-  } else {
-    prepareCarried(s, p);
-    [p.inventory![from], p.inventory![to]] = [target, source];
-    if (p.selectedSlot === from) p.selectedSlot = to;
-    else if (p.selectedSlot === to) p.selectedSlot = from;
-  }
-  syncWeapon(p, s.content.weapons);
-  return true;
 }

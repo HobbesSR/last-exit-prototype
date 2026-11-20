@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, disposePhysics, playerView, snapshot } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
-import { actorMotor, characterMotor } from '../shared/simulation/actor-physics.ts';
+import { characterMotor } from '../shared/simulation/actor-physics.ts';
+import { movementSpeed } from '../shared/movement.ts';
+import { HZ } from '../shared/simulation/rules.ts';
+import { phaseThree } from '../shared/simulation/phase-three.ts';
+import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
 import { openArea } from './helpers/arena.js';
 import { predictionConstants } from '../shared/simulation/physics-presentation.ts';
 
@@ -13,7 +17,7 @@ const arena = () => ({ width: 600, height: 400,
   exit: { x: 550, y: 200 }, entry: { x: 50, y: 200 }, gaps: [] });
 const content = id => ({ ...structuredClone(contentById(id)), roster: { contestants: ['A'], gladiators: [] } });
 
-test('shared motor keeps the authoritative surface priority, tie break and fallback arithmetic', () => {
+test('prediction motor equals the authoritative core across speed modifiers, surface ties and braking', async () => {
   const surfaces = [
     { id: 'z', x: 0, y: 0, w: 100, h: 100, priority: 2, speed: 0.7, traction: 0.1, braking: 0.1 },
     { id: 'a', x: 0, y: 0, w: 100, h: 100, priority: 2, speed: 0.5, traction: 0.2, braking: 0.4 },
@@ -23,8 +27,23 @@ test('shared motor keeps the authoritative surface priority, tie break and fallb
   assert.deepEqual(characterMotor(profile, surfaces, p, 0, 0, 200), { x: 0, y: 0, accel: 880 });
   assert.deepEqual(characterMotor({ acceleration: 3600, braking: 3600 }, undefined, p, 3, 4, 200), { x: 120, y: 160, accel: 3600 });
   assert.deepEqual(characterMotor(profile, surfaces, { x: 100, y: 10 }, 3, 4, 200), { x: 120, y: 160, accel: 4200 });
-  assert.deepEqual(actorMotor({ content: { actorPhysics: profile }, map: { motorSurfaces: surfaces } }, p, 3, 4, 200),
-    characterMotor(profile, surfaces, p, 3, 4, 200));
+  const tuned = content('content-6');
+  tuned.roster.gladiators = [{ name: 'G', kit: 'warden' }];
+  Object.assign(tuned.actorPhysics, profile);
+  const map = arena(); map.motorSurfaces = surfaces;
+  const s = await createGame(1, map, tuned);
+  try {
+    const r = physicsRuntime(s);
+    for (const actor of s.players) for (const boost of [0, 1]) for (const stun of [0, 1]) for (const sneak of [false, true])
+      for (const [x, y] of [[0, 0], [3, 4]]) for (const position of [p, { x: 100, y: 10 }]) {
+        Object.assign(actor, position, { boost, stun });
+        const intents = []; intents[s.players.indexOf(actor)] = { input: { x, y, sneak } };
+        phaseThree(s, intents, () => assert.fail('motor-only intent cannot damage'));
+        const actual = r.world.snapshot().bodies.find(b => b.spec.id === `actor:${actor.id}`).motor;
+        const speed = movementSpeed(actor, { sneak }, HZ);
+        assert.deepEqual(actual, characterMotor(profile, surfaces, actor, x, y, speed), `${actor.role}: ${JSON.stringify({ boost, stun, sneak, x, y, position })}`);
+      }
+  } finally { disposePhysics(s); }
 });
 
 test('the match publishes only pinned motor tuning, once; no view repeats it', async () => {

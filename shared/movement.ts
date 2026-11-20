@@ -166,11 +166,12 @@ export function sweptClear(map: CollisionMap, a: Vec2, b: Vec2, radius: World): 
 export const bodyRadius = (p: Pick<Player, 'role'>): World => p.role === 'gladiator' ? 23 : 12;
 /** Movement distance in world units per legacy tick. Scale the base before modifiers to retain
  * the existing floating-point order when a caller needs units per second. */
+export const MOVEMENT_SPEED = Object.freeze({ contestant: 9, gladiator: 8, contestantBoost: 1.45, gladiatorBoost: 1.5, stun: 0.35, sneak: 0.55 });
 export function movementSpeed(p: Pick<Player, 'role' | 'boost' | 'stun'>, input: Pick<PlayerInput, 'sneak'>, unitScale = 1): World {
-  let speed = (p.role === 'contestant' ? 9 : 8) * unitScale;
-  if (p.boost) speed *= p.role === 'contestant' ? 1.45 : 1.5;
-  if (p.stun) speed *= 0.35;
-  if (input.sneak && p.role === 'contestant') speed *= 0.55;
+  let speed = MOVEMENT_SPEED[p.role] * unitScale;
+  if (p.boost) speed *= p.role === 'contestant' ? MOVEMENT_SPEED.contestantBoost : MOVEMENT_SPEED.gladiatorBoost;
+  if (p.stun) speed *= MOVEMENT_SPEED.stun;
+  if (input.sneak && p.role === 'contestant') speed *= MOVEMENT_SPEED.sneak;
   return speed;
 }
 

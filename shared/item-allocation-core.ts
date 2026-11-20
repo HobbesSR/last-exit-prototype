@@ -1,19 +1,27 @@
 import { initCore, type CoreExports } from './core.ts';
-import type { Game, InventoryItem, ItemId, ItemLabel } from './types.ts';
+import type { Game, InventoryItem, ItemAllocator, ItemId, ItemLabel } from './types.ts';
 
-// Item counter ownership after initItemAllocation is Rust's (27, D6). The synchronous
-// setup APIs may run before a core is bound; undefined asks their caller to use its
-// existing setup path. Labels and registry parent layers remain JS compatibility metadata.
+// A game explicitly binds Rust's item counter operations (27, D6). Bare records
+// retain their synchronous setup path regardless of other games' initialization.
+// Labels and registry parent layers remain JS compatibility metadata.
 interface ItemAllocationExports {
   item_allocation_new(): number;
   item_allocation_input(state: number, len: number): number;
   item_allocation_run(state: number): number;
 }
-let bound: { core: CoreExports & ItemAllocationExports; state: number } | undefined;
-let loading: Promise<void> | undefined;
-export const initItemAllocation = (): Promise<void> => loading ??= initCore().then(loaded => {
+interface ItemAllocationBinding {
+  readonly core: CoreExports & ItemAllocationExports;
+  readonly state: number;
+}
+let loading: Promise<ItemAllocator> | undefined;
+export const initItemAllocation = (): Promise<ItemAllocator> => loading ??= initCore().then(loaded => {
   const core = loaded as CoreExports & ItemAllocationExports;
-  bound = { core, state: core.item_allocation_new() >>> 0 };
+  const binding: ItemAllocationBinding = Object.freeze({ core, state: core.item_allocation_new() >>> 0 });
+  return Object.freeze({
+    allocate: (s: Game): ItemId => run(binding, s, 0),
+    ensure: (s: Game, item: InventoryItem): void => { run(binding, s, 1, item); },
+    nextId: (s: Game): ItemId => run(binding, s, 2),
+  });
 });
 
 function labelKnown(s: Game, label: string): boolean {
@@ -32,9 +40,8 @@ function validMetadata(item: InventoryItem): boolean {
 }
 
 /** Mirrors item_allocation.rs's seventeen-word input and sixteen-word output. */
-function run(s: Game, mode: number, item?: InventoryItem): number | undefined {
-  if (!bound) return undefined;
-  const { core, state } = bound;
+function run(binding: ItemAllocationBinding, s: Game, mode: number, item?: InventoryItem): ItemId {
+  const { core, state } = binding;
   const numericSerial = s.itemSerial ?? 1, numericScatter = s.scatterSerial ?? 0;
   const serial = typeof numericSerial === 'number' ? numericSerial : NaN;
   const scatter = typeof numericScatter === 'number' ? numericScatter : NaN;
@@ -72,14 +79,14 @@ function run(s: Game, mode: number, item?: InventoryItem): number | undefined {
     case 4: throw new Error(`Unregistered item identity ${result[9]}`);
     case 5: throw new Error(`Unregistered item identity ${result[10]}`);
   }
-  return result[3];
+  return result[3] as ItemId;
 }
 
-export const allocateInCore = (s: Game): ItemId | undefined => run(s, 0) as ItemId | undefined;
+export const allocateInCore = (s: Game): ItemId | undefined => s.itemAllocator?.allocate(s);
 export function ensureInCore(s: Game, item: InventoryItem): true | undefined {
-  if (!bound) return undefined;
-  run(s, 1, item);
+  if (!s.itemAllocator) return undefined;
+  s.itemAllocator.ensure(s, item);
   return true;
 }
 /** Called after the caller has checked whether the explicit label already exists. */
-export const nextItemIdInCore = (s: Game): ItemId | undefined => run(s, 2) as ItemId | undefined;
+export const nextItemIdInCore = (s: Game): ItemId | undefined => s.itemAllocator?.nextId(s);

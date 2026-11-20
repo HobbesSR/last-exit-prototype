@@ -113,6 +113,11 @@ pub struct Rules {
     pub map_width: f64,
     pub map_height: f64,
     pub hook_cooldown: f64,
+    pub hz: f64,
+    /// contestant, gladiator, their boosts, stun, sneak: movement.ts owns these values.
+    pub movement: [f64; 6],
+    /// health restored, shield restored, shield cap: action-records.ts owns these values.
+    pub utility: [f64; 3],
 }
 pub const MAX_SAFE: f64 = 9007199254740991.0;
 pub fn safe(n: f64) -> bool {
