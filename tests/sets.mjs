@@ -32,7 +32,7 @@ export const SETS = {
   },
   geometry: {
     about: 'shapes, clipping, math and free-space meshes every system shares',
-    fast: ['shape', 'shape-clipping', 'shape-construction', 'math', 'sight-core', 'free-space', 'swept-index', 'map-cell-primitives'],
+    fast: ['shape', 'shape-clipping', 'shape-construction', 'math', 'sight-core', 'core-wasm-audit', 'free-space', 'swept-index', 'map-cell-primitives'],
     browser: ['sight-core'],
     sources: ['shared/shape*.ts', 'shared/math.ts', 'shared/core.ts', 'shared/sight-core.ts', 'shared/sight.ts', 'tests/helpers/float-digest.js', 'tests/helpers/sight-cases.js', 'tools/build-core.mjs', 'rust/core/**', 'shared/free-space.ts', 'shared/vector.ts', 'shared/numbers.ts', 'shared/buckets.ts', 'shared/index-heap.ts'],
   },

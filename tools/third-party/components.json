@@ -62,6 +62,22 @@
       ]
     },
     {
+      "name": "Rapier 2D (rapier2d crate) and its Rust dependencies, compiled into the core's WebAssembly",
+      "version": "0.36.1",
+      "license": "Apache-2.0",
+      "source": "https://github.com/dimforge/rapier (crates.io rapier2d 0.36.1; dependency licences from rust/Cargo.lock and crates.io, docs/21.1)",
+      "delivery": "game",
+      "served": "/shared/core-wasm.generated.ts (the core's WebAssembly, built by tools/build-core.mjs, embedded as base64)",
+      "texts": ["tools/third-party/texts/apache-2.0.txt"],
+      "embeds": [
+        { "name": "Apache-2.0 crates: parry2d 0.31.1, nalgebra 0.35.0, simba 0.10.2, approx 0.5.1; and, each MIT OR Apache-2.0 (or with Zlib as a further choice) and distributed here under Apache-2.0: allocator-api2, arrayvec, bitflags, bytemuck, downcast-rs, either, ena, equivalent, glam, glamx, hashbrown, indexmap, log, matrixmultiply, num-bigint, num-complex, num-integer, num-rational, num-traits, profiling, rawpointer, robust, serde, serde_core, smallvec, spade, static_assertions, thiserror, typenum, wide, and the Rust standard library", "license": "Apache-2.0", "source": "rust/Cargo.lock; licences from crates.io (docs/21.1)", "textRef": "Rapier 2D (rapier2d crate) and its Rust dependencies, compiled into the core's WebAssembly" },
+        { "name": "libm", "version": "0.2.16", "license": "MIT (with musl's MIT notice)", "source": "https://github.com/rust-lang/compiler-builtins (crates.io libm)", "texts": ["tools/third-party/texts/libm.txt"] },
+        { "name": "foldhash", "version": "0.2.0", "license": "Zlib", "source": "https://github.com/orlp/foldhash", "texts": ["tools/third-party/texts/foldhash.txt"] },
+        { "name": "ordered-float", "version": "5.5.1", "license": "MIT", "source": "https://github.com/reem/rust-ordered-float", "texts": ["tools/third-party/texts/ordered-float.txt"] },
+        { "name": "slab", "version": "0.4.12", "license": "MIT", "source": "https://github.com/tokio-rs/slab", "texts": ["tools/third-party/texts/slab.txt"] }
+      ]
+    },
+    {
       "name": "fdlibm 5.3 (sin, cos, atan2 ported in shared/math.ts)",
       "version": "5.3",
       "license": "fdlibm (permissive, notice preserved)",

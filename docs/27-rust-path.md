@@ -290,7 +290,7 @@ the TypeScript to match a library, because that moves the frozen fixture. Every 
     `src/frame.rs` frames both of its connections, and `src/origin.rs` checks origins. `tests/edge.rs` drives it
     with a real `wtransport` client against a fake Node.
   - **The core** holds `src/math.rs`, the port of `shared/math.ts` (#1175). Its tests compute the same digest as
-    `tests/math.test.js`.
+    `tests/math.test.js`. `src/sight.rs` is sight casting, and `src/physics.rs` holds Rapier (#1192).
 - **Lockfile.** `rust/Cargo.lock` is committed, because the workspace builds a binary and a module that ship.
 - **Checks.** `rust/deny.toml` holds the licence policy ([21.1](21.1-third-party-licenses.md#the-rust-workspace)).
   [31](31-verification.md#continuous-integration) lists the checks and what they cost.
@@ -391,11 +391,33 @@ costs 0.03 µs ([42.58](42.58-sight-core-adapter.md)). `shared/physics/world.ts`
 interface, so the adapter batches behind it. Going first also isolates the one decided recapture, and the world
 has to leave JavaScript before the state can.
 
-Two checks the move needs, which the core's own guards do not give (tracked with the move in #1192):
+Two checks the move needs, which the core's own guards do not give. Both were done before any adapter (#1192, first
+PR); the results follow each:
 - **The math guard stops at the crate.** `rust/core/clippy.toml` forbids platform transcendentals and `mul_add` in
   our code only; clippy does not lint dependencies. Rapier and its math crates (`nalgebra`, `parry2d`, and what
   they pull in) must be shown to compile to WASM without platform `sin`/`cos` or fused operations, by their
   feature flags or by inspecting the built module.
+  - **By inspection, because the flags do not settle it.** `glam`, `simba`, `wide` and `num-traits` all carry
+    `mul_add` paths in their source, so what counts is what reaches the module. `tools/core-wasm-audit.mjs` decodes
+    every instruction of the built module, and `tests/core-wasm-audit.test.js` runs it on each test run:
+    - **No imports.** A host's `Math.sin` or a platform libm can only enter through one, and the module has none.
+    - **No SIMD.** WASM's only fused multiply-add is relaxed SIMD's. The module has no `0xFD` instruction, and its
+      target features name none.
+    - **No software fma.** No function named `fma`, `fmaf` or `mul_add` is linked.
+    - **The transcendentals it has are compiled in:** the `libm` crate's `sinf`, `cosf`, `atanf`, `atan2f` and
+      `sincosf`, and the Rust standard library's own libm port (`compiler_builtins`), with `expf` and `log2f`. Being
+      in the module, they give Node and every browser the same bits, as rapier.js's did.
+  - **The features (settled).** Rapier's defaults (2D, `f32`, `std`, the block solver) plus `enhanced-determinism`,
+    which routes `simba`'s and `parry2d`'s math through the `libm` crate. `parallel`, `simd8` and the debug
+    features stay off. `f32` matches rapier.js.
+  - **The version.** `rapier2d` 0.36.1 links `parry2d` 0.31.1 and `nalgebra` 0.35.0, the versions found in rapier.js
+    0.21.0's module (21.1), so the engine is the same generation.
+  - **The probe.** Until the adapter replaces it, `physics::probe` (`physics_probe`) steps a small world using every
+    Rapier feature `world.ts` uses, so their code is in the module the audit reads.
+  - **Its size.** The module grew from about 55 KB to about 1.95 MB (2.6 MB as base64), close to rapier.js's
+    2.4 MB, which the next step retires.
 - **The licence record.** Rapier is Apache-2.0, compatible with the MIT licence, but as a crate it passes
   `cargo deny` and is recorded in [21.1](21.1-third-party-licenses.md#the-rust-workspace), with its dependencies.
   The npm package's record goes when the wrapper does.
+  - **Done.** `cargo deny` passes. One crate, `foldhash`, is Zlib alone, a permissive notice licence, added to the
+    allow-list and recorded in 21.1. The core's WASM has its `components.json` entry.
