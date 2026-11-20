@@ -78,6 +78,8 @@ export interface PhysicsExports {
   physics_sync_items(world: number, collision: number, gates: number): void;
   physics_admit_pending(world: number, index: number, gates: number): void;
   physics_place(world: number, collision: number, gates: number): void;
+  // The drop planner's spiral search (`rust/core/src/scatter.rs`, #1228), driven by `scatterInCore` in boundary.ts.
+  physics_scatter(world: number, collision: number, index: number, gates: number): void;
 }
 
 // The process's one core, bound once, as sight binds it (`shared/sight-core.ts`). Worlds are made

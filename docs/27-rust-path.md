@@ -306,7 +306,7 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
 - **The rest of phase 1** moved in step 5b.3 (#1234), except the hook revalidation and the trap spawns (below).
 - **The item counters stay in TypeScript for now.** Phase 1 allocates no item IDs. `itemSerial` and `scatterSerial`
   are allocated only in phases 3 and 6 (`item-instances.ts`, the drop planner and pickups), so they move into the core
-  with those phases (#1213).
+  with those phases (#1213), starting with the phase 3 loop (5c.2, #1238).
 - **Cost:** [42.63](42.63-phase-one-core-adapter.md). About 1.8 µs a tick: over 42.58's relative budget, because the
   rules are tiny, and about 0.06% of the tick. It is accepted under
   [42.58's state-flip exception](42.58-sight-core-adapter.md#the-budget), which ends with the flip (#1214).
@@ -320,7 +320,9 @@ and the effects' lives, then per player in roster order runs respawn, transit ar
   - #1234: `synchronize`, the pending admission and the landing placement, which retires `NEED_LANDING`, and
     the station clearance, which retires `NEED_STATIONS` with it, so phase 1's yield and resume go in one change
     (Corey, 2026-11-20, on #1233). `prepareHooks` was planned here too but moved to #1229 (step 5b.3, below);
-- #1228: phase 3 with the item counters;
+- #1228: phase 3 with the item counters, in two stages:
+  - 5c.1 (#1228): the drop planner's spiral search, with its loot-body test;
+  - 5c.2 (#1238): the phase 3 loop, the rest of the planner and the item counters;
 - #1229: phase 5, with the swept queries it shares with the hook's revalidation (`prepareHooks`, `reconcileHooks`);
 - #1230: phases 6 and 7.
 
@@ -405,9 +407,31 @@ and landing itself, in one call a tick.
   - the hook's revalidation (`prepareHooks`, `reconcileHooks`). It asks `solidContact`, the swept query that phase 5's
     projectiles and `finishHooks` share, which the core does not have yet. So the hook rules move together with
     phase 5 (#1229). `reconcileHooks` is the sync's last step, so the order is unchanged.
-- **Two copies on purpose:** `physicalDropPlacementClear` keeps its drop-planner caller (`loot.ts`) until phase 3 moves
-  it (#1228). The TypeScript placement search is gone; the parity test keeps it as its reference.
+- **The drop planner's clear test** (`physicalDropPlacementClear`) moved to the core with the spiral search in step 5c.1
+  (#1228). The TypeScript placement search is gone; the parity test keeps it as its reference.
 - **Cost:** [42.67](42.67-boundary-core.md).
+
+**Step 5c.1, the drop planner's spiral search (#1228, adapter version 11).** `rust/core/src/scatter.rs` is `scatterPoint`
+(`shared/simulation/loot.ts`), with the loot-body test `physicalDropPlacementClear` was: 180 spots of the spiral, each
+tested against the map (`can_occupy` at 16), the dropper's reach (`reach_clear`), the listed records and the drop's
+earlier spots (more than 32), then the solid props and the active actors, in the TypeScript's order. `scatterInCore`
+(`shared/simulation/boundary.ts`) is its adapter, one call per search, through the world's boundary input.
+- **Why this seam first.** #1228 held the whole action loop with the planner and item identity, about twice a stage
+  (32, rule 4). The search is what the loop's drops need from the core, and it already has callers in phases 3, 5
+  (elimination's mandatory drops) and 6 (a swap's outgoing drop). The loop, the rest of the planner and the item
+  counters are 5c.2 (#1238); until then `planDrop` and `planAmmoDrop` validate and allocate in JavaScript as before.
+- **Packed per search:** the active actors' disks and only the records within reach of the spiral (372 plus the 32
+  spacing). On the ground list the grid finds them (`itemsNear`); a staged list, a swap's, is filtered whole, as the
+  TypeScript read it whole.
+- **Chosen per game, as sight is.** A game with a physics world searches in the core. A record without one, which is
+  match setup's `seedAmmo` inside `createGameRecord` before `createGame` attaches the world, and tests on bare
+  records, searches in TypeScript, where no body needs room, so that copy has no loot-body test.
+- **Two copies on purpose,** as the roof rule's are: the TypeScript spiral keeps setup's caller. `tests/drop-scatter-core.test.js`
+  holds the core equal to the TypeScript search it replaced, near crates, gates, a prop, actors, ground records and
+  earlier spots, on the ground and on a staged list, and counts cases that the prop test and the actor test each
+  decided. Each of the prop, actor and spacing tests was sabotaged in the core and caught. Giving the spiral one owner
+  again needs setup to run with the core bound.
+- **Cost:** [42.68](42.68-drop-scatter-core.md).
 
 ## One math library on both sides
 

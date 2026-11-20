@@ -17,7 +17,7 @@ import type { CollisionMap, GameMap, Gate, GateId, ItemId, Obstacle, PlayableAre
 //   gate set. They answer scalars, and `tests/collision-core.test.js` holds them equal to the TypeScript,
 //   which keeps its other callers (movement, bots, tools).
 // - **The tick boundary (#1234)** takes the three handles (`queryHandles`) into calls that query them many
-//   times: phase 1, the body sync, the pending admission and the placement search. The mask is written
+//   times: phase 1, the body sync, the pending admission, the placement search and the drop scatter. The mask is written
 //   once per such call.
 // - **Views are made after each call,** because any allocation may grow the memory and detach the
 //   old `memory.buffer`.
