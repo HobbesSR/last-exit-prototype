@@ -270,6 +270,7 @@ in `shared/discovery.ts` is now its adapter, through the game's binding (`shared
 - **The roof rule has two copies on purpose.** `roofAt` keeps JavaScript callers (the fog, projection,
   `simulation/visibility.ts`), so the core's port is held equal to it by `tests/discovery.test.js` ("the core
   reads roofs as roofAt does"), as math is by its digests. `litPoint` stays in `sight.ts` for the fog too.
+  Giving each one owner again, once its callers move, is #1222.
 - **Cost:** [42.62](42.62-discovery-core-adapter.md). The crossing is about 2% of the TypeScript's cost.
 
 ## One math library on both sides
